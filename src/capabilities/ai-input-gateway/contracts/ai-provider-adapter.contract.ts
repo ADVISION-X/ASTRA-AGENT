@@ -44,6 +44,8 @@ export type WebChatAttachmentUploadProof = {
 };
 
 export type WebChatSubmissionProof = {
+  executionId?: string;
+  turnMarker?: string;
   transientConversationUrl: string;
   canonicalConversationUrl: string | null;
   systemChatTitle: string | null;
@@ -53,6 +55,18 @@ export type WebChatSubmissionProof = {
   previousAssistantCount: number;
   previousUserMessageCount: number;
   submittedAt: string;
+};
+
+export type WebChatForkActionProof = {
+  mode: "forked_from_checkpoint";
+  parentConversationUrl: string;
+  parentCheckpointTurnMarker: string;
+  parentCheckpointResponseHash: `sha256:${string}`;
+  forkActionEvidenceRef: string;
+  forkActionEvidenceHash: `sha256:${string}`;
+  childConversationUrl: string;
+  childInitialHistoryFingerprint: `sha256:${string}`;
+  verifiedAt: string;
 };
 
 export type WebChatExecutionContext = {
@@ -66,6 +80,7 @@ export type WebChatExecutionContext = {
   resumeUploadedFiles: AiProviderUploadedFileProof[];
   resumeAttachmentUploadProof: WebChatAttachmentUploadProof | null;
   resumeResponseCheckpoint: WebChatResponseCheckpoint | null;
+  resumeForkActionProof: WebChatForkActionProof | null;
   globalBrowser: BrowserController | null;
   runExclusivePatrol<T>(
     operation: (browser: BrowserController) => Promise<T>,
@@ -81,6 +96,7 @@ export type WebChatExecutionContext = {
     attachmentUploadProof: WebChatAttachmentUploadProof;
   }): Promise<void>;
   onConversationCanonicalized(submission: WebChatSubmissionProof): Promise<void>;
+  onForkActionObserved(proof: WebChatForkActionProof): Promise<void>;
   onResponseCaptured(input: {
     answerText: string;
     pageUrl: string;
@@ -95,6 +111,8 @@ export type AiProviderRawResponse = {
   webChatUrl: string | null;
   continuationActualUrl?: string | null;
   continuationVerified?: boolean | null;
+  forkActionProof?: WebChatForkActionProof | null;
+  submissionProof?: WebChatSubmissionProof | null;
   sourcePageUrlBeforeFeed: string | null;
   restoredSourcePage: boolean | null;
   transportWarnings?: string[];

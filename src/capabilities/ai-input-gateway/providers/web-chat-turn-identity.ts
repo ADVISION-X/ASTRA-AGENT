@@ -92,6 +92,7 @@ const assertFreshConversationTurn = (input: {
   if (
     input.request.providerKind !== "gpt-web-chat"
     || input.request.providerContinuationRef
+    || input.request.providerForkRef
   ) return;
   if (
     input.previousUserMessageCount === 0
@@ -126,12 +127,16 @@ const assertContinuationConversation = (
 };
 
 const buildSubmissionProof = (input: {
+  executionId: string;
+  turnMarker: string;
   observation: TurnIdentityObservation & { userTurnId: string };
   transientConversationUrl: string;
   canonical: boolean;
   previousAssistantCount: number;
   previousUserMessageCount: number;
 }): WebChatSubmissionProof => ({
+  executionId: input.executionId,
+  turnMarker: input.turnMarker,
   transientConversationUrl: input.transientConversationUrl,
   canonicalConversationUrl: input.canonical
     ? input.observation.pageUrl
@@ -177,6 +182,8 @@ export const captureWebChatSubmissionProof = async (input: {
         continue;
       }
       return buildSubmissionProof({
+        executionId: execution.executionId,
+        turnMarker: execution.turnMarker,
         observation: { ...last, userTurnId: last.userTurnId },
         transientConversationUrl: transientConversationUrl ?? last.pageUrl,
         canonical,

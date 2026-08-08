@@ -13,9 +13,20 @@ import type {
 } from "./xuanxue-ai-production.profile.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import {
-  XUANXUE_AI_PRODUCTION_JOB_ID,
+  isXuanxueAiPaidFollowupProduct,
   isXuanxueAiRequiredContinuationProduct,
-  xuanxueAiRequiredContinuationProfiles,
+  isXuanxueAiReusableBaseConsumerProduct,
+  isAllowedXuanxueConversationParent,
+} from "./xuanxue-ai-production-conversation-policy.js";
+import {
+  assertExactFrozenSubjectMatches,
+  assertPersonParentMatches,
+  physicalParentRecord,
+  requireXuanxueStage,
+} from "./xuanxue-ai-production-parent-proof.js";
+export { requireXuanxueStage } from "./xuanxue-ai-production-parent-proof.js";
+import {
+  XUANXUE_AI_PRODUCTION_JOB_ID,
   type XuanxueAiOrderRecord,
   type XuanxueAiProductionOrder,
   type XuanxueAiStageId,
@@ -117,17 +128,6 @@ export const initialXuanxueStages = (
   };
 });
 
-export const requireXuanxueStage = (
-  record: XuanxueAiOrderRecord,
-  stageId: XuanxueAiStageId,
-): XuanxueAiStageRecord => {
-  const stage = record.stages.find((candidate) => candidate.stageId === stageId);
-  if (!stage) {
-    throw new Error(`XUANXUE_AI_PRODUCTION_STAGE_MISSING:${stageId}`);
-  }
-  return stage;
-};
-
 const generatedStageDirectory = (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
@@ -198,82 +198,178 @@ const continuationFor = (
     priorRawOutputHash:
       canonicalXuanxueRawOutputHash(prior.rawOutputHash),
     providerPageUrl,
+    priorTurnMarker: providerTurnMarker(prior.aiFeedResult!.providerProof),
   };
 };
 
-const parentContinuation = async (
+const providerTurnMarker = (
+  proof: AiFeedResult["providerProof"],
+): string => {
+  const marker = proof.forkedFromCheckpointProof?.childFirstTurnMarker
+    ?? proof.sameConversationProof?.newTurnMarker
+    ?? proof.freshConversationProof?.firstTurnMarker;
+  if (!marker) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PROVIDER_TURN_MARKER_MISSING");
+  }
+  return marker;
+};
+
+const requireParentConversationProof = (
   runtime: XuanxueAiProductionRuntime,
   record: XuanxueAiOrderRecord,
-  stage: XuanxueAiStageRecord,
-): Promise<{
-  generated: GeneratedStageInput[];
-  continuation: AiFeedInput["providerContinuationRef"];
-  taskLabel: AiTaskLabelKey;
-} | null> => {
-  const parentRef = record.order.continuationParent;
-  if (!parentRef) return null;
+): {
+  parentStage: XuanxueAiStageRecord;
+  parentRawOutputHash: `sha256:${string}`;
+  providerPageUrl: string;
+  parentMarker: string;
+} => {
+  const parentRef = record.order.conversationParent!;
   const parentOrder = runtime.store.readOrder(parentRef.jobId);
   if (!parentOrder || parentOrder.status !== "completed") {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_ORDER_MISSING");
   }
-  if (
-    isXuanxueAiRequiredContinuationProduct(record.order.productId)
-    && (
-      parentOrder.order.productId
-        !== xuanxueAiRequiredContinuationProfiles[
-          record.order.productId
-        ].productId
-      || parentRef.stageId
-        !== xuanxueAiRequiredContinuationProfiles[
-          record.order.productId
-        ].stageId
-    )
-  ) {
+  if (isXuanxueAiRequiredContinuationProduct(record.order.productId)
+    && !isAllowedXuanxueConversationParent({
+      childProductId: record.order.productId,
+      parentProductId: parentOrder.order.productId,
+      parentStageId: parentRef.stageId,
+    })) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_PROFILE_MISMATCH");
   }
-  const parentStage = requireXuanxueStage(parentOrder, parentRef.stageId);
+  if (isXuanxueAiPaidFollowupProduct(record.order.productId)) {
+    assertExactFrozenSubjectMatches(record, parentOrder);
+  } else if (isXuanxueAiReusableBaseConsumerProduct(record.order.productId)) {
+    const primaryPersonRef = record.order.frozenSubject.primaryPersonRef;
+    if (!primaryPersonRef) {
+      throw new Error("XUANXUE_AI_PRODUCTION_PRIMARY_PERSON_NOT_FROZEN");
+    }
+    assertPersonParentMatches({
+      child: record,
+      parent: parentOrder,
+      personRef: primaryPersonRef,
+    });
+  }
   const rebuild = runtime.store.readParentConversationRebuild({
     parentJobId: parentRef.jobId,
     parentStageId: parentRef.stageId,
     originalRawOutputHash: parentRef.rawOutputHash,
   });
+  const physical = physicalParentRecord({
+    runtime,
+    originalParent: parentOrder,
+    parentRef,
+    rebuild,
+  });
+  const parentStage = physical.stage;
   const parentRawOutputHash = parentStage.rawOutputHash
     ? canonicalXuanxueRawOutputHash(parentStage.rawOutputHash)
     : null;
-  const providerPageUrl =
-    parentStage.aiFeedResult?.providerProof.webChatUrl;
+  const providerPageUrl = parentStage.aiFeedResult?.providerProof.webChatUrl;
   if (
-    parentRawOutputHash
-      !== (rebuild?.rebuiltRawOutputHash ?? parentRef.rawOutputHash)
+    !parentRawOutputHash
+    || parentRawOutputHash !== parentRef.rawOutputHash
     || !providerPageUrl
-    || (
-      rebuild
-      && providerPageUrl !== rebuild.providerPageUrl
-    )
-    || parentStage.status !== "completed"
+    || (rebuild && providerPageUrl !== rebuild.providerPageUrl)
   ) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
   }
+  const parentMarker = providerTurnMarker(parentStage.aiFeedResult!.providerProof);
+  if (rebuild?.rebuiltTurnMarker && parentMarker !== rebuild.rebuiltTurnMarker) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
+  }
+  return { parentStage, parentRawOutputHash, providerPageUrl, parentMarker };
+};
+
+const parentConversation = async (
+  runtime: XuanxueAiProductionRuntime,
+  record: XuanxueAiOrderRecord,
+): Promise<{
+  continuation?: AiFeedInput["providerContinuationRef"];
+  fork?: AiFeedInput["providerForkRef"];
+  taskLabel: AiTaskLabelKey;
+} | null> => {
+  const parentRef = record.order.conversationParent;
+  if (!parentRef) return null;
+  const proof = requireParentConversationProof(runtime, record);
+  const common = {
+    priorTaskId: proof.parentStage.executionId,
+    priorRawOutputHash: proof.parentRawOutputHash,
+    providerPageUrl: proof.providerPageUrl,
+  };
   return {
-    generated: [
-      await writePriorStageInput(
-        runtime,
-        record.order.orderId,
-        stage.stageId,
-        parentStage,
-      ),
-    ],
-    continuation: {
-      priorTaskId: parentStage.executionId,
-      priorRawOutputHash: parentRawOutputHash,
-      providerPageUrl,
-    },
+    ...(parentRef.relation === "same_conversation"
+      ? { continuation: {
+          ...common,
+          priorTurnMarker: proof.parentMarker,
+        } }
+      : { fork: {
+          ...common,
+          checkpointTurnMarker: proof.parentMarker,
+          checkpointResponseHash: proof.parentRawOutputHash,
+          parentConversationScopeRef: parentRef.conversationScopeRef,
+        } }),
     taskLabel: labelForStage(
-      parentOrder.order.productId,
-      parentStage.stageId,
+      record.order.productId,
+      record.stages[0]!.stageId,
     ),
   };
 };
+
+const typedJoinInputs = async (
+  runtime: XuanxueAiProductionRuntime,
+  record: XuanxueAiOrderRecord,
+  stage: XuanxueAiStageRecord,
+): Promise<GeneratedStageInput[]> => Promise.all(
+  record.order.joinParents.map(async (binding) => {
+    const parentOrder = runtime.store.readOrder(binding.jobId);
+    if (!parentOrder || parentOrder.status !== "completed") {
+      throw new Error("XUANXUE_AI_PRODUCTION_JOIN_PARENT_MISSING");
+    }
+    const parentStage = requireXuanxueStage(parentOrder, binding.stageId);
+    assertPersonParentMatches({
+      child: record,
+      parent: parentOrder,
+      personRef: binding.personRef,
+    });
+    const expectedParentProduct = record.order.productId === "hehun_ai_analysis"
+      ? binding.participantRoleCode === "party_a"
+        ? "hehun_canonical_party_a_interpretation"
+        : binding.participantRoleCode === "party_b"
+          ? "hehun_canonical_party_b_interpretation"
+          : null
+      : record.order.productId === "naming_bazi_analysis_and_naming"
+        ? "bazi_canonical_base_interpretation"
+        : null;
+    if (
+      !expectedParentProduct
+      || parentOrder.order.productId !== expectedParentProduct
+      ||
+      parentStage.status !== "completed"
+      || parentStage.executionId !== binding.executionId
+      || parentStage.rawOutputHash !== binding.rawOutputHash
+      || parentOrder.order.conversationScopeRef
+        !== binding.conversationScopeRef
+      || parentOrder.order.frozenSubject.primaryPersonRef
+        !== binding.personRef
+    ) {
+      throw new Error("XUANXUE_AI_PRODUCTION_JOIN_PARENT_PROOF_MISMATCH");
+    }
+    const generated = await writePriorStageInput(
+      runtime,
+      record.order.orderId,
+      stage.stageId,
+      parentStage,
+    );
+    return {
+      ...generated,
+      id: `${generated.id}:participant:${binding.participantSlotRef}`,
+      kind: "typed_participant_private_base",
+      summary:
+        `已按 participant manifest 校验的私有基础解读：`
+        + `${binding.participantRoleCode}/${binding.personRef}`,
+    };
+  }),
+);
 
 export const buildXuanxueAiFeedInput = async (
   runtime: XuanxueAiProductionRuntime,
@@ -290,25 +386,23 @@ export const buildXuanxueAiFeedInput = async (
         requireXuanxueStage(record, stageId),
       )),
   );
+  const joined = await typedJoinInputs(runtime, record, stage);
   const parent = (
     definition.continuationFrom === null
-    || (
-      record.order.productId === "bazi_report_followup"
-      && definition.stageId === "question_analysis"
-    )
+    && record.order.conversationParent !== null
   )
-    ? await parentContinuation(runtime, record, stage)
+    ? await parentConversation(runtime, record)
     : null;
   const continuation = parent?.continuation
     ?? continuationFor(record, definition);
   const taskLabel = parent?.taskLabel
     ?? labelForStage(record.order.productId, stage.stageId);
   const trustedGeneratedFileCount =
-    generated.length + (parent?.generated.length ?? 0);
+    generated.length + joined.length;
   const stageInputs = [
     ...stage.material.inputRefs,
     ...generated,
-    ...(parent?.generated ?? []),
+    ...joined,
   ];
   const inputRefs = stageInputs.some(
     (inputRef) => inputRef.id === record.order.inputBundleRef,
@@ -345,6 +439,8 @@ export const buildXuanxueAiFeedInput = async (
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: record.order.orderId,
     roundId: stage.stageId,
+    conversationScopeRef: record.order.conversationScopeRef,
     ...(continuation ? { providerContinuationRef: continuation } : {}),
+    ...(parent?.fork ? { providerForkRef: parent.fork } : {}),
   };
 };

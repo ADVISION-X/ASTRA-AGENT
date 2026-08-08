@@ -1,7 +1,7 @@
-# GrassEye 玄学 AI 生产工厂施工图 V2
+# GrassEye 玄学 AI 生产工厂施工图 V3
 
 status: construction-blueprint
-version: 2026-08-01
+version: 2026-08-08
 authority: `.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md`
 
 ## Boundary
@@ -27,16 +27,17 @@ AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 | 产品 | 固定图 | 最终阶段 |
 | --- | --- | --- |
 | 八字 canonical base（内部） | `base_interpretation` 独立私有会话 | `base_interpretation` |
-| 八字完整分析 | canonical base 精确会话 → `question_analysis` | `question_analysis` |
-| 八字追问 | 父 `bazi_ai_full_analysis/question_analysis` 会话 → seeded base（零 GPT）→ `question_analysis` | `question_analysis` |
+| 八字命盘解读 | base checkpoint → 独立无问题 child `chart_interpretation` | `chart_interpretation` |
+| 八字完整分析 | base checkpoint → 独立问题 child `question_analysis` | `question_analysis` |
+| 八字追问 | 父 `bazi_chart_interpretation/chart_interpretation` 或 `bazi_ai_full_analysis/question_analysis` 精确会话 → `question_analysis` | `question_analysis` |
 | 奇门专业解答 | `analysis` | `analysis` |
 | 奇门追问 | 父 `qimen_professional_answer/analysis` 会话 → `followup` | `followup` |
 | 合婚 canonical A（内部） | `party_a_interpretation` 独立私有会话 | `party_a_interpretation` |
 | 合婚 canonical B（内部） | `party_b_interpretation` 独立私有会话 | `party_b_interpretation` |
 | 合婚分析 | 两份 canonical 私解 + 双完整命盘 + 全部 READY → 新关系会话 `final_compatibility` | `final_compatibility` |
 | 合婚追问 | 父 `hehun_ai_analysis/final_compatibility` 会话 → `followup` | `followup` |
-| 新命盘起名 | canonical base 精确会话 → `question_analysis → naming_author` | `naming_author` |
-| 已有报告起名 | `naming_author` | `naming_author` |
+| 新命盘起名 | 目标 base checkpoint → 项目 child `question_analysis → naming_author`；辅助人物独立 base 经 typed join 加入 author | `naming_author` |
+| 已有报告起名 | 与源报告不同的 fresh `naming_author` | `naming_author` |
 | 人工准确度追问 | 父 job/stage/hash → 原会话 continuation | `manual_accuracy_challenge` |
 | 定时质量复盘 | 冻结快照 → 独立私有新会话 | `scheduled_quality_reflection` |
 | 付款截图观察 | `payment_screenshot_observation` | 同名阶段 |
@@ -45,8 +46,9 @@ AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少一个或顺序错误都在 GPT 前失败。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
 和前序回答文件。零附件阶段因此仍有非空输入证明；上传计数只看带 `filePath` 的真实文件。
-同一订单后继节点的 `continuationFrom` 必须指向紧邻的上一节点；跨订单的八字结果必须
-携带 canonical parent 并打开其精确 URL。所有解析到同一个 `webChatUrl` 的订单和 stage
+同一订单依法同会话的后继节点，其 `continuationFrom` 必须指向紧邻的上一节点；跨订单的
+BZ05、BZ03、NM01 必须携带 immutable base checkpoint 并由 Gateway 执行真实 provider fork。
+所有解析到同一个 `webChatUrl` 的订单和 stage
 共用同一 FIFO 车道。合婚 A、B canonical 私解和关系综合是三个明确定义的独立上下文，
 profile 不得把它们串成旧的单聊天三调用图。
 
@@ -56,7 +58,7 @@ profile 不得把它们串成旧的单聊天三调用图。
 
 三类付费追问必须在本地打开 GPT 前完成父订单、固定最终阶段、raw output hash 与原设备
 核验。原 `webChatUrl` 可用时直接续接；原会话或本地父账本丢失时，使用子 lease 绑定的
-`continuation_parent_replay` 下载原父材料，从第一阶段完整重放父 profile，形成并持久记录
+`conversation_parent_replay` 下载原父材料，从第一阶段按原冻结主体与原拓扑重放父 profile，形成并持久记录
 重建父聊天，然后才发送追问。没有“空白新建追问聊天后把父报告当附件”的兼容路径。
 
 ## Production Window
@@ -149,7 +151,7 @@ SQLite JSON 的对象字段必须先 canonicalize 再比较，字段排列顺序
 父身份有效但 provider 父聊天不可恢复时执行灾难重放：
 
 ```txt
-子订单 claim 携带 continuation_parent_replay
+子订单 claim 携带 conversation_parent_replay
 → 本地重建父订单
 → 父 profile 从第一阶段完整执行
 → 记录 original hash → rebuilt hash + rebuilt GPT URL
@@ -197,7 +199,7 @@ GPT 回答含私用区字符、`filecite` 等内部引用残留、乱码替代�
 device heartbeat
 → durable local/cloud reconciliation
 → claim(limit = remaining local capacity)
-→ lease-bound child + continuation_parent_replay material download
+→ lease-bound child + conversation_parent_replay material download
 → missing parent local ledger rehydration
 → local order create/reuse
 → factory_running checkpoint
@@ -205,7 +207,7 @@ device heartbeat
 → one whole-order result or bounded failure
 ```
 
-协议固定 `xuanxue-ai-production-v2`。活动创建、领取和恢复不接受 v1。SQLite 启动迁移只处理
+协议固定 `xuanxue-ai-production-v3`。活动创建、领取和恢复不接受 v1/v2。SQLite 启动迁移只处理
 已终态 v1：逐阶段重算原始回答 hash、保留 URL/proof、为文本阶段补 `outputKind=text` 与空
 artifact 数组并记录迁移前后 hash；任何活动 v1 或字节/hash 不一致使启动失败，不建双轨。
 一次性 `xuanxue-ai-production:v1-drain` 只以原设备凭证查询绑定 job 的 `job_id/status`，把云端
@@ -241,10 +243,12 @@ src/plugins/xuanxue-ai-production/
 
 ## Acceptance
 
-- 证明八个网站产品与三个 canonical base 内部动作的精确 stage graph。
-- 证明 canonical base 消费者继续精确 base URL，且同一 URL 的不同 job 严格 FIFO。
+- 证明九个网站 AI 产品与三个 private base 内部动作的精确 stage graph。
+- 证明 BZ05、BZ03、NM01 从同一 base checkpoint 得到彼此不同的真实 child URL，兄弟 child 可并发且问题不互漏。
+- 证明 `fresh | same_conversation | forked_from_checkpoint` 三态均有 provider 动作回执、marker、URL、hash 和 execution/scope 对账；不支持精确 fork 时失败关闭。
 - 证明合婚甲方、乙方私解可独立并发、各自完整上传语料，关系总论使用第三个新会话并带两份原始回答。
-- 证明新命盘起名的问题与起名阶段共享 canonical base 的精确 GPT URL。
+- 证明新命盘起名的 `question_analysis` 与 `naming_author` 共享 NM01 项目 child，而不是 base URL；一个 target 加至少四个辅助人物各有独立 base，author 只收到 typed participant manifest。
+- 证明 NM02 使用与源报告不同的 fresh 会话；BZ04 使用所选 BZ05/BZ03 父分支的同一会话。
 - 证明同一 stable canonical identity 的重复订单只执行一次，用户问题与关系综合绝不复用。
 - 证明 10 张在制整单时第 11 张等待，释放后才进入。
 - 证明 order/source task 幂等冲突在投喂前失败。

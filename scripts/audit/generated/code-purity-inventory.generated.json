@@ -1,5 +1,46 @@
 {
-  "generatedAt": "2026-08-03T21:23:51.656Z",
-  "itemCount": 0,
-  "items": []
+  "generatedAt": "2026-08-08T07:31:26.467Z",
+  "itemCount": 4,
+  "items": [
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "acceptance",
+      "reason": "Function near line 145 breaks function budget: physical line count 89 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "acceptance-smoke",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "acceptance",
+      "reason": "Function near line 235 breaks function budget: physical line count 82 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "acceptance-smoke",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "acceptance",
+      "reason": "active executable source file has 501 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "acceptance-smoke",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-red-line",
+      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:xuanxue-ai-production",
+      "reason": "active executable source file has 551 lines and exceeds red line 500.",
+      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    }
+  ]
 }

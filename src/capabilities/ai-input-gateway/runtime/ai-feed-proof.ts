@@ -31,22 +31,100 @@ const writeRawOutput = async (input: {
   return filePath;
 };
 
-const conversationProof = (
-  request: AiFeedInput,
-  response: Partial<AiProviderRawResponse>,
-): Pick<AiFeedProviderProof,
-  "webChatUrl" | "continuationPriorTaskId" | "continuationPriorRawOutputHash"
+type ConversationProof = Pick<AiFeedProviderProof,
+  "conversationMode" | "conversationScopeRef" | "freshConversationProof"
+  | "sameConversationProof" | "forkedFromCheckpointProof"
+  | "webChatUrl" | "continuationPriorTaskId" | "continuationPriorRawOutputHash"
   | "continuationRequestedUrl" | "continuationActualUrl" | "continuationVerified"
   | "webChatWorkspaceId" | "providerTabPolicy" | "providerRecoveryAttemptCount"
   | "providerRecoveryStatus" | "staleConversationCleanupStatus"
   | "staleConversationHistoryCleanupStatus" | "sourcePageUrlBeforeFeed" | "restoredSourcePage"
+>;
+
+const freshConversationProof = (
+  mode: ConversationProof["conversationMode"],
+  response: Partial<AiProviderRawResponse>,
+): AiFeedProviderProof["freshConversationProof"] => {
+  const submission = response.submissionProof ?? null;
+  if (mode !== "fresh" || !submission?.executionId || !submission.turnMarker
+    || submission.previousUserMessageCount !== 0
+    || submission.previousAssistantCount !== 0) return null;
+  return {
+    preSubmitUserTurnCount: 0,
+    preSubmitAssistantTurnCount: 0,
+    continuationParent: null,
+    forkParent: null,
+    firstTurnMarker: submission.turnMarker,
+    createdConversationUrl: submission.canonicalConversationUrl
+      ?? submission.transientConversationUrl,
+    createdByExecutionId: submission.executionId,
+    verifiedAt: submission.submittedAt,
+  };
+};
+
+const sameConversationProof = (
+  request: AiFeedInput,
+  response: Partial<AiProviderRawResponse>,
+): AiFeedProviderProof["sameConversationProof"] => {
+  const submission = response.submissionProof;
+  const parent = request.providerContinuationRef;
+  if (!parent || !submission?.turnMarker || response.continuationVerified !== true) return null;
+  return {
+    parentConversationUrl: parent.providerPageUrl,
+    parentRawOutputHash: parent.priorRawOutputHash,
+    actualConversationUrl: submission.canonicalConversationUrl
+      ?? submission.transientConversationUrl,
+    priorTurnMarker: parent.priorTurnMarker ?? null,
+    newTurnMarker: submission.turnMarker,
+    continuationVerifiedAt: submission.submittedAt,
+  };
+};
+
+const forkedConversationProof = (
+  response: Partial<AiProviderRawResponse>,
+): AiFeedProviderProof["forkedFromCheckpointProof"] => {
+  const fork = response.forkActionProof;
+  const submission = response.submissionProof;
+  const actualUrl = submission?.canonicalConversationUrl
+    ?? submission?.transientConversationUrl;
+  if (!fork || !submission?.turnMarker || actualUrl !== fork.childConversationUrl) return null;
+  return {
+    parentConversationUrl: fork.parentConversationUrl,
+    parentCheckpointTurnMarker: fork.parentCheckpointTurnMarker,
+    parentCheckpointResponseHash: fork.parentCheckpointResponseHash,
+    forkActionEvidenceRef: fork.forkActionEvidenceRef,
+    forkActionEvidenceHash: fork.forkActionEvidenceHash,
+    childConversationUrl: fork.childConversationUrl,
+    childInitialHistoryFingerprint: fork.childInitialHistoryFingerprint,
+    childFirstTurnMarker: submission.turnMarker,
+    verifiedAt: submission.submittedAt,
+  };
+};
+
+const conversationLineage = (
+  request: AiFeedInput,
+  response: Partial<AiProviderRawResponse>,
+): Pick<ConversationProof,
+  "conversationScopeRef" | "webChatUrl" | "continuationPriorTaskId"
+  | "continuationPriorRawOutputHash" | "continuationRequestedUrl"
+  | "continuationActualUrl" | "continuationVerified"
 > => ({
+  conversationScopeRef: request.conversationScopeRef ?? null,
   webChatUrl: response.webChatUrl ?? null,
   continuationPriorTaskId: request.providerContinuationRef?.priorTaskId ?? null,
   continuationPriorRawOutputHash: request.providerContinuationRef?.priorRawOutputHash ?? null,
   continuationRequestedUrl: request.providerContinuationRef?.providerPageUrl ?? null,
   continuationActualUrl: response.continuationActualUrl ?? null,
   continuationVerified: response.continuationVerified ?? null,
+});
+
+const conversationRecovery = (
+  response: Partial<AiProviderRawResponse>,
+): Pick<ConversationProof,
+  "webChatWorkspaceId" | "providerTabPolicy" | "providerRecoveryAttemptCount"
+  | "providerRecoveryStatus" | "staleConversationCleanupStatus"
+  | "staleConversationHistoryCleanupStatus" | "sourcePageUrlBeforeFeed" | "restoredSourcePage"
+> => ({
   webChatWorkspaceId: response.webChatWorkspaceId ?? null,
   providerTabPolicy: response.providerTabPolicy ?? null,
   providerRecoveryAttemptCount: response.providerRecoveryAttemptCount ?? null,
@@ -56,6 +134,25 @@ const conversationProof = (
   sourcePageUrlBeforeFeed: response.sourcePageUrlBeforeFeed ?? null,
   restoredSourcePage: response.restoredSourcePage ?? null,
 });
+
+const conversationProof = (
+  request: AiFeedInput,
+  response: Partial<AiProviderRawResponse>,
+): ConversationProof => {
+  const mode = request.providerForkRef
+    ? "forked_from_checkpoint"
+    : request.providerContinuationRef ? "same_conversation" : "fresh";
+  return {
+    conversationMode: mode,
+    ...conversationLineage(request, response),
+    freshConversationProof: freshConversationProof(mode, response),
+    sameConversationProof: mode === "same_conversation"
+      ? sameConversationProof(request, response) : null,
+    forkedFromCheckpointProof: mode === "forked_from_checkpoint"
+      ? forkedConversationProof(response) : null,
+    ...conversationRecovery(response),
+  };
+};
 
 const uploadProof = (
   inputPackage: AiFeedInputPackage,
@@ -103,6 +200,29 @@ const buildProviderProof = (input: {
   estimatedOutputTokens: input.response.estimatedOutputTokens ?? null,
   tokenEstimateUnavailableReason: input.response.tokenEstimateUnavailableReason ?? null,
 });
+
+const assertWebChatConversationProof = (input: {
+  request: AiFeedInput;
+  response: AiProviderRawResponse;
+  providerProof: AiFeedProviderProof;
+}): void => {
+  if (input.response.transport !== "web-chat") return;
+  const expectedMode = input.request.providerForkRef
+    ? "forked_from_checkpoint"
+    : input.request.providerContinuationRef
+      ? "same_conversation"
+      : "fresh";
+  const exactProof = expectedMode === "forked_from_checkpoint"
+    ? input.providerProof.forkedFromCheckpointProof
+    : expectedMode === "same_conversation"
+      ? input.providerProof.sameConversationProof
+      : input.providerProof.freshConversationProof;
+  if (input.providerProof.conversationMode !== expectedMode || !exactProof) {
+    throw new Error(
+      `AI_INPUT_GATEWAY_CONVERSATION_TOPOLOGY_PROOF_MISSING:${expectedMode}`,
+    );
+  }
+};
 
 const buildSuccessResult = (input: {
   request: AiFeedInput;
@@ -159,6 +279,18 @@ export const buildAiFeedSuccess = async (input: {
   });
   const outputHash = hashValue(input.response.rawText);
   const endedAt = new Date().toISOString();
+  const providerProof = buildProviderProof({
+    ...input,
+    rawOutputRef,
+    outputHash,
+    endedAt,
+    durationMs: Date.parse(endedAt) - Date.parse(input.startedAt),
+  });
+  assertWebChatConversationProof({
+    request: input.request,
+    response: input.response,
+    providerProof,
+  });
   return buildSuccessResult({
     ...input,
     rawOutputRef,
@@ -167,13 +299,7 @@ export const buildAiFeedSuccess = async (input: {
     transportWarnings: input.response.transportWarnings ?? [],
     outputKind: input.request.expectedOutputKind,
     outputArtifacts: input.response.outputArtifacts ?? [],
-    providerProof: buildProviderProof({
-      ...input,
-      rawOutputRef,
-      outputHash,
-      endedAt,
-      durationMs: Date.parse(endedAt) - Date.parse(input.startedAt),
-    }),
+    providerProof,
   });
 };
 

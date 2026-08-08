@@ -27,6 +27,8 @@ const webChatSharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-
 const webChatRecoveryPath = "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts";
 const webChatResponseCapturePath = "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts";
 const webChatSharedSupportPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts";
+const webChatSubmitAttachmentVerificationPath =
+  "src/capabilities/ai-input-gateway/providers/web-chat-submit-attachment-verification.ts";
 const webChatPick3HistoryCleanupPath = "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts";
 const playbookPaths = ["src/plugins/pick3-is-blind-eval/playbooks/system.md", "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md"];
 for (const removedPositionPlaybookPath of ["src/plugins/pick3-is-blind-eval/playbooks/is_hundreds_l80_v1.md", "src/plugins/pick3-is-blind-eval/playbooks/is_tens_l80_v1.md", "src/plugins/pick3-is-blind-eval/playbooks/is_ones_l80_v1.md"]) {
@@ -50,6 +52,7 @@ assert.equal(existsSync(fromRepo(webChatWorkspacePath)), true);
 assert.equal(existsSync(fromRepo(webChatSharedPath)), true);
 assert.equal(existsSync(fromRepo(webChatRecoveryPath)), true);
 assert.equal(existsSync(fromRepo(webChatSharedSupportPath)), true);
+assert.equal(existsSync(fromRepo(webChatSubmitAttachmentVerificationPath)), true);
 assert.equal(existsSync(fromRepo(webChatPick3HistoryCleanupPath)), true);
 for (const playbookPath of playbookPaths) assert.equal(existsSync(fromRepo(playbookPath)), true, `${playbookPath} must exist`);
 assert.equal(existsSync(fromRepo(misplacedLawPath)), false);
@@ -162,7 +165,10 @@ assert.equal(webChatRecoveryLogText.includes("querySelectorAll('[role=\"dialog\"
 assert.equal(webChatRecoveryLogText.includes("node.innerText"), true, "rate limit popup detection must use visible text");
 assert.equal(webChatRecoveryLogText.includes("console."), false, "must use process.stdout.write, not console");
 assert.equal(webChatRecoveryLogText.includes("process.stdout.write"), true, "terminal stdout is mandatory — must write to process.stdout");
-const webChatSubmitText = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts");
+const webChatSubmitText = [
+  readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts"),
+  readRepoText(webChatSubmitAttachmentVerificationPath),
+].join("\n");
 for (const token of ["acknowledgeChatGptSubmitRateLimitIfVisible", "acknowledgePick3RateLimitIfVisible", 'promptContractId.includes("pick3-is-blind-eval")']) assert.equal(webChatSubmitText.includes(token), true, `submit waits must include current Pick3 rate-limit guard ${token}`);
 assert.equal(webChatSubmitText.includes("acknowledgePick3SubmitRateLimitIfVisible"), false, "submit waits must not restore the removed duplicate Pick3 wrapper");
 const webChatSharedTextForRateLimit = readRepoText("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts");

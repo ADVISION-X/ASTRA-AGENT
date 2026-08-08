@@ -6,9 +6,50 @@ import {
 } from "./xuanxue-ai-production.schema.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
-  "xuanxue-ai-production-v2" as const;
+  "xuanxue-ai-production-v3" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+
+const CloudFrozenSubjectSchema = z.object({
+  privacy_owner_ref: z.string().min(1),
+  snapshot_ref: z.string().min(1),
+  snapshot_hash: hashSchema,
+  case_revision_ref: z.string().min(1),
+  primary_person_ref: z.string().min(1).nullable(),
+  participant_manifest_hash: hashSchema,
+  participants: z.array(z.object({
+    slot_ref: z.string().min(1),
+    role_code: z.string().min(1),
+    person_ref: z.string().min(1),
+    profile_version_ref: z.string().min(1),
+    chart_state_ref: z.string().min(1),
+    chart_state_version: z.string().min(1),
+    chart_state_hash: hashSchema,
+    purpose_code: z.string().min(1),
+    authorization_receipt_ref: z.string().min(1),
+  }).strict()).min(1).max(32),
+}).strict();
+
+const CloudConversationParentSchema = z.object({
+  relation: z.enum(["same_conversation", "forked_from_checkpoint"]),
+  job_id: z.string().min(1),
+  stage_id: XuanxueAiStageIdSchema,
+  execution_id: z.string().min(1),
+  raw_output_hash: hashSchema,
+  input_bundle_hash: hashSchema,
+  conversation_scope_ref: z.string().min(1),
+}).strict();
+
+const CloudJoinParentSchema = z.object({
+  participant_slot_ref: z.string().min(1),
+  participant_role_code: z.string().min(1),
+  person_ref: z.string().min(1),
+  job_id: z.string().min(1),
+  stage_id: XuanxueAiStageIdSchema,
+  execution_id: z.string().min(1),
+  raw_output_hash: hashSchema,
+  conversation_scope_ref: z.string().min(1),
+}).strict();
 
 export const XuanxueAiProductionCloudInputSchema = z.object({
   input_id: z.string().min(1),
@@ -45,7 +86,7 @@ const CloudSeededStageSchema = z.object({
   transport_warnings: z.array(z.string()),
 }).strict();
 
-const CloudParentReplaySchema = z.object({
+const cloudReplayOrderShape = {
   job_id: z.string().min(1),
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
@@ -57,12 +98,49 @@ const CloudParentReplaySchema = z.object({
   input_bundle_ref: z.string().min(1),
   input_bundle_hash: hashSchema,
   request_hash: hashSchema,
+  frozen_subject: CloudFrozenSubjectSchema,
+  conversation_scope_ref: z.string().min(1),
   seeded_stages: z.array(CloudSeededStageSchema).max(4),
   materials: z.array(CloudStageMaterialSchema).min(1).max(4),
   created_at: z.string().min(1),
+} as const;
+
+const CloudDependencyReplaySchema = z.object({
+  ...cloudReplayOrderShape,
+  conversation_parent: z.null(),
+  join_parents: z.tuple([]),
 }).strict();
 
-export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
+const CloudParentReplaySchema = z.object({
+  ...cloudReplayOrderShape,
+  conversation_parent: CloudConversationParentSchema.nullable(),
+  join_parents: z.array(CloudJoinParentSchema).max(32),
+  dependency_replays: z.array(CloudDependencyReplaySchema).max(32),
+}).strict().superRefine((replay, context) => {
+  const requiredIds = [
+    ...(replay.conversation_parent
+      ? [replay.conversation_parent.job_id]
+      : []),
+    ...replay.join_parents.map((parent) => parent.job_id),
+  ];
+  const providedIds = replay.dependency_replays.map(
+    (dependency) => dependency.job_id,
+  );
+  if (
+    new Set(requiredIds).size !== requiredIds.length
+    || new Set(providedIds).size !== providedIds.length
+    || requiredIds.length !== providedIds.length
+    || requiredIds.some((jobId) => !providedIds.includes(jobId))
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_GRAPH_INCOMPLETE",
+      path: ["dependency_replays"],
+    });
+  }
+});
+
+const cloudClaimIdentityShape = {
   protocol_version: z.literal(
     XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
   ),
@@ -78,15 +156,20 @@ export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
   input_bundle_ref: z.string().min(1),
   input_bundle_hash: hashSchema,
   request_hash: hashSchema,
-  continuation_parent: z.object({
-    job_id: z.string().min(1),
-    stage_id: XuanxueAiStageIdSchema,
-    raw_output_hash: hashSchema,
-  }).strict().nullable().default(null),
+  frozen_subject: CloudFrozenSubjectSchema,
+  conversation_scope_ref: z.string().min(1),
+} as const;
+
+const cloudClaimConversationShape = {
+  conversation_parent: CloudConversationParentSchema.nullable(),
+  join_parents: z.array(CloudJoinParentSchema).max(32),
   seeded_stages: z.array(CloudSeededStageSchema).max(4).default([]),
-  continuation_parent_replay: CloudParentReplaySchema.nullable(),
+  conversation_parent_replay: CloudParentReplaySchema.nullable(),
   execution_lane: z.literal("supervised_local_gpt_web"),
   materials: z.array(CloudStageMaterialSchema).min(1).max(4),
+} as const;
+
+const cloudClaimLeaseShape = {
   status: z.literal("leased"),
   lease_owner: z.string().min(1),
   lease_expires_at: z.string().min(1),
@@ -97,26 +180,32 @@ export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
   updated_at: z.string().min(1),
   lease_token: z.string().min(1),
   lease_version: z.number().int().positive(),
+} as const;
+
+export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
+  ...cloudClaimIdentityShape,
+  ...cloudClaimConversationShape,
+  ...cloudClaimLeaseShape,
 }).strict().superRefine((job, context) => {
   if (
-    Boolean(job.continuation_parent)
-    !== Boolean(job.continuation_parent_replay)
+    Boolean(job.conversation_parent)
+    !== Boolean(job.conversation_parent_replay)
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_REQUIRED",
-      path: ["continuation_parent_replay"],
+      path: ["conversation_parent_replay"],
     });
   }
   if (
-    job.continuation_parent
-    && job.continuation_parent_replay?.job_id
-      !== job.continuation_parent.job_id
+    job.conversation_parent
+    && job.conversation_parent_replay?.job_id
+      !== job.conversation_parent.job_id
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_IDENTITY_INVALID",
-      path: ["continuation_parent_replay", "job_id"],
+      path: ["conversation_parent_replay", "job_id"],
     });
   }
 });

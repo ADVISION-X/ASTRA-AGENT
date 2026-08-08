@@ -4,6 +4,7 @@ import type {
   AiProviderRawResponse,
   AiProviderUploadedFileProof,
   WebChatAttachmentUploadProof,
+  WebChatForkActionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
@@ -121,6 +122,47 @@ export const requireBrowser = (context: AiProviderAdapterContext): BrowserContro
   return context.browser;
 };
 
+const continuationVerified = (input: {
+  request: AiFeedInput;
+  providerUrl: string;
+  extracted: WebChatEvaluation;
+}): boolean | null => {
+  if (!input.request.providerContinuationRef) return null;
+  const requested = new URL(input.request.providerContinuationRef.providerPageUrl);
+  const actual = new URL(input.extracted.pageUrl ?? input.providerUrl);
+  return requested.origin === actual.origin && requested.pathname === actual.pathname;
+};
+
+const normalizedForkProof = (input: {
+  forkActionProof?: AiProviderRawResponse["forkActionProof"];
+  submissionProof?: AiProviderRawResponse["submissionProof"];
+}): WebChatForkActionProof | null => {
+  if (!input.forkActionProof) return null;
+  if (
+    input.submissionProof
+    && input.submissionProof.transientConversationUrl
+      !== input.forkActionProof.childConversationUrl
+  ) {
+    throw new Error(
+      "review_required: CHATGPT_FORK_CHILD_CONVERSATION_DRIFT_BEFORE_SUBMISSION",
+    );
+  }
+  const submittedUrl = input.submissionProof?.canonicalConversationUrl
+    ?? input.submissionProof?.transientConversationUrl;
+  return submittedUrl
+    ? { ...input.forkActionProof, childConversationUrl: submittedUrl }
+    : input.forkActionProof;
+};
+
+const providerTabPolicy = (
+  request: AiFeedInput,
+  managedParallelExecution: boolean | undefined,
+): Exclude<AiProviderRawResponse["providerTabPolicy"], undefined> => managedParallelExecution
+  ? "single-controlled-tab-named-chat-polling"
+  : resolveWebChatWorkspaceId(request)
+    ? "reuse-single-provider-workspace-tab"
+    : "provider-default-tab-policy";
+
 export const buildWebChatRawResponse = (input: {
   request: AiFeedInput;
   runtimeName: string;
@@ -133,13 +175,12 @@ export const buildWebChatRawResponse = (input: {
   outputRefs?: string[];
   outputArtifacts?: AiProviderRawResponse["outputArtifacts"];
   managedParallelExecution?: boolean;
-}): AiProviderRawResponse => ({
+  forkActionProof?: AiProviderRawResponse["forkActionProof"];
+  submissionProof?: AiProviderRawResponse["submissionProof"];
+}): AiProviderRawResponse => {
+  return ({
   webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
-  providerTabPolicy: input.managedParallelExecution
-    ? "single-controlled-tab-named-chat-polling"
-    : resolveWebChatWorkspaceId(input.request)
-    ? "reuse-single-provider-workspace-tab"
-    : "provider-default-tab-policy",
+  providerTabPolicy: providerTabPolicy(input.request, input.managedParallelExecution),
   providerRecoveryAttemptCount: null,
   providerRecoveryStatus: null,
   staleConversationCleanupStatus: null,
@@ -150,13 +191,9 @@ export const buildWebChatRawResponse = (input: {
   transport: "web-chat",
   webChatUrl: input.extracted.pageUrl ?? input.providerUrl,
   continuationActualUrl: input.request.providerContinuationRef ? input.extracted.pageUrl ?? input.providerUrl : null,
-  continuationVerified: input.request.providerContinuationRef
-    ? (() => {
-        const requested = new URL(input.request.providerContinuationRef.providerPageUrl);
-        const actual = new URL(input.extracted.pageUrl ?? input.providerUrl);
-        return requested.origin === actual.origin && requested.pathname === actual.pathname;
-      })()
-    : null,
+  continuationVerified: continuationVerified(input),
+  forkActionProof: normalizedForkProof(input),
+  submissionProof: input.submissionProof ?? null,
   sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
   restoredSourcePage: null,
   uploadedFiles: input.uploadedFiles ?? [],
@@ -166,7 +203,8 @@ export const buildWebChatRawResponse = (input: {
   estimatedInputTokens: null,
   estimatedOutputTokens: null,
   tokenEstimateUnavailableReason: "web chat token estimates are unavailable.",
-});
+  });
+};
 
 export const persistWorkspaceAfterResponse = (input: {
   request: AiFeedInput;

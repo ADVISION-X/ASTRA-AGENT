@@ -116,80 +116,93 @@ const buildCheckpointTitleRenameState = (
   };
 };
 
+const assertBinding = (
+  input: BuildExecutionContextInput,
+  submission: Parameters<WebChatExecutionContext["onConversationCanonicalized"]>[0],
+): Promise<void> => assertWebChatCanonicalConversationBinding({
+  dataDir: input.source.dataDir,
+  executionId: input.getRecord().executionId,
+  providerKind: input.getRecord().providerKind,
+  canonicalConversationUrl: submission.canonicalConversationUrl,
+  continuationConversationUrl: input.source.request.providerContinuationRef?.providerPageUrl ?? null,
+});
+
+const buildSubmissionObservedCallback = (
+  input: BuildExecutionContextInput,
+  update: ExecutionUpdater,
+): WebChatExecutionContext["onSubmissionObserved"] => async (observed) => {
+  await assertBinding(input, observed.submission);
+  await update({
+    status: observed.submission.canonicalConversationUrl
+      ? "conversation_canonicalized" : "submitted_transient",
+    submission: observed.submission,
+    uploadedFiles: observed.uploadedFiles,
+    attachmentUploadProof: observed.attachmentUploadProof,
+  });
+  input.singleTabBrowser?.bindObservedConversation(observed.submission);
+};
+
+const buildSubmittedCallback = (
+  input: BuildExecutionContextInput,
+  update: ExecutionUpdater,
+): WebChatExecutionContext["onSubmitted"] => async (observed) => {
+  await assertBinding(input, observed.submission);
+  await update({
+    status: observed.submission.canonicalConversationUrl
+      ? "conversation_canonicalized" : "submitted_transient",
+    submission: observed.submission,
+    uploadedFiles: observed.uploadedFiles,
+    attachmentUploadProof: observed.attachmentUploadProof,
+  });
+  await update({ status: "waiting_provider" });
+  input.singleTabBrowser?.bindConversationIdentity(observed.submission);
+  await input.singleTabBrowser?.releaseInitialMutationLease();
+  input.releasePendingSubmission();
+  await input.source.onAttachmentUploadCompleted?.(observed.attachmentUploadProof);
+  await reportProgress(input.source, "waiting_provider");
+};
+
+const buildCanonicalizedCallback = (
+  input: BuildExecutionContextInput,
+  update: ExecutionUpdater,
+): WebChatExecutionContext["onConversationCanonicalized"] => async (submission) => {
+  await assertBinding(input, submission);
+  const record = input.getRecord();
+  const current = record.submission;
+  await update({
+    status: record.responseCheckpoint ? "response_checkpointed" : "conversation_canonicalized",
+    submission: current ? {
+      ...submission,
+      systemChatTitle: submission.systemChatTitle ?? current.systemChatTitle,
+      observedAutoChatTitle: submission.observedAutoChatTitle ?? current.observedAutoChatTitle,
+      chatTitleVerifiedAt: submission.chatTitleVerifiedAt ?? current.chatTitleVerifiedAt,
+      submittedAt: current.submittedAt,
+    } : submission,
+    forkActionProof: record.forkActionProof && submission.canonicalConversationUrl ? {
+      ...record.forkActionProof,
+      childConversationUrl: submission.canonicalConversationUrl,
+    } : record.forkActionProof,
+    chatTitleRename: submission.chatTitleVerifiedAt
+      ? buildVerifiedTitleRenameState(record, submission.chatTitleVerifiedAt)
+      : record.chatTitleRename,
+  });
+};
+
 const buildSubmissionCallbacks = (
   input: BuildExecutionContextInput,
   update: ExecutionUpdater,
-): Pick<WebChatExecutionContext, "onSubmissionObserved" | "onSubmitted" | "onConversationCanonicalized"> => {
-  const assertBinding = (
-    submission: Parameters<WebChatExecutionContext["onConversationCanonicalized"]>[0],
-  ): Promise<void> =>
-    assertWebChatCanonicalConversationBinding({
-      dataDir: input.source.dataDir,
-      executionId: input.getRecord().executionId,
-      providerKind: input.getRecord().providerKind,
-      canonicalConversationUrl: submission.canonicalConversationUrl,
-      continuationConversationUrl: input.source.request.providerContinuationRef?.providerPageUrl ?? null,
-    });
-  return {
-  onSubmissionObserved: async ({ submission, uploadedFiles, attachmentUploadProof }) => {
-    await assertBinding(submission);
-    await update({
-      status: submission.canonicalConversationUrl
-        ? "conversation_canonicalized"
-        : "submitted_transient",
-      submission,
-      uploadedFiles,
-      attachmentUploadProof,
-    });
-    input.singleTabBrowser?.bindObservedConversation(submission);
-  },
-  onSubmitted: async ({ submission, uploadedFiles, attachmentUploadProof }) => {
-    await assertBinding(submission);
-    await update({
-      status: submission.canonicalConversationUrl
-        ? "conversation_canonicalized"
-        : "submitted_transient",
-      submission,
-      uploadedFiles,
-      attachmentUploadProof,
-    });
-    await update({ status: "waiting_provider" });
-    input.singleTabBrowser?.bindConversationIdentity(submission);
-    await input.singleTabBrowser?.releaseInitialMutationLease();
-    input.releasePendingSubmission();
-    await input.source.onAttachmentUploadCompleted?.(attachmentUploadProof);
-    await reportProgress(input.source, "waiting_provider");
-  },
-  onConversationCanonicalized: async (submission) => {
-    await assertBinding(submission);
-    const currentRecord = input.getRecord();
-    const current = currentRecord.submission;
-    await update({
-      status: currentRecord.responseCheckpoint
-        ? "response_checkpointed"
-        : "conversation_canonicalized",
-      submission: current
-        ? {
-            ...submission,
-            systemChatTitle:
-              submission.systemChatTitle ?? current.systemChatTitle,
-            observedAutoChatTitle:
-              submission.observedAutoChatTitle ?? current.observedAutoChatTitle,
-            chatTitleVerifiedAt:
-              submission.chatTitleVerifiedAt ?? current.chatTitleVerifiedAt,
-            submittedAt: current.submittedAt,
-          }
-        : submission,
-      chatTitleRename: submission.chatTitleVerifiedAt
-        ? buildVerifiedTitleRenameState(
-            currentRecord,
-            submission.chatTitleVerifiedAt,
-          )
-        : currentRecord.chatTitleRename,
-    });
-  },
-  };
-};
+): Pick<
+  WebChatExecutionContext,
+  | "onSubmissionObserved"
+  | "onSubmitted"
+  | "onConversationCanonicalized"
+  | "onForkActionObserved"
+> => ({
+  onForkActionObserved: async (proof) => update({ forkActionProof: proof }),
+  onSubmissionObserved: buildSubmissionObservedCallback(input, update),
+  onSubmitted: buildSubmittedCallback(input, update),
+  onConversationCanonicalized: buildCanonicalizedCallback(input, update),
+});
 
 const buildResponseCheckpointCallback = (
   input: BuildExecutionContextInput,
@@ -229,6 +242,7 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
     resumeUploadedFiles: input.resume ? record.uploadedFiles : [],
     resumeAttachmentUploadProof: input.resume ? record.attachmentUploadProof : null,
     resumeResponseCheckpoint: input.resume ? record.responseCheckpoint ?? null : null,
+    resumeForkActionProof: input.resume ? record.forkActionProof : null,
     globalBrowser: input.singleTabBrowser?.globalBrowser ?? null,
     runExclusivePatrol: (operation) => {
       if (!input.singleTabBrowser) {

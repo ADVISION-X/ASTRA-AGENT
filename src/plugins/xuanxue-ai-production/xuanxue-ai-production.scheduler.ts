@@ -1,10 +1,15 @@
+import { createHash, randomUUID } from "node:crypto";
+
 import {
+  createXuanxueAiProductionOrder,
   executeXuanxueAiProductionOrder,
   type XuanxueAiProductionRuntime,
 } from "./xuanxue-ai-production.flow.js";
 import {
   isXuanxueAiRequiredContinuationProduct,
-  xuanxueAiRequiredContinuationProfiles,
+  isAllowedXuanxueConversationParent,
+} from "./xuanxue-ai-production-conversation-policy.js";
+import {
   type XuanxueAiOrderRecord,
 } from "./xuanxue-ai-production.schema.js";
 import { requireXuanxueStage } from "./xuanxue-ai-production-feed.js";
@@ -46,46 +51,83 @@ const permanentExecutionDefect = (reason: string): boolean =>
     .test(reason);
 
 const continuationRebuildDefect = (reason: string): boolean =>
-  /(?:PARENT_LOCAL|PARENT_PROFILE|PARENT_.*PROOF|CONTINUATION_.*INVALID)/u
+  /(?:PARENT_LOCAL|PARENT_PROFILE|PARENT_.*PROOF|CONTINUATION_.*INVALID|CHATGPT_FORK_PARENT|CHATGPT_FORK_CHECKPOINT)/u
     .test(reason);
+
+const rebuildRequestHash = (
+  originalHash: string,
+  rebuildId: string,
+): `sha256:${string}` => `sha256:${createHash("sha256")
+  .update(`${originalHash}:${rebuildId}`, "utf8")
+  .digest("hex")}`;
+
+const parentRebuildShadow = (
+  parent: XuanxueAiOrderRecord,
+): XuanxueAiOrderRecord["order"] => {
+  const rebuildId = randomUUID();
+  return {
+    ...parent.order,
+    orderId: `${parent.order.orderId}:parent-rebuild:${rebuildId}`,
+    sourceTaskId:
+      `${parent.order.sourceTaskId}:parent-rebuild:${rebuildId}`,
+    requestHash: rebuildRequestHash(parent.order.requestHash, rebuildId),
+    createdAt: new Date().toISOString(),
+  };
+};
+
+const requireContinuationParent = (
+  runtime: XuanxueAiProductionRuntime,
+  child: XuanxueAiOrderRecord,
+): {
+  parentRef: NonNullable<XuanxueAiOrderRecord["order"]["conversationParent"]>;
+  parent: XuanxueAiOrderRecord;
+} => {
+  const parentRef = child.order.conversationParent;
+  if (!parentRef || !isXuanxueAiRequiredContinuationProduct(child.order.productId)) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REBUILD_BINDING_MISSING");
+  }
+  const parent = runtime.store.readOrder(parentRef.jobId);
+  if (!parent) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REPLAY_PAYLOAD_REQUIRED");
+  }
+  if (!isAllowedXuanxueConversationParent({
+    childProductId: child.order.productId,
+    parentProductId: parent.order.productId,
+    parentStageId: parentRef.stageId,
+  })) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REBUILD_PROFILE_INVALID");
+  }
+  return { parentRef, parent };
+};
+
+const rebuiltTurnMarker = (
+  rebuiltStage: XuanxueAiOrderRecord["stages"][number],
+): string => {
+  const marker = rebuiltStage.aiFeedResult?.providerProof.forkedFromCheckpointProof
+    ?.childFirstTurnMarker
+    ?? rebuiltStage.aiFeedResult?.providerProof.sameConversationProof?.newTurnMarker
+    ?? rebuiltStage.aiFeedResult?.providerProof.freshConversationProof?.firstTurnMarker;
+  if (!marker) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REBUILD_TURN_MARKER_MISSING");
+  }
+  return marker;
+};
 
 const rebuildContinuationParent = async (
   runtime: XuanxueAiProductionRuntime,
   child: XuanxueAiOrderRecord,
 ): Promise<void> => {
-  const parentRef = child.order.continuationParent;
-  if (
-    !parentRef
-    || !isXuanxueAiRequiredContinuationProduct(child.order.productId)
-  ) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_BINDING_MISSING",
-    );
-  }
-  const expected =
-    xuanxueAiRequiredContinuationProfiles[child.order.productId];
-  const parent = runtime.store.readOrder(parentRef.jobId);
-  if (!parent) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_PAYLOAD_REQUIRED",
-    );
-  }
-  if (
-    parent.order.productId !== expected.productId
-    || parentRef.stageId !== expected.stageId
-  ) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_PROFILE_INVALID",
-    );
-  }
-  if (parent.status === "completed") {
-    runtime.store.resetOrderForParentConversationRebuild(
-      parent.order.orderId,
-    );
-  }
+  const { parentRef, parent } = requireContinuationParent(runtime, child);
+  const replayOrderId = parent.status === "completed"
+    ? (() => {
+        const shadow = parentRebuildShadow(parent);
+        createXuanxueAiProductionOrder(runtime, shadow);
+        return shadow.orderId;
+      })()
+    : parent.order.orderId;
   const rebuilt = await executeXuanxueAiProductionOrder(
     runtime,
-    parent.order.orderId,
+    replayOrderId,
   );
   const rebuiltStage = requireXuanxueStage(
     rebuilt,
@@ -96,6 +138,7 @@ const rebuildContinuationParent = async (
   if (
     rebuilt.status !== "completed"
     || rebuiltStage.status !== "completed"
+    || !rebuiltStage.aiFeedResult
     || !rebuiltStage.rawOutputHash
     || !providerPageUrl?.startsWith("https://chatgpt.com/")
   ) {
@@ -103,11 +146,21 @@ const rebuildContinuationParent = async (
       "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_INCOMPLETE",
     );
   }
+  if (rebuiltStage.rawOutputHash !== parentRef.rawOutputHash) {
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_HASH_MISMATCH",
+    );
+  }
   runtime.store.recordParentConversationRebuild({
     parentJobId: parentRef.jobId,
     parentStageId: parentRef.stageId,
     originalRawOutputHash: parentRef.rawOutputHash,
     rebuiltRawOutputHash: rebuiltStage.rawOutputHash,
+    rebuiltJobId: rebuilt.order.orderId,
+    rebuiltExecutionId: rebuiltStage.executionId,
+    rebuiltTurnMarker: rebuiltTurnMarker(rebuiltStage),
+    rebuiltInputBundleHash: rebuilt.order.inputBundleHash,
+    rebuiltConversationScopeRef: rebuilt.order.conversationScopeRef,
     providerPageUrl,
     rebuiltAt: new Date().toISOString(),
   });
@@ -138,8 +191,8 @@ export class XuanxueAiProductionCoordinator {
   private continuationLaneKey(
     record: XuanxueAiOrderRecord,
   ): string | null {
-    const parent = record.order.continuationParent;
-    if (!parent) return null;
+    const parent = record.order.conversationParent;
+    if (!parent || parent.relation !== "same_conversation") return null;
     const parentOrder = this.runtime.store.readOrder(parent.jobId);
     const parentStage = parentOrder?.stages.find(
       (stage) => stage.stageId === parent.stageId,

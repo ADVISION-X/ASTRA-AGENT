@@ -140,6 +140,8 @@ export const recoverCheckpointedWebChatResponse = async (input: {
       attachmentUploadProof: record.attachmentUploadProof,
       outputRefs: [record.responseCheckpoint.rawOutputRef],
       managedParallelExecution: true,
+      forkActionProof: record.forkActionProof,
+      submissionProof: record.submission,
     }),
   };
 };

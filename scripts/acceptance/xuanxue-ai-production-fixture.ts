@@ -12,6 +12,87 @@ import type {
 export const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+const fixtureConversationProofs = (
+  input: AiFeedInput,
+  pageUrl: string,
+  turnMarker: string,
+  verifiedAt: string,
+): Pick<AiFeedResult["providerProof"],
+  "freshConversationProof" | "sameConversationProof" | "forkedFromCheckpointProof"> => ({
+  freshConversationProof: input.providerContinuationRef || input.providerForkRef
+    ? null
+    : {
+        preSubmitUserTurnCount: 0,
+        preSubmitAssistantTurnCount: 0,
+        continuationParent: null,
+        forkParent: null,
+        firstTurnMarker: turnMarker,
+        createdConversationUrl: pageUrl,
+        createdByExecutionId: input.taskIdentity.sourceTaskId,
+        verifiedAt,
+      },
+  sameConversationProof: input.providerContinuationRef
+    ? {
+        parentConversationUrl: input.providerContinuationRef.providerPageUrl,
+        parentRawOutputHash: input.providerContinuationRef.priorRawOutputHash,
+        actualConversationUrl: pageUrl,
+        priorTurnMarker: input.providerContinuationRef.priorTurnMarker ?? null,
+        newTurnMarker: turnMarker,
+        continuationVerifiedAt: verifiedAt,
+      }
+    : null,
+  forkedFromCheckpointProof: input.providerForkRef
+    ? {
+        parentConversationUrl: input.providerForkRef.providerPageUrl,
+        parentCheckpointTurnMarker: input.providerForkRef.checkpointTurnMarker,
+        parentCheckpointResponseHash: input.providerForkRef.checkpointResponseHash,
+        forkActionEvidenceRef: `fixture-fork:${input.taskIdentity.sourceTaskId}`,
+        forkActionEvidenceHash: hash(`fixture-fork:${input.taskIdentity.sourceTaskId}`),
+        childConversationUrl: pageUrl,
+        childInitialHistoryFingerprint: hash(`fixture-history:${input.taskIdentity.sourceTaskId}`),
+        childFirstTurnMarker: turnMarker,
+        verifiedAt,
+      }
+    : null,
+});
+
+const fixtureProviderProof = (
+  input: AiFeedInput,
+  ordinal: number,
+  rawResponseText: string,
+  pageUrl: string,
+  turnMarker: string,
+  verifiedAt: string,
+): AiFeedResult["providerProof"] => ({
+  providerKind: "gpt-web-chat",
+  providerLeaseId: `fixture-lease:${ordinal}`,
+  modelName: null,
+  inputHash: hash(JSON.stringify(input)),
+  outputHash: hash(rawResponseText),
+  inputRefs: input.inputRefs.map((ref) => ref.id),
+  uploadedFileRefs: input.inputRefs.filter((ref) => Boolean(ref.filePath)).map((ref) => ref.id),
+  outputRefs: [`fixture-output:${input.taskIdentity.sourceTaskId}`],
+  startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), durationMs: 1,
+  transport: "web-chat",
+  conversationMode: input.providerForkRef
+    ? "forked_from_checkpoint"
+    : input.providerContinuationRef ? "same_conversation" : "fresh",
+  conversationScopeRef: input.conversationScopeRef ?? null,
+  ...fixtureConversationProofs(input, pageUrl, turnMarker, verifiedAt),
+  webChatUrl: pageUrl,
+  sourcePageUrlBeforeFeed: null, restoredSourcePage: null,
+  retryCount: 0, cooldownMs: 0,
+  estimatedInputTokens: null, estimatedOutputTokens: null,
+  tokenEstimateUnavailableReason: "fixture",
+  ...(input.providerContinuationRef ? {
+    continuationPriorTaskId: input.providerContinuationRef.priorTaskId,
+    continuationPriorRawOutputHash: input.providerContinuationRef.priorRawOutputHash,
+    continuationRequestedUrl: input.providerContinuationRef.providerPageUrl,
+    continuationActualUrl: input.providerContinuationRef.providerPageUrl,
+    continuationVerified: true,
+  } : {}),
+});
+
 export const providerResult = (
   input: AiFeedInput,
   ordinal: number,
@@ -19,9 +100,12 @@ export const providerResult = (
 ): AiFeedResult => {
   const rawResponseText = JSON.stringify({
     stage: input.roundId,
-    ordinal,
     verdict: "fixture-transport-only",
   });
+  const pageUrl = input.providerContinuationRef?.providerPageUrl
+    ?? `https://chatgpt.com/c/${String(ordinal).padStart(8, "0")}`;
+  const turnMarker = `fixture-turn:${input.taskIdentity.sourceTaskId}`;
+  const verifiedAt = new Date().toISOString();
   return {
     abilityGroupId: "ai-input-gateway",
     childCapabilityId: "feed-gpt-web-chat-once",
@@ -39,44 +123,9 @@ export const providerResult = (
     parseStatus: "json_valid",
     parsedJson: JSON.parse(rawResponseText),
     schemaValidationStatus: "valid",
-    providerProof: {
-      providerKind: "gpt-web-chat",
-      providerLeaseId: `fixture-lease:${ordinal}`,
-      modelName: null,
-      inputHash: hash(JSON.stringify(input)),
-      outputHash: hash(rawResponseText),
-      inputRefs: input.inputRefs.map((ref) => ref.id),
-      uploadedFileRefs: input.inputRefs
-        .filter((ref) => Boolean(ref.filePath))
-        .map((ref) => ref.id),
-      outputRefs: [`fixture-output:${input.taskIdentity.sourceTaskId}`],
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
-      durationMs: 1,
-      transport: "web-chat",
-      webChatUrl: input.providerContinuationRef?.providerPageUrl
-        ?? `https://chatgpt.com/c/${String(ordinal).padStart(8, "0")}`,
-      sourcePageUrlBeforeFeed: null,
-      restoredSourcePage: null,
-      retryCount: 0,
-      cooldownMs: 0,
-      estimatedInputTokens: null,
-      estimatedOutputTokens: null,
-      tokenEstimateUnavailableReason: "fixture",
-      ...(input.providerContinuationRef
-        ? {
-            continuationPriorTaskId:
-              input.providerContinuationRef.priorTaskId,
-            continuationPriorRawOutputHash:
-              input.providerContinuationRef.priorRawOutputHash,
-            continuationRequestedUrl:
-              input.providerContinuationRef.providerPageUrl,
-            continuationActualUrl:
-              input.providerContinuationRef.providerPageUrl,
-            continuationVerified: true,
-          }
-        : {}),
-    },
+    providerProof: fixtureProviderProof(
+      input, ordinal, rawResponseText, pageUrl, turnMarker, verifiedAt,
+    ),
     failureReason: null,
     reviewRequiredReason: null,
   };
@@ -175,6 +224,23 @@ const bareHashResult = (
   },
 });
 
+const divergentParentRebuildResult = (
+  result: AiFeedResult,
+): AiFeedResult => {
+  const rawResponseText = `${result.rawResponseText}\nDIVERGENT_PARENT_REBUILD`;
+  const rawOutputHash = hash(rawResponseText);
+  return {
+    ...result,
+    rawResponseText,
+    normalizedText: rawResponseText,
+    rawOutputHash,
+    providerProof: {
+      ...result.providerProof,
+      outputHash: rawOutputHash,
+    },
+  };
+};
+
 export class FixtureGateway implements AiInputGatewayAbilityGroup {
   readonly abilityGroupId = "ai-input-gateway" as const;
   readonly requests: AiFeedInput[] = [];
@@ -187,6 +253,7 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
   readonly maxActiveByContinuation = new Map<string, number>();
   holdQimen = false;
   bareOutputHashes = false;
+  divergeParentRebuilds = false;
   readonly transientFailures = new Map<string, number>();
   readonly submittedReviewFailures = new Map<string, number>();
   readonly contaminatedResponses = new Map<string, number>();
@@ -302,6 +369,10 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
         this.requests.length,
         this.generatedImageArtifact,
       );
+      if (
+        this.divergeParentRebuilds
+        && request.taskIdentity.sourceTaskId.includes(":parent-rebuild:")
+      ) return divergentParentRebuildResult(result);
       const continuationFailure =
         this.consumeContinuationFailure(request, result);
       if (continuationFailure) return continuationFailure;
@@ -351,7 +422,7 @@ export const order = (
   productId: XuanxueAiProductionOrder["productId"],
   stageIds: readonly XuanxueAiProductionOrder["materials"][number]["stageId"][],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v2",
+  protocolVersion: "xuanxue-ai-production-v3",
   orderId,
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,
@@ -364,7 +435,28 @@ export const order = (
   inputBundleRef: `bundle:${orderId}`,
   inputBundleHash: hash(`bundle:${orderId}`),
   requestHash: hash(`request:${orderId}`),
-  continuationParent: null,
+  frozenSubject: {
+    privacyOwnerRef: `owner:${orderId}`,
+    snapshotRef: `snapshot:${orderId}`,
+    snapshotHash: hash(`snapshot:${orderId}`),
+    caseRevisionRef: `case-revision:${orderId}`,
+    primaryPersonRef: `person:${orderId}`,
+    participantManifestHash: hash(`participants:${orderId}`),
+    participants: [{
+      slotRef: "primary",
+      roleCode: "primary",
+      personRef: `person:${orderId}`,
+      profileVersionRef: `profile:${orderId}:v1`,
+      chartStateRef: `chart:${orderId}`,
+      chartStateVersion: "v1",
+      chartStateHash: hash(`chart:${orderId}`),
+      purposeCode: productId,
+      authorizationReceiptRef: `authorization:${orderId}`,
+    }],
+  },
+  conversationScopeRef: `conversation-scope:${orderId}`,
+  conversationParent: null,
+  joinParents: [],
   seededStages: [],
   materials: stageIds.map(material),
   createdAt: new Date().toISOString(),

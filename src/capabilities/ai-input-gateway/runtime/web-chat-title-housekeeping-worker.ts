@@ -34,6 +34,7 @@ type RenameWorkerState = {
   requested: boolean;
   running: Promise<void> | null;
   timer: NodeJS.Timeout | null;
+  stopping: boolean;
 };
 
 const workers = new Map<string, RenameWorkerState>();
@@ -54,11 +55,13 @@ const buildRecoveryExecutionContext = (
   resumeUploadedFiles: record.uploadedFiles,
   resumeAttachmentUploadProof: record.attachmentUploadProof,
   resumeResponseCheckpoint: record.responseCheckpoint,
+  resumeForkActionProof: record.forkActionProof,
   globalBrowser: singleTab.globalBrowser,
   runExclusivePatrol: singleTab.runExclusivePatrol,
   onSubmissionObserved: noOp,
   onSubmitted: noOp,
   onConversationCanonicalized: noOp,
+  onForkActionObserved: noOp,
   onResponseCaptured: () =>
     Promise.reject(new Error(
       "review_required: title housekeeping cannot create a response checkpoint.",
@@ -195,6 +198,7 @@ export const runWebChatTitleHousekeepingNow = async (input: {
     requested: false,
     running: null,
     timer: null,
+    stopping: false,
   }, summary);
   return summary;
 };
@@ -204,13 +208,14 @@ const scheduleNextPass = (
   state: RenameWorkerState,
   nextAttemptAt: string | null,
 ): void => {
-  if (!nextAttemptAt || state.timer) return;
+  if (!nextAttemptAt || state.timer || state.stopping) return;
   const delayMs = Math.max(
     250,
     Math.min(60_000, new Date(nextAttemptAt).getTime() - Date.now()),
   );
   state.timer = setTimeout(() => {
     state.timer = null;
+    if (state.stopping) return;
     state.requested = true;
     startWorker(key, state);
   }, delayMs);
@@ -233,11 +238,11 @@ const runWorker = async (
     if (summary.pending > 0) {
       scheduleNextPass(key, state, summary.nextAttemptAt);
     }
-  } while (state.requested);
+  } while (state.requested && !state.stopping);
 };
 
 const startWorker = (key: string, state: RenameWorkerState): void => {
-  if (state.running) return;
+  if (state.running || state.stopping) return;
   state.running = runWorker(key, state)
     .catch((error: unknown) => {
       if (state.runtimeLogger) {
@@ -278,7 +283,7 @@ const startWorker = (key: string, state: RenameWorkerState): void => {
     })
     .finally(() => {
       state.running = null;
-      if (state.requested) startWorker(key, state);
+      if (state.requested && !state.stopping) startWorker(key, state);
     });
 };
 
@@ -294,6 +299,7 @@ export const scheduleWebChatTitleHousekeeping = (input: {
     requested: false,
     running: null,
     timer: null,
+    stopping: false,
   };
   state.browser = input.browser;
   if (input.runtimeLogger) state.runtimeLogger = input.runtimeLogger;
@@ -304,4 +310,21 @@ export const scheduleWebChatTitleHousekeeping = (input: {
   }
   workers.set(key, state);
   queueMicrotask(() => startWorker(key, state));
+};
+
+export const stopWebChatTitleHousekeeping = async (
+  dataDir: string,
+): Promise<void> => {
+  const key = path.resolve(dataDir);
+  const state = workers.get(key);
+  if (!state) return;
+  state.stopping = true;
+  state.requested = false;
+  if (state.timer) {
+    clearTimeout(state.timer);
+    state.timer = null;
+  }
+  await state.running;
+  if (state.timer) clearTimeout(state.timer);
+  workers.delete(key);
 };

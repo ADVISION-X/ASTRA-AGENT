@@ -102,7 +102,7 @@ try {
     }
   })();
   await writeXuanxueAiProductionCloudCredential(dataDir, {
-    protocol_version: "xuanxue-ai-production-v2",
+    protocol_version: "xuanxue-ai-production-v3",
     server_base_url: legacyCredential.server_base_url,
     credential: legacyCredential.credential,
     device_id: legacyCredential.device_id,

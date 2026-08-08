@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import type {
   XuanxueAiProductId,
   XuanxueAiProductionOrder,
@@ -7,8 +5,13 @@ import type {
 } from "./xuanxue-ai-production.schema.js";
 import {
   isXuanxueAiRequiredContinuationProduct,
+  isXuanxueAiPaidFollowupProduct,
+  isXuanxueAiReusableBaseConsumerProduct,
   xuanxueAiRequiredContinuationProfiles,
-} from "./xuanxue-ai-production.schema.js";
+} from "./xuanxue-ai-production-conversation-policy.js";
+import {
+  assertSeededStages,
+} from "./xuanxue-ai-production-seeded-proof.js";
 
 export interface XuanxueAiStageDefinition {
   readonly stageId: XuanxueAiStageId;
@@ -23,25 +26,20 @@ export interface XuanxueAiProductionProfile {
   readonly finalStageId: XuanxueAiStageId;
 }
 
-const baziStages: readonly XuanxueAiStageDefinition[] = [
-  {
-    stageId: "base_interpretation",
-    dependsOn: [],
-    continuationFrom: null,
-    generatedInputsFrom: [],
-  },
-  {
-    stageId: "question_analysis",
-    dependsOn: ["base_interpretation"],
-    continuationFrom: "base_interpretation",
-    generatedInputsFrom: ["base_interpretation"],
-  },
-];
-
 const profiles: Readonly<Record<
   XuanxueAiProductId,
   XuanxueAiProductionProfile
 >> = {
+  bazi_chart_interpretation: {
+    productId: "bazi_chart_interpretation",
+    stages: [{
+      stageId: "chart_interpretation",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
+    finalStageId: "chart_interpretation",
+  },
   bazi_ai_full_analysis: {
     productId: "bazi_ai_full_analysis",
     stages: [{
@@ -54,7 +52,12 @@ const profiles: Readonly<Record<
   },
   bazi_report_followup: {
     productId: "bazi_report_followup",
-    stages: baziStages,
+    stages: [{
+      stageId: "question_analysis",
+      dependsOn: [],
+      continuationFrom: null,
+      generatedInputsFrom: [],
+    }],
     finalStageId: "question_analysis",
   },
   qimen_professional_answer: {
@@ -254,66 +257,152 @@ const assertMaterialProfile = (
   }
 };
 
-const assertSeededStages = (
-  order: XuanxueAiProductionOrder,
-  profile: XuanxueAiProductionProfile,
-): void => {
-  const expected = profile.stages.map((stage) => stage.stageId);
-  const seededIds = order.seededStages.map((stage) => stage.stageId);
-  if (
-    seededIds.some((stageId, index) => stageId !== expected[index])
-    || new Set(seededIds).size !== seededIds.length
-    || (
-      order.productId === "manual_accuracy_challenge"
-      && seededIds.length > 0
-    )
-  ) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_SEEDED_STAGE_PROFILE_INVALID",
-    );
-  }
-  for (const stage of order.seededStages) {
-    const actualHash =
-      `sha256:${createHash("sha256").update(
-        stage.rawResponseText,
-        "utf8",
-      ).digest("hex")}`;
-    const outputRefs = Array.isArray(stage.providerProof.outputRefs)
-      ? stage.providerProof.outputRefs
-      : [];
-    if (
-      actualHash !== stage.rawOutputHash
-      || stage.providerProof.providerKind !== "gpt-web-chat"
-      || typeof stage.providerProof.webChatUrl !== "string"
-      || !stage.providerProof.webChatUrl.startsWith("https://chatgpt.com/")
-      || outputRefs.length < 1
-    ) {
-      throw new Error(
-        "XUANXUE_AI_PRODUCTION_SEEDED_STAGE_PROOF_INVALID",
-      );
-    }
-  }
-};
-
 const assertContinuationProfile = (
   order: XuanxueAiProductionOrder,
 ): void => {
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
     || isXuanxueAiRequiredContinuationProduct(order.productId);
-  if (continuationRequired !== Boolean(order.continuationParent)) {
+  if (continuationRequired !== Boolean(order.conversationParent)) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
     );
   }
   if (
     isXuanxueAiRequiredContinuationProduct(order.productId)
-    && order.continuationParent?.stageId
+    && order.productId !== "bazi_report_followup"
+    && order.conversationParent?.stageId
       !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
   ) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
     );
+  }
+  if (
+    order.productId === "bazi_report_followup"
+    && order.conversationParent
+    && !["chart_interpretation", "question_analysis"].includes(
+      order.conversationParent.stageId,
+    )
+  ) {
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
+    );
+  }
+  if (
+    isXuanxueAiReusableBaseConsumerProduct(order.productId)
+    && order.conversationParent?.relation !== "forked_from_checkpoint"
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED");
+  }
+  if (
+    isXuanxueAiPaidFollowupProduct(order.productId)
+    && order.conversationParent?.relation !== "same_conversation"
+  ) {
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_SAME_CONVERSATION_PARENT_REQUIRED",
+    );
+  }
+};
+
+const assertParticipantManifest = (
+  order: XuanxueAiProductionOrder,
+): void => {
+  const participants = order.frozenSubject.participants;
+  const people = new Set(participants.map((participant) => participant.personRef));
+  if (people.size !== participants.length) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARTICIPANT_PERSON_DUPLICATE");
+  }
+  if (
+    order.frozenSubject.primaryPersonRef
+    && !people.has(order.frozenSubject.primaryPersonRef)
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PRIMARY_PERSON_NOT_FROZEN");
+  }
+};
+
+const assertJoinBindings = (
+  order: XuanxueAiProductionOrder,
+): Set<string> => {
+  const participants = order.frozenSubject.participants;
+  const joinSlots = new Set<string>();
+  const joinExecutions = new Set<string>();
+  for (const parent of order.joinParents) {
+    const participant = participants.find(
+      (candidate) => candidate.slotRef === parent.participantSlotRef,
+    );
+    if (
+      !participant
+      || participant.roleCode !== parent.participantRoleCode
+      || participant.personRef !== parent.personRef
+      || joinSlots.has(parent.participantSlotRef)
+      || joinExecutions.has(parent.executionId)
+    ) {
+      throw new Error("XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH");
+    }
+    joinSlots.add(parent.participantSlotRef);
+    joinExecutions.add(parent.executionId);
+  }
+  return joinSlots;
+};
+
+const assertHehunJoins = (order: XuanxueAiProductionOrder): void => {
+  const stageByRole = new Map([
+    ["party_a", "party_a_interpretation"],
+    ["party_b", "party_b_interpretation"],
+  ] as const);
+  if (
+    order.frozenSubject.participants.length !== 2
+    || order.joinParents.length !== 2
+    || order.conversationParent !== null
+    || order.frozenSubject.participants.some((participant) => !stageByRole.has(
+      participant.roleCode as "party_a" | "party_b",
+    ))
+    || order.joinParents.some((parent) =>
+      parent.stageId !== stageByRole.get(
+        parent.participantRoleCode as "party_a" | "party_b",
+      ))
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED");
+  }
+};
+
+const assertNamingJoins = (
+  order: XuanxueAiProductionOrder,
+  joinSlots: Set<string>,
+): void => {
+  const target = order.frozenSubject.participants.filter(
+    (participant) => participant.personRef === order.frozenSubject.primaryPersonRef,
+  );
+  const auxiliaries = order.frozenSubject.participants.filter(
+    (participant) => participant.personRef !== order.frozenSubject.primaryPersonRef,
+  );
+  if (
+    target.length !== 1
+    || target[0]?.roleCode !== "naming_target"
+    || auxiliaries.length !== order.joinParents.length
+    || auxiliaries.some((participant) => !joinSlots.has(participant.slotRef))
+    || order.joinParents.some((parent) => parent.stageId !== "base_interpretation")
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_NAMING_TYPED_JOINS_INVALID");
+  }
+};
+
+const assertFrozenSubjectAndTypedJoin = (
+  order: XuanxueAiProductionOrder,
+): void => {
+  assertParticipantManifest(order);
+  const joinSlots = assertJoinBindings(order);
+  if (order.productId === "hehun_ai_analysis") {
+    assertHehunJoins(order);
+    return;
+  }
+  if (order.productId === "naming_bazi_analysis_and_naming") {
+    assertNamingJoins(order, joinSlots);
+    return;
+  }
+  if (order.joinParents.length > 0) {
+    throw new Error("XUANXUE_AI_PRODUCTION_TYPED_JOIN_NOT_ALLOWED");
   }
 };
 
@@ -323,7 +412,11 @@ export const assertXuanxueAiOrderMatchesProfile = (
   const profile = resolveXuanxueAiProductionProfile(order.productId);
   assertSingleConversationStageChain(profile);
   assertMaterialProfile(order, profile);
-  assertSeededStages(order, profile);
+  assertSeededStages(
+    order,
+    profile.stages.map((stage) => stage.stageId),
+  );
   assertContinuationProfile(order);
+  assertFrozenSubjectAndTypedJoin(order);
   return profile;
 };

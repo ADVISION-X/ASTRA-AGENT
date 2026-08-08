@@ -16,6 +16,11 @@ export interface XuanxueAiParentConversationRebuild {
   readonly parentStageId: string;
   readonly originalRawOutputHash: string;
   readonly rebuiltRawOutputHash: string;
+  readonly rebuiltJobId: string | null;
+  readonly rebuiltExecutionId: string | null;
+  readonly rebuiltTurnMarker: string | null;
+  readonly rebuiltInputBundleHash: string | null;
+  readonly rebuiltConversationScopeRef: string | null;
   readonly providerPageUrl: string;
   readonly rebuiltAt: string;
 }
@@ -29,7 +34,9 @@ export const readParentConversationRebuildFromStore = (
 ): XuanxueAiParentConversationRebuild | null => {
   const row = database.prepare(`
     select parent_job_id,parent_stage_id,original_raw_output_hash,
-           rebuilt_raw_output_hash,provider_page_url,rebuilt_at
+           rebuilt_raw_output_hash,rebuilt_job_id,rebuilt_execution_id,
+           rebuilt_turn_marker,rebuilt_input_bundle_hash,
+           rebuilt_conversation_scope_ref,provider_page_url,rebuilt_at
     from production_parent_conversation_rebuilds
     where parent_job_id=? and parent_stage_id=?
       and original_raw_output_hash=?
@@ -42,6 +49,11 @@ export const readParentConversationRebuildFromStore = (
     parent_stage_id: string;
     original_raw_output_hash: string;
     rebuilt_raw_output_hash: string;
+    rebuilt_job_id: string | null;
+    rebuilt_execution_id: string | null;
+    rebuilt_turn_marker: string | null;
+    rebuilt_input_bundle_hash: string | null;
+    rebuilt_conversation_scope_ref: string | null;
     provider_page_url: string;
     rebuilt_at: string;
   } | undefined;
@@ -51,6 +63,12 @@ export const readParentConversationRebuildFromStore = (
         parentStageId: row.parent_stage_id,
         originalRawOutputHash: row.original_raw_output_hash,
         rebuiltRawOutputHash: row.rebuilt_raw_output_hash,
+        rebuiltJobId: row.rebuilt_job_id,
+        rebuiltExecutionId: row.rebuilt_execution_id,
+        rebuiltTurnMarker: row.rebuilt_turn_marker,
+        rebuiltInputBundleHash: row.rebuilt_input_bundle_hash,
+        rebuiltConversationScopeRef:
+          row.rebuilt_conversation_scope_ref,
         providerPageUrl: row.provider_page_url,
         rebuiltAt: row.rebuilt_at,
       }
@@ -138,59 +156,57 @@ export const resetOrderForConversationGraphRebuildInStore = (
   return readOrder(orderId)!;
 };
 
-export const resetOrderForParentConversationRebuildInStore = (
-  database: Database.Database,
-  readOrder: XuanxueAiOrderReader,
-  orderId: string,
-): XuanxueAiOrderRecord => {
-  const record = readOrder(orderId);
-  if (!record || record.status !== "completed") {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_SOURCE_NOT_COMPLETED",
-    );
-  }
-  const rebuiltAt = new Date().toISOString();
-  database.transaction(() => {
-    resetStagesForConversationRebuild(
-      database,
-      record,
-      rebuiltAt,
-      "parent-rebuild",
-    );
-    appendXuanxueAiProductionEvent(database, {
-      orderId,
-      stageId: null,
-      eventType: "parent_conversation_rebuild_started",
-      fromStatus: record.status,
-      toStatus: "queued",
-      detail: { reason: "exact_parent_conversation_unavailable" },
-      createdAt: rebuiltAt,
-    });
-  })();
-  return readOrder(orderId)!;
-};
-
 export const recordParentConversationRebuildInStore = (
   database: Database.Database,
   input: XuanxueAiParentConversationRebuild,
 ): void => {
-  database.prepare(`
-    insert into production_parent_conversation_rebuilds(
+  database.transaction(() => {
+    database.prepare(`
+      insert into production_parent_conversation_rebuilds(
       parent_job_id,parent_stage_id,original_raw_output_hash,
-      rebuilt_raw_output_hash,provider_page_url,rebuilt_at
-    ) values(?,?,?,?,?,?)
+      rebuilt_raw_output_hash,rebuilt_job_id,rebuilt_execution_id,
+      rebuilt_turn_marker,
+      rebuilt_input_bundle_hash,rebuilt_conversation_scope_ref,
+      provider_page_url,rebuilt_at
+    ) values(?,?,?,?,?,?,?,?,?,?,?)
     on conflict(
       parent_job_id,parent_stage_id,original_raw_output_hash
     ) do update set
       rebuilt_raw_output_hash=excluded.rebuilt_raw_output_hash,
+      rebuilt_job_id=excluded.rebuilt_job_id,
+      rebuilt_execution_id=excluded.rebuilt_execution_id,
+      rebuilt_turn_marker=excluded.rebuilt_turn_marker,
+      rebuilt_input_bundle_hash=excluded.rebuilt_input_bundle_hash,
+      rebuilt_conversation_scope_ref=excluded.rebuilt_conversation_scope_ref,
       provider_page_url=excluded.provider_page_url,
       rebuilt_at=excluded.rebuilt_at
-  `).run(
-    input.parentJobId,
-    input.parentStageId,
-    input.originalRawOutputHash,
-    input.rebuiltRawOutputHash,
-    input.providerPageUrl,
-    input.rebuiltAt,
-  );
+    `).run(
+      input.parentJobId,
+      input.parentStageId,
+      input.originalRawOutputHash,
+      input.rebuiltRawOutputHash,
+      input.rebuiltJobId,
+      input.rebuiltExecutionId,
+      input.rebuiltTurnMarker,
+      input.rebuiltInputBundleHash,
+      input.rebuiltConversationScopeRef,
+      input.providerPageUrl,
+      input.rebuiltAt,
+    );
+    appendXuanxueAiProductionEvent(database, {
+      orderId: input.parentJobId,
+      stageId: input.parentStageId,
+      eventType: "parent_conversation_rebuild_recorded",
+      fromStatus: "completed",
+      toStatus: "completed",
+      detail: {
+        originalRawOutputHash: input.originalRawOutputHash,
+        rebuiltJobId: input.rebuiltJobId,
+        rebuiltExecutionId: input.rebuiltExecutionId,
+        rebuiltRawOutputHash: input.rebuiltRawOutputHash,
+        providerPageUrl: input.providerPageUrl,
+      },
+      createdAt: input.rebuiltAt,
+    });
+  })();
 };

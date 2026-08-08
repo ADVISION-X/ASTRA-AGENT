@@ -453,6 +453,23 @@ status
 failureReason / reviewRequiredReason
 ```
 
+GPT 会话另以同一份 `providerProof` 记录且只记录一种拓扑：
+
+```txt
+fresh
+  → 新聊天动作 + 提交前 user=0/assistant=0 + 无父 + first marker + child URL
+same_conversation
+  → 精确父 URL/raw hash/prior marker + actual URL + new marker
+forked_from_checkpoint
+  → 精确父 URL/checkpoint marker/response hash
+  → provider branch action evidence ref/hash
+  → 不同 child URL + inherited-history fingerprint + child first marker
+```
+
+分叉动作只扩展现有 GPT Web adapter。找不到唯一 branch 控件、父 marker/响应 hash 不符、
+子 URL 等于父 URL、子初始历史不含精确 checkpoint 或 provider 不支持分叉时一律失败关闭；
+不得改走空白聊天、附件 base、摘要重放或第二 provider。
+
 逐文件信息用于成员身份证明，不得把原生批量选择伪装成逐文件进度。
 
 ## File Plan
@@ -529,6 +546,9 @@ rename verification requires exact canonical URL, exact title and exact marker
 failed executions preserve a bounded phase and reason ledger
 fresh-chat readiness proves zero turns, empty composer, zero attachments and no generation
 continuation readiness proves the exact parent URL and fully hydrated prior user and assistant history
+checkpoint-fork readiness proves the exact parent marker and following assistant response hash before the provider branch action
+fork success proves one distinct child URL, exact inherited checkpoint history fingerprint, action evidence hash and child first marker
+unsupported or ambiguous fork fails closed without fresh-chat fallback
 submit success proves one exact latest logical-turn marker and durable canonical URL
 page-global user-turn count is observational only and never authorizes resubmission
 the marked turn and ordered attachment proof persist before post-submit inspection

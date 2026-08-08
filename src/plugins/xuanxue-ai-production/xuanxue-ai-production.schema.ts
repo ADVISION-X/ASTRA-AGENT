@@ -4,11 +4,18 @@ import type {
   AiFeedResult,
   AiInputGatewayProgress,
 } from "../../capabilities/ai-input-gateway/index.js";
+import {
+  isXuanxueAiPaidFollowupProduct,
+  isXuanxueAiRequiredContinuationProduct,
+  isXuanxueAiReusableBaseConsumerProduct,
+  xuanxueAiRequiredContinuationProfiles,
+} from "./xuanxue-ai-production-conversation-policy.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID =
   "xuanxue-ai-production" as const;
 
 export const XuanxueAiProductIdSchema = z.enum([
+  "bazi_chart_interpretation",
   "bazi_ai_full_analysis",
   "bazi_report_followup",
   "qimen_professional_answer",
@@ -28,6 +35,7 @@ export const XuanxueAiProductIdSchema = z.enum([
 
 export const XuanxueAiStageIdSchema = z.enum([
   "base_interpretation",
+  "chart_interpretation",
   "question_analysis",
   "analysis",
   "followup",
@@ -54,6 +62,51 @@ const XuanxueAiMaterialRefSchema = z.object({
   byteCount: z.number().int().nonnegative(),
 }).strict();
 
+const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+
+const FrozenParticipantBindingSchema = z.object({
+  slotRef: z.string().min(1),
+  roleCode: z.string().min(1),
+  personRef: z.string().min(1),
+  profileVersionRef: z.string().min(1),
+  chartStateRef: z.string().min(1),
+  chartStateVersion: z.string().min(1),
+  chartStateHash: hashSchema,
+  purposeCode: z.string().min(1),
+  authorizationReceiptRef: z.string().min(1),
+}).strict();
+
+export const XuanxueAiFrozenSubjectSchema = z.object({
+  privacyOwnerRef: z.string().min(1),
+  snapshotRef: z.string().min(1),
+  snapshotHash: hashSchema,
+  caseRevisionRef: z.string().min(1),
+  primaryPersonRef: z.string().min(1).nullable(),
+  participantManifestHash: hashSchema,
+  participants: z.array(FrozenParticipantBindingSchema).min(1).max(32),
+}).strict();
+
+const ConversationParentBindingSchema = z.object({
+  relation: z.enum(["same_conversation", "forked_from_checkpoint"]),
+  jobId: z.string().min(1).max(200),
+  stageId: XuanxueAiStageIdSchema,
+  executionId: z.string().min(1),
+  rawOutputHash: hashSchema,
+  inputBundleHash: hashSchema,
+  conversationScopeRef: z.string().min(1),
+}).strict();
+
+const TypedJoinParentBindingSchema = z.object({
+  participantSlotRef: z.string().min(1),
+  participantRoleCode: z.string().min(1),
+  personRef: z.string().min(1),
+  jobId: z.string().min(1).max(200),
+  stageId: XuanxueAiStageIdSchema,
+  executionId: z.string().min(1),
+  rawOutputHash: hashSchema,
+  conversationScopeRef: z.string().min(1),
+}).strict();
+
 export const XuanxueAiStageMaterialSchema = z.object({
   stageId: XuanxueAiStageIdSchema,
   promptPackageId: z.string().min(1).max(240),
@@ -68,55 +121,8 @@ export const XuanxueAiStageMaterialSchema = z.object({
   maxFileBytes: z.number().int().min(1).max(1_000_000_000).default(500_000_000),
 }).strict();
 
-export const xuanxueAiPaidFollowupProfiles = {
-  bazi_report_followup: {
-    productId: "bazi_ai_full_analysis",
-    stageId: "question_analysis",
-  },
-  qimen_report_followup: {
-    productId: "qimen_professional_answer",
-    stageId: "analysis",
-  },
-  hehun_report_followup: {
-    productId: "hehun_ai_analysis",
-    stageId: "final_compatibility",
-  },
-} as const;
-
-export const xuanxueAiReusableBaseConsumerProfiles = {
-  bazi_ai_full_analysis: {
-    productId: "bazi_canonical_base_interpretation",
-    stageId: "base_interpretation",
-  },
-  naming_bazi_analysis_and_naming: {
-    productId: "bazi_canonical_base_interpretation",
-    stageId: "base_interpretation",
-  },
-} as const;
-
-export const xuanxueAiRequiredContinuationProfiles = {
-  ...xuanxueAiPaidFollowupProfiles,
-  ...xuanxueAiReusableBaseConsumerProfiles,
-} as const;
-
-export type XuanxueAiPaidFollowupProductId =
-  keyof typeof xuanxueAiPaidFollowupProfiles;
-
-export type XuanxueAiRequiredContinuationProductId =
-  keyof typeof xuanxueAiRequiredContinuationProfiles;
-
-export const isXuanxueAiPaidFollowupProduct = (
-  productId: z.infer<typeof XuanxueAiProductIdSchema>,
-): productId is XuanxueAiPaidFollowupProductId =>
-  Object.hasOwn(xuanxueAiPaidFollowupProfiles, productId);
-
-export const isXuanxueAiRequiredContinuationProduct = (
-  productId: z.infer<typeof XuanxueAiProductIdSchema>,
-): productId is XuanxueAiRequiredContinuationProductId =>
-  Object.hasOwn(xuanxueAiRequiredContinuationProfiles, productId);
-
 export const XuanxueAiStoredProductionOrderSchema = z.object({
-  protocolVersion: z.literal("xuanxue-ai-production-v2"),
+  protocolVersion: z.literal("xuanxue-ai-production-v3"),
   orderId: z.string().min(1).max(200),
   sourceProject: z.literal("xuanxue-web"),
   sourceTaskId: z.string().min(1).max(240),
@@ -129,11 +135,10 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   inputBundleRef: z.string().min(1).max(500),
   inputBundleHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
   requestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-  continuationParent: z.object({
-    jobId: z.string().min(1).max(200),
-    stageId: XuanxueAiStageIdSchema,
-    rawOutputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-  }).strict().nullable().default(null),
+  frozenSubject: XuanxueAiFrozenSubjectSchema,
+  conversationScopeRef: z.string().min(1),
+  conversationParent: ConversationParentBindingSchema.nullable(),
+  joinParents: z.array(TypedJoinParentBindingSchema).max(32),
   seededStages: z.array(z.object({
     stageId: XuanxueAiStageIdSchema,
     executionId: z.string().min(1),
@@ -151,22 +156,56 @@ XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
     || isXuanxueAiRequiredContinuationProduct(order.productId);
-  if (continuationRequired !== Boolean(order.continuationParent)) {
+  if (continuationRequired !== Boolean(order.conversationParent)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
-      path: ["continuationParent"],
+      path: ["conversationParent"],
     });
   }
   if (
     isXuanxueAiRequiredContinuationProduct(order.productId)
-    && order.continuationParent?.stageId
+    && order.productId !== "bazi_report_followup"
+    && order.conversationParent?.stageId
       !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
-      path: ["continuationParent", "stageId"],
+      path: ["conversationParent", "stageId"],
+    });
+  }
+  if (
+    order.productId === "bazi_report_followup"
+    && order.conversationParent
+    && !["chart_interpretation", "question_analysis"].includes(
+      order.conversationParent.stageId,
+    )
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
+      path: ["conversationParent", "stageId"],
+    });
+  }
+  if (
+    isXuanxueAiReusableBaseConsumerProduct(order.productId)
+    && order.conversationParent?.relation !== "forked_from_checkpoint"
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED",
+      path: ["conversationParent", "relation"],
+    });
+  }
+  if (
+    isXuanxueAiPaidFollowupProduct(order.productId)
+    && order.conversationParent?.relation !== "same_conversation"
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_SAME_CONVERSATION_PARENT_REQUIRED",
+      path: ["conversationParent", "relation"],
     });
   }
 });

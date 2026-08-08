@@ -17,7 +17,7 @@ export async function acceptXuanxueV1Migration(root: string): Promise<void> {
   seedLegacyDatabase(terminalDir, "completed");
   const migrated = new XuanxueAiProductionStore(terminalDir);
   const record = migrated.readOrder("legacy-order");
-  assert.equal(record?.order.protocolVersion, "xuanxue-ai-production-v2");
+  assert.equal(record?.order.protocolVersion, "xuanxue-ai-production-v3");
   assert.equal(record?.order.materials[0]?.expectedOutputKind, "text");
   assert.deepEqual(record?.stages[0]?.aiFeedResult?.outputArtifacts, []);
   assert.equal(record?.result?.stages[0]?.outputKind, "text");
@@ -30,7 +30,7 @@ export async function acceptXuanxueV1Migration(root: string): Promise<void> {
   seedLegacyDatabase(activeDir, "running");
   assert.throws(
     () => new XuanxueAiProductionStore(activeDir),
-    /XUANXUE_AI_PRODUCTION_V1_ACTIVE_DRAIN_REQUIRED/u,
+    /XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED/u,
   );
 
   const corruptDir = path.join(root, "legacy-corrupt");

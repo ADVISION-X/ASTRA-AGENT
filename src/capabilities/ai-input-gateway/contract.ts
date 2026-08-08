@@ -39,6 +39,7 @@ export interface AiInputGatewayAbilityGroup {
   readonly abilityGroupId: AiInputGatewayAbilityGroupId;
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
   getRuntimeCapacity(): number;
+  close?(): Promise<void>;
   classifyFailure?(
     error: unknown,
     hasDurableSubmission: boolean,

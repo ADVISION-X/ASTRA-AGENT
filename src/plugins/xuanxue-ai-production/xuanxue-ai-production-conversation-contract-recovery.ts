@@ -2,12 +2,12 @@ import type Database from "better-sqlite3";
 
 import {
   XuanxueAiStoredProductionOrderSchema,
-  isXuanxueAiPaidFollowupProduct,
   type XuanxueAiOrderRecord,
   type XuanxueAiOrderStatus,
   type XuanxueAiProductionOrder,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
+import { isXuanxueAiPaidFollowupProduct } from "./xuanxue-ai-production-conversation-policy.js";
 import {
   appendXuanxueAiProductionEvent,
 } from "./xuanxue-ai-production-store-event.js";
@@ -102,8 +102,8 @@ const isLegacyFollowupParentRepair = (
   && current.order.inputBundleRef === incoming.inputBundleRef
   && current.order.inputBundleHash === incoming.inputBundleHash
   && isXuanxueAiPaidFollowupProduct(current.order.productId)
-  && current.order.continuationParent === null
-  && incoming.continuationParent !== null
+  && current.order.conversationParent === null
+  && incoming.conversationParent !== null
   && ["failed", "review_required", "recovery_pending"].includes(current.status)
   && current.result === null
   && sameCanonical(current.order.seededStages, incoming.seededStages)
@@ -208,7 +208,7 @@ export const repairLegacyFollowupParentBinding = (
       detail: {
         previousRequestHash: current.order.requestHash,
         repairedRequestHash: incoming.requestHash,
-        continuationParent: incoming.continuationParent,
+        conversationParent: incoming.conversationParent,
         previousFailureReason: current.failureReason,
         previousStages: current.stages,
         replacedExecutionIds: current.stages.map((stage) => stage.executionId),
@@ -239,7 +239,7 @@ const repairWrongChatRow = (
   );
   if (
     !isXuanxueAiPaidFollowupProduct(order.productId)
-    || !order.continuationParent
+    || !order.conversationParent
   ) {
     return;
   }

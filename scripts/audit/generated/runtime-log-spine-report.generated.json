@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-03T21:23:58.703Z",
+  "generatedAt": "2026-08-08T06:48:48.707Z",
   "status": "PASS",
-  "scannedFiles": 552,
+  "scannedFiles": 557,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -81,6 +81,7 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-fork.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
@@ -107,6 +108,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fork-tab-control.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
@@ -131,6 +134,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit-attachment-verification.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
@@ -521,6 +525,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -574,7 +579,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 552,
+    "scannedFiles": 557,
     "emitCallCount": 58,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -585,7 +590,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 547,
+      "scannedFiles": 552,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -594,13 +599,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 443
+      "scannedFiles": 448
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 439,
+      "scannedFiles": 444,
       "metrics": {
         "emitCallCount": 47
       }
@@ -609,13 +614,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 439
+      "scannedFiles": 444
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 444,
+      "scannedFiles": 449,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -630,7 +635,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 444,
+      "scannedFiles": 449,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -651,7 +656,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 125
+      "scannedFiles": 130
     },
     {
       "name": "browser-action-log-contract",

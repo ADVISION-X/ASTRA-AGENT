@@ -126,7 +126,9 @@ export const buildAiFeedInputPackage = async (input: AiFeedInput): Promise<AiFee
         promptPackageId: input.promptPackageId,
         promptContractId: input.promptContractId,
         expectedOutputSchemaRef: input.expectedOutputSchemaRef,
+        conversationScopeRef: input.conversationScopeRef,
         providerContinuationRef: input.providerContinuationRef ?? null,
+        providerForkRef: input.providerForkRef ?? null,
         textPrompt: input.textPrompt,
         inputRefs: input.inputRefs.map((ref) => ({
           id: ref.id,

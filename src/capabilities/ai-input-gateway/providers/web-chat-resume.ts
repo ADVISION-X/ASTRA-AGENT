@@ -161,6 +161,8 @@ const buildResumedResponse = async (input: {
       ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
     ],
     managedParallelExecution: true,
+    forkActionProof: input.execution.resumeForkActionProof,
+    submissionProof: input.submission,
   });
 };
 

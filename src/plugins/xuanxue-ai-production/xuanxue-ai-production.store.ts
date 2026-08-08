@@ -19,7 +19,6 @@ import {
   readParentConversationRebuildFromStore,
   recordParentConversationRebuildInStore,
   resetOrderForConversationGraphRebuildInStore,
-  resetOrderForParentConversationRebuildInStore,
 } from "./xuanxue-ai-production-store-conversation-rebuild.js";
 import {
   openXuanxueAiProductionDatabase,
@@ -181,16 +180,6 @@ export class XuanxueAiProductionStore {
       (candidateId) => this.readOrder(candidateId),
       orderId,
       input,
-    );
-  }
-
-  resetOrderForParentConversationRebuild(
-    orderId: string,
-  ): XuanxueAiOrderRecord {
-    return resetOrderForParentConversationRebuildInStore(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      orderId,
     );
   }
 

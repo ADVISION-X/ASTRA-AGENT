@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T21:23:08.586Z",
+  "generatedAt": "2026-08-08T06:48:02.822Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -62,22 +62,24 @@
       "blockIndex": 1
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations; a feed carrying continuation proof must use that exact parent URL and may never fall back to a blank new conversation.",
+      "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations and expose exact fresh, same-conversation or provider-verified checkpoint-fork topology without fallback.",
       "clauses": [
         {
-          "clauseId": "apex-ai-input-gateway-005-v2-requirement",
-          "statement": "A GPT Web feed with continuation proof must submit only in the exact verified parent conversation and must never fall back to a blank new conversation.",
+          "clauseId": "apex-ai-input-gateway-005-v3-requirement",
+          "statement": "A GPT Web feed must prove its exact fresh, same-conversation or provider checkpoint-fork topology and may never substitute a blank chat, summary replay or mutable parent tail.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "ai-input-gateway"
         }
       ],
       "required": [
+        "Every governed GPT feed resolves exactly one topology mode: fresh, same_conversation or forked_from_checkpoint. A checkpoint fork first verifies the exact parent URL, parent user-turn marker and following assistant response hash, performs the provider branch action, proves a distinct child URL with the inherited checkpoint history, and records the action evidence hash plus child history fingerprint before child submission.",
+        "Fresh proof records zero pre-submit user and assistant turns with no continuation or fork parent. Same-conversation proof records exact parent and actual URL, parent raw hash, prior marker and new marker. Fork proof records parent checkpoint identity, action evidence, distinct child URL, initial history fingerprint and first child marker. Unsupported, missing or ambiguous provider fork controls fail closed and never degrade to a blank chat or uploaded summary.",
         "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
         "Every feed request carries one structured taskIdentity containing an allowlisted labelKey plus bounded sourceProject, taskKind and sourceTaskId machine identifiers. This identity is input-hash-bound; callers cannot supply a chat title. Every first GPT feed owns an opaque internal attempt id, a deterministic logical-turn marker derived from immutable task identity and input hash, a submitted prompt hash and a unique human-readable system chat title. Retries for the same semantic turn therefore keep one marker while changed input receives another; callers never control the marker. The title is derived only from taskIdentity.labelKey, UTC month-day and minute, plus a short opaque trace, for example SEO资料研究｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content, scenario text or caller-supplied title text. Every continuation on an exact canonical parent conversation inherits that parent conversation's earliest verified system title, or its earliest persisted title while rename is unfinished; one whole order therefore has one parent chat and one durable title, while its second, third or Nth turn receives a new marker but never mints or competes for a stage-specific chat title. Legacy stage-specific verified titles on that same canonical URL are deterministically collapsed to the earliest verified title and never block or restart a user order, because the canonical URL remains the stronger identity. As soon as the exact marked user turn exists, the runtime persists its transient URL, ordered attachment proof and turn identity before any post-submit attachment inspection, canonical-URL wait or response polling. A later transient inspection failure therefore resumes the captured turn and may never submit the same semantic turn again. After canonicalization the runtime records the formal conversation URL and releases the submit slot.",
         "A fresh GPT execution is established only on the root path with zero user turns, zero assistant turns, an empty composer, no staged attachment, no pasted-text card and no active generation. When that clean state already exists, the runtime must not issue a redundant New chat click; otherwise it uses one uniquely identified visible New chat control and re-proves the complete clean state. A continuation must first prove that its exact parent URL, at least one prior user turn, at least one prior assistant turn and the prior answer have finished hydrating; an empty or partial parent snapshot is recovery_pending before upload or send. A send click is not submission success. Success exists only when exactly one user turn in the exact conversation contains the prepared prompt prefix and exact logical-turn marker suffix, that marked turn is the latest user turn, the canonical /c/ URL is durable, and the URL is not already bound to another fresh execution. Page-global user-turn counts are observational only because provider hydration can change them; they are forbidden as submission identity or retry authority. A provider rebound to a foreign marked turn, duplicate same marker or occupied canonical conversation is discarded as internal recovery and may never be published as a successful send.",
@@ -6640,29 +6642,32 @@
       "blockIndex": 7
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "The factory executes eight user-result products plus three private canonical-base actions; canonical bases are singleflight, every user question remains unique, and exact GPT URL continuation never falls back to a blank chat.",
+      "summary": "The factory executes nine user-result products plus three private-base actions through explicit fresh, same-conversation and provider-verified checkpoint-fork topology.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
-          "statement": "Canonical bases execute once per stable identity, every user question executes once, and every required continuation uses the exact canonical or paid-parent GPT conversation rather than a blank chat.",
+          "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
+          "statement": "Private bases execute once per stable identity; every formal child has one explicit provider topology proof and typed joins never merge conversations or invent a synthetic subject.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanxue-ai-production"
         }
       ],
       "required": [
-        "Exactly eight AI product ids and three unpriced canonical-base action ids enter the protocol.",
-        "Only versioned product profiles control dependencies, continuation and final stage.",
-        "Bazi user-result jobs continue their exact canonical-base conversation; naming_author continues question_analysis.",
-        "Hehun canonical A and B contexts are isolated and the relationship result uses its own complete context.",
+        "Exactly nine AI product ids and three unpriced private-base action ids enter the protocol.",
+        "Only versioned product profiles control dependencies, typed joins, conversation topology and final stage.",
+        "BZ05, BZ03 and NM01 begin in distinct provider-verified children forked from one immutable Bazi base checkpoint; no child reuses the base or a sibling conversation.",
+        "NM01 naming_author continues its own question_analysis child, NM02 uses a fresh conversation distinct from its source report, and BZ04 continues the selected BZ05 or BZ03 formal parent conversation.",
+        "Hehun party A and party B private bases are isolated and final compatibility uses a third fresh context receiving only the typed participant manifest and verified private-base artifacts.",
+        "One target plus any auxiliaries keep one isolated base per person; the author receives only exact participant slots, roles, person/profile/chart identities, hashes and authorization proof.",
         "Business plugins call AI Input Gateway only through its public contract.",
         "Every stage binds the immutable input bundle as a non-file input ref, including zero-attachment stages.",
-        "Bazi, Qimen and Hehun paid follow-ups bind their fixed parent product, final stage and raw output hash; if the exact GPT Web URL is unavailable, the Agent replays the complete parent graph and continues only in the rebuilt parent conversation."
+        "Every provider result records one explicit fresh, same_conversation or forked_from_checkpoint proof; an unsupported or unproved exact fork fails closed.",
+        "Bazi, Qimen and Hehun paid follow-ups bind their fixed parent product, final stage, execution, scope and raw output hash; if the exact GPT Web URL is unavailable, the Agent replays the minimum necessary parent graph and continues only when the rebuilt raw hash is identical."
       ],
       "forbidden": [
         "website-controlled next action, browser command or per-stage cloud job",
@@ -6671,7 +6676,8 @@
         "duplicate canonical-base production for one stable identity",
         "user question, partner or naming requirement included in a canonical-base identity",
         "reuse of a user answer",
-        "a downstream stage of one multi-stage order opening a blank or different GPT conversation",
+        "a checkpoint child simulated with a blank chat, base summary, uploaded base transcript, second-model retelling or mutable base tail",
+        "a downstream same-conversation stage opening a blank or different GPT conversation",
         "paid follow-up execution outside its exact or fully rebuilt parent conversation",
         "blank new GPT conversation used as a follow-up fallback"
       ],
@@ -6679,7 +6685,7 @@
       "blockIndex": 0
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanxue-ai-production",
@@ -6688,7 +6694,7 @@
       "summary": "Every production order and stage is idempotent, SQLite-durable and restart-recoverable; all work sharing one exact GPT URL uses one durable FIFO lane while different URLs remain concurrent.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+          "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
           "statement": "All work sharing one exact or reconstructed GPT URL executes through one durable FIFO lane; captured work survives restart, invalid outputs restart only their execution, and ordinary recovery never becomes a user-visible terminal failure.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanxue-ai-production"
@@ -6703,6 +6709,8 @@
         "Restart reconciliation reclaims the original cloud job before local execution and republishes any already completed local result under a fresh lease.",
         "A cloud-confirmed foreign-device recovery ledger is durably quarantined as review_required once and is excluded from later automatic restart reconciliation.",
         "Only one order or stage for the same exact webChatUrl may submit at a time, in createdAt and orderId FIFO order.",
+        "Fork siblings use different conversation scopes and provider URLs, may execute in parallel within bounded capacity, and never share a same-conversation FIFO lane.",
+        "Restart, disconnect, lease takeover and disaster rebuild preserve frozen subject, participant manifest, parent checkpoint, child scope and provider proof; downstream stays blocked when a rebuilt parent raw hash differs.",
         "Historical paid follow-ups without a continuation parent remain recovery_pending until the website reissues their immutable parent identity; an exact one-way local repair preserves old stage evidence and users never receive an ordinary runtime failure.",
         "Provider citation residue, private-use characters, invalid required JSON and missing raw output are discarded and restarted with a fresh execution id and fresh marker, while a transport retry never duplicates one already submitted logical turn merely because page-global turn counts changed during provider hydration.",
         "A failed or review_required gateway execution with durable submission proof always resumes the same execution id, marker and provider conversation. A fresh execution is allowed only for a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault.",
@@ -6724,7 +6732,7 @@
       "blockIndex": 1
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanxue-ai-production",
@@ -6733,7 +6741,7 @@
       "summary": "The local factory activates through authenticated outbound lease polling and returns exact whole-order checkpoints, results and failures.",
       "clauses": [
         {
-          "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+          "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
           "statement": "The local factory activates through authenticated outbound lease polling and returns exact whole-order checkpoints, results and failures.",
           "evidenceMode": "acceptance",
           "ownerDomain": "xuanxue-ai-production"
@@ -6744,7 +6752,7 @@
         "Input download and every mutation bind the exact lease token and lease version.",
         "The worker claims only available local production capacity.",
         "Durable local orders are reconciled to the original cloud job before execution resumes; completed local results are republished under a fresh lease.",
-        "Every claimed follow-up includes a lease-bound continuation_parent_replay package so a lost local parent can be reconstructed from its first stage."
+        "Every claimed conversation child includes a lease-bound conversation_parent_replay package plus exact frozen subject, conversation scope and typed join identities so a lost local parent can be reconstructed from its first stage."
       ],
       "forbidden": [
         "inbound home port or server callback",

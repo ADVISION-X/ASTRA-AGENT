@@ -106,8 +106,8 @@
         ]
       },
       {
-        "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
-        "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+        "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
+        "clauseId": "apex-ai-input-gateway-005-v3-requirement",
         "checkIds": [
           "ai-input-gateway/authority-present",
           "ai-input-gateway/bounded-parallel-runtime",
@@ -127,6 +127,7 @@
           "ai-input-gateway/no-chatgpt-page-refresh",
           "ai-input-gateway/offscreen-sidebar-recovery",
           "ai-input-gateway/parallel-acceptance",
+          "ai-input-gateway/provider-conversation-topology",
           "ai-input-gateway/response-checkpoint-recovery",
           "ai-input-gateway/submission-priority-patrol",
           "ai-input-gateway/shared-rate-limit-watcher",

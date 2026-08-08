@@ -2,10 +2,10 @@ import type Database from "better-sqlite3";
 
 import {
   XuanxueAiStoredProductionOrderSchema,
-  isXuanxueAiRequiredContinuationProduct,
   type XuanxueAiOrderStatus,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
+import { isXuanxueAiRequiredContinuationProduct } from "./xuanxue-ai-production-conversation-policy.js";
 import {
   appendXuanxueAiProductionEvent,
 } from "./xuanxue-ai-production-store-event.js";
@@ -130,7 +130,7 @@ const recoverParentlessOrder = (
   );
   if (
     !isXuanxueAiRequiredContinuationProduct(order.productId)
-    || order.continuationParent
+    || order.conversationParent
   ) {
     return;
   }

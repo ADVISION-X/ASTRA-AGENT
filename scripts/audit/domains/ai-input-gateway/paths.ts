@@ -39,7 +39,7 @@ export const attachment = {
     "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
 } as const;
 
-export const runtime = {
+const runtimeCoordination = {
   concurrencyLeasePath:
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
   schedulerLedgerPath:
@@ -60,6 +60,13 @@ export const runtime = {
     "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts",
   openPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+  forkPath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
+  providerProofPath:
+    "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
+} as const;
+
+const runtimeConversation = {
   freshConversationPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
   submissionCheckpointPath:
@@ -84,6 +91,9 @@ export const runtime = {
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
   recoveryPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
+} as const;
+
+const runtimeInteraction = {
   historyCleanupPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
   singleTabRoutingPath:
@@ -98,6 +108,12 @@ export const runtime = {
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
   generatedImageCapturePath:
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
+} as const;
+
+export const runtime = {
+  ...runtimeCoordination,
+  ...runtimeConversation,
+  ...runtimeInteraction,
 } as const;
 
 export const executionRuntime = {
@@ -126,6 +142,8 @@ export const acceptance = {
     "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
   realChromeRestartAcceptancePath:
     "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
+  realChromeForkAcceptancePath:
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-fork.real-chrome.ts",
 } as const;
 
 export const removed = {

@@ -87,14 +87,16 @@ business owner
 
 ```apex-law
 {
-  "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
+  "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "ai-input-gateway",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations; a feed carrying continuation proof must use that exact parent URL and may never fall back to a blank new conversation.",
+  "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations and expose exact fresh, same-conversation or provider-verified checkpoint-fork topology without fallback.",
   "required": [
+    "Every governed GPT feed resolves exactly one topology mode: fresh, same_conversation or forked_from_checkpoint. A checkpoint fork first verifies the exact parent URL, parent user-turn marker and following assistant response hash, performs the provider branch action, proves a distinct child URL with the inherited checkpoint history, and records the action evidence hash plus child history fingerprint before child submission.",
+    "Fresh proof records zero pre-submit user and assistant turns with no continuation or fork parent. Same-conversation proof records exact parent and actual URL, parent raw hash, prior marker and new marker. Fork proof records parent checkpoint identity, action evidence, distinct child URL, initial history fingerprint and first child marker. Unsupported, missing or ambiguous provider fork controls fail closed and never degrade to a blank chat or uploaded summary.",
     "Runtime capacity is operator-owned, positive, bounded and configurable without becoming a caller field or a product-mode switch; the default capacity supports at least ten independent in-flight GPT conversations.",
     "Every feed request carries one structured taskIdentity containing an allowlisted labelKey plus bounded sourceProject, taskKind and sourceTaskId machine identifiers. This identity is input-hash-bound; callers cannot supply a chat title. Every first GPT feed owns an opaque internal attempt id, a deterministic logical-turn marker derived from immutable task identity and input hash, a submitted prompt hash and a unique human-readable system chat title. Retries for the same semantic turn therefore keep one marker while changed input receives another; callers never control the marker. The title is derived only from taskIdentity.labelKey, UTC month-day and minute, plus a short opaque trace, for example SEO资料研究｜07-26 04:40Z｜A9F193A3-489B; it never copies prompt text, user names, report content, scenario text or caller-supplied title text. Every continuation on an exact canonical parent conversation inherits that parent conversation's earliest verified system title, or its earliest persisted title while rename is unfinished; one whole order therefore has one parent chat and one durable title, while its second, third or Nth turn receives a new marker but never mints or competes for a stage-specific chat title. Legacy stage-specific verified titles on that same canonical URL are deterministically collapsed to the earliest verified title and never block or restart a user order, because the canonical URL remains the stronger identity. As soon as the exact marked user turn exists, the runtime persists its transient URL, ordered attachment proof and turn identity before any post-submit attachment inspection, canonical-URL wait or response polling. A later transient inspection failure therefore resumes the captured turn and may never submit the same semantic turn again. After canonicalization the runtime records the formal conversation URL and releases the submit slot.",
     "A fresh GPT execution is established only on the root path with zero user turns, zero assistant turns, an empty composer, no staged attachment, no pasted-text card and no active generation. When that clean state already exists, the runtime must not issue a redundant New chat click; otherwise it uses one uniquely identified visible New chat control and re-proves the complete clean state. A continuation must first prove that its exact parent URL, at least one prior user turn, at least one prior assistant turn and the prior answer have finished hydrating; an empty or partial parent snapshot is recovery_pending before upload or send. A send click is not submission success. Success exists only when exactly one user turn in the exact conversation contains the prepared prompt prefix and exact logical-turn marker suffix, that marked turn is the latest user turn, the canonical /c/ URL is durable, and the URL is not already bound to another fresh execution. Page-global user-turn counts are observational only because provider hydration can change them; they are forbidden as submission identity or retry authority. A provider rebound to a foreign marked turn, duplicate same marker or occupied canonical conversation is discarded as internal recovery and may never be published as a successful send.",
@@ -153,8 +155,8 @@ business owner
   ],
   "clauses": [
     {
-      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
-      "statement": "A GPT Web feed with continuation proof must submit only in the exact verified parent conversation and must never fall back to a blank new conversation.",
+      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
+      "statement": "A GPT Web feed must prove its exact fresh, same-conversation or provider checkpoint-fork topology and may never substitute a blank chat, summary replay or mutable parent tail.",
       "evidenceMode": "real-chrome",
       "ownerDomain": "ai-input-gateway"
     }

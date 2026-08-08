@@ -4,6 +4,7 @@ import type {
   AiProviderRawResponse,
   AiProviderUploadedFileProof,
   WebChatAttachmentUploadProof,
+  WebChatForkActionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
@@ -97,6 +98,7 @@ type OpenedWebChatConversationInput = {
   providerUrl: string;
   runtimeName: string;
   sourcePageUrlBeforeFeed: string | null;
+  forkActionProof?: WebChatForkActionProof | null;
 };
 
 const prepareWebChatConversation = async (
@@ -241,6 +243,8 @@ const buildCompletedWebChatResponse = async (input: {
       generatedImage?.artifactRef].filter((ref): ref is string => Boolean(ref)),
     outputArtifacts: generatedImage ? [generatedImage] : [],
     managedParallelExecution: Boolean(input.opened.context.webChatExecution),
+    forkActionProof: input.opened.forkActionProof,
+    submissionProof: renamedSubmission,
   });
 };
 
@@ -288,14 +292,9 @@ const executeWebChatConversation = async (
   });
 };
 
-const executeOpenedWebChatAdapter = async (input: {
-  browser: BrowserController;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  providerUrl: string;
-  runtimeName: string;
-  sourcePageUrlBeforeFeed: string | null;
-}): Promise<AiProviderRawResponse> => {
+const executeOpenedWebChatAdapter = async (
+  input: OpenedWebChatConversationInput,
+): Promise<AiProviderRawResponse> => {
   let recoveryStatus: string | null = null;
   let response: AiProviderRawResponse;
   let missingBoundImageRecovered = false;
@@ -377,7 +376,7 @@ export const runWebChatAdapter = async (input: {
     ? null
     : await readActivePageUrl(browser);
   let response: AiProviderRawResponse | null = null;
-  await openProviderPage({
+  const forkActionProof = await openProviderPage({
     browser,
     providerUrl: input.providerUrl,
     runtimeName: input.runtimeName,
@@ -402,6 +401,7 @@ export const runWebChatAdapter = async (input: {
       providerUrl: input.providerUrl,
       runtimeName: input.runtimeName,
       sourcePageUrlBeforeFeed,
+      forkActionProof,
     });
     return response;
   } finally {

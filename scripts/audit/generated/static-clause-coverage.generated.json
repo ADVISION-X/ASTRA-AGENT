@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03T21:24:06.123Z",
+  "generatedAt": "2026-08-08T06:48:55.251Z",
   "summary": {
     "activeLawCount": 250,
     "activeClauseCount": 257,
@@ -126,8 +126,8 @@
       "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V2",
-      "clauseId": "apex-ai-input-gateway-005-v2-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
+      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
       "capabilityDomain": "ai-input-gateway",
       "evidenceMode": "real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
@@ -150,6 +150,7 @@
         "ai-input-gateway/no-chatgpt-page-refresh",
         "ai-input-gateway/offscreen-sidebar-recovery",
         "ai-input-gateway/parallel-acceptance",
+        "ai-input-gateway/provider-conversation-topology",
         "ai-input-gateway/response-checkpoint-recovery",
         "ai-input-gateway/submission-priority-patrol",
         "ai-input-gateway/shared-rate-limit-watcher",
@@ -13877,8 +13878,8 @@
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -13898,8 +13899,8 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -13920,8 +13921,8 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
+      "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",

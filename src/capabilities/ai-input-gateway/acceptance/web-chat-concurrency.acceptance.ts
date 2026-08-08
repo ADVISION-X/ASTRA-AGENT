@@ -103,12 +103,27 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
         () => exists(path.join(dataDir, "release-all")),
         30_000,
       );
+      const conversationUrl = `https://chatgpt.com/c/parallel-${worker}`;
+      const submittedAt = new Date().toISOString();
       return {
         rawText: `parallel response ${worker}`,
         modelName: "acceptance-fixture",
         runtimeName: "acceptance-fixture",
         transport: "web-chat",
-        webChatUrl: `https://chatgpt.com/c/parallel-${worker}`,
+        webChatUrl: conversationUrl,
+        submissionProof: {
+          executionId: `parallel-execution-${worker}`,
+          turnMarker: `parallel-turn-${worker}`,
+          transientConversationUrl: conversationUrl,
+          canonicalConversationUrl: conversationUrl,
+          systemChatTitle: null,
+          observedAutoChatTitle: null,
+          chatTitleVerifiedAt: null,
+          userTurnId: `parallel-user-turn-${worker}`,
+          previousAssistantCount: 0,
+          previousUserMessageCount: 0,
+          submittedAt,
+        },
         sourcePageUrlBeforeFeed: null,
         restoredSourcePage: null,
       };
@@ -139,6 +154,38 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
     path.join(dataDir, `result-${worker}.json`),
     JSON.stringify(result),
     "utf8",
+  );
+};
+
+const assertTopologyProofIsRequired = async (
+  dataDir: string,
+): Promise<void> => {
+  const adapter: AiProviderAdapter = {
+    providerKind: "gpt-web-chat",
+    async feed() {
+      return {
+        rawText: "unproved provider response",
+        modelName: "acceptance-fixture",
+        runtimeName: "acceptance-fixture",
+        transport: "web-chat",
+        webChatUrl: "https://chatgpt.com/c/unproved-topology",
+        sourcePageUrlBeforeFeed: null,
+        restoredSourcePage: null,
+      };
+    },
+  };
+  const gateway = createAiInputGatewayAbilityGroup({
+    dataDir,
+    adapters: { "gpt-web-chat": adapter },
+  });
+  const result = await gateway.execute(requestFor(103), {
+    executionId: "unproved-topology-execution",
+  });
+  assert.notEqual(result.status, "success");
+  assert.match(
+    result.failureReason ?? result.reviewRequiredReason ?? "",
+    /CONVERSATION_TOPOLOGY_PROOF_MISSING/u,
+    "web-chat output without its exact topology proof must fail closed",
   );
 };
 
@@ -218,6 +265,7 @@ if (workerArgs[0] === "--worker") {
 
     await assertResponseCheckpointRecovery(dataDir, requestFor(101));
     await assertFailureLedger(dataDir, requestFor(102));
+    await assertTopologyProofIsRequired(dataDir);
     const firstTen = Array.from({ length: 10 }, (_, index) =>
       spawnWorker(index + 1),
     );

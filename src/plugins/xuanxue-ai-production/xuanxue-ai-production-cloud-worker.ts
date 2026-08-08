@@ -206,6 +206,9 @@ const executeCloudJob = async (
       state.credential,
       job,
     );
+    for (const dependency of staged.parentReplayDependencies) {
+      state.execution.createOrder(dependency);
+    }
     if (staged.parentReplay) {
       state.execution.createOrder(staged.parentReplay);
     }

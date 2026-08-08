@@ -39,7 +39,14 @@ const assertRawOutputIntegrity = (
   }
 };
 
-const migrateOrder = (raw: Record<string, unknown>): Record<string, unknown> => {
+const migrateOrder = (
+  orderId: string,
+  raw: Record<string, unknown>,
+): Record<string, unknown> => {
+  const {
+    continuationParent: _legacyContinuationParent,
+    ...legacyWithoutRemovedTopology
+  } = raw;
   const productId = String(raw.productId ?? "");
   const materials = Array.isArray(raw.materials)
     ? raw.materials.map((material) => ({
@@ -48,8 +55,8 @@ const migrateOrder = (raw: Record<string, unknown>): Record<string, unknown> => 
     }))
     : raw.materials;
   return {
-    ...raw,
-    protocolVersion: "xuanxue-ai-production-v2",
+    ...legacyWithoutRemovedTopology,
+    protocolVersion: "xuanxue-ai-production-v3",
     serviceClass: productId === "public_knowledge_article_pipeline"
       ? "public_content"
       : "user_delivery",
@@ -61,6 +68,28 @@ const migrateOrder = (raw: Record<string, unknown>): Record<string, unknown> => 
     lineageId: null,
     reflectionSnapshotRef: null,
     reflectionPlanId: null,
+    frozenSubject: {
+      privacyOwnerRef: `legacy-owner:${orderId}`,
+      snapshotRef: `legacy-snapshot:${orderId}`,
+      snapshotHash: digest(`legacy-snapshot:${orderId}`),
+      caseRevisionRef: `legacy-case-revision:${orderId}`,
+      primaryPersonRef: `legacy-person:${orderId}`,
+      participantManifestHash: digest(`legacy-participants:${orderId}`),
+      participants: [{
+        slotRef: "legacy-primary",
+        roleCode: "legacy_primary",
+        personRef: `legacy-person:${orderId}`,
+        profileVersionRef: `legacy-profile:${orderId}`,
+        chartStateRef: `legacy-chart:${orderId}`,
+        chartStateVersion: "legacy-v1",
+        chartStateHash: digest(`legacy-chart:${orderId}`),
+        purposeCode: productId || "legacy_terminal_record",
+        authorizationReceiptRef: `legacy-authorization:${orderId}`,
+      }],
+    },
+    conversationScopeRef: `legacy-conversation-scope:${orderId}`,
+    conversationParent: null,
+    joinParents: [],
     materials,
   };
 };
@@ -116,8 +145,11 @@ const migrateRows = (
     order_id,from_protocol,to_protocol,before_sha256,after_sha256,migrated_at
   ) values(?,?,?,?,?,?)`);
   for (const row of rows) {
+    const originalOrder = JSON.parse(row.order_json) as Record<string, unknown>;
+    const fromProtocol = String(originalOrder.protocolVersion ?? "unknown");
     const migratedOrder = migrateOrder(
-      JSON.parse(row.order_json) as Record<string, unknown>,
+      row.order_id,
+      originalOrder,
     );
     XuanxueAiStoredProductionOrderSchema.parse(migratedOrder);
     for (const stageRow of stageRows.all(row.order_id) as Array<{
@@ -143,18 +175,18 @@ const migrateRows = (
       row.order_id,
     );
     record.run(
-      row.order_id, "xuanxue-ai-production-v1", "xuanxue-ai-production-v2",
+      row.order_id, fromProtocol, "xuanxue-ai-production-v3",
       digest(row.order_json), digest(after), new Date().toISOString(),
     );
   }
 };
 
 /**
- * One-way cutover for historical v1 rows. Non-terminal v1 work must be drained
- * before the v2 runtime starts; silently resuming it under a changed contract
+ * One-way cutover for historical v1/v2 rows. Non-terminal legacy work must be
+ * drained before the v3 runtime starts; silently resuming it under a changed contract
  * would make provider and continuation evidence ambiguous.
  */
-export const migrateTerminalXuanxueAiProtocolV1Rows = (
+export const migrateTerminalXuanxueAiLegacyProtocolRows = (
   database: Database.Database,
 ): void => {
   database.exec(`
@@ -170,12 +202,14 @@ export const migrateTerminalXuanxueAiProtocolV1Rows = (
   const rows = database.prepare(`
     select order_id,status,order_json,result_json
     from production_orders
-    where json_extract(order_json,'$.protocolVersion') =
-      'xuanxue-ai-production-v1'
+    where json_extract(order_json,'$.protocolVersion') in (
+      'xuanxue-ai-production-v1',
+      'xuanxue-ai-production-v2'
+    )
     order by created_at,order_id
   `).all() as LegacyRow[];
   if (rows.some((row) => !terminalStatuses.has(row.status))) {
-    throw new Error("XUANXUE_AI_PRODUCTION_V1_ACTIVE_DRAIN_REQUIRED");
+    throw new Error("XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED");
   }
   if (rows.length === 0) return;
 

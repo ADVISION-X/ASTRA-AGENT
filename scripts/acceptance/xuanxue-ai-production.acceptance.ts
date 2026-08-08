@@ -69,6 +69,27 @@ try {
     qimenFollowupParent,
     qimenFollowupParentFinal,
   } = await acceptXuanxueOrderGraphs({ runtime, gateway });
+  const invalidSeededTopology = order(
+    "aiprod_seeded_without_topology_proof",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  invalidSeededTopology.seededStages = [{
+    stageId: "analysis",
+    executionId: qimenFollowupParentFinal.executionId,
+    rawResponseText: qimenFollowupParentFinal.rawResponseText!,
+    rawOutputHash: qimenFollowupParentFinal.rawOutputHash!,
+    providerProof: {
+      ...qimenFollowupParentFinal.aiFeedResult!.providerProof,
+      freshConversationProof: null,
+    },
+    transportWarnings: [],
+  }];
+  assert.throws(
+    () => createXuanxueAiProductionOrder(runtime, invalidSeededTopology),
+    /SEEDED_STAGE_PROOF_INVALID/u,
+    "a seeded completion without its exact conversation topology must fail closed",
+  );
   gateway.bareOutputHashes = true;
   const canonicalHashBoundary = order(
     "aiprod_canonical_hash_boundary",
@@ -110,7 +131,7 @@ try {
     (request) => request.taskIdentity.taskKind === "scheduled_quality_reflection",
   );
   assert.equal(reflectionResult.status, "completed");
-  assert.equal(reflection.continuationParent, null);
+  assert.equal(reflection.conversationParent, null);
   assert.equal(reflectionRequest?.providerContinuationRef, undefined);
   assert.equal(reflectionResult.stages.length, 1);
 
@@ -143,6 +164,13 @@ try {
     publicArticleRequest?.providerContinuationRef?.priorTaskId,
     `${XUANXUE_AI_PRODUCTION_JOB_ID}:`
       + `${publicArticle.orderId}:corpus_research`,
+  );
+  assert.equal(
+    publicArticleRequest?.maxFileCount,
+    publicArticle.materials.find(
+      (material) => material.stageId === "article_synthesis",
+    )!.maxFileCount + 1,
+    "one verified parent attachment must expand the frozen material file limit exactly once",
   );
   assert.equal(
     publicArticleStage?.aiFeedResult?.providerProof.webChatUrl,
@@ -316,6 +344,10 @@ try {
     qimenParent: {
       jobId: qimenFollowupParent.orderId,
       rawOutputHash: qimenFollowupParentFinal.rawOutputHash!,
+      executionId: qimenFollowupParentFinal.executionId,
+      inputBundleHash: qimenFollowupParent.inputBundleHash,
+      conversationScopeRef: qimenFollowupParent.conversationScopeRef,
+      frozenSubject: qimenFollowupParent.frozenSubject,
     },
   });
   process.stdout.write(

@@ -405,7 +405,7 @@ Plugin 禁止：
 | `media-processing-artifact` | 把单次媒体处理能力包装成有 schema/result/evidence 的 job | 不在 job 内复制 ffmpeg/sharp 算法，不建第二媒体处理链 |
 | `video-download-artifact` | 把单次受治理视频下载能力包装成 job | 不绕过 DRM/CAPTCHA/登录，不用截图冒充视频文件 |
 | `xuanyuan` | 通用的一次提示词包本地 GPT 验收、状态与历史 | 不接网站生产云任务，不拥有产品动作图或 provider transport |
-| `xuanxue-ai-production` | 玄学网站八个 AI 产品整单领取、固定动作图、持久化生产窗口与整单回传 | 网站只发整单和收结果；工厂只走 AI Input Gateway；禁止通用 planner、影子队列和逐阶段网站遥控 |
+| `xuanxue-ai-production` | 玄学网站九个 AI 产品整单领取、固定动作图、真实 checkpoint 分叉、持久化生产窗口与整单回传 | 网站只发整单和收结果；工厂只走 AI Input Gateway；禁止通用 planner、影子队列和逐阶段网站遥控 |
 
 ### 0.1.10 Capability Group：公共工具房
 

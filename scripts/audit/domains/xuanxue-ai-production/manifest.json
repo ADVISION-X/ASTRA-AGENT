@@ -6,8 +6,8 @@
     "mode": "explicit",
     "bindings": [
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-        "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+        "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
         "checkIds": [
           "xuanxue-ai-production/acceptance",
           "xuanxue-ai-production/fixed-profiles",
@@ -23,8 +23,8 @@
         ]
       },
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-        "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+        "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
         "checkIds": [
           "xuanxue-ai-production/acceptance",
           "xuanxue-ai-production/bounded-coordinator",
@@ -41,8 +41,8 @@
         ]
       },
       {
-        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
-        "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
+        "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
         "checkIds": [
           "xuanxue-ai-production/cloud-capacity",
           "xuanxue-ai-production/cloud-lease-binding",

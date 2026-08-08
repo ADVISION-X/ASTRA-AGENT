@@ -188,6 +188,7 @@ try {
   assert.equal(nextImages[0]?.targetPhase, `next_after_${drawsAscending[drawsAscending.length - 1]?.phase}`);
   const stabilityInputs: AiFeedInput[] = [];
   const stabilitySummary = await runPick3NextPredictionStability({
+    postParseDelayMsOverride: 0,
     batch: {
       batchId: "free-analysis-next-stability",
       artifactDir: resolve(tempDataDir, "artifacts", "free-analysis-next-stability"),
@@ -292,6 +293,7 @@ try {
   assert.equal(multiPositionImages.length, 2);
   const multiStabilityInputs: AiFeedInput[] = [];
   const multiStabilitySummary = await runPick3NextPredictionStability({
+    postParseDelayMsOverride: 0,
     batch: {
       batchId: "free-analysis-next-stability-multi",
       artifactDir: resolve(tempDataDir, "artifacts", "free-analysis-next-stability-multi"),

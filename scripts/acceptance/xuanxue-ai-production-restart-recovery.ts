@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-
 import {
   createXuanxueAiProductionOrder,
   XUANXUE_AI_PRODUCTION_JOB_ID,
@@ -14,7 +13,6 @@ import {
   order,
   providerResult,
 } from "./xuanxue-ai-production-fixture.js";
-
 interface RestartAcceptanceInput {
   readonly dataDir: string;
   readonly gateway: FixtureGateway;
@@ -23,9 +21,12 @@ interface RestartAcceptanceInput {
   readonly qimenParent: {
     readonly jobId: string;
     readonly rawOutputHash: string;
+    readonly executionId: string;
+    readonly inputBundleHash: string;
+    readonly conversationScopeRef: string;
+    readonly frozenSubject: XuanxueAiProductionOrder["frozenSubject"];
   };
 }
-
 const seedRecoverableBacklog = (
   runtime: XuanxueAiProductionRuntime,
 ): XuanxueAiProductionOrder[] => {
@@ -118,11 +119,16 @@ const seedLegacyReview = (
       "qimen_report_followup",
       ["followup"],
     ),
-    continuationParent: {
+    conversationParent: {
+      relation: "same_conversation",
       jobId: input.qimenParent.jobId,
       stageId: "analysis",
+      executionId: input.qimenParent.executionId,
       rawOutputHash: input.qimenParent.rawOutputHash,
+      inputBundleHash: input.qimenParent.inputBundleHash,
+      conversationScopeRef: input.qimenParent.conversationScopeRef,
     },
+    frozenSubject: input.qimenParent.frozenSubject,
   };
   const record = createXuanxueAiProductionOrder(input.runtime, legacy);
   input.runtime.store.updateStage({
@@ -478,20 +484,14 @@ const acceptReopenedLedger = async (
   await resumeReopenedLedger(input, reopened, fixtures);
 };
 
-export const acceptXuanxueRestartRecovery = async (
-  input: RestartAcceptanceInput,
-): Promise<void> => {
+export const acceptXuanxueRestartRecovery = async (input: RestartAcceptanceInput): Promise<void> => {
   const fixtures = {
-    recoverable: seedRecoverableBacklog(input.runtime),
-    repairable: seedHashRepair(input.runtime),
-    legacy: seedLegacyReview(input),
-    invalidPrefix: seedInvalidCompletedPrefix(input.runtime),
-    foreign: seedForeignLedger(input.runtime),
-    cancelled: seedCloudCancelled(input),
+    recoverable: seedRecoverableBacklog(input.runtime), repairable: seedHashRepair(input.runtime),
+    legacy: seedLegacyReview(input), invalidPrefix: seedInvalidCompletedPrefix(input.runtime),
+    foreign: seedForeignLedger(input.runtime), cancelled: seedCloudCancelled(input),
     submittedContinuation: seedSubmittedContinuation(input),
   };
   input.runtime.store.close();
   const reopened = new XuanxueAiProductionStore(input.dataDir);
-  await acceptReopenedLedger(input, reopened, fixtures);
-  reopened.close();
+  await acceptReopenedLedger(input, reopened, fixtures); reopened.close();
 };

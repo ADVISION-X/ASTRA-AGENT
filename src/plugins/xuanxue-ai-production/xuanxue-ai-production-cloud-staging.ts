@@ -165,11 +165,33 @@ const seededStages = (
   transportWarnings: stage.transport_warnings,
 }));
 
+const frozenSubject = (
+  subject: XuanxueAiProductionCloudClaimedJob["frozen_subject"],
+): XuanxueAiProductionOrder["frozenSubject"] => ({
+  privacyOwnerRef: subject.privacy_owner_ref,
+  snapshotRef: subject.snapshot_ref,
+  snapshotHash: subject.snapshot_hash,
+  caseRevisionRef: subject.case_revision_ref,
+  primaryPersonRef: subject.primary_person_ref,
+  participantManifestHash: subject.participant_manifest_hash,
+  participants: subject.participants.map((participant) => ({
+    slotRef: participant.slot_ref,
+    roleCode: participant.role_code,
+    personRef: participant.person_ref,
+    profileVersionRef: participant.profile_version_ref,
+    chartStateRef: participant.chart_state_ref,
+    chartStateVersion: participant.chart_state_version,
+    chartStateHash: participant.chart_state_hash,
+    purposeCode: participant.purpose_code,
+    authorizationReceiptRef: participant.authorization_receipt_ref,
+  })),
+});
+
 const childOrder = (
   job: XuanxueAiProductionCloudClaimedJob,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-    protocolVersion: "xuanxue-ai-production-v2",
+    protocolVersion: "xuanxue-ai-production-v3",
   orderId: job.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: job.source_task_id,
@@ -182,38 +204,83 @@ const childOrder = (
   inputBundleRef: job.input_bundle_ref,
   inputBundleHash: job.input_bundle_hash,
   requestHash: job.request_hash,
-  continuationParent: job.continuation_parent
+  frozenSubject: frozenSubject(job.frozen_subject),
+  conversationScopeRef: job.conversation_scope_ref,
+  conversationParent: job.conversation_parent
     ? {
-        jobId: job.continuation_parent.job_id,
-        stageId: job.continuation_parent.stage_id,
-        rawOutputHash: job.continuation_parent.raw_output_hash,
+        relation: job.conversation_parent.relation,
+        jobId: job.conversation_parent.job_id,
+        stageId: job.conversation_parent.stage_id,
+        executionId: job.conversation_parent.execution_id,
+        rawOutputHash: job.conversation_parent.raw_output_hash,
+        inputBundleHash: job.conversation_parent.input_bundle_hash,
+        conversationScopeRef:
+          job.conversation_parent.conversation_scope_ref,
       }
     : null,
+  joinParents: job.join_parents.map((parent) => ({
+    participantSlotRef: parent.participant_slot_ref,
+    participantRoleCode: parent.participant_role_code,
+    personRef: parent.person_ref,
+    jobId: parent.job_id,
+    stageId: parent.stage_id,
+    executionId: parent.execution_id,
+    rawOutputHash: parent.raw_output_hash,
+    conversationScopeRef: parent.conversation_scope_ref,
+  })),
   seededStages: seededStages(job.seeded_stages),
   materials,
   createdAt: job.created_at,
 });
 
+type CloudParentReplay = NonNullable<
+  XuanxueAiProductionCloudClaimedJob["conversation_parent_replay"]
+>;
+type CloudDependencyReplay = CloudParentReplay[
+  "dependency_replays"
+][number];
+
 const parentReplayOrder = (
-  replay: NonNullable<
-    XuanxueAiProductionCloudClaimedJob["continuation_parent_replay"]
-  >,
+  replay: CloudParentReplay | CloudDependencyReplay,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-    protocolVersion: "xuanxue-ai-production-v2",
+    protocolVersion: "xuanxue-ai-production-v3",
   orderId: replay.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: replay.source_task_id,
   productId: replay.product_id,
-  serviceClass: "user_delivery",
-  triggerKind: "user_request",
-  lineageId: replay.source_task_id,
-  reflectionSnapshotRef: null,
-  reflectionPlanId: null,
+  serviceClass: replay.service_class,
+  triggerKind: replay.trigger_kind,
+  lineageId: replay.lineage_id,
+  reflectionSnapshotRef: replay.reflection_snapshot_ref,
+  reflectionPlanId: replay.reflection_plan_id,
   inputBundleRef: replay.input_bundle_ref,
   inputBundleHash: replay.input_bundle_hash,
   requestHash: replay.request_hash,
-  continuationParent: null,
+  frozenSubject: frozenSubject(replay.frozen_subject),
+  conversationScopeRef: replay.conversation_scope_ref,
+  conversationParent: replay.conversation_parent
+    ? {
+        relation: replay.conversation_parent.relation,
+        jobId: replay.conversation_parent.job_id,
+        stageId: replay.conversation_parent.stage_id,
+        executionId: replay.conversation_parent.execution_id,
+        rawOutputHash: replay.conversation_parent.raw_output_hash,
+        inputBundleHash: replay.conversation_parent.input_bundle_hash,
+        conversationScopeRef:
+          replay.conversation_parent.conversation_scope_ref,
+      }
+    : null,
+  joinParents: replay.join_parents.map((parent) => ({
+    participantSlotRef: parent.participant_slot_ref,
+    participantRoleCode: parent.participant_role_code,
+    personRef: parent.person_ref,
+    jobId: parent.job_id,
+    stageId: parent.stage_id,
+    executionId: parent.execution_id,
+    rawOutputHash: parent.raw_output_hash,
+    conversationScopeRef: parent.conversation_scope_ref,
+  })),
   seededStages: seededStages(replay.seeded_stages),
   materials,
   createdAt: replay.created_at,
@@ -226,6 +293,7 @@ export async function stageXuanxueAiProductionCloudJob(
 ): Promise<{
   readonly order: XuanxueAiProductionOrder;
   readonly parentReplay: XuanxueAiProductionOrder | null;
+  readonly parentReplayDependencies: XuanxueAiProductionOrder[];
 }> {
   const childRoot = stagingRoot(dataDir, job.job_id);
   const materials = await stageMaterials(
@@ -239,8 +307,10 @@ export async function stageXuanxueAiProductionCloudJob(
       ),
   );
   const order = childOrder(job, materials);
-  const replay = job.continuation_parent_replay;
-  if (!replay) return { order, parentReplay: null };
+  const replay = job.conversation_parent_replay;
+  if (!replay) {
+    return { order, parentReplay: null, parentReplayDependencies: [] };
+  }
   const parentRoot = parentReplayRoot(childRoot, replay.job_id);
   const parentMaterials = await stageMaterials(
     parentRoot,
@@ -253,9 +323,30 @@ export async function stageXuanxueAiProductionCloudJob(
         inputId,
       ),
   );
+  const parentReplayDependencies = await Promise.all(
+    replay.dependency_replays.map(async (dependency) => {
+      const dependencyRoot = parentReplayRoot(
+        parentRoot,
+        dependency.job_id,
+      );
+      const dependencyMaterials = await stageMaterials(
+        dependencyRoot,
+        dependency.materials,
+        (material, inputId) =>
+          downloadXuanxueAiProductionParentReplayInput(
+            credential,
+            job,
+            material.stage_id,
+            inputId,
+          ),
+      );
+      return parentReplayOrder(dependency, dependencyMaterials);
+    }),
+  );
   return {
     order,
     parentReplay: parentReplayOrder(replay, parentMaterials),
+    parentReplayDependencies,
   };
 }
 

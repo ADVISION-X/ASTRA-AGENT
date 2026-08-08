@@ -32,7 +32,7 @@ const assertStableContinuationHistory = (
   snapshot: Awaited<ReturnType<typeof waitForStableAnswer>>,
 ): void => {
   if (
-    !request.providerContinuationRef
+    !(request.providerContinuationRef || request.providerForkRef)
     || (
       snapshot.status === "success"
       && (snapshot.userMessageCount ?? 0) >= 1
@@ -60,7 +60,9 @@ const emitCompletedPreSubmitSnapshot = (input: {
     assistantCount: input.snapshot.assistantCount ?? 0,
     userMessageCount: input.snapshot.userMessageCount ?? 0,
     continuationHistoryStable:
-      input.request.providerContinuationRef ? true : null,
+      input.request.providerContinuationRef || input.request.providerForkRef
+        ? true
+        : null,
   },
 });
 

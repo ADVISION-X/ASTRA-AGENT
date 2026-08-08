@@ -12,7 +12,6 @@ import {
   pasteTextReplacingInChrome,
 } from "./web-chat-clipboard.js";
 import {
-  verifyLastUserMessageAttachments,
   verifyPromptPasted,
   verifyPromptSubmitted,
 } from "./web-chat-submit-page-actions.js";
@@ -33,6 +32,7 @@ import {
   finalizeObservedWebChatSubmission,
   observeSubmittedWebChatTurn,
 } from "./web-chat-submission-checkpoint.js";
+import { waitForSubmittedUserMessageAttachments } from "./web-chat-submit-attachment-verification.js";
 
 const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
 const PROMPT_PASTE_VERIFY_TIMEOUT_MS = 20_000;
@@ -162,6 +162,16 @@ const requestHasUploadableInputRefs = (request: AiFeedInput): boolean =>
   request.inputRefs.some((ref) => Boolean(ref.filePath));
 
 const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+  if (input.request.providerForkRef) {
+    const focused = await withWebChatStep("focus_fresh_fork_composer_before_prompt_paste", () =>
+      focusComposer(input.browser, input.context));
+    if (focused.status !== "success") {
+      throw new Error(`${focused.status}: ${focused.message}`);
+    }
+    await withWebChatStep("verify_fresh_fork_composer_focus_before_prompt_paste", () =>
+      waitForComposerFocused(input.browser, input.context, 5_000));
+    return;
+  }
   await acknowledgeChatGptSubmitRateLimitIfVisible(input);
   await dismissChatGptSearchDialogIfVisible(input.browser, input.context);
   await input.browser.wait(200);
@@ -209,44 +219,6 @@ const waitForPromptReady = async (input: {
   );
 };
 
-const waitForSubmittedUserMessageAttachments = async (input: {
-  browser: BrowserController;
-  context: AiProviderAdapterContext;
-  request: AiFeedInput;
-  expectedCount: number;
-  expectedKind: "image" | "file";
-  expectedFileNames: readonly string[];
-  turnMarker: string;
-  timeoutMs: number;
-}): Promise<void> => {
-  if (input.expectedCount <= 0) return;
-  const deadline = Date.now() + input.timeoutMs;
-  let lastMessage = "provider submitted attachment binding was not checked";
-  let lastEvaluation: WebChatEvaluation | null = null;
-  while (Date.now() < deadline) {
-    await acknowledgeChatGptSubmitRateLimitIfVisible(input);
-    const evaluation = await withWebChatStep("verify_last_user_message_bound_attachments", () =>
-      verifyLastUserMessageAttachments(
-        input.browser,
-        input.context,
-        input.expectedCount,
-        input.expectedKind,
-        input.expectedFileNames,
-        input.turnMarker,
-      ));
-    lastEvaluation = evaluation;
-    lastMessage = `${evaluation.status}: ${evaluation.message}`;
-    if (evaluation.status === "success") return;
-    if (evaluation.status === "review_required" || evaluation.status === "failed") {
-      throw new Error(lastMessage);
-    }
-    await input.browser.wait(500);
-  }
-  throw new Error(
-    `review_required: ${input.expectedKind === "image" ? "provider_missing_bound_image" : "provider_missing_bound_file"}; expected=${input.expectedCount}; detected=${String(lastEvaluation?.boundAttachmentCount ?? 0)}; last=${lastMessage}`,
-  );
-};
-
 const clearComposerBeforePromptPaste = async (
   input: SubmitPromptViaClipboardInput,
 ): Promise<void> => {
@@ -267,7 +239,7 @@ const pastePromptIntoComposer = async (
     expectedPrefix: string;
     expectedSuffix: string;
   },
-): Promise<void> => {
+): Promise<WebChatEvaluation> => {
   await clearComposerBeforePromptPaste(input);
   const pasteStage = input.request.providerKind === "gemini-web-chat"
     ? "gemini_clipboard_prompt_paste"
@@ -299,7 +271,7 @@ const pastePromptIntoComposer = async (
         await withWebChatStep("paste_prompt_text", () =>
           pasteTextAndSubmitInChrome(input.browser, input.request.textPrompt, input.context.abortSignal));
       }
-      await waitForPromptReady({
+      const promptReady = await waitForPromptReady({
         browser: input.browser,
         context: input.context,
         request: input.request,
@@ -314,7 +286,7 @@ const pastePromptIntoComposer = async (
         attemptElapsedMs: Date.now() - attemptStartedAtMs,
         expectedChars: input.expectedLength,
       });
-      return;
+      return promptReady;
     } catch (error) {
       lastError = error;
       emitSubmitStage(input, pasteStage, attempt >= pasteRetryLimit ? "failed" : "fallback", attemptStartedAtMs, {
@@ -325,6 +297,44 @@ const pastePromptIntoComposer = async (
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "prompt paste failed"));
+};
+
+const promptAttachmentExpectation = (
+  request: AiFeedInput,
+): Pick<PreparedPromptComposer, "expectedAttachmentCount" | "expectedAttachmentKind"> => {
+  const refs = request.inputRefs.filter((ref) => Boolean(ref.filePath));
+  return {
+    expectedAttachmentCount: refs.length,
+    expectedAttachmentKind: refs.every((ref) => ref.mimeType?.startsWith("image/") === true)
+      ? "image" : "file",
+  };
+};
+
+const verifyAttachmentsBeforeSubmit = async (
+  input: SubmitPromptViaClipboardInput,
+  expectedAttachmentCount: number,
+): Promise<void> => {
+  if (expectedAttachmentCount <= 0) return;
+  if (input.attachmentUploadProof.status !== "attachments_stable") {
+    throw new Error(`review_required: attachment proof is not stable before prompt submission; status=${input.attachmentUploadProof.status}`);
+  }
+  const expectedFileNames = [...input.attachmentUploadProof.files]
+    .sort((left, right) => left.order - right.order)
+    .map((file) => file.displayFileName);
+  if (expectedFileNames.length !== expectedAttachmentCount) {
+    throw new Error(`review_required: attachment proof count does not match request before prompt submission; request=${expectedAttachmentCount}; proof=${expectedFileNames.length}`);
+  }
+  const startedAtMs = Date.now();
+  emitSubmitStage(input, "verify_attachments_before_submit", "start", null, {
+    expectedAttachmentCount,
+  });
+  await withWebChatStep("verify_attachments_before_submit", () =>
+    waitForExactAttachmentCount(
+      input.browser, input.context, expectedAttachmentCount, expectedFileNames, 10_000,
+    ));
+  emitSubmitStage(input, "verify_attachments_before_submit", "success", startedAtMs, {
+    expectedAttachmentCount,
+  });
 };
 
 const preparePromptComposer = async (
@@ -338,12 +348,8 @@ const preparePromptComposer = async (
   const expectedLength = normalizedPrompt.length;
   const expectedPrefix = buildPromptSubmissionExpectedPrefix(normalizedPrompt);
   const expectedSuffix = buildPromptSubmissionExpectedSuffix(normalizedPrompt);
-  const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
-  const expectedAttachmentKind = input.request.inputRefs
-    .filter((ref) => Boolean(ref.filePath))
-    .every((ref) => ref.mimeType?.startsWith("image/") === true)
-    ? "image"
-    : "file";
+  const { expectedAttachmentCount, expectedAttachmentKind } =
+    promptAttachmentExpectation(input.request);
   await focusComposerBeforePrompt(input);
   await pastePromptIntoComposer({
     ...input,
@@ -351,42 +357,19 @@ const preparePromptComposer = async (
     expectedPrefix,
     expectedSuffix,
   });
+  await verifyAttachmentsBeforeSubmit(input, expectedAttachmentCount);
   if (expectedAttachmentCount > 0) {
-    if (input.attachmentUploadProof.status !== "attachments_stable") {
-      throw new Error(`review_required: attachment proof is not stable before prompt submission; status=${input.attachmentUploadProof.status}`);
-    }
-    const expectedFileNames = [...input.attachmentUploadProof.files]
-      .sort((left, right) => left.order - right.order)
-      .map((file) => file.displayFileName);
-    if (expectedFileNames.length !== expectedAttachmentCount) {
-      throw new Error(`review_required: attachment proof count does not match request before prompt submission; request=${expectedAttachmentCount}; proof=${expectedFileNames.length}`);
-    }
-    const attachmentStartedAtMs = Date.now();
-    emitSubmitStage(input, "verify_attachments_before_submit", "start", null, {
-      expectedAttachmentCount,
-    });
-    await withWebChatStep("verify_attachments_before_submit", () =>
-      waitForExactAttachmentCount(
-        input.browser,
-        input.context,
-        expectedAttachmentCount,
-        expectedFileNames,
-        10_000,
-      ));
-    emitSubmitStage(input, "verify_attachments_before_submit", "success", attachmentStartedAtMs, {
-      expectedAttachmentCount,
+    await waitForPromptReady({
+      browser: input.browser,
+      context: input.context,
+      request: input.request,
+      expectedLength,
+      expectedPrefix,
+      expectedSuffix,
+      timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
+      step: "verify_prompt_ready_before_submit",
     });
   }
-  await waitForPromptReady({
-    browser: input.browser,
-    context: input.context,
-    request: input.request,
-    expectedLength,
-    expectedPrefix,
-    expectedSuffix,
-    timeoutMs: PROMPT_PASTE_VERIFY_TIMEOUT_MS,
-    step: "verify_prompt_ready_before_submit",
-  });
   emitSubmitStage(input, "prompt_prepare", "success", prepareStartedAtMs, {
     expectedChars: expectedLength,
     expectedAttachmentCount,
@@ -454,6 +437,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
         )?.[0]
         ?? "",
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
+      acknowledgeRateLimit: () => acknowledgeChatGptSubmitRateLimitIfVisible(input),
     });
     await finalizeObservedWebChatSubmission({
       browser: input.browser,

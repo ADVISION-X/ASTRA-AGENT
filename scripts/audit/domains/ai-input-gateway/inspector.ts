@@ -22,6 +22,7 @@ import {
   typePropertyNames,
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
+import { inspectConversationTopology } from "./topology-inspector.js";
 
 const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const schema = requireSourceFile(context, findings, lawId, P.attachment.schemaPath);
@@ -441,7 +442,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-004-V1");
-  const parallelLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-005-V2");
+  const parallelLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-005-V3");
   const findings: Finding[] = [];
   for (const authorityPath of [P.authority.lawPath, P.authority.blueprintPath]) {
     if (!existsSync(resolveFromRepo(authorityPath))) {
@@ -470,6 +471,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectTransientPatrolRetry(context, findings, parallelLawId);
   inspectTransientOverlayHygiene(context, findings, parallelLawId);
   inspectGeneratedImageCapture(context, findings, parallelLawId);
+  inspectConversationTopology(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

@@ -5,6 +5,7 @@ import path from "node:path";
 import type {
   AiProviderUploadedFileProof,
   WebChatAttachmentUploadProof,
+  WebChatForkActionProof,
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiTaskLabelKey } from "../schema.js";
@@ -61,6 +62,7 @@ export type WebChatExecutionRecord = {
   submission: WebChatSubmissionProof | null;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof | null;
+  forkActionProof: WebChatForkActionProof | null;
   responseCheckpoint: WebChatResponseCheckpoint | null;
   responseHash: string | null;
   chatTitleRename: WebChatTitleRenameState | null;
@@ -118,6 +120,7 @@ export const readWebChatExecution = async (
     return {
       ...(parsed as WebChatExecutionRecord),
       providerLeaseId: parsed.providerLeaseId ?? null,
+      forkActionProof: parsed.forkActionProof ?? null,
       chatTitleRename: derivePersistedTitleRenameState(parsed),
     };
   } catch (error) {
@@ -180,6 +183,7 @@ const restartUnsubmittedExecution = async (
     submission: null,
     uploadedFiles: [],
     attachmentUploadProof: null,
+    forkActionProof: null,
     responseCheckpoint: null,
     responseHash: null,
     chatTitleRename: null,
@@ -345,6 +349,7 @@ const createWebChatExecution = async (
     submission: null,
     uploadedFiles: [],
     attachmentUploadProof: null,
+    forkActionProof: null,
     responseCheckpoint: null,
     responseHash: null,
     chatTitleRename: null,

@@ -1,8 +1,10 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
+import type { WebChatForkActionProof } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { openGovernedContinuation } from "./web-chat-continuation.js";
+import { openGovernedForkFromCheckpoint } from "./web-chat-fork.js";
 import {
   startFreshChatGptConversation,
 } from "./web-chat-fresh-conversation.js";
@@ -108,16 +110,18 @@ const waitForProviderComposer = async (input: {
   browser: BrowserController;
   request: AiFeedInput;
   abortSignal?: AbortSignal;
+  timeoutMs?: number;
 }): Promise<void> => {
   const startedAtMs = Date.now();
-  const deadline = Date.now() + PROVIDER_COMPOSER_READY_TIMEOUT_MS;
+  const timeoutMs = input.timeoutMs ?? PROVIDER_COMPOSER_READY_TIMEOUT_MS;
+  const deadline = Date.now() + timeoutMs;
   let lastMessage = "provider composer readiness was not checked";
   emitWebChatOpenStage({
     request: input.request,
     stage: "provider_composer_ready",
     status: "start",
     startedAtMs: null,
-    refs: { timeoutMs: PROVIDER_COMPOSER_READY_TIMEOUT_MS },
+    refs: { timeoutMs },
   });
   while (Date.now() < deadline) {
     if (input.abortSignal?.aborted) {
@@ -356,10 +360,25 @@ const openFreshProviderWorkspace = async (
 
 export const openProviderPage = async (
   input: ProviderPageInput,
-): Promise<void> => {
+): Promise<WebChatForkActionProof | null> => {
+  if (input.request.providerForkRef) {
+    const proof = await openGovernedForkFromCheckpoint({
+      ...input,
+      waitForComposer: () => waitForProviderComposer({
+        browser: input.browser,
+        request: input.request,
+        timeoutMs: 8_000,
+        ...(input.context.abortSignal
+          ? { abortSignal: input.context.abortSignal }
+          : {}),
+      }),
+    });
+    await input.context.webChatExecution?.onForkActionObserved(proof);
+    return proof;
+  }
   if (!input.request.providerContinuationRef) {
     await openFreshProviderWorkspace(input);
-    return;
+    return null;
   }
   await openGovernedContinuation({
     ...input,
@@ -368,7 +387,8 @@ export const openProviderPage = async (
       request: input.request,
       ...(input.context.abortSignal
         ? { abortSignal: input.context.abortSignal }
-        : {}),
+      : {}),
     }),
   });
+  return null;
 };

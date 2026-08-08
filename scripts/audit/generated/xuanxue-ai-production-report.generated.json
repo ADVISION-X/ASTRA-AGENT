@@ -1,88 +1,97 @@
 {
-  "generatedAt": "2026-08-03T21:24:04.022Z",
+  "generatedAt": "2026-08-08T07:21:40.556Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-    "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-    "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1"
+    "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+    "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+    "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "xuanxue-ai-production/durable-ledger",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
+      "message": "SQLite production ledger must contain parent_conversation_rebuild_started.",
+      "severity": "fatal",
+      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
+    }
+  ],
   "executedChecks": [
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/acceptance"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/fixed-profiles"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/forbidden-private-import"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/source-present"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/whole-order-contract"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/acceptance"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/bounded-coordinator"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/durable-ledger"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/durable-title-housekeeping"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/no-untracked-background-work"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V4",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v4-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/source-present"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
+      "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/cloud-capacity"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
+      "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/cloud-lease-binding"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
+      "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/credential-permissions"
     },
     {
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-003-requirement",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
+      "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/source-present"
     }
   ],
@@ -94,6 +103,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",

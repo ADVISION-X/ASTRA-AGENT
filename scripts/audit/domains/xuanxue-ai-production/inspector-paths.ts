@@ -38,6 +38,7 @@ export const acceptanceSupportPaths = [
 
 export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/index.ts", schemaPath, profilePath, storePath,
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",

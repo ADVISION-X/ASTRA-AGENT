@@ -32,6 +32,8 @@ const checkpointFixture = () => {
       reviewRequiredReason: null,
     },
     submission: {
+      executionId: "checkpoint-recovery-execution",
+      turnMarker: "checkpoint-recovery-turn-marker",
       transientConversationUrl: "https://chatgpt.com/c/checkpoint-recovery",
       canonicalConversationUrl: "https://chatgpt.com/c/checkpoint-recovery",
       systemChatTitle: null,
@@ -304,6 +306,7 @@ export const assertFailureLedger = async (
         runtimeName: "acceptance-fixture",
         transport: "web-chat",
         webChatUrl: submission.canonicalConversationUrl,
+        submissionProof: submission,
         sourcePageUrlBeforeFeed: null,
         restoredSourcePage: null,
         attachmentUploadProof,

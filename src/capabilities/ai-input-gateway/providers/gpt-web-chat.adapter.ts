@@ -16,7 +16,9 @@ export const gptWebChatAdapter: AiProviderAdapter = {
     return runWebChatAdapter({
       request: input,
       context,
-      providerUrl: input.providerContinuationRef?.providerPageUrl ?? "https://chatgpt.com/",
+      providerUrl: input.providerForkRef?.providerPageUrl
+        ?? input.providerContinuationRef?.providerPageUrl
+        ?? "https://chatgpt.com/",
       runtimeName: "gpt-web-chat",
     });
   },

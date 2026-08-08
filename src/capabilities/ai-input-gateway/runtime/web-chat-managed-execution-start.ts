@@ -57,7 +57,9 @@ const inheritContinuationSystemTitle = async (
   record: WebChatExecutionRecord,
 ): Promise<WebChatExecutionRecord> => {
   const continuationUrl =
-    source.request.providerContinuationRef?.providerPageUrl ?? null;
+    source.request.providerForkRef?.providerPageUrl
+    ?? source.request.providerContinuationRef?.providerPageUrl
+    ?? null;
   if (
     !continuationUrl
     || record.submission

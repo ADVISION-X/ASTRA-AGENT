@@ -59,6 +59,16 @@ const AiFeedProviderContinuationRefSchema = z.object({
   priorTaskId: z.string().min(1),
   priorRawOutputHash: z.string().min(1),
   providerPageUrl: z.string().url(),
+  priorTurnMarker: z.string().min(1).optional(),
+}).strict();
+
+const AiFeedProviderForkRefSchema = z.object({
+  priorTaskId: z.string().min(1),
+  priorRawOutputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  providerPageUrl: z.string().url(),
+  checkpointTurnMarker: z.string().min(1),
+  checkpointResponseHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  parentConversationScopeRef: z.string().min(1),
 }).strict();
 
 export const AiFeedInputSchema = z.object({
@@ -79,8 +89,25 @@ export const AiFeedInputSchema = z.object({
   missionId: z.string().min(1).nullable().default(null),
   runId: z.string().min(1).nullable().default(null),
   roundId: z.string().min(1).nullable().default(null),
+  conversationScopeRef: z.string().min(1).nullable().optional(),
   providerContinuationRef: AiFeedProviderContinuationRefSchema.optional(),
-}).strict();
+  providerForkRef: AiFeedProviderForkRefSchema.optional(),
+}).strict().superRefine((input, context) => {
+  if (input.providerContinuationRef && input.providerForkRef) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "AI_INPUT_GATEWAY_CONVERSATION_PARENT_AMBIGUOUS",
+      path: ["providerForkRef"],
+    });
+  }
+  if (input.providerForkRef && !input.conversationScopeRef) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "AI_INPUT_GATEWAY_FORK_SCOPE_REQUIRED",
+      path: ["conversationScopeRef"],
+    });
+  }
+});
 
 const AiFeedProviderProofIdentitySchema = z.object({
   providerKind: AiInputGatewayProviderKindSchema,
@@ -128,12 +155,47 @@ const AiFeedProviderProofIdentitySchema = z.object({
 }).strict();
 
 const AiFeedProviderProofConversationSchema = z.object({
+  conversationMode: z.enum([
+    "fresh",
+    "same_conversation",
+    "forked_from_checkpoint",
+  ]).optional(),
+  conversationScopeRef: z.string().min(1).nullable().optional(),
   webChatUrl: z.string().url().nullable().default(null),
   continuationPriorTaskId: z.string().min(1).nullable().optional(),
   continuationPriorRawOutputHash: z.string().min(1).nullable().optional(),
   continuationRequestedUrl: z.string().url().nullable().optional(),
   continuationActualUrl: z.string().url().nullable().optional(),
   continuationVerified: z.boolean().nullable().optional(),
+  freshConversationProof: z.object({
+    preSubmitUserTurnCount: z.literal(0),
+    preSubmitAssistantTurnCount: z.literal(0),
+    continuationParent: z.null(),
+    forkParent: z.null(),
+    firstTurnMarker: z.string().min(1),
+    createdConversationUrl: z.string().url(),
+    createdByExecutionId: z.string().min(1),
+    verifiedAt: z.string().datetime(),
+  }).strict().nullable().optional(),
+  sameConversationProof: z.object({
+    parentConversationUrl: z.string().url(),
+    parentRawOutputHash: z.string().min(1),
+    actualConversationUrl: z.string().url(),
+    priorTurnMarker: z.string().min(1).nullable(),
+    newTurnMarker: z.string().min(1),
+    continuationVerifiedAt: z.string().datetime(),
+  }).strict().nullable().optional(),
+  forkedFromCheckpointProof: z.object({
+    parentConversationUrl: z.string().url(),
+    parentCheckpointTurnMarker: z.string().min(1),
+    parentCheckpointResponseHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+    forkActionEvidenceRef: z.string().min(1),
+    forkActionEvidenceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+    childConversationUrl: z.string().url(),
+    childInitialHistoryFingerprint: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+    childFirstTurnMarker: z.string().min(1),
+    verifiedAt: z.string().datetime(),
+  }).strict().nullable().optional(),
   webChatWorkspaceId: z.string().min(1).nullable().optional(),
   providerTabPolicy: z.string().min(1).nullable().optional(),
   providerRecoveryAttemptCount: z.number().int().nonnegative().nullable().optional(),

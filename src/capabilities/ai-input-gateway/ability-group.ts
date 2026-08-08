@@ -21,6 +21,7 @@ import {
 import { classifyWebChatFailure } from "./failure-classification.js";
 import {
   scheduleWebChatTitleHousekeeping,
+  stopWebChatTitleHousekeeping,
 } from "./runtime/web-chat-title-housekeeping-worker.js";
 
 const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
@@ -148,6 +149,10 @@ export const createAiInputGatewayAbilityGroup = (
 
     getRuntimeCapacity(): number {
       return resolveWebChatMaxInFlight();
+    },
+
+    close(): Promise<void> {
+      return stopWebChatTitleHousekeeping(context.dataDir);
     },
 
     classifyFailure(error, hasDurableSubmission) {

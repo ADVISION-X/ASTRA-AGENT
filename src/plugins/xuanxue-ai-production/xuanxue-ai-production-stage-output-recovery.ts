@@ -251,7 +251,7 @@ const providerFailureIsRecoverable = (
 ): boolean => {
   const reason = stage.failureReason ?? fallbackReason ?? "";
   const immutableOrForeignFailure =
-    /(?:foreign cloud recovery ledger|immutable (?:input|identity)|invalid input package|cancel(?:led|ed)|authorization scope mismatch)/iu
+    /(?:foreign cloud recovery ledger|immutable (?:input|identity)|invalid input package|cancel(?:led|ed)|authorization scope mismatch|PARENT_REBUILD_HASH_MISMATCH)/iu
       .test(reason);
   return !stage.rawResponseText
     && !stage.rawOutputHash

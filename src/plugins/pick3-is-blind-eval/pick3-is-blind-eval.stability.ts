@@ -111,6 +111,7 @@ export const runPick3NextPredictionStability = async (input: {
   batchInput: Pick3Input;
   sender: Pick3GatewaySender;
   storage: Pick3Storage;
+  postParseDelayMsOverride?: number;
 }): Promise<Pick3StabilitySummary> => {
   const promptPackages = buildSelectedPromptPackages(input.batch, input.batchInput.promptMode, input.storage);
   const exchange = await runPick3PromptExchange({
@@ -120,6 +121,8 @@ export const runPick3NextPredictionStability = async (input: {
     providerKind: input.batchInput.providerKind,
     repeatCount: input.batchInput.batchSize,
     sender: input.sender,
+    ...(input.postParseDelayMsOverride === undefined
+      ? {} : { postParseDelayMsOverride: input.postParseDelayMsOverride }),
   });
   input.storage.insertAiInteractions(exchange.interactions);
   input.storage.insertPredictions(exchange.predictions);
