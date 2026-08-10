@@ -117,8 +117,10 @@ export const repairCompletedCheckpointProviderProofsInStore = async (
 ): Promise<number> => {
   const completed = database.prepare(`
     select order_id from production_orders
-    where status='completed' and result_json is not null
-    order by created_at,order_id
+    where status='completed' and result_json is not null and not exists (
+      select 1 from production_legacy_protocol_archives a
+      where a.order_id=production_orders.order_id
+    ) order by created_at,order_id
   `).all() as Array<{ order_id: string }>;
   let repairedCount = 0;
   for (const { order_id: orderId } of completed) {

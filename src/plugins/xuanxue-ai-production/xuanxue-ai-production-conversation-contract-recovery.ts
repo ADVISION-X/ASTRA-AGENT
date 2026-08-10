@@ -293,6 +293,9 @@ export const repairLegacyFollowupWrongChatExecutionStates = (
     join production_stages s on s.order_id=o.order_id
     where o.status in (
       'queued','running','recovery_pending','review_required','failed'
+    ) and not exists (
+      select 1 from production_legacy_protocol_archives a
+      where a.order_id=o.order_id
     ) and exists (
       select 1 from production_events e where e.order_id=o.order_id
         and e.event_type='followup_parent_binding_repaired'

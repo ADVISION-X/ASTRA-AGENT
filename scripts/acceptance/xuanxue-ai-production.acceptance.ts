@@ -191,13 +191,78 @@ try {
     publicArticleStage?.aiFeedResult?.providerProof.webChatUrl,
   );
 
+  const terminalAttachmentOrder = order(
+    "aiprod_terminal_attachment_no_reentry",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  terminalAttachmentOrder.materials[0]!.inputRefs = [{
+    id: "terminal-attachment-fixture",
+    kind: "package_manifest_json",
+    summary: "terminal attachment transport acceptance fixture",
+    filePath: "/fixture/terminal-attachment-fixture.json",
+    fileName: "terminal-attachment-fixture.json",
+    mimeType: "application/json",
+    sha256: hash("terminal-attachment-fixture"),
+    byteCount: 27,
+  }];
+  const terminalAttachmentGateway = new FixtureGateway();
+  const terminalAttachmentStore = new XuanxueAiProductionStore(
+    path.join(dataDir, "terminal-attachment-no-reentry"),
+  );
+  const terminalAttachmentRuntime: XuanxueAiProductionRuntime = {
+    ...runtime,
+    aiInputGateway: terminalAttachmentGateway,
+    store: terminalAttachmentStore,
+  };
+  createXuanxueAiProductionOrder(
+    terminalAttachmentRuntime,
+    terminalAttachmentOrder,
+  );
+  terminalAttachmentGateway.faults.terminalAttachment.set(
+    `${terminalAttachmentOrder.orderId}:analysis`,
+    1,
+  );
+  const terminalAttachmentGatewayCallCount =
+    terminalAttachmentGateway.requests.length;
+  const terminalAttachmentResult =
+    await executeXuanxueAiProductionOrder(
+      terminalAttachmentRuntime,
+      terminalAttachmentOrder.orderId,
+    );
+  assert.equal(terminalAttachmentResult.status, "recovery_pending");
+  assert.equal(
+    terminalAttachmentGateway.requests.length
+      - terminalAttachmentGatewayCallCount,
+    1,
+    "a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt",
+  );
+  const terminalAttachmentReplay =
+    await executeXuanxueAiProductionOrder(
+      terminalAttachmentRuntime,
+      terminalAttachmentOrder.orderId,
+    );
+  assert.equal(terminalAttachmentReplay.status, "recovery_pending");
+  assert.equal(
+    terminalAttachmentGateway.requests.length
+      - terminalAttachmentGatewayCallCount,
+    1,
+    "restart recovery must preserve the terminal attachment proof without copy-paste or picker re-upload",
+  );
+  assert.equal(
+    terminalAttachmentReplay.stages[0]?.aiFeedResult?.providerProof
+      .attachmentUploadProof?.uploadAttemptId,
+    "fixture-terminal-attachment-attempt",
+  );
+  terminalAttachmentStore.close();
+
   const transientOrder = order(
     "aiprod_transient_stage_retry",
     "qimen_professional_answer",
     ["analysis"],
   );
   createXuanxueAiProductionOrder(runtime, transientOrder);
-  gateway.transientFailures.set(
+  gateway.faults.transient.set(
     `${transientOrder.orderId}:analysis`,
     1,
   );
@@ -233,7 +298,7 @@ try {
     ["analysis"],
   );
   createXuanxueAiProductionOrder(runtime, monitoredOrder);
-  gateway.submittedReviewFailures.set(
+  gateway.faults.submittedReview.set(
     `${monitoredOrder.orderId}:analysis`,
     1,
   );
@@ -261,9 +326,13 @@ try {
     "naming_from_existing_bazi_report",
     ["naming_author"],
   );
+  contaminatedNaming.frozenSubject.participants[0]!.roleCode = "naming_target";
+  contaminatedNaming.frozenSubject.participantManifestHash = hash(
+    JSON.stringify(contaminatedNaming.frozenSubject.participants),
+  );
   const contaminatedSource =
     `${contaminatedNaming.orderId}:naming_author`;
-  gateway.contaminatedResponses.set(contaminatedSource, 1);
+  gateway.faults.contaminated.set(contaminatedSource, 1);
   const beforeContaminated = gateway.requests.length;
   createXuanxueAiProductionOrder(runtime, contaminatedNaming);
   const contaminatedRecovered =

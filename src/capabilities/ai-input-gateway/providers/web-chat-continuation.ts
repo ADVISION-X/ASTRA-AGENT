@@ -1,6 +1,9 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
+import {
+  focusChatGptConversationByCanonicalPath,
+} from "../runtime/web-chat-single-tab-routing.js";
 
 const CURRENT_URL_SCRIPT = "return {status: 'success', message: 'read current provider URL', pageUrl: location.href};";
 
@@ -26,12 +29,21 @@ const governedContinuationUrl = (request: AiFeedInput): URL => {
 
 export const openGovernedContinuation = async (input: ContinuationInput): Promise<void> => {
   const requestedUrl = governedContinuationUrl(input.request);
-  const opened = await input.browser.open({
-    url: requestedUrl.href,
-    title: `${input.runtimeName}:governed-continuation`,
-    reusePolicy: "reuse-active-tab",
+  const turnMarker = input.request.providerContinuationRef?.priorTurnMarker;
+  if (!turnMarker) {
+    throw new Error(
+      "review_required: provider continuation turn marker is missing",
+    );
+  }
+  await focusChatGptConversationByCanonicalPath({
+    base: input.browser,
+    conversationUrl: requestedUrl.href,
+    turnMarker,
+    timeoutMs: 15_000,
+    ...(input.context.abortSignal
+      ? { signal: input.context.abortSignal }
+      : {}),
   });
-  if (!opened.ok) throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
   await input.waitForComposer();
   const state = await input.browser.evaluateActiveTab<{ pageUrl?: string }>({
     description: "read active provider URL after governed continuation open",

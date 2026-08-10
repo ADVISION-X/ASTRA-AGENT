@@ -86,6 +86,8 @@
     "audit:xuanyuan": "node --import tsx scripts/audit/run-domain-audit.ts xuanyuan",
     "acceptance:xuanyuan": "node --import tsx scripts/acceptance/xuanyuan.acceptance.ts && node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "acceptance:xuanxue-ai-production": "node --import tsx scripts/acceptance/xuanxue-ai-production.acceptance.ts",
+    "acceptance:xuanxue-ai-production:real-chrome": "node --import tsx scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
+    "acceptance:xuanxue-ai-production:real-proof-verify": "node --import tsx src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
     "audit:xuanxue-ai-production": "node --import tsx scripts/audit/run-domain-audit.ts xuanxue-ai-production",
     "xuanxue-ai-production:cloud:enroll": "node --import tsx scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
     "acceptance:ai-input-gateway-attachment": "node --import tsx src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",

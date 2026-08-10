@@ -8,6 +8,7 @@ import type {
 import type {
   XuanxueAiProductionOrder,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
+import { FixtureGatewayFaults } from "./xuanxue-ai-production-fixture-faults.js";
 
 export const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -131,87 +132,6 @@ export const providerResult = (
   };
 };
 
-const transientFailure = (
-  result: AiFeedResult,
-): AiFeedResult => ({
-  ...result,
-  status: "failed",
-  rawResponseText: null,
-  normalizedText: null,
-  rawOutputRef: null,
-  rawOutputHash: null,
-  parsedJson: null,
-  schemaValidationStatus: "invalid",
-  providerProof: {
-    ...result.providerProof,
-    outputHash: null,
-    outputRefs: [],
-  },
-  failureReason: "不能获取对象。 (-1728)",
-});
-
-const contaminatedResult = (
-  result: AiFeedResult,
-): AiFeedResult => {
-  const rawResponseText =
-    `{"answer":"\uE200filecite\uE202turn0file0\uE201"}`;
-  const rawOutputHash = hash(rawResponseText);
-  return {
-    ...result,
-    rawResponseText,
-    normalizedText: rawResponseText,
-    rawOutputHash,
-    providerProof: {
-      ...result.providerProof,
-      outputHash: rawOutputHash,
-    },
-  };
-};
-
-const continuationMismatchResult = (
-  result: AiFeedResult,
-): AiFeedResult => ({
-  ...result,
-  status: "review_required",
-  rawResponseText: null,
-  normalizedText: null,
-  rawOutputRef: null,
-  rawOutputHash: null,
-  parsedJson: null,
-  schemaValidationStatus: "invalid",
-  providerProof: {
-    ...result.providerProof,
-    outputHash: null,
-    outputRefs: [],
-  },
-  failureReason: null,
-  reviewRequiredReason:
-    "WEB_CHAT_CONTINUATION_CONVERSATION_DRIFT: "
-    + "expected=https://chatgpt.com/c/old-parent; "
-    + "actual=https://chatgpt.com/",
-});
-
-const submittedReviewFailure = (
-  result: AiFeedResult,
-): AiFeedResult => ({
-  ...result,
-  status: "review_required",
-  rawResponseText: null,
-  normalizedText: null,
-  rawOutputRef: null,
-  rawOutputHash: null,
-  parsedJson: null,
-  schemaValidationStatus: "invalid",
-  providerProof: {
-    ...result.providerProof,
-    outputHash: null,
-    outputRefs: [],
-  },
-  failureReason: null,
-  reviewRequiredReason:
-    "review_required: more than one physical provider tab is open.",
-});
-
 const bareHashResult = (
   result: AiFeedResult,
 ): AiFeedResult => ({
@@ -254,10 +174,7 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
   holdQimen = false;
   bareOutputHashes = false;
   divergeParentRebuilds = false;
-  readonly transientFailures = new Map<string, number>();
-  readonly submittedReviewFailures = new Map<string, number>();
-  readonly contaminatedResponses = new Map<string, number>();
-  readonly continuationFailures = new Map<string, number>();
+  readonly faults = new FixtureGatewayFaults();
   private releaseHeldQimen: (() => void) | null = null;
   private readonly heldQimen = new Promise<void>((resolve) => {
     this.releaseHeldQimen = resolve;
@@ -305,50 +222,6 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     );
   }
 
-  private consumeFailure(
-    request: AiFeedInput,
-    result: AiFeedResult,
-  ): AiFeedResult | null {
-    const key = request.taskIdentity.sourceTaskId;
-    const remaining = this.transientFailures.get(key) ?? 0;
-    if (remaining < 1) return null;
-    this.transientFailures.set(key, remaining - 1);
-    return transientFailure(result);
-  }
-
-  private consumeSubmittedReviewFailure(
-    request: AiFeedInput,
-    result: AiFeedResult,
-  ): AiFeedResult | null {
-    const key = request.taskIdentity.sourceTaskId;
-    const remaining = this.submittedReviewFailures.get(key) ?? 0;
-    if (remaining < 1) return null;
-    this.submittedReviewFailures.set(key, remaining - 1);
-    return submittedReviewFailure(result);
-  }
-
-  private consumeContamination(
-    request: AiFeedInput,
-    result: AiFeedResult,
-  ): AiFeedResult | null {
-    const key = request.taskIdentity.sourceTaskId;
-    const remaining = this.contaminatedResponses.get(key) ?? 0;
-    if (remaining < 1) return null;
-    this.contaminatedResponses.set(key, remaining - 1);
-    return contaminatedResult(result);
-  }
-
-  private consumeContinuationFailure(
-    request: AiFeedInput,
-    result: AiFeedResult,
-  ): AiFeedResult | null {
-    const key = request.taskIdentity.sourceTaskId;
-    const remaining = this.continuationFailures.get(key) ?? 0;
-    if (remaining < 1) return null;
-    this.continuationFailures.set(key, remaining - 1);
-    return continuationMismatchResult(result);
-  }
-
   async execute(
     input: unknown,
     options?: Parameters<AiInputGatewayAbilityGroup["execute"]>[1],
@@ -373,22 +246,14 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
         this.divergeParentRebuilds
         && request.taskIdentity.sourceTaskId.includes(":parent-rebuild:")
       ) return divergentParentRebuildResult(result);
-      const continuationFailure =
-        this.consumeContinuationFailure(request, result);
-      if (continuationFailure) return continuationFailure;
-      const submittedReview =
-        this.consumeSubmittedReviewFailure(request, result);
-      if (submittedReview) return submittedReview;
-      const failed = this.consumeFailure(request, result);
-      if (failed) {
+      const fault = this.faults.consume(request, result);
+      if (fault?.emitsRecoveryProgress) {
         await options?.onProgress?.({
           phase: "recovery_pending",
           occurredAt: new Date().toISOString(),
         });
-        return failed;
       }
-      const contaminated = this.consumeContamination(request, result);
-      if (contaminated) return contaminated;
+      if (fault) return fault.result;
       return this.bareOutputHashes ? bareHashResult(result) : result;
     } finally {
       this.finish(lane);

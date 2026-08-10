@@ -45,13 +45,18 @@ const legacyProviderProof = (rawHash: string, createdAt: string) => ({
   sourcePageUrlBeforeFeed: null, restoredSourcePage: null,
 });
 
-const legacyRows = (status: "completed" | "running") => {
+const legacyRows = (
+  status: "completed" | "running",
+  protocolVersion:
+    | "xuanxue-ai-production-v1"
+    | "xuanxue-ai-production-v2",
+) => {
   const createdAt = "2026-01-01T00:00:00.000Z";
   const raw = "legacy terminal answer";
   const rawHash = sha(raw);
   const providerProof = legacyProviderProof(rawHash, createdAt);
   const order = {
-    protocolVersion: "xuanxue-ai-production-v1", orderId: "legacy-order",
+    protocolVersion, orderId: "legacy-order",
     sourceProject: "xuanxue-web", sourceTaskId: "legacy-source",
     productId: "qimen_professional_answer", inputBundleRef: "legacy-bundle",
     inputBundleHash: sha("legacy-bundle"), requestHash: sha("legacy-request"),
@@ -88,6 +93,9 @@ const legacyRows = (status: "completed" | "running") => {
 export function seedLegacyDatabase(
   dataDir: string,
   status: "completed" | "running",
+  protocolVersion:
+    | "xuanxue-ai-production-v1"
+    | "xuanxue-ai-production-v2" = "xuanxue-ai-production-v1",
 ): void {
   const filePath = path.join(
     dataDir, "plugin-tasks", "xuanxue-ai-production",
@@ -95,7 +103,10 @@ export function seedLegacyDatabase(
   );
   const database = new Database(filePath);
   createLegacySchema(database);
-  const { createdAt, order, result, stage } = legacyRows(status);
+  const { createdAt, order, result, stage } = legacyRows(
+    status,
+    protocolVersion,
+  );
   database.prepare("insert into production_orders values(?,?,?,?,?,?,?,?,?,?)").run(
     order.orderId, order.sourceTaskId, order.productId, order.requestHash, status,
     JSON.stringify(order), result ? JSON.stringify(result) : null, null,
@@ -118,6 +129,26 @@ export const corruptLegacyStageHash = (database: Database.Database): void => {
   ).get() as { stage_json: string };
   const stage = JSON.parse(stored.stage_json) as Record<string, unknown>;
   stage.rawOutputHash = sha("different answer");
+  database.prepare(
+    "update production_stages set stage_json=? where order_id='legacy-order'",
+  ).run(JSON.stringify(stage));
+};
+
+export const makeLegacyStageActive = (database: Database.Database): void => {
+  database.prepare(
+    "update production_stages set status='running' where order_id='legacy-order'",
+  ).run();
+};
+
+export const removeLegacyCompletedStageOutputProof = (
+  database: Database.Database,
+): void => {
+  const stored = database.prepare(
+    "select stage_json from production_stages where order_id='legacy-order'",
+  ).get() as { stage_json: string };
+  const stage = JSON.parse(stored.stage_json) as Record<string, unknown>;
+  stage.rawResponseText = null;
+  stage.rawOutputHash = null;
   database.prepare(
     "update production_stages set stage_json=? where order_id='legacy-order'",
   ).run(JSON.stringify(stage));

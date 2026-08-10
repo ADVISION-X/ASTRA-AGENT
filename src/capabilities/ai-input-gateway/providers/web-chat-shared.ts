@@ -69,6 +69,7 @@ const submitWebChatPrompt = async (input: {
   providerUrl: string;
   previousAssistantCount: number;
   previousUserMessageCount: number;
+  initialConversationUrl?: string;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
 }): Promise<Awaited<ReturnType<typeof submitPromptViaClipboard>>> => {
@@ -86,6 +87,8 @@ const submitWebChatPrompt = async (input: {
     context: input.context,
     previousAssistantCount: input.previousAssistantCount,
     previousUserMessageCount: input.previousUserMessageCount,
+    ...(input.initialConversationUrl
+      ? { initialConversationUrl: input.initialConversationUrl } : {}),
     uploadedFiles: input.uploadedFiles,
     attachmentUploadProof: input.attachmentUploadProof,
   });
@@ -172,22 +175,34 @@ const prepareWebChatConversation = async (
   };
 };
 
-const buildCompletedWebChatResponse = async (input: {
+type CompletedWebChatResponseInput = {
   opened: OpenedWebChatConversationInput;
   preSubmit: Awaited<ReturnType<typeof prepareWebChatConversation>>;
   conversation: Awaited<ReturnType<typeof extractWebChatConversation>>;
   submission: Awaited<ReturnType<typeof captureWebChatSubmissionProof>> | null;
-}): Promise<AiProviderRawResponse> => {
-  const finalizedSubmission = input.opened.context.webChatExecution
-    ? await captureWebChatSubmissionProof({
-        browser: input.opened.browser,
-        context: input.opened.context,
-        request: input.opened.request,
-        previousAssistantCount: input.preSubmit.previousAssistantCount,
-        previousUserMessageCount: input.preSubmit.previousUserMessageCount,
-        requireCanonical: true,
-      })
+};
+
+const captureFinalizedSubmission = async (
+  input: CompletedWebChatResponseInput,
+): Promise<Awaited<ReturnType<typeof captureWebChatSubmissionProof>> | null> =>
+  input.opened.context.webChatExecution
+    ? captureWebChatSubmissionProof({
+      browser: input.opened.browser,
+      context: input.opened.context,
+      request: input.opened.request,
+      previousAssistantCount: input.preSubmit.previousAssistantCount,
+      previousUserMessageCount: input.preSubmit.previousUserMessageCount,
+      ...(input.opened.forkActionProof ? {
+        initialConversationUrl: input.opened.forkActionProof.childConversationUrl,
+      } : {}),
+      requireCanonical: true,
+    })
     : null;
+
+const buildCompletedWebChatResponse = async (
+  input: CompletedWebChatResponseInput,
+): Promise<AiProviderRawResponse> => {
+  const finalizedSubmission = await captureFinalizedSubmission(input);
   if (finalizedSubmission) {
     await input.opened.context.webChatExecution!.onConversationCanonicalized(
       finalizedSubmission,
@@ -263,6 +278,9 @@ const executeWebChatConversation = async (
     providerUrl: input.providerUrl,
     previousAssistantCount: preSubmit.previousAssistantCount,
     previousUserMessageCount: preSubmit.previousUserMessageCount,
+    ...(input.forkActionProof
+      ? { initialConversationUrl: input.forkActionProof.childConversationUrl }
+      : {}),
     uploadedFiles: preSubmit.uploadedFiles,
     attachmentUploadProof: preSubmit.attachmentUploadProof,
   });

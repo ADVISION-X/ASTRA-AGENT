@@ -143,10 +143,9 @@ assert.equal(new Set(successfulRecords.map((record) => record.systemChatTitle)).
 assert.equal(
   successfulRecords.every((record) =>
     record.systemChatTitle
-    && record.submission?.systemChatTitle === record.systemChatTitle
-    && Boolean(record.submission.chatTitleVerifiedAt)),
+    && record.submission?.systemChatTitle === record.systemChatTitle),
   true,
-  "all conversations must be manually renamed and verified before publication",
+  "all conversations must preserve their planned human-readable title without using title rename as production identity",
 );
 assert.equal(new Set(successfulRecords.map((record) => record.submission?.canonicalConversationUrl)).size, tokens.length);
 for (const [index, token] of tokens.entries()) {

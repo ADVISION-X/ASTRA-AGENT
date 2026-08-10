@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-08T06:48:55.251Z",
+  "generatedAt": "2026-08-10T11:11:04.967Z",
   "summary": {
     "activeLawCount": 250,
     "activeClauseCount": 257,
@@ -13909,6 +13909,7 @@
         "xuanxue-ai-production/bounded-coordinator",
         "xuanxue-ai-production/durable-ledger",
         "xuanxue-ai-production/durable-title-housekeeping",
+        "xuanxue-ai-production/no-terminal-attachment-reentry",
         "xuanxue-ai-production/no-untracked-background-work",
         "xuanxue-ai-production/source-present"
       ],

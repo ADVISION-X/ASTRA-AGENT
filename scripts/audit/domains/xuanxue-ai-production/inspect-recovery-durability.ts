@@ -1,0 +1,82 @@
+import { SyntaxKind } from "ts-morph";
+
+import { createFinding } from "../../shared/finding-utils.js";
+import type {
+  InspectorContext,
+  InspectorFinding,
+} from "../../shared/inspector-contracts.js";
+import { resolveFromRepo } from "../../shared/paths.js";
+import {
+  flowPath,
+  gatewayTitleHousekeepingPath,
+} from "./inspector-paths.js";
+
+const finding = (
+  lawId: string,
+  checkId: string,
+  filePath: string,
+  message: string,
+): InspectorFinding => createFinding({ lawId, checkId, filePath, message });
+
+const inspectTitleHousekeeping = (
+  findings: InspectorFinding[],
+  lawId: string,
+  values: ReadonlySet<string>,
+): void => {
+  const required = [
+    "WebChatTitleRenameState", "chatTitleRename", "response_captured",
+    "drainWebChatTitleHousekeeping", "scheduleWebChatTitleHousekeeping",
+    "runWebChatTitleHousekeepingNow",
+  ];
+  for (const value of required) {
+    if (values.has(value)) continue;
+    findings.push(finding(lawId,
+      "xuanxue-ai-production/durable-title-housekeeping",
+      gatewayTitleHousekeepingPath,
+      `Published parent-chat title debt must contain ${value}.`));
+  }
+};
+
+const inspectTerminalAttachmentGuard = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const flow = context.project.getSourceFile(resolveFromRepo(flowPath));
+  if (!flow) {
+    findings.push(finding(lawId, "xuanxue-ai-production/source-present",
+      flowPath, `${flowPath} must exist in the audit project.`));
+    return;
+  }
+  const helper = flow.getVariableDeclaration(
+    "hasTerminalAttachmentTransportProof",
+  );
+  if (!helper) {
+    findings.push(finding(lawId,
+      "xuanxue-ai-production/no-terminal-attachment-reentry", flowPath,
+      "Factory flow must define hasTerminalAttachmentTransportProof."));
+    return;
+  }
+  for (const functionName of [
+    "restartRecoverableStage", "executeStage", "executeStageUntilSettled",
+  ]) {
+    const guarded = flow.getVariableDeclaration(functionName)?.getInitializer()
+      ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some((call) => call.getExpression().asKind(SyntaxKind.Identifier)
+        ?.getSymbol()?.getDeclarations().includes(helper));
+    if (guarded) continue;
+    findings.push(finding(lawId,
+      "xuanxue-ai-production/no-terminal-attachment-reentry", flowPath,
+      `${functionName} must stop automatic Gateway re-entry after a terminal attachment proof.`));
+  }
+};
+
+export const inspectXuanxueRecoveryDurability = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+  values: ReadonlySet<string>,
+): void => {
+  inspectTitleHousekeeping(findings, lawId, values);
+  inspectTerminalAttachmentGuard(context, findings, lawId);
+};

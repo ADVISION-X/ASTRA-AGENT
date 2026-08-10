@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 
 import {
-  migrateTerminalXuanxueAiLegacyProtocolRows,
+  archiveTerminalXuanxueAiLegacyProtocolRows,
 } from "./xuanxue-ai-production-store-protocol-migration.js";
 
 const databasePath = (dataDir: string): string =>
@@ -98,6 +98,6 @@ export const openXuanxueAiProductionDatabase = (
   database.pragma("foreign_keys = ON");
   initializeProductionTables(database);
   ensureConversationRebuildColumns(database);
-  migrateTerminalXuanxueAiLegacyProtocolRows(database);
+  archiveTerminalXuanxueAiLegacyProtocolRows(database, dataDir);
   return database;
 };

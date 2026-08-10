@@ -41,6 +41,8 @@ const createRequest = (promptContractId: string): AiFeedInput => ({
 const restoreFailedAdapter: AiProviderAdapter = {
   providerKind: "gpt-web-chat",
   async feed(request) {
+    const conversationUrl =
+      `https://chatgpt.com/c/acceptance-${request.promptContractId}`;
     return {
       rawText: request.promptContractId.startsWith("amazon-product-mining-")
         ? JSON.stringify({ keywords: [{ keyword: "door draft stopper", reason: "acceptance" }] })
@@ -48,7 +50,20 @@ const restoreFailedAdapter: AiProviderAdapter = {
       modelName: null,
       runtimeName: "acceptance-gpt-web-chat",
       transport: "web-chat",
-      webChatUrl: "https://chatgpt.com/c/acceptance",
+      webChatUrl: conversationUrl,
+      submissionProof: {
+        executionId: `acceptance:${request.promptContractId}`,
+        turnMarker: `GRASSEYE_TURN_${request.promptContractId}`,
+        transientConversationUrl: conversationUrl,
+        canonicalConversationUrl: conversationUrl,
+        systemChatTitle: null,
+        observedAutoChatTitle: null,
+        chatTitleVerifiedAt: null,
+        userTurnId: "conversation-turn-1",
+        previousAssistantCount: 0,
+        previousUserMessageCount: 0,
+        submittedAt: new Date().toISOString(),
+      },
       sourcePageUrlBeforeFeed: "http://127.0.0.1:4173/",
       restoredSourcePage: false,
       outputRefs: [],

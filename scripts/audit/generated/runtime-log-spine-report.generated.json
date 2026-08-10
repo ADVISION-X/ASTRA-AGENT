@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-08T06:48:48.707Z",
+  "generatedAt": "2026-08-10T11:10:58.088Z",
   "status": "PASS",
-  "scannedFiles": 557,
+  "scannedFiles": 563,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -89,6 +89,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
     "src/capabilities/ai-input-gateway/contract.ts",
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
@@ -527,8 +528,11 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -536,8 +540,10 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-cutover-backup.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
@@ -579,7 +585,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 557,
+    "scannedFiles": 563,
     "emitCallCount": 58,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -590,7 +596,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 552,
+      "scannedFiles": 558,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -599,13 +605,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 448
+      "scannedFiles": 454
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 444,
+      "scannedFiles": 450,
       "metrics": {
         "emitCallCount": 47
       }
@@ -614,13 +620,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 444
+      "scannedFiles": 450
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 449,
+      "scannedFiles": 455,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -635,7 +641,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 449,
+      "scannedFiles": 455,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -656,7 +662,7 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 130
+      "scannedFiles": 136
     },
     {
       "name": "browser-action-log-contract",

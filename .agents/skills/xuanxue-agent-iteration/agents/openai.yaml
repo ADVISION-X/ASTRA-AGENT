@@ -1,0 +1,4 @@
+interface:
+  display_name: "玄学 AGENT 合规迭代"
+  short_description: "接收合法交接工单并在 AGENT 仓库独立施工、验收和回馈"
+  default_prompt: "Use $xuanxue-agent-iteration to validate this handoff, iterate only the AGENT repository, and return a complete receipt."

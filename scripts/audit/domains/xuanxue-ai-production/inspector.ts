@@ -8,9 +8,9 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import {
   acceptancePath, acceptanceSupportPaths, authorityPaths,
   cloudContractPath, cloudCredentialPath, cloudWorkerPath,
-  gatewayTitleHousekeepingPath, gatewayTitleStatePath, gatewayTitleWorkerPath,
   pluginPaths, profilePath, schedulerPath, schemaPath, storePath,
 } from "./inspector-paths.js";
+import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 
 type Laws = {
   boundary: string;
@@ -191,17 +191,27 @@ const inspectContracts = (
   });
 };
 
-const inspectTitleHousekeepingDurability = (
+const inspectProtocolCutoverDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
   values: ReadonlySet<string>,
 ): void => requireValues(findings, {
   lawId: durabilityLaw,
-  checkId: "xuanxue-ai-production/durable-title-housekeeping",
-  filePath: gatewayTitleHousekeepingPath,
-  messagePrefix: "Published parent-chat title debt must contain",
+  checkId: "xuanxue-ai-production/durable-ledger",
+  filePath: storePath,
+  messagePrefix: "Protocol cutover ledger must contain",
   values,
-  required: ["WebChatTitleRenameState", "chatTitleRename", "response_captured", "drainWebChatTitleHousekeeping", "scheduleWebChatTitleHousekeeping", "runWebChatTitleHousekeepingNow"],
+  required: [
+    "archiveTerminalXuanxueAiLegacyProtocolRows",
+    "createVerifiedLegacyCutoverBackup",
+    "production_legacy_protocol_archives",
+    "XUANXUE_AI_PRODUCTION_LEGACY_BACKUP_RESTORE_MISMATCH",
+    "XUANXUE_AI_PRODUCTION_LEGACY_ARCHIVED_ORDER_ID_CONFLICT",
+    "XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED",
+    "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
+    "legacy_cloud_terminal_reconciled",
+    "v1_terminal_status_restored",
+  ],
 });
 
 const inspectDurability = (
@@ -243,11 +253,6 @@ const inspectDurability = (
       "recordParentConversationRebuild",
       "stage_fresh_execution_restarted",
       "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER",
-      "migrateTerminalXuanxueAiLegacyProtocolRows",
-      "XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED",
-      "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
-      "v1_cloud_terminal_reconciled",
-      "v1_terminal_status_restored",
       "supersededExecutionId",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
@@ -333,7 +338,7 @@ const inspectCloud = (
       "downloadXuanxueAiProductionInput",
       "downloadXuanxueAiProductionParentReplayInput",
       "recoverXuanxueAiProductionJob",
-      "conversation_parent_replay",
+      "continuation_parent_replay",
       "frozen_subject",
       "conversation_scope_ref",
       "join_parents",
@@ -421,13 +426,18 @@ const inspectAcceptance = (
       "JSON field ordering and governance transport upgrades must not block exact legacy parent repair",
       "QUESTION_A_ONLY",
       "person:naming-aux-4",
-      "conversation_parent_replay",
+      "continuation_parent_replay",
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
       "XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED",
       "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
+      "archived legacy rows must be invisible to v3 readers",
+      "legacy cutover must be idempotent",
       "article_image_generation",
       "scheduled_quality_reflection",
       "public-knowledge-redline-check",
+      "terminalAttachmentGatewayCallCount",
+      "a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt",
+      "restart recovery must preserve the terminal attachment proof without copy-paste or picker re-upload",
     ],
   });
 };
@@ -457,7 +467,10 @@ export const inspectDomain = async (
   });
   const values = sourceValues(sources);
   inspectContracts(findings, laws, values);
-  inspectTitleHousekeepingDurability(findings, laws.durability, values);
+  inspectXuanxueRecoveryDurability(
+    context, findings, laws.durability, values,
+  );
+  inspectProtocolCutoverDurability(findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);

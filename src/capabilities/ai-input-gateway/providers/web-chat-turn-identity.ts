@@ -156,12 +156,14 @@ export const captureWebChatSubmissionProof = async (input: {
   request: AiFeedInput;
   previousAssistantCount: number;
   previousUserMessageCount: number;
+  initialConversationUrl?: string;
   requireCanonical?: boolean;
 }): Promise<WebChatSubmissionProof> => {
   const execution = input.context.webChatExecution;
   if (!execution) throw new Error("review_required: web-chat execution identity is unavailable after submit.");
   const deadline = Date.now() + (input.requireCanonical ? 120_000 : 10_000);
-  let transientConversationUrl: string | null = null;
+  let transientConversationUrl: string | null =
+    input.initialConversationUrl ?? null;
   let last: TurnIdentityObservation | null = null;
   while (Date.now() < deadline) {
     last = await input.browser.evaluateActiveTab<TurnIdentityObservation>({

@@ -1,24 +1,37 @@
 import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
+import type { AiFeedInput } from "../../src/capabilities/ai-input-gateway/index.js";
 import {
   createXuanxueAiProductionOrder,
   executeXuanxueAiProductionOrder,
-  XuanxueAiProductionCoordinator,
   type XuanxueAiOrderRecord,
   type XuanxueAiProductionOrder,
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import {
-  type FixtureGateway,
   hash,
   order,
 } from "./xuanxue-ai-production-fixture.js";
+import {
+  assertDuplicateHehunPartyRejected,
+} from "./xuanxue-ai-production-hehun-join-guards.js";
+import {
+  acceptNamingJoinGuards,
+} from "./xuanxue-ai-production-naming-join-guards.js";
+import {
+  assertHehunRequestEvidence,
+  assertNm01RequestEvidence,
+  assertNm02RequestEvidence,
+  rejectInvalidBaseParent,
+} from "./xuanxue-ai-production-order-graph-assertions.js";
 
 type StageRecord = XuanxueAiOrderRecord["stages"][number];
 
 interface GraphAcceptanceInput {
   readonly runtime: XuanxueAiProductionRuntime;
-  readonly gateway: FixtureGateway;
+  readonly gateway: { readonly requests: readonly AiFeedInput[] };
 }
 
 interface ParentGraph {
@@ -79,12 +92,11 @@ const withParticipants = (
   },
 });
 
-const complete = async (
+const completePrepared = async (
   input: GraphAcceptanceInput,
-  candidate: XuanxueAiProductionOrder,
+  normalized: XuanxueAiProductionOrder,
   finalStageId: StageRecord["stageId"],
 ): Promise<ParentGraph> => {
-  const normalized = withGraphFrozenEnvelope(candidate);
   createXuanxueAiProductionOrder(input.runtime, normalized);
   const result = await executeXuanxueAiProductionOrder(
     input.runtime,
@@ -98,6 +110,16 @@ const complete = async (
   assert.ok(finalStage.aiFeedResult?.providerProof.webChatUrl);
   return { order: normalized, finalStage };
 };
+
+const complete = async (
+  input: GraphAcceptanceInput,
+  candidate: XuanxueAiProductionOrder,
+  finalStageId: StageRecord["stageId"],
+): Promise<ParentGraph> => completePrepared(
+  input,
+  withGraphFrozenEnvelope(candidate),
+  finalStageId,
+);
 
 const conversationParent = (
   parent: ParentGraph,
@@ -142,6 +164,41 @@ const privateBaziBase = async (
   "base_interpretation",
 );
 
+const acceptInvalidBaseParentRejections = async (
+  input: GraphAcceptanceInput,
+  base: ParentGraph,
+): Promise<void> => {
+  const make = (orderId: string, binding: ReturnType<typeof participant>) => {
+    const candidate = withParticipants(order(
+      orderId,
+      "bazi_chart_interpretation",
+      ["chart_interpretation"],
+    ), [binding], binding.personRef);
+    candidate.conversationParent = conversationParent(
+      base,
+      "forked_from_checkpoint",
+    );
+    return candidate;
+  };
+  await rejectInvalidBaseParent({ ...input, candidate: make(
+    "aiprod_cross_owner_bz05",
+    base.order.frozenSubject.participants[0]!,
+  ) });
+  await rejectInvalidBaseParent({ ...input, candidate: withGraphFrozenEnvelope(make(
+    "aiprod_cross_person_bz05",
+    participant("person:wrong-base-person"),
+  )) });
+  const wrongChart = {
+    ...participant("person:bazi-primary"),
+    chartStateRef: "chart:wrong-base-chart",
+    chartStateHash: hash("chart:wrong-base-chart"),
+  };
+  await rejectInvalidBaseParent({ ...input, candidate: withGraphFrozenEnvelope(make(
+    "aiprod_cross_chart_bz05",
+    wrongChart,
+  )) });
+};
+
 const acceptBaziForkSiblings = async (
   input: GraphAcceptanceInput,
 ): Promise<{ base: ParentGraph; analysis: ParentGraph }> => {
@@ -150,58 +207,27 @@ const acceptBaziForkSiblings = async (
     "aiprod_bazi_private_base",
     "person:bazi-primary",
   );
-  const crossSnapshot = withParticipants(
-    order("aiprod_cross_snapshot_bz05", "bazi_chart_interpretation", [
+  await acceptInvalidBaseParentRejections(input, base);
+  const bz05Person = {
+    ...participant("person:bazi-primary"),
+    purposeCode: "bz05-cross-project-purpose",
+    authorizationReceiptRef: "authorization:bz05-cross-project",
+  };
+  const bz05Order = withGraphFrozenEnvelope(withParticipants(
+    order("aiprod_bz05", "bazi_chart_interpretation", [
       "chart_interpretation",
     ]),
-    base.order.frozenSubject.participants,
-    base.order.frozenSubject.primaryPersonRef,
-  );
-  crossSnapshot.conversationParent = conversationParent(
-    base,
-    "forked_from_checkpoint",
-  );
-  createXuanxueAiProductionOrder(input.runtime, crossSnapshot);
-  const beforeCrossSnapshot = input.gateway.requests.length;
-  const crossSnapshotCoordinator = new XuanxueAiProductionCoordinator(
-    input.runtime,
-  );
-  const crossSnapshotResult = await crossSnapshotCoordinator.execute(
-    crossSnapshot.orderId,
-  );
-  await crossSnapshotCoordinator.close();
-  assert.equal(crossSnapshotResult.status, "recovery_pending");
-  assert.match(
-    crossSnapshotResult.failureReason ?? "",
-    /PARENT_FROZEN_SUBJECT_MISMATCH/u,
-  );
-  assert.equal(
-    input.gateway.requests.length,
-    beforeCrossSnapshot,
-    "cross-owner or cross-snapshot parents must be rejected before GPT",
-  );
-  input.runtime.store.updateStage({
-    ...crossSnapshotResult.stages[0]!,
-    status: "review_required",
-    progressPhase: "terminal",
-    failureReason: "authorization scope mismatch",
-    updatedAt: new Date().toISOString(),
-  }, "fixture_cross_snapshot_rejected");
-  input.runtime.store.updateOrder({
-    orderId: crossSnapshot.orderId,
-    status: "review_required",
-    failureReason: "authorization scope mismatch",
-    updatedAt: new Date().toISOString(),
-    eventType: "fixture_cross_snapshot_rejected",
-  });
-  const bz05 = await complete(input, {
-    ...withParticipants(
-      order("aiprod_bz05", "bazi_chart_interpretation", [
-        "chart_interpretation",
-      ]),
-      [participant("person:bazi-primary")],
-      "person:bazi-primary",
-    ),
+    [bz05Person],
+    bz05Person.personRef,
+  ));
+  bz05Order.frozenSubject = {
+    ...bz05Order.frozenSubject,
+    snapshotRef: "snapshot:bz05-cross-project",
+    snapshotHash: hash("snapshot:bz05-cross-project"),
+    caseRevisionRef: "case-revision:bz05-cross-project",
+  };
+  const bz05 = await completePrepared(input, {
+    ...bz05Order,
     conversationParent: conversationParent(base, "forked_from_checkpoint"),
   }, "chart_interpretation");
   const analysisOrder = withParticipants(
@@ -270,49 +296,85 @@ const acceptNamingTargetAndFourAuxiliaries = async (
   );
   candidate.joinParents = auxiliaryBases.map((base, index) =>
     joinParent(base, auxiliaries[index]!));
-  assert.throws(
-    () => createXuanxueAiProductionOrder(input.runtime, {
-      ...candidate,
-      orderId: "aiprod_nm01_missing_aux_join",
-      sourceTaskId: "source:aiprod_nm01_missing_aux_join",
-      requestHash: hash("aiprod_nm01_missing_aux_join"),
-      joinParents: candidate.joinParents.slice(0, -1),
-    }),
-    /NAMING_TYPED_JOINS_INVALID/u,
-    "every actual naming auxiliary must have exactly one private-base join",
-  );
-  assert.throws(
-    () => createXuanxueAiProductionOrder(input.runtime, {
-      ...candidate,
-      orderId: "aiprod_nm01_duplicate_aux_join",
-      sourceTaskId: "source:aiprod_nm01_duplicate_aux_join",
-      requestHash: hash("aiprod_nm01_duplicate_aux_join"),
-      joinParents: [candidate.joinParents[0]!, candidate.joinParents[0]!],
-    }),
-    /TYPED_JOIN_PARENT_MISMATCH|NAMING_TYPED_JOINS_INVALID/u,
-    "duplicate naming joins must fail before any provider work",
-  );
+  acceptNamingJoinGuards(input.runtime, candidate, "nm01");
   const before = input.gateway.requests.length;
   const result = await complete(input, candidate, "naming_author");
   const requests = input.gateway.requests.slice(before);
-  assert.equal(requests[0]?.providerForkRef?.priorTaskId, targetBase.finalStage.executionId);
-  assert.equal(
-    requests[1]?.providerContinuationRef?.priorTaskId,
-    result.order.orderId
-      ? `${"xuanxue-ai-production"}:${result.order.orderId}:question_analysis`
-      : null,
-  );
-  assert.equal(
-    requests[1]?.inputRefs.filter(
-      (ref) => ref.kind === "typed_participant_private_base",
-    ).length,
-    4,
-  );
+  assertNm01RequestEvidence({
+    requests,
+    targetExecutionId: targetBase.finalStage.executionId,
+    resultOrderId: result.order.orderId,
+  });
   const persisted = input.runtime.store.readOrder(candidate.orderId);
   assert.ok(persisted);
   assert.equal(new Set(persisted.stages.map(
     (stage) => stage.aiFeedResult?.providerProof.webChatUrl,
   )).size, 1);
+};
+
+const acceptExistingReportNamingWithAuxiliaries = async (
+  input: GraphAcceptanceInput,
+  report: ParentGraph,
+): Promise<void> => {
+  const target = participant("person:bazi-primary", "target", "naming_target");
+  const auxiliaries = Array.from({ length: 4 }, (_, index) => participant(
+    `person:nm02-aux-${index + 1}`,
+    `aux-${index + 1}`,
+    `family_aux_${index + 1}`,
+  ));
+  const bases: ParentGraph[] = [];
+  for (const [index, binding] of auxiliaries.entries()) {
+    bases.push(await privateBaziBase(
+      input,
+      `aiprod_nm02_aux_base_${index + 1}`,
+      binding.personRef,
+    ));
+  }
+  const candidate = withParticipants(order(
+    "aiprod_nm02",
+    "naming_from_existing_bazi_report",
+    ["naming_author"],
+  ), [target, ...auxiliaries], target.personRef);
+  assert.ok(report.finalStage.rawResponseText);
+  assert.ok(report.finalStage.rawOutputHash);
+  const selectedReportDirectory = path.join(
+    input.runtime.dataDir,
+    "acceptance-selected-existing-bazi-report",
+  );
+  await mkdir(selectedReportDirectory, { recursive: true });
+  const selectedReportFileName = "selected-existing-bazi-report.txt";
+  const selectedReportFilePath = path.join(
+    selectedReportDirectory,
+    selectedReportFileName,
+  );
+  const selectedReportBytes = Buffer.from(
+    report.finalStage.rawResponseText,
+    "utf8",
+  );
+  await writeFile(selectedReportFilePath, selectedReportBytes);
+  candidate.materials[0]!.inputRefs.push({
+    id: `selected-report:${report.order.orderId}:${report.finalStage.stageId}`,
+    kind: "selected_existing_bazi_report",
+    summary:
+      `用户精确选择的合法八字报告：${report.order.orderId}/`
+      + `${report.finalStage.stageId}/${report.finalStage.executionId}`,
+    filePath: selectedReportFilePath,
+    fileName: selectedReportFileName,
+    mimeType: "text/plain; charset=utf-8",
+    sha256: report.finalStage.rawOutputHash as `sha256:${string}`,
+    byteCount: selectedReportBytes.byteLength,
+  });
+  candidate.joinParents = bases.map((base, index) =>
+    joinParent(base, auxiliaries[index]!));
+  acceptNamingJoinGuards(input.runtime, candidate, "nm02");
+  const before = input.gateway.requests.length;
+  const result = await complete(input, candidate, "naming_author");
+  const request = input.gateway.requests[before];
+  assertNm02RequestEvidence({
+    request,
+    reportUrl: report.finalStage.aiFeedResult?.providerProof.webChatUrl,
+    resultUrl: result.finalStage.aiFeedResult?.providerProof.webChatUrl,
+  });
 };
 
 const acceptHehunThreeContexts = async (
@@ -343,6 +405,7 @@ const acceptHehunThreeContexts = async (
     joinParent(partyA, partyABinding),
     joinParent(partyB, partyBBinding),
   ];
+  assertDuplicateHehunPartyRejected(input.runtime, finalOrder);
   assert.throws(
     () => createXuanxueAiProductionOrder(input.runtime, {
       ...finalOrder,
@@ -357,11 +420,18 @@ const acceptHehunThreeContexts = async (
     "party A and party B joins must bind their exact private stages",
   );
   const final = await complete(input, finalOrder, "final_compatibility");
-  assert.equal(new Set([
-    partyA.finalStage.aiFeedResult!.providerProof.webChatUrl,
-    partyB.finalStage.aiFeedResult!.providerProof.webChatUrl,
-    final.finalStage.aiFeedResult!.providerProof.webChatUrl,
-  ]).size, 3);
+  const finalRequest = input.gateway.requests.find(
+    (request) => request.taskIdentity.sourceTaskId
+      === `${finalOrder.orderId}:final_compatibility`,
+  );
+  assertHehunRequestEvidence({
+    request: finalRequest,
+    urls: [
+      partyA.finalStage.aiFeedResult?.providerProof.webChatUrl,
+      partyB.finalStage.aiFeedResult?.providerProof.webChatUrl,
+      final.finalStage.aiFeedResult?.providerProof.webChatUrl,
+    ],
+  });
   return final;
 };
 
@@ -410,15 +480,7 @@ export const acceptXuanxueOrderGraphs = async (
     "hehun_report_followup",
     "followup",
   );
-  const nm02 = await complete(input, order(
-    "aiprod_nm02",
-    "naming_from_existing_bazi_report",
-    ["naming_author"],
-  ), "naming_author");
-  assert.notEqual(
-    nm02.finalStage.aiFeedResult?.providerProof.webChatUrl,
-    bazi.analysis.finalStage.aiFeedResult?.providerProof.webChatUrl,
-  );
+  await acceptExistingReportNamingWithAuxiliaries(input, bazi.analysis);
   return {
     hehun: hehun.order,
     qimenFollowupParent: qimen.order,

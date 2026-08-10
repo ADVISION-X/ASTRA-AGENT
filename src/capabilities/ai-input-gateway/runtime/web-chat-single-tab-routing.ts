@@ -284,7 +284,7 @@ if (
     message: "exact submitted ChatGPT row and marker are focused",
   };
 }
-if (markerCount > 1 || links.length > 1) {
+if (markerCount > 1) {
   return {
     status: "review_required",
     pageUrl: location.href,
@@ -293,15 +293,20 @@ if (markerCount > 1 || links.length > 1) {
     message: "CHATGPT_SUBMITTED_CONVERSATION_IDENTITY_AMBIGUOUS",
   };
 }
-if (links.length === 1) {
-  const rect = links[0].getBoundingClientRect();
+if (links.length >= 1) {
+  const targetLink = [...links].sort((left, right) => {
+    const leftRect = left.getBoundingClientRect();
+    const rightRect = right.getBoundingClientRect();
+    return (rightRect.width * rightRect.height) - (leftRect.width * leftRect.height);
+  })[0];
+  const rect = targetLink.getBoundingClientRect();
   const centerY = rect.top + rect.height / 2;
   if (centerY < 24 || centerY > innerHeight - 24) {
     return {
       status: "scroll_title",
       pageUrl: location.href,
       markerCount,
-      titleCount: 1,
+      titleCount: links.length,
       message: "exact submitted ChatGPT sidebar row is outside the visible viewport",
       targetPoint: {x: Math.max(24, Math.min(innerWidth - 24, rect.left + Math.min(rect.width / 2, 96))), y: innerHeight / 2},
       scrollDeltaY: Math.max(-600, Math.min(600, centerY - innerHeight / 2)),
@@ -311,7 +316,7 @@ if (links.length === 1) {
     status: "click_title",
     pageUrl: location.href,
     markerCount,
-    titleCount: 1,
+    titleCount: links.length,
     message: "exact submitted ChatGPT sidebar row located",
     targetPoint: {x: rect.left + Math.min(rect.width / 2, 96), y: rect.top + rect.height / 2},
   };
@@ -357,19 +362,62 @@ return {
 
 const buildUnrenamedChatGptIdentityScript = (input: { turnMarker: string; targetPath: string }): string => UNRENAMED_CHATGPT_IDENTITY_SCRIPT.replace("__TURN_MARKER__", JSON.stringify(input.turnMarker)).replace("__TARGET_PATH__", JSON.stringify(input.targetPath));
 
+type UnrenamedConversationTarget = {
+  status: "focused" | "click_title" | "scroll_title" | "ack_rate_limit" | "pending" | "review_required";
+  pageUrl: string;
+  markerCount: number;
+  titleCount: number;
+  message: string;
+  targetPoint?: { x: number; y: number };
+  scrollDeltaY?: number;
+};
+
+const advanceUnrenamedTarget = async (input: {
+  base: BrowserController;
+  target: UnrenamedConversationTarget;
+  signal?: AbortSignal;
+}): Promise<void> => {
+  if (input.target.status === "click_title" || input.target.status === "ack_rate_limit") {
+    await clickTarget({
+      base: input.base,
+      description: input.target.status === "click_title"
+        ? "open exact submitted ChatGPT sidebar row before rename"
+        : "acknowledge ChatGPT rate limit before submitted-row routing",
+      targetPoint: input.target.targetPoint,
+    });
+  } else if (input.target.status === "scroll_title") {
+    await input.base.scroll({
+      targetLabel: "scroll exact submitted ChatGPT sidebar row into view",
+      deltaX: 0, deltaY: input.target.scrollDeltaY ?? 0,
+      coordinateSpace: "browserViewport",
+      ...(input.target.targetPoint ? { anchorPoint: input.target.targetPoint } : {}),
+      ...(input.signal ? { abortSignal: input.signal } : {}),
+    });
+  }
+};
+
 const focusUnrenamedChatGptConversation = async (input: { base: BrowserController; targetUrl: string; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
   const targetUrl = input.targetUrl;
   const targetPath = new URL(targetUrl).pathname;
+  const transientTarget = targetPath.startsWith("/c/WEB:");
+  if (!transientTarget) {
+    const currentUrl = input.base.getSessionState().currentUrl;
+    const currentPath = currentUrl ? new URL(currentUrl).pathname : null;
+    if (currentPath !== targetPath) {
+      const opened = await input.base.open({
+        url: targetUrl,
+        title: "resume exact submitted ChatGPT conversation by canonical URL",
+        reusePolicy: "reuse-active-tab",
+      });
+      if (!opened.ok) {
+        throw new Error(
+          `WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT conversation could not be opened; ${opened.message}`,
+        );
+      }
+    }
+  }
   const inspectAndLocate = () =>
-    input.base.evaluateActiveTab<{
-      status: "focused" | "click_title" | "scroll_title" | "ack_rate_limit" | "pending" | "review_required";
-      pageUrl: string;
-      markerCount: number;
-      titleCount: number;
-      message: string;
-      targetPoint?: { x: number; y: number };
-      scrollDeltaY?: number;
-    }>({
+    input.base.evaluateActiveTab<UnrenamedConversationTarget>({
       description: "locate exact submitted ChatGPT conversation row before completing system rename",
       script: buildUnrenamedChatGptIdentityScript({ turnMarker: input.turnMarker, targetPath }),
       ...(input.signal ? { abortSignal: input.signal } : {}),
@@ -385,28 +433,11 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
     if (last.status === "review_required") {
       throw new Error(`review_required: ${last.message}; pageUrl=${last.pageUrl}`);
     }
-    if (last.status === "click_title") {
-      await clickTarget({
-        base: input.base,
-        description: "open exact submitted ChatGPT sidebar row before rename",
-        targetPoint: last.targetPoint,
-      });
-    } else if (last.status === "scroll_title") {
-      await input.base.scroll({
-        targetLabel: "scroll exact submitted ChatGPT sidebar row into view",
-        deltaX: 0,
-        deltaY: last.scrollDeltaY ?? 0,
-        coordinateSpace: "browserViewport",
-        ...(last.targetPoint ? { anchorPoint: last.targetPoint } : {}),
-        ...(input.signal ? { abortSignal: input.signal } : {}),
-      });
-    } else if (last.status === "ack_rate_limit") {
-      await clickTarget({
-        base: input.base,
-        description: "acknowledge ChatGPT rate limit before submitted-row routing",
-        targetPoint: last.targetPoint,
-      });
-    }
+    await advanceUnrenamedTarget({
+      base: input.base,
+      target: last,
+      ...(input.signal ? { signal: input.signal } : {}),
+    });
     await input.base.wait(500);
   }
   throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact submitted ChatGPT sidebar row is not ready for marker verification; last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? targetUrl}`);

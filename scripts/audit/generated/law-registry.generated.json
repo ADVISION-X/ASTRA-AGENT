@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-08T06:48:02.822Z",
+  "generatedAt": "2026-08-10T11:10:08.624Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -6714,6 +6714,7 @@
         "Historical paid follow-ups without a continuation parent remain recovery_pending until the website reissues their immutable parent identity; an exact one-way local repair preserves old stage evidence and users never receive an ordinary runtime failure.",
         "Provider citation residue, private-use characters, invalid required JSON and missing raw output are discarded and restarted with a fresh execution id and fresh marker, while a transport retry never duplicates one already submitted logical turn merely because page-global turn counts changed during provider hydration.",
         "A failed or review_required gateway execution with durable submission proof always resumes the same execution id, marker and provider conversation. A fresh execution is allowed only for a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault.",
+        "A failed or review_required attachment upload proof is terminal for that attachment execution: same-lease loops, restart recovery and new leases preserve its proof and never call the Gateway upload again without explicit operator authorization.",
         "A missing local or provider parent conversation is reconstructed from the lease-bound parent replay package and persisted in production_parent_conversation_rebuilds."
       ],
       "forbidden": [
@@ -6726,6 +6727,7 @@
         "using page-global user-turn count deltas as authority to resend a stage that already has an exact logical-turn marker",
         "resuming a known detached downstream stage in its blank or wrong conversation",
         "reviving a legacy parentless follow-up through a blank conversation",
+        "automatic copy-paste or native-picker re-upload after a terminal attachment upload proof",
         "publishing provider-internal citation residue as a production answer"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
@@ -6752,7 +6754,7 @@
         "Input download and every mutation bind the exact lease token and lease version.",
         "The worker claims only available local production capacity.",
         "Durable local orders are reconciled to the original cloud job before execution resumes; completed local results are republished under a fresh lease.",
-        "Every claimed conversation child includes a lease-bound conversation_parent_replay package plus exact frozen subject, conversation scope and typed join identities so a lost local parent can be reconstructed from its first stage."
+        "Every claimed conversation child includes a lease-bound continuation_parent_replay package plus exact frozen subject, conversation scope and typed join identities so a lost local parent can be reconstructed from its first stage."
       ],
       "forbidden": [
         "inbound home port or server callback",

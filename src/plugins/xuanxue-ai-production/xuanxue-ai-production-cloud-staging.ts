@@ -234,7 +234,7 @@ const childOrder = (
 });
 
 type CloudParentReplay = NonNullable<
-  XuanxueAiProductionCloudClaimedJob["conversation_parent_replay"]
+  XuanxueAiProductionCloudClaimedJob["continuation_parent_replay"]
 >;
 type CloudDependencyReplay = CloudParentReplay[
   "dependency_replays"
@@ -307,7 +307,7 @@ export async function stageXuanxueAiProductionCloudJob(
       ),
   );
   const order = childOrder(job, materials);
-  const replay = job.conversation_parent_replay;
+  const replay = job.continuation_parent_replay;
   if (!replay) {
     return { order, parentReplay: null, parentReplayDependencies: [] };
   }

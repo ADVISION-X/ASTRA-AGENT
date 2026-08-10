@@ -15,6 +15,7 @@ type SubmissionCheckpointInput = {
   request: AiFeedInput;
   previousAssistantCount: number;
   previousUserMessageCount: number;
+  initialConversationUrl?: string;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
 };
@@ -29,6 +30,9 @@ const captureProof = (
     request: input.request,
     previousAssistantCount: input.previousAssistantCount,
     previousUserMessageCount: input.previousUserMessageCount,
+    ...(input.initialConversationUrl
+      ? { initialConversationUrl: input.initialConversationUrl }
+      : {}),
     requireCanonical,
   });
 

@@ -120,6 +120,7 @@ type SubmitPromptViaClipboardInput = {
   context: AiProviderAdapterContext;
   previousAssistantCount: number;
   previousUserMessageCount: number;
+  initialConversationUrl?: string;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
 };
@@ -390,9 +391,8 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
   preparedPrompt: PreparedPromptComposer;
 }): Promise<WebChatSubmissionProof | null> => {
   const submitStartedAtMs = Date.now();
-  emitSubmitStage(input, "prompt_submit", "start", null, {
-    expectedAttachmentCount: input.preparedPrompt.expectedAttachmentCount,
-  });
+  emitSubmitStage(input, "prompt_submit", "start", null,
+    { expectedAttachmentCount: input.preparedPrompt.expectedAttachmentCount });
   await waitForSendButtonClick({
     browser: input.browser,
     context: input.context,
@@ -417,6 +417,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
       request: input.request,
       previousAssistantCount: input.previousAssistantCount,
       previousUserMessageCount: input.previousUserMessageCount,
+      ...(input.initialConversationUrl ? { initialConversationUrl: input.initialConversationUrl } : {}),
       uploadedFiles: input.uploadedFiles,
       attachmentUploadProof: input.attachmentUploadProof,
     });

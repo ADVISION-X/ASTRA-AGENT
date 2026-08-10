@@ -39,6 +39,7 @@ const acceptSameParentFifo = async (
       ["followup"],
     )),
     /CONTINUATION_PROFILE_INVALID/u,
+    "a paid follow-up without an exact parent must never reach GPT",
   );
   const parentUrl =
     input.qimenParentFinal.aiFeedResult?.providerProof.webChatUrl;
@@ -70,7 +71,11 @@ const acceptSameParentFifo = async (
   );
   await coordinator.close();
   assert.ok(results.every((record) => record.status === "completed"));
-  assert.equal(input.gateway.maxActiveByContinuation.get(parentUrl), 1);
+  assert.equal(
+    input.gateway.maxActiveByContinuation.get(parentUrl),
+    1,
+    "orders sharing one parent GPT conversation must be serialized",
+  );
   assert.deepEqual(
     input.gateway.requests
       .filter((request) => request.taskIdentity.sourceTaskId.startsWith(
@@ -78,6 +83,7 @@ const acceptSameParentFifo = async (
       ))
       .map((request) => request.runId),
     children.map((child) => child.orderId),
+    "same-parent follow-ups must preserve FIFO order",
   );
 };
 
@@ -206,7 +212,11 @@ const regressAndMigrateFollowupStage = (
   repairLegacyFollowupWrongChatExecutionStates(migrationDatabase);
   migrationDatabase.close();
   const migrated = input.runtime.store.readOrder(child.orderId)!;
-  assert.notEqual(migrated.stages[0]!.executionId, regressedStage.executionId);
+  assert.notEqual(
+    migrated.stages[0]!.executionId,
+    regressedStage.executionId,
+    "an already repaired follow-up must retire its legacy wrong-chat execution",
+  );
   assert.equal(migrated.stages[0]!.status, "queued");
 };
 
@@ -218,12 +228,17 @@ const assertRepairedFollowup = (
   assert.equal(repaired.status, "recovery_pending");
   assert.deepEqual(repaired.order.conversationParent, child.conversationParent);
   assert.equal(repaired.order.requestHash, child.requestHash);
-  assert.notEqual(repaired.stages[0]!.executionId, legacyExecutionId);
+  assert.notEqual(
+    repaired.stages[0]!.executionId,
+    legacyExecutionId,
+    "legacy wrong-chat attachment proof must be retired with a fresh execution id",
+  );
   assert.match(repaired.stages[0]!.executionId, /followup-parent-binding-recovery/u);
   assert.equal(repaired.stages[0]!.aiFeedResult, null);
   assert.equal(
     repaired.order.materials[0]?.textPrompt,
     child.materials[0]?.textPrompt,
+    "JSON field ordering and governance transport upgrades must not block exact legacy parent repair",
   );
 };
 
@@ -245,6 +260,7 @@ const acceptLegacyFollowupParentRepair = async (
   assert.equal(
     input.gateway.requests.at(-1)?.providerContinuationRef?.providerPageUrl,
     input.qimenParentFinal.aiFeedResult?.providerProof.webChatUrl,
+    "a repaired legacy follow-up must continue in its exact parent chat",
   );
   assert.equal(
     input.gateway.requests.at(-1)?.maxFileCount,

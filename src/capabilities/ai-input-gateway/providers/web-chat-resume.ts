@@ -181,6 +181,12 @@ export const resumeSubmittedWebChatConversation = async (
     ...input,
     previousAssistantCount: submission.previousAssistantCount,
     previousUserMessageCount: submission.previousUserMessageCount,
+    ...(execution.resumeForkActionProof?.childConversationUrl
+      ? {
+          initialConversationUrl:
+            execution.resumeForkActionProof.childConversationUrl,
+        }
+      : {}),
     requireCanonical: true,
   });
   await execution.onConversationCanonicalized(finalizedSubmission);

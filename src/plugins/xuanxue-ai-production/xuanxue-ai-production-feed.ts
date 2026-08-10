@@ -36,8 +36,7 @@ import {
   xuanxueAiOutputIntegrityFailure,
 } from "./xuanxue-ai-production-output-integrity.js";
 import { publicKnowledgeImagePromptBoundary } from "./generated-image-policy.js";
-
-type GeneratedStageInput = Awaited<ReturnType<typeof writePriorStageInput>>;
+import { buildTypedJoinInputs } from "./xuanxue-ai-production-typed-join-inputs.js";
 
 export const canonicalXuanxueRawOutputHash = (
   value: string,
@@ -146,6 +145,7 @@ async function writePriorStageInput(
   orderId: string,
   targetStageId: XuanxueAiStageId,
   prior: XuanxueAiStageRecord,
+  fileNamePrefix?: string,
 ) {
   if (!prior.rawResponseText || !prior.rawOutputHash) {
     throw new Error(
@@ -154,7 +154,7 @@ async function writePriorStageInput(
   }
   const directory = generatedStageDirectory(runtime, orderId, targetStageId);
   await mkdir(directory, { recursive: true });
-  const fileName = `${String(prior.ordinal + 1).padStart(2, "0")}-${prior.stageId}-raw-response.txt`;
+  const fileName = `${fileNamePrefix ?? ""}${String(prior.ordinal + 1).padStart(2, "0")}-${prior.stageId}-raw-response.txt`;
   const filePath = path.join(directory, fileName);
   const bytes = Buffer.from(prior.rawResponseText, "utf8");
   const sha256 =
@@ -315,61 +315,16 @@ const parentConversation = async (
   };
 };
 
-const typedJoinInputs = async (
-  runtime: XuanxueAiProductionRuntime,
+const ensureInputBundleRef = (
   record: XuanxueAiOrderRecord,
-  stage: XuanxueAiStageRecord,
-): Promise<GeneratedStageInput[]> => Promise.all(
-  record.order.joinParents.map(async (binding) => {
-    const parentOrder = runtime.store.readOrder(binding.jobId);
-    if (!parentOrder || parentOrder.status !== "completed") {
-      throw new Error("XUANXUE_AI_PRODUCTION_JOIN_PARENT_MISSING");
-    }
-    const parentStage = requireXuanxueStage(parentOrder, binding.stageId);
-    assertPersonParentMatches({
-      child: record,
-      parent: parentOrder,
-      personRef: binding.personRef,
-    });
-    const expectedParentProduct = record.order.productId === "hehun_ai_analysis"
-      ? binding.participantRoleCode === "party_a"
-        ? "hehun_canonical_party_a_interpretation"
-        : binding.participantRoleCode === "party_b"
-          ? "hehun_canonical_party_b_interpretation"
-          : null
-      : record.order.productId === "naming_bazi_analysis_and_naming"
-        ? "bazi_canonical_base_interpretation"
-        : null;
-    if (
-      !expectedParentProduct
-      || parentOrder.order.productId !== expectedParentProduct
-      ||
-      parentStage.status !== "completed"
-      || parentStage.executionId !== binding.executionId
-      || parentStage.rawOutputHash !== binding.rawOutputHash
-      || parentOrder.order.conversationScopeRef
-        !== binding.conversationScopeRef
-      || parentOrder.order.frozenSubject.primaryPersonRef
-        !== binding.personRef
-    ) {
-      throw new Error("XUANXUE_AI_PRODUCTION_JOIN_PARENT_PROOF_MISMATCH");
-    }
-    const generated = await writePriorStageInput(
-      runtime,
-      record.order.orderId,
-      stage.stageId,
-      parentStage,
-    );
-    return {
-      ...generated,
-      id: `${generated.id}:participant:${binding.participantSlotRef}`,
-      kind: "typed_participant_private_base",
-      summary:
-        `已按 participant manifest 校验的私有基础解读：`
-        + `${binding.participantRoleCode}/${binding.personRef}`,
-    };
-  }),
-);
+  inputs: AiFeedInput["inputRefs"],
+): AiFeedInput["inputRefs"] => inputs.some(
+  (inputRef) => inputRef.id === record.order.inputBundleRef,
+) ? inputs : [{
+  id: record.order.inputBundleRef,
+  kind: "input_bundle",
+  summary: "玄学网站锁定的完整 AI 输入包",
+}, ...inputs];
 
 export const buildXuanxueAiFeedInput = async (
   runtime: XuanxueAiProductionRuntime,
@@ -386,7 +341,13 @@ export const buildXuanxueAiFeedInput = async (
         requireXuanxueStage(record, stageId),
       )),
   );
-  const joined = await typedJoinInputs(runtime, record, stage);
+  const joined = await buildTypedJoinInputs({
+    runtime,
+    record,
+    stage,
+    writePriorStageInput,
+    generatedStageDirectory,
+  });
   const parent = (
     definition.continuationFrom === null
     && record.order.conversationParent !== null
@@ -404,15 +365,7 @@ export const buildXuanxueAiFeedInput = async (
     ...generated,
     ...joined,
   ];
-  const inputRefs = stageInputs.some(
-    (inputRef) => inputRef.id === record.order.inputBundleRef,
-  )
-    ? stageInputs
-    : [{
-        id: record.order.inputBundleRef,
-        kind: "input_bundle",
-        summary: "玄学网站锁定的完整 AI 输入包",
-      }, ...stageInputs];
+  const inputRefs = ensureInputBundleRef(record, stageInputs);
   return {
     providerKind: "gpt-web-chat",
     taskIdentity: {

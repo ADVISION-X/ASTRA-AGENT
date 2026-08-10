@@ -80,12 +80,16 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
   `sha256:` 前缀，必须先按保存的原始回答字节重算并完全一致，才可原子修复元数据并恢复
   后续阶段；字节不一致仍永久失败，禁止借迁移绕过完整性。
 - 活动订单只接受 `xuanxue-ai-production-v3`。历史 v1/v2 账本只能由显式历史版本 decoder
-  只读核验；只有订单已终态且逐阶段按原始
-  回答字节重算 hash 完全一致时，才可一次性迁移为 v2 文本记录并补空 artifact 数组；存在
-  任一非终态旧协议订单必须拒绝启动并先排空，hash 不符必须阻断。排空工具只能用原设备凭证
-  读取该设备绑定 job 的最小终态，不得取得其他设备任务或私有材料；云端已终态时追加
-  `v1_cloud_terminal_reconciled` 后才允许升级本地凭证。重启恢复不得把该终态重新打开，必须
-  依据迁移账恢复为云端终态并追加 `v1_terminal_status_restored`。不得运行 v1/v2 双轨。
+  只读核验；不得为旧记录编造 owner、person、chart、subject 或 authorization。只有订单与
+  阶段均已终态且逐阶段按原始回答字节重算 hash 完全一致时，才可在数据库和本地材料完成
+  可恢复备份、临时隔离恢复、schema/行数/主键/逐行 hash/文件路径/byte size/sha256 对账后，
+  把旧记录原字节登记为 `production_legacy_protocol_archives` 只读档案。v3 当前读取、恢复、
+  worker 和新写入必须机械排除这些档案。存在任一非终态旧协议订单必须拒绝启动并先排空，
+  hash 不符必须阻断。排空工具同时处理 v1/v2，只能用原设备凭证读取该设备绑定 job 的最小
+  终态，不得取得其他设备任务或私有材料；云端已终态时追加
+  `legacy_cloud_terminal_reconciled` 后才允许升级本地凭证。重启恢复不得把该终态重新打开；
+  已有 `v1_cloud_terminal_reconciled` 历史事件仍由精确旧版 decoder 只读识别。不得运行
+  v1/v2 双轨。
 - `orderId` 与 `sourceTaskId` 都幂等；相同 hash 重放复用，冲突在 GPT 提交前失败。
 - 每个阶段的 Gateway `inputRefs` 必须包含整单 `inputBundleRef` 这一非文件身份锚点。
   即使阶段没有附件，模型运行证明也不得出现空输入；附件数量、上传动作与文件证明只统计
@@ -134,7 +138,7 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
   本机当前一定还保存着父 GPT 会话。
 - 父身份正确但父本地账本、父 `webChatUrl` 或 provider 会话已经丢失时，不得把用户订单
   变成失败或人工阻断。网站必须随子订单下发 lease-bound
-  `conversation_parent_replay`；AGENT 从父产品第一阶段按原冻结主体和原拓扑重放完整父动作图，记录原父
+  `continuation_parent_replay`；AGENT 从父产品第一阶段按原冻结主体和原拓扑重放完整父动作图，记录原父
   raw hash 到重建父 raw hash / GPT URL 的持久映射，然后只在这个重建父聊天里发送追问。
   这是高成本灾难恢复，只在原父会话无法恢复时启用，绝不允许直接新建空白追问聊天。
 - 一张多阶段订单内部的后续节点若证明上一节点 GPT 会话已丢失、打开后回到首页或漂移到
@@ -184,7 +188,11 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
 - 在一张有效云端 lease 持续 heartbeat 期间，阶段级 `recovery_pending` 必须按该阶段
   timeout 内的有界退避继续同一 execution id；其他整单不能因为某张订单仍在生成就
   放弃本应完成的首次发布。超出阶段 timeout 后才允许整单回传 `recovery_pending`，
-  下一次 lease 仍从同一 execution id 恢复。
+  下一次 lease 仍从同一 execution id 恢复。唯一例外是附件 child 已经持久化
+  `attachmentUploadProof.status=failed/review_required`：该 proof 是本次附件运输的终态，
+  工厂必须立即停止同租约循环和重启恢复中的 Gateway 再进入，原 proof、attempt id 与
+  execution id 保持不变；修复页面或运输故障后，只能由显式人工授权启动新的附件 execution，
+  禁止后台每 1–10 秒再次复制粘贴或再次打开原生文件选择器。
 ## 4. 云端激活
 
 本机主动向网站服务器轮询，不开放入站端口。设备凭据只存 0600 文件或 secret env。
@@ -192,7 +200,7 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
 token/version。只有重启前已落盘订单的云端恢复请求不携带旧 lease；它必须绑定原设备、
 原 job/local order/source task/request hash，并只把非人工终态恢复到
 `recovery_pending` 后重新领取新 lease。
-含父会话关系的 claim 必须同时携带固定父订单的完整 `conversation_parent_replay` 元数据；父材料下载
+含父会话关系的 claim 必须同时携带固定父订单的完整 `continuation_parent_replay` 元数据；父材料下载
 使用子订单当前 lease 和子订单路径授权，禁止把父对象地址变成无租约公共下载。即使本机
 SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
 服务器只返回整单，AGENT 只回传整单结果。
@@ -215,6 +223,8 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
 - 禁止 `question_analysis → naming_author` 后继节点新开聊天。
 - 禁止把可恢复的父会话丢失、provider 故障或坏回答包装为用户侧失败/阻断。
 - 禁止同一订单后续节点因父聊天丢失而紧循环；必须整图从第一步重建。
+- 禁止附件 child 已给出 `failed/review_required` 终态 proof 后，由工厂循环、重启恢复或
+  新 lease 自动再次调用 Gateway 上传；不得形成第二附件恢复 owner。
 
 ```apex-law
 {
@@ -283,6 +293,7 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "Historical paid follow-ups without a continuation parent remain recovery_pending until the website reissues their immutable parent identity; an exact one-way local repair preserves old stage evidence and users never receive an ordinary runtime failure.",
     "Provider citation residue, private-use characters, invalid required JSON and missing raw output are discarded and restarted with a fresh execution id and fresh marker, while a transport retry never duplicates one already submitted logical turn merely because page-global turn counts changed during provider hydration.",
     "A failed or review_required gateway execution with durable submission proof always resumes the same execution id, marker and provider conversation. A fresh execution is allowed only for a proven polluted or invalid completed answer, or a genuinely terminal pre-submit identity fault.",
+    "A failed or review_required attachment upload proof is terminal for that attachment execution: same-lease loops, restart recovery and new leases preserve its proof and never call the Gateway upload again without explicit operator authorization.",
     "A missing local or provider parent conversation is reconstructed from the lease-bound parent replay package and persisted in production_parent_conversation_rebuilds."
   ],
   "forbidden": [
@@ -295,6 +306,7 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "using page-global user-turn count deltas as authority to resend a stage that already has an exact logical-turn marker",
     "resuming a known detached downstream stage in its blank or wrong conversation",
     "reviving a legacy parentless follow-up through a blank conversation",
+    "automatic copy-paste or native-picker re-upload after a terminal attachment upload proof",
     "publishing provider-internal citation residue as a production answer"
   ],
   "clauses": [
@@ -322,7 +334,7 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "Input download and every mutation bind the exact lease token and lease version.",
     "The worker claims only available local production capacity."
     ,"Durable local orders are reconciled to the original cloud job before execution resumes; completed local results are republished under a fresh lease.",
-    "Every claimed conversation child includes a lease-bound conversation_parent_replay package plus exact frozen subject, conversation scope and typed join identities so a lost local parent can be reconstructed from its first stage."
+    "Every claimed conversation child includes a lease-bound continuation_parent_replay package plus exact frozen subject, conversation scope and typed join identities so a lost local parent can be reconstructed from its first stage."
   ],
   "forbidden": [
     "inbound home port or server callback",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-08T07:21:40.556Z",
+  "generatedAt": "2026-08-10T11:11:03.239Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,17 +7,8 @@
     "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
     "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain parent_conversation_rebuild_started.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
@@ -67,6 +58,11 @@
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
+      "checkId": "xuanxue-ai-production/no-terminal-attachment-reentry"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/no-untracked-background-work"
     },
     {
@@ -103,9 +99,11 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-cutover-backup.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -136,8 +134,14 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+    "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+    "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+    "scripts/acceptance/xuanxue-ai-production-v2-drain-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
+    "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
     "scripts/acceptance/xuanxue-ai-production-v1-migration.ts",
     "scripts/acceptance/xuanxue-ai-production-v1-migration-fixture.ts"

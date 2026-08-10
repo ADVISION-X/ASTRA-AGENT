@@ -18,41 +18,53 @@ interface CloudEnvelope {
   error?: { code?: string };
 }
 
-const terminal = new Set(["completed", "review_required", "failed", "cancelled"]);
-const dataDir = path.resolve(process.env.GRASSEYE_DATA_DIR ?? ".grasseye-local");
-const legacyCredential = JSON.parse(await readFile(
-  xuanxueAiProductionCloudCredentialPath(dataDir),
-  "utf8",
-)) as Record<string, unknown>;
-if (
-  legacyCredential.protocol_version !== "xuanxue-ai-production-v1"
-  || typeof legacyCredential.server_base_url !== "string"
-  || typeof legacyCredential.credential !== "string"
-  || typeof legacyCredential.device_id !== "string"
-  || typeof legacyCredential.device_name !== "string"
-  || typeof legacyCredential.max_in_flight !== "number"
-  || typeof legacyCredential.enrolled_at !== "string"
-) {
-  throw new Error("XUANXUE_AI_PRODUCTION_V1_CREDENTIAL_INVALID");
+interface LegacyCredential {
+  protocol_version: "xuanxue-ai-production-v1" | "xuanxue-ai-production-v2";
+  server_base_url: string;
+  credential: string;
+  device_id: string;
+  device_name: string;
+  max_in_flight: number;
+  enrolled_at: string;
 }
-const database = new Database(path.join(
-  dataDir,
-  "plugin-tasks/xuanxue-ai-production/xuanxue_ai_production.sqlite",
-));
 
-try {
-  const rows = database.prepare(`
-    select order_id,status from production_orders
-    where json_extract(order_json,'$.protocolVersion')='xuanxue-ai-production-v1'
-      and status not in ('completed','review_required','failed','cancelled')
-    order by created_at,order_id
-  `).all() as LegacyOrderRow[];
-  const reconciled: Array<{ orderId: string; cloudStatus: string }> = [];
+interface ReconciledOrder {
+  orderId: string;
+  cloudStatus: string;
+}
+
+const terminal = new Set(["completed", "review_required", "failed", "cancelled"]);
+const legacyProtocols = new Set([
+  "xuanxue-ai-production-v1",
+  "xuanxue-ai-production-v2",
+]);
+const parseLegacyCredential = (value: unknown): LegacyCredential => {
+  const candidate = value as Partial<LegacyCredential>;
+  if (
+    !legacyProtocols.has(String(candidate.protocol_version))
+    || typeof candidate.server_base_url !== "string"
+    || typeof candidate.credential !== "string"
+    || typeof candidate.device_id !== "string"
+    || typeof candidate.device_name !== "string"
+    || typeof candidate.max_in_flight !== "number"
+    || typeof candidate.enrolled_at !== "string"
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V1_CREDENTIAL_INVALID");
+  }
+  return candidate as LegacyCredential;
+};
+
+const readCloudTerminalStatuses = async (
+  rows: readonly LegacyOrderRow[],
+  credential: LegacyCredential,
+): Promise<ReconciledOrder[]> => {
+  const reconciled: ReconciledOrder[] = [];
   for (const row of rows) {
+    const baseUrl = credential.server_base_url.replace(/\/+$/u, "");
     const response = await fetch(
-      `${legacyCredential.server_base_url.replace(/\/+$/u, "")}/internal/ai-production/jobs/${encodeURIComponent(row.order_id)}/device-status`,
+      `${baseUrl}/internal/ai-production/jobs/${encodeURIComponent(row.order_id)}/device-status`,
       {
-        headers: { authorization: `Bearer ${legacyCredential.credential}` },
+        headers: { authorization: `Bearer ${credential.credential}` },
         signal: AbortSignal.timeout(30_000),
       },
     );
@@ -66,41 +78,111 @@ try {
     }
     reconciled.push({ orderId: row.order_id, cloudStatus });
   }
-  database.transaction(() => {
-    const update = database.prepare(`
-      update production_orders set status=$status,failure_reason=$reason,
-        updated_at=$updatedAt where order_id=$orderId
-    `);
-    const event = database.prepare(`
+  return reconciled;
+};
+
+const settleOrderStages = (
+  database: Database.Database,
+  item: ReconciledOrder,
+  localStatus: string,
+  reason: string,
+  createdAt: string,
+): void => {
+  const rows = database.prepare(`
+    select stage_id,status,stage_json from production_stages
+    where order_id=? order by ordinal,stage_id
+  `).all(item.orderId) as Array<{
+    stage_id: string;
+    status: string;
+    stage_json: string;
+  }>;
+  for (const row of rows) {
+    if (terminal.has(row.status)) continue;
+    const stage = JSON.parse(row.stage_json) as Record<string, unknown>;
+    database.prepare(`
+      update production_stages set status=?,stage_json=?,updated_at=?
+      where order_id=? and stage_id=?
+    `).run(localStatus, JSON.stringify({
+      ...stage,
+      status: localStatus,
+      progressPhase: "terminal",
+      failureReason: reason,
+      updatedAt: createdAt,
+    }), createdAt, item.orderId, row.stage_id);
+    database.prepare(`
       insert into production_events(
         order_id,stage_id,event_type,from_status,to_status,detail_json,created_at
-      ) values($orderId,null,'v1_cloud_terminal_reconciled',$fromStatus,
-        $toStatus,$detail,$createdAt)
-    `);
-    const createdAt = new Date().toISOString();
-    for (const item of reconciled) {
-      const row = rows.find((candidate) => candidate.order_id === item.orderId)!;
-      const localStatus = item.cloudStatus === "completed"
-        ? "review_required"
-        : item.cloudStatus;
-      const reason = item.cloudStatus === "completed"
-        ? "v1-cutover: cloud completed; stale local recovery copy retired without reconstructing provider output"
-        : `v1-cutover: cloud terminal status=${item.cloudStatus}`;
-      update.run({
-        orderId: item.orderId, status: localStatus,
-        reason, updatedAt: createdAt,
-      });
-      event.run({
-        orderId: item.orderId, fromStatus: row.status,
-        toStatus: localStatus, createdAt,
-        detail: JSON.stringify({
-          cloud_status: item.cloudStatus,
-          cloud_is_authoritative: true,
-          local_provider_output_reconstructed: false,
-        }),
-      });
-    }
-  })();
+      ) values(?,?,'legacy_cloud_terminal_stage_settled',?,?,?,?)
+    `).run(
+      item.orderId, row.stage_id, row.status, localStatus,
+      JSON.stringify({
+        cloud_status: item.cloudStatus,
+        cloud_is_authoritative: true,
+        local_provider_output_reconstructed: false,
+      }), createdAt,
+    );
+  }
+};
+
+const settleReconciledOrders = (
+  database: Database.Database,
+  rows: readonly LegacyOrderRow[],
+  reconciled: readonly ReconciledOrder[],
+): void => {
+  const createdAt = new Date().toISOString();
+  for (const item of reconciled) {
+    const row = rows.find((candidate) => candidate.order_id === item.orderId)!;
+    const localStatus = item.cloudStatus === "completed"
+      ? "review_required"
+      : item.cloudStatus;
+    const reason = item.cloudStatus === "completed"
+      ? "protocol-cutover: cloud completed; stale local recovery copy retired without reconstructing provider output"
+      : `protocol-cutover: cloud terminal status=${item.cloudStatus}`;
+    database.prepare(`
+      update production_orders set status=?,failure_reason=?,updated_at=?
+      where order_id=?
+    `).run(localStatus, reason, createdAt, item.orderId);
+    settleOrderStages(database, item, localStatus, reason, createdAt);
+    database.prepare(`
+      insert into production_events(
+        order_id,stage_id,event_type,from_status,to_status,detail_json,created_at
+      ) values(?,null,'legacy_cloud_terminal_reconciled',?,?,?,?)
+    `).run(
+      item.orderId, row.status, localStatus,
+      JSON.stringify({
+        cloud_status: item.cloudStatus,
+        cloud_is_authoritative: true,
+        local_provider_output_reconstructed: false,
+      }), createdAt,
+    );
+  }
+};
+
+const dataDir = path.resolve(process.env.GRASSEYE_DATA_DIR ?? ".grasseye-local");
+const legacyCredential = parseLegacyCredential(JSON.parse(await readFile(
+  xuanxueAiProductionCloudCredentialPath(dataDir),
+  "utf8",
+)));
+const database = new Database(path.join(
+  dataDir,
+  "plugin-tasks/xuanxue-ai-production/xuanxue_ai_production.sqlite",
+));
+
+try {
+  const rows = database.prepare(`
+    select order_id,status from production_orders
+    where json_extract(order_json,'$.protocolVersion') in (
+      'xuanxue-ai-production-v1','xuanxue-ai-production-v2'
+    )
+      and status not in ('completed','review_required','failed','cancelled')
+    order by created_at,order_id
+  `).all() as LegacyOrderRow[];
+  const reconciled = await readCloudTerminalStatuses(rows, legacyCredential);
+  database.transaction(() => settleReconciledOrders(
+    database,
+    rows,
+    reconciled,
+  ))();
   await writeXuanxueAiProductionCloudCredential(dataDir, {
     protocol_version: "xuanxue-ai-production-v3",
     server_base_url: legacyCredential.server_base_url,
@@ -112,6 +194,7 @@ try {
   });
   process.stdout.write(JSON.stringify({
     verdict: "PASS",
+    source_protocol: legacyCredential.protocol_version,
     reconciled_count: reconciled.length,
     order_ids: reconciled.map((item) => item.orderId),
   }, null, 2) + "\n");

@@ -12,6 +12,9 @@ import {
   XuanxueAiProductionCloudClaimedJobSchema,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
 import {
+  executeXuanxueAiProductionCloudReplayGraph,
+} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
+import {
   FixtureGateway,
   hash,
   order,
@@ -101,7 +104,11 @@ const acceptLostProviderParent = async (
   const before = input.gateway.requests.length;
   const result = await executeWithCoordinator(input, child.orderId);
   assert.equal(result.status, "completed", result.failureReason ?? undefined);
-  assert.equal(input.gateway.requests.length - before, 2);
+  assert.equal(
+    input.gateway.requests.length - before,
+    2,
+    "a missing parent chat must replay the parent first, then ask the follow-up",
+  );
   const rebuilt = input.runtime.store.readParentConversationRebuild({
     parentJobId: parent.orderId,
     parentStageId: "analysis",
@@ -225,10 +232,75 @@ const acceptFirstForkStageRebuild = async (
   const before = input.gateway.requests.length;
   const result = await executeWithCoordinator(input, child.orderId);
   assert.equal(result.status, "completed", result.failureReason ?? undefined);
-  assert.equal(input.gateway.requests.length - before, 2);
+  assert.equal(
+    input.gateway.requests.length - before,
+    2,
+  );
   assert.ok(input.gateway.requests.find(
     (request) => request.runId === child.orderId,
   )?.providerForkRef);
+};
+
+const acceptCloudForkParentReplayOrder = async (
+  input: ParentRebuildAcceptanceInput,
+): Promise<void> => {
+  const cases = [
+    ["bazi_chart_interpretation", "chart_interpretation"],
+    ["bazi_ai_full_analysis", "question_analysis"],
+  ] as const;
+  for (const [productId, stageId] of cases) {
+    const suffix = stageId.replaceAll("_", "-");
+    const base = order(
+      `aiprod_cloud_replay_base_${suffix}`,
+      "bazi_canonical_base_interpretation",
+      ["base_interpretation"],
+    );
+    const baseHash = hash(JSON.stringify({
+      stage: "base_interpretation",
+      verdict: "fixture-transport-only",
+    }));
+    const parent: XuanxueAiProductionOrder = {
+      ...order(`aiprod_cloud_replay_parent_${suffix}`, productId, [stageId]),
+      frozenSubject: base.frozenSubject,
+      conversationParent: {
+        relation: "forked_from_checkpoint",
+        jobId: base.orderId,
+        stageId: "base_interpretation",
+        executionId:
+          `xuanxue-ai-production:${base.orderId}:base_interpretation`,
+        rawOutputHash: baseHash,
+        inputBundleHash: base.inputBundleHash,
+        conversationScopeRef: base.conversationScopeRef,
+      },
+    };
+    const before = input.gateway.requests.length;
+    await executeXuanxueAiProductionCloudReplayGraph({
+      createOrder: (candidate) => createXuanxueAiProductionOrder(
+        input.runtime,
+        candidate as XuanxueAiProductionOrder,
+      ),
+      executeOrder: (orderId) => executeXuanxueAiProductionOrder(
+        input.runtime,
+        orderId,
+      ),
+    }, {
+      parentReplayDependencies: [base],
+      parentReplay: parent,
+    });
+    const requests = input.gateway.requests.slice(before);
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0]?.runId, base.orderId);
+    assert.equal(requests[1]?.runId, parent.orderId);
+    assert.equal(
+      requests[1]?.providerForkRef?.priorTaskId,
+      `xuanxue-ai-production:${base.orderId}:base_interpretation`,
+    );
+    assert.equal(
+      input.runtime.store.readOrder(parent.orderId)?.status,
+      "completed",
+      `${productId} cloud replay must execute its base before the parent`,
+    );
+  }
 };
 
 const cloudMaterial = (
@@ -300,7 +372,7 @@ const parseCloudReplayClaim = (
     conversation_scope_ref: child.conversationParent!.conversationScopeRef,
   },
   join_parents: [],
-  conversation_parent_replay: {
+  continuation_parent_replay: {
     ...cloudOrderIdentity(parent),
     frozen_subject: cloudSubject(parent),
     conversation_scope_ref: parent.conversationScopeRef,
@@ -332,8 +404,8 @@ const assertCloudReplayGraphGate = (
   assert.throws(
     () => XuanxueAiProductionCloudClaimedJobSchema.parse({
       ...cloudClaim,
-      conversation_parent_replay: {
-        ...cloudClaim.conversation_parent_replay!,
+      continuation_parent_replay: {
+        ...cloudClaim.continuation_parent_replay!,
         conversation_parent: {
           relation: "forked_from_checkpoint",
           job_id: "aiprod_missing_replay_ancestor",
@@ -371,14 +443,18 @@ const acceptCloudRehydratedParent = async (
     "aiprod_cloud_replay_child",
   );
   const cloudClaim = parseCloudReplayClaim(parent, child);
-  assert.equal(cloudClaim.conversation_parent_replay?.job_id, parent.orderId);
+  assert.equal(cloudClaim.continuation_parent_replay?.job_id, parent.orderId);
   assertCloudReplayGraphGate(cloudClaim);
   createXuanxueAiProductionOrder(input.runtime, parent);
   createXuanxueAiProductionOrder(input.runtime, child);
   const before = input.gateway.requests.length;
   const result = await executeWithCoordinator(input, child.orderId);
   assert.equal(result.status, "completed", result.failureReason ?? undefined);
-  assert.equal(input.gateway.requests.length - before, 2);
+  assert.equal(
+    input.gateway.requests.length - before,
+    2,
+    "a cloud replay package must reconstruct an absent local parent before the follow-up",
+  );
   assert.ok(input.runtime.store.readParentConversationRebuild({
     parentJobId: parent.orderId,
     parentStageId: "analysis",
@@ -392,5 +468,6 @@ export const acceptXuanxueParentRebuilds = async (
   await acceptLostProviderParent(input);
   await acceptDivergentRebuild(input);
   await acceptFirstForkStageRebuild(input);
+  await acceptCloudForkParentReplayOrder(input);
   await acceptCloudRehydratedParent(input);
 };

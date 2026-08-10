@@ -154,6 +154,40 @@ export const assertUnsupportedForkFailsClosed = async (): Promise<AiFeedResult> 
 };
 
 await assertUnsupportedForkFailsClosed();
+const firstChild = children[0]!;
+const firstChildProof = firstChild.providerProof.forkedFromCheckpointProof!;
+const continuationToken = `FORK_FOLLOWUP_${runId.slice(0, 8)}`;
+const continuation = await gateway.execute({
+  ...request(
+    "child-1-followup",
+    continuationToken,
+    `scope:${runId}:child-1`,
+  ),
+  providerContinuationRef: {
+    priorTaskId: `real-chrome-fork:${runId}:child-1`,
+    priorRawOutputHash: firstChild.rawOutputHash!,
+    providerPageUrl: firstChildProof.childConversationUrl,
+    priorTurnMarker: firstChildProof.childFirstTurnMarker,
+  },
+}, {
+  executionId: `real-chrome-fork:${runId}:child-1-followup`,
+});
+assert.equal(
+  continuation.status,
+  "success",
+  continuation.failureReason
+    ?? continuation.reviewRequiredReason
+    ?? "same-conversation followup failed",
+);
+assert.equal(continuation.providerProof.conversationMode, "same_conversation");
+assert.equal(
+  continuation.providerProof.webChatUrl,
+  firstChildProof.childConversationUrl,
+);
+assert.match(
+  continuation.rawResponseText ?? "",
+  new RegExp(continuationToken, "u"),
+);
 await gateway.close?.();
 
 process.stdout.write(`${JSON.stringify({
@@ -162,5 +196,6 @@ process.stdout.write(`${JSON.stringify({
   parentConversationUrl: base.providerProof.webChatUrl,
   parentCheckpointResponseHash: base.rawOutputHash,
   children: children.map((child) => child.providerProof.forkedFromCheckpointProof),
+  continuation: continuation.providerProof.sameConversationProof,
   status: "PASS",
 }, null, 2)}\n`);

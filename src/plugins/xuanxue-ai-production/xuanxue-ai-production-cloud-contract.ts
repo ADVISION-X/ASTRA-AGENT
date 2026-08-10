@@ -164,7 +164,7 @@ const cloudClaimConversationShape = {
   conversation_parent: CloudConversationParentSchema.nullable(),
   join_parents: z.array(CloudJoinParentSchema).max(32),
   seeded_stages: z.array(CloudSeededStageSchema).max(4).default([]),
-  conversation_parent_replay: CloudParentReplaySchema.nullable(),
+  continuation_parent_replay: CloudParentReplaySchema.nullable(),
   execution_lane: z.literal("supervised_local_gpt_web"),
   materials: z.array(CloudStageMaterialSchema).min(1).max(4),
 } as const;
@@ -189,23 +189,23 @@ export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
 }).strict().superRefine((job, context) => {
   if (
     Boolean(job.conversation_parent)
-    !== Boolean(job.conversation_parent_replay)
+    !== Boolean(job.continuation_parent_replay)
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_REQUIRED",
-      path: ["conversation_parent_replay"],
+      path: ["continuation_parent_replay"],
     });
   }
   if (
     job.conversation_parent
-    && job.conversation_parent_replay?.job_id
+    && job.continuation_parent_replay?.job_id
       !== job.conversation_parent.job_id
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_IDENTITY_INVALID",
-      path: ["conversation_parent_replay", "job_id"],
+      path: ["continuation_parent_replay", "job_id"],
     });
   }
 });

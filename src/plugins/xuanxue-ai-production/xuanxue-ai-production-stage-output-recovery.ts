@@ -235,6 +235,9 @@ export const repairInvalidCompletedStageOutputs = (
     select order_id,status from production_orders
     where status in (
       'queued','running','recovery_pending','review_required','failed'
+    ) and not exists (
+      select 1 from production_legacy_protocol_archives a
+      where a.order_id=production_orders.order_id
     ) order by created_at,order_id
   `).all() as RepairableOrderRow[];
   const repairedAt = new Date().toISOString();
@@ -307,6 +310,10 @@ export const repairRecoverableProviderFailures = (
     from production_orders o join production_stages s on s.order_id=o.order_id
     where o.status in ('failed','review_required')
       and s.status in ('failed','review_required')
+      and not exists (
+        select 1 from production_legacy_protocol_archives a
+        where a.order_id=o.order_id
+      )
     order by o.created_at,s.ordinal
   `).all() as ProviderFailureRow[];
   const now = new Date().toISOString();

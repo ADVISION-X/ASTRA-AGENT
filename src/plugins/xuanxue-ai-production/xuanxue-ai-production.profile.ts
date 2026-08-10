@@ -351,10 +351,15 @@ const assertHehunJoins = (order: XuanxueAiProductionOrder): void => {
     ["party_a", "party_a_interpretation"],
     ["party_b", "party_b_interpretation"],
   ] as const);
+  const participantRoles = order.frozenSubject.participants.map(
+    (participant) => participant.roleCode,
+  );
   if (
     order.frozenSubject.participants.length !== 2
     || order.joinParents.length !== 2
     || order.conversationParent !== null
+    || participantRoles.filter((role) => role === "party_a").length !== 1
+    || participantRoles.filter((role) => role === "party_b").length !== 1
     || order.frozenSubject.participants.some((participant) => !stageByRole.has(
       participant.roleCode as "party_a" | "party_b",
     ))
@@ -397,7 +402,10 @@ const assertFrozenSubjectAndTypedJoin = (
     assertHehunJoins(order);
     return;
   }
-  if (order.productId === "naming_bazi_analysis_and_naming") {
+  if (
+    order.productId === "naming_bazi_analysis_and_naming"
+    || order.productId === "naming_from_existing_bazi_report"
+  ) {
     assertNamingJoins(order, joinSlots);
     return;
   }

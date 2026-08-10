@@ -58,7 +58,7 @@ profile 不得把它们串成旧的单聊天三调用图。
 
 三类付费追问必须在本地打开 GPT 前完成父订单、固定最终阶段、raw output hash 与原设备
 核验。原 `webChatUrl` 可用时直接续接；原会话或本地父账本丢失时，使用子 lease 绑定的
-`conversation_parent_replay` 下载原父材料，从第一阶段按原冻结主体与原拓扑重放父 profile，形成并持久记录
+`continuation_parent_replay` 下载原父材料，从第一阶段按原冻结主体与原拓扑重放父 profile，形成并持久记录
 重建父聊天，然后才发送追问。没有“空白新建追问聊天后把父报告当附件”的兼容路径。
 
 ## Production Window
@@ -85,6 +85,10 @@ Gateway 返回 `failed/review_required` 时先检查持久化提交证明。已�
 turn 的执行保留原 execution id、marker 与父聊天恢复；监控插件临时形成第二物理 GPT 标签
 只暂停页面动作，绝不能换编号重发。只有被证明污染/无效的完整回答，或从未形成提交证明的
 真正终态身份故障，才清空旧 feed result、生成新 execution id，并继续绑定原父 GPT 聊天。
+附件 child 已持久化 `attachmentUploadProof.status=failed/review_required` 时，本次附件 execution
+已经终态：同 lease 退避循环、进程重启、重新领取 lease 都只读并保留原 proof，不得再次进入
+Gateway 上传。页面或运输故障修复后，必须取得显式人工授权才能创建新的附件 execution；普通
+后台恢复不得每 1–10 秒重复复制粘贴，也不得重复打开原生文件选择器。
 
 调度器以已验证 `webChatUrl` 作为最终车道；URL 尚未取得时才以 `父 job + 父 stage` 临时
 占位。同一 GPT 聊天上的问题、命名、复盘和追问严格按 `createdAt + orderId` FIFO，每次
@@ -151,7 +155,7 @@ SQLite JSON 的对象字段必须先 canonicalize 再比较，字段排列顺序
 父身份有效但 provider 父聊天不可恢复时执行灾难重放：
 
 ```txt
-子订单 claim 携带 conversation_parent_replay
+子订单 claim 携带 continuation_parent_replay
 → 本地重建父订单
 → 父 profile 从第一阶段完整执行
 → 记录 original hash → rebuilt hash + rebuilt GPT URL
@@ -199,7 +203,7 @@ GPT 回答含私用区字符、`filecite` 等内部引用残留、乱码替代�
 device heartbeat
 → durable local/cloud reconciliation
 → claim(limit = remaining local capacity)
-→ lease-bound child + conversation_parent_replay material download
+→ lease-bound child + continuation_parent_replay material download
 → missing parent local ledger rehydration
 → local order create/reuse
 → factory_running checkpoint
@@ -207,13 +211,17 @@ device heartbeat
 → one whole-order result or bounded failure
 ```
 
-协议固定 `xuanxue-ai-production-v3`。活动创建、领取和恢复不接受 v1/v2。SQLite 启动迁移只处理
-已终态 v1：逐阶段重算原始回答 hash、保留 URL/proof、为文本阶段补 `outputKind=text` 与空
-artifact 数组并记录迁移前后 hash；任何活动 v1 或字节/hash 不一致使启动失败，不建双轨。
-一次性 `xuanxue-ai-production:v1-drain` 只以原设备凭证查询绑定 job 的 `job_id/status`，把云端
-终态追加为本地 `v1_cloud_terminal_reconciled` 后再升级凭证。conversation graph 冷启动仅扫描
-活动状态；若旧版本曾误把已对账终态改为 `recovery_pending`，必须从迁移账恢复云端终态并追加
-`v1_terminal_status_restored`，禁止再次执行或重新提交 GPT。
+协议固定 `xuanxue-ai-production-v3`。活动创建、领取和恢复不接受 v1/v2。SQLite 切换只处理
+已终态 v1/v2：先逐阶段重算原始回答 hash，再对数据库和 `cloud-staging/generated-inputs`
+建立可恢复快照，在系统临时目录实际恢复数据库并核对 schema、行数、逐表行 hash、材料相对
+路径、byte size 与 sha256。全部一致后，只把旧订单登记到
+`production_legacy_protocol_archives`；订单、result、stage 与 event 原字节不改，v3 读取和
+恢复 SQL 必须排除档案。任何活动旧单、错误 hash 或恢复对账差异都使启动失败，不建双轨，
+也不得编造 legacy owner/person/chart。一次性 `xuanxue-ai-production:v1-drain` 兼管 v1/v2，
+只以原设备凭证查询绑定 job 的 `job_id/status`，把云端终态追加为本地
+`legacy_cloud_terminal_reconciled` 后再升级凭证。已有 `v1_cloud_terminal_reconciled` 只作为
+精确历史事件读取。conversation graph 冷启动仅扫描未归档 v3 活动状态，禁止再次执行或
+重新提交 GPT。
 领取后的所有 job mutation 携带 lease token/version
 和幂等键；唯一例外是重启恢复请求，它没有可信旧 token，必须绑定原设备与四段稳定身份，
 并在恢复后重新领取新 lease。
@@ -268,6 +276,9 @@ src/plugins/xuanxue-ai-production/
 - 证明网站重发正确父身份后，同一历史订单原位修复并在精确父聊天继续；语义材料变化仍拒绝。
 - 证明带 `filecite` / 私用区字符的回答立即作废、换新 execution id 重跑且不进入结果。
 - 证明污染或 provider 失败 seed 不进入 completed，并从该阶段重新执行。
+- 证明附件 child 给出终态 `failed/review_required` proof 后，同 lease、再次执行与重启恢复的
+  Gateway 上传调用总数仍为 1，原 attempt id/proof 不变，10 秒观察窗内没有复制粘贴或
+  原生文件选择器再进入。
 - 证明同一订单父聊天失效只触发一次下游失败，随后记录整图重建，从第一阶段到最后阶段
   重新落在同一个新 GPT URL，禁止紧循环与空白追问。
 - 证明定时质量复盘总在独立新聊天执行，无 continuation parent；人工 challenge 仍继续父会话。
@@ -275,5 +286,6 @@ src/plugins/xuanxue-ai-production/
   原图；下载/转换/上传中断从同 execution/checkpoint 恢复，不重发第三轮。
 - 证明媒体 facade 使用 contain 固定中性画布输出无元数据的 1200×630 WebP，红线不确定即阻断；
   插件内不存在第二套 sharp/Vision 处理器，任务期间不联网安装依赖。
-- 证明终态 v1 账本 hash 校验迁移，活动 v1 和错误 hash 均阻断。
+- 证明终态 v1/v2 账本在数据库与本地材料实际恢复、全量 hash 对账后原字节归档；活动旧单、
+  错误 hash、恢复差异和 v3 读取旧档案均阻断。
 - 审计云端领取只使用剩余容量，旧 Xuanyuan 云端执行片区不存在。

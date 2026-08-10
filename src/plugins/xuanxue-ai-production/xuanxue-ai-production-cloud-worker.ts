@@ -46,6 +46,10 @@ interface WorkerState {
   lastDeviceHeartbeatAt: number;
 }
 
+type StagedCloudJob = Awaited<ReturnType<
+  typeof stageXuanxueAiProductionCloudJob
+>>;
+
 type ResultStage = NonNullable<XuanxueAiOrderRecord["result"]>["stages"][number];
 
 const pollIntervalMs = (): number => {
@@ -88,6 +92,42 @@ const reportWorkerError = (code: string, error: unknown): void => {
     reason_code: safeReason(error).split(":").slice(0, 2).join(":"),
     at: new Date().toISOString(),
   })}\n`);
+};
+
+const executeReplayOrder = async (
+  execution: Pick<
+    XuanxueAiProductionExecutionPort,
+    "createOrder" | "executeOrder"
+  >,
+  order: StagedCloudJob["parentReplayDependencies"][number],
+): Promise<void> => {
+  execution.createOrder(order);
+  const completed = await execution.executeOrder(order.orderId);
+  if (completed.status !== "completed") {
+    throw new Error(
+      "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_DEPENDENCY_INCOMPLETE:"
+      + `${order.productId}:${order.orderId}:`
+      + `${completed.failureReason ?? completed.status}`,
+    );
+  }
+};
+
+export const executeXuanxueAiProductionCloudReplayGraph = async (
+  execution: Pick<
+    XuanxueAiProductionExecutionPort,
+    "createOrder" | "executeOrder"
+  >,
+  staged: Pick<
+    StagedCloudJob,
+    "parentReplay" | "parentReplayDependencies"
+  >,
+): Promise<void> => {
+  for (const dependency of staged.parentReplayDependencies) {
+    await executeReplayOrder(execution, dependency);
+  }
+  if (staged.parentReplay) {
+    await executeReplayOrder(execution, staged.parentReplay);
+  }
 };
 
 const heartbeatUntilSettled = async (
@@ -206,12 +246,10 @@ const executeCloudJob = async (
       state.credential,
       job,
     );
-    for (const dependency of staged.parentReplayDependencies) {
-      state.execution.createOrder(dependency);
-    }
-    if (staged.parentReplay) {
-      state.execution.createOrder(staged.parentReplay);
-    }
+    await executeXuanxueAiProductionCloudReplayGraph(
+      state.execution,
+      staged,
+    );
     const created = state.execution.createOrder(staged.order);
     localOrderId = created.order.orderId;
     await checkpointXuanxueAiProductionJob(state.credential, job, {

@@ -130,7 +130,10 @@ assert.equal(
   recoveredRecord.submission?.canonicalConversationUrl,
   originalSubmission.canonicalConversationUrl,
 );
-assert.equal(recoveredRecord.submission?.chatTitleVerifiedAt !== null, true);
+assert.ok(
+  recoveredRecord.systemChatTitle,
+  "the planned human-readable title may remain pending but must stay recorded",
+);
 
 const markerProbe = await browser.evaluateActiveTab<{ markerCount: number }>({
   description: "prove restart recovery kept exactly one submitted marked turn",

@@ -36,7 +36,10 @@ const restoreReconciledV1TerminalRows = (
     join production_events e on e.rowid=(
       select max(re.rowid) from production_events re
       where re.order_id=o.order_id
-        and re.event_type='v1_cloud_terminal_reconciled'
+        and re.event_type in (
+          'v1_cloud_terminal_reconciled',
+          'legacy_cloud_terminal_reconciled'
+        )
     )
     where o.status='recovery_pending'
       and e.to_status in ('failed','review_required')

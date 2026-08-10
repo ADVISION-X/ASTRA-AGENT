@@ -12,6 +12,8 @@ export const storePath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
 export const schedulerPath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
+export const flowPath =
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts";
 export const cloudContractPath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
 export const cloudCredentialPath =
@@ -29,8 +31,14 @@ export const acceptancePath =
 
 export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+  "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+  "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+  "scripts/acceptance/xuanxue-ai-production-v2-drain-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
+  "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
   "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+  "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
   "scripts/acceptance/xuanxue-ai-production-v1-migration.ts",
   "scripts/acceptance/xuanxue-ai-production-v1-migration-fixture.ts",
@@ -38,9 +46,11 @@ export const acceptanceSupportPaths = [
 
 export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/index.ts", schemaPath, profilePath, storePath,
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-cutover-backup.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -52,7 +62,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+  flowPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
   "src/plugins/xuanxue-ai-production/generated-image-policy.ts", schedulerPath,

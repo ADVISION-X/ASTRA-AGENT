@@ -30,6 +30,7 @@
           "xuanxue-ai-production/bounded-coordinator",
           "xuanxue-ai-production/durable-ledger",
           "xuanxue-ai-production/durable-title-housekeeping",
+          "xuanxue-ai-production/no-terminal-attachment-reentry",
           "xuanxue-ai-production/no-untracked-background-work",
           "xuanxue-ai-production/source-present"
         ],

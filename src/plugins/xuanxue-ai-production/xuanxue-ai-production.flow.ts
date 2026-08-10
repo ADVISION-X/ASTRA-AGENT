@@ -14,9 +14,9 @@ import {
   requireXuanxueStage,
 } from "./xuanxue-ai-production-feed.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
+import { normalizeGeneratedImageResult } from "./xuanxue-ai-production-image-result.js";
 import { completeXuanxueAiProductionOrder } from "./xuanxue-ai-production-result.js";
 import {
-  XUANXUE_AI_PRODUCTION_JOB_ID,
   XuanxueAiProductionOrderSchema,
   type XuanxueAiOrderRecord,
   type XuanxueAiStageRecord,
@@ -70,74 +70,6 @@ const canonicalizeStageResult = (
     providerProof: {
       ...result.providerProof,
       outputHash: providerOutputHash,
-    },
-  };
-};
-
-const normalizeGeneratedImageResult = async (
-  runtime: XuanxueAiProductionRuntime,
-  orderId: string,
-  stageId: XuanxueAiStageRecord["stageId"],
-  result: AiFeedResult,
-): Promise<AiFeedResult> => {
-  if (result.outputKind !== "generated_image" || result.status !== "success") {
-    return result;
-  }
-  const source = result.outputArtifacts[0];
-  if (!source) throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_SOURCE_MISSING");
-  const processed = await runtime.mediaProcessing.processMedia({
-    missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
-    runId: `${orderId}-${stageId}`,
-    inputFilePath: source.filePath,
-    presetId: "public-knowledge-hero",
-    artifactPolicy: "deliverable",
-    timeoutMs: 120_000,
-  });
-  if (processed.status !== "success" || processed.output.status !== "success") {
-    throw new Error(
-      `review_required: generated image normalization failed:${processed.reviewRequiredReason ?? processed.failureReason ?? "unknown"}`,
-    );
-  }
-  const artifact = processed.output.outputArtifacts[0];
-  if (
-    !artifact
-    || artifact.contentType !== "image/webp"
-    || artifact.width !== 1200
-    || artifact.height !== 630
-  ) {
-    throw new Error("review_required: generated image normalization contract mismatch");
-  }
-  const safety = await runtime.mediaProcessing.processMedia({
-    missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
-    runId: `${orderId}-${stageId}-safety`,
-    inputFilePath: artifact.filePath,
-    presetId: "public-knowledge-redline-check",
-    artifactPolicy: "staging",
-    timeoutMs: 120_000,
-  });
-  if (safety.status !== "success" || safety.output.status !== "success") {
-    throw new Error(`review_required: generated image safety:${safety.reviewRequiredReason ?? safety.failureReason ?? "uncertain"}`);
-  }
-  return {
-    ...result,
-    outputArtifacts: [{
-      kind: "generated_image",
-      artifactRef: artifact.artifactRef,
-      filePath: artifact.filePath,
-      mimeType: "image/webp",
-      sha256: `sha256:${artifact.sha256}`,
-      originalSha256: source.originalSha256,
-      providerOutputRef: source.providerOutputRef,
-      byteCount: artifact.byteSize,
-      width: 1200,
-      height: 630,
-    }],
-    providerProof: {
-      ...result.providerProof,
-      outputRefs: [
-        ...result.providerProof.outputRefs,
-        `safety-proof:${safety.runtimeProof.proofId}`,
-      ],
     },
   };
 };
@@ -197,10 +129,19 @@ const terminalStageFromResult = (
   return { status: "completed", failureReason: null };
 };
 
+const hasTerminalAttachmentTransportProof = (
+  stage: XuanxueAiStageRecord,
+): boolean => {
+  const status =
+    stage.aiFeedResult?.providerProof.attachmentUploadProof?.status;
+  return status === "failed" || status === "review_required";
+};
+
 const restartRecoverableStage = (
   runtime: XuanxueAiProductionRuntime,
   stage: XuanxueAiStageRecord,
 ): XuanxueAiStageRecord => {
+  if (hasTerminalAttachmentTransportProof(stage)) return stage;
   const terminalGatewayExecution = stage.aiFeedResult?.status === "failed"
     || stage.aiFeedResult?.status === "review_required";
   const hasDurableSubmission = Boolean(
@@ -305,7 +246,10 @@ const executeStage = async (
     runtime,
     requireXuanxueStage(current, definition.stageId),
   );
-  if (stage.status === "completed") return stage;
+  if (
+    stage.status === "completed"
+    || hasTerminalAttachmentTransportProof(stage)
+  ) return stage;
   const feedInput = await buildXuanxueAiFeedInput(
     runtime,
     current,
@@ -389,9 +333,10 @@ const executeStageUntilSettled = async (
             triggeringStageId: definition.stageId,
             reason: stage.failureReason!,
           },
-        );
+      );
       return requireXuanxueStage(rebuilt, definition.stageId);
     }
+    if (hasTerminalAttachmentTransportProof(stage)) return stage;
     if (
       stage.status !== "recovery_pending"
       || !await waitForRecoveryRetry(stage)

@@ -32,6 +32,15 @@ const sameParticipantIdentity = (
   && left.purposeCode === right.purposeCode
   && left.authorizationReceiptRef === right.authorizationReceiptRef;
 
+const sameReusableBaseIdentity = (
+  left: FrozenParticipant,
+  right: FrozenParticipant,
+): boolean => left.personRef === right.personRef
+  && left.profileVersionRef === right.profileVersionRef
+  && left.chartStateRef === right.chartStateRef
+  && left.chartStateVersion === right.chartStateVersion
+  && left.chartStateHash === right.chartStateHash;
+
 const assertFrozenTaskEnvelopeMatches = (
   child: XuanxueAiOrderRecord,
   parent: XuanxueAiOrderRecord,
@@ -78,7 +87,12 @@ export const assertPersonParentMatches = (input: {
   parent: XuanxueAiOrderRecord;
   personRef: string;
 }): void => {
-  assertFrozenTaskEnvelopeMatches(input.child, input.parent);
+  if (
+    input.child.order.frozenSubject.privacyOwnerRef
+      !== input.parent.order.frozenSubject.privacyOwnerRef
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_FROZEN_SUBJECT_MISMATCH");
+  }
   const childParticipant = input.child.order.frozenSubject.participants.find(
     (candidate) => candidate.personRef === input.personRef,
   );
@@ -89,7 +103,7 @@ export const assertPersonParentMatches = (input: {
     !childParticipant
     || !parentParticipant
     || input.parent.order.frozenSubject.primaryPersonRef !== input.personRef
-    || !sameParticipantIdentity(childParticipant, parentParticipant)
+    || !sameReusableBaseIdentity(childParticipant, parentParticipant)
   ) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_FROZEN_SUBJECT_MISMATCH");
   }
