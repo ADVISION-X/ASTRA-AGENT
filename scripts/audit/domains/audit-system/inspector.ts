@@ -3,10 +3,11 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { extractMarkdownHeadings, normalizeMarkdownHeading } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { pushStaleCodePurityTextReportFindings } from "./stale-code-purity-text-report.js";
+import { inspectPhysicalCheckReceiptContract } from "./physical-check-receipt-inspector.js";
 
 const requiredArtifacts = [
   "scripts/audit/generated/law-registry.generated.json",
@@ -24,7 +25,11 @@ const packageJsonPath = "package.json";
 type StaticCoverageSummary = {
   activeClauseCount?: number;
   boundClauseCount?: number;
-  executedClauseCount?: number;
+  machineClauseCount?: number;
+  executedMachineClauseCount?: number;
+  deferredRealChromeClauseCount?: number;
+  realChromeClauseIds?: string[];
+  uncoveredMachineClauseIds?: string[];
   coveragePercent?: number;
 };
 
@@ -162,6 +167,17 @@ const pushStaticCoverageFindings = (
         }),
       );
     }
+    if (summary.deferredRealChromeClauseCount !== summary.realChromeClauseIds?.length) {
+      findings.push(
+        createFinding({
+          checkId: "audit-system/static-clause-coverage",
+          lawId: metaLawId,
+          filePath: staticCoveragePath,
+          message: `${staticCoveragePath} must keep every real-Chrome clause explicitly deferred from ordinary CI execution truth.`,
+          evidence: JSON.stringify(summary),
+        }),
+      );
+    }
   } catch (error) {
     findings.push(
       createFinding({
@@ -192,18 +208,13 @@ const pushCiFullEntryGateFindings = (
     };
     const ciFullScript = parsed.scripts?.["ci:full"];
     const hasCiFullRunner = ciFullScript === "node --import tsx scripts/audit/ci-full.ts";
-    const hasInternalEntryGate = Boolean(
-      ciFullSource?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) =>
-        literal.getLiteralValue() === "codex-entry-gate" || literal.getLiteralValue() === "codex:entry-gate"
-      ),
-    );
-    if (!hasCiFullRunner || !hasInternalEntryGate) {
+    if (!hasCiFullRunner || !ciFullSource) {
       findings.push(
         createFinding({
           checkId: "audit-system/ci-full-entry-gate",
           lawId: chainLawId,
           filePath: packageJsonPath,
-          message: "package.json must route ci:full through the ci-full runner, and ci-full must execute codex-entry-gate as its first fail-fast phase.",
+          message: "package.json must route ci:full through the unique ci-full runner; the AST order of its entry gate is enforced by the physical-receipt inspector.",
           evidence: ciFullScript,
         }),
       );
@@ -301,7 +312,9 @@ const pushRunnerTruthFindings = (
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const chainLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-001-V1");
   const manifestLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-003-V1");
   const artifactLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-004-V1");
@@ -319,12 +332,34 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   pushStaticCoverageFindings(findings, inspectedFiles, metaLawId);
   pushCiFullEntryGateFindings(findings, inspectedFiles, chainLawId, context);
   pushRunnerTruthFindings(findings, inspectedFiles, chainLawId, runnerLawId, context);
+  const receiptContract = inspectPhysicalCheckReceiptContract(context, runnerLawId);
+  findings.push(...receiptContract.findings);
+  receiptContract.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("audit-system requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

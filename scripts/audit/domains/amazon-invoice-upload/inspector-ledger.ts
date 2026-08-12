@@ -78,7 +78,10 @@ export function inspectAmazonInvoiceUploadLedgerGuard(context: InspectorContext,
 }
 
 function inspectLedgerBoundary(file: SourceFile | null, findings: InspectorFinding[], lawId: string): void {
-  if (!file) return;
+  if (!file) {
+    addFinding(findings, lawId, boundaryPath, "amazon-invoice-upload/ledger-route-rule-missing", `${boundaryPath} is required to verify the upload ledger route rule.`);
+    return;
+  }
   const routeObjects = exportedArray(file, "WORKBENCH_API_ROUTE_RULES")?.getElements().filter(Node.isObjectLiteralExpression) ?? [];
   const rule = routeObjects.find((item) => propertyValue(item, "path") === uploadLedgerRoute);
   if (!rule) return addFinding(findings, lawId, boundaryPath, "amazon-invoice-upload/ledger-route-rule-missing", `${uploadLedgerRoute} must be explicitly allowlisted for website status sync.`);
@@ -103,7 +106,24 @@ function inspectLedgerFiles(input: {
   lawId: string;
 }): void {
   const { ledgerFile, storageFile, taskServiceFile, routesFile, appShellFile, appClientFile, findings, lawId } = input;
-  if (!ledgerFile || !storageFile || !taskServiceFile || !routesFile || !appShellFile || !appClientFile) return;
+  const requiredFiles = [
+    [uploadLedgerPath, ledgerFile],
+    [uploadStoragePath, storageFile],
+    [taskServicePath, taskServiceFile],
+    [routesPath, routesFile],
+    [appShellPath, appShellFile],
+    [appClientPath, appClientFile],
+  ] as const;
+  const missingFiles = requiredFiles.filter(([, file]) => !file).map(([filePath]) => filePath);
+  if (missingFiles.length > 0) {
+    for (const filePath of missingFiles) {
+      addFinding(findings, lawId, filePath, "amazon-invoice-upload/ledger-storage-token", `${filePath} is required for the upload ledger owner inspection.`);
+    }
+    return;
+  }
+  if (!ledgerFile || !storageFile || !taskServiceFile || !routesFile || !appShellFile || !appClientFile) {
+    return;
+  }
   inspectLedgerStorage(ledgerFile, findings, lawId);
   inspectLedgerProjectionWrites(storageFile, findings, lawId);
   inspectLedgerCanonicalProjection(ledgerFile, storageFile, findings, lawId);
@@ -113,7 +133,7 @@ function inspectLedgerFiles(input: {
 
 function inspectLedgerStorage(ledgerFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
   const ledgerCorpus = literalCorpus(ledgerFile);
-  for (const required of ["amazon_invoice_upload_ledger.sqlite", "CREATE TABLE IF NOT EXISTS amazon_invoice_upload_ledger", "amazon_order_id", "invoice_no", "status", "reason", "reached_step", "evidence_ref", "dom_trace_ref", "review_required"]) {
+  for (const required of ["amazon_invoice_upload_ledger.sqlite", "CREATE TABLE IF NOT EXISTS amazon_invoice_upload_ledger", "amazon_order_id", "invoice_no", "status", "reason", "reached_step", "evidence_ref", "runtime_log_ref", "navigation_evidence_ref", "review_required"]) {
     if (!ledgerCorpus.includes(required)) addFinding(findings, lawId, uploadLedgerPath, "amazon-invoice-upload/ledger-storage-token", `Upload ledger storage must include ${required}.`);
   }
   const hasSqlite = ledgerFile.getImportDeclarations().some((item) => item.getModuleSpecifierValue() === "better-sqlite3");

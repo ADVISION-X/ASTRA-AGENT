@@ -9,9 +9,7 @@
         "lawId": "APEX-RUNTIME-TRUTH-001-V1",
         "clauseId": "apex-runtime-truth-001-requirement",
         "checkIds": [
-          "runtime-truth/deep-research-completed-contract",
-          "runtime-truth/facebook-completed-contract",
-          "runtime-truth/source-missing"
+          "runtime-truth/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

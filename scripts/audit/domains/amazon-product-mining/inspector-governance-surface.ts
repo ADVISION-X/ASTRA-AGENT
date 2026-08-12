@@ -199,7 +199,7 @@ export const inspectWorkbenchHandle = (
   inspectedFiles: Set<string>,
   lawId: string,
 ): void => {
-  const repoPath = "src/lib/local-runtime/workbench.ts";
+  const repoPath = "src/lib/local-runtime/workbench-marketplace-handles.ts";
   const workbench = getRequiredSourceFile(context, repoPath);
   trackSourceFile(inspectedFiles, workbench);
 	  const requiredNames = [
@@ -217,7 +217,7 @@ export const inspectWorkbenchHandle = (
     checkId: "amazon-mining/workbench-handle",
     lawId,
     filePath: repoPath,
-    message: "workbench.ts must expose Amazon mining handle methods.",
+    message: "The marketplace Workbench handle owner must expose Amazon mining methods.",
   }));
 };
 

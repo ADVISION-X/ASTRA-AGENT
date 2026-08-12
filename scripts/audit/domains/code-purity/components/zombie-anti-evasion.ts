@@ -19,6 +19,38 @@ const readPackageScripts = (): Record<string, string> => {
   return parsed.scripts ?? {};
 };
 
+const resolvesTo = (node: import("ts-morph").Node | undefined, declaration: import("ts-morph").Node): boolean => {
+  const symbol = node?.getSymbol();
+  return (symbol?.getDeclarations().includes(declaration) ?? false)
+    || (symbol?.getAliasedSymbol()?.getDeclarations().includes(declaration) ?? false);
+};
+
+const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolean => {
+  const bindingSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-acceptance-law-bindings.ts"));
+  const leafPlanSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-acceptance-leaf-plan.ts"));
+  const bindingMap = bindingSource?.getVariableDeclaration("acceptanceLawBindings");
+  const bindingExists = bindingMap?.getInitializer()?.getDescendantsOfKind(SyntaxKind.ArrayLiteralExpression)
+    .some((array) => {
+      const [path] = array.getElements();
+      return Node.isStringLiteral(path)
+        && path.getLiteralValue() === "scripts/acceptance/code-purity-zombie-deep.acceptance.ts";
+    }) ?? false;
+  const importedBinding = leafPlanSource?.getImportDeclarations()
+    .find((declaration) => declaration.getModuleSpecifierValue() === "./ci-acceptance-law-bindings.js")
+    ?.getNamedImports().find((specifier) => specifier.getName() === "acceptanceLawBindings");
+  const skeletonBuilder = leafPlanSource?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const closure = leafPlanSource?.getVariableDeclaration("assertAcceptanceBindingClosure");
+  const keyCall = closure?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) => {
+    const callee = call.getExpression();
+    return Node.isPropertyAccessExpression(callee) && callee.getName() === "has"
+      && importedBinding !== undefined && resolvesTo(callee.getExpression(), importedBinding);
+  });
+  const closureCall = skeletonBuilder?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => closure !== undefined && resolvesTo(call.getExpression(), closure));
+  return bindingExists && keyCall !== undefined && closureCall !== undefined;
+};
+
 const pushVoidKeepaliveFindings = (
   collector: InventoryFindingCollector,
   governedFiles: readonly GovernedFile[],
@@ -216,8 +248,6 @@ export const scanZombieInspectorSelfProof = (input: {
   const selfProofProblems: string[] = [];
   const phaseRunnerSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts"));
   const zombieSurfaceSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts"));
-  const ciFullSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-full.ts"));
-  const ciFullPhasePlanSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-full-phase-plan.ts"));
   const scripts = readPackageScripts();
 
   if (!zombieSurfaceSource?.getImportDeclarations().some((declaration) => declaration.getModuleSpecifierValue() === "./zombie-symbol-graph.js")) {
@@ -232,10 +262,7 @@ export const scanZombieInspectorSelfProof = (input: {
   if (scripts["acceptance:code-purity-zombie-deep"] === undefined) {
     selfProofProblems.push("package.json is missing acceptance:code-purity-zombie-deep.");
   }
-  const ciFullExecutesZombieAcceptance = [ciFullSource, ciFullPhasePlanSource].some((sourceFile) =>
-    sourceFile?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === "acceptance:code-purity-zombie-deep"),
-  );
-  if (!ciFullExecutesZombieAcceptance) {
+  if (!zombieAcceptanceIsInPhysicalSkeleton(input.context)) {
     selfProofProblems.push("ci-full runner does not execute acceptance:code-purity-zombie-deep.");
   }
   if (!input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-017-V1") || !input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-018-V1")) {

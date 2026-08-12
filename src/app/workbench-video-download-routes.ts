@@ -160,10 +160,15 @@ export const safeDeliveryTitleSegment = (value: string): string => {
   return cleaned || "YouTube video";
 };
 
-const buildUserDownloadPath = (filePath: string, displayTitle: string | null): string => {
+const buildUserDownloadPath = (
+  filePath: string,
+  displayTitle: string | null,
+  deliveryDirectory?: string,
+): string => {
   const extension = path.extname(filePath) || ".mp4";
   const title = safeDeliveryTitleSegment(displayTitle ?? path.basename(filePath, extension));
-  return path.join(homedir(), "Downloads", "GrassEye Video Downloads", `${title}-${randomUUID()}${extension}`);
+  const root = deliveryDirectory ?? path.join(homedir(), "Downloads", "GrassEye Video Downloads");
+  return path.join(root, `${title}-${randomUUID()}${extension}`);
 };
 
 const buildVideoDownloadJobInputForPlatform = (
@@ -202,6 +207,7 @@ export const buildVideoDownloadJobInput = (body: VideoDownloadRequestBody): Para
 export const copyResultToDownloads = async (
   result: Awaited<ReturnType<typeof routeVideoDownloadArtifactJob>>,
   saveToDownloads: boolean,
+  deliveryDirectory?: string,
 ): Promise<string | null> => {
   if (result.status !== "success" || !saveToDownloads) {
     return null;
@@ -212,7 +218,7 @@ export const copyResultToDownloads = async (
   if (!filePath) {
     return null;
   }
-  const dest = buildUserDownloadPath(filePath, displayTitle);
+  const dest = buildUserDownloadPath(filePath, displayTitle, deliveryDirectory);
   await mkdir(path.dirname(dest), { recursive: true });
   try {
     await stat(dest);
@@ -231,7 +237,9 @@ const runVideoDownloadJob = async (
   body: VideoDownloadRequestBody,
   workbench: GrassEyeWorkbenchHandle,
 ): Promise<{ record: Awaited<ReturnType<typeof routeVideoDownloadArtifactJob>>; downloadsPath: string | null }> => {
-  const result = await routeVideoDownloadArtifactJob(input, workbench);
+  const result = await routeVideoDownloadArtifactJob(input, {
+    videoDownload: workbench.getVideoDownloadAbilityGroup(),
+  });
   const downloadsPath = await copyResultToDownloads(result, body.saveToDownloads !== false);
   return { record: result, downloadsPath };
 };

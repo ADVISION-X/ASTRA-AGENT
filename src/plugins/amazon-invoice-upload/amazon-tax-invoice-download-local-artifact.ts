@@ -68,6 +68,6 @@ export const verifyLocalDownloadArtifact = (
     downloadedFileSize: metadata.fileSize,
     downloadedFileSha256: metadata.sha256,
     downloadedAt: metadata.createdAt,
-    domTraceRef: "runtime-evidence/amazon-invoice-upload/download.jsonl",
+    runtimeLogRef: "runtime-logs/workbench.jsonl",
   };
 };

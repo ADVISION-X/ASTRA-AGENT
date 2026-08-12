@@ -1,4 +1,11 @@
-export { type Pick3TaskRecord } from "./pick3-is-blind-eval.schema.js";
+export {
+  Pick3InputSchema,
+  type Pick3TaskRecord,
+} from "./pick3-is-blind-eval.schema.js";
+export {
+  Pick3ResumeInputSchema,
+  type Pick3ResumeInput,
+} from "./pick3-is-blind-eval.resume-schema.js";
 export {
   runPick3IsBlindEvalFlow,
   type RunPick3Context,

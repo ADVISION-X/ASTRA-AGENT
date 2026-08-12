@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:11:03.259Z",
+  "generatedAt": "2026-08-12T23:45:35.441Z",
   "capabilityDomain": "xuanyuan",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,68 +7,81 @@
   ],
   "status": "PASS",
   "findings": [],
+  "checkRuns": [
+    {
+      "runId": "audit-run:baffc78b-06fe-4911-b5b2-9e97b5543cef",
+      "checkRunId": "audit-run:baffc78b-06fe-4911-b5b2-9e97b5543cef:check:2c2b0ba0-a122-4181-89a2-a6a578b6284b",
+      "capabilityDomain": "xuanyuan",
+      "checkId": "xuanyuan/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:35.425Z",
+      "endedAt": "2026-08-12T23:45:35.441Z",
+      "durationMs": 16,
+      "evidenceRefs": [
+        ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
+        "docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md",
+        "package.json",
+        "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
+        "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
+        "scripts/acceptance/xuanyuan.acceptance.ts",
+        "scripts/audit/domains/xuanyuan/inspector.ts",
+        "scripts/audit/domains/xuanyuan/manifest.json",
+        "scripts/startup/xuanyuan-cloud-enroll.ts",
+        "src/app/workbench-xuanyuan-routes.ts",
+        "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
+        "src/mediator/xuanyuan-route.ts",
+        "src/plugins/xuanyuan/index.ts",
+        "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
+        "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
+        "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
+        "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
+        "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
+        "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
+        "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
+        "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
+        "src/plugins/xuanyuan/xuanyuan.flow.ts",
+        "src/plugins/xuanyuan/xuanyuan.queue.ts",
+        "src/plugins/xuanyuan/xuanyuan.schema.ts",
+        "src/plugins/xuanyuan/xuanyuan.store.ts",
+        "src/plugins/xuanyuan/xuanyuan.task.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-XUANYUAN-001-V3",
       "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/acceptance"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/ast-contract"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/durable-recovery"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/forbidden-provider-import"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/package-script"
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-      "checkId": "xuanyuan/removed-cloud-region"
+      "checkId": "xuanyuan/owner-assertion-set",
+      "checkRunId": "audit-run:baffc78b-06fe-4911-b5b2-9e97b5543cef:check:2c2b0ba0-a122-4181-89a2-a6a578b6284b"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
     "docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md",
-    "scripts/audit/domains/xuanyuan/manifest.json",
-    "scripts/acceptance/xuanyuan.acceptance.ts",
-    "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
     "package.json",
-    "src/plugins/xuanyuan/index.ts",
-    "src/plugins/xuanyuan/xuanyuan.schema.ts",
-    "src/plugins/xuanyuan/xuanyuan.flow.ts",
-    "src/plugins/xuanyuan/xuanyuan.store.ts",
-    "src/plugins/xuanyuan/xuanyuan.task.ts",
-    "src/plugins/xuanyuan/xuanyuan.queue.ts",
-    "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
-    "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
-    "src/plugins/xuanyuan/xuanyuan.workbench.ts",
+    "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts",
+    "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
+    "scripts/acceptance/xuanyuan.acceptance.ts",
+    "scripts/audit/domains/xuanyuan/inspector.ts",
+    "scripts/audit/domains/xuanyuan/manifest.json",
+    "scripts/startup/xuanyuan-cloud-enroll.ts",
     "src/app/workbench-xuanyuan-routes.ts",
+    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
+    "src/mediator/xuanyuan-route.ts",
+    "src/plugins/xuanyuan/index.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-client.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-contract.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-credential.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-enrollment.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-staging.ts",
     "src/plugins/xuanyuan/xuanyuan-cloud-worker.ts",
-    "src/lib/local-runtime/workbench-xuanyuan-cloud-support.ts",
-    "scripts/startup/xuanyuan-cloud-enroll.ts",
-    "scripts/acceptance/xuanyuan-cloud-worker.acceptance.ts"
+    "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
+    "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
+    "src/plugins/xuanyuan/xuanyuan.flow.ts",
+    "src/plugins/xuanyuan/xuanyuan.queue.ts",
+    "src/plugins/xuanyuan/xuanyuan.schema.ts",
+    "src/plugins/xuanyuan/xuanyuan.store.ts",
+    "src/plugins/xuanyuan/xuanyuan.task.ts"
   ]
 }

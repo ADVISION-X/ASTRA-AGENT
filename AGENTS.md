@@ -128,7 +128,7 @@ Codex 必须把四件事分开：
 | `src/lib/storage/**` | 低层本地存储适配 | 只提供存储机制；不得决定业务状态或流程 |
 | `src/lib/online-ai/**` | 本地 AI 配置/状态等基础支持 | 不得绕过 `ai-input-gateway` 形成第二 provider transport |
 | `src/lib/localization/**` | App Shell 单一中英文地化支持 | 不得复制第二套中英文页面树 |
-| `src/types/**` | 仅共享类型合同 | 严禁放运行逻辑；该根目录目前存在法案与 inspector 白名单不一致，见“已知偏差” |
+| `src/types/**` | 仅共享类型与声明式 schema 合同 | 严禁函数值、类、控制流、I/O、副作用或业务步骤；schema builder 调用必须可追溯到 `zod` 或本目录声明 |
 | `scripts/acceptance/**` | 现役行为的验收证明 | 只能证明，不拥有生产逻辑，不得用 fixture 冒充真实平台结果 |
 | `scripts/audit/**` | 唯一法案执法系统 | 只能检查和生成审计证据，不得修改业务源码，不得建立第二 runner |
 
@@ -351,7 +351,7 @@ Mediator 不得：
 - 通过 re-export 偷运 runtime action。
 - 变成中央调度器。
 
-新成熟 job 的法定入口必须包含 mediator route。当前代码并未对所有 active plugin 完成这一点，详见“已知偏差”；后续新 job 不得照抄这个缺口。
+每个 active job 的法定入口必须且只能包含一个 `src/mediator/<job-id>-route.ts`。该 route 负责 schema 校验与任务入口转发；App / Local Runtime 不得绕过它直连同一任务入口。
 
 ### 0.1.9 Plugin / Business Flow：每个工种自己的师傅
 
@@ -629,33 +629,14 @@ package.json: ci:full
 
 以下是 2026-07-28 只读核对发现的架构差异。未来 Codex 必须先重新验证它们是否仍存在。
 
-1. **Mediator 覆盖不完整**
-
-   - 法案要求每个成熟 job 都有 mediator route。
-   - 当前 `src/mediator/**` 只有：
-     - `media-processing-artifact-route.ts`
-     - `video-download-artifact-route.ts`
-   - 其他 active plugin 目前多数由 `src/app/workbench-*-routes.ts -> GrassEyeWorkbenchHandle -> plugin public facade` 直接接线。
-   - 这不是第二 HTTP server，但 `local-runtime/workbench-handle` 实际承担了部分“准中介”作用。
-   - `architecture-boundary` inspector 当前检查 mediator 不得执行动作，却没有机械检查每个 active plugin 是否存在 mediator route。
-   - 结论：这是代码/执法覆盖债，不是以后跳过 mediator 的先例。
-
-2. **`src/types` 法案与 inspector 不一致**
-
-   - `module-architecture-boundary` 的 source root 白名单没有 `src/types`。
-   - 当前源码存在 `src/types/**`。
-   - Code Purity 把它定义为“shared type contracts only”。
-   - `scan-root-allowlist.ts` 又明确允许 `types`。
-   - 结论：这是 active law 与 inspector 的冲突。未获用户明确 law-change 授权前，只可报告，不得擅自补法，也不得向 `src/types` 增加 runtime logic。
-
-3. **Deep Research 命名/拓扑不是标准模板**
+1. **Deep Research 命名/拓扑不是标准模板**
 
    - 标准新 job 模板要求 `<job-id>.flow.ts` 和 `index.ts`。
    - 当前 Deep Research 的实际主执行入口是 `deep-research-analysis.analysis-runner.ts`，public facade 是 `deep-research-analysis.public.ts`。
    - 它仍是一个 active plugin 和一条受治理主链，但物理命名不同。
    - 结论：新 job 仍使用标准模板；不得复制此命名差异，也不得未经专项授权顺手改 Deep Research。
 
-4. **施工图可能落后于代码**
+2. **施工图可能落后于代码**
 
    - 部分早期施工图仍只列最早的 job、UI surface 或旧阶段快照。
    - 结论：施工图用于找路，不用于证明当前代码完整；必须同时核对 active law、plugin-status、Skill Registry、routes、public facades、generated plan 和真实源码。

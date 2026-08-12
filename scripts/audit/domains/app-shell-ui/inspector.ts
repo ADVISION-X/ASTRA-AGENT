@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 
 import { selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectForbiddenAppShellActions } from "./inspector-forbidden-actions.js";
@@ -44,7 +44,9 @@ const inspectAuthorityFiles = (
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-APP-SHELL-UI-001-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>([
@@ -68,8 +70,27 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("app-shell-ui requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

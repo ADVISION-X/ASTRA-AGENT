@@ -3,8 +3,11 @@ import { z } from "zod";
 
 import { auditPlanEntrySchema } from "./generated-contracts.js";
 import { lawIdSchema } from "./law-contracts.js";
+import type { InspectorCheckSession, SessionInspectorOutput } from "./inspector-check-session.js";
 
-const inspectorFindingSchema = z
+export type { SessionInspectorOutput };
+
+export const inspectorFindingSchema = z
   .object({
     checkId: z.string().min(1),
     lawId: lawIdSchema,
@@ -26,21 +29,17 @@ export const executedCheckSchema = z
   })
   .strict();
 
-export const inspectorOutputSchema = z
-  .object({
-    capabilityDomain: z.string().min(1),
-    reportedLawIds: z.array(lawIdSchema),
-    executedChecks: z.array(executedCheckSchema),
-    findings: z.array(inspectorFindingSchema),
-    inspectedFiles: z.array(z.string().min(1)),
-    reportJson: z.unknown().optional(),
-    reportMarkdown: z.string().min(1).optional(),
-  })
-  .strict();
-
 export type InspectorFinding = z.infer<typeof inspectorFindingSchema>;
 export type ExecutedCheck = z.infer<typeof executedCheckSchema>;
-export type InspectorOutput = z.infer<typeof inspectorOutputSchema>;
+export type InspectorOutput = {
+  capabilityDomain: string;
+  reportedLawIds: string[];
+  executedChecks: ExecutedCheck[];
+  findings: InspectorFinding[];
+  inspectedFiles: string[];
+  reportJson?: unknown;
+  reportMarkdown?: string | undefined;
+};
 type AuditPlanEntry = z.infer<typeof auditPlanEntrySchema>;
 export type CompletedReport = {
   status: "PASS" | "FAIL";
@@ -53,12 +52,5 @@ export type InspectorContext = {
   planEntry: AuditPlanEntry;
   generatedPlan: readonly AuditPlanEntry[];
   completedReports: Readonly<Record<string, CompletedReport>>;
+  checks: InspectorCheckSession;
 };
-
-export const executedChecksForPlan = (context: InspectorContext): ExecutedCheck[] =>
-  context.planEntry.bindings.flatMap((binding) =>
-    binding.checkIds.map((checkId) => ({
-      lawId: binding.lawId,
-      clauseId: binding.clauseId,
-      checkId,
-    })));

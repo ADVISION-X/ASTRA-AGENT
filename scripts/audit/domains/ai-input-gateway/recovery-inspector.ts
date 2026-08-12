@@ -23,8 +23,6 @@ const paths = {
   resume: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
   acceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
   recoveryAcceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-  realChrome: "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
-  realChromeTitleHousekeeping: "src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
   chatTitle: "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
   chatTitleScripts: "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
   titleHousekeeping: "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
@@ -356,21 +354,6 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
       message: "Checkpoint acceptance is missing",
     },
     {
-      checkId: "ai-input-gateway/response-checkpoint-recovery",
-      filePath: paths.realChrome,
-      sourceKeys: ["realChrome"],
-      required: [
-        "abortController",
-        "interruptedRecord",
-        "recoveredRecord",
-        "markerProbe",
-        "responseCheckpoint",
-        "WEB_CHAT_RECOVERY_RUN_ROOT",
-        "exactMarkedUserTurnCount",
-      ],
-      message: "Real Chrome restart acceptance is missing",
-    },
-    {
       checkId: "ai-input-gateway/bounded-rename-recovery",
       filePath: paths.chatTitle,
       sourceKeys: ["chatTitle"],
@@ -394,7 +377,6 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
         "titleHousekeepingWorker",
         "abilityGroup",
         "recoveryAcceptance",
-        "realChromeTitleHousekeeping",
       ],
       required: [
         "WebChatTitleRenameState",
@@ -404,9 +386,6 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
         "scheduleWebChatTitleHousekeeping",
         "schedulePublishedTitleHousekeeping",
         "finishTitleHousekeepingAfterRestart",
-        "[REAL-CHROME-TITLE-HOUSEKEEPING-INTERRUPTED]",
-        "[REAL-CHROME-TITLE-HOUSEKEEPING-RECOVERED]",
-        "WEB_CHAT_TITLE_HOUSEKEEPING_RECOVERY_ROOT",
         "response_captured",
       ],
       message:

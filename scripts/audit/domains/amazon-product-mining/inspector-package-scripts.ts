@@ -55,12 +55,12 @@ export const inspectPackageScript = (
 	      message: "acceptance:amazon-product-mining must include production extraction attack acceptance.",
 	    }));
 	  }
-  if (scripts["audit:amazon-product-mining"] !== "node --import tsx scripts/audit/domains/amazon-product-mining/inspector.ts") {
+  if (scripts["audit:amazon-product-mining"] !== "node --import tsx scripts/audit/run-domain-audit.ts amazon-product-mining") {
     findings.push(createFinding({
       checkId: "amazon-mining/package-audit-script",
       lawId,
       filePath: packagePath,
-      message: "package.json must expose audit:amazon-product-mining using the amazon inspector entrypoint.",
+      message: "package.json must expose audit:amazon-product-mining through the unique generated-plan runner.",
     }));
   }
   if (scripts["amazon-product-mining:package:fixture"] !== "node --import tsx scripts/acceptance/amazon-product-mining-package-fixture.ts") {

@@ -15,7 +15,6 @@ export type MediaProcessingTaskSnapshot = {
   presetId: MediaProcessingJobInput["presetId"];
   sourceFileName: string;
   record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>> | null;
-  downloadsPath: string | null;
   downloadsPaths: string[];
   failureReason: string | null;
 };
@@ -96,7 +95,6 @@ export const buildInitialMediaProcessingTask = (
     presetId: input.presetId,
     sourceFileName: path.basename(input.inputFilePath),
     record: null,
-    downloadsPath: null,
     downloadsPaths: [],
     failureReason: null,
   };
@@ -116,7 +114,6 @@ export const persistTerminalMediaProcessingTask = async (
       status: "failed",
       updatedAt: new Date().toISOString(),
       record: null,
-      downloadsPath: null,
       downloadsPaths: [],
       failureReason: persistenceFailureReason(error),
     };

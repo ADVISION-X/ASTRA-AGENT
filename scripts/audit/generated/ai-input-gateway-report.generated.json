@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-10T11:10:10.031Z",
+  "generatedAt": "2026-08-12T23:44:32.142Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -11,418 +11,121 @@
     "APEX-AI-INPUT-GATEWAY-004-V1",
     "APEX-AI-INPUT-GATEWAY-005-V3"
   ],
+  "checkRuns": [
+    {
+      "runId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae",
+      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56",
+      "capabilityDomain": "ai-input-gateway",
+      "checkId": "ai-input-gateway/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:44:31.511Z",
+      "endedAt": "2026-08-12T23:44:32.141Z",
+      "durationMs": 630,
+      "evidenceRefs": [
+        ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
+        "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
+        "scripts/audit/domains/ai-input-gateway/inspector.ts",
+        "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
+        "src/capabilities/ai-input-gateway/contract.ts",
+        "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
+        "src/capabilities/ai-input-gateway/failure-classification.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts",
+        "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
+        "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
+        "src/capabilities/ai-input-gateway/schema.ts",
+        "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/current-chrome-accessibility-window.ts",
+        "src/lib/browser/current-chrome-browser-controller-execution.ts",
+        "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+        "src/lib/browser/current-chrome-native-multi-file-picker.ts",
+        "src/lib/browser/current-chrome-window-control.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
       "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/aggregate-progress-callback"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/aggregate-proof-field"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/attachment-child-structure"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/attachment-child-terminal-boundary"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/authority-present"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/browser-native-picker-contract"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/fixed-routing-literal"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/generic-browser-primitive"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/native-picker-proof"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/no-public-transport-controls"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/removed-old-region"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/shared-child-integration"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-      "clauseId": "apex-ai-input-gateway-001-requirement",
-      "checkId": "ai-input-gateway/source-present"
+      "checkId": "ai-input-gateway/owner-assertion-set",
+      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
       "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/aggregate-progress-callback"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/aggregate-proof-field"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/attachment-child-structure"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/attachment-child-terminal-boundary"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/authority-present"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/browser-native-picker-contract"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/fixed-routing-literal"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/generic-browser-primitive"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/native-picker-proof"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/no-public-transport-controls"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/removed-old-region"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/shared-child-integration"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-      "clauseId": "apex-ai-input-gateway-002-requirement",
-      "checkId": "ai-input-gateway/source-present"
+      "checkId": "ai-input-gateway/owner-assertion-set",
+      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
       "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/aggregate-progress-callback"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/aggregate-proof-field"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/attachment-child-structure"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/attachment-child-terminal-boundary"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/authority-present"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/browser-native-picker-contract"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/fixed-routing-literal"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/generic-browser-primitive"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/native-picker-proof"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/no-public-transport-controls"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/removed-old-region"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/shared-child-integration"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-      "clauseId": "apex-ai-input-gateway-003-requirement",
-      "checkId": "ai-input-gateway/source-present"
+      "checkId": "ai-input-gateway/owner-assertion-set",
+      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
       "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/aggregate-progress-callback"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/aggregate-proof-field"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/attachment-child-structure"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/attachment-child-terminal-boundary"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/authority-present"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/browser-native-picker-contract"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/fixed-routing-literal"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/generic-browser-primitive"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/native-picker-proof"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/no-public-transport-controls"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/removed-old-region"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/shared-child-integration"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-      "clauseId": "apex-ai-input-gateway-004-requirement",
-      "checkId": "ai-input-gateway/source-present"
+      "checkId": "ai-input-gateway/owner-assertion-set",
+      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
       "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/authority-present"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/bounded-parallel-runtime"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/bounded-patrol-cadence"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/bounded-rename-recovery"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/controlled-chrome-window-identity"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/deferred-completed-chat-rename"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/durable-title-housekeeping"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/durable-fifo-scheduler"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/exact-sidebar-row-rename"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/exact-generated-image-turn"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/exact-rename-identity-proof"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/failure-ledger"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/fresh-conversation-identity"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/fresh-execution-rate-owner-transfer"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/human-readable-system-chat-title"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/no-chatgpt-page-refresh"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/offscreen-sidebar-recovery"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/parallel-acceptance"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/provider-conversation-topology"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/response-checkpoint-recovery"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/submission-priority-patrol"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/shared-rate-limit-watcher"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/live-generation-proof"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/structured-task-identity"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/transient-submission-checkpoint"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/transient-overlay-hygiene"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/removed-old-region"
-    },
-    {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
-      "checkId": "ai-input-gateway/source-present"
+      "checkId": "ai-input-gateway/owner-assertion-set",
+      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
     "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
+    "scripts/audit/domains/ai-input-gateway/inspector.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-fork.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",

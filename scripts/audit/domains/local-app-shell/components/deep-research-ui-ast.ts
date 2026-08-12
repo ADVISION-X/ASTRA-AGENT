@@ -205,20 +205,33 @@ export const requireMarkerOrder = (input: {
   sourceFile: SourceFile | undefined;
   lawId: string;
   checkId: string;
-  firstMarker: string;
-  secondMarker: string;
+  firstSymbolName: string;
+  secondSymbolName: string;
 }): void => {
   addInspectedFile(input.inspectedFiles, input.sourceFile);
-  const text = input.sourceFile?.getFullText() ?? "";
-  const firstIndex = text.indexOf(input.firstMarker);
-  const secondIndex = text.indexOf(input.secondMarker);
-  if (firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex) {
+  const importedSymbol = (name: string) => input.sourceFile?.getImportDeclarations()
+    .flatMap((declaration) => declaration.getNamedImports())
+    .find((specifier) => specifier.getName() === name);
+  const callsFor = (name: string) => {
+    const imported = importedSymbol(name);
+    if (!imported) return [];
+    return input.sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
+      const symbol = call.getExpression().getSymbol();
+      const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+      const importedTarget = imported.getSymbol()?.getAliasedSymbol();
+      return importedTarget !== undefined && target === importedTarget;
+    }) ?? [];
+  };
+  const firstCalls = callsFor(input.firstSymbolName);
+  const secondCalls = callsFor(input.secondSymbolName);
+  if (firstCalls.length === 1 && secondCalls.length === 1
+    && firstCalls[0]!.getStart() < secondCalls[0]!.getStart()) {
     return;
   }
   input.findings.push(createFinding({
     checkId: input.checkId,
     lawId: input.lawId,
     filePath: input.sourceFile ? getRepoSourcePath(input.sourceFile) : "unknown",
-    message: `${input.sourceFile ? getRepoSourcePath(input.sourceFile) : "source file"} must keep ${input.firstMarker} before ${input.secondMarker}.`,
+    message: `${input.sourceFile ? getRepoSourcePath(input.sourceFile) : "source file"} must call ${input.firstSymbolName} before ${input.secondSymbolName}.`,
   }));
 };

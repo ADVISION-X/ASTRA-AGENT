@@ -1,7 +1,7 @@
-import { generateLotteryTicketPlan } from "../../plugins/lottery-ticket-plan/index.js";
+import { runLotteryTicketPlanRoute } from "../../mediator/lottery-ticket-plan-route.js";
 
 export const buildLotteryTicketPlanHandle = () => ({
   generateLotteryTicketPlan(input: unknown) {
-    return generateLotteryTicketPlan(input);
+    return runLotteryTicketPlanRoute(input);
   },
 });

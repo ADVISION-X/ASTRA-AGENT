@@ -9,3 +9,4 @@ export type {
   AmazonListingEditReadSyncItemResult,
   AmazonListingEditReadSyncTaskRecord,
 } from "./amazon-listing-edit-read-sync.schema.js";
+export { AmazonListingEditReadSyncInputSchema } from "./amazon-listing-edit-read-sync.schema.js";

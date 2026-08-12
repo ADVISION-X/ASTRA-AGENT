@@ -5,12 +5,15 @@ import {
   getLatestAmazonInvoiceUploadTaskForInvoice,
   getLatestAmazonTaxInvoiceDownloadTask as getLatestAmazonTaxInvoiceDownloadTaskFromPlugin,
   listAmazonInvoiceUploadLedger,
-  openAmazonInvoiceAdminPage,
-  resumeAmazonInvoiceUploadTask,
-  startAmazonInvoiceUploadMission,
-  startAmazonInvoiceUploadTask,
-  startAmazonTaxInvoiceDownloadTask as startAmazonTaxInvoiceDownloadTaskFromPlugin,
+  startAmazonInvoiceAdminOpenTask,
 } from "../../plugins/amazon-invoice-upload/index.js";
+import {
+  runAmazonInvoiceAdminOpenRoute,
+  runAmazonInvoiceUploadMissionRoute,
+  runAmazonInvoiceUploadResumeRoute,
+  runAmazonInvoiceUploadTaskRoute,
+  runAmazonTaxInvoiceDownloadRoute,
+} from "../../mediator/amazon-invoice-upload-route.js";
 import type { WorkbenchAssembly } from "./workbench-assembly.js";
 
 export const buildAmazonInvoiceHandle = (
@@ -23,11 +26,15 @@ export const buildAmazonInvoiceHandle = (
 });
 
 const buildAmazonInvoiceMissionHandle = (assembly: WorkbenchAssembly) => ({
-  async openAdminInvoicePage(input: Parameters<typeof openAmazonInvoiceAdminPage>[1]) {
-    return openAmazonInvoiceAdminPage(assembly.browserController, input);
+  async openAdminInvoicePage(input: Parameters<typeof startAmazonInvoiceAdminOpenTask>[1]) {
+    return runAmazonInvoiceAdminOpenRoute(input, assembly.browserController);
   },
-  async startAmazonInvoiceUploadMission(input: Parameters<typeof startAmazonInvoiceUploadMission>[2]) {
-    return startAmazonInvoiceUploadMission(assembly.browserController, assembly.runtimeLogger, input);
+  async startAmazonInvoiceUploadMission(input: Parameters<typeof runAmazonInvoiceUploadMissionRoute>[0]) {
+    return runAmazonInvoiceUploadMissionRoute(input, [
+      assembly.browserController,
+      assembly.runtimeLogger,
+      assembly.evidenceStore,
+    ]);
   },
 });
 
@@ -35,20 +42,20 @@ const buildAmazonInvoiceTaskHandle = (
   assembly: WorkbenchAssembly,
   dataDir: string,
 ) => ({
-  async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
-    return startAmazonInvoiceUploadTask({
+  async startAmazonInvoiceUploadTask(input: Parameters<typeof runAmazonInvoiceUploadTaskRoute>[0]) {
+    return runAmazonInvoiceUploadTaskRoute(input, {
       browser: assembly.browserController,
       runtimeLogger: assembly.runtimeLogger,
+      evidenceStore: assembly.evidenceStore,
       dataDir,
-      task: input,
     });
   },
   async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
-    return resumeAmazonInvoiceUploadTask({
+    return runAmazonInvoiceUploadResumeRoute(input, {
       browser: assembly.browserController,
       runtimeLogger: assembly.runtimeLogger,
+      evidenceStore: assembly.evidenceStore,
       dataDir,
-      taskId: input.taskId,
     });
   },
   async getAmazonInvoiceUploadTaskStatus(taskId: string) {
@@ -66,12 +73,11 @@ const buildAmazonInvoiceDownloadHandle = (
   assembly: WorkbenchAssembly,
   dataDir: string,
 ) => ({
-  async startAmazonTaxInvoiceDownloadTask(input: Parameters<typeof startAmazonTaxInvoiceDownloadTaskFromPlugin>[0]["mission"]) {
-    return startAmazonTaxInvoiceDownloadTaskFromPlugin({
+  async startAmazonTaxInvoiceDownloadTask(input: Parameters<typeof runAmazonTaxInvoiceDownloadRoute>[0]) {
+    return runAmazonTaxInvoiceDownloadRoute(input, {
       browser: assembly.browserController,
       runtimeLogger: assembly.runtimeLogger,
       dataDir,
-      mission: input,
     });
   },
   async getAmazonTaxInvoiceDownloadTaskStatus(taskId: string) {

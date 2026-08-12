@@ -1,6 +1,4 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   Node,
@@ -11,11 +9,8 @@ import {
   type SourceFile,
 } from "ts-morph";
 
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
-import { createAuditProject } from "../../shared/project.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectAmazonInvoiceAmountGate } from "./inspector-amount-gate.js";
 import { inspectAmazonInvoiceBatchGuard } from "./inspector-batch.js";
@@ -51,6 +46,7 @@ const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
 const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
+const chromeExecutionPath = "src/lib/browser/current-chrome-browser-controller-execution.ts";
 const chromeScreenshotPath = "src/lib/browser/current-chrome-browser-screenshot.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
@@ -84,6 +80,7 @@ const inspectedFiles = [
   boundaryPath,
   browserControllerPath,
   chromeWindowControlPath,
+  chromeExecutionPath,
   chromeScreenshotPath,
   appShellLayoutPath,
   appShellAmazonInvoiceWorkspacePath,
@@ -372,9 +369,7 @@ const inspectAppShell = (
     }
   }
 };
-
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const lawIds = {
+const selectAmazonInvoiceLawIds = (context: InspectorContext) => ({
     owner: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1"),
     evidence: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1"),
     api: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1"),
@@ -386,8 +381,15 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     batchLedgerPreflight: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"),
     apiFocusReturn: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"),
     amountGate: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"),
-  };
-  const findings: InspectorFinding[] = [];
+});
+
+type AmazonInvoiceLawIds = ReturnType<typeof selectAmazonInvoiceLawIds>;
+
+const inspectAmazonInvoiceStaticContracts = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawIds: AmazonInvoiceLawIds,
+): void => {
   inspectRequiredFiles(findings, lawIds.owner);
   inspectNoSecondChainPaths(findings, lawIds.owner);
   inspectEvidenceMap(source(context.project, evidencePath), findings, lawIds.evidence);
@@ -406,6 +408,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAmazonInvoiceUploadLedgerGuard(context, findings, lawIds.ledger);
   inspectAppShell(source(context.project, appShellAmazonInvoiceWorkspacePath), findings, lawIds.ui);
   inspectAppShellClient(source(context.project, appShellClientPath), findings, lawIds.ui);
+};
+
+const inspectAmazonInvoiceRuntimeContracts = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawIds: AmazonInvoiceLawIds,
+): void => {
   inspectUploadStabilityGuard({
     flowFile: source(context.project, uploadFlowPath),
     flowSupportFile: source(context.project, uploadFlowSupportPath),
@@ -419,7 +428,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     existingEvidenceFile: source(context.project, existingEvidencePath),
     browserControllerFile: source(context.project, browserControllerPath),
     chromeWindowControlFile: source(context.project, chromeWindowControlPath),
+    chromeExecutionFile: source(context.project, chromeExecutionPath),
     chromeScreenshotFile: source(context.project, chromeScreenshotPath),
+    smokeAcceptanceFile: source(context.project, "scripts/acceptance/amazon-invoice-upload-smoke.ts"),
+    smokeAcceptanceSupportFile: source(context.project, smokeAcceptanceSupportPath),
     findings,
     lawId: lawIds.audit,
     conditionalRefreshLawId: lawIds.conditionalRefresh,
@@ -437,39 +449,38 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     findings,
     lawId: lawIds.amountGate,
   });
+};
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+  const lawIds = selectAmazonInvoiceLawIds(context);
+  const findings: InspectorFinding[] = [];
+  inspectAmazonInvoiceStaticContracts(context, findings, lawIds);
+  inspectAmazonInvoiceRuntimeContracts(context, findings, lawIds);
 
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles,
   };
 };
 
-const runInspectorFromCli = async (): Promise<void> => {
-  buildAuditArtifacts();
-  const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === domain);
-  if (!planEntry) {
-    throw new Error("amazon-invoice-upload audit plan entry is missing.");
-  }
-  const output = await inspectDomain({
-    project: createAuditProject(),
-    planEntry,
-    generatedPlan: [planEntry],
-    completedReports: {},
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("amazon-invoice-upload requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
   });
-  if (output.findings.length > 0) {
-    throw new Error(`amazon-invoice-upload failed with ${output.findings.length} finding(s).`);
-  }
-  process.stdout.write("[AUDIT] amazon-invoice-upload PASS\n");
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };
-
-const isEntrypoint = (): boolean => {
-  const invokedPath = process.argv[1];
-  return invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url);
-};
-
-if (isEntrypoint()) {
-  await runInspectorFromCli();
-}

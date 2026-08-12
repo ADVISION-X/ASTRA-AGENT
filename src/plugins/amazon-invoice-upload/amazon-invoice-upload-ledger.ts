@@ -13,7 +13,8 @@ export type AmazonInvoiceUploadLedgerRecord = {
   reason: string;
   reachedStep: string;
   evidenceRef: string | null;
-  domTraceRef: string | null;
+  runtimeLogRef: string | null;
+  navigationEvidenceRef: string | null;
   reviewRequired: boolean;
   createdAt: string;
   updatedAt: string;
@@ -38,13 +39,23 @@ function openLedgerDb(dataDir: string): Database.Database {
     reason TEXT NOT NULL,
     reached_step TEXT NOT NULL,
     evidence_ref TEXT,
-    dom_trace_ref TEXT,
+    runtime_log_ref TEXT,
+    navigation_evidence_ref TEXT,
     review_required INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`);
+  ensureLedgerColumn(db, "runtime_log_ref", "TEXT");
+  ensureLedgerColumn(db, "navigation_evidence_ref", "TEXT");
   db.exec("CREATE INDEX IF NOT EXISTS idx_amazon_invoice_upload_ledger_order ON amazon_invoice_upload_ledger (amazon_order_id, updated_at)");
   return db;
+}
+
+function ensureLedgerColumn(db: Database.Database, name: string, type: "TEXT"): void {
+  const columns = db.prepare("PRAGMA table_info(amazon_invoice_upload_ledger)").all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === name)) {
+    db.exec(`ALTER TABLE amazon_invoice_upload_ledger ADD COLUMN ${name} ${type}`);
+  }
 }
 
 export function upsertAmazonInvoiceUploadLedgerRecord(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
@@ -76,7 +87,8 @@ export function listAmazonInvoiceUploadLedgerRecords(dataDir: string): AmazonInv
       reason,
       reached_step AS reachedStep,
       evidence_ref AS evidenceRef,
-      dom_trace_ref AS domTraceRef,
+      runtime_log_ref AS runtimeLogRef,
+      navigation_evidence_ref AS navigationEvidenceRef,
       review_required AS reviewRequired,
       created_at AS createdAt,
       updated_at AS updatedAt
@@ -94,8 +106,8 @@ export function listAmazonInvoiceUploadLedgerRecords(dataDir: string): AmazonInv
 function writeLedgerRecord(db: Database.Database, record: AmazonInvoiceUploadTaskRecord): void {
   db.prepare(`INSERT INTO amazon_invoice_upload_ledger (
     task_id, amazon_order_id, invoice_no, status, reason, reached_step,
-    evidence_ref, dom_trace_ref, review_required, created_at, updated_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    evidence_ref, runtime_log_ref, navigation_evidence_ref, review_required, created_at, updated_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(task_id) DO UPDATE SET
     amazon_order_id = excluded.amazon_order_id,
     invoice_no = excluded.invoice_no,
@@ -103,7 +115,8 @@ function writeLedgerRecord(db: Database.Database, record: AmazonInvoiceUploadTas
     reason = excluded.reason,
     reached_step = excluded.reached_step,
     evidence_ref = excluded.evidence_ref,
-    dom_trace_ref = excluded.dom_trace_ref,
+    runtime_log_ref = excluded.runtime_log_ref,
+    navigation_evidence_ref = excluded.navigation_evidence_ref,
     review_required = excluded.review_required,
     updated_at = excluded.updated_at`).run(
       record.taskId,
@@ -113,7 +126,8 @@ function writeLedgerRecord(db: Database.Database, record: AmazonInvoiceUploadTas
       record.reason,
       record.reachedStep,
       record.evidenceRef ?? null,
-      record.domTraceRef ?? null,
+      record.runtimeLogRef ?? null,
+      record.orderNavigationProof?.evidenceRef ?? null,
       record.reviewRequired ? 1 : 0,
       record.createdAt,
       record.updatedAt,

@@ -9,11 +9,20 @@
         "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
         "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
         "checkIds": [
-          "xuanxue-ai-production/acceptance",
-          "xuanxue-ai-production/fixed-profiles",
-          "xuanxue-ai-production/forbidden-private-import",
-          "xuanxue-ai-production/source-present",
-          "xuanxue-ai-production/whole-order-contract"
+          "xuanxue-ai-production/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
+        "clauseId": "grasseye-xuanxue-ai-production-001-v5-real-chrome-proof",
+        "checkIds": [
+          "xuanxue-ai-production/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -26,13 +35,7 @@
         "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
         "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
         "checkIds": [
-          "xuanxue-ai-production/acceptance",
-          "xuanxue-ai-production/bounded-coordinator",
-          "xuanxue-ai-production/durable-ledger",
-          "xuanxue-ai-production/durable-title-housekeeping",
-          "xuanxue-ai-production/no-terminal-attachment-reentry",
-          "xuanxue-ai-production/no-untracked-background-work",
-          "xuanxue-ai-production/source-present"
+          "xuanxue-ai-production/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -45,10 +48,7 @@
         "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
         "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
         "checkIds": [
-          "xuanxue-ai-production/cloud-capacity",
-          "xuanxue-ai-production/cloud-lease-binding",
-          "xuanxue-ai-production/credential-permissions",
-          "xuanxue-ai-production/source-present"
+          "xuanxue-ai-production/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:11:02.987Z",
+  "generatedAt": "2026-08-12T23:45:35.157Z",
   "status": "PASS",
   "findings": [],
   "summary": {
@@ -25,526 +25,75 @@
     "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
     "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1"
   ],
+  "checkRuns": [
+    {
+      "runId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e",
+      "capabilityDomain": "workbench-api-boundary",
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:34.923Z",
+      "endedAt": "2026-08-12T23:45:35.157Z",
+      "durationMs": 234,
+      "evidenceRefs": [
+        ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+        "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md",
+        "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+        "src/app/create-workbench-server.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-http.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
       "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-      "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
       "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-      "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
       "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-      "clauseId": "grasseye-workbench-api-boundary-003-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
       "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-      "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
       "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-      "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
       "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-      "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
       "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-      "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
       "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/external-ingress-identity-required"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/external-route-requires-key"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/forbidden-key-missing"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/guard-before-route-dispatch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/guard-import"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/no-api-glob-route"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/no-broad-external-prefix"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-callback-fetch"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/no-plugin-capability-http-server"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/no-regex-in-inspector"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/no-wildcard-cors"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/required-file"
-    },
-    {
-      "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-      "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-      "checkId": "workbench-api-boundary/route-rules-export"
+      "checkId": "workbench-api-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:cb530745-1eab-463e-8afb-357a0d5a2bdf:check:8e555c12-c0e2-4110-9541-c03c61a4470e"
     }
   ],
   "inspectedFiles": [

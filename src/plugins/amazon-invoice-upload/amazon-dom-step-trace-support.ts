@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
 
@@ -32,37 +30,24 @@ export type AmazonDomStepTraceContext = {
   selectedElement?: DomElementRef | undefined;
   reason?: string | undefined;
   evidenceRef?: string | undefined;
+  traceId?: string | undefined;
+  taskId?: string | undefined;
+  runtimeLogRef?: string | undefined;
 };
 
 const MAX_TEXT_LENGTH = 140;
 const MAX_CANDIDATES_PER_GROUP = 8;
 
-export function amazonDomTraceRefFromIds(input: {
-  amazonOrderId?: string | undefined;
-  invoiceNo?: string | undefined;
-  marketplace?: string | undefined;
-  requestId?: string | undefined;
-}): string {
-  const refSegment = input.amazonOrderId && input.invoiceNo
-    ? `${safeSegment(input.amazonOrderId)}-${safeSegment(input.invoiceNo)}`
-    : `download-${safeSegment(input.marketplace ?? "marketplace")}-${safeSegment(input.requestId ?? "latest")}`;
-  return path.join(
-    "runtime-evidence",
-    "amazon-invoice-upload",
-    `${refSegment}.jsonl`,
-  );
-}
-
 export function buildAmazonDomTraceBaseEvent(input: AmazonDomStepTraceContext) {
-  const traceRef = amazonDomTraceRefFromIds(input.mission);
+  const missionIdentity = missionId(input.mission);
   return {
-    traceId: traceRef,
+    traceId: input.traceId ?? missionIdentity,
     stepId: stepId(input.stepName),
-    missionId: missionId(input.mission),
+    missionId: missionIdentity,
     owner: "amazon-invoice-upload" as const,
     component: "dom-automation-step-trace" as const,
     platformId: "amazon-seller-central",
-    refs: buildRefs(input, traceRef),
+    refs: buildRefs(input),
     payload: buildPayload(input),
   };
 }
@@ -99,12 +84,12 @@ function buildPayload(input: AmazonDomStepTraceContext): Record<string, unknown>
 
 function buildRefs(
   input: AmazonDomStepTraceContext,
-  traceRef: string,
 ): Record<string, string> {
   return compactStringRecord({
     targetHost: targetHost(input),
     evidenceRef: input.evidenceRef,
-    domTraceRef: traceRef,
+    taskId: input.taskId,
+    runtimeLogRef: input.runtimeLogRef,
   });
 }
 
@@ -232,8 +217,4 @@ function compactStringRecord(input: Record<string, string | undefined>): Record<
     }
   }
   return output;
-}
-
-function safeSegment(value: string): string {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "invoice";
 }

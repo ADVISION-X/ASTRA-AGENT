@@ -9,16 +9,7 @@
         "lawId": "APEX-AUDIT-TRUTH-001-V1",
         "clauseId": "apex-audit-truth-001-requirement",
         "checkIds": [
-          "audit-truth/ci-owner-special-case",
-          "audit-truth/inspector-project-usage",
-          "audit-truth/meta-quality-banned-method",
-          "audit-truth/meta-quality-dynamic-method-escape",
-          "audit-truth/meta-quality-regex-constructor",
-          "audit-truth/meta-quality-regex-literal",
-          "audit-truth/missing-generated-plan-entry",
-          "audit-truth/orphan-generated-plan-entry",
-          "audit-truth/source-regex-judgment",
-          "audit-truth/source-text-judgment"
+          "audit-truth/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -31,16 +22,7 @@
         "lawId": "APEX-AUDIT-TRUTH-002-V1",
         "clauseId": "apex-audit-truth-002-requirement",
         "checkIds": [
-          "audit-truth/ci-owner-special-case",
-          "audit-truth/inspector-project-usage",
-          "audit-truth/meta-quality-banned-method",
-          "audit-truth/meta-quality-dynamic-method-escape",
-          "audit-truth/meta-quality-regex-constructor",
-          "audit-truth/meta-quality-regex-literal",
-          "audit-truth/missing-generated-plan-entry",
-          "audit-truth/orphan-generated-plan-entry",
-          "audit-truth/source-regex-judgment",
-          "audit-truth/source-text-judgment"
+          "audit-truth/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -53,16 +35,7 @@
         "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
         "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
         "checkIds": [
-          "audit-truth/ci-owner-special-case",
-          "audit-truth/inspector-project-usage",
-          "audit-truth/meta-quality-banned-method",
-          "audit-truth/meta-quality-dynamic-method-escape",
-          "audit-truth/meta-quality-regex-constructor",
-          "audit-truth/meta-quality-regex-literal",
-          "audit-truth/missing-generated-plan-entry",
-          "audit-truth/orphan-generated-plan-entry",
-          "audit-truth/source-regex-judgment",
-          "audit-truth/source-text-judgment"
+          "audit-truth/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

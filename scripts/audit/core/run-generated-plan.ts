@@ -3,9 +3,15 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import type { InspectorContext, InspectorOutput } from "../shared/inspector-contracts.js";
+import {
+  createInspectorCheckSession,
+  sessionInspectorOutputSchema,
+  type InspectorCheckSessionController,
+  type ParsedSessionInspectorOutput,
+} from "../shared/inspector-check-session.js";
 import { createFinding, selectLawId } from "../shared/finding-utils.js";
 import type { AuditPlanEntry } from "../shared/generated-contracts.js";
-import { inspectorOutputSchema, type CompletedReport } from "../shared/inspector-contracts.js";
+import type { CompletedReport } from "../shared/inspector-contracts.js";
 import { createAuditProject } from "../shared/project.js";
 import { generatedDir, resolveFromRepo, toRepoPath } from "../shared/paths.js";
 import { loadGeneratedAuditPlan } from "./load-audit-plan.js";
@@ -17,6 +23,8 @@ type DomainExecutionReport = CompletedReport & {
   capabilityDomain: string;
   executionGroup: AuditPlanEntry["executionGroup"];
 };
+
+type AuditOwnerOutput = InspectorOutput | ParsedSessionInspectorOutput;
 
 type RunGeneratedPlanOptions = {
   capabilityDomains?: readonly string[];
@@ -66,7 +74,9 @@ const findInspectorOutputError = (planEntry: AuditPlanEntry, output: InspectorOu
   if (output.findings.some((finding) => !allowedLawIds.has(finding.lawId))) {
     errors.push("Inspector emitted finding outside generated plan lawIds.");
   }
-  const expectedChecks = planEntry.bindings.flatMap((binding) =>
+  const expectedChecks = planEntry.bindings
+    .filter((binding) => binding.evidenceMode !== "real-chrome")
+    .flatMap((binding) =>
     binding.checkIds.map((checkId) => ({ lawId: binding.lawId, clauseId: binding.clauseId, checkId })));
   const expectedKeys = new Set(expectedChecks.map(executedCheckKey));
   const executedKeys = output.executedChecks.map(executedCheckKey);
@@ -82,26 +92,90 @@ const findInspectorOutputError = (planEntry: AuditPlanEntry, output: InspectorOu
   if (extraCheck) {
     errors.push(`Inspector reported undeclared executed check ${extraCheck.lawId}/${extraCheck.clauseId}/${extraCheck.checkId}.`);
   }
-  const invalidFinding = output.findings.find((finding) => !expectedKeys.has(executedCheckKey(finding)));
+  const expectedBindingKeys = new Set(planEntry.bindings.map((binding) => `${binding.lawId}::${binding.clauseId}`));
+  const invalidFinding = output.findings.find((finding) =>
+    !expectedBindingKeys.has(`${finding.lawId}::${finding.clauseId}`));
   if (invalidFinding) {
-    errors.push(`Inspector finding ${invalidFinding.lawId}/${invalidFinding.clauseId}/${invalidFinding.checkId} is not declared by its manifest.`);
+    errors.push(`Inspector diagnostic ${invalidFinding.lawId}/${invalidFinding.clauseId}/${invalidFinding.checkId} is outside its manifest law/clause authority.`);
   }
   return errors[0] ?? null;
 };
 
-export const validateInspectorOutput = (planEntry: AuditPlanEntry, rawOutput: unknown): InspectorOutput => {
-  const parsed = inspectorOutputSchema.safeParse(rawOutput);
-  if (!parsed.success) {
-    return buildFailureOutput(planEntry, parsed.error.message);
+const findReceiptIdentityError = (
+  planEntry: AuditPlanEntry,
+  output: ParsedSessionInspectorOutput,
+): string | null => {
+  const expectedCheckIds = new Set(planEntry.bindings.flatMap((binding) => binding.checkIds));
+  const checkRunIds = output.checkRuns.map((receipt) => receipt.checkRunId);
+  if (new Set(checkRunIds).size !== checkRunIds.length) {
+    return "Inspector reported duplicate physical check-run receipt identities.";
   }
-  const output = parsed.data;
-  const validationError = findInspectorOutputError(planEntry, output);
-  return validationError ? buildFailureOutput(planEntry, validationError) : output;
+  const checkIds = output.checkRuns.map((receipt) => receipt.checkId);
+  if (new Set(checkIds).size !== checkIds.length) {
+    return "Inspector reported duplicate physical check executions.";
+  }
+  const missingCheckId = [...expectedCheckIds].find((checkId) => !checkIds.includes(checkId));
+  if (missingCheckId) return `Inspector omitted physical check ${missingCheckId}.`;
+  const extraCheckId = checkIds.find((checkId) => !expectedCheckIds.has(checkId));
+  if (extraCheckId) return `Inspector executed undeclared physical check ${extraCheckId}.`;
+  const runIds = new Set(output.checkRuns.map((receipt) => receipt.runId));
+  return runIds.size !== 1 ? "Inspector mixed physical check receipts from multiple runs." : null;
+};
+
+const findReceiptResultError = (planEntry: AuditPlanEntry, output: ParsedSessionInspectorOutput): string | null => {
+  if (output.checkRuns.length !== 1) {
+    return `${planEntry.capabilityDomain} must report exactly one owner assertion-set receipt.`;
+  }
+  for (const receipt of output.checkRuns) {
+    if (receipt.capabilityDomain !== planEntry.capabilityDomain) {
+      return `Physical check ${receipt.checkId} reported the wrong capabilityDomain.`;
+    }
+    const findingCount = output.findings.length;
+    if (receipt.findingCount !== findingCount) {
+      return `Physical check ${receipt.checkId} finding count does not match its signed receipt.`;
+    }
+    if (receipt.status !== (findingCount === 0 ? "PASS" : "FAIL")) {
+      return `Physical check ${receipt.checkId} status does not match its findings.`;
+    }
+  }
+  return null;
+};
+
+const findSessionOutputError = (
+  planEntry: AuditPlanEntry,
+  output: ParsedSessionInspectorOutput,
+): string | null => {
+  const baseError = findInspectorOutputError(planEntry, output);
+  if (baseError) return baseError;
+  const identityError = findReceiptIdentityError(planEntry, output);
+  if (identityError) return identityError;
+  const resultError = findReceiptResultError(planEntry, output);
+  if (resultError) return resultError;
+  const receiptByCheckId = new Map(output.checkRuns.map((receipt) => [receipt.checkId, receipt]));
+  const mismatchedMapping = output.executedChecks.find((mapping) =>
+    receiptByCheckId.get(mapping.checkId)?.checkRunId !== mapping.checkRunId);
+  return mismatchedMapping
+    ? `Executed-check mapping ${mismatchedMapping.checkId} does not reference its physical check receipt.`
+    : null;
+};
+
+const validateSessionInspectorOutput = (
+  planEntry: AuditPlanEntry,
+  controller: InspectorCheckSessionController,
+  rawOutput: unknown,
+): AuditOwnerOutput => {
+  if (!controller.isAuthenticOutput(rawOutput)) {
+    return buildFailureOutput(planEntry, "Inspector output was not signed by the current runner check session.");
+  }
+  const parsed = sessionInspectorOutputSchema.safeParse(rawOutput);
+  if (!parsed.success) return buildFailureOutput(planEntry, parsed.error.message);
+  const validationError = findSessionOutputError(planEntry, parsed.data);
+  return validationError ? buildFailureOutput(planEntry, validationError) : parsed.data;
 };
 
 const writeDomainReport = (
   planEntry: AuditPlanEntry,
-  output: InspectorOutput,
+  output: AuditOwnerOutput,
   status: DomainExecutionReport["status"],
 ): string => {
   mkdirSync(generatedDir, { recursive: true });
@@ -114,6 +188,7 @@ const writeDomainReport = (
     lawIds: planEntry.lawIds,
     status,
     findings: output.findings,
+    ...( "checkRuns" in output ? { checkRuns: output.checkRuns } : {}),
     executedChecks: output.executedChecks,
     inspectedFiles: output.inspectedFiles,
   };
@@ -147,18 +222,18 @@ const executePlanEntry = async (
   planEntry: AuditPlanEntry,
   generatedPlan: readonly AuditPlanEntry[],
   completedReports: Record<string, CompletedReport>,
-): Promise<InspectorOutput> => {
+): Promise<AuditOwnerOutput> => {
   try {
     const inspectDomain = await loadInspector(planEntry);
-    return validateInspectorOutput(
-      planEntry,
-      await inspectDomain({
+    const controller = createInspectorCheckSession(planEntry);
+    const rawOutput = await inspectDomain({
         project,
         planEntry,
         generatedPlan,
         completedReports,
-      }),
-    );
+        checks: controller.checks,
+      });
+    return validateSessionInspectorOutput(planEntry, controller, rawOutput);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown inspector execution failure.";
     return buildFailureOutput(planEntry, message);
@@ -167,7 +242,7 @@ const executePlanEntry = async (
 
 const buildDomainExecutionReport = (
   planEntry: AuditPlanEntry,
-  output: InspectorOutput,
+  output: AuditOwnerOutput,
 ): DomainExecutionReport => {
   const status = output.findings.length > 0 ? "FAIL" : "PASS";
   return {

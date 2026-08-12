@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { createAuditProject } from "../audit/shared/project.js";
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
+import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
 import { resolveFromRepo } from "../audit/shared/paths.js";
 import { collectCatchBranchLogFindings } from "../audit/domains/runtime-log-spine/catch-branch-log-inspector.js";
 import { RuntimeLogSpineLaw } from "../audit/domains/runtime-log-spine/constants.js";
@@ -12,6 +13,7 @@ import { collectModeVisibilityFindings } from "../audit/domains/runtime-log-spin
 import { collectRuntimeLogEmitContractFindings } from "../audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.js";
 import { collectAntiFakeInspectorFindingsWithSnapshot } from "../audit/domains/runtime-log-spine/anti-fake-inspector.js";
 import { collectRuntimeLogSemanticMetrics } from "../audit/domains/runtime-log-spine/semantic-metrics-inspector.js";
+import { collectBrowserActionLogContractFindings } from "../audit/domains/runtime-log-spine/browser-action-log-contract-inspector.js";
 
 const project = createAuditProject();
 project.createSourceFile(
@@ -82,10 +84,54 @@ project.createSourceFile(
   `,
   { overwrite: true },
 );
+project.createSourceFile(
+  resolveFromRepo("src/plugins/runtime-log-browser-action-unbound.fixture.ts"),
+  `
+    import type { BrowserController } from "../lib/browser/browser-controller.js";
+    import type { RuntimeLogger } from "../lib/runtime-logs/index.js";
+    import {
+      emitAmazonOrderDetailNavigationStarted,
+      emitAmazonOrderDetailNavigationTerminal,
+    } from "./amazon-invoice-upload/amazon-dom-step-trace.js";
 
-const context: InspectorContext = {
-  project,
-  planEntry: {
+    declare const browser: BrowserController;
+    declare const logger: RuntimeLogger;
+
+    export async function runUnboundBrowserAction(): Promise<void> {
+      const browserActionId = "browser:governed";
+      const unrelatedActionId = "browser:unrelated";
+      emitAmazonOrderDetailNavigationStarted({
+        runtimeLogger: logger,
+        executionId: "execution:fixture",
+        browserActionId: unrelatedActionId,
+        beforeHash: "before",
+        runtimeLogRef: "runtime-logs/workbench.jsonl",
+        amazonOrderId: "fixture-order",
+      });
+      await browser.open({
+        url: "https://sellercentral.amazon.ae/orders-v3/order/fixture",
+        title: "fixture",
+        browserActionId: browserActionId,
+      });
+      emitAmazonOrderDetailNavigationTerminal({
+        runtimeLogger: logger,
+        executionId: "execution:fixture",
+        browserActionId: unrelatedActionId,
+        runtimeLogRef: "runtime-logs/workbench.jsonl",
+        actionResult: "success",
+        beforeHash: "before",
+        afterHash: "after",
+        durationMs: 1,
+        navigationMode: "reused_host_tab",
+        observedUrlMatchesRequest: true,
+        reason: "fixture",
+      });
+    }
+  `,
+  { overwrite: true },
+);
+
+const planEntry: InspectorContext["planEntry"] = {
     capabilityDomain: "runtime-log-spine",
     ownerInspectorPath: "scripts/audit/domains/runtime-log-spine/inspector.ts",
     executionGroup: "foundation",
@@ -93,7 +139,7 @@ const context: InspectorContext = {
       lawId,
       clauseId: `${lawId.toLowerCase()}-fixture-requirement`,
       evidenceMode: "static",
-      checkIds: ["fixture/check"],
+      checkIds: ["runtime-log-spine/owner-assertion-set"],
       sourceEvidence: [{
         filePath: "scripts/audit/domains/runtime-log-spine/inspector.ts",
         symbolName: "inspectDomain",
@@ -102,7 +148,11 @@ const context: InspectorContext = {
     blueprintRefs: [],
     manifestPath: "scripts/audit/domains/runtime-log-spine/manifest.json",
     lawIds: Object.values(RuntimeLogSpineLaw),
-  },
+};
+const context: InspectorContext = {
+  checks: createInspectorCheckSession(planEntry).checks,
+  project,
+  planEntry,
   generatedPlan: [],
   completedReports: {},
 };
@@ -126,6 +176,7 @@ const antiFakeFindings = collectAntiFakeInspectorFindingsWithSnapshot(context, {
   stageCoveragePercent: 100,
   stagePairViolationCount: 0,
 }).findings;
+const browserActionFindings = collectBrowserActionLogContractFindings(context).findings;
 
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.NO_CONSOLE));
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.EVENT_REGISTRY));
@@ -136,5 +187,11 @@ assert.ok(semanticMetrics.metrics.stageStartCount >= 1);
 assert.ok(semanticMetrics.metrics.stageTerminalCount >= 1);
 assert.ok(semanticMetrics.metrics.failureBranchCount >= 1);
 assert.ok(antiFakeFindings.some((finding) => finding.checkId === "runtime-log-spine/anti-fake-stage-counts"));
+assert.ok(
+  browserActionFindings.some((finding) =>
+    finding.checkId === "runtime-log-spine/browser-action-log-contract"
+    && finding.file === "src/plugins/runtime-log-browser-action-unbound.fixture.ts"),
+  "caller-correlated browser logs must use the same browserActionId binding as the governed action",
+);
 
 process.stdout.write("[ACCEPTANCE] runtime-log-spine-ast-anti-escape PASS\n");

@@ -4,6 +4,7 @@ import {
 } from "./facebook-product-video-mining.flow.js";
 import { buildFacebookMiningRunConfig } from "./facebook-product-video-mining.result.js";
 import {
+  FacebookProductVideoMiningMissionInputSchema,
   FacebookProductVideoMiningSchemas,
   type FacebookProductVideoMiningContracts,
 } from "./facebook-product-video-mining.schema.js";
@@ -65,5 +66,6 @@ export {
   exportFacebookProductVideoMiningSelectionRecords,
   listFacebookProductVideoMiningSavedRecords,
   createFacebookProductVideoMiningStorage,
+  FacebookProductVideoMiningMissionInputSchema,
   FacebookProductVideoMiningSchemas,
 };

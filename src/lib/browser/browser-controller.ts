@@ -7,6 +7,36 @@ type BrowserActionResult = {
   ok: boolean;
   message: string;
   createdAt: string;
+  actionKind?: "open";
+  requestedHost?: string;
+  reusePolicy?: BrowserOpenReusePolicy;
+  navigationMode?: BrowserOpenNavigationMode;
+  observedUrl?: string;
+  observedUrlMatchesRequest?: boolean;
+  startedAt?: string;
+  durationMs?: number;
+};
+
+type BrowserOpenNavigationMode =
+  | "focused_existing_tab"
+  | "focused_existing_same_path_tab"
+  | "opened_new_window"
+  | "opened_new_tab"
+  | "opened_new_host_tab"
+  | "reused_active_tab"
+  | "reused_host_tab"
+  | "no_existing_tab"
+  | "unknown";
+
+type BrowserOpenResult = BrowserActionResult & {
+  actionKind: "open";
+  requestedHost: string;
+  reusePolicy: BrowserOpenReusePolicy;
+  navigationMode: BrowserOpenNavigationMode;
+  observedUrl: string;
+  observedUrlMatchesRequest: boolean;
+  startedAt: string;
+  durationMs: number;
 };
 
 type BrowserCaptureResult = {
@@ -69,10 +99,17 @@ type BrowserNativeMultiFilePickerResult = BrowserActionResult & {
 };
 
 interface BrowserController {
+  setExecutionAbortSignal?(abortSignal: AbortSignal | null): void;
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
-  getGeometrySnapshot(): Promise<BrowserGeometrySnapshot>;
-  open(input: { url: string; title: string; reusePolicy?: BrowserOpenReusePolicy }): Promise<BrowserActionResult>;
+  getGeometrySnapshot(abortSignal?: AbortSignal): Promise<BrowserGeometrySnapshot>;
+  open(input: {
+    url: string;
+    title: string;
+    reusePolicy?: BrowserOpenReusePolicy;
+    browserActionId?: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
   scroll(input: {
     targetLabel: string;
     deltaX: number;
@@ -87,11 +124,13 @@ interface BrowserController {
     coordinateSpace?: BrowserClickCoordinateSpace;
     button?: BrowserClickButton;
     clickCount?: 1 | 2;
+    abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   move?(input: {
     targetLabel: string;
     point: { x: number; y: number };
     coordinateSpace?: BrowserClickCoordinateSpace;
+    abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   clickLocatedDomElement(input: {
     targetLabel: string;
@@ -124,9 +163,9 @@ interface BrowserController {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserNativeMultiFilePickerResult>;
-  wait(durationMs: number): Promise<BrowserActionResult>;
+  wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult>;
   closeActiveTab(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 
-export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserOpenReusePolicy, BrowserNativeMultiFilePickerResult, BrowserController };
+export type { BrowserActionResult, BrowserOpenResult, BrowserOpenNavigationMode, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserOpenReusePolicy, BrowserNativeMultiFilePickerResult, BrowserController };

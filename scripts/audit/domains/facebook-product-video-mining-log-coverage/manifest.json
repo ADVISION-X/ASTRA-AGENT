@@ -9,12 +9,7 @@
         "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
         "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
         "checkIds": [
-          "facebook-log-coverage/ai-contract",
-          "facebook-log-coverage/artifact-refs",
-          "facebook-log-coverage/failure-contract",
-          "facebook-log-coverage/mandatory-stage",
-          "facebook-log-coverage/navigation-contract",
-          "facebook-log-coverage/recovery-trail"
+          "facebook-product-video-mining-log-coverage/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -27,12 +22,7 @@
         "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
         "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
         "checkIds": [
-          "facebook-log-coverage/ai-contract",
-          "facebook-log-coverage/artifact-refs",
-          "facebook-log-coverage/failure-contract",
-          "facebook-log-coverage/mandatory-stage",
-          "facebook-log-coverage/navigation-contract",
-          "facebook-log-coverage/recovery-trail"
+          "facebook-product-video-mining-log-coverage/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -45,12 +35,7 @@
         "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
         "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
         "checkIds": [
-          "facebook-log-coverage/ai-contract",
-          "facebook-log-coverage/artifact-refs",
-          "facebook-log-coverage/failure-contract",
-          "facebook-log-coverage/mandatory-stage",
-          "facebook-log-coverage/navigation-contract",
-          "facebook-log-coverage/recovery-trail"
+          "facebook-product-video-mining-log-coverage/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -63,12 +48,7 @@
         "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
         "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
         "checkIds": [
-          "facebook-log-coverage/ai-contract",
-          "facebook-log-coverage/artifact-refs",
-          "facebook-log-coverage/failure-contract",
-          "facebook-log-coverage/mandatory-stage",
-          "facebook-log-coverage/navigation-contract",
-          "facebook-log-coverage/recovery-trail"
+          "facebook-product-video-mining-log-coverage/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -81,12 +61,7 @@
         "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
         "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
         "checkIds": [
-          "facebook-log-coverage/ai-contract",
-          "facebook-log-coverage/artifact-refs",
-          "facebook-log-coverage/failure-contract",
-          "facebook-log-coverage/mandatory-stage",
-          "facebook-log-coverage/navigation-contract",
-          "facebook-log-coverage/recovery-trail"
+          "facebook-product-video-mining-log-coverage/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -99,12 +74,7 @@
         "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
         "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
         "checkIds": [
-          "facebook-log-coverage/ai-contract",
-          "facebook-log-coverage/artifact-refs",
-          "facebook-log-coverage/failure-contract",
-          "facebook-log-coverage/mandatory-stage",
-          "facebook-log-coverage/navigation-contract",
-          "facebook-log-coverage/recovery-trail"
+          "facebook-product-video-mining-log-coverage/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

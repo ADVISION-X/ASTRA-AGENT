@@ -49,8 +49,11 @@ const buildStaticCoverageSummary = (
   activeLawCount: number;
   activeClauseCount: number;
   boundClauseCount: number;
-  executedClauseCount: number;
-  uncoveredClauseIds: string[];
+  machineClauseCount: number;
+  executedMachineClauseCount: number;
+  deferredRealChromeClauseCount: number;
+  realChromeClauseIds: string[];
+  uncoveredMachineClauseIds: string[];
   coveragePercent: number;
 } => {
   const activeLaws = laws.filter((law) => law.status === "active");
@@ -60,24 +63,33 @@ const buildStaticCoverageSummary = (
   const coverageByClause = new Map(
     staticCoverage.map((entry) => [`${entry.lawId}::${entry.clauseId}`, entry]),
   );
-  const executedClauseKeys = new Set(
-    staticCoverage
+  const machineCoverage = staticCoverage.filter((entry) => entry.evidenceMode !== "real-chrome");
+  const executedMachineClauseKeys = new Set(
+    machineCoverage
       .filter((entry) => entry.checkIds.every((checkId) =>
         executedChecks.has(`${entry.lawId}::${entry.clauseId}::${checkId}`)))
       .map((entry) => `${entry.lawId}::${entry.clauseId}`),
   );
-  const uncoveredClauseIds = activeClauseKeys.filter((key) =>
-    !coverageByClause.has(key) || !executedClauseKeys.has(key));
+  const realChromeClauseIds = staticCoverage
+    .filter((entry) => entry.evidenceMode === "real-chrome")
+    .map((entry) => `${entry.lawId}::${entry.clauseId}`);
+  const uncoveredMachineClauseIds = machineCoverage
+    .map((entry) => `${entry.lawId}::${entry.clauseId}`)
+    .filter((key) => !executedMachineClauseKeys.has(key));
   const activeClauseCount = activeClauseKeys.length;
+  const machineClauseCount = machineCoverage.length;
   return {
     activeLawCount,
     activeClauseCount,
     boundClauseCount: activeClauseKeys.filter((key) => coverageByClause.has(key)).length,
-    executedClauseCount: executedClauseKeys.size,
-    uncoveredClauseIds,
-    coveragePercent: activeClauseCount === 0
+    machineClauseCount,
+    executedMachineClauseCount: executedMachineClauseKeys.size,
+    deferredRealChromeClauseCount: realChromeClauseIds.length,
+    realChromeClauseIds,
+    uncoveredMachineClauseIds,
+    coveragePercent: machineClauseCount === 0
       ? 100
-      : Math.round(((activeClauseCount - uncoveredClauseIds.length) / activeClauseCount) * 100),
+      : Math.round(((machineClauseCount - uncoveredMachineClauseIds.length) / machineClauseCount) * 100),
   };
 };
 

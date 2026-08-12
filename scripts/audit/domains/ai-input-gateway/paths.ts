@@ -138,12 +138,6 @@ export const acceptance = {
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
   sourceContractAcceptancePath:
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
-  realChromeParallelAcceptancePath:
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
-  realChromeRestartAcceptancePath:
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
-  realChromeForkAcceptancePath:
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-fork.real-chrome.ts",
 } as const;
 
 export const removed = {

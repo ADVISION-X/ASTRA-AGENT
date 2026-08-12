@@ -7,7 +7,11 @@ import { runAmazonProductMiningFlow } from "./amazon-product-mining.flow.js";
 import type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
 import { createKeywordProgress, taskRecordToResult } from "./amazon-product-mining.result.js";
 import { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
-import type { AmazonMiningInput, AmazonTaskRecord } from "./amazon-product-mining.schema.js";
+import type {
+  AmazonMiningContinueInput,
+  AmazonMiningInput,
+  AmazonTaskRecord,
+} from "./amazon-product-mining.schema.js";
 import {
   getAmazonProductMiningKeywordReviewHistoryEntry,
   listAmazonProductMiningKeywordReviewHistory,
@@ -17,7 +21,11 @@ import { createAmazonMiningStorage } from "./amazon-product-mining.storage.js";
 import type { AmazonMiningStorage } from "./amazon-product-mining.storage.js";
 
 export type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
-export { AmazonMiningSchemas } from "./amazon-product-mining.schema.js";
+export {
+  AmazonMiningContinueInputSchema,
+  AmazonMiningInputSchema,
+  AmazonMiningSchemas,
+} from "./amazon-product-mining.schema.js";
 
 const ACTIVE_AMAZON_MINING_TASKS = new Map<string, Promise<AmazonFlowResult>>();
 
@@ -114,7 +122,7 @@ export const startAmazonProductMiningMission = (input: {
 };
 
 export const continueInterruptedAmazonProductMiningTasks = (
-  input: AmazonProductMiningRuntimeInput,
+  input: AmazonMiningContinueInput & AmazonProductMiningRuntimeInput,
 ): { taskIds: string[] } => {
   const storage = createAmazonMiningStorage(input.dataDir);
   try {

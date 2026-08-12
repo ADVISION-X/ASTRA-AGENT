@@ -7,7 +7,7 @@ applyTo: "src/plugins/amazon-invoice-upload/**,src/app/workbench-amazon-routes.t
 # GrassEye Amazon Invoice Upload Unified Chain
 
 status: active  
-version: 2026-08-03
+version: 2026-08-11
 capabilityDomain: amazon-invoice-upload  
 tier: P0  
 enforcementMode: machine-blocking  
@@ -321,6 +321,7 @@ Download completion is not upload completion. Website status return is not task 
     "Agent upload ledger persists under dataDir/plugin-tasks/amazon-invoice-upload.",
     "saveTaskRecord writes the upload ledger using the existing task record path.",
     "GET /api/plugins/amazon-invoice-upload/ledger returns safe ledger records for website status sync.",
+    "Ledger records may expose only the persisted runtimeLogRef and navigationEvidenceRef produced by the current task; a fabricated domTraceRef or unresolved runtime-evidence path is forbidden.",
     "Upload task record responses from start, status, resume, and latest routes must redact mission.invoicePdfPath before returning to external callers.",
     "Ledger external route is exact, externalApiAllowed true, requiresApiKey true, and jobOwner amazon-invoice-upload.",
     "Ledger response excludes raw invoice PDF bytes, local invoicePdfPath, cookies, Seller Central profile paths, selectors, browser commands, documentId, and downloadUrl."
@@ -331,7 +332,8 @@ Download completion is not upload completion. Website status return is not task 
     "Second upload ledger outside amazon-invoice-upload owner.",
     "Ledger route outside /api/plugins/amazon-invoice-upload/ledger.",
     "Upload start/status/resume/latest route response leaking local invoicePdfPath.",
-    "Ledger response leaking invoicePdfPath or raw PDF/local file paths."
+    "Ledger response leaking invoicePdfPath or raw PDF/local file paths.",
+    "A ledger domTraceRef or runtime-evidence path that has no active writer and cannot be resolved."
   ],
   "clauses": [
     {
@@ -389,7 +391,7 @@ Download completion is not upload completion. Website status return is not task 
 }
 ```
 
-## [GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1] Single Order Navigation and 2-Second Step Deadline
+## [GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1] Single Order Navigation and Governed Step Waiting
 
 ```apex-law
 {
@@ -399,10 +401,13 @@ Download completion is not upload completion. Website status return is not task 
   "capabilityDomain": "amazon-invoice-upload",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "flow+ast+acceptance+chrome",
-  "summary": "Amazon invoice upload must enter each order through one explicit order-detail navigation, must never refresh that page as recovery, and must turn any missing page-state transition after 2 seconds into a logged failure with a finite next action.",
+  "summary": "Amazon invoice upload must enter each order through one explicit order-detail navigation, must never refresh that page as recovery, and must advance only after an order-bound explicit DOM terminal signal; elapsed time alone cannot decide the business branch or start the next invoice.",
   "appliesTo": [
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
+    "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+    "src/app/workbench-home-amazon-invoice-client.ts",
     "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
     "src/lib/browser/current-chrome-browser-screenshot.ts",
     "scripts/audit/domains/amazon-invoice-upload/**",
@@ -412,27 +417,43 @@ Download completion is not upload completion. Website status return is not task 
   "required": [
     "The upload flow must call the order-detail owner directly; it must not first open the same sellerCentralEntryUrl through a generic Seller Central entry phase.",
     "Each invoice item performs exactly one BrowserController.open for the order detail and never navigates that item again.",
-    "Order-detail readiness is observed in at most three consecutive windows; each window is no longer than 2 seconds and must record a structured failure before the next same-page observation begins.",
+    "The one order-detail open must use one caller-created browserActionId, consume the structured open result, fail closed on an unsuccessful or mismatched observed URL, and persist one integrity-hashed forensics navigation proof linked to taskId or executionId.",
+    "Order-detail navigation logs must contain one truthful started/terminal pair for that browserActionId; readiness observations must use distinct observe-window identities and must never be labelled as open or navigation.",
+    "Browser state reads and wait operations are pure observations: they must not create a Chrome window, set or restore a URL, refresh a page, or emit another navigation command.",
+    "Start, resume, and direct Amazon invoice missions share one plugin-owned single-flight execution lease for the shared BrowserController; a concurrent second execution fails closed before BrowserController.open.",
+    "The terminal timeout aborts the active browser and DOM execution and awaits flow settlement before terminal persistence, lease release, or the next invoice execution.",
+    "Order-detail readiness is observed in at most eight consecutive windows for a 16-second maximum; each window is no longer than 2 seconds and must record a structured failure before the next same-page observation begins.",
+    "Each order-detail snapshot timeout and poll wait is clamped to the current window's remaining time so eight nominal 2-second windows cannot silently become eight overlong waits.",
     "Every Amazon invoice DOM snapshot has an explicit execution deadline no greater than 1800ms so a low-level Chrome evaluation cannot silently exceed the 2-second business window.",
     "A DOM evaluation exception inside an order-detail observation is converted into that window's structured failure and the next finite same-page observation; it must not bypass the governed window sequence.",
     "Evidence screenshot capture activates the controlled Chrome window before capture so a transient zero-accessibility-window state cannot fail the invoice item.",
-    "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting three windows returns review-required failure without refresh or repeat navigation.",
-    "Upload dialog readiness, file-input readiness, existing-invoice evidence, and post-submit success evidence each use an observation timeout no greater than 2 seconds.",
+    "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting eight windows returns review-required failure without refresh or repeat navigation.",
+    "After Manage invoice is clicked, existing-invoice discovery uses an AND THEN wait: the unique visible invoice dialog must bind to the current amazonOrderId and expose either a matching uploaded invoice row, a fully rendered upload-ready table and upload action, or the exact no-actions blocker before the flow may branch.",
+    "A short elapsed-time deadline must not turn a still-loading Manage invoice dialog into review_required and must not permit the local batch to start the next invoice.",
+    "The task-level terminal timeout is an operational abort watchdog only: it aborts and awaits the active flow, returns review_required, and the local batch must stop with the current order retained rather than continue automatically.",
+    "A governed local-batch inter-item pacing delay may begin only after the prior single-upload task has returned a formal terminal result and released its browser execution lease; it is outside DOM readiness, navigation, retry, timeout, and business-state judgment.",
+    "Upload dialog readiness, file-input readiness, and post-submit success evidence each use an observation timeout no greater than 2 seconds.",
     "Login, captcha, 2FA, amount mismatch, ambiguous DOM, exhausted retry, and final verification failure must fail closed without PDF upload or fake success."
   ],
   "forbidden": [
     "Opening sellerCentralEntryUrl and then opening the derived order-detail URL as two normal entry steps for the same item.",
     "Any same-tab order-page refresh helper, recovery refresh, random readiness delay, fallback, compatibility bridge, or shadow branch.",
-    "Any passive page-state wait longer than 2 seconds inside the upload execution flow.",
+    "Placing local-batch inter-item pacing inside BrowserController, DOM observation, the single-upload plugin flow, task watchdog, or execution lease.",
+    "Using a short elapsed-time deadline as the existing-invoice business verdict after Manage invoice was clicked.",
     "Using the BrowserController 10-second default evaluation timeout for an Amazon invoice DOM snapshot.",
     "Allowing a transient order-detail DOM evaluation exception to escape directly as an unclassified upload-flow runtime failure.",
     "Starting the next same-page observation before the preceding 2-second window has returned and logged its failure.",
+    "Discarding BrowserController.open result, fabricating a navigation ref without a forensics writer, or using orderId plus invoiceNo as the only repeated-execution identity.",
+    "A state-read, geometry-read, snapshot, or wait path that creates a Chrome window or writes any URL.",
+    "A detached Promise.race timeout that can leave the prior upload flow running after a terminal task result.",
+    "Two Amazon invoice executions concurrently controlling the shared BrowserController.",
+    "Starting the next batch invoice because the current order's Manage invoice dialog has not reached an explicit DOM terminal state yet.",
     "Proceeding to upload before target order id, invoice action state, and amount equality are proven."
   ],
   "clauses": [
     {
       "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
-      "statement": "Amazon invoice upload uses one order-detail navigation per item, never refreshes or reopens the order page, and turns every 2-second readiness miss into a logged failure followed only by a finite same-page observation.",
+      "statement": "Amazon invoice upload uses one order-detail navigation per item, never refreshes or reopens the order page, and advances from Manage invoice only after an order-bound explicit DOM terminal signal; elapsed time alone never selects the business branch or starts the next invoice.",
       "evidenceMode": "real-chrome",
       "ownerDomain": "amazon-invoice-upload"
     }
@@ -440,7 +461,7 @@ Download completion is not upload completion. Website status return is not task 
 }
 ```
 
-## [GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1] Batch Ledger Preflight Skip
+## [GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1] Batch Ledger Preflight Skip and Inter-Item Pacing
 
 ```apex-law
 {
@@ -450,7 +471,7 @@ Download completion is not upload completion. Website status return is not task 
   "capabilityDomain": "amazon-invoice-upload",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ledger+app-shell+acceptance+audit",
-  "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, and the single upload flow must recover the exact Seller Central no-actions invoice dialog by one verified outside-dialog dismissal and reopen rather than refreshing the order page.",
+  "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, pace consecutive real single-upload requests by a governed random 2-to-15-second interval, and recover the exact Seller Central no-actions invoice dialog without refreshing the order page.",
   "appliesTo": [
     "src/app/workbench-home-amazon-invoice-client.ts",
     "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
@@ -464,14 +485,23 @@ Download completion is not upload completion. Website status return is not task 
     "Only ledger records with status upload_success or already_uploaded may be skipped before opening Seller Central.",
     "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
     "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
-    "After opening Manage invoice / 管理发票, the flow observes strong invoice-list evidence or the exact blocker 很抱歉，目前没有可用的操作。 for at most 2 seconds; expiry is a structured review_required failure.",
-    "Only when one visible current-order invoice dialog exposes the exact no-actions blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and observe strong evidence for at most 2 seconds.",
-    "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, the exact blocker appears again, or the second strong-evidence window expires, the order must stop as review_required before any PDF upload.",
+    "After opening Manage invoice / 管理发票, the flow waits until one unique visible dialog is bound to the current amazonOrderId and exposes exactly one explicit terminal branch: a matching uploaded invoice row, a fully rendered upload-ready table plus upload action, or an exact governed read-failure blocker such as 很抱歉，目前没有可用的操作。 or 读取失败.",
+    "The real-Chrome Chinese already-uploaded branch is the conjunction of dialog heading 订单<amazonOrderId>的发票, a row containing the matching complete order/invoice id, and the explicit status 成功：已上传 or equivalent strong uploaded state; the heading alone is only an order-binding signal.",
+    "Only when the unique visible invoice dialog whose title contains the current complete amazonOrderId exposes an exact governed read-failure blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and resume the same AND THEN terminal-state wait; read-failure text from any unrelated dialog must be ignored.",
+    "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, or the exact blocker appears again, the order must stop as review_required before any PDF upload.",
     "APP batch upload and external API upload must use this same plugin-owned recovery through the existing /api/plugins/amazon-invoice-upload/start route.",
-    "A still-loading or unchanged Seller Central invoice list after 2 seconds must become review_required; it must never be collapsed into already_uploaded or upload_success.",
+    "A still-loading or unchanged Seller Central invoice list remains on the current order; it must never be collapsed into already_uploaded, upload_success, review_required, or permission to start the next order solely because time elapsed.",
     "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
     "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
-    "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf."
+    "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf.",
+    "The local batch start action is latched and disabled while a batch is running; repeated submit is rejected without creating another request loop.",
+    "Duplicate complete amazonOrderId values in the same selected batch are marked invalid before any upload request is sent.",
+    "An explicit status equal to review_required, including the task-level operational watchdog result, stops the local batch before the next queued order starts; the reviewRequired metadata boolean alone is never a batch-control command.",
+    "An amount_mismatch_skipped item retains that exact status and review metadata in the local queue, increments the visible failed/review count, and continues to the next queued order without attaching the current PDF.",
+    "Between two consecutive non-ledger-skipped single-upload requests, the local queue selects exactly one cryptographically generated integer delay from 2000ms through 15000ms after the prior formal terminal result and before the next POST /api/plugins/amazon-invoice-upload/start.",
+    "The pacing delay is not consumed by ledger-preflight skips, invalid files, or duplicate files; it does not run before the first real request, after the final real request, or after any result that stops the batch.",
+    "upload_success, live already_uploaded, amount_mismatch_skipped, and an ordinary failed result that is allowed to continue all require pacing before the next real request; explicit review_required, blocked_auth, execution busy, task watchdog timeout, and unknown transport outcome stop without pacing or another request.",
+    "While pacing, the running latch and disabled Start action remain held and the App Shell exposes the selected delay and next start timestamp without writing a second batch ledger or changing the prior item terminal result."
   ],
   "forbidden": [
     "Skipping based on website export state.",
@@ -483,12 +513,19 @@ Download completion is not upload completion. Website status return is not task 
     "Refreshing or reopening the order-detail URL as recovery for the no-actions Manage invoice dialog.",
     "Using hard-coded, caller-provided, API-provided, or APP-provided coordinates to dismiss the dialog.",
     "Retrying the outside-dialog dismissal or Manage invoice reopen more than once.",
-    "Keeping the retired order-refresh recovery as a fallback, compatibility bridge, or shadow branch."
+    "Keeping the retired order-refresh recovery as a fallback, compatibility bridge, or shadow branch.",
+    "Allowing double-submit to create two local batch loops.",
+    "Sending an upload request for a duplicate complete order id in the same local batch.",
+    "Continuing the local batch after an explicit review_required status or treating a still-loading invoice dialog as a completed item.",
+    "Converting amount_mismatch_skipped into review_required, breaking the local queue from reviewRequired metadata, or preventing the next queued order from starting after an amount mismatch has been recorded.",
+    "Using caller input, API input, environment overrides, Math.random, a fixed-delay fallback, or a second scheduler to choose the inter-item pacing delay.",
+    "Delaying ledger-only skips, delaying before the first real request or after the last real request, consuming the pending delay before a ledger skip, or starting the next real request earlier than the selected delay.",
+    "Continuing after task watchdog timeout, execution busy, explicit review_required, blocked_auth, or an unknown single-upload transport outcome."
   ],
   "clauses": [
     {
       "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
-      "statement": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success or already_uploaded for the same order id and invoice number.",
+      "statement": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, skip only orders already proven upload_success or already_uploaded for the same order id and invoice number, and pace consecutive real single-upload requests by one governed random 2-to-15-second interval.",
       "evidenceMode": "acceptance",
       "ownerDomain": "amazon-invoice-upload"
     }
@@ -526,6 +563,7 @@ Download completion is not upload completion. Website status return is not task 
     "Focus-only tab switching must be an explicit API-return mode and must not become the default behavior of normal Amazon Manage admin page opening.",
     "The focus-only policy must not create a new Chrome window, create a new tab, set URL of an existing tab, refresh the website, or navigate by host fallback when the exact/same-path website tab is missing.",
     "If the existing website tab is missing or cannot be focused, the focus failure must be recorded in runtime trace without overwriting the Amazon upload terminal status.",
+    "The bounded website-return timeout must abort the focus browser action and await its full settlement before the upload execution lease is released or another invoice may start.",
     "adminOrderUrl must still pass the allowed Amazon admin host validation before any tab focus attempt.",
     "A post-change production-readiness claim for website tab return must cite fresh runtime evidence from the changed path; historical Seller Central upload success evidence is not proof that the website return IF was tested."
   ],
@@ -535,6 +573,7 @@ Download completion is not upload completion. Website status return is not task 
     "Applying focus-only behavior to ordinary admin page open commands.",
     "Using reuse-active-tab, reuse-host-tab, open-new-tab, or fallback URL navigation for website return.",
     "Running website return before the Amazon upload reaches and persists a terminal result.",
+    "Using a detached Promise.race or any timeout path that can release the upload execution lease while the website focus browser action is still running.",
     "Inferring upload_success, already_uploaded, or review_required from website focus state.",
     "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
     "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
@@ -573,6 +612,7 @@ Download completion is not upload completion. Website status return is not task 
     "The Seller Central amount source is the live order detail DOM total, such as Sales proceeds Total or 销售收益 总和, read from the existing browser session at upload time.",
     "PDF and DOM amounts must be normalized to currency plus minor units before comparison.",
     "On mismatch, unreadable PDF amount, or unreadable DOM order total, the flow returns amount_mismatch_skipped with reviewRequired true and must not attach the file, click upload, or submit.",
+    "For App Shell batch upload, amount_mismatch_skipped is an item-local terminal result: the task and ledger record the mismatch, the current PDF remains untouched, and the local queue continues with the next queued order; reviewRequired is display metadata and must not be promoted to an explicit review_required batch stop.",
     "The task record and ledger reason must include a concise safe skip reason without logging raw PDF text, raw DOM HTML, cookies, browser storage, or local absolute PDF paths.",
     "API-triggered uploads and App Shell batch uploads must both pass through the same single-upload amount gate."
   ],
@@ -581,6 +621,7 @@ Download completion is not upload completion. Website status return is not task 
     "Calling uploadApprovedInvoice before the amount gate passes.",
     "Treating filename, APP amount, website export amount, or caller-provided amount as order total truth.",
     "Running a separate APP-only or API-only amount checker that can disagree with the flow result.",
+    "Stopping the remaining App Shell batch solely because an amount_mismatch_skipped item carries reviewRequired true.",
     "Uploading when PDF total or Seller Central DOM total is unreadable.",
     "Logging raw PDF text, full DOM HTML, cookies, browser storage, or local absolute invoicePdfPath as amount evidence."
   ],

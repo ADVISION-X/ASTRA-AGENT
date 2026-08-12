@@ -24,3 +24,4 @@ export {
 export type {
   XuanxueAiProductionCloudWorkerHandle,
 } from "./xuanxue-ai-production-cloud-contract.js";
+export { createXuanxueAiProductionWorkbenchOwner } from "./xuanxue-ai-production.workbench-owner.js";

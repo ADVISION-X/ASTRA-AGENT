@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
-import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import {
+  AmazonInvoiceUploadMissionInputSchema,
+  type AmazonInvoiceUploadMissionInput,
+} from "./mission.schema.js";
 import type { AmazonInvoiceUploadPdfFile } from "./amazon-invoice-upload-storage.types.js";
 
 export const AmazonInvoiceUploadAdminOpenInputSchema = z.object({
@@ -35,3 +38,16 @@ export type AmazonInvoiceUploadTaskStartInput = {
   mission: AmazonInvoiceUploadMissionInput;
   invoicePdf: AmazonInvoiceUploadPdfFile;
 };
+
+export const AmazonInvoiceUploadTaskStartInputSchema = z.object({
+  mission: AmazonInvoiceUploadMissionInputSchema,
+  invoicePdf: z.object({
+    filename: z.string().min(1),
+    mimeType: z.string().min(1),
+    bytes: z.instanceof(Buffer),
+  }).strict(),
+}).strict();
+
+export const AmazonInvoiceUploadResumeInputSchema = z.object({
+  taskId: z.string().trim().min(1),
+}).strict();

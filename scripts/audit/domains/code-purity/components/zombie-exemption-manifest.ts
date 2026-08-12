@@ -44,8 +44,19 @@ export type ZombieExemptionManifest = {
 };
 
 const emptyEntryExports: readonly ZombieEntryExportExemption[] = [];
-const emptyEntryFiles: readonly ZombieEntryFileExemption[] = [];
-const emptyDynamicImports: readonly ZombieDynamicImportExemption[] = [];
+const externalEntryFiles: readonly ZombieEntryFileExemption[] = [
+  {
+    filePath: "scripts/audit/core/run-generated-plan-worker.mjs",
+    reason: "CI-FULL launches this bounded worker as the only cancellable adapter around the existing generated-plan runner.",
+  },
+];
+const lawfulDynamicImports: readonly ZombieDynamicImportExemption[] = [
+  {
+    consumerFilePath: "scripts/audit/core/run-generated-plan-worker.mjs",
+    targetFilePath: "scripts/audit/core/run-generated-plan-worker.ts",
+    reason: "The bounded JavaScript bootstrap registers the TypeScript loader and enters the typechecked worker implementation.",
+  },
+];
 const emptyDynamicNamespaceConsumers: readonly ZombieDynamicNamespaceExemption[] = [];
 const emptySideEffectImports: readonly ZombieSideEffectImportExemption[] = [];
 
@@ -150,8 +161,8 @@ const lawfulDynamicRegistryConsumers: readonly ZombieDynamicRegistryConsumerExem
 
 export const createZombieExemptionManifest = (): ZombieExemptionManifest => ({
   externalEntryExports: emptyEntryExports,
-  externalEntryFiles: emptyEntryFiles,
-  lawfulDynamicImports: emptyDynamicImports,
+  externalEntryFiles,
+  lawfulDynamicImports,
   lawfulDynamicRegistryConsumers: lawfulDynamicRegistryConsumers,
   lawfulDynamicNamespaceConsumers: emptyDynamicNamespaceConsumers,
   lawfulSideEffectImports: emptySideEffectImports,

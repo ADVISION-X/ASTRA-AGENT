@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 
 import { createAuditProject } from "../audit/shared/project.js";
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
+import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
 import { resolveFromRepo } from "../audit/shared/paths.js";
 import { FacebookLogCoverageLaw } from "../audit/domains/facebook-product-video-mining-log-coverage/constants.js";
 import { collectFacebookMiningStageCoverage } from "../audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.js";
 
-const buildContext = (project: ReturnType<typeof createAuditProject>): InspectorContext => ({
-	project,
-	planEntry: {
+const buildContext = (project: ReturnType<typeof createAuditProject>): InspectorContext => {
+	const planEntry: InspectorContext["planEntry"] = {
 		capabilityDomain: "facebook-product-video-mining-log-coverage",
 		ownerInspectorPath: "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
 		executionGroup: "domain",
@@ -16,7 +16,7 @@ const buildContext = (project: ReturnType<typeof createAuditProject>): Inspector
 			lawId,
 			clauseId: `${lawId.toLowerCase()}-fixture-requirement`,
 			evidenceMode: "static",
-			checkIds: ["fixture/check"],
+			checkIds: ["facebook-product-video-mining-log-coverage/owner-assertion-set"],
 			sourceEvidence: [{
 				filePath: "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
 				symbolName: "inspectDomain",
@@ -25,10 +25,15 @@ const buildContext = (project: ReturnType<typeof createAuditProject>): Inspector
 		blueprintRefs: [],
 		manifestPath: "scripts/audit/domains/facebook-product-video-mining-log-coverage/manifest.json",
 		lawIds: Object.values(FacebookLogCoverageLaw),
-	},
-	generatedPlan: [],
-	completedReports: {},
-});
+	};
+	return {
+		checks: createInspectorCheckSession(planEntry).checks,
+		project,
+		planEntry,
+		generatedPlan: [],
+		completedReports: {},
+	};
+};
 
 const realProject = createAuditProject();
 const realCoverage = collectFacebookMiningStageCoverage(buildContext(realProject));

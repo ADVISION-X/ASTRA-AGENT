@@ -1,6 +1,4 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   Node,
@@ -12,11 +10,8 @@ import {
   type SourceFile,
 } from "ts-morph";
 
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
-import { createAuditProject } from "../../shared/project.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectExternalIngressIdentity } from "./external-ingress-identity-inspector.js";
 
@@ -421,7 +416,9 @@ const inspectRequiredFiles = (
     .filter((item): item is SourceFile => item !== null);
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawIds = {
     ingress: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1"),
     cors: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1"),
@@ -458,7 +455,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
     reportJson: {
@@ -470,29 +467,21 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   };
 };
 
-const runInspectorFromCli = async (): Promise<void> => {
-  buildAuditArtifacts();
-  const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === domain);
-  if (!planEntry) {
-    throw new Error("workbench-api-boundary audit plan entry is missing.");
-  }
-  const output = await inspectDomain({
-    project: createAuditProject(),
-    planEntry,
-    generatedPlan: [planEntry],
-    completedReports: {},
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("workbench-api-boundary requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
   });
-  if (output.findings.length > 0) {
-    throw new Error(`workbench-api-boundary failed with ${output.findings.length} finding(s).`);
-  }
-  process.stdout.write("[AUDIT] workbench-api-boundary PASS\n");
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };
-
-const isEntrypoint = (): boolean => {
-  const invokedPath = process.argv[1];
-  return invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url);
-};
-
-if (isEntrypoint()) {
-  await runInspectorFromCli();
-}

@@ -5,6 +5,7 @@ import { copyTextToMacClipboard, pasteMacClipboardIntoChrome } from "./web-chat-
 import {
   buildConversationLinkTargetScript,
   buildConversationOptionsTargetScript,
+  buildInterruptedRenameTextboxTargetScript,
   buildRenameMenuTargetScript,
   buildRenamedIdentityVerificationScript,
   buildRenameTextboxTargetScript,
@@ -41,6 +42,36 @@ const renameNotReady = (message: string): Error =>
 
 const isRenameNotReady = (error: unknown): boolean =>
   error instanceof Error && error.message.includes(CHATGPT_RENAME_NOT_READY);
+
+export const runBoundedRenamePatrols = async <T>(input: {
+  timeoutMs: number;
+  now: () => number;
+  wait: (durationMs: number) => Promise<void>;
+  runExclusivePatrol: (operation: (browser: BrowserController) => Promise<T>) => Promise<T>;
+  runTransaction: (browser: BrowserController, patrolSliceMs: number) => Promise<T>;
+}): Promise<T> => {
+  const deadline = input.now() + input.timeoutMs;
+  let lastRenameNotReady: Error | null = null;
+  while (input.now() < deadline) {
+    const patrolSliceMs = Math.min(
+      RENAME_PATROL_SLICE_MS,
+      Math.max(1, deadline - input.now()),
+    );
+    try {
+      return await input.runExclusivePatrol((browser) =>
+        input.runTransaction(browser, patrolSliceMs));
+    } catch (error) {
+      if (!isRenameNotReady(error)) throw error;
+      lastRenameNotReady = error instanceof Error ? error : new Error(String(error));
+      const remainingMs = deadline - input.now();
+      if (remainingMs <= 0) break;
+      await input.wait(Math.min(RENAME_RETRY_DELAY_MS, remainingMs));
+    }
+  }
+  throw renameNotReady(
+    `rename recovery deadline exceeded; last=${lastRenameNotReady?.message ?? "none"}`,
+  );
+};
 
 const remainingRenameMs = (deadline: number, capMs: number): number => {
   const remaining = deadline - Date.now();
@@ -233,13 +264,44 @@ type RenameTransactionInput = {
   submission: WebChatSubmissionProof;
 };
 
+type InterruptedRenameEditorObservation = LocatedTarget & {
+  rowConversationUrl?: string;
+  markerCount?: number;
+  rowTriggerId?: string | null;
+  rowTriggerControls?: string | null;
+  textboxLabelledBy?: string | null;
+  textboxControls?: string | null;
+};
+
+export const interruptedRenameEditorIdentityMatches = (input: {
+  canonicalConversationUrl: string;
+  observation: InterruptedRenameEditorObservation;
+}): boolean => {
+  try {
+    const expectedPath = new URL(input.canonicalConversationUrl).pathname;
+    const pagePath = new URL(input.observation.pageUrl).pathname;
+    const rowPath = new URL(input.observation.rowConversationUrl ?? "").pathname;
+    const labelledByMatches = Boolean(input.observation.rowTriggerId)
+      && input.observation.textboxLabelledBy === input.observation.rowTriggerId;
+    const controlsMatch = Boolean(input.observation.rowTriggerControls)
+      && input.observation.textboxControls === input.observation.rowTriggerControls;
+    return pagePath === expectedPath && rowPath === expectedPath
+      && input.observation.markerCount === 1 && (labelledByMatches || controlsMatch);
+  } catch {
+    return false;
+  }
+};
+
 const recoverOpenTitleEditor = async (
   input: RenameTransactionInput & { timeoutMs: number },
 ): Promise<boolean> => {
   const deadline = Date.now() + input.timeoutMs;
-  const openTitleEditor = await input.browser.evaluateActiveTab<LocatedTarget>({
+  const openTitleEditor = await input.browser.evaluateActiveTab<InterruptedRenameEditorObservation>({
     description: "detect an interrupted ChatGPT title editor before rename recovery",
-    script: buildRenameTextboxTargetScript(),
+    script: buildInterruptedRenameTextboxTargetScript({
+      canonicalConversationUrl: input.canonicalConversationUrl,
+      turnMarker: input.turnMarker,
+    }),
     ...(input.context.abortSignal
       ? { abortSignal: input.context.abortSignal }
       : {}),
@@ -251,6 +313,14 @@ const recoverOpenTitleEditor = async (
   }
   if (openTitleEditor.status !== "success" || !openTitleEditor.targetPoint) {
     return false;
+  }
+  if (!interruptedRenameEditorIdentityMatches({
+    canonicalConversationUrl: input.canonicalConversationUrl,
+    observation: openTitleEditor,
+  })) {
+    throw new Error(
+      "review_required: interrupted ChatGPT title editor does not belong to the exact canonical conversation row trigger.",
+    );
   }
   const focusedEditor = await input.browser.click({
     targetLabel: "resume interrupted ChatGPT chat title textbox",
@@ -337,16 +407,14 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
   if (!execution.systemChatTitle || !input.submission.canonicalConversationUrl) {
     throw new Error("review_required: ChatGPT submission is missing the durable name or canonical conversation URL.");
   }
-  let observedAutoChatTitle: string | null = null;
-  const deadline = Date.now() + input.timeoutMs;
-  let lastRenameNotReady: Error | null = null;
-  while (Date.now() < deadline) {
-    try {
-      const patrolSliceMs = Math.min(
-        RENAME_PATROL_SLICE_MS,
-        Math.max(1, deadline - Date.now()),
-      );
-      const renamed = await execution.runExclusivePatrol(async (browser) => {
+  const observedAutoChatTitle = await runBoundedRenamePatrols<string | null>({
+    timeoutMs: input.timeoutMs,
+    now: Date.now,
+    wait: async (durationMs) => {
+      await input.browser.wait(durationMs);
+    },
+    runExclusivePatrol: execution.runExclusivePatrol,
+    runTransaction: async (browser, patrolSliceMs) => {
         const renameInput = {
           browser,
           context: input.context,
@@ -359,29 +427,13 @@ export const renameSubmittedChatGptConversation = async (input: { browser: Brows
           renameInput,
           timeoutMs: patrolSliceMs,
         });
-        observedAutoChatTitle ??= observedTitle;
-        return true;
-      });
-      if (!renamed) {
-        throw renameNotReady("exclusive rename patrol returned without proof");
-      }
-      return {
-        ...input.submission,
-        systemChatTitle: execution.systemChatTitle,
-        observedAutoChatTitle,
-        chatTitleVerifiedAt: new Date().toISOString(),
-      };
-    } catch (error) {
-      if (!isRenameNotReady(error)) throw error;
-      lastRenameNotReady = error instanceof Error
-        ? error
-        : new Error(String(error));
-      await input.browser.wait(
-        Math.min(RENAME_RETRY_DELAY_MS, Math.max(1, deadline - Date.now())),
-      );
-    }
-  }
-  throw renameNotReady(
-    `rename recovery deadline exceeded; last=${lastRenameNotReady?.message ?? "none"}`,
-  );
+        return observedTitle;
+      },
+  });
+  return {
+    ...input.submission,
+    systemChatTitle: execution.systemChatTitle,
+    observedAutoChatTitle,
+    chatTitleVerifiedAt: new Date().toISOString(),
+  };
 };

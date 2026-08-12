@@ -51,7 +51,7 @@ const taskControlContracts = [
     "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
-    "src/lib/local-runtime/workbench.ts",
+    "src/lib/local-runtime/workbench-marketplace-handles.ts",
   "src/lib/local-runtime/workbench-handle.ts",
 ] as const;
 
@@ -120,7 +120,7 @@ const inspectTaskControlSurface = (files: TaskControlFiles) => {
   const routes = files["src/app/workbench-amazon-product-mining-routes.ts"];
   const workspace = files["src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts"];
   const reviewClient = files["src/app/workbench-home-amazon-product-mining-review-client.ts"];
-  const workbench = files["src/lib/local-runtime/workbench.ts"];
+  const workbench = files["src/lib/local-runtime/workbench-marketplace-handles.ts"];
   const workbenchHandle = files["src/lib/local-runtime/workbench-handle.ts"];
 	  return {
 	    routesOk: Boolean(routes
@@ -136,7 +136,7 @@ const inspectTaskControlSurface = (files: TaskControlFiles) => {
 	      && !fileIncludesText(reviewClient, "sendAmazonProductMiningControl")),
 	    workbenchOk: Boolean(workbench
 	      && workbenchHandle
-	      && hasCallToLocalIdentifier(workbench, "continueInterruptedAmazonProductMiningTasks")
+	      && hasCallToLocalIdentifier(workbench, "runContinueAmazonProductMiningRoute")
 	      && !hasIdentifier(workbenchHandle, "pauseAmazonProductMiningTask")
 	      && !hasIdentifier(workbenchHandle, "continueAmazonProductMiningTask")
 	      && !hasIdentifier(workbenchHandle, "terminateAmazonProductMiningTask")),

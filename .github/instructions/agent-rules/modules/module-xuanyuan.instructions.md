@@ -1,6 +1,6 @@
 ---
 description: "GrassEye Xuanyuan generic local GPT acceptance law. Website production orders belong exclusively to xuanxue-ai-production."
-applyTo: "src/plugins/xuanyuan/**/*.ts,src/app/workbench-xuanyuan-routes.ts,scripts/audit/domains/xuanyuan/**/*.ts,scripts/acceptance/xuanyuan.acceptance.ts,docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md"
+applyTo: "src/plugins/xuanyuan/**/*.ts,src/mediator/xuanyuan-route.ts,src/app/workbench-xuanyuan-routes.ts,scripts/audit/domains/xuanyuan/**/*.ts,scripts/acceptance/xuanyuan.acceptance.ts,docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md"
 ---
 
 # GrassEye Xuanyuan 受控本地执行法案

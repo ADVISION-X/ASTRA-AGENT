@@ -1,12 +1,8 @@
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Node, SyntaxKind, type Expression, type ObjectLiteralExpression, type Project, type SourceFile } from "ts-morph";
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { loadGeneratedAuditPlan } from "../../core/load-audit-plan.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import type { InspectorCheckBodyResult, SessionInspectorOutput } from "../../shared/inspector-check-session.js";
+import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { createAuditProject } from "../../shared/project.js";
 import {
   acceptancePath,
   boundaryPath,
@@ -442,54 +438,49 @@ const inspectAcceptance = (acceptance: SourceFile | undefined, findings: Inspect
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+const inspectDomainEvaluation = (
+  context: InspectorContext,
+  lawId: string,
+  logLawId: string,
+): InspectorCheckBodyResult => {
+    const checkFindings: InspectorFinding[] = [];
+    const boundary = source(context.project, boundaryPath);
+    const server = source(context.project, serverPath);
+    const schema = source(context.project, schemaPath);
+    const flow = source(context.project, flowPath);
+    const imageTransfer = source(context.project, imageTransferPath);
+    const taskService = source(context.project, taskServicePath);
+    const taskConfig = source(context.project, taskConfigPath);
+    const domScripts = source(context.project, domScriptsPath);
+    const acceptance = source(context.project, acceptancePath);
+
+    inspectRequiredFiles(checkFindings, lawId);
+    inspectBoundary(boundary, checkFindings, lawId);
+    inspectSchema(schema, checkFindings, lawId);
+    inspectFlow(flow, imageTransfer, checkFindings, lawId);
+    inspectTaskService(taskService, taskConfig, checkFindings, lawId);
+    inspectLogMatrix(taskService, checkFindings, logLawId);
+    inspectDomScripts(flow, domScripts, checkFindings, lawId);
+    inspectAcceptance(acceptance, checkFindings, lawId);
+    if (!hasIdentifier(server, "handleAmazonProductSyncRequest")) addFinding(checkFindings, lawId, serverPath, "server must route through handleAmazonProductSyncRequest");
+    if (countDomainPluginStatusEntries() !== 1) addFinding(checkFindings, lawId, pluginStatusPath, "plugin-status must register amazon-product-sync exactly once");
+    return {
+      findings: checkFindings,
+      evidenceRefs: [...requiredFiles, boundaryPath, serverPath, pluginStatusPath, selfPath],
+    };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("amazon-product-sync requires a runner-owned check session.");
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1");
   const logLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-RUNTIME-LOG-SPINE-016-V1");
-  const findings: InspectorFinding[] = [];
-  const boundary = source(context.project, boundaryPath);
-  const server = source(context.project, serverPath);
-  const schema = source(context.project, schemaPath);
-  const flow = source(context.project, flowPath);
-  const imageTransfer = source(context.project, imageTransferPath);
-  const taskService = source(context.project, taskServicePath);
-  const taskConfig = source(context.project, taskConfigPath);
-  const domScripts = source(context.project, domScriptsPath);
-  const acceptance = source(context.project, acceptancePath);
+  const evaluation = await context.checks.runAll((): InspectorCheckBodyResult => {
+    const ownerEvaluation = inspectDomainEvaluation(context, lawId, logLawId);
+    return { findings: ownerEvaluation.findings, evidenceRefs: ownerEvaluation.evidenceRefs };
+  });
+  const findings = evaluation.findings;
 
-  inspectRequiredFiles(findings, lawId);
-  inspectBoundary(boundary, findings, lawId);
-  inspectSchema(schema, findings, lawId);
-  inspectFlow(flow, imageTransfer, findings, lawId);
-  inspectTaskService(taskService, taskConfig, findings, lawId);
-  inspectLogMatrix(taskService, findings, logLawId);
-  inspectDomScripts(flow, domScripts, findings, lawId);
-  inspectAcceptance(acceptance, findings, lawId);
-  if (!hasIdentifier(server, "handleAmazonProductSyncRequest")) addFinding(findings, lawId, serverPath, "server must route through handleAmazonProductSyncRequest");
-  if (countDomainPluginStatusEntries() !== 1) addFinding(findings, lawId, pluginStatusPath, "plugin-status must register amazon-product-sync exactly once");
-
-  return {
-    capabilityDomain: domain,
-    reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
-    findings,
-    inspectedFiles: [...requiredFiles, boundaryPath, serverPath, pluginStatusPath, selfPath].sort(),
+  return context.checks.output({
     reportJson: { generatedAt: new Date().toISOString(), status: findings.length === 0 ? "PASS" : "FAIL", findings },
-  };
+  });
 };
-
-const runInspectorFromCli = async (): Promise<void> => {
-  buildAuditArtifacts();
-  const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === domain);
-  if (!planEntry) throw new Error("amazon-product-sync audit plan entry is missing.");
-  const output = await inspectDomain({ project: createAuditProject(), planEntry, generatedPlan: [planEntry], completedReports: {} });
-  if (output.findings.length > 0) {
-    for (const finding of output.findings.slice(0, 10)) {
-      process.stderr.write(`[AUDIT] amazon-product-sync finding ${finding.filePath}: ${finding.message}\n`);
-    }
-    throw new Error(`amazon-product-sync failed with ${output.findings.length} finding(s).`);
-  }
-  process.stdout.write("[AUDIT] amazon-product-sync PASS\n");
-};
-
-const isEntrypoint = (): boolean => process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isEntrypoint()) await runInspectorFromCli();

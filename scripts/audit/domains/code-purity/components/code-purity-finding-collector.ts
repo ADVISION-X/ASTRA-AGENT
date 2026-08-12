@@ -1,6 +1,6 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
-import { buildInventoryEvidence, type CodePurityInventoryItem } from "./code-purity-report-writer.js";
+import { buildInventoryEvidence, type CodePurityInventoryItem } from "./code-purity-inventory.js";
 
 export type InventoryFindingCollector = {
   findings: InspectorFinding[];

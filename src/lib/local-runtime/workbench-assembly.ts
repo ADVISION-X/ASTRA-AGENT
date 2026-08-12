@@ -1,4 +1,5 @@
 import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
+import path from "node:path";
 import { StructuredLogBus } from "./structured-log-bus.js";
 import {
   createStructuredTerminalLogListener,
@@ -33,9 +34,9 @@ export function createWorkbenchAssembly(
   options: GrassEyeWorkbenchOptions,
 ): WorkbenchAssembly {
   const dataDir = options.dataDir ?? getDefaultPhase04LocalDataDir();
-  const runtimeLogger = createWorkbenchRuntimeLogger();
+  const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   const structuredLogBus = createWorkbenchStructuredLogBus();
-  const browserController = createWorkbenchBrowserController(options, dataDir);
+  const browserController = createWorkbenchBrowserController(options, dataDir, runtimeLogger);
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
   const videoDownload = createWorkbenchVideoDownload(dataDir, browserController, runtimeLogger);
   const mediaProcessing = createWorkbenchMediaProcessing(dataDir, runtimeLogger);
@@ -54,9 +55,12 @@ export function createWorkbenchAssembly(
   };
 }
 
-function createWorkbenchRuntimeLogger(): RuntimeLogger {
+function createWorkbenchRuntimeLogger(dataDir: string): RuntimeLogger {
   const runtimeLogger = createRuntimeLogger({
     terminalEnabled: true,
+    fileSink: {
+      bundlePath: path.join(dataDir, "runtime-logs", "workbench.jsonl"),
+    },
   });
   setDefaultRuntimeLogger(runtimeLogger);
   return runtimeLogger;

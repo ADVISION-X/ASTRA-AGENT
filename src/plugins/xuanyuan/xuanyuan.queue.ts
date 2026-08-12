@@ -8,7 +8,7 @@ import {
   acquireXuanyuanQueueOwner,
   type XuanyuanQueueOwnerLease,
 } from "./xuanyuan-queue-owner.js";
-import type { XuanyuanTaskRecord } from "./xuanyuan.schema.js";
+import type { XuanyuanRequest, XuanyuanTaskRecord } from "./xuanyuan.schema.js";
 import { listStoredXuanyuanTasks, readXuanyuanTask } from "./xuanyuan.store.js";
 
 export type XuanyuanTaskCoordinator = {
@@ -158,3 +158,8 @@ export const createXuanyuanTaskCoordinator = (
     close: () => closeCoordinator(state),
   };
 };
+
+export const enqueueXuanyuanTask = (
+  coordinator: XuanyuanTaskCoordinator,
+  request: XuanyuanRequest,
+): Promise<XuanyuanTaskRecord> => coordinator.enqueue(request);

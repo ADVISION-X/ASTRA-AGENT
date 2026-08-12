@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const domain = "amazon-product-fee-sync";
@@ -15,7 +15,7 @@ const indexPath = "src/plugins/amazon-product-fee-sync/index.ts";
 const routePath = "src/app/workbench-amazon-product-fee-sync-routes.ts";
 const apiBoundaryPath = "src/app/workbench-api-boundary.ts";
 const serverPath = "src/app/create-workbench-server.ts";
-const localRuntimePath = "src/lib/local-runtime/workbench.ts";
+const localRuntimePath = "src/lib/local-runtime/workbench-marketplace-handles.ts";
 const localRuntimeHandlePath = "src/lib/local-runtime/workbench-handle.ts";
 const acceptancePath = "scripts/acceptance/amazon-product-fee-sync.acceptance.ts";
 const selfPath = "scripts/audit/domains/amazon-product-fee-sync/inspector.ts";
@@ -285,7 +285,9 @@ const inspectProductSyncIsolation = (context: InspectorContext, findings: Inspec
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1");
   const findings: InspectorFinding[] = [];
   const schema = requireSourceFile(context, findings, lawId, schemaPath);
@@ -311,8 +313,27 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: domain,
     reportedLawIds: [lawId],
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles],
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("amazon-product-fee-sync requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

@@ -9,3 +9,4 @@ export type {
   AmazonProductFeeSyncResultItem,
   AmazonProductFeeSyncTaskRecord,
 } from "./amazon-product-fee-sync.schema.js";
+export { AmazonProductFeeSyncInputSchema } from "./amazon-product-fee-sync.schema.js";

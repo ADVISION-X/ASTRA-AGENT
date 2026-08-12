@@ -9,24 +9,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-001-V1",
         "clauseId": "apex-capability-group-001-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -39,24 +22,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-002-V1",
         "clauseId": "apex-capability-group-002-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -69,24 +35,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-003-V1",
         "clauseId": "apex-capability-group-003-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -99,24 +48,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-004-V1",
         "clauseId": "apex-capability-group-004-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -129,24 +61,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-005-V1",
         "clauseId": "apex-capability-group-005-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -159,24 +74,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-006-V1",
         "clauseId": "apex-capability-group-006-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -189,24 +87,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-007-V1",
         "clauseId": "apex-capability-group-007-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -219,24 +100,7 @@
         "lawId": "APEX-CAPABILITY-GROUP-008-V1",
         "clauseId": "apex-capability-group-008-requirement",
         "checkIds": [
-          "capability-group/capability-imports-plugin",
-          "capability-group/cross-owner-import",
-          "capability-group/export-star",
-          "capability-group/external-facade-private-symbol",
-          "capability-group/external-non-facade-import",
-          "capability-group/external-private-import",
-          "capability-group/facade-",
-          "capability-group/facade-noncontract-value-export",
-          "capability-group/facade-private-runtime-export",
-          "capability-group/facade-private-symbol-escape",
-          "capability-group/facade-registry-export",
-          "capability-group/missing-public-facade",
-          "capability-group/source-of-truth-blueprint-missing-active-group",
-          "capability-group/source-of-truth-blueprint-promotes-infrastructure",
-          "capability-group/source-of-truth-blueprint-unapproved-group",
-          "capability-group/source-of-truth-law-root-missing-in-src",
-          "capability-group/source-of-truth-unmapped-blueprint-label",
-          "capability-group/unapproved-root"
+          "capability-group-governance/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -247,5 +111,15 @@
       }
     ]
   },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
+      "requiredAnchors": [
+        "### 2.2 Ability Group",
+        "### 2.3 Child Ability",
+        "## 3. 当前现役能力组"
+      ]
+    }
+  ],
   "description": "Capability-group governance enforcement for approved ability roots and facade-only imports."
 }

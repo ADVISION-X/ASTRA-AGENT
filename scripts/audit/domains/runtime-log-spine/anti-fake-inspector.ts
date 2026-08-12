@@ -1,4 +1,4 @@
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type CallExpression } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -40,13 +40,20 @@ const hasEmptyArrayProperty = (context: import("ts-morph").Node, propertyName: s
 
 const hasIdentifierNamed = (context: import("ts-morph").Node, identifierName: string): boolean =>
   context.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => identifier.getText() === identifierName);
+    .some((identifier) => identifier.getSymbol()?.getEscapedName().toString() === identifierName);
+
+const callName = (call: CallExpression): string | null => {
+  const expression = call.getExpression();
+  if (Node.isPropertyAccessExpression(expression)) return expression.getName();
+  if (!Node.isIdentifier(expression)) return null;
+  return expression.getSymbol()?.getEscapedName().toString() ?? null;
+};
 
 const hasCallWithPrefix = (context: import("ts-morph").Node, prefixes: readonly string[]): boolean =>
   context.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((call) => {
-      const expressionText = call.getExpression().getText();
-      return prefixes.some((prefix) => expressionText.startsWith(prefix));
+      const name = callName(call);
+      return name !== null && prefixes.some((prefix) => name.startsWith(prefix));
     });
 
 const appendStageCountContradiction = (
@@ -129,10 +136,10 @@ const collectAntiFakeInspectorFindings = (context: InspectorContext): {
       || hasIdentifierNamed(sourceFile, "reportMarkdown");
     const detectionFunctions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
       .filter((call) => {
-        const expressionText = call.getExpression().getText();
-        return expressionText.startsWith("collect")
-          || expressionText.startsWith("write")
-          || expressionText.startsWith("render");
+        const name = callName(call);
+        return name !== null && (name.startsWith("collect")
+          || name.startsWith("write")
+          || name.startsWith("render"));
       });
 
     if ((!readsSourceFiles && detectionFunctions.length === 0) || !writesReport || (hasEmptyFindingsLiteral && hasEmptyInspectedFilesLiteral)) {

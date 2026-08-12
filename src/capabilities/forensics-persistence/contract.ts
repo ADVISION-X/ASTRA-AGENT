@@ -9,11 +9,14 @@ import type {
 
 type ForensicsPersistenceAbilityGroupId = typeof FORENSICS_PERSISTENCE_ABILITY_GROUP_ID;
 type ForensicsPersistenceAbilityResult = ForensicsResult;
+type ForensicsAppendRecordRequest = Omit<ForensicsAppendRecordInput, "childCapabilityId" | "capabilityCallId"> & {
+  correlationId?: string;
+};
 
 interface ForensicsPersistenceAbilityGroup {
   readonly abilityGroupId: ForensicsPersistenceAbilityGroupId;
   execute(input: ForensicsAbilityInput): Promise<ForensicsPersistenceAbilityResult>;
-  appendRecord(input: ForensicsAppendRecordInput): Promise<ForensicsPersistenceAbilityResult>;
+  appendRecord(input: ForensicsAppendRecordRequest): Promise<ForensicsPersistenceAbilityResult>;
   appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsPersistenceAbilityResult>;
   readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsPersistenceAbilityResult>;
 }

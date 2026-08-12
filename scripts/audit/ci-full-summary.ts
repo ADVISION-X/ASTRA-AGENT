@@ -9,9 +9,12 @@ export type StepResult = {
   endedAt: string;
   error?: string | undefined;
   name: string;
+  ownerId: string;
+  lawId: string | null;
   phase: string;
   startedAt: string;
   status: "PASS" | "FAIL";
+  timeoutMs: number;
 };
 
 export type CiFullFirstFailure = {
@@ -24,9 +27,17 @@ export type CiFullFirstFailure = {
 };
 
 export type CiFullSkippedStep = {
+  authorityStatus: "authority_not_reached" | "sealed";
   command: string;
+  durationMs: 0;
+  endedAt: null;
+  lawId: string | null;
   name: string;
+  ownerId: string | null;
   phase: string;
+  startedAt: null;
+  status: "SKIPPED";
+  timeoutMs: number;
 };
 
 export type CiFullLawCoverage = {

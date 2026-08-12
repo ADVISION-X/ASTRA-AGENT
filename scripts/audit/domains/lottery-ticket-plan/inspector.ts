@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
-import { executedChecksForPlan, type InspectorContext, type InspectorFinding, type InspectorOutput } from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const pluginFiles = [
@@ -69,8 +69,7 @@ const inspectRequiredPaths = (findings: InspectorFinding[], lawId: string): void
   }
 };
 
-const inspectAstContract = (files: readonly SourceFile[], findings: InspectorFinding[], lawId: string): void => {
-  const values = sourceValues(files);
+const inspectAstContract = (values: ReadonlySet<string>, findings: InspectorFinding[], lawId: string): void => {
   const missing = ["bucketDigits", "manualPurchaseOnly", "ticketHash", "tickets"]
     .filter((value) => !values.has(value));
   if (missing.length > 0) {
@@ -81,6 +80,9 @@ const inspectAstContract = (files: readonly SourceFile[], findings: InspectorFin
       message: `Lottery plan AST contract is missing ${missing.join(", ")}.`,
     }));
   }
+};
+
+const inspectNoPurchaseRuntime = (values: ReadonlySet<string>, findings: InspectorFinding[], lawId: string): void => {
   const forbiddenValues = ["theuaelottery", "My Plan", "checkout", "payment", "localStorage", "cookie"];
   const forbidden = forbiddenValues.find((value) => values.has(value));
   if (forbidden) {
@@ -127,19 +129,27 @@ const inspectPackageScripts = (findings: InspectorFinding[], lawId: string): voi
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const lawId = context.planEntry.lawIds[0] ?? "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1";
+const inspectDomainEvaluation = (context: InspectorContext, lawId: string) => {
   const findings: InspectorFinding[] = [];
-  const files = collectSources(context, findings, lawId, [...pluginFiles, ...appFiles]);
+  const files: SourceFile[] = collectSources(context, findings, lawId, [...pluginFiles, ...appFiles]);
   inspectRequiredPaths(findings, lawId);
-  inspectAstContract(files, findings, lawId);
+  const values = sourceValues(files);
+  inspectAstContract(values, findings, lawId);
+  inspectNoPurchaseRuntime(values, findings, lawId);
   inspectForbiddenImports(context, findings, lawId);
   inspectPackageScripts(findings, lawId);
-  return {
-    capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-    executedChecks: executedChecksForPlan(context),
-    findings,
-    inspectedFiles: [...inspectedFileList],
-  };
+  return { evidenceRefs: [...inspectedFileList, "package.json"], findings };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("lottery-ticket-plan requires a runner-owned check session.");
+  const lawId = context.planEntry.lawIds[0] ?? "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1";
+  const evaluation = await context.checks.runAll(() => {
+    const ownerEvaluation = inspectDomainEvaluation(context, lawId);
+    return { findings: ownerEvaluation.findings, evidenceRefs: ownerEvaluation.evidenceRefs };
+  });
+  const findings = evaluation.findings;
+  return context.checks.output({
+    reportJson: { generatedAt: new Date().toISOString(), status: findings.length === 0 ? "PASS" : "FAIL", findings },
+  });
 };

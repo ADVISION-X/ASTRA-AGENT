@@ -132,7 +132,7 @@ async function runDownloadStep<T = void>(
       reason,
       reachedStep: step.reachedStep,
       evidenceStepId: step.evidenceStepId,
-      domTraceRef: `runtime-evidence/amazon-invoice-upload/download-${mission.marketplace}-${mission.requestId ?? "latest"}.jsonl`,
+      runtimeLogRef: "runtime-logs/workbench.jsonl",
       reviewRequired: true,
     });
   }
@@ -482,7 +482,7 @@ function manualRequired(
     reason,
     reachedStep,
     evidenceStepId,
-    domTraceRef: `runtime-evidence/amazon-invoice-upload/download-${mission.marketplace}-${mission.requestId ?? "latest"}.jsonl`,
+    runtimeLogRef: "runtime-logs/workbench.jsonl",
     reviewRequired: true,
   };
 }

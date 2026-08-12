@@ -43,7 +43,7 @@ const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {
   ArrowRight: 124,
 };
 
-const clickAt = async (x: number, y: number, button: "left" | "right" | "middle", clickCount: 1 | 2): Promise<void> => {
+const clickAt = async (x: number, y: number, button: "left" | "right" | "middle", clickCount: 1 | 2, abortSignal?: AbortSignal): Promise<void> => {
   const buttonCode = button === "right"
     ? "$.kCGMouseButtonRight"
     : button === "middle"
@@ -77,16 +77,16 @@ for (let count = 0; count < ${clickCount}; count += 1) {
   delay(0.02);
   post(${upType}, ${x}, ${y});
 }
-`);
+`, abortSignal ? { signal: abortSignal } : undefined);
 };
 
-const moveAt = async (x: number, y: number): Promise<void> => {
+const moveAt = async (x: number, y: number, abortSignal?: AbortSignal): Promise<void> => {
   await runJxa(`
 ObjC.import('ApplicationServices');
 const point = $.CGPointMake(${x}, ${y});
 const event = $.CGEventCreateMouseEvent(null, $.kCGEventMouseMoved, point, $.kCGMouseButtonLeft);
 $.CGEventPost($.kCGHIDEventTap, event);
-`);
+`, abortSignal ? { signal: abortSignal } : undefined);
 };
 
 const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {

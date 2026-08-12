@@ -31,7 +31,7 @@ Kernel loads first. Current top-level authority is the 2026-05-21 job-flow autom
 
 | Trigger | Module |
 | -- | -- |
-| runtime logs, FLOW/DEBUG/TRACE, redaction | modules/module-RuntimeLogSpine.instructions.md |
+| runtime logs, FLOW/DEBUG/TRACE, redaction | modules/module-runtime-log-spine.instructions.md |
 | local workbench shell, minimal Amazon UI, local app boundary | modules/module-local-app-shell.instructions.md |
 | startup command, local app bootstrap | modules/module-startup-entrypoint.instructions.md |
 | canonical roots, retired path deletion, topology purity | modules/module-code-topology.instructions.md |

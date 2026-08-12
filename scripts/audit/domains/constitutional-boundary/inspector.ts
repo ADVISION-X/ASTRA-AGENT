@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type ImportDeclaration, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
@@ -60,22 +60,11 @@ const createDedupedFindingPusher = (findings: Finding[]) => {
   };
 };
 
-const normalizePropertyName = (value: string): string => {
-  if (value.length >= 2) {
-    const first = value[0];
-    const last = value[value.length - 1];
-    if ((first === '"' || first === "'") && first === last) {
-      return value.slice(1, -1);
-    }
-  }
-  return value;
-};
-
 const readObjectLiteralPropertyNames = (objectLiteral: ObjectLiteralExpression): Set<string> => {
   const names = new Set<string>();
   for (const property of objectLiteral.getProperties()) {
     if (Node.isPropertyAssignment(property)) {
-      names.add(normalizePropertyName(property.getNameNode().getText()));
+      names.add(property.getName());
       continue;
     }
     if (Node.isShorthandPropertyAssignment(property)) {
@@ -90,8 +79,10 @@ const isExecuteCallArgument = (objectLiteral: ObjectLiteralExpression): boolean 
   if (!parent || !Node.isCallExpression(parent)) {
     return false;
   }
-  const expressionText = parent.getExpression().getText();
-  return expressionText === "execute" || expressionText.endsWith(".execute");
+  const expression = parent.getExpression();
+  return (Node.isIdentifier(expression)
+      && expression.getSymbol()?.getEscapedName().toString() === "execute")
+    || (Node.isPropertyAccessExpression(expression) && expression.getName() === "execute");
 };
 
 const resolvePrivateDeclarationPath = (input: {
@@ -407,7 +398,9 @@ const buildSummary = (findings: readonly Finding[]) => ({
   protocolEscapes: findings.filter((finding) => finding.checkId === "constitutional-boundary/private-capability-protocol").length,
 });
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-CONSTITUTIONAL-BOUNDARY-001-V1");
   const facadeLawId = selectLawId(context.planEntry.lawIds, "APEX-CAPABILITY-FACADE-SYMBOL-001-V1");
   const protocolLawId = selectLawId(context.planEntry.lawIds, "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1");
@@ -441,7 +434,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
     reportJson: {
@@ -452,4 +445,23 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       summary: buildSummary(findings),
     },
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("constitutional-boundary requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

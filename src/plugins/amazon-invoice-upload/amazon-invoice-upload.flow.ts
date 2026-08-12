@@ -1,5 +1,6 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -30,9 +31,36 @@ export type AmazonInvoiceUploadTaskResult = {
   amazonOrderId: string;
   invoiceNo: string;
   evidenceRef?: string;
-  domTraceRef?: string;
+  runtimeLogRef?: string;
+  orderNavigationProof?: AmazonOrderNavigationProof;
   reviewRequired?: boolean;
   amountCheck?: AmazonInvoiceAmountCheck;
+};
+
+export type AmazonOrderNavigationProof = {
+  executionId: string;
+  taskId?: string;
+  browserActionId: string;
+  actionResult: "success" | "failed";
+  requestedHost: string;
+  reusePolicy: string;
+  navigationMode: string;
+  observedUrlMatchesRequest: boolean;
+  beforeHash: string;
+  afterHash: string;
+  startedAt: string;
+  durationMs: number;
+  evidenceRef: string;
+  storageRef: string;
+  integrityHash: string;
+};
+
+export type AmazonInvoiceUploadExecutionContext = {
+  executionId: string;
+  taskId?: string;
+  abortSignal: AbortSignal;
+  evidenceStore: ForensicsPersistenceAbilityGroup;
+  runtimeLogRef: string;
 };
 
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
@@ -49,24 +77,27 @@ export async function runAmazonInvoiceUpload(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   rawMission: AmazonInvoiceUploadMissionInput,
+  execution: AmazonInvoiceUploadExecutionContext,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
-  return continueInvoiceUpload(browser, runtimeLogger, mission);
+  return continueInvoiceUpload(browser, runtimeLogger, mission, execution);
 }
 
 async function continueInvoiceUpload(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
+  execution: AmazonInvoiceUploadExecutionContext,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission);
+  const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission, execution);
   if (!orderDetailResult.ok) return orderDetailResult.failure;
+  const navigationProof = orderDetailResult.value;
 
-  const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
-  if (alreadyUploaded) return alreadyUploaded;
+  const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission, execution.abortSignal);
+  if (alreadyUploaded) return { ...alreadyUploaded, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 
   const amountGate = await verifyInvoiceAmountBeforeUpload(browser, runtimeLogger, mission);
-  if (amountGate) return amountGate;
+  if (amountGate) return { ...amountGate, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 
   const uploadEntryResult = await runUploadStepWithRetries({
     browser,
@@ -75,9 +106,10 @@ async function continueInvoiceUpload(
     stepName: "open upload invoice entry",
     action: () => openUploadInvoiceEntry(browser, runtimeLogger, mission),
   });
-  if (!uploadEntryResult.ok) return uploadEntryResult.failure;
+  if (!uploadEntryResult.ok) return { ...uploadEntryResult.failure, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 
-  return uploadAndSubmitInvoice(browser, runtimeLogger, mission);
+  const result = await uploadAndSubmitInvoice(browser, runtimeLogger, mission, execution.abortSignal);
+  return { ...result, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 }
 
 async function runUploadStepWithRetries<T>(input: {
@@ -115,6 +147,7 @@ async function uploadAndSubmitInvoice(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
+  abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const uploadResult = await runUploadStepWithRetries({
     browser,
@@ -124,20 +157,21 @@ async function uploadAndSubmitInvoice(
     action: () => uploadApprovedInvoice(browser, runtimeLogger, mission),
   });
   if (!uploadResult.ok) return uploadResult.failure;
-  return submitAndVerifyInvoice(browser, runtimeLogger, mission);
+  return submitAndVerifyInvoice(browser, runtimeLogger, mission, abortSignal);
 }
 
 async function submitAndVerifyInvoice(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
+  abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const submitButton = locateSubmitButton(await readAndTraceSubmitSnapshot(browser, runtimeLogger, mission));
   if (!submitButton.ok) return submitButtonFailure(runtimeLogger, mission, submitButton);
   traceSubmitButtonLocated(runtimeLogger, mission, submitButton.element);
   const submitFailure = await clickSubmitButton(browser, runtimeLogger, mission, submitButton.element, submitButton.expectedText);
   if (submitFailure) return normalizeSubmitFailure(submitFailure);
-  return verifyUploadSuccess(browser, runtimeLogger, mission);
+  return verifyUploadSuccess(browser, runtimeLogger, mission, abortSignal);
 }
 
 function locateSubmitButton(snapshot: DomSnapshot): SubmitButtonLocateResult {

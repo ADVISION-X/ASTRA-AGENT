@@ -1,6 +1,6 @@
 # GrassEye Amazon Invoice Upload Unified Chain 施工图
 
-版本：2026-08-03
+版本：2026-08-11
 状态：active  
 owner：amazon-invoice-upload  
 对应法案：`.github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md`  
@@ -8,16 +8,20 @@ owner：amazon-invoice-upload
 
 ## 1. 当前代码现状
 
-当前 Amazon invoice upload 已存在于 App Shell，只有 `Upload / Latest / Evidence` surfaces。当前 schema 只支持 `missionType: "amazon_invoice_upload"`。当前 Workbench route family 为：
+当前 Amazon invoice upload 已存在于 App Shell，并拥有 `Upload / Download / Latest / Evidence / Ledger` surfaces。现役 schema 支持 `missionType: "amazon_invoice_upload"` 与 `missionType: "amazon_tax_invoice_download"`。当前 Workbench route family 为：
 
 ```txt
 POST /api/plugins/amazon-invoice-upload/start
 GET  /api/plugins/amazon-invoice-upload/status/<taskId>
 GET  /api/plugins/amazon-invoice-upload/latest
 GET  /api/plugins/amazon-invoice-upload/ledger
+POST /api/plugins/amazon-invoice-upload/download/start
+GET  /api/plugins/amazon-invoice-upload/download/status/<taskId>
+GET  /api/plugins/amazon-invoice-upload/download/latest
+GET  /api/plugins/amazon-invoice-upload/download/artifact/<taskId>
 ```
 
-当前没有 tax invoice CSV download schema、download task record、download routes、Download UI surface、Amazon invoice 专项 audit domain。
+当前已有 tax invoice CSV download schema、download task record、download routes、Download UI surface，以及由现有 generated audit plan 接入的 `amazon-invoice-upload` 专项 audit domain。施工目标不是再建第二套下载或上传链，而是在这个唯一 owner 内补齐真实导航证据、超时取消、单飞锁和反逃逸质检。
 
 ## 2. 目标统一链路
 
@@ -124,7 +128,7 @@ downloadedFileSize
 downloadedFileSha256
 downloadedAt
 evidenceRef
-domTraceRef
+runtimeLogRef
 reviewRequired
 sourceSystem
 requestId
@@ -221,7 +225,7 @@ safe reason persisted to task record and ledger
 pdf currency + amountMinor + display
 order currency + amountMinor + display
 skip reason
-domTraceRef
+runtimeLogRef + navigationEvidenceRef
 ```
 
 禁止记录 raw PDF text、full DOM HTML、cookies、browser storage、local absolute invoicePdfPath。
@@ -343,7 +347,8 @@ status
 reason
 reachedStep
 evidenceRef
-domTraceRef
+runtimeLogRef
+navigationEvidenceRef
 reviewRequired
 createdAt
 updatedAt
@@ -472,28 +477,68 @@ scripts/audit/domains/amazon-tax-invoice-download/**
 WHY HAPPEN:
 法案已定义 amazon-invoice-upload 单 owner、DOM 边界、audit+acceptance+ci-full 覆盖。
 旧治理把“订单详情打开后立即刷新一次”写成固定动作，虽然降低了闪烁失败，但过于机械且增加每单固定节奏。
-该缺口已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 固化为单次订单导航与 2 秒步骤失败规则。
+该缺口已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1 固化为单次订单导航与受治理的终态等待规则。
+
+2026-08-11 真实批次证据表明 3 轮上限不足：108 个后端 task 的第 1 个 2 秒窗口全部到期，93 个 task 进入第 3 个窗口，其中 1 个订单在 3 轮后仍显示 loading 并被记为 `order_not_found`。因此同页 AND THEN 观察改为 8 轮、每轮 2 秒、16 秒总预算；这只扩大等待预算，不授权刷新、重新导航或第二链恢复。
+防回归黑盒必须让订单详情终态到第 15 秒才出现，并断言流程真实记录 8 个唯一同页 observation window、订单详情仍只导航一次。Amazon owner inspector 必须同时锁定生产常量 `8`、第 15 秒 fixture 与黑盒的 8 窗口断言，任一退回 3 轮或放宽验收都必须直接 FAIL。
 ```
 
 后半段上传必须固定以下生产行为：
 
 1. `runAmazonInvoiceUpload` 直接进入 `openOrderDetail`；删除先开 `sellerCentralEntryUrl`、再开同一订单详情的旧入口片区。
-2. 每个订单只允许一次 `BrowserController.open`，随后最多执行三个同页观察窗口，每个窗口不超过 2 秒。
+2. 每个订单只允许一次 `BrowserController.open`，随后最多执行八个同页观察窗口，每个窗口不超过 2 秒，总上限 16 秒。
 3. 2 秒内出现目标 orderId + upload/manage/already-uploaded invoice action state 且页面不在 loading，才继续。
-4. 任一 2 秒窗口到期必须先记录结构化失败，再在不改变当前 URL 的情况下进入下一个同页窗口；三个窗口耗尽即失败。禁止再次导航、刷新 helper、随机等待或隐藏 fallback。
+4. 任一 2 秒窗口到期必须先记录结构化失败，再在不改变当前 URL 的情况下进入下一个同页窗口；八个窗口耗尽即失败。禁止再次导航、刷新 helper、随机等待或隐藏 fallback。
+窗口时间补充：每次 snapshot 的底层 timeout 与轮询 wait 都必须取“当前 2 秒窗口剩余时间”与自身上限的较小值，禁止在窗口尾部启动一次完整 1800ms snapshot 或 200ms wait 把 16 秒观察预算无声拉长。
 3. 上传关键步骤失败时必须最多额外递归重试 2 次。
 4. 重试必须只复用既有 `amazon-invoice-upload` flow、既有 BrowserController、既有 Runtime Log Spine、既有 DOM public facade。
 5. 登录、2FA、验证码、人工最终提交、最终上传验证等敏感终态不得被重试伪造成成功。
-6. 每次刷新和每次重试必须通过 `recordAmazonDomStepTrace` 留下结构化调试证据，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
+6. 每次同页观察窗口失败和每次允许的上传步骤重试必须通过 Runtime Log Spine 留下结构化调试事件；禁止把观察窗口命名为 `open`，日志只记录 step / reason / 状态摘要，不记录 PDF 内容、cookie、documentId 或 CSV 内容。
 7. AGENT 发票上传执行链禁止默认或主动停在人工最终提交；`requireHumanFinalSubmit` 不再属于上传执行契约，UI/client/schema/service 均不得发送或保留该字段。外部旧 payload 若携带该字段，只能在 upload route 清洗后进入既有单张上传链路，生产执行必须继续自动点击 Seller Central 弹窗底部最终 `上传` / `Upload`。
 8. Seller Central 中文与英文界面都必须有精确文案覆盖：中文弹窗 `请上传您的发票或贷记单`、底部按钮 `上传`；英文弹窗 `Please upload your invoice or credit note`、底部按钮 `Upload`；成功/已上传强证据必须覆盖 `感谢您上传文件` / `Thank you for uploading the document`、`客户可以直接从自己的账户下载文件` / `The customer will be able to download it directly from their account`、`由卖家生成` / `Seller generated`。`管理发票` / `Manage invoice` / `Pending` / `待处理` 只能定位发票动作或进入复核，不得作为 `upload_success` 或 `already_uploaded` 的充分证据。
-9. 点击 `管理发票` / `Manage invoice` 后，强证据观察最多 2 秒；到期立即返回结构化 `review_required`，不得继续傻等，也不得把弱入口文案伪造成成功。
-10. 只有当前订单的唯一可见发票弹窗出现精确阻断文案 `很抱歉，目前没有可用的操作。` 时，才允许立即执行一次恢复：根据实时弹窗矩形和 viewport 动态计算弹窗外空白点，点击空白处，确认阻断弹窗已经消失，再重新点击一次 `管理发票` / `Manage invoice`，进入第二个强证据等待窗口。
-11. 空白点不得写死，不得由 APP 或 API 输入；弹窗不唯一、无法计算安全空白点、点击失败、弹窗未关闭、重开失败、第二次仍出现相同阻断或第二个证据窗口超时，必须在上传 PDF 前返回 `review_required`。
+9. 点击 `管理发票` / `Manage invoice` 后改用 **AND THEN 终态等待**：先收到唯一可见弹窗与当前 `amazonOrderId` 绑定，然后必须再收到“匹配已上传行”、“完整表头 + 可上传入口”或“精确 no-actions 阻断”三种终态之一，才能分支。弹窗标题本身只证明“这是当前订单”，不证明已上传或可上传。
+10. 只有标题包含当前完整 `amazonOrderId` 的唯一可见发票弹窗出现精确受治理的读取失败文案时，才允许执行一次恢复。当前确认的两个文案是 `很抱歉，目前没有可用的操作。` 和 `读取失败`；其他弹窗中的相同文字必须忽略。恢复固定为：根据实时弹窗矩形和 viewport 动态计算弹窗外空白点，关闭弹窗并验证消失，再重新点击一次 `管理发票` / `Manage invoice`，然后回到同一 AND THEN 终态等待。
+11. 空白点不得写死，不得由 APP 或 API 输入；弹窗不唯一、无法计算安全空白点、点击失败、弹窗未关闭、重开失败或第二次仍出现相同阻断，必须在上传 PDF 前返回 `review_required`。
 12. Amazon 发票链的每次 DOM snapshot 都显式传入不超过 `1800ms` 的底层执行上限，禁止底层默认 `10000ms` 穿透 2 秒业务窗口；订单详情 snapshot 异常必须先落为本窗口失败，再进入下一次同页观察。
 13. 截图证据在真实 capture 前重新激活唯一受控 Chrome 窗口；`count=0` 的无障碍窗口瞬态不得直接毁掉当前发票任务。
 12. 删除所有订单详情刷新、重复入口打开和随机 readiness 等待片区；禁止把它们保留为 fallback、兼容桥或影子分支。
 13. APP 批量上传和外部 API 上传都只能经既有 `/api/plugins/amazon-invoice-upload/start` 进入同一个 plugin flow，不得为弹窗恢复建立第二 route、第二 service 或第二业务链。
+14. 每个 task/execution 在导航前创建唯一 `browserActionId`；唯一 `BrowserController.open` 必须消费结构化回执并写入现有 Forensics Store。task 只保存真实 `orderNavigationProof`、`runtimeLogRef` 和 integrity hash，禁止继续拼接不存在的 `runtime-evidence/*.jsonl`。
+15. 导航事件固定为一组 `BROWSER_ACTION_STARTED -> BROWSER_ACTION_COMPLETED|FAILED`；八个观察窗口必须按 `observe approved order detail readiness window 1` 至 `window 8` 使用唯一名称，观察事件不得伪装成导航事件。
+16. Browser state/geometry/wait/snapshot 都是纯观察。Chrome 零窗口时必须失败关闭，禁止 `make new window`、恢复 URL 或在 wait 后顺手导航。
+17. `start`、`resume`、direct mission 共用 plugin owner 内一把最窄 execution lease；并发第二次执行在 `browser.open` 前返回 busy。timeout 固定执行 `abort -> await flow settled -> persist terminal -> release lease`，禁止 detached flow。
+18. Manage invoice 等待不设 2 秒业务裁决线。全局 task timeout 只是运行安全 watchdog；命中时必须中止并等待当前 flow 完全停止，返回 `review_required`，同时 APP 批处理必须停在当前订单，不得自动开始下一单。
+
+### 17.1 2026-08-11 真实 Chrome DOM 证据与回归合同
+
+实测页面：`https://sellercentral.amazon.ae/orders-v3/order/171-8576683-0513165`。
+
+```txt
+AFTER 只点击一次 管理发票
+  -> 294ms 时 DOM 只有 dialog 空壳 + Close，业务内容尚未到达
+  -> 随后真实 DOM 出现 role=dialog
+  AND heading[level=3] = 订单171-8576683-0513165的发票
+  AND row 包含完整编号 171-8576683-0513165
+  AND 同一行状态 = 成功：已上传
+THEN already_uploaded
+```
+
+页面上视觉被截断的编号，在真实 DOM 中可读取为完整订单号。因此必须使用 DOM 完整值，不得 OCR 猜测或用截断文字匹配。
+
+防回归黑盒要求：本地 fixture 必须先显示弹窗空壳，超过 2 秒后才放入上述标题、完整行和终态；现役 flow 必须仍然返回 `already_uploaded`，且 `管理发票` 只点击一次。另一 fixture 必须超过 2 秒后才出现“完整表头 + 上传其他发票或贷记单”，现役 flow 只能继续当前订单，不得返回 `review_required`或开始下一单。
+
+第二份真实运行证据：订单 `171-8108992-4262763` 的唯一当前订单发票弹窗显示 `很抱歉，目前没有可用的操作。`。本次 Runtime Log Spine 记录的实际顺序为：
+
+```txt
+22:16:52.897 detect invoice read failure dialog
+  -> 22:16:54.291 dismiss invoice read failure dialog
+  -> 22:16:54.880 locate manage invoice entry
+  -> 22:16:56.408 click manage invoice entry（全程唯一一次恢复重开）
+  -> 22:16:56.915 verify existing invoice
+  -> already_uploaded，保留当前 Seller Central 订单 tab
+```
+
+该证据证明失败弹窗恢复必须是同一订单内的一次性 `close AND verify gone AND reopen once AND wait terminal DOM`，不得刷新订单详情、不得无限重试、不得在恢复尚未得到终态时启动下一单。黑盒 fixture 必须分别证明：首次失败后重开得到已上传行时成功；第二次仍出现读取失败时返回 `review_required` 且批处理停止。
 
 生产落点：
 
@@ -514,9 +559,15 @@ Inspector 必须用 ts-morph AST 检查：
 ```txt
 ORDER_DETAIL_READY_TIMEOUT_MS = 2_000
 ORDER_DETAIL_READY_POLL_INTERVAL_MS = 200
-ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT = 3
+ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT = 8
 openApprovedOrderDetail -> waitForApprovedOrderDetail
 amazon-invoice-upload-order-detail.ts 中 BrowserController.open 恰好一次
+BrowserController.open 回执必须赋值、检查 ok/observedUrlMatchesRequest 并保存 browserActionId
+每个 execution 恰好一个可解引用、带 integrityHash 的 orderNavigationProof
+八个 observation window stepName 必须唯一且不得包含 open
+readFrontChromeWindowState 只可接受 AbortSignal 且不得恢复 URL；waitForDuration 不得调用 refreshSnapshot
+start / resume / direct mission 必须共用 withAmazonInvoiceExecutionLease
+terminal guard 不得使用 detached Promise.race，必须 abort 后等待 flow settle
 禁止 refreshApprovedOrderDetailIfNeeded / refreshApprovedOrderDetailOnce / retryOrderDetailIfNeeded
 禁止旧 ENTRY_READY_TIMEOUT_MS / openSellerCentralEntry / waitForSellerCentralEntry
 UPLOAD_DIALOG_READY_TIMEOUT_MS = 2_000
@@ -524,18 +575,23 @@ FILE_INPUT_READY_TIMEOUT_MS = 2_000
 UPLOAD_SUCCESS_TIMEOUT_MS = 2_000
 UPLOAD_STEP_RETRY_LIMIT = 2
 runUploadStepWithRetries 递归调用自身
-只有 open upload invoice entry / upload approved invoice 接入 runUploadStepWithRetries；订单详情由单次导航后的三个 2 秒同页窗口负责
+只有 open upload invoice entry / upload approved invoice 接入 runUploadStepWithRetries；订单详情由单次导航后的八个 2 秒同页窗口负责
 敏感终态 gate 不进入无限重试
 不得存在 `file attached before final submit` 人审终止分支
 schema / UI / client / service 均不得保留 `requireHumanFinalSubmit` 或 `stopOnManualRequired`
 API Boundary 不得把 `requireHumanFinalSubmit` / `stopOnManualRequired` 当作 forbidden_external_request_key；upload route 必须清洗 legacy 非 schema 字段
 APP Ledger 页面必须读取 `/api/plugins/amazon-invoice-upload/ledger` 并展示 upload records
 Batch / Upload UI 不得暴露 `Safe Review Mode` 或 `require human final submit`
-existingInvoiceEvidenceTimeoutMs = 2_000
 existingInvoiceEvidencePollMs = 250
-精确阻断文案常量 = 很抱歉，目前没有可用的操作。
-verifyAlreadyUploadedInvoice 只允许一次 dismissNoAvailableActionsDialog -> openManageInvoiceList 恢复
-dismissNoAvailableActionsDialog 必须使用 BrowserController.evaluateActiveTab 动态计算弹窗外点，并用 BrowserController.click 点击
+INVOICE_DIALOG_READY_CONFIRMATION_COUNT = 2
+不得存在 existingInvoiceEvidenceTimeoutMs 或其他 Manage invoice 业务短超时
+waitForExistingInvoiceEvidence 必须接收 AbortSignal，只能由全局 task watchdog/用户中止停止
+已上传 = 当前订单 dialog AND 匹配完整编号的 row AND 明确 uploaded 状态
+可上传 = 当前订单 dialog AND 完整发票表头 AND 可上传入口 AND 无匹配已上传行
+精确受治理读取失败文案 = 很抱歉，目前没有可用的操作。 | 读取失败
+读取失败识别必须调用 findOrderBoundInvoiceDialogText，只能读取标题绑定当前完整订单号的唯一弹窗文本
+verifyAlreadyUploadedInvoice 只允许一次 dismissInvoiceReadFailureDialog -> openManageInvoiceList 恢复
+dismissInvoiceReadFailureDialog 必须使用 BrowserController.evaluateActiveTab 动态计算弹窗外点并验证关闭
 生产文件不得保留 recoverExistingInvoiceList、existingInvoiceEvidenceRecoveryAttempts、existingInvoiceEvidenceRecoverySettleMs 或 order-detail browser.open 恢复
 ```
 
@@ -564,6 +620,7 @@ WHY HAPPEN:
 ```txt
 Batch Upload = orchestration only
 Single Upload = existing startAmazonInvoiceUploadTask / runAmazonInvoiceUpload
+Inter-item pacing = local queue only, after prior terminal + lease release and before the next real /start
 ```
 
 禁止：
@@ -583,6 +640,7 @@ Single Upload = existing startAmazonInvoiceUploadTask / runAmazonInvoiceUpload
 amazonOrderId = basename without .pdf
 invoiceNo = amazonOrderId
 同一 batch 重复 orderId 阻断
+Batch 运行期间 Start 按钮禁用且重复 submit 被 running latch 拒绝
 单文件最大 10MB
 不得设置任意 batch 张数上限；本地一次选择 2000 / 100000 张都必须进入可见队列。
 ```
@@ -627,6 +685,10 @@ select local PDFs
          mark item already_uploaded / skipped_by_upload_ledger
          do not open Seller Central
          continue
+       if a prior non-ledger single-upload request completed and the batch may continue:
+         select one crypto-random integer delay in [2000ms, 15000ms]
+         expose inter_item_pacing + delayMs + nextItemAt while keeping the batch latch held
+         wait at least the selected delay with zero Browser / DOM action
        POST /api/plugins/amazon-invoice-upload/start
        field: mission
        file: invoicePdf
@@ -650,6 +712,12 @@ https://sellercentral.amazon.<market>/orders-v3/order/<amazonOrderId>
 禁止把 batch 单张任务接到 Seller Central `/home` 作为上传入口；首页只适用于下载报告入口，不是订单发票上传入口。
 
 Batch Upload 不得暴露、隐藏发送、默认启用人审最终提交模式。批量上传必须纯自动执行到 Seller Central 最终提交和上传结果验证；登录失效、验证码、2FA 等全局鉴权问题必须进入 `blocked_auth` 并停止，普通单张 DOM/平台失败必须记录为该 item `failed`，默认继续后续 item，除非用户显式开启 `stopOnFailed`。
+
+金额硬门是明确的单项跳过，不是整批阻断：`amount_mismatch_skipped` 必须原样写入 task、ledger 和本地队列，保留 `reviewRequired: true` 供页面提示，但该布尔值不是批处理控制命令。当前 PDF 不得上传，failed/review 计数加一，然后无条件开始下一条 queued 订单；不得把它归一成显式 `review_required`，也不得受 `stopOnFailed` 影响。只有显式 `status === review_required` 或 `blocked_auth` 等全局不安全终态才允许停止剩余队列。
+
+订单间 pacing 固定为本地队列调度，不是 DOM readiness。第一张真实 `/start` 前、最后一张真实任务后、ledger skip、invalid、duplicate 均不等待；`upload_success`、Seller Central 实时确认的 `already_uploaded`、`amount_mismatch_skipped`、以及允许继续的普通 `failed` 之后，只有确实存在下一张非 ledger-skip queued item 时才等待一次。pending delay 跨过任意数量 ledger skip 后，必须在下一次真实 `/start` 前恰好消费一次。显式 `review_required`、`blocked_auth`、execution busy、task watchdog timeout 或无法确认服务端终态的网络异常必须停批，禁止把 2–15 秒 pacing 当作“等一等再赌旧 flow 已停止”。
+
+延时常量固定为 `2000ms` 至 `15000ms`，每个边界只允许 `crypto.getRandomValues` 抽取一次整数毫秒。禁止 APP/API/环境变量配置范围、`Math.random`、固定 fallback、第二 scheduler、`BrowserController.wait` 或在 single-flight lease 内等待。浏览器后台调度可以晚于抽中值唤醒，但下一次 `/start` 绝不得早于抽中值。
 
 ledger storage 固定使用既有单张上传 task ledger；本地队列运行态可以在页面显示 batchId/current counters，但不得成为第二持久台账。
 
@@ -693,7 +761,7 @@ WHY HAPPEN:
 这让“清理 tab 失败”污染了真实业务结果，并且批量处理时反复开关 Seller Central 订单 tab，页面焦点和弹窗状态更脆弱。
 该问题属于 active law 缺失 + 施工图细节缺失；已由 GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1 固化。
 
-## 22. API 上传完成后的既有网站标签页切回
+## 20. API 上传完成后的既有网站标签页切回
 
 问题追溯：
 
@@ -720,6 +788,9 @@ API /api/plugins/amazon-invoice-upload/start
        -> BrowserController.open(reusePolicy: "focus-existing-same-path-url")
        -> 先激活精确 URL 匹配的既有 Chrome 标签页；若真实网站页只有 query/hash 不一致，则激活同源同路径的既有 Chrome 标签页
        -> 找不到则记录失败 trace，不新建、不刷新、不导航、不覆盖上传终态
+       -> 10 秒仍未完成时 abort 当前 focus 动作
+       -> await focus 完全停止并落 terminal trace
+       -> 然后才允许释放 single-flight lease 或开始下一张发票
 ```
 
 禁止：
@@ -731,6 +802,7 @@ API /api/plugins/amazon-invoice-upload/start
 把 focus-only 作为普通 openAmazonInvoiceAdminPage 默认模式。
 在 Amazon 上传终态持久化之前切回网站。
 把网站回焦成功或失败当作 Amazon 上传成功证据。
+用 detached Promise.race 提前返回，让旧 focus 动作在 lease 释放后继续操作 Chrome。
 用历史上传成功日志、静态验收或字符串检查宣称新 IF 已完成生产实测。
 ```
 
@@ -738,7 +810,7 @@ API /api/plugins/amazon-invoice-upload/start
 
 ```txt
 任意 Chrome 标签页生命周期、API 上传后网站回焦、Seller Central 提交路径变更后：
-  -> 先遍历 runtime-evidence、ledger、网站 handoff 日志，区分历史证据和变更后证据
+  -> 先遍历 runtime-logs、forensics、ledger、网站 handoff 日志，区分历史证据和变更后证据
   -> 静态 typecheck / acceptance / audit 只能证明法案结构，不等于生产实测
   -> 没有命中变更后路径的真实 Chrome / Seller Central / 网站标签页证据时，只能报告 NOT_PRODUCTION_VERIFIED
   -> 若只做安全的 Chrome 标签页集成测试，必须明确标注它验证的是标签页策略，不得冒充发票生产上传实测
@@ -754,9 +826,13 @@ batch start
   -> item 1: navigate worker tab to /orders-v3/order/<orderId>
        -> observe order id + invoice action state in a 2s window
        -> if missing, log failure and start the next 2s observation on the unchanged page
-       -> after at most three windows, fail without refresh or repeat navigation
+       -> after at most eight windows (16 seconds), fail without refresh or repeat navigation
        -> upload / already-uploaded judgment
        -> retain worker tab
+  -> if item 1 returned a continuable formal terminal and another real item remains:
+       -> release the item execution lease
+       -> local queue selects and visibly waits one random 2-15 second pacing interval
+       -> perform zero Browser / DOM action during the interval
   -> item 2: reuse same active worker tab and navigate URL
   -> ...
   -> batch end: optional session cleanup outside per-item success judgment

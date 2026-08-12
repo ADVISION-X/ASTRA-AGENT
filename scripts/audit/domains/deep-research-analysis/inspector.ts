@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import type { SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import {
@@ -223,8 +223,7 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
     htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
     htmlReportContractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts"),
     acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
-    ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
-    ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
+    ciAcceptanceBindingsFile: getSourceFile(context, "scripts/audit/ci-acceptance-law-bindings.ts"),
     ownerComponentFile: getSourceFile(context, "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts"),
     findings,
     inspectedFiles,
@@ -235,8 +234,7 @@ const inspectHtmlBoundaryInputs = (state: DeepResearchInspectionState): void => 
     htmlReportStageFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts"),
     htmlReportContractFile: getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts"),
     acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts"),
-    ciFullFile: getSourceFile(context, "scripts/audit/ci-full.ts"),
-    ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
+    ciAcceptanceBindingsFile: getSourceFile(context, "scripts/audit/ci-acceptance-law-bindings.ts"),
     ownerComponentFile: getSourceFile(context, "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts"),
     findings,
     inspectedFiles,
@@ -323,10 +321,10 @@ const inspectPromptBundlePolicies = (state: DeepResearchInspectionState): void =
     routesFile: getSourceFile(context, "src/app/workbench-deep-research-routes.ts"),
     panelFile: getSourceFile(context, "src/app/workbench-deep-research-panel.ts"),
     clientBootFile: getSourceFile(context, "src/app/workbench-deep-research-client-boot.ts"),
-    workbenchFile: getSourceFile(context, "src/lib/local-runtime/workbench.ts"),
+    workbenchFile: getSourceFile(context, "src/lib/local-runtime/workbench-deep-research-handle.ts"),
     workbenchInputAttachmentsFile: getSourceFile(context, "src/lib/local-runtime/workbench-deep-research-input-attachments.ts"),
     acceptanceFile: getSourceFile(context, "scripts/acceptance/deep-research-input-attachments.acceptance.ts"),
-    ciFullPhasePlanFile: getSourceFile(context, "scripts/audit/ci-full-phase-plan.ts"),
+    ciAcceptanceBindingsFile: getSourceFile(context, "scripts/audit/ci-acceptance-law-bindings.ts"),
     findings,
     inspectedFiles,
     lawId: selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-058-V1"),
@@ -363,15 +361,36 @@ const inspectPromptAndInputBoundaries = (state: DeepResearchInspectionState): vo
   inspectRuntimeShellPolicies(state);
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const state = createInspectionState(context);
   inspectFlowStructure(state);
   inspectPromptAndInputBoundaries(state);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings: state.findings,
     inspectedFiles: [...state.inspectedFiles].sort(),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("deep-research-analysis requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

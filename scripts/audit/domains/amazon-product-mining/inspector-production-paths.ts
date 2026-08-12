@@ -253,19 +253,31 @@ const exportedFunctionHasStartsWithPolicy = (
   exportedFunctionName = "canContinueAfterWebChatSourceRestoreFailure",
 ): boolean => {
   const declarations = sourceFile.getExportedDeclarations().get(exportedFunctionName) ?? [];
-  return declarations.some((declaration) =>
-    declaration.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+  const prefixDeclaration = sourceFile.getVariableDeclaration("AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX");
+  const resolvesTo = (node: import("ts-morph").Node | undefined, declaration: import("ts-morph").Node): boolean => {
+    const symbol = node?.getSymbol();
+    const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+    return target?.getDeclarations().includes(declaration) ?? false;
+  };
+  return prefixDeclaration !== undefined && declarations.some((declaration) => {
+    const functionLike = Node.isVariableDeclaration(declaration) ? declaration.getInitializer() : declaration;
+    if (!Node.isFunctionLikeDeclaration(functionLike)) return false;
+    const input = functionLike.getParameters()[0];
+    if (!input) return false;
+    return functionLike.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
       const expression = callExpression.getExpression();
-      if (!Node.isPropertyAccessExpression(expression)) {
-        return false;
-      }
-      const callTargetIsStartsWith = expression.getName() === "startsWith";
-      const receiverIsPromptContract = expression.getExpression().getText().endsWith("promptContractId");
+      if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "startsWith") return false;
+      const promptContract = expression.getExpression();
+      const request = Node.isPropertyAccessExpression(promptContract) ? promptContract.getExpression() : undefined;
+      const receiverIsPromptContract = Node.isPropertyAccessExpression(promptContract)
+        && promptContract.getName() === "promptContractId"
+        && Node.isPropertyAccessExpression(request)
+        && request.getName() === "request"
+        && resolvesTo(request.getExpression(), input);
       const firstArgument = callExpression.getArguments()[0];
-      const argumentIsAmazonPrefix = Node.isIdentifier(firstArgument)
-        && firstArgument.getText() === "AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX";
-      return callTargetIsStartsWith && receiverIsPromptContract && argumentIsAmazonPrefix;
-    }));
+      return receiverIsPromptContract && resolvesTo(firstArgument, prefixDeclaration);
+    });
+  });
 };
 
 export const inspectAmazonWebChatRestoreContinuity = (

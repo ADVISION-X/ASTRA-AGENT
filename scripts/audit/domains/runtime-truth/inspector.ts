@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
 const deepResearchResultPath = "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts";
@@ -145,51 +145,62 @@ export const inspectFacebookCompletedContract = (
   ];
 };
 
-const pushMissingSourceFinding = (
-  findings: InspectorFinding[],
+const missingSourceFinding = (
   lawId: string,
   repoPath: string,
-): void => {
-  findings.push(
-    createFinding({
+): InspectorFinding =>
+  createFinding({
       checkId: "runtime-truth/source-missing",
       lawId,
       filePath: repoPath,
       message: `${repoPath} is missing from the audit project.`,
-    }),
-  );
+    });
+
+const inspectDomainEvaluation = (context: InspectorContext, lawId: string) => {
+  const inspectedFiles = [deepResearchResultPath, facebookSchemaPath];
+  const deepResearchSource = context.project.getSourceFile(resolveFromRepo(deepResearchResultPath));
+  const facebookSource = context.project.getSourceFile(resolveFromRepo(facebookSchemaPath));
+  return {
+    evidenceRefs: inspectedFiles,
+    findings: [
+      ...(deepResearchSource ? [] : [missingSourceFinding(lawId, deepResearchResultPath)]),
+      ...(facebookSource ? [] : [missingSourceFinding(lawId, facebookSchemaPath)]),
+      ...(deepResearchSource
+        ? inspectDeepResearchCompletedContract(deepResearchSource, lawId)
+        : [createFinding({
+            checkId: deepResearchEvidenceCheckId,
+            lawId,
+            filePath: deepResearchResultPath,
+            message: `${deepResearchResultPath} is unavailable, so its completed-evidence contract could not execute.`,
+          })]),
+      ...(facebookSource
+        ? inspectFacebookCompletedContract(facebookSource, lawId)
+        : [createFinding({
+            checkId: facebookEvidenceCheckId,
+            lawId,
+            filePath: facebookSchemaPath,
+            message: `${facebookSchemaPath} is unavailable, so its completed-evidence contract could not execute.`,
+          })]),
+    ],
+  };
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("runtime-truth requires a runner-owned check session.");
   const lawId = selectLawId(context.planEntry.lawIds, "APEX-RUNTIME-TRUTH-001-V1");
-  const findings: InspectorFinding[] = [];
   const inspectedFiles = [deepResearchResultPath, facebookSchemaPath];
+  const evaluation = await context.checks.runAll(() => {
+    const ownerEvaluation = inspectDomainEvaluation(context, lawId);
+    return { findings: ownerEvaluation.findings, evidenceRefs: ownerEvaluation.evidenceRefs };
+  });
+  const findings = evaluation.findings;
 
-  const deepResearchSource = context.project.getSourceFile(resolveFromRepo(deepResearchResultPath));
-  if (deepResearchSource) {
-    findings.push(...inspectDeepResearchCompletedContract(deepResearchSource, lawId));
-  } else {
-    pushMissingSourceFinding(findings, lawId, deepResearchResultPath);
-  }
-
-  const facebookSource = context.project.getSourceFile(resolveFromRepo(facebookSchemaPath));
-  if (facebookSource) {
-    findings.push(...inspectFacebookCompletedContract(facebookSource, lawId));
-  } else {
-    pushMissingSourceFinding(findings, lawId, facebookSchemaPath);
-  }
-
-  return {
-    capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
-    findings,
-    inspectedFiles,
+  return context.checks.output({
     reportJson: {
       generatedAt: new Date().toISOString(),
       status: findings.length === 0 ? "PASS" : "FAIL",
       inspectedFiles,
       findings,
     },
-  };
+  });
 };

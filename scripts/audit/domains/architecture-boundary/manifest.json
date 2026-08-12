@@ -9,26 +9,7 @@
         "lawId": "APEX-ARCH-001-V1",
         "clauseId": "apex-arch-001-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -41,26 +22,7 @@
         "lawId": "APEX-ARCH-002-V1",
         "clauseId": "apex-arch-002-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -73,26 +35,7 @@
         "lawId": "APEX-ARCH-003-V1",
         "clauseId": "apex-arch-003-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -105,26 +48,7 @@
         "lawId": "APEX-ARCH-004-V1",
         "clauseId": "apex-arch-004-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -137,26 +61,7 @@
         "lawId": "APEX-ARCH-005-V1",
         "clauseId": "apex-arch-005-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -169,26 +74,7 @@
         "lawId": "APEX-ARCH-006-V1",
         "clauseId": "apex-arch-006-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -201,26 +87,7 @@
         "lawId": "APEX-ARCH-007-V1",
         "clauseId": "apex-arch-007-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -233,26 +100,7 @@
         "lawId": "APEX-ARCH-008-V1",
         "clauseId": "apex-arch-008-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -265,26 +113,7 @@
         "lawId": "APEX-ARCH-009-V1",
         "clauseId": "apex-arch-009-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -297,26 +126,7 @@
         "lawId": "APEX-ARCH-010-V1",
         "clauseId": "apex-arch-010-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -329,26 +139,7 @@
         "lawId": "APEX-ARCH-011-V1",
         "clauseId": "apex-arch-011-requirement",
         "checkIds": [
-          "architecture/ai-planner-ban",
-          "architecture/allowed-script-root",
-          "architecture/allowed-src-root",
-          "architecture/capability-cross-owner-import",
-          "architecture/capability-imports-plugin",
-          "architecture/child-ability-cross-owner-import",
-          "architecture/flow-cross-job-import",
-          "architecture/flow-non-facade-capability-import",
-          "architecture/mediator-runtime-import",
-          "architecture/plugin-active-missing-ci-acceptance",
-          "architecture/plugin-archived-exposure",
-          "architecture/plugin-archived-root-present",
-          "architecture/plugin-entry-not-allowlisted",
-          "architecture/plugin-experimental-default-exposure",
-          "architecture/plugin-law-source-missing",
-          "architecture/plugin-parked-exposure",
-          "architecture/plugin-root-file",
-          "architecture/plugin-script-missing",
-          "architecture/plugin-status-missing",
-          "architecture/shared-owner-boundary"
+          "architecture-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -359,5 +150,15 @@
       }
     ]
   },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
+      "requiredAnchors": [
+        "## 2. Owner 分工",
+        "## 5. 禁止项",
+        "## 6. 目录原则"
+      ]
+    }
+  ],
   "description": "AST and filesystem architecture-boundary enforcement."
 }

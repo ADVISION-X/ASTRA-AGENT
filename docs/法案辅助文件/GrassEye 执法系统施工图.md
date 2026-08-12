@@ -48,14 +48,24 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 
 ## CI-FULL 应该做
 
-1. codex-entry-gate：先验证 law、audit、blueprint 入口可发现。
+1. codex-entry-gate：先验证 law、audit、blueprint 入口可发现；`ci-full.ts` 的 `main()` 只允许在前面建立空执行账本、默认失败摘要状态与 fail-fast 闭包，第一项物理工作必须是通过真实 symbol 解析到 `runCommandStepOrFail(..., codexEntryGateStep, ...)` 的 entry gate。package acceptance 展开、generated authority 读取、审计或验收若出现在 entry gate 前都必须 FAIL。
 2. build audit artifacts：读取法案、manifest、施工图，验证每条 active clause 的显式 `clauseId + checkIds + sourceEvidence` 绑定，生成 registry、matrix、plan、coverage。
 3. run generated plan：只运行一次未过滤的完整 plan，按 executionGroup 调度 foundation、domain、meta inspectors。
 4. 为每个 owner inspector 写入独立 report。
-5. 校验 owner 返回的 `(lawId, clauseId, checkId)` 回执无缺失、无重复、无越权。
-6. typecheck。
-7. 现役 acceptance smoke。
-8. 输出 summary。
+5. runner 为当前 owner 创建唯一 `InspectorCheckSession`；每个 owner 必须只有一个命名为 `inspectDomainEvaluation` 的完整 assertion-set 入口，且 `inspectDomain` 只能在一个 `checks.runAll()` 签名窗口内通过真实 symbol 恰好调用它一次；该命名入口本体返回的 findings 必须沿真实 source declaration/dataflow 追溯到 finding 构造、finding collection 写入或继续调用的真实 assertion，直接返回空 findings、任意 evidence、`Boolean(findings)` 等 declaration-file/decoy call 均须 FAIL；owner 目录内任意无关或 hollow helper 不得冒充完整 evaluation。runner 只为 manifest-owned `<capabilityDomain>/owner-assertion-set` 签发一份 `runId/checkRunId/status/durationMs/evidenceRefs/findingCount`。细粒度 finding ID 只负责定位失败，不是物理回执。
+6. 校验每个物理 `checkRunId` 无缺失、无重复、无越权；同一 check 映射多个相关法条时复用同一个 `checkRunId`，不得复制执行或重复整域扫描。
+7. generated coverage 对全部 active clauses 证明 100% 精确绑定；只对 `static` / `acceptance` 机器条款证明 executed，`real-chrome` 条款必须明确保持 deferred。
+8. `InspectorCheckSession` 生成 owner report、runner 计算 expected mappings 时，都先排除 `evidenceMode=real-chrome`；不得把真实 Chrome 条款暂时写成 executed 后再在汇总层洗掉。
+9. typecheck，物理步骤明确绑定 `APEX-CODE-PURITY-008-V1`，不得保留空 lawId。
+10. 全部 `acceptance:*` package group（包括真实 Chrome 与真实 proof verifier）必须先递归展开成去重后的直接物理叶，并逐叶通过同一份显式 file-to-law binding 闭合；随后只按 rebuilt generated plan 中命中 clause 的 `evidenceMode` 分层：`static` / `acceptance` 进入 CI 并拥有独立 owner/deadline/时间/结果回执，`real-chrome` 明确 deferred。不得按脚本名、文件名、`real-proof` 字样或其他启发式提前排除，`&&` group 只可作为人工入口，不是 CI 执行单位。禁止从 owner `lawIds[0]` 批量抄写叶级 lawId。
+11. 外部命令超时必须 `SIGTERM -> 等待 -> SIGKILL -> 等待完整进程组终止证明`，不得用 `unref` 清理定时器或只等 leader 退出；无法证明终态时必须记录 cleanup failure 并 fail closed，禁止声称已终止或继续下一步；generated-plan worker 超时也必须等待 `terminate()` 回执。
+12. fail-fast summary 必须先收录本次真实失败步骤的完整 `FAIL` receipt，再把后续未启动步骤逐项登记为 `SKIPPED`；失败步骤不得从两本账同时消失。
+13. owner inspector 与域内 helper 只返回 `reportJson/reportMarkdown` payload，不得调用 filesystem mutation API 或写 generated 文件；唯一 generated-plan runner 是 owner report 的唯一落盘者，旧私有 writer 与独立 inventory generated 文件必须物理删除，inventory 进入 owner report payload。
+14. 需要验证 Downloads 交付的 acceptance 只能把 `tmpdir() -> mkdtemp()` 根目录派生出的本次临时交付目录注入现有生产函数；临时根和交付目录必须分别由全文件唯一 `const` declaration 持有，禁止嵌套同名 shadow 和重赋值。临时根创建后的下一条语句必须是包围全部交付调用和准备步骤的 `try`，同一个 `finally` 必须保证对同一个根执行 `rm(..., { recursive: true, force: true })`。元质检必须同时按 callee type 的 call-signature declaration 和 acceptance 对精确仓库模块的直接 named-import symbol 识别生产调用；用 `typeof realHandler` 标注的运行时 wrapper、re-export 或 decoy import 不得冒充真实生产导出。任何生产函数引用都只能充当直接 call callee，禁止 `.call/.apply/.bind`、高阶传递或 wrapper 逃逸。生产调用不得位于任意延后执行的函数作用域；唯一例外是由 `node:http` 精确 `createServer` 调用直接持有的内联 request callback，此时同一 outer try 内必须由唯一 `const server = createServer(...)` declaration 直接接收结果，其下一条语句必须是管理 server 使用期的 inner `try`，并在 inner `finally` 保证链中经 `server.listening` 守卫和 awaited `server.close(error => error ? reject(error) : resolve())` 关闭；空 Promise executor、未把 close callback 联结到同一 Promise 的 resolve/reject，或只调用 close 而无 completion 均不得算终态。无论 close 成功或失败，outer `finally` 仍必须到达 `rm`。通过变量 declaration 和真实 AST 包围关系证明数据流与控制流后，清理只能是无条件直接 `await rm`，或只经一条 `try -> finally` 保证链最终到达它；cleanup options 必须恰好只有 `recursive: true` 和 `force: true` 两项，边界后只允许固定 PASS 输出。不得用函数名文本、文件名后缀、任意同名 import、合法调用诱饵、任意后代 `finally`、条件分支、未调用函数、不可达语句、object spread、`Downloads` 字符串扫描或无关 `rm` 冒充证明。
+15. 对上述隔离门保留反逃逸攻击：假清理、错误或条件式 `finally`、真实 home/Downloads 根、root shadow、root/delivery/server 的 `let` 重赋、server 未关闭、关闭不同 receiver、未等待 close completion、close Promise 未联结 resolve/reject、额外未证明 path segment、同文件名诱饵模块、typed runtime wrapper/re-export laundering、import alias 加本地 shadow callee、边界外 alias/namespace 真实调用、闭包 wrapper 在清理后执行、`.call/.apply/.bind`、高阶传递、`recursive:false`、`force:false`、后置 object spread 覆盖任一出现都必须 FAIL；这些 audit-system 攻击只归现有 `APEX-AUDIT-005-V1` acceptance 叶执行，不得塞入其他 owner/law 叶或新增第二 runner。媒体异步结果只保留 `downloadsPaths[]` 唯一交付真相，禁止恢复无独立法案和退休机制的 legacy `downloadsPath` 兼容字段。不得写操作者真实 `~/Downloads`，也不得让 CI 重跑累积测试产物。
+15a. `createServer` callback 例外必须与同一文件内唯一受治理 `const server = createServer(...)` initializer 是同一个 CallExpression，第二个未治理 server 或诱饵 callback 不得借用另一份 server lifecycle 证明；close completion 使用的 `Promise` 必须解析到 TypeScript 全局 declaration，局部 `Promise` shadow 必须 FAIL。
+15b. `media-processing-task-persistence` acceptance 只能创建一个全局临时根，四个子场景的数据目录、outside artifact 与注入的 delivery 目录都从该根派生；每个一跳 helper 调用必须把同一 root symbol 传入。唯一 `withServer` 必须把真实 route handler 绑定到唯一 `const server = createServer(...)`，并在紧邻的 `try/finally` 中以同一 server 的 `listening` guard 等待全局 Promise 包装的 error-aware close 完成；最终 outer `finally` 必须全文件唯一一次对同一根执行递归强制清理，清理后只能输出精确的 persistence acceptance PASS。删注入目录、任一 dataDir/outside artifact 脱根、增加第二 `mkdtemp`、使用 resolve-only close、删 listening guard、删 server close、重复/删除 root cleanup 或伪造终端表达式都必须 FAIL。
+16. 输出 summary。
 
 ## CI-FULL 禁止做
 
@@ -64,6 +74,8 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 - 绕过 generated plan 直接调用 owner inspector。
 - 排除某个 owner 后再单独补跑。
 - 接受缺失、重复、越权或 manifest 未声明的 executed-check receipt。
+- 把普通 owner/acceptance receipt 当成 `real-chrome` 已执行证明。
+- 为 K 个 check 重复执行 K 次整域 evaluation。
 - 制造平行 audit 结论。
 - 恢复第二完整质检入口。
 
@@ -76,7 +88,8 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 - 读自己的施工图。
 - 检查自己负责的真实代码。
 - 输出 PASS / FAIL 与失败原因。
-- 输出本域实际完成的 `executedChecks` 回执。
+- 通过 runner 注入的唯一 `checks.runAll()` 窗口一次执行完整 assertion set；manifest 每个 owner 只登记一个 `owner-assertion-set`，owner 无权自行构造 `executedChecks`，诊断 finding ID 无权进入物理回执。
+- 只返回当前 session 的 `checks.output()`；旧 run、对象 spread/copy、空 evidence 和 plan-derived receipt 全部 fail closed。
 
 每个 OWNER 禁止：
 
@@ -96,7 +109,7 @@ audit-system 只做最小连接检查：
 - blueprint anchor 是否存在。
 - runner 是否仍硬编码 law truth 或 owner ordering truth。
 - code-purity report 是否在 audit-system 前已生成。
-- `static-clause-coverage.generated.json` 是否同时证明 active clause 100% 已绑定、100% 已执行。
+- `static-clause-coverage.generated.json` 是否证明 active clause 100% 已绑定、机器条款 100% 已执行，并把 real-Chrome 条款明确留在独立浏览器证据层。
 - owner-boundary / zombie graph 是否把 import 与 re-export 一并纳入主裁。
 
 audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，不代替 code-purity 或能力域 owner。
@@ -207,6 +220,18 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 2. owner inspector 不进入 runner、不写 report、不进 ci-full summary，都不算执行闭环。
 3. 旧 summary、旧 report、旧 generated artifact 不能作为当前 run 的通过证据。
 4. `scripts/audit/domains/**` 与 `scripts/audit/shared/**` 中的结构判断，不得靠 regex 或 `getText/getFullText + includes/match/search/test` 充当主裁。
+
+## Physical Check Receipt Truth
+
+1. `scripts/audit/core/run-generated-plan.ts` 是唯一 session 创建者和回执签发边界；owner 私有 runner 必须删除。
+2. `InspectorContext.checks` 是强制依赖，不存在 optional、legacy output 或普通 `executedChecks` fallback。
+3. manifest 是唯一物理 check binding 真相；每个 owner 只能登记 `<capabilityDomain>/owner-assertion-set`，不得再维护 `owned-check-ids` 第二列表，也不得把失败诊断类别复制为物理 check。
+4. 每个当前 run 必须有唯一 `runId`；每个物理 check 必须有唯一 `checkRunId`、terminal status、duration、evidence refs 和 finding count。
+5. 28 个 owner 可以复用同一冻结候选的只读 AST/文件快照；每个 owner 只能在自己的 `checks.runAll()` 签名窗口内执行一次完整 assertion set，并且只获得一个独立 checkRunId。不得为诊断类别签发回执或重复执行整域 evaluation。
+6. `checks.run()` 循环、窗口外预计算后过滤、plan-derived receipt、缓存 verdict 再抄账、诊断类别冒充物理检查和空心 assertion set 必须物理删除；不得以兼容 API 保留。
+7. 任何漏跑、重复跑、未声明 check、空心回调、跨 run 回执、复制/spread 输出、空 evidence、回执与 finding 不一致，均由 runner fail closed。
+8. `audit-system` 使用 ts-morph AST/symbol 核对唯一 owner-assertion-set 身份、唯一 runAll 窗口、session output、唯一入口和旧 helper/API 复活；攻击样例由现有 `audit-truth-coverage` acceptance 执法。
+9. `ci-full.ts` 对外部命令使用可终止进程组 deadline，对 generated-plan 使用可终止 worker deadline；`ci-full-phase-plan.ts` 只把与显式 law/clause binding 双向一一对应的当前直接叶送入 CI，owner 由该 clause 在 generated plan 中的唯一归属反解，summary 逐叶记录 owner、lawId、timeout 和 skipped 状态。
 
 ## Runtime Evidence Truth
 

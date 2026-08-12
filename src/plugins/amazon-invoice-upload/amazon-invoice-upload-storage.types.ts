@@ -46,7 +46,7 @@ export type AmazonTaxInvoiceDownloadTaskResult = {
   downloadedFileSha256?: string;
   downloadedAt?: string;
   evidenceRef?: string;
-  domTraceRef?: string;
+  runtimeLogRef?: string;
   reviewRequired?: boolean;
 };
 

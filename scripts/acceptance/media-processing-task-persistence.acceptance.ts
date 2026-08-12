@@ -52,20 +52,35 @@ const buildWorkbench = (dataDir: string, mediaProcessing: MediaProcessingAbility
     getMediaProcessingAbilityGroup: () => mediaProcessing,
   }) as GrassEyeWorkbenchHandle;
 
-const startServer = async (workbench: GrassEyeWorkbenchHandle) => {
+const withServer = async <T>(
+  workbench: GrassEyeWorkbenchHandle,
+  deliveryDirectory: string,
+  run: (baseUrl: string) => Promise<T>,
+): Promise<T> => {
   const server = createServer((request, response) => {
-    handleMediaProcessingRequest(request, response, workbench).catch((error) => {
+    handleMediaProcessingRequest(request, response, workbench, deliveryDirectory).catch((error) => {
       response.statusCode = 500;
       response.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
     });
   });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  assert.ok(address && typeof address === "object", "Acceptance server must expose a port.");
-  return {
-    baseUrl: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
-  };
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        server.off("error", reject);
+        resolve();
+      });
+    });
+    const address = server.address();
+    assert.ok(address && typeof address === "object", "Acceptance server must expose a port.");
+    return await run(`http://127.0.0.1:${address.port}`);
+  } finally {
+    if (server.listening) {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => error ? reject(error) : resolve());
+      });
+    }
+  }
 };
 
 const postStart = async (baseUrl: string, filePath: string, body: Record<string, unknown> = {}): Promise<Response> =>
@@ -99,24 +114,26 @@ const assertEventually = async (
   return current;
 };
 
-const runInitialSnapshotFailureAcceptance = async (): Promise<void> => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-mp-initial-persist-"));
+const runInitialSnapshotFailureAcceptance = async (acceptanceRoot: string): Promise<void> => {
+  const dataDir = path.join(acceptanceRoot, "initial-persist");
+  await mkdir(dataDir, { recursive: true });
   const inputFilePath = path.join(dataDir, "source.png");
   await makeImage(inputFilePath);
   const taskPathBlocker = path.join(dataDir, "runtime-data", "media-processing-tasks");
   await mkdir(path.dirname(taskPathBlocker), { recursive: true });
   await writeFile(taskPathBlocker, "not a directory");
   const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
-  const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
-  try {
-    const response = await postStart(server.baseUrl, inputFilePath);
+  await withServer(
+    buildWorkbench(dataDir, mediaProcessing),
+    path.join(acceptanceRoot, "initial-delivery"),
+    async (baseUrl) => {
+    const response = await postStart(baseUrl, inputFilePath);
     const payload = await response.json() as TaskSnapshot;
     assert.equal(response.status, 500, "Initial snapshot write failure must fail the async start.");
     assert.equal(payload.status, "failed");
     assert.ok(payload.failureReason?.startsWith("media_processing_task_persistence_failed"));
-  } finally {
-    await server.close();
-  }
+    },
+  );
 };
 
 const createControlledMediaProcessing = (dataDir: string): {
@@ -147,12 +164,12 @@ const blockTaskPersistenceWrites = async (dataDir: string): Promise<void> => {
   await writeFile(tasksDir, "terminal writes blocked");
 };
 
-const prepareTerminalPersistenceFixture = async (): Promise<{
+const prepareTerminalPersistenceFixture = async (dataDir: string): Promise<{
   dataDir: string;
   inputFilePath: string;
   successResult: MediaProcessingResult;
 }> => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-mp-terminal-persist-"));
+  await mkdir(dataDir, { recursive: true });
   const inputFilePath = path.join(dataDir, "source.png");
   await makeImage(inputFilePath);
   const successResult = await createMediaProcessingAbilityGroupFromFilesystem({ dataDir }).processMedia({
@@ -193,23 +210,26 @@ const assertTerminalPersistenceFailure = async (
   assert.ok(terminal.failureReason?.includes("media_processing_task_persistence_failed"));
 };
 
-const runTerminalSnapshotFailureAndConcurrencyAcceptance = async (): Promise<void> => {
-  const { dataDir, inputFilePath, successResult } = await prepareTerminalPersistenceFixture();
+const runTerminalSnapshotFailureAndConcurrencyAcceptance = async (acceptanceRoot: string): Promise<void> => {
+  const dataDir = path.join(acceptanceRoot, "terminal-persist");
+  const { inputFilePath, successResult } = await prepareTerminalPersistenceFixture(dataDir);
   const { first, second, mediaProcessing } = createControlledMediaProcessing(dataDir);
-  const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
-  try {
-    const { startedOne } = await startTwoTasksAndAssertConcurrency(server.baseUrl, inputFilePath);
+  await withServer(
+    buildWorkbench(dataDir, mediaProcessing),
+    path.join(acceptanceRoot, "terminal-delivery"),
+    async (baseUrl) => {
+    const { startedOne } = await startTwoTasksAndAssertConcurrency(baseUrl, inputFilePath);
     await blockTaskPersistenceWrites(dataDir);
     first.resolve(successResult);
-    await assertTerminalPersistenceFailure(server.baseUrl, startedOne.taskId);
+    await assertTerminalPersistenceFailure(baseUrl, startedOne.taskId);
     second.resolve(successResult);
-  } finally {
-    await server.close();
-  }
+    },
+  );
 };
 
-const runInterruptedRunningSnapshotAcceptance = async (): Promise<void> => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-mp-interrupted-"));
+const runInterruptedRunningSnapshotAcceptance = async (acceptanceRoot: string): Promise<void> => {
+  const dataDir = path.join(acceptanceRoot, "interrupted");
+  await mkdir(dataDir, { recursive: true });
   const taskId = `media_processing_${randomUUID()}`;
   const tasksDir = path.join(dataDir, "runtime-data", "media-processing-tasks");
   await mkdir(tasksDir, { recursive: true });
@@ -221,28 +241,29 @@ const runInterruptedRunningSnapshotAcceptance = async (): Promise<void> => {
     presetId: "web-image",
     sourceFileName: "source.png",
     record: null,
-    downloadsPath: null,
     downloadsPaths: [],
     failureReason: null,
   })}\n`);
   const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
-  const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
-  try {
-    const interrupted = await readTask(server.baseUrl, taskId);
+  await withServer(
+    buildWorkbench(dataDir, mediaProcessing),
+    path.join(acceptanceRoot, "interrupted-delivery"),
+    async (baseUrl) => {
+    const interrupted = await readTask(baseUrl, taskId);
     assert.equal(interrupted.status, "failed");
     assert.equal(interrupted.failureReason, "media_processing_task_interrupted_before_completion");
-  } finally {
-    await server.close();
-  }
+    },
+  );
 };
 
-const runDownloadsCopyFailureAcceptance = async (): Promise<void> => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-mp-downloads-failure-"));
+const runDownloadsCopyFailureAcceptance = async (acceptanceRoot: string): Promise<void> => {
+  const dataDir = path.join(acceptanceRoot, "downloads-failure");
   const uploadDir = path.join(dataDir, "runtime-data", "media-processing-uploads", "downloads-failure");
   await mkdir(uploadDir, { recursive: true });
   const inputFilePath = path.join(uploadDir, "source.png");
   await makeImage(inputFilePath);
-  const outsideArtifactPath = path.join(await mkdtemp(path.join(tmpdir(), "grasseye-mp-outside-artifact-")), "artifact.webp");
+  const outsideArtifactPath = path.join(acceptanceRoot, "outside-artifact", "artifact.webp");
+  await mkdir(path.dirname(outsideArtifactPath), { recursive: true });
   await writeFile(outsideArtifactPath, "artifact");
   const result = await createMediaProcessingAbilityGroupFromFilesystem({ dataDir }).processMedia({
     missionId: "acceptance",
@@ -276,24 +297,30 @@ const runDownloadsCopyFailureAcceptance = async (): Promise<void> => {
   };
   const mediaProcessing = createMediaProcessingAbilityGroupFromFilesystem({ dataDir });
   mediaProcessing.processMedia = async () => outsideResult;
-  const server = await startServer(buildWorkbench(dataDir, mediaProcessing));
-  try {
-    const started = await postStart(server.baseUrl, inputFilePath, { saveToDownloads: true })
+  await withServer(
+    buildWorkbench(dataDir, mediaProcessing),
+    path.join(acceptanceRoot, "downloads-delivery"),
+    async (baseUrl) => {
+    const started = await postStart(baseUrl, inputFilePath, { saveToDownloads: true })
       .then((response) => response.json() as Promise<TaskSnapshot>);
     const failed = await assertEventually(
-      () => readTask(server.baseUrl, started.taskId),
+      () => readTask(baseUrl, started.taskId),
       (task) => task.status === "failed",
       "Downloads copy failure must fail the async task.",
     );
     assert.equal(failed.failureReason, "media_processing_download_outside_workbench_data");
-  } finally {
-    await server.close();
-  }
+    },
+  );
 };
 
-await runInitialSnapshotFailureAcceptance();
-await runTerminalSnapshotFailureAndConcurrencyAcceptance();
-await runInterruptedRunningSnapshotAcceptance();
-await runDownloadsCopyFailureAcceptance();
+const acceptanceRoot = await mkdtemp(path.join(tmpdir(), "grasseye-mp-persistence-"));
+try {
+  await runInitialSnapshotFailureAcceptance(acceptanceRoot);
+  await runTerminalSnapshotFailureAndConcurrencyAcceptance(acceptanceRoot);
+  await runInterruptedRunningSnapshotAcceptance(acceptanceRoot);
+  await runDownloadsCopyFailureAcceptance(acceptanceRoot);
+} finally {
+  await rm(acceptanceRoot, { recursive: true, force: true });
+}
 
 process.stdout.write("[ACCEPTANCE][media-processing-task-persistence] PASS\n");

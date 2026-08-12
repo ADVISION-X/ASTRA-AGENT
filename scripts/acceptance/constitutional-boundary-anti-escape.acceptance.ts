@@ -3,6 +3,8 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { inspectDomain } from "../audit/domains/constitutional-boundary/inspector.js";
+import { loadGeneratedAuditPlan } from "../audit/core/load-audit-plan.js";
+import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
 import { createAuditProject } from "../audit/shared/project.js";
 import { resolveFromRepo } from "../audit/shared/paths.js";
 
@@ -13,13 +15,6 @@ const fixtureRoots = [
 ] as const;
 const capabilityVideoRoot = `src/capabilities/${fixtureMarker}-video-download`;
 const pluginRoot = `src/plugins/${fixtureMarker}`;
-
-const LAW_IDS = [
-  "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
-  "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
-  "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
-  "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
-] as const;
 
 const writeFixtureFile = (repoPath: string, content: string): void => {
   const absolutePath = resolveFromRepo(repoPath);
@@ -47,27 +42,14 @@ const removeFixtureTree = (): void => {
 
 const getFixtureFindings = async () => {
   const project = createAuditProject();
+  const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === "constitutional-boundary");
+  if (!planEntry) throw new Error("constitutional-boundary plan entry is missing.");
+  const controller = createInspectorCheckSession(planEntry);
   const result = await inspectDomain({
+    checks: controller.checks,
     completedReports: {},
     generatedPlan: [],
-    planEntry: {
-      capabilityDomain: "constitutional-boundary",
-      manifestPath: "scripts/audit/domains/constitutional-boundary/manifest.json",
-      ownerInspectorPath: "scripts/audit/domains/constitutional-boundary/inspector.ts",
-      executionGroup: "foundation",
-      bindings: LAW_IDS.map((lawId) => ({
-        lawId,
-        clauseId: `${lawId.toLowerCase()}-fixture-requirement`,
-        evidenceMode: "static",
-        checkIds: ["fixture/check"],
-        sourceEvidence: [{
-          filePath: "scripts/audit/domains/constitutional-boundary/inspector.ts",
-          symbolName: "inspectDomain",
-        }],
-      })),
-      lawIds: [...LAW_IDS],
-      blueprintRefs: [],
-    },
+    planEntry,
     project,
   });
   return result.findings.filter((finding) => finding.filePath?.includes(fixtureMarker));

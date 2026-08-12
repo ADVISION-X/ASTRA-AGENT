@@ -1,6 +1,6 @@
 ---
 description: "玄学网站 AI 生产工厂法案：整单领取、固定产品动作图、持久化生产窗口、断点恢复和整单回传。"
-applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts,scripts/startup/xuanxue-ai-production-cloud-enroll.ts,scripts/acceptance/xuanxue-ai-production.acceptance.ts,scripts/audit/domains/xuanxue-ai-production/**/*.{ts,json},docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md"
+applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/mediator/xuanxue-ai-production-route.ts,scripts/startup/xuanxue-ai-production-cloud-enroll.ts,scripts/acceptance/xuanxue-ai-production.acceptance.ts,scripts/audit/domains/xuanxue-ai-production/**/*.{ts,json},docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md"
 ---
 
 # GrassEye 玄学 AI 生产工厂法案
@@ -264,6 +264,12 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "statement": "Private bases execute once per stable identity; every formal child has one explicit provider topology proof and typed joins never merge conversations or invent a synthetic subject.",
       "evidenceMode": "acceptance",
+      "ownerDomain": "xuanxue-ai-production"
+    },
+    {
+      "clauseId": "grasseye-xuanxue-ai-production-001-v5-real-chrome-proof",
+      "statement": "A real signed-in Chrome run and its persisted provider records must prove the production conversation topology, attachment counts, unique response markers and exact continuation or fork relationships.",
+      "evidenceMode": "real-chrome",
       "ownerDomain": "xuanxue-ai-production"
     }
   ]

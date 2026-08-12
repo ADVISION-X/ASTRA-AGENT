@@ -16,11 +16,12 @@ function createBrowserActionResult(input: {
 }
 
 const createCurrentChromeBrowserActionResult = (input: {
+  actionId?: string;
   message: string;
   ok?: boolean;
 }): BrowserActionResult =>
   createBrowserActionResult({
-    actionId: createId("browser"),
+    actionId: input.actionId ?? createId("browser"),
     message: input.message,
     ...(input.ok === undefined ? {} : { ok: input.ok }),
   });

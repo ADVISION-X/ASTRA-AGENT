@@ -236,6 +236,71 @@ return {
 };
 `;
 
+export const buildInterruptedRenameTextboxTargetScript = (input: {
+  canonicalConversationUrl: string;
+  turnMarker: string;
+}): string => `
+const expectedPath = ${JSON.stringify(new URL(input.canonicalConversationUrl).pathname)};
+const expectedMarker = ${JSON.stringify(input.turnMarker)};
+const conversationHrefPattern = new RegExp(${JSON.stringify(CHATGPT_CONVERSATION_HREF_PATTERN_SOURCE)}, "u");
+const visible = (node) => {
+  if (!(node instanceof Element)) return false;
+  const rect = node.getBoundingClientRect();
+  const style = getComputedStyle(node);
+  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+};
+const links = Array.from(document.querySelectorAll("a[href]"))
+  .filter((link) => {
+    try {
+      const rawHref = link.getAttribute("href") || "";
+      return conversationHrefPattern.test(rawHref)
+        && new URL(link.href, location.href).pathname === expectedPath
+        && visible(link);
+    } catch {
+      return false;
+    }
+  });
+const markerCount = Array.from(document.querySelectorAll('[data-message-author-role="user"]'))
+  .filter((node) => String(node.textContent || "").includes(expectedMarker)).length;
+const row = links.length === 1
+  ? links[0].closest(${JSON.stringify(CHATGPT_CONVERSATION_ROW_SELECTOR)}) || links[0].parentElement
+  : null;
+const triggers = row
+  ? Array.from(row.querySelectorAll("button")).filter((button) =>
+      visible(button) && Boolean(button.getAttribute("id") || button.getAttribute("aria-controls")))
+  : [];
+const textboxes = Array.from(document.querySelectorAll("input, textarea, [role='textbox']"))
+  .filter((node) => visible(node))
+  .filter((node) => /聊天标题|chat title/iu.test(String(
+    node.getAttribute("aria-label") || node.getAttribute("placeholder") || ""
+  )));
+if (links.length !== 1 || markerCount !== 1 || triggers.length !== 1 || textboxes.length !== 1) {
+  const ambiguous = links.length > 1 || markerCount > 1 || triggers.length > 1 || textboxes.length > 1;
+  return {
+    status: ambiguous ? "review_required" : "pending",
+    message: ambiguous
+      ? "CHATGPT_INTERRUPTED_RENAME_IDENTITY_AMBIGUOUS"
+      : "waiting for exact interrupted rename identity",
+    pageUrl: location.href,
+  };
+}
+const trigger = triggers[0];
+const textbox = textboxes[0];
+const rect = textbox.getBoundingClientRect();
+return {
+  status: "success",
+  message: "interrupted ChatGPT title textbox identity observed",
+  pageUrl: location.href,
+  targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
+  rowConversationUrl: links[0].href,
+  markerCount,
+  rowTriggerId: trigger.getAttribute("id"),
+  rowTriggerControls: trigger.getAttribute("aria-controls"),
+  textboxLabelledBy: textbox.getAttribute("aria-labelledby"),
+  textboxControls: textbox.getAttribute("aria-controls"),
+};
+`;
+
 export const buildRenameTextboxValueScript = (expectedTitle: string): string => `
 const expectedTitle = ${JSON.stringify(expectedTitle)};
 const visible = (node) => {

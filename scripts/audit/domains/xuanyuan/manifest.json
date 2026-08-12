@@ -9,13 +9,7 @@
         "lawId": "GRASSEYE-XUANYUAN-001-V3",
         "clauseId": "grasseye-xuanyuan-001-v3-requirement",
         "checkIds": [
-          "xuanyuan/acceptance",
-          "xuanyuan/ast-contract",
-          "xuanyuan/durable-recovery",
-          "xuanyuan/file-present",
-          "xuanyuan/forbidden-provider-import",
-          "xuanyuan/package-script",
-          "xuanyuan/removed-cloud-region"
+          "xuanyuan/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

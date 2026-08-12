@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { containsAnyCaseInsensitive, isPublicCapabilityFacadePath, isPublicPluginFacadePath } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -33,9 +31,7 @@ const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
 
-const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
-
-const readAppShellSurfaceText = (): string => [
+const appShellSurfacePaths = [
   pagePath,
   appShellPath,
   appShellLayoutPath,
@@ -44,10 +40,32 @@ const readAppShellSurfaceText = (): string => [
   appShellCommandBarPath,
   appShellInspectorPath,
   appShellRuntimeConsolePath,
-].map(readRepoFile).join("\n");
+] as const;
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
+
+const semanticSourceTokens = (context: InspectorContext, repoPath: string): string[] => {
+  const source = getSourceFile(context, repoPath);
+  if (!source) return [];
+  return source.getDescendants().flatMap((node) => {
+    if (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
+      return [node.getLiteralValue()];
+    }
+    if (Node.isTemplateHead(node) || Node.isTemplateMiddle(node) || Node.isTemplateTail(node)) {
+      return [node.getLiteralText()];
+    }
+    if (Node.isPropertyAccessExpression(node)) return [node.getName()];
+    if (Node.isIdentifier(node)) {
+      const name = node.getSymbol()?.getEscapedName().toString();
+      return name ? [name] : [];
+    }
+    return [];
+  });
+};
+
+const semanticSurface = (context: InspectorContext, paths: readonly string[]): string =>
+  paths.flatMap((repoPath) => semanticSourceTokens(context, repoPath)).join("\n");
 
 const pushFinding = (
   findings: Finding[],
@@ -114,7 +132,7 @@ const requireCall = (input: {
 }): void => {
   const sourceFile = getSourceFile(input.context, input.filePath);
   const found = sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    call.getExpression().getText() === input.symbolName,
+    call.getExpression().getSymbol()?.getEscapedName().toString() === input.symbolName,
   );
   if (found) return;
   pushFinding(input.findings, {
@@ -125,9 +143,9 @@ const requireCall = (input: {
   });
 };
 
-const inspectRootSurface = (findings: Finding[], lawId: string): void => {
-  const pageText = readAppShellSurfaceText();
-  const clientText = readRepoFile(clientPath);
+const inspectRootSurface = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const pageText = semanticSurface(context, appShellSurfacePaths);
+  const clientText = semanticSurface(context, [clientPath]);
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-workbench-shell", checkId: "local-app-shell/root-shell" });
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-job-flow-list", checkId: "local-app-shell/job-list" });
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-health-status", checkId: "local-app-shell/health-status" });
@@ -137,9 +155,9 @@ const inspectRootSurface = (findings: Finding[], lawId: string): void => {
 };
 
 const inspectJobInputs = (context: InspectorContext, findings: Finding[], lawId: string): void => {
-  const pageText = readAppShellSurfaceText();
-  const videoClientText = readRepoFile(videoDownloadClientPath);
-  const videoRouteText = readRepoFile(videoDownloadRoutePath);
+  const pageText = semanticSurface(context, appShellSurfacePaths);
+  const videoClientText = semanticSurface(context, [videoDownloadClientPath]);
+  const videoRouteText = semanticSurface(context, [videoDownloadRoutePath]);
   const requiredAmazonFields = [
     "marketplace",
     "sellerCentralEntryUrl",
@@ -168,7 +186,7 @@ const inspectJobInputs = (context: InspectorContext, findings: Finding[], lawId:
       const owner = expression.getExpression();
       return Node.isCallExpression(owner)
         && Node.isIdentifier(owner.getExpression())
-        && owner.getExpression().getText() === "getVideoDownloadAbilityGroup";
+        && owner.getExpression().getSymbol()?.getEscapedName().toString() === "getVideoDownloadAbilityGroup";
     }) ?? false;
   if (hasDirectAbilityCall) {
     pushFinding(findings, {
@@ -187,7 +205,7 @@ const inspectDeepResearchAppSurface = (
   lawId: string,
   deliveryLawId: string,
 ): void => {
-  const pageText = readAppShellSurfaceText();
+  const pageText = semanticSurface(context, appShellSurfacePaths);
   requireImport({ context, findings, lawId, filePath: appShellLayoutPath, symbolName: "renderDeepResearchPanel", moduleSuffix: "../workbench-deep-research-panel.js", checkId: "local-app-shell/deep-research-ui-import" });
   requireImport({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", moduleSuffix: "./workbench-deep-research-routes.js", checkId: "local-app-shell/deep-research-route-import" });
   requireCall({ context, findings, lawId, filePath: appShellLayoutPath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
@@ -261,16 +279,16 @@ const inspectDeepResearchAppBoundary = (
   }
 };
 
-const inspectStatusWindow = (findings: Finding[], lawId: string): void => {
-  const pageText = `${readAppShellSurfaceText()}\n${readRepoFile(videoDownloadClientPath)}`;
+const inspectStatusWindow = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const pageText = semanticSurface(context, [...appShellSurfacePaths, videoDownloadClientPath]);
   for (const marker of ["data-task-status-panel", "data-task-reason", "data-evidence-ref", "data-raw-result"]) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/status-window" });
   }
   requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: pageText, marker: "reviewRequiredReason", checkId: "local-app-shell/video-download-status" });
 };
 
-const inspectForbiddenPageTerms = (findings: Finding[], lawId: string): void => {
-  const pageText = `${readAppShellSurfaceText()}\n${readRepoFile(clientPath)}\n${readRepoFile(videoDownloadClientPath)}\n${readRepoFile(stylesPath)}`;
+const inspectForbiddenPageTerms = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const pageText = semanticSurface(context, [...appShellSurfacePaths, clientPath, videoDownloadClientPath, stylesPath]);
   const forbiddenMarkers = [
     "universal mission dashboard",
     "commander console",
@@ -366,7 +384,9 @@ const inspectAstProjectAccess = (context: InspectorContext, findings: Finding[],
   });
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const surfaceLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-001-V1");
   const inputLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-002-V1");
   const statusLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-003-V1");
@@ -394,11 +414,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   ]);
 
   inspectAstProjectAccess(context, findings, boundaryLawId);
-  inspectRootSurface(findings, surfaceLawId);
+  inspectRootSurface(context, findings, surfaceLawId);
   inspectJobInputs(context, findings, inputLawId);
   inspectDeepResearchAppSurface(context, findings, inspectedFiles, inputLawId, deliveryLawId);
-  inspectStatusWindow(findings, statusLawId);
-  inspectForbiddenPageTerms(findings, boundaryLawId);
+  inspectStatusWindow(context, findings, statusLawId);
+  inspectForbiddenPageTerms(context, findings, boundaryLawId);
   inspectDeepResearchAppBoundary(context, findings, boundaryLawId);
   inspectAppImports(context, findings, boundaryLawId);
   inspectLocalRuntimeImports(context, findings, boundaryLawId);
@@ -406,8 +426,27 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("local-app-shell requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

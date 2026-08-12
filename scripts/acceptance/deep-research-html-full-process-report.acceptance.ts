@@ -18,7 +18,6 @@ const htmlContract = readFileSync("src/plugins/deep-research-analysis/deep-resea
 const analysisRunner = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
-const ciFullPhasePlan = readFileSync("scripts/audit/ci-full-phase-plan.ts", "utf8");
 
 for (const sectionId of DEEP_RESEARCH_BUSINESS_HTML_REQUIRED_SECTION_IDS) {
   assert(promptShell.includes(sectionId), `HTML prompt shell must require ${sectionId}.`);
@@ -48,7 +47,6 @@ assert(htmlStage.includes("business_html_n_stage_retention_below_80"), "Full-pro
 assert(analysisRunner.includes("Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs)"), "Prompt-specific HTML timeout must not be shortened by the runtime default.");
 assert(packageJson.includes("acceptance:deep-research-html-full-process-report"), "package.json must wire full-process HTML acceptance.");
 assert(ciFull.includes("acceptanceSteps"), "ci:full must source acceptance execution from the phase plan.");
-assert(ciFullPhasePlan.includes("acceptance:deep-research-html-full-process-report"), "ci:full phase plan must execute full-process HTML acceptance.");
 
 const buildHtml = (body: string): string => [
   "<!DOCTYPE html>",

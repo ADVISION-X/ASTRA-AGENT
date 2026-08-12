@@ -78,19 +78,18 @@ const inspectFullCaseFileSourceChecks = (input: FullCaseFileInspectionInput): vo
 
 const inspectFullCaseFileRepoSurfaces = (input: FullCaseFileInspectionInput): void => {
   input.inspectedFiles.add("scripts/audit/ci-full.ts");
-  input.inspectedFiles.add("scripts/audit/ci-full-phase-plan.ts");
+  input.inspectedFiles.add("scripts/audit/ci-acceptance-law-bindings.ts");
   const routes = repoSource(input.context, "src/app/workbench-deep-research-routes.ts");
   const reportView = repoSource(input.context, "src/app/workbench-deep-research-report-view.ts");
   const delivery = repoSource(input.context, "src/app/workbench-deep-research-client-delivery-sections.ts");
   const acceptance = repoSource(input.context, "scripts/acceptance/deep-research-full-case-file.acceptance.ts");
-  const ciFull = repoSource(input.context, "scripts/audit/ci-full.ts");
-  const ciPlan = repoSource(input.context, "scripts/audit/ci-full-phase-plan.ts");
+  const ciBindings = repoSource(input.context, "scripts/audit/ci-acceptance-law-bindings.ts");
   const repoChecks = [
     { ok: hasLiteralFragment(routes, "full-case-file.md") && hasLiteralFragment(routes, "full-case-file.json"), filePath: "src/app/workbench-deep-research-routes.ts", message: "Workbench routes must allow both full case file artifacts." },
     { ok: hasLiteralFragment(reportView, "data-deep-research-full-case-file"), filePath: "src/app/workbench-deep-research-report-view.ts", message: "Report view must expose the Full Case File section." },
     { ok: hasLiteralFragment(delivery, "Open Full Case File") && hasLiteralFragment(delivery, "Download full-case-file.json"), filePath: "src/app/workbench-deep-research-client-delivery-sections.ts", message: "Client delivery sections must expose full case file actions." },
     { ok: hasLiteralFragment(acceptance, "deep-research-full-case-file"), filePath: "scripts/acceptance/deep-research-full-case-file.acceptance.ts", message: "Full-case-file acceptance must exist." },
-    { ok: hasLiteralFragment(ciFull, "acceptance:deep-research-full-case-file") || hasLiteralFragment(ciPlan, "acceptance:deep-research-full-case-file"), filePath: "scripts/audit/ci-full-phase-plan.ts", message: "ci:full must execute acceptance:deep-research-full-case-file." },
+    { ok: hasLiteralFragment(ciBindings, "scripts/acceptance/deep-research-full-case-file.acceptance.ts"), filePath: "scripts/audit/ci-acceptance-law-bindings.ts", message: "ci:full must bind the Deep Research full-case-file physical acceptance leaf." },
   ] as const;
   for (const check of repoChecks) {
     input.inspectedFiles.add(check.filePath);

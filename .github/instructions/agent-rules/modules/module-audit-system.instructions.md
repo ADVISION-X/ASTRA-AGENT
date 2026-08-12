@@ -78,7 +78,7 @@ APEX 质检系统的唯一主链是：
 2. `law` 是唯一规则源。
 3. `manifest` 是唯一脚本归属源；每条 active clause 必须显式绑定 `clauseId`、`checkIds` 与 `sourceEvidence`。
 4. `generated artifacts` 是唯一运行计划源。
-5. `runner` 只执行，不裁定规则，不手工绑定 law；它必须核对 owner 返回的逐项执行回执。
+5. `runner` 只执行，不裁定规则，不手工绑定 law；它必须核对 owner 返回的单一 assertion-set 物理执行回执。失败诊断类别不得冒充额外物理检查。
 
 ### 禁止
 禁止以下形态成为质检系统真相源：
@@ -129,7 +129,7 @@ APEX 质检系统的唯一主链是：
 当前主链只承认唯一机器 schema：
 
 - active law metadata 必须使用 fenced block：```apex-law
-- active lawId 必须属于 `APEX-*` 体系
+- active lawId 必须属于现役 `APEX-*` 或 `GRASSEYE-*` 体系
 - active law 不得使用 ```law
 - active law 不得使用 `WEB-*` lawId
 - active law 不得依赖纯 markdown / prose inference 成为机器真相
@@ -152,7 +152,7 @@ APEX 质检系统的唯一主链是：
 
 - 只写自然语言、无法稳定抽取 lawId / status / capabilityDomain
 - 使用非 `apex-law` fenced schema 作为 active law metadata
-- 使用非 `APEX-*` lawId 进入当前主链
+- 使用非 `APEX-*` / `GRASSEYE-*` lawId 进入当前主链
 - 在法案里直接写脚本文件名作为硬绑定
 - 一个法条横跨多个 capabilityDomain
 - retired law 继续被 active matrix 执行
@@ -199,7 +199,7 @@ owner inspector 负责：
 - 输出统一 InspectorResult
 - 只上报本能力域允许的 lawId
 - 对本域执法真实性负责
-- 返回与 generated plan 完全一致、无缺失、无重复、无越权的 `executedChecks` 回执
+- 返回与 generated plan 完全一致、无缺失、无重复、无越权的 owner assertion-set `executedChecks` 映射和唯一物理回执
 
 辅助函数、helper、components 可以存在，但不构成平行 owner。
 
@@ -247,6 +247,10 @@ owner inspector 负责：
 ### 法条
 `enforcement matrix`、`law registry`、`audit plan` 必须由生成器自动生成。
 generated artifacts 是运行产物，不是人工源文件。
+
+clause coverage 必须区分证据层：所有 active clause 都必须被 manifest 精确绑定；只有 `static` / `acceptance` 机器条款可以由普通 CI owner receipt 计为 executed。`real-chrome` 条款只能在 generated truth 中列为 deferred browser evidence，普通 owner callback、typecheck 或本地 acceptance 永远不得把它标记为已执行。
+
+因此 owner report 的 `executedChecks` 和 runner 的 expected executed mappings 都必须在签发前物理排除 `evidenceMode=real-chrome`；不能先写入 owner report，再只在最终 coverage summary 里过滤。元质检和攻击验收必须同时阻断该越层回归。
 
 至少生成：
 
@@ -306,7 +310,13 @@ runner 是执行器，不是规则中心。runner 只允许：
 4. 共享 Project / diagnostics / cache
 5. 调度 owner inspector
 6. 汇总结果
-7. 校验每个 `(lawId, clauseId, checkId)` 的执行回执与 finding 归属
+7. 校验每个 `(lawId, clauseId, owner-assertion-set)` 映射、唯一物理回执与 finding 的 law/clause 归属
+
+一个 owner 的完整 assertion set 只能在一个 runner-signed evaluation window 内执行一次，并且 manifest 只能登记一个 `<capabilityDomain>/owner-assertion-set` 物理检查。细粒度 finding `checkId` 只是失败诊断类别，不得进入 `executedChecks` 或伪造独立 `checkRunId`。禁止为 K 个诊断类别重复 K 次整域扫描，也禁止在窗口外预计算后抄写回执。
+
+CI-FULL 的每个外部命令必须有固定 hard deadline，并在超时时终止完整进程组；generated-plan owner 执行必须位于可终止的独立 worker deadline 内，不能靠同进程 `Promise.race` 冒充取消。package.json 中供人工使用的 `&&` acceptance group 不得作为 CI 物理回执；CI 必须递归展开为去重后的直接物理叶，每叶独立记录 command、owner、lawId、startedAt、endedAt、duration、timeout 和 PASS/FAIL，失败后的其余叶必须逐项记为 skipped。任何 acceptance 需要验证用户交付复制时，必须把交付目录注入本次临时目录并在 `finally` 递归清理；禁止向真实 `~/Downloads` 写入会跨次累积的测试产物。
+
+超时终止必须等待并记录进程组或 worker 的真实 terminal receipt；只发送 `SIGTERM`/`SIGKILL`、使用 `unref` 定时器、在 leader 退出后立即返回，或在终态未证实时谎报“已终止”，都不构成完整清理。终态无法证实时必须保留真实 cleanup error 并立即 fail closed，不得启动下一物理步骤。失败物理步骤本身必须先以 `FAIL` 写入 completed receipt，再生成 fail-fast summary；它不得从 completed 与 skipped 两边同时消失。每个外部物理步骤均须绑定非空 lawId；typecheck 绑定 `APEX-CODE-PURITY-008-V1`。每个 acceptance 物理叶必须由显式 file-to-law binding 绑定其直接项目法案并验证该法案属于该 owner，且绑定目标不得含 `evidenceMode=real-chrome`；禁止从 owner 的 `lawIds[0]` 批量抄写。owner inspector 及其域内 helper 只返回 report payload，不得调用 filesystem mutation API；generated report 只能由唯一 generated-plan runner 写入，owner 私有 report writer 必须物理退休。
 
 runner 不拥有法条定义权、绑定权、顺序主权。
 
@@ -318,6 +328,9 @@ runner 不拥有法条定义权、绑定权、顺序主权。
 - 绕过 generated plan 直接执行旧 inspector 列表
 - 在 runner 内解释业务法案内容
 - 接受缺失、重复、越权或 manifest 未声明的执行回执
+- 用普通 CI receipt 把 `real-chrome` clause 标记成 executed
+- 反复执行整域 evaluation 后按诊断 checkId 过滤或批量伪造物理回执
+- 用无 hard deadline 的 child/owner 执行，或把多个 acceptance 叶压成一个 group receipt
 - 在 `ci:full` 中为某个 owner 建立特判、排除列表或第二次补跑
 
 ## [APEX-AUDIT-006-V1] 执法真实性
@@ -485,10 +498,10 @@ lawId 级覆盖不能证明法条级覆盖。
 - `package.json` 的 `ci:full` 未先经过 `codex:entry-gate`
 - runner 仍读取手工 matrix
 - generated artifacts 缺失或脏
-- `static-clause-coverage.generated.json` 缺失或未 100% 覆盖 active auto/meta auto / meta static clauses
+- `static-clause-coverage.generated.json` 缺失、未 100% 绑定 active clauses、未 100% 执行机器条款，或把 real-Chrome 条款混入机器 executed coverage
 - fake enforcement / drift / hollow enforcement
 - active clause 缺失显式 manifest binding
-- manifest checkId 没有 owner-domain AST 字面量证据
+- manifest 不是唯一的 `<capabilityDomain>/owner-assertion-set`，或把诊断类别登记成物理检查
 - owner 缺失、重复或越权的 executed-check receipt
 - `ci:full` 过滤、排除或单独补跑任一 owner
 

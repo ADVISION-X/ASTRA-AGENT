@@ -1,18 +1,27 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { buildAuditArtifacts } from "./build-audit-artifacts.js";
-import { acceptanceSteps, codexEntryGateStep, plannedSteps, type CommandStep, typecheckStep } from "./ci-full-phase-plan.js";
+import { buildAcceptanceLeafSkeletons } from "./ci-acceptance-leaf-plan.js";
+import { AUDIT_PLAN_TIMEOUT_MS, runGeneratedPlanWithDeadline, type PlanRunResult } from "./ci-audit-plan-runner.js";
+import { runBoundedCommand } from "./ci-command-runner.js";
+import { createFailFast, type FailFast } from "./ci-fail-fast.js";
+import { sealCiPhasePlanOrFail } from "./ci-phase-sealer.js";
+import {
+  buildCiPlanSkeleton,
+  codexEntryGateStep,
+  preArtifactPlannedSteps,
+  type CommandStep,
+  type PlannedStep,
+  typecheckStep,
+} from "./ci-full-phase-plan.js";
 import { writeCiFullSummary, type CiFullFirstFailure, type CiFullLawCoverage, type CiFullOwnerReport, type StepResult } from "./ci-full-summary.js";
-import { runGeneratedPlan } from "./core/run-generated-plan.js";
-import { repoRoot, resolveFromRepo } from "./shared/paths.js";
+import { resolveFromRepo } from "./shared/paths.js";
 
 export { ciFullSummaryPath, writeCiFullSummary } from "./ci-full-summary.js";
+export { createFailFast } from "./ci-fail-fast.js";
 export type { CiFullFirstFailure, CiFullLawCoverage, CiFullOwnerReport, CiFullSkippedStep, StepResult } from "./ci-full-summary.js";
-
-type PlanRunResult = Awaited<ReturnType<typeof runGeneratedPlan>>;
 
 type GeneratedReportJson = {
   findings?: Array<{
@@ -44,6 +53,9 @@ type AuditPlanJson = {
   }>;
 };
 
+const generatedPlanLawId = preArtifactPlannedSteps
+  .find(([phase]) => phase === "generated-plan-runner")?.[4] ?? null;
+
 const defaultLawCoverage = (): CiFullLawCoverage => ({
   activeLawCount: 0,
   activeClauseCount: 0,
@@ -64,9 +76,12 @@ const createStepResult = (input: {
   command: string;
   error?: string | undefined;
   name: string;
+  ownerId?: string;
+  lawId?: string | null;
   phase: string;
   startedAtMs: number;
   status: "PASS" | "FAIL";
+  timeoutMs?: number;
 }): StepResult => {
   const endedAtMs = Date.now();
   return {
@@ -74,9 +89,12 @@ const createStepResult = (input: {
     durationMs: Math.max(0, endedAtMs - input.startedAtMs),
     endedAt: new Date(endedAtMs).toISOString(),
     name: input.name,
+    ownerId: input.ownerId ?? "audit-system",
+    lawId: input.lawId ?? null,
     phase: input.phase,
     startedAt: new Date(input.startedAtMs).toISOString(),
     status: input.status,
+    timeoutMs: input.timeoutMs ?? 0,
     error: input.error,
   };
 };
@@ -106,39 +124,6 @@ const buildCommandFailure = (phase: string, stepSpec: CommandStep, step: StepRes
     filePath: filePathHint,
     message: step.error ?? `${name} failed.`,
     minimalFixHint,
-  });
-};
-
-const runCommand = async (phase: string, stepSpec: CommandStep): Promise<StepResult> => {
-  const [name, command] = stepSpec;
-  const startedAtMs = Date.now();
-  process.stdout.write(`[CI-FULL][RUN] ${name}\n`);
-  const [executable, ...args] = command;
-  const exitCode = await new Promise<number>((resolvePromise, rejectPromise) => {
-    const child = spawn(executable, args, {
-      cwd: repoRoot,
-      stdio: "inherit",
-    });
-    child.once("error", rejectPromise);
-    child.once("exit", (code) => resolvePromise(code ?? 1));
-  });
-  if (exitCode === 0) {
-    process.stdout.write(`[CI-FULL][PASS] ${name}\n`);
-    return createStepResult({
-      command: command.join(" "),
-      name,
-      phase,
-      startedAtMs,
-      status: "PASS",
-    });
-  }
-  return createStepResult({
-    command: command.join(" "),
-    error: `${name} failed with exit code ${exitCode}`,
-    name,
-    phase,
-    startedAtMs,
-    status: "FAIL",
   });
 };
 
@@ -191,8 +176,6 @@ const readLawCoverage = (): {
   };
 };
 
-type FailFast = (failingStepIndex: number, failure: CiFullFirstFailure) => never;
-
 const runCommandStepOrFail = async (
   phase: string,
   failingStepIndex: number,
@@ -200,18 +183,22 @@ const runCommandStepOrFail = async (
   completedSteps: StepResult[],
   failFast: FailFast,
 ): Promise<void> => {
-  const step = await runCommand(phase, stepSpec);
+  const step = await runBoundedCommand(phase, stepSpec);
   if (step.status === "FAIL") {
-    failFast(failingStepIndex, buildCommandFailure(phase, stepSpec, step));
+    failFast(failingStepIndex, buildCommandFailure(phase, stepSpec, step), step);
   }
   completedSteps.push(step);
 };
 
-const runAcceptancePhaseOrFail = async (completedSteps: StepResult[], failFast: FailFast): Promise<void> => {
+const runAcceptancePhaseOrFail = async (
+  acceptanceSteps: readonly CommandStep[],
+  completedSteps: StepResult[],
+  failFast: FailFast,
+): Promise<void> => {
   for (const [index, acceptanceStep] of acceptanceSteps.entries()) {
-    const step = await runCommand("acceptance-runner", acceptanceStep);
+    const step = await runBoundedCommand("acceptance-runner", acceptanceStep);
     if (step.status === "FAIL") {
-      failFast(5 + index, buildCommandFailure("acceptance-runner", acceptanceStep, step));
+      failFast(5 + index, buildCommandFailure("acceptance-runner", acceptanceStep, step), step);
     }
     completedSteps.push(step);
   }
@@ -295,14 +282,45 @@ const runAuditPlanStep = async (): Promise<{
   step: StepResult;
 }> => {
   const startedAtMs = Date.now();
-  const planRun = await runGeneratedPlan();
+  let planRun: PlanRunResult;
+  try {
+    planRun = await runGeneratedPlanWithDeadline();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const step = createStepResult({
+      command: "worker:runGeneratedPlan()",
+      error: message,
+      lawId: generatedPlanLawId,
+      name: "generated-plan-runner",
+      ownerId: "audit-system",
+      phase: "generated-plan-runner",
+      startedAtMs,
+      status: "FAIL",
+      timeoutMs: AUDIT_PLAN_TIMEOUT_MS,
+    });
+    return {
+      step,
+      ownerReports: [],
+      failure: createFirstFailure({
+        phase: step.phase,
+        command: step.command,
+        lawId: generatedPlanLawId,
+        filePath: "scripts/audit/core/run-generated-plan-worker.ts",
+        message,
+        minimalFixHint: "Repair or bound the generated-plan owner execution before rerunning npm run ci:full.",
+      }),
+    };
+  }
   const step = createStepResult({
-    command: "internal:runGeneratedPlan()",
+    command: "worker:runGeneratedPlan()",
     error: planRun.hasFailures ? "One or more generated-plan owners reported findings." : undefined,
     name: "generated-plan-runner",
+    ownerId: "audit-system",
+    lawId: generatedPlanLawId,
     phase: "generated-plan-runner",
     startedAtMs,
     status: planRun.hasFailures ? "FAIL" : "PASS",
+    timeoutMs: AUDIT_PLAN_TIMEOUT_MS,
   });
   return {
     step,
@@ -342,19 +360,23 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
       summary?: {
         activeClauseCount?: number;
         boundClauseCount?: number;
-        executedClauseCount?: number;
-        uncoveredClauseIds?: string[];
+        machineClauseCount?: number;
+        executedMachineClauseCount?: number;
+        deferredRealChromeClauseCount?: number;
+        realChromeClauseIds?: string[];
+        uncoveredMachineClauseIds?: string[];
         coveragePercent?: number;
       };
     };
     const summary = artifact.summary;
     return summary
       && summary.activeClauseCount === summary.boundClauseCount
-      && summary.activeClauseCount === summary.executedClauseCount
-      && summary.uncoveredClauseIds?.length === 0
+      && summary.machineClauseCount === summary.executedMachineClauseCount
+      && summary.uncoveredMachineClauseIds?.length === 0
+      && summary.deferredRealChromeClauseCount === summary.realChromeClauseIds?.length
       && summary.coveragePercent === 100
       ? null
-      : "static-clause-coverage.generated.json does not prove 100% bound and executed clause coverage.";
+      : "static-clause-coverage.generated.json does not prove 100% bound coverage plus 100% executed machine-clause coverage with real-Chrome clauses kept deferred.";
   })();
   const artifactError = missingArtifact ? `${missingArtifact} is missing or empty.` : coverageError;
   const step = createStepResult({
@@ -380,88 +402,76 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
   };
 };
 
-const createFailFast = (
-  completedSteps: StepResult[],
-  getLawCoverage: () => CiFullLawCoverage,
-  getOwnerReports: () => readonly CiFullOwnerReport[],
-): FailFast => (failingStepIndex, failure) => {
-  writeCiFullSummary({
-    status: "FAIL",
-    firstFailure: failure,
-    completedSteps,
-    skippedAfterFailure: plannedSteps.slice(failingStepIndex + 1).map(([phase, name, command]) => ({
-      command,
-      name,
-      phase,
-    })),
-    lawCoverage: getLawCoverage(),
-    ownerReports: getOwnerReports(),
-    finalDecision: "FAIL",
-  });
-  throw new Error("ci:full failed");
-};
-
 const runBuildAuditArtifactsOrFail = (completedSteps: StepResult[], failFast: FailFast): void => {
+  const startedAtMs = Date.now();
   try {
     completedSteps.push(runAuditBuildStep());
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const failedStep = createStepResult({
+      command: "internal:buildAuditArtifacts()",
+      error: message,
+      name: "build-audit-artifacts",
+      phase: "build-audit-artifacts",
+      startedAtMs,
+      status: "FAIL",
+    });
     failFast(1, createFirstFailure({
       phase: "build-audit-artifacts",
       command: "internal:buildAuditArtifacts()",
       lawId: null,
       filePath: "scripts/audit/build-audit-artifacts.ts",
-      message: error instanceof Error ? error.message : String(error),
+      message,
       minimalFixHint: "Repair the generated-audit artifact builder conflict and rerun npm run ci:full.",
-    }));
+    }), failedStep);
   }
 };
 
-const runLawCoverageOrFail = (
+const runGeneratedArtifactTruthOrFail = (
+  plannedSteps: readonly PlannedStep[],
   completedSteps: StepResult[],
   failFast: FailFast,
-): CiFullLawCoverage => {
-  const lawCoverageStep = runActiveLawCoverageStep();
-  if (lawCoverageStep.failure) {
-    failFast(2, lawCoverageStep.failure);
-  }
-  completedSteps.push(lawCoverageStep.step);
-  return lawCoverageStep.lawCoverage;
-};
-
-const runAuditPlanOrFail = async (
-  completedSteps: StepResult[],
-  failFast: FailFast,
-): Promise<CiFullOwnerReport[]> => {
-  const auditPlanStep = await runAuditPlanStep();
-  if (auditPlanStep.failure) {
-    failFast(3, auditPlanStep.failure);
-  }
-  completedSteps.push(auditPlanStep.step);
-  return auditPlanStep.ownerReports;
-};
-
-const runGeneratedArtifactTruthOrFail = (completedSteps: StepResult[], failFast: FailFast): void => {
+): void => {
   const generatedArtifactTruthStep = verifyGeneratedArtifactTruthStep();
   if (generatedArtifactTruthStep.failure) {
-    failFast(plannedSteps.length - 1, generatedArtifactTruthStep.failure);
+    failFast(plannedSteps.length - 1, generatedArtifactTruthStep.failure, generatedArtifactTruthStep.step);
   }
   completedSteps.push(generatedArtifactTruthStep.step);
 };
 
 const main = async (): Promise<void> => {
+  let acceptanceSkeletons: ReturnType<typeof buildAcceptanceLeafSkeletons> = [];
   const completedSteps: StepResult[] = [];
   let lawCoverage = defaultLawCoverage();
   let ownerReports: CiFullOwnerReport[] = [];
-  const failFast = createFailFast(completedSteps, () => lawCoverage, () => ownerReports);
+  let currentPlannedSteps: readonly PlannedStep[] = preArtifactPlannedSteps;
+  const failFast = createFailFast(
+    completedSteps,
+    () => lawCoverage,
+    () => ownerReports,
+    () => currentPlannedSteps,
+  );
 
   await runCommandStepOrFail("codex-entry-gate", 0, codexEntryGateStep, completedSteps, failFast);
   runBuildAuditArtifactsOrFail(completedSteps, failFast);
-  lawCoverage = runLawCoverageOrFail(completedSteps, failFast);
-  ownerReports = await runAuditPlanOrFail(completedSteps, failFast);
+  acceptanceSkeletons = buildAcceptanceLeafSkeletons();
+  currentPlannedSteps = buildCiPlanSkeleton(acceptanceSkeletons);
+  const phasePlan = sealCiPhasePlanOrFail(acceptanceSkeletons, failFast);
+  currentPlannedSteps = phasePlan.plannedSteps;
+
+  const lawCoverageStep = runActiveLawCoverageStep();
+  lawCoverage = lawCoverageStep.lawCoverage;
+  if (lawCoverageStep.failure) failFast(2, lawCoverageStep.failure, lawCoverageStep.step);
+  completedSteps.push(lawCoverageStep.step);
+
+  const auditPlanStep = await runAuditPlanStep();
+  ownerReports = auditPlanStep.ownerReports;
+  if (auditPlanStep.failure) failFast(3, auditPlanStep.failure, auditPlanStep.step);
+  completedSteps.push(auditPlanStep.step);
 
   await runCommandStepOrFail("typecheck", 4, typecheckStep, completedSteps, failFast);
-  await runAcceptancePhaseOrFail(completedSteps, failFast);
-  runGeneratedArtifactTruthOrFail(completedSteps, failFast);
+  await runAcceptancePhaseOrFail(phasePlan.acceptanceSteps, completedSteps, failFast);
+  runGeneratedArtifactTruthOrFail(phasePlan.plannedSteps, completedSteps, failFast);
 
   writeCiFullSummary({
     status: "PASS",

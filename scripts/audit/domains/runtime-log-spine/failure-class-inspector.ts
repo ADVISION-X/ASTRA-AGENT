@@ -1,4 +1,4 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -6,7 +6,6 @@ import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
 import { getNestedObject, getPropertyInitializer, getStringLiteralProperty, hasProperty } from "./ast/ast-object-literal-reader.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { isRuntimeLogLawSourcePath } from "./runtime-log-scope.js";
-import { readRepoFile } from "./source-read.js";
 
 const requiredClasses = [
   "TRANSIENT_RETRYABLE",
@@ -47,7 +46,7 @@ const buildFailureClassContractHint = (input: {
 
 const appendMissingFailureClassRegistryFindings = (
   findings: RuntimeLogSpineFinding[],
-  failureClasses: ReturnType<typeof readRepoFile>,
+  failureClasses: SourceFile | undefined,
 ): void => {
   if (!failureClasses) {
     findings.push({
@@ -62,18 +61,38 @@ const appendMissingFailureClassRegistryFindings = (
     return;
   }
 
+  const declaration = failureClasses.getVariableDeclaration("RuntimeFailureClass");
+  const rawInitializer = declaration?.getInitializer();
+  const initializer = Node.isAsExpression(rawInitializer) ? rawInitializer.getExpression() : rawInitializer;
+  const availableClasses = new Set(Node.isObjectLiteralExpression(initializer)
+    ? initializer.getProperties().flatMap((property) =>
+      Node.isPropertyAssignment(property) ? [property.getName()] : [])
+    : []);
+
   for (const className of requiredClasses) {
-    if (failureClasses.text.includes(className)) continue;
+    if (availableClasses.has(className)) continue;
     findings.push({
       checkId: "runtime-log-spine/failure-class-registry",
       lawId: RuntimeLogSpineLaw.FAILURE_CLASS,
-      file: failureClasses.path,
+      file: "src/lib/runtime-logs/failure-classes.ts",
       line: 1,
       severity: "fatal",
       message: `RuntimeFailureClass.${className} is missing`,
       hint: "Use the standard RuntimeFailureClass registry from the law before emitting failed/skipped/review_required events.",
     });
   }
+};
+
+const isRuntimeFailureClassReference = (node: import("ts-morph").Node | null): boolean => {
+  if (!node || !Node.isPropertyAccessExpression(node)) return false;
+  const receiver = node.getExpression();
+  if (!Node.isIdentifier(receiver)) return false;
+  const symbol = receiver.getSymbol();
+  const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+  return target?.getDeclarations().some((declaration) =>
+    Node.isVariableDeclaration(declaration)
+    && declaration.getName() === "RuntimeFailureClass"
+    && getRepoSourcePath(declaration.getSourceFile()) === "src/lib/runtime-logs/failure-classes.ts") ?? false;
 };
 
 const appendFailureClassContractFindings = (
@@ -92,7 +111,7 @@ const appendFailureClassContractFindings = (
       const missing = failureContractTokens.filter((token) => !payload || !hasProperty(payload, token));
       if (missing.length === 0) continue;
       const failureClass = payload ? getPropertyInitializer(payload, "failureClass") : null;
-      const fromRegistry = failureClass?.getText().startsWith("RuntimeFailureClass.") ?? false;
+      const fromRegistry = isRuntimeFailureClassReference(failureClass);
       findings.push({
         checkId: "runtime-log-spine/failure-class-contract",
         lawId: RuntimeLogSpineLaw.FAILURE_CLASS,
@@ -113,7 +132,8 @@ export const collectFailureClassFindings = (context: InspectorContext): {
 } => {
   const findings: RuntimeLogSpineFinding[] = [];
   const inspectedFiles = ["src/lib/runtime-logs/failure-classes.ts"];
-  const failureClasses = readRepoFile("src/lib/runtime-logs/failure-classes.ts");
+  const failureClasses = context.project.getSourceFiles().find((sourceFile) =>
+    getRepoSourcePath(sourceFile) === "src/lib/runtime-logs/failure-classes.ts");
   appendMissingFailureClassRegistryFindings(findings, failureClasses);
   appendFailureClassContractFindings(findings, context, inspectedFiles);
 

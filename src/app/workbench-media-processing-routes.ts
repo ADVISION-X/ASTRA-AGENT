@@ -192,10 +192,11 @@ const buildMediaProcessingJobInput = async (
   };
 };
 
-const buildUserDownloadPath = (filePath: string): string => {
+const buildUserDownloadPath = (filePath: string, deliveryDirectory?: string): string => {
   const extension = path.extname(filePath) || ".bin";
   const title = safeFileName(path.basename(filePath, extension));
-  return path.join(homedir(), "Downloads", "GrassEye Media Processing", `${title}-${randomUUID()}${extension}`);
+  const root = deliveryDirectory ?? path.join(homedir(), "Downloads", "GrassEye Media Processing");
+  return path.join(root, `${title}-${randomUUID()}${extension}`);
 };
 
 const assertWorkbenchDataFile = (workbench: GrassEyeWorkbenchHandle, filePath: string): void => {
@@ -210,6 +211,7 @@ const copyResultToDownloads = async (
   result: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>>,
   workbench: GrassEyeWorkbenchHandle,
   saveToDownloads: boolean,
+  deliveryDirectory?: string,
 ): Promise<string[]> => {
   if (result.status !== "success" || !saveToDownloads) {
     return [];
@@ -219,7 +221,7 @@ const copyResultToDownloads = async (
   const copiedPaths: string[] = [];
   for (const artifact of artifacts) {
     assertWorkbenchDataFile(workbench, artifact.filePath);
-    const dest = buildUserDownloadPath(artifact.filePath);
+    const dest = buildUserDownloadPath(artifact.filePath, deliveryDirectory);
     await mkdir(path.dirname(dest), { recursive: true });
     await copyFile(artifact.filePath, dest);
     copiedPaths.push(dest);
@@ -231,10 +233,13 @@ const runMediaProcessingJob = async (
   input: Parameters<typeof routeMediaProcessingArtifactJob>[0],
   body: MediaProcessingRequestBody,
   workbench: GrassEyeWorkbenchHandle,
-): Promise<{ record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>>; downloadsPath: string | null; downloadsPaths: string[] }> => {
-  const result = await routeMediaProcessingArtifactJob(input, workbench);
-  const downloadsPaths = await copyResultToDownloads(result, workbench, body.saveToDownloads === true);
-  return { record: result, downloadsPath: downloadsPaths[0] ?? null, downloadsPaths };
+  deliveryDirectory?: string,
+): Promise<{ record: Awaited<ReturnType<typeof routeMediaProcessingArtifactJob>>; downloadsPaths: string[] }> => {
+  const result = await routeMediaProcessingArtifactJob(input, {
+    mediaProcessing: workbench.getMediaProcessingAbilityGroup(),
+  });
+  const downloadsPaths = await copyResultToDownloads(result, workbench, body.saveToDownloads === true, deliveryDirectory);
+  return { record: result, downloadsPaths };
 };
 
 const handleMediaProcessingPresetsRequest = (
@@ -307,7 +312,6 @@ const persistCompletedMediaProcessingTask = async (
     status: output.record.status,
     updatedAt: new Date().toISOString(),
     record: output.record,
-    downloadsPath: output.downloadsPath,
     downloadsPaths: output.downloadsPaths,
     failureReason: output.record.result.failureReason ?? output.record.result.reviewRequiredReason ?? null,
   };
@@ -335,8 +339,9 @@ const runMediaProcessingJobInBackground = (
   body: MediaProcessingRequestBody,
   workbench: GrassEyeWorkbenchHandle,
   taskId: string,
+  deliveryDirectory?: string,
 ): void => {
-  void runMediaProcessingJob(input, body, workbench)
+  void runMediaProcessingJob(input, body, workbench, deliveryDirectory)
     .then((output) => persistCompletedMediaProcessingTask(workbench, taskId, output))
     .catch((error) => persistFailedMediaProcessingTask(workbench, taskId, error));
 };
@@ -345,6 +350,7 @@ const handleMediaProcessingAsyncStartRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
+  deliveryDirectory?: string,
 ): Promise<boolean> => {
   if (request.method !== "POST" || request.url?.split("?")[0] !== "/api/media-processing/start-async") {
     return false;
@@ -376,7 +382,7 @@ const handleMediaProcessingAsyncStartRequest = async (
     writePersistStartFailure(response, initialTask, error);
     return true;
   }
-  runMediaProcessingJobInBackground(input, body, workbench, taskId);
+  runMediaProcessingJobInBackground(input, body, workbench, taskId, deliveryDirectory);
   writeJson(response, 202, mediaProcessingTasks.get(taskId));
   return true;
 };
@@ -385,6 +391,7 @@ const handleMediaProcessingDownloadRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
+  deliveryDirectory?: string,
 ): Promise<boolean> => {
   if (request.method !== "POST" || request.url?.split("?")[0] !== "/api/media-processing/download") {
     return false;
@@ -397,7 +404,7 @@ const handleMediaProcessingDownloadRequest = async (
   }
   assertWorkbenchDataFile(workbench, filePath);
   await stat(filePath);
-  const dest = buildUserDownloadPath(filePath);
+  const dest = buildUserDownloadPath(filePath, deliveryDirectory);
   await mkdir(path.dirname(dest), { recursive: true });
   await copyFile(filePath, dest);
   writeJson(response, 200, { downloadsPath: dest });
@@ -408,6 +415,7 @@ export const handleMediaProcessingRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
+  deliveryDirectory?: string,
 ): Promise<boolean> => {
   if (handleMediaProcessingPresetsRequest(request, response)) {
     return true;
@@ -415,8 +423,8 @@ export const handleMediaProcessingRequest = async (
   if (await handleMediaProcessingStatusRequest(request, response, workbench)) {
     return true;
   }
-  if (await handleMediaProcessingAsyncStartRequest(request, response, workbench)) {
+  if (await handleMediaProcessingAsyncStartRequest(request, response, workbench, deliveryDirectory)) {
     return true;
   }
-  return handleMediaProcessingDownloadRequest(request, response, workbench);
+  return handleMediaProcessingDownloadRequest(request, response, workbench, deliveryDirectory);
 };

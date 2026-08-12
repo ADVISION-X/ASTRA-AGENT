@@ -555,18 +555,3 @@ the marked turn and ordered attachment proof persist before post-submit inspecti
 fresh executions reject a canonical conversation already owned by another execution
 explicit continuations alone may reuse their exact parent canonical conversation
 ```
-
-真实 Chrome 验收覆盖：
-
-```txt
-10 independent GPT feeds share one physical tab without task crossover
-one durable submitted turn survives post-submit inspection failure and process interruption without duplicate submission
-one checkpointed answer survives interruption during rename and completes the exact system title
-1 file complete prompt/response flow
-10 files complete prompt/response flow
-17 files complete prompt/response flow
-exact filenames and count
-30-second stable gate
-formal prompt submitted only after stable
-provider response captured with proof
-```

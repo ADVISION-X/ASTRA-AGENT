@@ -16,7 +16,7 @@ type InputAttachmentEveryAiFeedInspectionInput = {
   workbenchFile: SourceFile | undefined;
   workbenchInputAttachmentsFile: SourceFile | undefined;
   acceptanceFile: SourceFile | undefined;
-  ciFullPhasePlanFile: SourceFile | undefined;
+  ciAcceptanceBindingsFile: SourceFile | undefined;
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
@@ -77,7 +77,7 @@ const markAllInspectedFiles = (input: InputAttachmentEveryAiFeedInspectionInput)
     input.workbenchFile,
     input.workbenchInputAttachmentsFile,
     input.acceptanceFile,
-    input.ciFullPhasePlanFile,
+    input.ciAcceptanceBindingsFile,
   ].forEach((sourceFile) => markInspected(input.inspectedFiles, sourceFile));
 };
 
@@ -120,10 +120,10 @@ const inspectAttachmentAppIntake = (input: InputAttachmentEveryAiFeedInspectionI
     pushFinding(input, "src/app/workbench-deep-research-client-boot.ts", "Deep Research client boot must stage picker/drop/paste local files before job creation.");
   }
   if (!hasIdentifier(input.workbenchFile, "buildDeepResearchAttachmentStagingHandle")) {
-    pushFinding(input, "src/lib/local-runtime/workbench.ts", "Local runtime must wire the Deep Research attachment staging handle.");
+    pushFinding(input, "src/lib/local-runtime/workbench-deep-research-handle.ts", "The Deep Research Workbench handle owner must wire attachment staging.");
   }
   if (!hasIdentifier(input.workbenchInputAttachmentsFile, "stageDeepResearchAttachmentFile") || !hasIdentifier(input.workbenchInputAttachmentsFile, "sourceKind")) {
-    pushFinding(input, "src/lib/local-runtime/workbench.ts", "Local runtime must persist staged Deep Research attachment files with manifest metadata.");
+    pushFinding(input, "src/lib/local-runtime/workbench-deep-research-input-attachments.ts", "Local runtime must persist staged Deep Research attachment files with manifest metadata.");
   }
 };
 
@@ -131,8 +131,8 @@ const inspectAttachmentAcceptance = (input: InputAttachmentEveryAiFeedInspection
   if (!hasStringLiteral(input.acceptanceFile, "acceptance-input-attachment")) {
     pushFinding(input, "scripts/acceptance/deep-research-input-attachments.acceptance.ts", "Deep Research input attachment acceptance must assert Full Case File attachment manifest persistence.");
   }
-  if (!hasStringLiteral(input.ciFullPhasePlanFile, "deep-research-input-attachments")) {
-    pushFinding(input, "scripts/audit/ci-full-phase-plan.ts", "ci:full must execute the Deep Research input attachment acceptance.");
+  if (!hasStringLiteral(input.ciAcceptanceBindingsFile, "scripts/acceptance/deep-research-input-attachments.acceptance.ts")) {
+    pushFinding(input, "scripts/audit/ci-acceptance-law-bindings.ts", "ci:full must bind the Deep Research input attachment physical acceptance leaf.");
   }
 };
 

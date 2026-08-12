@@ -1,45 +1,45 @@
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
-import {
-  createXuanxueAiProductionOrder,
-  startXuanxueAiProductionCloudWorker,
-  XuanxueAiProductionCoordinator,
-  XuanxueAiProductionStore,
-  type XuanxueAiProductionCloudWorkerHandle,
-  type XuanxueAiProductionRuntime,
-} from "../../plugins/xuanxue-ai-production/index.js";
 
-export const createWorkbenchXuanxueAiProductionSupport = (
+import type { createXuanxueAiProductionOrder } from "./xuanxue-ai-production.flow.js";
+import { XuanxueAiProductionCoordinator } from "./xuanxue-ai-production.scheduler.js";
+import { XuanxueAiProductionStore } from "./xuanxue-ai-production.store.js";
+import { startXuanxueAiProductionCloudWorker } from "./xuanxue-ai-production-cloud-worker.js";
+import type { XuanxueAiProductionCloudWorkerHandle } from "./xuanxue-ai-production-cloud-contract.js";
+import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
+
+export const createXuanxueAiProductionWorkbenchOwner = (
   dataDir: string,
   aiInputGateway: AiInputGatewayAbilityGroup,
   mediaProcessing: MediaProcessingAbilityGroup,
+  createOrderRoute: (
+    rawInput: unknown,
+    runtime: XuanxueAiProductionRuntime,
+  ) => ReturnType<typeof createXuanxueAiProductionOrder>,
 ) => {
   let worker: XuanxueAiProductionCloudWorkerHandle | null = null;
   let store: XuanxueAiProductionStore | null = null;
-  let runtime: XuanxueAiProductionRuntime | null = null;
   let coordinator: XuanxueAiProductionCoordinator | null = null;
   return {
     async init() {
-      if (
-        !process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim()
-        || worker
-      ) return;
+      if (!process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim() || worker) return;
       store = new XuanxueAiProductionStore(dataDir);
-      runtime = { dataDir, aiInputGateway, mediaProcessing, store };
+      const runtime: XuanxueAiProductionRuntime = {
+        dataDir,
+        aiInputGateway,
+        mediaProcessing,
+        store,
+      };
       coordinator = new XuanxueAiProductionCoordinator(runtime);
       worker = await startXuanxueAiProductionCloudWorker({
         dataDir,
         execution: {
-          createOrder: (input) =>
-            createXuanxueAiProductionOrder(runtime!, input),
-          executeOrder: (orderId) =>
-            coordinator!.execute(orderId),
-          listCloudRecoveryOrders: () =>
-            store!.listCloudRecoveryOrders(),
+          createOrder: (input) => createOrderRoute(input, runtime),
+          executeOrder: (orderId) => coordinator!.execute(orderId),
+          listCloudRecoveryOrders: () => store!.listCloudRecoveryOrders(),
           repairCompletedCheckpointProviderProofs: () =>
             store!.repairCompletedCheckpointProviderProofs(
-              (input) =>
-                aiInputGateway.recoverCheckpointedProviderLease?.(input)
+              (input) => aiInputGateway.recoverCheckpointedProviderLease?.(input)
                 ?? Promise.resolve(null),
             ),
           quarantineForeignCloudRecoveryOrder: (orderId, reason) =>
@@ -57,7 +57,6 @@ export const createWorkbenchXuanxueAiProductionSupport = (
       coordinator = null;
       store?.close();
       store = null;
-      runtime = null;
     },
   };
 };

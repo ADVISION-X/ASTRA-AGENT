@@ -1,8 +1,5 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
-import { generatedDir } from "../../shared/paths.js";
+import { createFinding } from "../../shared/finding-utils.js";
 import { escapeMarkdownCell } from "../../shared/no-regex.js";
 import type { FacebookMiningStageContract } from "./facebook-mining-stage-matrix.js";
 import { FacebookLogCoverageClause, type FacebookLogCoverageFinding, type FacebookLogCoverageSection } from "./constants.js";
@@ -45,7 +42,7 @@ export type FacebookLogCoverageReport = {
   findings: FacebookLogCoverageFinding[];
 };
 
-export const toInspectorFinding = (finding: FacebookLogCoverageFinding): InspectorFinding => ({
+export const toInspectorFinding = (finding: FacebookLogCoverageFinding): InspectorFinding => createFinding({
   checkId: finding.checkId,
   lawId: finding.lawId,
   clauseId: FacebookLogCoverageClause[finding.lawId],
@@ -115,17 +112,3 @@ export const renderFacebookLogCoverageMarkdown = (report: FacebookLogCoverageRep
   ...renderFindingsSection("Artifact Coverage", report.artifactCoverage),
   ...renderFindingsSection("Fatal Findings", report.findings),
 ].join("\n");
-
-export const writeFacebookLogCoverageReport = (report: FacebookLogCoverageReport): void => {
-  mkdirSync(generatedDir, { recursive: true });
-  writeFileSync(
-    resolve(generatedDir, "facebook-product-video-mining-log-coverage-report.generated.json"),
-    `${JSON.stringify(report, null, 2)}\n`,
-    "utf8",
-  );
-  writeFileSync(
-    resolve(generatedDir, "facebook-product-video-mining-log-coverage-report.generated.md"),
-    renderFacebookLogCoverageMarkdown(report),
-    "utf8",
-  );
-};

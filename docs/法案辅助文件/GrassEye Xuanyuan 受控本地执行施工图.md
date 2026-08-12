@@ -39,7 +39,10 @@ src/plugins/xuanyuan/
   xuanyuan.queue.ts
   xuanyuan-queue-owner.ts
   xuanyuan.flow.ts
-  xuanyuan.workbench.ts
+src/mediator/
+  xuanyuan-route.ts
+src/lib/local-runtime/
+  workbench-xuanyuan-handle.ts
 ```
 
 以下旧生产片区必须不存在：

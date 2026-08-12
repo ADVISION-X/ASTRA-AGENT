@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:11:02.598Z",
+  "generatedAt": "2026-08-12T23:45:34.732Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -18,846 +18,107 @@
   ],
   "status": "PASS",
   "findings": [],
+  "checkRuns": [
+    {
+      "runId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646",
+      "capabilityDomain": "pick3-is-blind-eval",
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:34.628Z",
+      "endedAt": "2026-08-12T23:45:34.731Z",
+      "durationMs": 103,
+      "evidenceRefs": [
+        "package.json",
+        "scripts/acceptance/pick3-is-blind-eval-free-analysis.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+        "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-home-pick3-history-client.ts",
+        "src/app/workbench-home-pick3-trend-client.ts",
+        "src/app/workbench-pick3-routes.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+        "src/lib/local-runtime/workbench-pick3-support.ts",
+        "src/plugins/pick3-is-blind-eval/index.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.sync.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts",
+        "src/plugins/pick3-is-blind-eval/playbooks/free-analysis-strict-reasoning.md",
+        "src/plugins/pick3-is-blind-eval/playbooks/system.md",
+        "src/plugins/pick3-is-blind-eval/playbooks/visual-grammar.md"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
       "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
       "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "clauseId": "grasseye-pick3-is-brain-006-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
       "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     },
     {
       "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
       "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/agent-brain"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/blind-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/file-present"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/human-review-history"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/official-source"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/owner-flow"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/package-scripts"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/physical-delete"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/playbook-lessons"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-exchange"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/prompt-repair"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/stability-mode"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/statistical-honesty"
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "clauseId": "grasseye-pick3-trend-display-010-requirement",
-      "checkId": "pick3-is-blind-eval/trend-display"
+      "checkId": "pick3-is-blind-eval/owner-assertion-set",
+      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
     }
   ],
   "inspectedFiles": [
@@ -866,6 +127,7 @@
     "scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
     "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+    "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-home-pick3-history-client.ts",
     "src/app/workbench-home-pick3-trend-client.ts",

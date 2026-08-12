@@ -247,7 +247,13 @@ src/plugins/xuanxue-ai-production/
   xuanxue-ai-production-cloud-enrollment.ts
   xuanxue-ai-production-cloud-staging.ts
   xuanxue-ai-production-cloud-worker.ts
+  xuanxue-ai-production.workbench-owner.ts
+src/mediator/
+  xuanxue-ai-production-route.ts
 ```
+
+Workbench 只创建 plugin-owned lifecycle owner，并把整单创建交给唯一 mediator route；
+worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状态也不吞掉 schema/task 错误。
 
 ## Acceptance
 

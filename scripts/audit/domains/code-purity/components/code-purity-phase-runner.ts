@@ -1,10 +1,6 @@
-import { createFinding, selectLawId } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { collectCodePurityGovernedFiles } from "./code-purity-governed-files.js";
-import {
-  writeCodePurityInventoryReport,
-  type CodePurityInventoryItem,
-} from "./code-purity-report-writer.js";
+import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
 import { scanCodePurityNoRegex } from "./scan-code-purity-no-regex.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
 import { scanStructuralBudgets } from "./scan-structural-budgets.js";
@@ -13,6 +9,7 @@ import { scanZombieSurfaces, type ZombieScanSummary } from "./scan-zombie-surfac
 type CodePurityPhaseRun = {
   findings: InspectorFinding[];
   inspectedFiles: string[];
+  inventoryItems: CodePurityInventoryItem[];
   summary: ZombieScanSummary;
 };
 
@@ -56,22 +53,10 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
     ...zombieScan.inventoryItems,
   ]);
 
-  try {
-    writeCodePurityInventoryReport(inventoryItems);
-  } catch (error) {
-    findings.push(
-      createFinding({
-        checkId: "code-purity/inventory-report-write",
-        lawId: selectLawId(context.planEntry.lawIds, "APEX-CODE-PURITY-015-V1"),
-        message: "Code-purity inventory report could not be written.",
-        evidence: error instanceof Error ? error.message : String(error),
-      }),
-    );
-  }
-
   return {
     findings: dedupeFindings(findings),
     inspectedFiles: governedFiles.map((governedFile) => governedFile.repoPath),
+    inventoryItems,
     summary: zombieScan.summary,
   };
 };

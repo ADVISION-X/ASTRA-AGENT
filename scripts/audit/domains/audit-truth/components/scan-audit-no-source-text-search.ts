@@ -12,24 +12,33 @@ import {
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-import { isAuditTruthScanScopeFile, isOwnerInspectorRepoPath } from "./audit-truth-scope.js";
+import { isAuditTruthScanScopeFile, isOwnerInspectorRepoPath, normalizeAuditTruthPath } from "./audit-truth-scope.js";
 
 const isOwnerInspectorFile = (sourceFile: SourceFile): boolean => isOwnerInspectorRepoPath(getRepoSourcePath(sourceFile));
 
 const isTrackedSourceTextAccess = (expression: PropertyAccessExpression): boolean => {
-  if (expression.getName() !== "getText" && expression.getName() !== "getFullText") {
-    return false;
-  }
-  return expression.getExpression().getType().getSymbol()?.getName() !== "CommentRange";
+  return expression.getName() === "getText" || expression.getName() === "getFullText";
 };
 
 const hasProjectUsage = (sourceFile: SourceFile): boolean =>
   sourceFile
     .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getName() === "project" && Node.isIdentifier(expression.getExpression()) && expression.getExpression().getText() === "context");
+    .some((expression) => expression.getName() === "project"
+      && Node.isIdentifier(expression.getExpression())
+      && (expression.getExpression().getSymbol()?.getDeclarations().some((declaration) =>
+        Node.isParameterDeclaration(declaration) && declaration.getName() === "context") ?? false));
 
-const textSearchMethods = new Set(["includes", "match", "matchAll", "replace", "replaceAll", "search", "split"]);
+const textSearchMethods = new Set([
+  "endsWith", "includes", "indexOf", "lastIndexOf", "match", "matchAll",
+  "replace", "replaceAll", "search", "split", "startsWith",
+]);
 const regexArgumentMethods = new Set(["exec", "test"]);
+const equalityOperators = new Set([
+  SyntaxKind.EqualsEqualsToken,
+  SyntaxKind.EqualsEqualsEqualsToken,
+  SyntaxKind.ExclamationEqualsToken,
+  SyntaxKind.ExclamationEqualsEqualsToken,
+]);
 type FunctionLikeNode = FunctionLikeDeclaration & MorphNode;
 
 const symbolDeclarations = (symbol: MorphSymbol | undefined): MorphNode[] => {
@@ -66,11 +75,16 @@ const resolveCalledFunction = (callExpression: CallExpression): FunctionLikeNode
 
 const isRawFileRead = (callExpression: CallExpression): boolean => {
   const expression = callExpression.getExpression();
-  const callName = Node.isIdentifier(expression)
-    ? expression.getText()
-    : Node.isPropertyAccessExpression(expression)
-      ? expression.getName()
-      : "";
+  const symbol = expression.getSymbol();
+  const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+  const importedName = symbol?.getDeclarations().flatMap((declaration) =>
+    Node.isImportSpecifier(declaration)
+      && ["node:fs", "node:fs/promises"].includes(declaration.getImportDeclaration().getModuleSpecifierValue())
+      ? [declaration.getName()]
+      : [])[0];
+  const callName = Node.isPropertyAccessExpression(expression)
+    ? expression.getName()
+    : importedName ?? target?.getEscapedName().toString() ?? symbol?.getEscapedName().toString() ?? "";
   if (callName !== "readFile" && callName !== "readFileSync") {
     return false;
   }
@@ -176,6 +190,40 @@ type SinkParameter = {
   parameterIndex: number;
 };
 
+const assignedValues = (declaration: MorphNode): MorphNode[] => declaration.getSourceFile()
+  .getDescendantsOfKind(SyntaxKind.BinaryExpression)
+  .filter((assignment) => assignment.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+    && symbolDeclarations(assignment.getLeft().getSymbol()).includes(declaration))
+  .map((assignment) => assignment.getRight());
+
+const nodeFlowsFromParameter = (
+  node: MorphNode,
+  parameter: MorphNode,
+  visited: Set<string> = new Set(),
+): boolean => {
+  const identifiers = [
+    ...(Node.isIdentifier(node) ? [node] : []),
+    ...node.getDescendantsOfKind(SyntaxKind.Identifier),
+  ];
+  return identifiers.some((identifier) => symbolDeclarations(identifier.getSymbol()).some((declaration) => {
+    if (declaration === parameter) return true;
+    const key = `${declaration.getSourceFile().getFilePath()}:${declaration.getStart()}`;
+    if (visited.has(key)) return false;
+    const nextVisited = new Set(visited).add(key);
+    if (Node.isVariableDeclaration(declaration)) {
+      const initializer = declaration.getInitializer();
+      return (initializer !== undefined && nodeFlowsFromParameter(initializer, parameter, nextVisited))
+        || assignedValues(declaration).some((value) => nodeFlowsFromParameter(value, parameter, nextVisited));
+    }
+    if (Node.isBindingElement(declaration)) {
+      const variable = declaration.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+      const initializer = variable?.getInitializer();
+      return initializer !== undefined && nodeFlowsFromParameter(initializer, parameter, nextVisited);
+    }
+    return false;
+  }));
+};
+
 const collectSinkParameters = (scopeFiles: readonly SourceFile[]): SinkParameter[] => {
   const sinkParameters: SinkParameter[] = [];
   for (const sourceFile of scopeFiles) {
@@ -186,9 +234,8 @@ const collectSinkParameters = (scopeFiles: readonly SourceFile[]): SinkParameter
         if (!Node.isPropertyAccessExpression(expression) || !textSearchMethods.has(expression.getName())) {
           continue;
         }
-        const receiverSymbol = expression.getExpression().getSymbol();
         const parameterIndex = parameters.findIndex((parameter) =>
-          symbolDeclarations(receiverSymbol).some((candidate) => candidate === parameter),
+          nodeFlowsFromParameter(expression.getExpression(), parameter),
         );
         if (parameterIndex >= 0) {
           sinkParameters.push({
@@ -202,17 +249,32 @@ const collectSinkParameters = (scopeFiles: readonly SourceFile[]): SinkParameter
   return sinkParameters;
 };
 
+const indexSinkParameters = (sinks: readonly SinkParameter[]): Map<string, Set<number>> => {
+  const indexed = new Map<string, Set<number>>();
+  for (const sink of sinks) {
+    const parameters = indexed.get(sink.functionKey) ?? new Set<number>();
+    parameters.add(sink.parameterIndex);
+    indexed.set(sink.functionKey, parameters);
+  }
+  return indexed;
+};
+
+const findRawEquality = (sourceFile: SourceFile, rawFunctionKeys: ReadonlySet<string>): string | undefined => {
+  for (const comparison of sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression)) {
+    if (!equalityOperators.has(comparison.getOperatorToken().getKind())) continue;
+    if (nodeUsesRawSource(comparison.getLeft(), rawFunctionKeys)
+      || nodeUsesRawSource(comparison.getRight(), rawFunctionKeys)) return comparison.getText();
+  }
+  return undefined;
+};
+
 const findSourceTextJudgment = (
   sourceFile: SourceFile,
   rawFunctionKeys: ReadonlySet<string>,
   sinkParameters: readonly SinkParameter[],
+  enforceControlPlaneEquality: boolean,
 ): string | undefined => {
-  const sinkByFunction = new Map<string, Set<number>>();
-  for (const sink of sinkParameters) {
-    const indexes = sinkByFunction.get(sink.functionKey) ?? new Set<number>();
-    indexes.add(sink.parameterIndex);
-    sinkByFunction.set(sink.functionKey, indexes);
-  }
+  const sinkByFunction = indexSinkParameters(sinkParameters);
   for (const callExpression of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     const expression = callExpression.getExpression();
     if (Node.isPropertyAccessExpression(expression)) {
@@ -244,7 +306,7 @@ const findSourceTextJudgment = (
       }
     }
   }
-  return undefined;
+  return enforceControlPlaneEquality ? findRawEquality(sourceFile, rawFunctionKeys) : undefined;
 };
 
 export const scanAuditNoSourceTextSearch = (input: {
@@ -274,7 +336,15 @@ export const scanAuditNoSourceTextSearch = (input: {
       );
     }
 
-    const sourceTextJudgment = findSourceTextJudgment(sourceFile, rawFunctionKeys, sinkParameters);
+    const normalizedPath = normalizeAuditTruthPath(repoPath);
+    const enforceControlPlaneEquality = normalizedPath.startsWith("scripts/audit/domains/audit-system/")
+      || normalizedPath.startsWith("scripts/audit/domains/audit-truth/");
+    const sourceTextJudgment = findSourceTextJudgment(
+      sourceFile,
+      rawFunctionKeys,
+      sinkParameters,
+      enforceControlPlaneEquality,
+    );
     if (!sourceTextJudgment) {
       continue;
     }

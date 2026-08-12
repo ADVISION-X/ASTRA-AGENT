@@ -1,4 +1,3 @@
-import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import {
   runVideoDownloadArtifactFlow,
   VideoDownloadArtifactJobInputSchema,
@@ -8,10 +7,8 @@ import {
 
 export const routeVideoDownloadArtifactJob = async (
   request: VideoDownloadArtifactJobInput,
-  workbench: GrassEyeWorkbenchHandle,
+  runtime: Parameters<typeof runVideoDownloadArtifactFlow>[1],
 ): Promise<VideoDownloadArtifactJobResult> => {
   const input = VideoDownloadArtifactJobInputSchema.parse(request);
-  return runVideoDownloadArtifactFlow(input, {
-    videoDownload: workbench.getVideoDownloadAbilityGroup(),
-  });
+  return runVideoDownloadArtifactFlow(input, runtime);
 };

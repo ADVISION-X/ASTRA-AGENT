@@ -1,9 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
+import { createFinding } from "../../shared/finding-utils.js";
 import { clauseIdForLaw } from "../../shared/finding-utils.js";
-import { generatedDir } from "../../shared/paths.js";
 import { escapeMarkdownCell } from "../../shared/no-regex.js";
 import {
   type RuntimeLogSpineFinding,
@@ -43,7 +40,7 @@ type RuntimeLogSpineReport = {
   findings: RuntimeLogSpineFinding[];
 };
 
-export const toInspectorFinding = (finding: RuntimeLogSpineFinding): InspectorFinding => ({
+export const toInspectorFinding = (finding: RuntimeLogSpineFinding): InspectorFinding => createFinding({
   checkId: finding.checkId,
   lawId: finding.lawId,
   clauseId: clauseIdForLaw(finding.lawId),
@@ -94,9 +91,3 @@ export const renderRuntimeLogSpineMarkdown = (report: RuntimeLogSpineReport): st
   "Coverage is computed from AST/text contract checks for console policy, event registry usage, emit trace contracts, mode visibility, stage pairs, catch branches, failure classes, redaction, debug bundles, AI contracts, and browser action contracts.",
   "",
 ].join("\n");
-
-export const writeRuntimeLogSpineReport = (report: RuntimeLogSpineReport): void => {
-  mkdirSync(generatedDir, { recursive: true });
-  writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.md"), renderRuntimeLogSpineMarkdown(report), "utf8");
-};

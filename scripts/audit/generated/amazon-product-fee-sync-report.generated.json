@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:10:58.488Z",
+  "generatedAt": "2026-08-12T23:45:30.164Z",
   "capabilityDomain": "amazon-product-fee-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,114 +7,61 @@
   ],
   "status": "PASS",
   "findings": [],
+  "checkRuns": [
+    {
+      "runId": "audit-run:a04453db-6037-417b-a217-109fa73db7cd",
+      "checkRunId": "audit-run:a04453db-6037-417b-a217-109fa73db7cd:check:c2239b59-6a52-4250-9c47-08332f9cb38b",
+      "capabilityDomain": "amazon-product-fee-sync",
+      "checkId": "amazon-product-fee-sync/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:29.982Z",
+      "endedAt": "2026-08-12T23:45:30.163Z",
+      "durationMs": 181,
+      "evidenceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
+        "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
+        "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
+        "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+        "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+        "src/app/create-workbench-server.ts",
+        "src/app/workbench-amazon-product-fee-sync-routes.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/lib/local-runtime/workbench-handle.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+        "src/plugins/amazon-product-fee-sync/index.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
       "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/api-boundary"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/dom-contract"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/dom-export"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/evidence-safety"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/external-control"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/field-pair-rejection"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/flow-contract"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/inventory-search"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/no-fuzzy-row-match"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/product-sync-pollution"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/read-only-flow"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/required-fields"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/runtime-log"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/server-route"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/single-sku"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/source-file-present"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/stale-running-task"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-      "checkId": "amazon-product-fee-sync/workbench-runtime"
+      "checkId": "amazon-product-fee-sync/owner-assertion-set",
+      "checkRunId": "audit-run:a04453db-6037-417b-a217-109fa73db7cd:check:c2239b59-6a52-4250-9c47-08332f9cb38b"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
     "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
-    "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+    "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
     "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
-    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
-    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
-    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
-    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
-    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
-    "src/plugins/amazon-product-fee-sync/index.ts",
+    "scripts/audit/domains/amazon-product-fee-sync/manifest.json",
+    "src/app/create-workbench-server.ts",
     "src/app/workbench-amazon-product-fee-sync-routes.ts",
     "src/app/workbench-api-boundary.ts",
-    "src/app/create-workbench-server.ts",
-    "src/lib/local-runtime/workbench.ts",
     "src/lib/local-runtime/workbench-handle.ts",
-    "scripts/acceptance/amazon-product-fee-sync.acceptance.ts"
+    "src/lib/local-runtime/workbench-marketplace-handles.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+    "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+    "src/plugins/amazon-product-fee-sync/index.ts"
   ]
 }

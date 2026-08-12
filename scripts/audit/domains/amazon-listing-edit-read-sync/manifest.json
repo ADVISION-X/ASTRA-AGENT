@@ -9,28 +9,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -43,28 +22,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -77,28 +35,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -111,28 +48,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -145,28 +61,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -179,28 +74,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -213,28 +87,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -247,28 +100,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -281,28 +113,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -315,28 +126,7 @@
         "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
         "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
         "checkIds": [
-          "amazon-listing-edit-read-sync/api-boundary",
-          "amazon-listing-edit-read-sync/app-api",
-          "amazon-listing-edit-read-sync/app-client",
-          "amazon-listing-edit-read-sync/app-forbidden-input",
-          "amazon-listing-edit-read-sync/app-shell-registry",
-          "amazon-listing-edit-read-sync/app-workspace",
-          "amazon-listing-edit-read-sync/app-write-action",
-          "amazon-listing-edit-read-sync/ci-full",
-          "amazon-listing-edit-read-sync/dom-anchor",
-          "amazon-listing-edit-read-sync/flow-contract",
-          "amazon-listing-edit-read-sync/flow-job-step-wiring",
-          "amazon-listing-edit-read-sync/law-id",
-          "amazon-listing-edit-read-sync/no-cross-owner-import",
-          "amazon-listing-edit-read-sync/package-script",
-          "amazon-listing-edit-read-sync/plugin-status",
-          "amazon-listing-edit-read-sync/privacy",
-          "amazon-listing-edit-read-sync/read-only-flow",
-          "amazon-listing-edit-read-sync/schema-contract",
-          "amazon-listing-edit-read-sync/server-route",
-          "amazon-listing-edit-read-sync/source-file-present",
-          "amazon-listing-edit-read-sync/url-contract",
-          "amazon-listing-edit-read-sync/workbench-runtime"
+          "amazon-listing-edit-read-sync/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

@@ -9,4 +9,4 @@ export type {
   AmazonProductSyncResultItem,
   AmazonProductSyncTaskRecord,
 } from "./amazon-product-sync.schema.js";
-
+export { AmazonProductSyncInputSchema } from "./amazon-product-sync.schema.js";

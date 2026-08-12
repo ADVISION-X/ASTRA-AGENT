@@ -13,7 +13,7 @@ import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
-import { amazonDomTraceRefFromIds, recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
+import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 const DOM_CLICK_SETTLE_MS = 50;
 const AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS = 1_800;
@@ -21,10 +21,14 @@ const AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS = 1_800;
 export const readSnapshot = (
   browser: BrowserController,
   input?: Parameters<typeof readDomSnapshotOnce>[1],
-) => readDomSnapshotOnce(browser, {
-  ...input,
-  timeoutMs: AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS,
-});
+  abortSignal?: AbortSignal,
+) => {
+  const requestedTimeoutMs = input?.timeoutMs ?? AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS;
+  return readDomSnapshotOnce(browser, {
+    ...input,
+    timeoutMs: Math.max(1, Math.min(AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS, requestedTimeoutMs)),
+  }, abortSignal ? { abortSignal } : undefined);
+};
 
 export const verifyState = (
   input: Parameters<typeof verifyDomStateOnce>[0],
@@ -58,7 +62,7 @@ export function evidenceField(evidenceRef: string | undefined): { evidenceRef: s
   return evidenceRef ? { evidenceRef } : {};
 }
 
-export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok"> & {
+export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok" | "orderNavigationProof" | "runtimeLogRef"> & {
   ok?: boolean;
 }): AmazonInvoiceUploadTaskResult {
   return {
@@ -69,10 +73,6 @@ export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok"> & {
     amazonOrderId: input.amazonOrderId,
     invoiceNo: input.invoiceNo,
     ...(input.evidenceRef ? { evidenceRef: input.evidenceRef } : {}),
-    domTraceRef: amazonDomTraceRefFromIds({
-      amazonOrderId: input.amazonOrderId,
-      invoiceNo: input.invoiceNo,
-    }),
     ...(input.reviewRequired ? { reviewRequired: true } : {}),
     ...(input.amountCheck ? { amountCheck: input.amountCheck } : {}),
   };

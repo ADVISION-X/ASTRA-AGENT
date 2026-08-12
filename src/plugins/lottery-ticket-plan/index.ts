@@ -1,4 +1,5 @@
 export { generateLotteryTicketPlan } from "./lottery-ticket-plan.flow.js";
+export { LotteryTicketPlanInputSchema } from "./lottery-ticket-plan.schema.js";
 export type {
   LotteryTicketLine,
   LotteryTicketPlanBucket,

@@ -92,7 +92,7 @@ business owner
   "tier": "P0",
   "capabilityDomain": "ai-input-gateway",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "evidenceMode": "law+blueprint+ast+acceptance",
   "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations and expose exact fresh, same-conversation or provider-verified checkpoint-fork topology without fallback.",
   "required": [
     "Every governed GPT feed resolves exactly one topology mode: fresh, same_conversation or forked_from_checkpoint. A checkpoint fork first verifies the exact parent URL, parent user-turn marker and following assistant response hash, performs the provider branch action, proves a distinct child URL with the inherited checkpoint history, and records the action evidence hash plus child history fingerprint before child submission.",
@@ -111,7 +111,7 @@ business owner
     "Every execution failure appends a bounded durable failure ledger entry containing occurrence time, attempt id, pre-failure phase, classification, recoverability and a bounded reason. A process exit or later successful recovery never erases the prior failure evidence.",
     "Temporary provider unavailability before or after submission, including an absent controlled tab, a composer that has not become ready, an incompletely hydrated parent conversation, bounded capacity or rate limiting, browser disconnection, transient network failure, and an exact submitted conversation that is not currently locatable, is recovery_pending and retains the same execution id, input hash, logical-turn marker, task title and failure evidence. Every accumulated failure entry is reclassified independently on recovery; any number of recoverable entries remains recoverable. A newly emitted terminal-state error must append the last real root reason in the same durable error, and recovery must classify that root rather than the terminal wrapper. A legacy synthetic terminal-state echo that lacks a root is evidence only and receives one bounded recovery pass rather than becoming a new blocking cause or an infinite restart authority. Retry count and failure-ledger length never promote recoverable provider lookup into a terminal user block. Each individual lookup is bounded and releases the browser lease before the next scheduled recovery. Login, captcha, two-factor, security barriers, multiple physical provider tabs or identity ambiguity require review_required inside the generic gateway; an authorized product factory keeps those conditions as internal recovery_pending while showing its user only processing. If multiple physical tabs are detected after durable submission, the gateway records the exact submitted URL in failure proof and retains the same execution and marker; monitor interference may never authorize a second provider submission. Invalid immutable input identity remains failed.",
     "When an authorized factory discards a polluted or terminal provider attempt and creates a fresh execution id for the same round and input hash, the gateway accepts it only when the internal execute option names the exact currently registered execution id being superseded. The rate ledger atomically transfers ownership to the fresh id; unrelated duplicate owners remain rejected, and neither a ten-second retry loop nor a process restart may be required to clear the old in-memory owner.",
-    "Process recovery publishes a valid persisted response checkpoint before attempting to locate the physical tab and never resubmits that provider turn. Only response_captured executions are eligible for the independent title-housekeeping worker; response_checkpointed executions must first republish their answer. On every AGENT start, every checkpoint recovery and every post-publication browser failure, one process-local coordinator scans durable chatTitleRename=pending debt and resumes it without reacquiring provider capacity or invoking the model. Each debt attempt retains the original execution id, canonical URL, inherited whole-order title and turn marker, uses bounded exponential retry backoff, and changes only the submission title proof plus housekeeping state. A verified transaction atomically persists chatTitleRename=verified and chatTitleVerifiedAt. Temporary tab absence, window-focus synchronization, sidebar hydration, missing rename controls and unreflected commits remain pending across any number of restarts; only canonical identity, title or marker ambiguity changes the housekeeping debt to review_required, while the published answer remains response_captured. The complete rename transaction from exact canonical-URL focus through row options, title textbox write, Enter commit and canonical-URL-plus-title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. One rename patrol slice is capped at fifteen seconds, the shortest bound proven sufficient by the real Chrome restart acceptance. If the transaction is not yet complete, it releases the lease and requeues the whole transaction; a queued submission or continuation step therefore enters before another rename patrol and may never wait through a long title-control timeout. Recovery must also detect and finish a rename menu or title textbox left open by a process interruption, but it must first prove the exact canonical URL and unique turn marker; an open menu is reusable only when its aria-labelledby or aria-controls identity points back to that exact conversation row trigger. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and records bounded housekeeping evidence without discarding, downgrading or withholding the already published checkpoint; every rename attempt is bounded and may not occupy production capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing or mismatched checkpoint input identity, attachment identity, hash or byte count returns review_required; a temporarily missing rename surface does not.",
+    "Process recovery publishes a valid persisted response checkpoint before attempting to locate the physical tab and never resubmits that provider turn. Only response_captured executions are eligible for the independent title-housekeeping worker; response_checkpointed executions must first republish their answer. On every AGENT start, every checkpoint recovery and every post-publication browser failure, one process-local coordinator scans durable chatTitleRename=pending debt and resumes it without reacquiring provider capacity or invoking the model. Each debt attempt retains the original execution id, canonical URL, inherited whole-order title and turn marker, uses bounded exponential retry backoff, and changes only the submission title proof plus housekeeping state. A verified transaction atomically persists chatTitleRename=verified and chatTitleVerifiedAt. Temporary tab absence, window-focus synchronization, sidebar hydration, missing rename controls and unreflected commits remain pending across any number of restarts; only canonical identity, title or marker ambiguity changes the housekeeping debt to review_required, while the published answer remains response_captured. The complete rename transaction from exact canonical-URL focus through row options, title textbox write, Enter commit and canonical-URL-plus-title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. One rename patrol slice is capped at fifteen seconds, as proven by the deterministic scheduler and recovery acceptance. If the transaction is not yet complete, it releases the lease and requeues the whole transaction; a queued submission or continuation step therefore enters before another rename patrol and may never wait through a long title-control timeout. Recovery must also detect and finish a rename menu or title textbox left open by a process interruption, but it must first prove the exact canonical URL and unique turn marker; an open menu is reusable only when its aria-labelledby or aria-controls identity points back to that exact conversation row trigger. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and records bounded housekeeping evidence without discarding, downgrading or withholding the already published checkpoint; every rename attempt is bounded and may not occupy production capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing or mismatched checkpoint input identity, attachment identity, hash or byte count returns review_required; a temporarily missing rename surface does not.",
     "Chat search is one bounded UI transaction. Before opening search, before attachment selection and before prompt focus, the provider adapter may close only one visible dialog that contains exactly one Search chats or 搜索聊天 textbox and exactly one Close or 关闭 action. Every search exit, including target-not-found and interruption, must close that exact dialog and verify it disappeared before releasing the browser-mutation lease. Missing or ambiguous classification returns review_required."
     ,"A feed with providerContinuationRef must focus and verify its exact parent providerPageUrl before submission. Missing, mismatched or unreachable parent identity returns review_required; the open-new-conversation path is forbidden for that feed."
   ],
@@ -157,7 +157,7 @@ business owner
     {
       "clauseId": "apex-ai-input-gateway-005-v3-requirement",
       "statement": "A GPT Web feed must prove its exact fresh, same-conversation or provider checkpoint-fork topology and may never substitute a blank chat, summary replay or mutable parent tail.",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "acceptance",
       "ownerDomain": "ai-input-gateway"
     }
   ]
@@ -171,7 +171,7 @@ business owner
   "tier": "P0",
   "capabilityDomain": "ai-input-gateway",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "evidenceMode": "law+blueprint+ast+acceptance",
   "summary": "attach-approved-web-chat-files-once is the only web-chat attachment child and selects one fixed internal transport without caller choice or same-attempt fallback.",
   "required": [
     "Zero approved files return skipped without opening an attachment surface.",
@@ -192,7 +192,7 @@ business owner
     {
       "clauseId": "apex-ai-input-gateway-003-requirement",
       "statement": "attach-approved-web-chat-files-once is the only web-chat attachment child and selects one fixed internal transport without caller choice or same-attempt fallback.",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "acceptance",
       "ownerDomain": "ai-input-gateway"
     }
   ]
@@ -206,7 +206,7 @@ business owner
   "tier": "P0",
   "capabilityDomain": "ai-input-gateway",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "evidenceMode": "law+blueprint+ast+acceptance",
   "summary": "Every attachment attempt must use an isolated verified staging set and emit one aggregate terminal proof before prompt submission.",
   "required": [
     "The child re-reads every approved source file, verifies byte count and sha256, and copies only that ordered set into a unique attempt directory.",
@@ -225,7 +225,7 @@ business owner
     {
       "clauseId": "apex-ai-input-gateway-004-requirement",
       "statement": "Every attachment attempt must use an isolated verified staging set and emit one aggregate terminal proof before prompt submission.",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "acceptance",
       "ownerDomain": "ai-input-gateway"
     }
   ]

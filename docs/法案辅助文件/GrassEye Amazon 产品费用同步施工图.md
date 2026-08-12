@@ -11,6 +11,10 @@ Status: Active construction blueprint. This file is subordinate to active law an
 
 `amazon-product-fee-sync` must read real Seller Central inventory row DOM for one exact SKU and return bounded Amazon fee evidence to ON-THE-WAY Amazon Manage.
 
+The only local assembly path is `src/mediator/amazon-product-fee-sync-route.ts` →
+`src/lib/local-runtime/workbench-marketplace-handles.ts` → the existing App route. The
+handle file assembles dependencies only; the plugin remains the business-flow owner.
+
 ## Required Result Contract
 
 For one SKU item:

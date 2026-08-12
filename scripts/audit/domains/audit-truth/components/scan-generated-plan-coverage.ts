@@ -11,8 +11,20 @@ const orchestrationPaths = new Set([
 const isFilteredPlanCall = (sourceFile: SourceFile): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
-    return (Node.isIdentifier(expression) && expression.getText() === "runGeneratedPlanFiltered")
-      || (Node.isPropertyAccessExpression(expression) && expression.getName() === "runGeneratedPlanFiltered");
+    if (Node.isIdentifier(expression)) {
+      return expression.getSymbol()?.getDeclarations().some((declaration) =>
+        Node.isImportSpecifier(declaration)
+        && declaration.getName() === "runGeneratedPlanFiltered"
+        && declaration.getImportDeclaration().getModuleSpecifierValue().includes("run-generated-plan")) ?? false;
+    }
+    if (!Node.isPropertyAccessExpression(expression)
+      || expression.getName() !== "runGeneratedPlanFiltered") return false;
+    const receiver = expression.getExpression();
+    return Node.isIdentifier(receiver)
+      && (receiver.getSymbol()?.getDeclarations().some((declaration) =>
+        Node.isNamespaceImport(declaration)
+        && declaration.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+          ?.getModuleSpecifierValue().includes("run-generated-plan")) ?? false);
   });
 
 const hasFilteredPlanCommandLiteral = (sourceFile: SourceFile): boolean =>

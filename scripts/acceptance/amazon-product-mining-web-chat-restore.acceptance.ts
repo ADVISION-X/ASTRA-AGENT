@@ -78,22 +78,37 @@ const sourceHasCallExpression = (sourceFile: SourceFile, identifier: string): bo
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((callExpression) => {
       const expression = callExpression.getExpression();
-      return expression.getText() === identifier
+      return (Node.isIdentifier(expression)
+        && expression.getSymbol()?.getEscapedName().toString() === identifier)
         || (Node.isPropertyAccessExpression(expression) && expression.getName() === identifier);
     });
 
-const sourceHasStartsWithPrefixPolicy = (sourceFile: SourceFile): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+const sourceHasStartsWithPrefixPolicy = (sourceFile: SourceFile): boolean => {
+  const requestPolicy = sourceFile.getVariableDeclaration("isAmazonProductMiningGptRequest")
+    ?.getInitializer();
+  const prefix = sourceFile.getVariableDeclaration("AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX");
+  if (!Node.isFunctionLikeDeclaration(requestPolicy) || !prefix) return false;
+  const input = requestPolicy.getParameters()[0];
+  if (!input) return false;
+  const resolvesTo = (node: import("ts-morph").Node | undefined, declaration: import("ts-morph").Node): boolean => {
+    const symbol = node?.getSymbol();
+    const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+    return target?.getDeclarations().includes(declaration) ?? false;
+  };
+  return requestPolicy.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
-    if (!Node.isPropertyAccessExpression(expression)) {
-      return false;
-    }
+    if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "startsWith") return false;
+    const promptContract = expression.getExpression();
+    const request = Node.isPropertyAccessExpression(promptContract) ? promptContract.getExpression() : undefined;
     const firstArgument = callExpression.getArguments()[0];
-    return expression.getName() === "startsWith"
-      && expression.getExpression().getText().endsWith("promptContractId")
-      && Node.isIdentifier(firstArgument)
-      && firstArgument.getText() === "AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX";
+    return Node.isPropertyAccessExpression(promptContract)
+      && promptContract.getName() === "promptContractId"
+      && Node.isPropertyAccessExpression(request)
+      && request.getName() === "request"
+      && resolvesTo(request.getExpression(), input)
+      && resolvesTo(firstArgument, prefix);
   });
+};
 
 try {
   const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });

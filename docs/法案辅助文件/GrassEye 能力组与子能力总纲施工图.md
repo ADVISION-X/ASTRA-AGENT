@@ -11,13 +11,22 @@ GrassEye 当前是岗位型自动化执行系统。
 主架构只有一条：
 
 ```txt
-Business Flow Script
-  -> Ability Groups
+User Requirement
+  -> Job Mediator
+      -> Business Flow Script
+        -> Ability Groups
       -> Child Abilities
           -> Evidence and Logs
 ```
 
 ## 2. Owner 分工
+
+### 2.0 Job Mediator
+
+- 每个 active plugin 唯一入口固定为 `src/mediator/<job-id>-route.ts`
+- 只做 schema parse、调用本 plugin 的明确任务入口、返回结构化结果
+- App / Local Runtime 不得绕过 mediator 直连同一任务入口
+- 不保存业务状态，不执行 Browser / DOM / capability 动作，不形成通用 dispatcher
 
 ### 2.1 Flow Script
 
@@ -71,6 +80,10 @@ Amazon invoice upload
 src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
 ```
 
+## 4.1 Active plugin mediator 闭合
+
+`scripts/audit/config/plugin-status.json` 是 active plugin 清单；每项必须登记唯一 `mediatorRoute`，且物理路径必须精确等于 `src/mediator/<job-id>-route.ts`。每个 route export 还必须由 `mediatorBindings` 精确绑定自己的 `schemaExport` 与 `taskExport`。Inspector 通过 symbol-backed AST 证明 exports 全集相等、schema parse 结果真实进入 task、没有额外 call/state/helper、没有第二 mediator 文件，并证明 App / Local Runtime 没有绕过 route 直连该入口。对于 start/resume/retry/recover/continue/run/enqueue/generate/create/execute 生命周期方法，Inspector 还会从 Local Runtime wrapper 与 plugin export 的真实 symbol 反向发现未登记入口，避免 `mediatorBindings` 自己漏项后静默跳过。
+
 ## 5. 禁止项
 
 - 通用流程调度器
@@ -81,6 +94,7 @@ src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
 - job flow 直连 capability 非 facade 文件
 - ability group 互相串 owner
 - 流程真相落到 catalog、registry 或 UI 层
+- active plugin 缺 mediator、多个 mediator、foreign-plugin mediator 或任务入口直连绕过
 
 ## 6. 目录原则
 
@@ -88,4 +102,5 @@ src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
 - `src/plugins/` 根部不允许游离聚合 / 路由文件
 - 通用动作只留在 `src/capabilities/<group-id>/**`
 - 基础设施只留在 `src/lib/**`
+- 共享 type 与声明式 schema contract 只留在 `src/types/**`；这里只允许追溯到 `zod` 或本目录 schema 的声明调用，函数值、类/enum、控制流、非 zod 运行时 import、I/O、new/await、赋值/更新副作用和业务步骤必须在变量 initializer 深度直接 FAIL
 - 文档只保留现役蓝图，不保留旧宇宙旁支

@@ -11,6 +11,8 @@ import type {
   BrowserStateSnapshot,
 } from "../../src/lib/browser/browser-controller.js";
 
+export const ORDER_DETAIL_EIGHTH_WINDOW_SIGNAL_DELAY_MS = 15_000;
+
 const smokeFixtureHtml = `
 <html><head><title>Seller Central Local Dry Run</title></head>
 <body>
@@ -58,7 +60,7 @@ const smokeFixtureHtml = `
     });
     window.setTimeout(() => {
       document.querySelector("#upload-invoice").textContent = "Upload invoice";
-    }, 2500);
+    }, ${ORDER_DETAIL_EIGHTH_WINDOW_SIGNAL_DELAY_MS});
     document.querySelector("#invoice-file").addEventListener("change", () => {
       document.querySelector("#status").textContent = "File attached INV-1";
     });
@@ -70,7 +72,9 @@ const smokeFixtureHtml = `
 </body></html>
 `;
 
-const noActionsDialogFixtureHtml = (behavior: "recovers" | "repeats"): string => `
+type InvoiceDialogFixtureBehavior = "recovers" | "repeats" | "read_failure_recovers" | "delayed_existing" | "delayed_upload_ready";
+
+const noActionsDialogFixtureHtml = (behavior: InvoiceDialogFixtureBehavior): string => `
 <html><head><title>Seller Central No Actions Dialog Fixture</title></head>
 <body>
   <label for="order-search">Order search</label>
@@ -90,12 +94,24 @@ const noActionsDialogFixtureHtml = (behavior: "recovers" | "repeats"): string =>
     const dialog = document.querySelector("#invoice-dialog");
     const content = document.querySelector("#invoice-dialog-content");
     let manageClicks = 0;
+    const uploadedTable = '<h3>订单123-1234567-1234567的发票</h3><table><tr><th>日期</th><th>类型</th><th>编号</th><th>状态</th><th>操作</th></tr><tr><td>2026/1/27</td><td>发票 由卖家生成</td><td>INV-RECOVERY</td><td>成功：已上传</td><td>下载</td></tr></table><div>上传其他发票或贷记单</div>';
+    const uploadReadyTable = '<h3>订单123-1234567-1234567的发票</h3><table><tr><th>日期</th><th>类型</th><th>编号</th><th>状态</th><th>操作</th></tr></table><div>上传其他发票或贷记单</div>';
     document.querySelector("#manage-invoice").addEventListener("click", () => {
       manageClicks += 1;
+      window.manageInvoiceClickCount = manageClicks;
       dialog.hidden = false;
-      content.textContent = behavior === "recovers" && manageClicks === 2
-        ? "订单123-1234567-1234567的发票 INV-RECOVERY 由卖家生成 成功：已上传"
-        : "订单123-1234567-1234567的发票 很抱歉，目前没有可用的操作。";
+      content.innerHTML = "";
+      if (behavior === "delayed_existing" || behavior === "delayed_upload_ready") {
+        window.setTimeout(() => {
+          content.innerHTML = behavior === "delayed_existing" ? uploadedTable : uploadReadyTable;
+        }, 2300);
+        return;
+      }
+      content.innerHTML = (behavior === "recovers" || behavior === "read_failure_recovers") && manageClicks === 2
+        ? uploadedTable
+        : behavior === "read_failure_recovers"
+          ? "<h3>订单123-1234567-1234567的发票</h3><div>读取失败</div>"
+          : "<h3>订单123-1234567-1234567的发票</h3><div>很抱歉，目前没有可用的操作。</div>";
     });
     document.addEventListener("click", (event) => {
       if (!dialog.hidden && !dialog.contains(event.target) && event.target.id !== "manage-invoice") {
@@ -122,10 +138,21 @@ export const createSmokeFixturePaths = (): SmokeFixturePaths => {
 };
 
 export const createNoActionsDialogFixturePaths = (
-  behavior: "recovers" | "repeats",
+  behavior: "recovers" | "repeats" | "read_failure_recovers",
 ): SmokeFixturePaths => {
   const tmp = mkdtempSync(join(tmpdir(), "grasseye-amazon-no-actions-"));
   const htmlPath = join(tmp, "seller-central-no-actions.html");
+  const pdfPath = join(tmp, "invoice.pdf");
+  writeFileSync(pdfPath, buildInvoicePdf("59.50"));
+  writeFileSync(htmlPath, noActionsDialogFixtureHtml(behavior));
+  return { tmp, htmlPath, pdfPath };
+};
+
+export const createDelayedInvoiceDialogFixturePaths = (
+  behavior: "delayed_existing" | "delayed_upload_ready",
+): SmokeFixturePaths => {
+  const tmp = mkdtempSync(join(tmpdir(), "grasseye-amazon-delayed-invoice-dialog-"));
+  const htmlPath = join(tmp, "seller-central-delayed-invoice-dialog.html");
   const pdfPath = join(tmp, "invoice.pdf");
   writeFileSync(pdfPath, buildInvoicePdf("59.50"));
   writeFileSync(htmlPath, noActionsDialogFixtureHtml(behavior));
@@ -212,14 +239,27 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "playwright Amazon upload smoke adapter" }; }
   getSessionState(): BrowserStateSnapshot { return buildBrowserState(this.page); }
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> { return buildGeometrySnapshot(this.page); }
-  async open(input: { url: string; title: string; reusePolicy?: string }): Promise<BrowserActionResult> {
+  async open(input: { url: string; title: string; reusePolicy?: string; browserActionId?: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
+    const startedAtMs = Date.now();
+    const startedAt = new Date(startedAtMs).toISOString();
     if (input.reusePolicy) this.openReusePolicies.push(input.reusePolicy);
     await this.page.goto(input.url);
     if (input.url.startsWith("file:")) {
       this.fileUrlOpenCount += 1;
       if (this.fileUrlOpenCount > 1) this.duplicateOrderDetailOpenCount += 1;
     }
-    return action(`opened ${input.title}`);
+    return {
+      ...action(`opened ${input.title}`),
+      browserActionId: input.browserActionId ?? `amazon-smoke:open:${Date.now()}`,
+      actionKind: "open",
+      requestedHost: new URL(input.url).host || "local-file",
+      reusePolicy: (input.reusePolicy ?? "reuse-exact-url") as "reuse-exact-url",
+      navigationMode: input.reusePolicy === "reuse-host-tab" ? "reused_host_tab" : "opened_new_tab",
+      observedUrl: this.page.url(),
+      observedUrlMatchesRequest: new URL(this.page.url()).pathname === new URL(input.url).pathname,
+      startedAt,
+      durationMs: Math.max(0, Date.now() - startedAtMs),
+    };
   }
   async scroll(): Promise<BrowserActionResult> { return action("scroll not needed"); }
   async click(input: { targetLabel: string; point: { x: number; y: number }; button?: "left" | "right" | "middle"; clickCount?: 1 | 2 }): Promise<BrowserActionResult> {
@@ -261,7 +301,8 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
       createdAt: now(),
     };
   }
-  async evaluateActiveTab<T>(input: { script: string; description: string; timeoutMs?: number }): Promise<T> {
+  async evaluateActiveTab<T>(input: { script: string; description: string; timeoutMs?: number; abortSignal?: AbortSignal }): Promise<T> {
+    input.abortSignal?.throwIfAborted();
     if (input.description === "read governed DOM structural summary from active tab") {
       this.domSnapshotTimeouts.push(input.timeoutMs ?? 0);
     }
@@ -278,8 +319,10 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
     await this.page.locator(input.elementRef.selector).setInputFiles(input.filePath);
     return action(`set approved file for ${input.description}`);
   }
-  async wait(durationMs: number): Promise<BrowserActionResult> {
+  async wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult> {
+    abortSignal?.throwIfAborted();
     await this.page.waitForTimeout(durationMs);
+    abortSignal?.throwIfAborted();
     return action(`waited ${durationMs}`);
   }
   async closeActiveTab(): Promise<BrowserActionResult> { this.closeActiveTabCalls += 1; return action("active tab closed"); }
@@ -287,6 +330,11 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
 }
 
 export class AmazonHangingOpenBrowserAdapter implements BrowserController {
+  openCalls = 0;
+  abortCount = 0;
+  private executionAbortSignal: AbortSignal | null = null;
+
+  setExecutionAbortSignal(abortSignal: AbortSignal | null): void { this.executionAbortSignal = abortSignal; }
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "hanging open timeout fixture" }; }
   getSessionState(): BrowserStateSnapshot {
     return {
@@ -304,7 +352,16 @@ export class AmazonHangingOpenBrowserAdapter implements BrowserController {
       visibleContentBounds: { x: 0, y: 0, width: 900, height: 700 }, capturedAt: now(),
     };
   }
-  async open(): Promise<BrowserActionResult> { return new Promise<BrowserActionResult>(() => undefined); }
+  async open(input: Parameters<BrowserController["open"]>[0]): Promise<BrowserActionResult> {
+    this.openCalls += 1;
+    return new Promise<BrowserActionResult>((_resolve, reject) => {
+      const signal = input.abortSignal ?? this.executionAbortSignal ?? undefined;
+      signal?.addEventListener("abort", () => {
+        this.abortCount += 1;
+        reject(signal.reason ?? new Error("aborted"));
+      }, { once: true });
+    });
+  }
   async scroll(): Promise<BrowserActionResult> { return action("scroll not reached"); }
   async click(): Promise<BrowserActionResult> { return action("click not reached"); }
   async clickLocatedDomElement(): Promise<BrowserActionResult> { return action("click located not reached"); }

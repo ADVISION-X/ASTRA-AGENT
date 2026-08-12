@@ -11,13 +11,19 @@ import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
 
 export const pluginStatusConfigPath = "scripts/audit/config/plugin-status.json";
-const ciFullPhasePlanPath = "scripts/audit/ci-full-phase-plan.ts";
+const ciAcceptanceBindingsPath = "scripts/audit/ci-acceptance-law-bindings.ts";
 
 const pluginStatusEntrySchema = z.object({
   pluginId: z.string().min(1),
   status: z.enum(["active", "experimental", "parked", "archived"]),
   owner: z.string().min(1),
   phase: z.string().min(1),
+  mediatorRoute: z.string().min(1),
+  mediatorBindings: z.array(z.object({
+    routeExport: z.string().min(1),
+    schemaExport: z.string().min(1),
+    taskExport: z.string().min(1),
+  }).strict()).min(1),
   allowedEntrypoints: z.array(z.string().min(1)).min(1),
   allowedAcceptanceTests: z.array(z.string().min(1)),
   allowedNpmScripts: z.array(z.string().min(1)),
@@ -29,7 +35,7 @@ const pluginStatusConfigSchema = z.object({
   plugins: z.array(pluginStatusEntrySchema),
 });
 
-type PluginStatusEntry = z.infer<typeof pluginStatusEntrySchema>;
+export type PluginStatusEntry = z.infer<typeof pluginStatusEntrySchema>;
 
 type PluginExposureSummary = {
   actualPluginIds: string[];
@@ -130,25 +136,20 @@ const collectExposureFilesByPluginId = (
   );
 };
 
-const collectCiFullAcceptanceScripts = (project: Parameters<typeof listActiveSourceFiles>[0]): string[] => {
-  const sourceFile = project.getSourceFile(resolveFromRepo(ciFullPhasePlanPath));
-  if (!sourceFile) {
-    return [];
-  }
-  const scripts = new Set<string>();
-  for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)) {
-    const value = literal.getLiteralValue();
-    if (value.startsWith("acceptance:")) {
-      scripts.add(value);
-    }
-  }
-  for (const literal of sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)) {
-    const value = literal.getLiteralValue();
-    if (value.startsWith("acceptance:")) {
-      scripts.add(value);
-    }
-  }
-  return [...scripts].sort();
+const collectCiFullAcceptanceScripts = (
+  project: Parameters<typeof listActiveSourceFiles>[0],
+  packageScripts: Readonly<Record<string, string>>,
+): string[] => {
+  const sourceFile = project.getSourceFile(resolveFromRepo(ciAcceptanceBindingsPath));
+  const boundPaths = new Set(sourceFile?.getDescendantsOfKind(SyntaxKind.ArrayLiteralExpression)
+    .flatMap((array) => {
+      const [first] = array.getElements();
+      const path = first?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue();
+      return path ? [path] : [];
+    }) ?? []);
+  return Object.entries(packageScripts).filter(([name, command]) =>
+    name.startsWith("acceptance:") && command.split(" ").some((token) => boundPaths.has(token)))
+    .map(([name]) => name).sort();
 };
 
 const pushFinding = (
@@ -312,13 +313,13 @@ export const inspectActivePluginGate = (input: {
 }): PluginExposureSummary => {
   const findings: InspectorFinding[] = [];
   input.inspectedFiles.add(pluginStatusConfigPath);
-  input.inspectedFiles.add(ciFullPhasePlanPath);
+  input.inspectedFiles.add(ciAcceptanceBindingsPath);
 
   const entries = loadPluginStatusEntries();
   const entryByPluginId = new Map(entries.map((entry) => [entry.pluginId, entry]));
   const packageScripts = readPackageScripts();
   const actualPluginIds = collectActualPluginIds(input.project);
-  const ciFullAcceptanceScripts = collectCiFullAcceptanceScripts(input.project);
+  const ciFullAcceptanceScripts = collectCiFullAcceptanceScripts(input.project, packageScripts);
   const exposureFilesByPluginId = collectExposureFilesByPluginId(input.project, entries);
 
   inspectPluginStatusContracts({

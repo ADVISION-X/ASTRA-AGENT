@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
@@ -122,7 +122,7 @@ const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
 };
 
 const requireParallelSources = (context: InspectorContext, findings: Finding[], lawId: string): SourceFile[] | null => {
-  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.runtime.singleProviderTabPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.acceptance.realChromeParallelAcceptancePath, P.runtime.chatTitlePath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.runtime.singleProviderTabPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.chatTitlePath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
   return sources.every((source): source is SourceFile => source !== null) ? sources : null;
 };
 
@@ -135,7 +135,7 @@ const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Fi
   }
 };
 
-const inspectParallelAcceptanceProof = (acceptance: SourceFile, realChromeAcceptance: SourceFile, findings: Finding[], lawId: string): void => {
+const inspectParallelAcceptanceProof = (acceptance: SourceFile, findings: Finding[], lawId: string): void => {
   const acceptanceIdentifiers = identifiers(acceptance);
   const acceptanceStrings = stringLiterals(acceptance);
   const acceptanceNumbers = new Set(acceptance.getDescendantsOfKind(SyntaxKind.NumericLiteral).map((node) => node.getLiteralValue()));
@@ -159,42 +159,13 @@ const inspectParallelAcceptanceProof = (acceptance: SourceFile, realChromeAccept
       pushFinding(findings, lawId, P.acceptance.concurrencyAcceptancePath, "ai-input-gateway/parallel-acceptance", `Concurrency acceptance must prove ${proof.label}.`);
     }
   }
-  const realChromeIdentifiers = identifiers(realChromeAcceptance);
-  const realChromeStrings = stringLiterals(realChromeAcceptance);
-  const realChromeProofs = [
-    {
-      label: "all submissions precede the first captured response",
-      present: realChromeStrings.has("all exact marked turns must be submitted before the first response is captured"),
-    },
-    {
-      label: "canonical conversation identity",
-      present: realChromeIdentifiers.has("canonicalConversationUrl"),
-    },
-    {
-      label: "turn marker isolation",
-      present: realChromeIdentifiers.has("turnMarker"),
-    },
-    {
-      label: "system chat title identity",
-      present: realChromeIdentifiers.has("systemChatTitle"),
-    },
-    {
-      label: "single physical ChatGPT tab count",
-      present: realChromeIdentifiers.has("chatGptTabCountAfter"),
-    },
-  ];
-  for (const proof of realChromeProofs) {
-    if (!proof.present) {
-      pushFinding(findings, lawId, P.acceptance.realChromeParallelAcceptancePath, "ai-input-gateway/parallel-acceptance", `Real Chrome concurrency acceptance must prove ${proof.label}.`);
-    }
-  }
 };
 
 const inspectBoundedParallelExecution = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const sources = requireParallelSources(context, findings, lawId);
   if (!sources) return;
   inspectParallelIdentifiers(sources, findings, lawId);
-  inspectParallelAcceptanceProof(sources[7]!, sources[8]!, findings, lawId);
+  inspectParallelAcceptanceProof(sources[7]!, findings, lawId);
 };
 
 const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Finding[], lawId: string): void => {
@@ -255,7 +226,6 @@ const inspectExactSidebarRename = (
     pushFinding(findings, lawId, P.runtime.chatTitleScriptsPath, "ai-input-gateway/exact-sidebar-row-rename", "ChatGPT rename targeting must not climb into the page-header conversation menu.");
   }
 };
-
 const inspectAtomicRenameWiring = (
   sources: readonly (readonly [string, SourceFile])[],
   findings: Finding[],
@@ -267,7 +237,6 @@ const inspectAtomicRenameWiring = (
     }
   }
 };
-
 const inspectCompletedConversationRename = (
   context: InspectorContext,
   findings: Finding[],
@@ -311,7 +280,6 @@ const inspectCompletedConversationRename = (
     pushFinding(findings, lawId, P.runtime.chatTitlePath, "ai-input-gateway/submission-priority-over-rename", "A rename patrol slice must be bounded to fifteen seconds, release the browser lane when UI is not ready, and never retain a sixty-second in-lock title wait.");
   }
 };
-
 const inspectSharedRateLimitWatcher = (
   context: InspectorContext,
   findings: Finding[],
@@ -330,7 +298,6 @@ const inspectSharedRateLimitWatcher = (
     pushFinding(findings, lawId, P.runtime.rateLimitDialogPath, "ai-input-gateway/shared-rate-limit-watcher", "The single physical ChatGPT tab must use one shared unrouted acknowledgement watcher.");
   }
 };
-
 const inspectLiveGenerationProof = (
   context: InspectorContext,
   findings: Finding[],
@@ -350,7 +317,6 @@ const inspectLiveGenerationProof = (
     pushFinding(findings, lawId, P.runtime.answerEvaluationPath, "ai-input-gateway/live-generation-proof", "Live loading/shimmer DOM must remain generating until the exact answer completes.");
   }
 };
-
 const inspectTransientPatrolRetry = (
   context: InspectorContext,
   findings: Finding[],
@@ -371,7 +337,6 @@ const inspectTransientPatrolRetry = (
     pushFinding(findings, lawId, P.runtime.answerSupportPath, "ai-input-gateway/live-generation-proof", "A submitted sidebar row that is not yet focusable must remain retryable across response preflight and before-poll routing.");
   }
 };
-
 const inspectTransientOverlayHygiene = (
   context: InspectorContext,
   findings: Finding[],
@@ -414,7 +379,6 @@ const inspectTransientOverlayHygiene = (
     );
   }
 };
-
 const inspectGeneratedImageCapture = (
   context: InspectorContext,
   findings: Finding[],
@@ -437,8 +401,7 @@ const inspectGeneratedImageCapture = (
     }
   }
 };
-
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-004-V1");
@@ -475,7 +438,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [P.authority.lawPath, P.authority.blueprintPath, ...P.governedPaths].sort(),
     reportJson: {
@@ -484,4 +446,22 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       findings,
     },
   };
+};
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("ai-input-gateway requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

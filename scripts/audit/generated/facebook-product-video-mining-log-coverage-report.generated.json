@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:11:01.759Z",
+  "generatedAt": "2026-08-12T23:45:33.739Z",
   "status": "PASS",
   "summary": {
     "totalFindings": 0,
@@ -578,189 +578,77 @@
     "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
     "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
   ],
+  "checkRuns": [
+    {
+      "runId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a",
+      "capabilityDomain": "facebook-product-video-mining-log-coverage",
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:33.403Z",
+      "endedAt": "2026-08-12T23:45:33.738Z",
+      "durationMs": 335,
+      "evidenceRefs": [
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+        "src/capabilities/ai-input-gateway/ability-group.ts",
+        "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "checkId": "facebook-log-coverage/ai-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "checkId": "facebook-log-coverage/artifact-refs"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "checkId": "facebook-log-coverage/failure-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "checkId": "facebook-log-coverage/mandatory-stage"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "checkId": "facebook-log-coverage/navigation-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "checkId": "facebook-log-coverage/recovery-trail"
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "checkId": "facebook-log-coverage/ai-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "checkId": "facebook-log-coverage/artifact-refs"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "checkId": "facebook-log-coverage/failure-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "checkId": "facebook-log-coverage/mandatory-stage"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "checkId": "facebook-log-coverage/navigation-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "checkId": "facebook-log-coverage/recovery-trail"
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "checkId": "facebook-log-coverage/ai-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "checkId": "facebook-log-coverage/artifact-refs"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "checkId": "facebook-log-coverage/failure-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "checkId": "facebook-log-coverage/mandatory-stage"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "checkId": "facebook-log-coverage/navigation-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "checkId": "facebook-log-coverage/recovery-trail"
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "checkId": "facebook-log-coverage/ai-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "checkId": "facebook-log-coverage/artifact-refs"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "checkId": "facebook-log-coverage/failure-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "checkId": "facebook-log-coverage/mandatory-stage"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "checkId": "facebook-log-coverage/navigation-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "checkId": "facebook-log-coverage/recovery-trail"
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "checkId": "facebook-log-coverage/ai-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "checkId": "facebook-log-coverage/artifact-refs"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "checkId": "facebook-log-coverage/failure-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "checkId": "facebook-log-coverage/mandatory-stage"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "checkId": "facebook-log-coverage/navigation-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "checkId": "facebook-log-coverage/recovery-trail"
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "checkId": "facebook-log-coverage/ai-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "checkId": "facebook-log-coverage/artifact-refs"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "checkId": "facebook-log-coverage/failure-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "checkId": "facebook-log-coverage/mandatory-stage"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "checkId": "facebook-log-coverage/navigation-contract"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "checkId": "facebook-log-coverage/recovery-trail"
+      "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
+      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
     }
   ],
   "inspectedFiles": [
+    "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",

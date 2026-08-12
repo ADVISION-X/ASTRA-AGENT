@@ -418,6 +418,10 @@ src/app/workbench-deep-research*.ts
 src/lib/local-runtime/workbench*.ts
 ```
 
+现役本地组装 owner 是 `src/lib/local-runtime/workbench-deep-research-handle.ts`；它经
+`src/mediator/deep-research-analysis-route.ts` 启动任务，并复用唯一 attachment staging handle，
+不得把业务顺序搬入 local runtime。
+
 发现 parse diagnostics 时必须直接 FAIL。
 
 ## 验收

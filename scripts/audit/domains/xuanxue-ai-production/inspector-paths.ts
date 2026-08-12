@@ -72,7 +72,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
   cloudWorkerPath,
-  "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
+  "src/mediator/xuanxue-ai-production-route.ts",
   "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
   "scripts/startup/xuanxue-ai-production-v1-drain.ts",
   gatewayTitleStatePath, gatewayTitleHousekeepingPath, gatewayTitleWorkerPath,

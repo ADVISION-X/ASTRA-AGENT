@@ -104,8 +104,13 @@ export function createForensicsPersistenceAbilityGroup(
       return executeForensicsChild(input, storage, runtimeLogger);
     },
 
-    async appendRecord(input: ForensicsAppendRecordInput): Promise<ForensicsResult> {
-      return appendRecordWithLog(input, storage, runtimeLogger);
+    async appendRecord(input): Promise<ForensicsResult> {
+      const { correlationId, ...recordInput } = input;
+      return appendRecordWithLog({
+        ...recordInput,
+        childCapabilityId: "append-record",
+        ...(correlationId ? { capabilityCallId: correlationId } : {}),
+      }, storage, runtimeLogger);
     },
 
     async appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsResult> {

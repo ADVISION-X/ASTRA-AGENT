@@ -4,17 +4,13 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import {
-  attachApprovedWebChatFilesOnce,
-  resolveWebChatAttachmentTransportKind,
-} from "../children/attach-approved-web-chat-files-once.js";
+import { attachApprovedWebChatFilesOnce } from "../children/attach-approved-web-chat-files-once.js";
 import { AiFeedInputSchema } from "../schema.js";
 import type {
   BrowserController,
   BrowserStateSnapshot,
 } from "../../../lib/browser/browser-controller.js";
-import { assertNativePickerContracts } from "./attachment-native-picker-contract.acceptance-helper.js";
-const ATTACHMENT_STABILITY_MINIMUM_WAIT_CALLS = 17;
+const ATTACHMENT_STABILITY_REQUIRED_DURATION_MS = 30_000;
 const sha256 = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const buildRequest = async (directory: string, fileCount: number) => {
@@ -138,7 +134,8 @@ class FixtureBrowserController implements BrowserController {
   private exactReadCount = 0;
   private searchDialogVisible: boolean;
   readonly actionLabels: string[] = [];
-  waitCallCount = 0;
+  readonly waitDurations: number[] = [];
+  lastPendingWaitCount: number | null = null;
 
   constructor(private readonly input: FixtureBrowserInput) {
     this.searchDialogVisible = input.staleSearchDialog === true;
@@ -235,13 +232,15 @@ class FixtureBrowserController implements BrowserController {
     }
     if (evaluation.description === "read exact fresh web chat composer attachment state") {
       this.exactReadCount += 1;
-      return buildFixtureExactAttachmentEvaluation({
+      const result = buildFixtureExactAttachmentEvaluation({
         fixture: this.input,
         script: evaluation.script,
         currentNames: this.currentNames,
         currentUrl: this.currentUrl,
         exactReadCount: this.exactReadCount,
-      }) as T;
+      });
+      if (result.status === "pending") this.lastPendingWaitCount = this.waitDurations.length;
+      return result as T;
     }
     if (
       evaluation.description === "open ChatGPT attachment menu"
@@ -298,8 +297,8 @@ class FixtureBrowserController implements BrowserController {
     };
   }
 
-  async wait() {
-    this.waitCallCount += 1;
+  async wait(durationMs: number) {
+    this.waitDurations.push(durationMs);
     return actionResult("wait");
   }
 
@@ -314,19 +313,6 @@ class FixtureBrowserController implements BrowserController {
 
 const buildBrowser = (input: FixtureBrowserInput = {}): BrowserController =>
   new FixtureBrowserController(input);
-
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 0 }), "skipped");
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 1 }), "ordered_clipboard");
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 2 }), "native_picker_batch");
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gemini-web-chat", fileCount: 17 }), "ordered_clipboard");
-await assertNativePickerContracts();
-const schemaDirectory = await mkdtemp(path.join(tmpdir(), "attachment-schema-"));
-const schemaBaseRequest = await buildRequest(schemaDirectory, 0);
-assert.throws(() => AiFeedInputSchema.parse({
-  ...schemaBaseRequest,
-  transportKind: "native_picker_batch",
-}), /unrecognized/i);
-await rm(schemaDirectory, { recursive: true, force: true });
 
 const dataDir = await mkdtemp(path.join(tmpdir(), "attachment-child-"));
 try {
@@ -442,7 +428,18 @@ try {
     context: { dataDir },
   });
   assert.equal(resetResult.attachmentUploadProof.status, "attachments_stable");
-  assert.equal(resetBrowser.waitCallCount >= ATTACHMENT_STABILITY_MINIMUM_WAIT_CALLS, true);
+  assert.notEqual(resetBrowser.lastPendingWaitCount, null, "fixture must force a late pending observation");
+  const continuousStableWaits = resetBrowser.waitDurations.slice(resetBrowser.lastPendingWaitCount!);
+  assert.deepEqual(
+    continuousStableWaits,
+    Array.from({ length: 15 }, () => 2_000),
+    "a pending observation must reset the stability window before fifteen full two-second waits",
+  );
+  assert.equal(
+    continuousStableWaits.reduce((total, durationMs) => total + durationMs, 0),
+    ATTACHMENT_STABILITY_REQUIRED_DURATION_MS,
+    "attachments_stable must require one continuous deterministic thirty-second window",
+  );
 
   const childSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts"),

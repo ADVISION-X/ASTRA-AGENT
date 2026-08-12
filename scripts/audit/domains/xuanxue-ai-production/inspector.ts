@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { executedChecksForPlan, type InspectorContext, type InspectorFinding, type InspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import {
   acceptancePath, acceptanceSupportPaths, authorityPaths,
@@ -190,7 +190,6 @@ const inspectContracts = (
     ],
   });
 };
-
 const inspectProtocolCutoverDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
@@ -213,7 +212,6 @@ const inspectProtocolCutoverDurability = (
     "v1_terminal_status_restored",
   ],
 });
-
 const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
@@ -281,7 +279,6 @@ const inspectDurability = (
     ],
   });
 };
-
 const inspectPluginBoundaries = (
   findings: InspectorFinding[],
   laws: Laws,
@@ -318,7 +315,6 @@ const inspectPluginBoundaries = (
     }
   }
 };
-
 const inspectCloud = (
   findings: InspectorFinding[],
   cloudLaw: string,
@@ -373,7 +369,6 @@ const inspectCloud = (
     ],
   });
 };
-
 const inspectAcceptance = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -441,10 +436,9 @@ const inspectAcceptance = (
     ],
   });
 };
-
-export const inspectDomain = async (
+const inspectDomainEvaluation = async (
   context: InspectorContext,
-): Promise<InspectorOutput> => {
+): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const laws: Laws = {
     boundary: selectLawId(
       context.planEntry.lawIds,
@@ -478,8 +472,25 @@ export const inspectDomain = async (
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: executedChecksForPlan(context),
     findings,
     inspectedFiles: [...authorityPaths, ...pluginPaths],
   };
+};
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("xuanxue-ai-production requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

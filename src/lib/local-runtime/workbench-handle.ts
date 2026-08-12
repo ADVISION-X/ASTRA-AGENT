@@ -23,7 +23,7 @@ import type {
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 
-type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-upload/index.js").openAmazonInvoiceAdminPage;
+type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceAdminOpenTask;
 type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
 type StartAmazonInvoiceUploadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadTask;
 type GetAmazonInvoiceUploadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonInvoiceUploadTaskStatus;
@@ -51,7 +51,6 @@ type StartAmazonListingEditReadSyncTask = typeof import("../../plugins/amazon-li
 type GetAmazonListingEditReadSyncTaskStatus = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").getAmazonListingEditReadSyncTaskStatus;
 type GetLatestAmazonListingEditReadSyncTask = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").getLatestAmazonListingEditReadSyncTask;
 type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").startPick3IsBlindEvalTask;
-type ResumePick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").resumePick3IsBlindEvalTask;
 type GetPick3IsBlindEvalTaskStatus = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3IsBlindEvalTaskStatus;
 type GetLatestPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getLatestPick3IsBlindEvalTask;
 type DeletePick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").deletePick3HumanReviewTask;
@@ -68,7 +67,7 @@ type ListXuanyuanHistory = typeof import("../../plugins/xuanyuan/index.js").list
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
-type AmazonInvoiceUploadMissionInput = Parameters<StartAmazonInvoiceUploadMission>[2];
+type AmazonInvoiceUploadMissionInput = Parameters<StartAmazonInvoiceUploadMission>[3];
 type AmazonInvoiceUploadMissionStartResult = Awaited<ReturnType<StartAmazonInvoiceUploadMission>>;
 type AmazonInvoiceUploadTaskStartInput = Parameters<StartAmazonInvoiceUploadTask>[0]["task"];
 type AmazonInvoiceUploadTaskResumeInput = { taskId: string };
@@ -98,7 +97,7 @@ type AmazonListingEditReadSyncStartInput = Parameters<StartAmazonListingEditRead
 type AmazonListingEditReadSyncTaskRecord = Awaited<ReturnType<GetAmazonListingEditReadSyncTaskStatus>>;
 type AmazonListingEditReadSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonListingEditReadSyncTask>>;
 type Pick3IsBlindEvalStartInput = Parameters<StartPick3IsBlindEvalTask>[0];
-type Pick3IsBlindEvalResumeInput = Parameters<ResumePick3IsBlindEvalTask>[0];
+type Pick3IsBlindEvalResumeInput = unknown;
 type Pick3IsBlindEvalTaskRecord = Awaited<ReturnType<StartPick3IsBlindEvalTask>>;
 type Pick3IsBlindEvalStatusRecord = ReturnType<GetPick3IsBlindEvalTaskStatus>;
 type Pick3IsBlindEvalLatestTaskRecord = ReturnType<GetLatestPick3IsBlindEvalTask>;

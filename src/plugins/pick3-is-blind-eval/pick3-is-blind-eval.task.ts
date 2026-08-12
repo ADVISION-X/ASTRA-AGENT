@@ -3,7 +3,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { BuiltPick3Batch } from "./pick3-is-blind-eval.flow-types.js";
-import { Pick3InputSchema, type Pick3Input, type Pick3TaskRecord } from "./pick3-is-blind-eval.schema.js";
+import {
+  Pick3InputSchema,
+  type Pick3TaskRecord,
+} from "./pick3-is-blind-eval.schema.js";
+import type { Pick3ResumeInput } from "./pick3-is-blind-eval.resume-schema.js";
 import { createPick3FlowLogger } from "./pick3-is-blind-eval.logging.js";
 import type { Pick3PlaybookPromptPackage } from "./pick3-is-blind-eval.playbook.js";
 import {
@@ -95,11 +99,9 @@ export const getPick3IsBlindEvalTaskStatus = (dataDir: string, taskId: string): 
 };
 
 export const resumePick3IsBlindEvalTask = async (
-  rawInput: unknown,
+  input: Pick3ResumeInput,
   context: RunPick3Context,
 ): Promise<Pick3TaskRecord> => {
-  const input = rawInput && typeof rawInput === "object" ? rawInput as Partial<Pick3Input> & { taskId?: string } : {};
-  if (!input.taskId) throw new Error("pick3_resume_task_id_required");
   const storage = openPick3Storage(context.dataDir);
   try {
     const task = storage.readTask(input.taskId);

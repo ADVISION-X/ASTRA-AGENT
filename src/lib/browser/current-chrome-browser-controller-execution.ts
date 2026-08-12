@@ -243,13 +243,13 @@ export const selectCurrentChromeNativePickerFiles = async (
 };
 
 export const waitForDuration = async (
-  state: RuntimeState,
+  _state: RuntimeState,
   durationMs: number,
-  refreshSnapshot: RefreshSnapshot,
+  _refreshSnapshot: RefreshSnapshot,
   sleep: Sleep,
+  abortSignal?: AbortSignal,
 ): Promise<BrowserActionResult> => {
-  await sleep(durationMs);
-  await refreshSnapshot(state);
+  await sleep(durationMs, abortSignal);
   return createCurrentChromeBrowserActionResult({
     message: `waited ${durationMs}ms`,
   });

@@ -1,5 +1,5 @@
-import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
-import { renderRuntimeLogSpineMarkdown, writeRuntimeLogSpineReport, toInspectorFinding } from "./generated-report-writer.js";
+import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { renderRuntimeLogSpineMarkdown, toInspectorFinding } from "./generated-report-writer.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
 import { collectRedactionFindings } from "./redaction-inspector.js";
 
@@ -63,19 +63,38 @@ const buildInspectorCounts = (
   },
 });
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
   const report = buildInspectorReportJson(collected);
-
-  writeRuntimeLogSpineReport(report);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings: report.findings.map(toInspectorFinding),
     inspectedFiles: report.inspectedFiles,
     reportJson: report,
     reportMarkdown: renderRuntimeLogSpineMarkdown(report),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("runtime-log-spine requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

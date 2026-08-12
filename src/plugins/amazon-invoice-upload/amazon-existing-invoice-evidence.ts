@@ -13,7 +13,19 @@ const EXISTING_INVOICE_HINTS = [
   "感谢您上传文件",
   "客户可以直接从自己的账户下载文件",
   "由卖家生成",
+  "成功：已上传",
+  "已上传",
 ];
+
+const UPLOAD_READY_ACTION_HINTS = [
+  "Upload another invoice or credit note",
+  "上传其他发票或贷记单",
+];
+
+const INVOICE_TABLE_HEADER_GROUPS = [
+  ["日期", "类型", "编号", "状态", "操作"],
+  ["date", "type", "number", "status", "action"],
+] as const;
 
 export function locateManageInvoiceEntry(snapshot: DomSnapshot): ReturnType<typeof locateOrStatus> {
   const zhEntry = locateOrStatus({
@@ -37,20 +49,52 @@ export function hasExistingInvoiceEvidence(
   snapshot: DomSnapshot,
   mission: AmazonInvoiceUploadMissionInput,
 ): boolean {
-  const text = normalizeText(collectSnapshotEvidenceText(snapshot));
-  return hasExpectedInvoiceId(text, mission) && hasKnownInvoiceState(text);
+  if (!hasOrderBoundInvoiceDialog(snapshot, mission)) return false;
+  return [...snapshot.tableRows, ...snapshot.roleRows].some((row) => {
+    const text = normalizeText(row.visibleText ?? "");
+    return hasExpectedInvoiceId(text, mission) && hasKnownInvoiceState(text);
+  });
 }
 
-function collectSnapshotEvidenceText(snapshot: DomSnapshot): string {
-  return [
-    snapshot.title,
-    ...snapshot.buttons.map((item) => `${item.visibleText ?? ""} ${item.ariaLabel ?? ""}`),
-    ...snapshot.dialogs.map((item) => `${item.visibleText ?? ""} ${item.ariaLabel ?? ""}`),
-    ...snapshot.tableRows.map((item) => item.visibleText ?? ""),
-    ...snapshot.roleRows.map((item) => item.visibleText ?? ""),
-    ...snapshot.textBlocks.map((item) => item.visibleText ?? ""),
-    ...snapshot.genericClickableElements.map((item) => item.visibleText ?? ""),
-  ].join(" ");
+export function hasOrderBoundInvoiceDialog(
+  snapshot: DomSnapshot,
+  mission: AmazonInvoiceUploadMissionInput,
+): boolean {
+  return findOrderBoundInvoiceDialogText(snapshot, mission) !== null;
+}
+
+export function findOrderBoundInvoiceDialogText(
+  snapshot: DomSnapshot,
+  mission: AmazonInvoiceUploadMissionInput,
+): string | null {
+  const dialogTexts = currentOrderDialogTexts(snapshot, mission);
+  return dialogTexts.length === 1 ? dialogTexts[0] ?? null : null;
+}
+
+export function hasInvoiceDialogReadyForUpload(
+  snapshot: DomSnapshot,
+  mission: AmazonInvoiceUploadMissionInput,
+): boolean {
+  if (hasExistingInvoiceEvidence(snapshot, mission)) return false;
+  return currentOrderDialogTexts(snapshot, mission).some((text) =>
+    UPLOAD_READY_ACTION_HINTS.some((hint) => text.includes(normalizeText(hint)))
+      && INVOICE_TABLE_HEADER_GROUPS.some((headers) => headers.every((header) => text.includes(normalizeText(header)))));
+}
+
+function currentOrderDialogTexts(
+  snapshot: DomSnapshot,
+  mission: AmazonInvoiceUploadMissionInput,
+): string[] {
+  const orderId = normalizeText(mission.amazonOrderId);
+  const titleHints = [
+    `订单${orderId}的发票`,
+    `invoice for order ${orderId}`,
+    `invoices for order ${orderId}`,
+    `order ${orderId} invoice`,
+  ];
+  return snapshot.dialogs
+    .map((dialog) => normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`))
+    .filter((text) => titleHints.some((hint) => text.includes(hint)));
 }
 
 function hasExpectedInvoiceId(

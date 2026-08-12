@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 
-import { SyntaxKind, type Project } from "ts-morph";
+import { Node, SyntaxKind, type Project } from "ts-morph";
 
 import type {
   AuditConflict,
@@ -10,7 +10,7 @@ import type {
 } from "../shared/generated-contracts.js";
 import type { LawSource } from "../shared/law-contracts.js";
 import type { ManifestSource } from "../shared/manifest-contracts.js";
-import { resolveFromRepo, toRepoPath } from "../shared/paths.js";
+import { resolveFromRepo } from "../shared/paths.js";
 
 const uniqueSorted = (values: readonly string[]): string[] => [...new Set(values)].sort();
 const clauseKey = (lawId: string, clauseId: string): string => `${lawId}::${clauseId}`;
@@ -78,28 +78,31 @@ const validateCheckEvidence = (
   manifest: ManifestSource,
   project: Project,
 ): void => {
-  const domainPrefix = `scripts/audit/domains/${manifest.capabilityDomain}/`;
-  const declaredLiterals = new Set(
-    project.getSourceFiles()
-      .filter((sourceFile) => toRepoPath(sourceFile.getFilePath()).startsWith(domainPrefix))
-      .flatMap((sourceFile) => [
-        ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral),
-        ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral),
-      ])
-      .map((literal) => literal.getLiteralText()),
-  );
-  for (const binding of manifest.coverage.bindings) {
-    for (const checkId of binding.checkIds) {
-      if (declaredLiterals.has(checkId)) continue;
-      conflicts.push({
-        kind: "missing-check-evidence",
-        capabilityDomain: manifest.capabilityDomain,
-        filePath: manifest.manifestPath,
-        lawId: binding.lawId,
-        message: `Clause ${binding.lawId}/${binding.clauseId} check ${checkId} has no AST string-literal evidence in its owner domain.`,
-      });
-    }
-  }
+  const expectedCheckId = `${manifest.capabilityDomain}/owner-assertion-set`;
+  const declaredCheckIds = uniqueSorted(manifest.coverage.bindings.flatMap((binding) => binding.checkIds));
+  const inspector = project.getSourceFile(resolveFromRepo(manifest.ownerInspectorPath));
+  const inspectDomain = inspector?.getFunction("inspectDomain")
+    ?? inspector?.getVariableDeclaration("inspectDomain")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const contextParameter = inspectDomain?.getParameters()[0];
+  const signedOwnerEvaluations = contextParameter ? inspectDomain?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
+    const callee = call.getExpression();
+    if (!Node.isPropertyAccessExpression(callee) || callee.getName() !== "runAll") return false;
+    const checks = callee.getExpression();
+    const receiver = Node.isPropertyAccessExpression(checks) && checks.getName() === "checks"
+      ? checks.getExpression()
+      : undefined;
+    return (receiver?.getSymbol()?.getDeclarations().includes(contextParameter) ?? false)
+      && call.getFirstAncestor(Node.isFunctionLikeDeclaration) === inspectDomain
+      && Node.isAwaitExpression(call.getParent());
+  }) ?? [] : [];
+  if (declaredCheckIds.length === 1 && declaredCheckIds[0] === expectedCheckId
+    && signedOwnerEvaluations.length === 1) return;
+  conflicts.push({
+    kind: "missing-check-evidence",
+    capabilityDomain: manifest.capabilityDomain,
+    filePath: manifest.manifestPath,
+    message: `${manifest.capabilityDomain} must bind exactly one ${expectedCheckId} physical check and execute it through context.checks.runAll().`,
+  });
 };
 
 const resolveOwnedClause = (

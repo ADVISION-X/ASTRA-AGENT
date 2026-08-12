@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import {
@@ -136,7 +136,7 @@ const inspectWorkbenchHandleSurface = (
   findings.push(createFinding({
     checkId: "facebook-mining/workbench-handle-surface",
     lawId,
-    filePath: "src/lib/local-runtime/workbench.ts",
+    filePath: "src/lib/local-runtime/workbench-marketplace-handles.ts",
     message: "Workbench handle must expose Facebook mining start/run/latest methods.",
   }));
 };
@@ -169,7 +169,7 @@ const inspectWorkbenchSurface = (
   lawId: string,
 ): void => {
   const pluginIndex = getRequiredSourceFile(context, "src/plugins/facebook-product-video-mining/index.ts");
-  const workbenchHandle = getRequiredSourceFile(context, "src/lib/local-runtime/workbench.ts");
+  const workbenchHandle = getRequiredSourceFile(context, "src/lib/local-runtime/workbench-marketplace-handles.ts");
   const appServer = getRequiredSourceFile(context, "src/app/workbench-facebook-routes.ts");
   for (const sourceFile of [pluginIndex, workbenchHandle, appServer]) trackSourceFile(inspectedFiles, sourceFile);
   inspectPluginFacade(findings, lawId, pluginIndex);
@@ -196,7 +196,9 @@ const inspectPackageScripts = (
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const flowLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-001-V1");
   const surfaceLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-002-V1");
   const minimalInputLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-003-V1");
@@ -217,8 +219,27 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("facebook-product-video-mining requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

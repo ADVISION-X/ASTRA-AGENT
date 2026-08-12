@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:10:08.624Z",
+  "generatedAt": "2026-08-12T23:44:29.840Z",
   "laws": [
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -67,13 +67,13 @@
       "tier": "P0",
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "evidenceMode": "law+blueprint+ast+acceptance",
       "summary": "GPT Web feeds bind a governed task identity to bounded parallel conversations and expose exact fresh, same-conversation or provider-verified checkpoint-fork topology without fallback.",
       "clauses": [
         {
           "clauseId": "apex-ai-input-gateway-005-v3-requirement",
           "statement": "A GPT Web feed must prove its exact fresh, same-conversation or provider checkpoint-fork topology and may never substitute a blank chat, summary replay or mutable parent tail.",
-          "evidenceMode": "real-chrome",
+          "evidenceMode": "acceptance",
           "ownerDomain": "ai-input-gateway"
         }
       ],
@@ -94,7 +94,7 @@
         "Every execution failure appends a bounded durable failure ledger entry containing occurrence time, attempt id, pre-failure phase, classification, recoverability and a bounded reason. A process exit or later successful recovery never erases the prior failure evidence.",
         "Temporary provider unavailability before or after submission, including an absent controlled tab, a composer that has not become ready, an incompletely hydrated parent conversation, bounded capacity or rate limiting, browser disconnection, transient network failure, and an exact submitted conversation that is not currently locatable, is recovery_pending and retains the same execution id, input hash, logical-turn marker, task title and failure evidence. Every accumulated failure entry is reclassified independently on recovery; any number of recoverable entries remains recoverable. A newly emitted terminal-state error must append the last real root reason in the same durable error, and recovery must classify that root rather than the terminal wrapper. A legacy synthetic terminal-state echo that lacks a root is evidence only and receives one bounded recovery pass rather than becoming a new blocking cause or an infinite restart authority. Retry count and failure-ledger length never promote recoverable provider lookup into a terminal user block. Each individual lookup is bounded and releases the browser lease before the next scheduled recovery. Login, captcha, two-factor, security barriers, multiple physical provider tabs or identity ambiguity require review_required inside the generic gateway; an authorized product factory keeps those conditions as internal recovery_pending while showing its user only processing. If multiple physical tabs are detected after durable submission, the gateway records the exact submitted URL in failure proof and retains the same execution and marker; monitor interference may never authorize a second provider submission. Invalid immutable input identity remains failed.",
         "When an authorized factory discards a polluted or terminal provider attempt and creates a fresh execution id for the same round and input hash, the gateway accepts it only when the internal execute option names the exact currently registered execution id being superseded. The rate ledger atomically transfers ownership to the fresh id; unrelated duplicate owners remain rejected, and neither a ten-second retry loop nor a process restart may be required to clear the old in-memory owner.",
-        "Process recovery publishes a valid persisted response checkpoint before attempting to locate the physical tab and never resubmits that provider turn. Only response_captured executions are eligible for the independent title-housekeeping worker; response_checkpointed executions must first republish their answer. On every AGENT start, every checkpoint recovery and every post-publication browser failure, one process-local coordinator scans durable chatTitleRename=pending debt and resumes it without reacquiring provider capacity or invoking the model. Each debt attempt retains the original execution id, canonical URL, inherited whole-order title and turn marker, uses bounded exponential retry backoff, and changes only the submission title proof plus housekeeping state. A verified transaction atomically persists chatTitleRename=verified and chatTitleVerifiedAt. Temporary tab absence, window-focus synchronization, sidebar hydration, missing rename controls and unreflected commits remain pending across any number of restarts; only canonical identity, title or marker ambiguity changes the housekeeping debt to review_required, while the published answer remains response_captured. The complete rename transaction from exact canonical-URL focus through row options, title textbox write, Enter commit and canonical-URL-plus-title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. One rename patrol slice is capped at fifteen seconds, the shortest bound proven sufficient by the real Chrome restart acceptance. If the transaction is not yet complete, it releases the lease and requeues the whole transaction; a queued submission or continuation step therefore enters before another rename patrol and may never wait through a long title-control timeout. Recovery must also detect and finish a rename menu or title textbox left open by a process interruption, but it must first prove the exact canonical URL and unique turn marker; an open menu is reusable only when its aria-labelledby or aria-controls identity points back to that exact conversation row trigger. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and records bounded housekeeping evidence without discarding, downgrading or withholding the already published checkpoint; every rename attempt is bounded and may not occupy production capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing or mismatched checkpoint input identity, attachment identity, hash or byte count returns review_required; a temporarily missing rename surface does not.",
+        "Process recovery publishes a valid persisted response checkpoint before attempting to locate the physical tab and never resubmits that provider turn. Only response_captured executions are eligible for the independent title-housekeeping worker; response_checkpointed executions must first republish their answer. On every AGENT start, every checkpoint recovery and every post-publication browser failure, one process-local coordinator scans durable chatTitleRename=pending debt and resumes it without reacquiring provider capacity or invoking the model. Each debt attempt retains the original execution id, canonical URL, inherited whole-order title and turn marker, uses bounded exponential retry backoff, and changes only the submission title proof plus housekeeping state. A verified transaction atomically persists chatTitleRename=verified and chatTitleVerifiedAt. Temporary tab absence, window-focus synchronization, sidebar hydration, missing rename controls and unreflected commits remain pending across any number of restarts; only canonical identity, title or marker ambiguity changes the housekeeping debt to review_required, while the published answer remains response_captured. The complete rename transaction from exact canonical-URL focus through row options, title textbox write, Enter commit and canonical-URL-plus-title-plus-marker verification holds one short exclusive patrol lease so another task cannot switch the single tab between steps. One rename patrol slice is capped at fifteen seconds, as proven by the deterministic scheduler and recovery acceptance. If the transaction is not yet complete, it releases the lease and requeues the whole transaction; a queued submission or continuation step therefore enters before another rename patrol and may never wait through a long title-control timeout. Recovery must also detect and finish a rename menu or title textbox left open by a process interruption, but it must first prove the exact canonical URL and unique turn marker; an open menu is reusable only when its aria-labelledby or aria-controls identity points back to that exact conversation row trigger. A rename control or textbox that has not appeared, a click that has not committed, or a title commit that is not visible yet releases that lease and records bounded housekeeping evidence without discarding, downgrading or withholding the already published checkpoint; every rename attempt is bounded and may not occupy production capacity forever. Once attachments_stable and a canonical submitted user turn have both been recorded, restart recovery trusts only the persisted input hash, ordered attachment proof, exact conversation URL, marker and optional response checkpoint; it never reads or uploads the caller's disposable source path again. Missing or mismatched checkpoint input identity, attachment identity, hash or byte count returns review_required; a temporarily missing rename surface does not.",
         "Chat search is one bounded UI transaction. Before opening search, before attachment selection and before prompt focus, the provider adapter may close only one visible dialog that contains exactly one Search chats or 搜索聊天 textbox and exactly one Close or 关闭 action. Every search exit, including target-not-found and interruption, must close that exact dialog and verify it disappeared before releasing the browser-mutation lease. Missing or ambiguous classification returns review_required.",
         "A feed with providerContinuationRef must focus and verify its exact parent providerPageUrl before submission. Missing, mismatched or unreachable parent identity returns review_required; the open-new-conversation path is forbidden for that feed."
       ],
@@ -145,13 +145,13 @@
       "tier": "P0",
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "evidenceMode": "law+blueprint+ast+acceptance",
       "summary": "attach-approved-web-chat-files-once is the only web-chat attachment child and selects one fixed internal transport without caller choice or same-attempt fallback.",
       "clauses": [
         {
           "clauseId": "apex-ai-input-gateway-003-requirement",
           "statement": "attach-approved-web-chat-files-once is the only web-chat attachment child and selects one fixed internal transport without caller choice or same-attempt fallback.",
-          "evidenceMode": "real-chrome",
+          "evidenceMode": "acceptance",
           "ownerDomain": "ai-input-gateway"
         }
       ],
@@ -179,13 +179,13 @@
       "tier": "P0",
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "evidenceMode": "law+blueprint+ast+acceptance",
       "summary": "Every attachment attempt must use an isolated verified staging set and emit one aggregate terminal proof before prompt submission.",
       "clauses": [
         {
           "clauseId": "apex-ai-input-gateway-004-requirement",
           "statement": "Every attachment attempt must use an isolated verified staging set and emit one aggregate terminal proof before prompt submission.",
-          "evidenceMode": "real-chrome",
+          "evidenceMode": "acceptance",
           "ownerDomain": "ai-input-gateway"
         }
       ],
@@ -471,6 +471,7 @@
         "Agent upload ledger persists under dataDir/plugin-tasks/amazon-invoice-upload.",
         "saveTaskRecord writes the upload ledger using the existing task record path.",
         "GET /api/plugins/amazon-invoice-upload/ledger returns safe ledger records for website status sync.",
+        "Ledger records may expose only the persisted runtimeLogRef and navigationEvidenceRef produced by the current task; a fabricated domTraceRef or unresolved runtime-evidence path is forbidden.",
         "Upload task record responses from start, status, resume, and latest routes must redact mission.invoicePdfPath before returning to external callers.",
         "Ledger external route is exact, externalApiAllowed true, requiresApiKey true, and jobOwner amazon-invoice-upload.",
         "Ledger response excludes raw invoice PDF bytes, local invoicePdfPath, cookies, Seller Central profile paths, selectors, browser commands, documentId, and downloadUrl."
@@ -481,7 +482,8 @@
         "Second upload ledger outside amazon-invoice-upload owner.",
         "Ledger route outside /api/plugins/amazon-invoice-upload/ledger.",
         "Upload start/status/resume/latest route response leaking local invoicePdfPath.",
-        "Ledger response leaking invoicePdfPath or raw PDF/local file paths."
+        "Ledger response leaking invoicePdfPath or raw PDF/local file paths.",
+        "A ledger domTraceRef or runtime-evidence path that has no active writer and cannot be resolved."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 8
@@ -535,11 +537,11 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "flow+ast+acceptance+chrome",
-      "summary": "Amazon invoice upload must enter each order through one explicit order-detail navigation, must never refresh that page as recovery, and must turn any missing page-state transition after 2 seconds into a logged failure with a finite next action.",
+      "summary": "Amazon invoice upload must enter each order through one explicit order-detail navigation, must never refresh that page as recovery, and must advance only after an order-bound explicit DOM terminal signal; elapsed time alone cannot decide the business branch or start the next invoice.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
-          "statement": "Amazon invoice upload uses one order-detail navigation per item, never refreshes or reopens the order page, and turns every 2-second readiness miss into a logged failure followed only by a finite same-page observation.",
+          "statement": "Amazon invoice upload uses one order-detail navigation per item, never refreshes or reopens the order page, and advances from Manage invoice only after an order-bound explicit DOM terminal signal; elapsed time alone never selects the business branch or starts the next invoice.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "amazon-invoice-upload"
         }
@@ -547,6 +549,9 @@
       "appliesTo": [
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
+        "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+        "src/app/workbench-home-amazon-invoice-client.ts",
         "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
         "src/lib/browser/current-chrome-browser-screenshot.ts",
         "scripts/audit/domains/amazon-invoice-upload/**",
@@ -556,21 +561,37 @@
       "required": [
         "The upload flow must call the order-detail owner directly; it must not first open the same sellerCentralEntryUrl through a generic Seller Central entry phase.",
         "Each invoice item performs exactly one BrowserController.open for the order detail and never navigates that item again.",
-        "Order-detail readiness is observed in at most three consecutive windows; each window is no longer than 2 seconds and must record a structured failure before the next same-page observation begins.",
+        "The one order-detail open must use one caller-created browserActionId, consume the structured open result, fail closed on an unsuccessful or mismatched observed URL, and persist one integrity-hashed forensics navigation proof linked to taskId or executionId.",
+        "Order-detail navigation logs must contain one truthful started/terminal pair for that browserActionId; readiness observations must use distinct observe-window identities and must never be labelled as open or navigation.",
+        "Browser state reads and wait operations are pure observations: they must not create a Chrome window, set or restore a URL, refresh a page, or emit another navigation command.",
+        "Start, resume, and direct Amazon invoice missions share one plugin-owned single-flight execution lease for the shared BrowserController; a concurrent second execution fails closed before BrowserController.open.",
+        "The terminal timeout aborts the active browser and DOM execution and awaits flow settlement before terminal persistence, lease release, or the next invoice execution.",
+        "Order-detail readiness is observed in at most eight consecutive windows for a 16-second maximum; each window is no longer than 2 seconds and must record a structured failure before the next same-page observation begins.",
+        "Each order-detail snapshot timeout and poll wait is clamped to the current window's remaining time so eight nominal 2-second windows cannot silently become eight overlong waits.",
         "Every Amazon invoice DOM snapshot has an explicit execution deadline no greater than 1800ms so a low-level Chrome evaluation cannot silently exceed the 2-second business window.",
         "A DOM evaluation exception inside an order-detail observation is converted into that window's structured failure and the next finite same-page observation; it must not bypass the governed window sequence.",
         "Evidence screenshot capture activates the controlled Chrome window before capture so a transient zero-accessibility-window state cannot fail the invoice item.",
-        "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting three windows returns review-required failure without refresh or repeat navigation.",
-        "Upload dialog readiness, file-input readiness, existing-invoice evidence, and post-submit success evidence each use an observation timeout no greater than 2 seconds.",
+        "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting eight windows returns review-required failure without refresh or repeat navigation.",
+        "After Manage invoice is clicked, existing-invoice discovery uses an AND THEN wait: the unique visible invoice dialog must bind to the current amazonOrderId and expose either a matching uploaded invoice row, a fully rendered upload-ready table and upload action, or the exact no-actions blocker before the flow may branch.",
+        "A short elapsed-time deadline must not turn a still-loading Manage invoice dialog into review_required and must not permit the local batch to start the next invoice.",
+        "The task-level terminal timeout is an operational abort watchdog only: it aborts and awaits the active flow, returns review_required, and the local batch must stop with the current order retained rather than continue automatically.",
+        "A governed local-batch inter-item pacing delay may begin only after the prior single-upload task has returned a formal terminal result and released its browser execution lease; it is outside DOM readiness, navigation, retry, timeout, and business-state judgment.",
+        "Upload dialog readiness, file-input readiness, and post-submit success evidence each use an observation timeout no greater than 2 seconds.",
         "Login, captcha, 2FA, amount mismatch, ambiguous DOM, exhausted retry, and final verification failure must fail closed without PDF upload or fake success."
       ],
       "forbidden": [
         "Opening sellerCentralEntryUrl and then opening the derived order-detail URL as two normal entry steps for the same item.",
         "Any same-tab order-page refresh helper, recovery refresh, random readiness delay, fallback, compatibility bridge, or shadow branch.",
-        "Any passive page-state wait longer than 2 seconds inside the upload execution flow.",
+        "Placing local-batch inter-item pacing inside BrowserController, DOM observation, the single-upload plugin flow, task watchdog, or execution lease.",
+        "Using a short elapsed-time deadline as the existing-invoice business verdict after Manage invoice was clicked.",
         "Using the BrowserController 10-second default evaluation timeout for an Amazon invoice DOM snapshot.",
         "Allowing a transient order-detail DOM evaluation exception to escape directly as an unclassified upload-flow runtime failure.",
         "Starting the next same-page observation before the preceding 2-second window has returned and logged its failure.",
+        "Discarding BrowserController.open result, fabricating a navigation ref without a forensics writer, or using orderId plus invoiceNo as the only repeated-execution identity.",
+        "A state-read, geometry-read, snapshot, or wait path that creates a Chrome window or writes any URL.",
+        "A detached Promise.race timeout that can leave the prior upload flow running after a terminal task result.",
+        "Two Amazon invoice executions concurrently controlling the shared BrowserController.",
+        "Starting the next batch invoice because the current order's Manage invoice dialog has not reached an explicit DOM terminal state yet.",
         "Proceeding to upload before target order id, invoice action state, and amount equality are proven."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
@@ -583,11 +604,11 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ledger+app-shell+acceptance+audit",
-      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, and the single upload flow must recover the exact Seller Central no-actions invoice dialog by one verified outside-dialog dismissal and reopen rather than refreshing the order page.",
+      "summary": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, pace consecutive real single-upload requests by a governed random 2-to-15-second interval, and recover the exact Seller Central no-actions invoice dialog without refreshing the order page.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
-          "statement": "Local APP batch upload must read the existing Agent upload ledger before per-file upload and skip only orders already proven upload_success or already_uploaded for the same order id and invoice number.",
+          "statement": "Local APP batch upload must read the existing Agent upload ledger before per-file upload, skip only orders already proven upload_success or already_uploaded for the same order id and invoice number, and pace consecutive real single-upload requests by one governed random 2-to-15-second interval.",
           "evidenceMode": "acceptance",
           "ownerDomain": "amazon-invoice-upload"
         }
@@ -605,14 +626,23 @@
         "Only ledger records with status upload_success or already_uploaded may be skipped before opening Seller Central.",
         "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
         "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
-        "After opening Manage invoice / 管理发票, the flow observes strong invoice-list evidence or the exact blocker 很抱歉，目前没有可用的操作。 for at most 2 seconds; expiry is a structured review_required failure.",
-        "Only when one visible current-order invoice dialog exposes the exact no-actions blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and observe strong evidence for at most 2 seconds.",
-        "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, the exact blocker appears again, or the second strong-evidence window expires, the order must stop as review_required before any PDF upload.",
+        "After opening Manage invoice / 管理发票, the flow waits until one unique visible dialog is bound to the current amazonOrderId and exposes exactly one explicit terminal branch: a matching uploaded invoice row, a fully rendered upload-ready table plus upload action, or an exact governed read-failure blocker such as 很抱歉，目前没有可用的操作。 or 读取失败.",
+        "The real-Chrome Chinese already-uploaded branch is the conjunction of dialog heading 订单<amazonOrderId>的发票, a row containing the matching complete order/invoice id, and the explicit status 成功：已上传 or equivalent strong uploaded state; the heading alone is only an order-binding signal.",
+        "Only when the unique visible invoice dialog whose title contains the current complete amazonOrderId exposes an exact governed read-failure blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and resume the same AND THEN terminal-state wait; read-failure text from any unrelated dialog must be ignored.",
+        "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, or the exact blocker appears again, the order must stop as review_required before any PDF upload.",
         "APP batch upload and external API upload must use this same plugin-owned recovery through the existing /api/plugins/amazon-invoice-upload/start route.",
-        "A still-loading or unchanged Seller Central invoice list after 2 seconds must become review_required; it must never be collapsed into already_uploaded or upload_success.",
+        "A still-loading or unchanged Seller Central invoice list remains on the current order; it must never be collapsed into already_uploaded, upload_success, review_required, or permission to start the next order solely because time elapsed.",
         "Failed, blocked, manual-required, invalid, or unknown ledger records must not be skipped.",
         "If the ledger preflight cannot be read, the local queue must fail closed before uploading more files.",
-        "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf."
+        "Each non-skipped file must still call the existing single-upload route /api/plugins/amazon-invoice-upload/start with one invoicePdf.",
+        "The local batch start action is latched and disabled while a batch is running; repeated submit is rejected without creating another request loop.",
+        "Duplicate complete amazonOrderId values in the same selected batch are marked invalid before any upload request is sent.",
+        "An explicit status equal to review_required, including the task-level operational watchdog result, stops the local batch before the next queued order starts; the reviewRequired metadata boolean alone is never a batch-control command.",
+        "An amount_mismatch_skipped item retains that exact status and review metadata in the local queue, increments the visible failed/review count, and continues to the next queued order without attaching the current PDF.",
+        "Between two consecutive non-ledger-skipped single-upload requests, the local queue selects exactly one cryptographically generated integer delay from 2000ms through 15000ms after the prior formal terminal result and before the next POST /api/plugins/amazon-invoice-upload/start.",
+        "The pacing delay is not consumed by ledger-preflight skips, invalid files, or duplicate files; it does not run before the first real request, after the final real request, or after any result that stops the batch.",
+        "upload_success, live already_uploaded, amount_mismatch_skipped, and an ordinary failed result that is allowed to continue all require pacing before the next real request; explicit review_required, blocked_auth, execution busy, task watchdog timeout, and unknown transport outcome stop without pacing or another request.",
+        "While pacing, the running latch and disabled Start action remain held and the App Shell exposes the selected delay and next start timestamp without writing a second batch ledger or changing the prior item terminal result."
       ],
       "forbidden": [
         "Skipping based on website export state.",
@@ -624,7 +654,14 @@
         "Refreshing or reopening the order-detail URL as recovery for the no-actions Manage invoice dialog.",
         "Using hard-coded, caller-provided, API-provided, or APP-provided coordinates to dismiss the dialog.",
         "Retrying the outside-dialog dismissal or Manage invoice reopen more than once.",
-        "Keeping the retired order-refresh recovery as a fallback, compatibility bridge, or shadow branch."
+        "Keeping the retired order-refresh recovery as a fallback, compatibility bridge, or shadow branch.",
+        "Allowing double-submit to create two local batch loops.",
+        "Sending an upload request for a duplicate complete order id in the same local batch.",
+        "Continuing the local batch after an explicit review_required status or treating a still-loading invoice dialog as a completed item.",
+        "Converting amount_mismatch_skipped into review_required, breaking the local queue from reviewRequired metadata, or preventing the next queued order from starting after an amount mismatch has been recorded.",
+        "Using caller input, API input, environment overrides, Math.random, a fixed-delay fallback, or a second scheduler to choose the inter-item pacing delay.",
+        "Delaying ledger-only skips, delaying before the first real request or after the last real request, consuming the pending delay before a ledger skip, or starting the next real request earlier than the selected delay.",
+        "Continuing after task watchdog timeout, execution busy, explicit review_required, blocked_auth, or an unknown single-upload transport outcome."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
       "blockIndex": 11
@@ -664,6 +701,7 @@
         "Focus-only tab switching must be an explicit API-return mode and must not become the default behavior of normal Amazon Manage admin page opening.",
         "The focus-only policy must not create a new Chrome window, create a new tab, set URL of an existing tab, refresh the website, or navigate by host fallback when the exact/same-path website tab is missing.",
         "If the existing website tab is missing or cannot be focused, the focus failure must be recorded in runtime trace without overwriting the Amazon upload terminal status.",
+        "The bounded website-return timeout must abort the focus browser action and await its full settlement before the upload execution lease is released or another invoice may start.",
         "adminOrderUrl must still pass the allowed Amazon admin host validation before any tab focus attempt.",
         "A post-change production-readiness claim for website tab return must cite fresh runtime evidence from the changed path; historical Seller Central upload success evidence is not proof that the website return IF was tested."
       ],
@@ -673,6 +711,7 @@
         "Applying focus-only behavior to ordinary admin page open commands.",
         "Using reuse-active-tab, reuse-host-tab, open-new-tab, or fallback URL navigation for website return.",
         "Running website return before the Amazon upload reaches and persists a terminal result.",
+        "Using a detached Promise.race or any timeout path that can release the upload execution lease while the website focus browser action is still running.",
         "Inferring upload_success, already_uploaded, or review_required from website focus state.",
         "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
         "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
@@ -708,6 +747,7 @@
         "The Seller Central amount source is the live order detail DOM total, such as Sales proceeds Total or 销售收益 总和, read from the existing browser session at upload time.",
         "PDF and DOM amounts must be normalized to currency plus minor units before comparison.",
         "On mismatch, unreadable PDF amount, or unreadable DOM order total, the flow returns amount_mismatch_skipped with reviewRequired true and must not attach the file, click upload, or submit.",
+        "For App Shell batch upload, amount_mismatch_skipped is an item-local terminal result: the task and ledger record the mismatch, the current PDF remains untouched, and the local queue continues with the next queued order; reviewRequired is display metadata and must not be promoted to an explicit review_required batch stop.",
         "The task record and ledger reason must include a concise safe skip reason without logging raw PDF text, raw DOM HTML, cookies, browser storage, or local absolute PDF paths.",
         "API-triggered uploads and App Shell batch uploads must both pass through the same single-upload amount gate."
       ],
@@ -716,6 +756,7 @@
         "Calling uploadApprovedInvoice before the amount gate passes.",
         "Treating filename, APP amount, website export amount, or caller-provided amount as order total truth.",
         "Running a separate APP-only or API-only amount checker that can disagree with the flow result.",
+        "Stopping the remaining App Shell batch solely because an amount_mismatch_skipped item carries reviewRequired true.",
         "Uploading when PDF total or Seller Central DOM total is unreadable.",
         "Logging raw PDF text, full DOM HTML, cookies, browser storage, or local absolute invoicePdfPath as amount evidence."
       ],
@@ -1980,11 +2021,11 @@
       "capabilityDomain": "architecture-boundary",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+ast",
-      "summary": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture.",
+      "summary": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture, with one canonical mediator route for every active plugin.",
       "clauses": [
         {
           "clauseId": "apex-arch-001-requirement",
-          "statement": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture.",
+          "statement": "GrassEye must expand only through the single-line architecture, and every active plugin must have exactly one canonical mediator route before its job flow.",
           "evidenceMode": "static",
           "ownerDomain": "architecture-boundary"
         }
@@ -2040,11 +2081,11 @@
       "capabilityDomain": "architecture-boundary",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+ast",
-      "summary": "Each new user demand must be implemented as one explicit job flow under src/plugins/<job-id>.",
+      "summary": "Each active user demand must be implemented as one explicit job flow under src/plugins/<job-id> and reached only through its canonical mediator route.",
       "clauses": [
         {
           "clauseId": "apex-arch-003-requirement",
-          "statement": "Each new user demand must be implemented as one explicit job flow under src/plugins/<job-id>.",
+          "statement": "Each active user demand must have one explicit job flow under src/plugins/<job-id> and one canonical mediator route that owns task intake.",
           "evidenceMode": "static",
           "ownerDomain": "architecture-boundary"
         }
@@ -2165,11 +2206,11 @@
       "capabilityDomain": "architecture-boundary",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs",
-      "summary": "New active directories must belong to the approved architecture root allowlist.",
+      "summary": "Active directories must belong to the approved architecture root allowlist; src/types is limited to declarative shared type and schema contracts.",
       "clauses": [
         {
           "clauseId": "apex-arch-006-requirement",
-          "statement": "New active directories must belong to the approved architecture root allowlist.",
+          "statement": "Active directories must belong to the approved architecture root allowlist, and src/types must contain only declarative shared type and schema contracts without runtime behavior.",
           "evidenceMode": "static",
           "ownerDomain": "architecture-boundary"
         }
@@ -2222,11 +2263,11 @@
       "capabilityDomain": "architecture-boundary",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "fs+ast",
-      "summary": "Every new user demand must enter through a job schema, mediator route, explicit flow, and acceptance proof.",
+      "summary": "Every active user demand must enter through one canonical job schema mediator route, explicit flow, and acceptance proof.",
       "clauses": [
         {
           "clauseId": "apex-arch-008-requirement",
-          "statement": "Every new user demand must enter through a job schema, mediator route, explicit flow, and acceptance proof.",
+          "statement": "Every active plugin must enter through exactly one canonical mediator route that parses its job schema, calls its explicit flow, and has acceptance proof.",
           "evidenceMode": "static",
           "ownerDomain": "architecture-boundary"
         }
@@ -2285,11 +2326,11 @@
       "capabilityDomain": "architecture-boundary",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "hybrid",
-      "summary": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted.",
+      "summary": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted; src/types is already approved only for declarative shared contracts.",
       "clauses": [
         {
           "clauseId": "apex-arch-010-requirement",
-          "statement": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted.",
+          "statement": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted, while src/types remains restricted to declarative shared contracts.",
           "evidenceMode": "static",
           "ownerDomain": "architecture-boundary"
         }
@@ -6654,6 +6695,12 @@
           "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
           "statement": "Private bases execute once per stable identity; every formal child has one explicit provider topology proof and typed joins never merge conversations or invent a synthetic subject.",
           "evidenceMode": "acceptance",
+          "ownerDomain": "xuanxue-ai-production"
+        },
+        {
+          "clauseId": "grasseye-xuanxue-ai-production-001-v5-real-chrome-proof",
+          "statement": "A real signed-in Chrome run and its persisted provider records must prove the production conversation topology, attachment counts, unique response markers and exact continuation or fork relationships.",
+          "evidenceMode": "real-chrome",
           "ownerDomain": "xuanxue-ai-production"
         }
       ],

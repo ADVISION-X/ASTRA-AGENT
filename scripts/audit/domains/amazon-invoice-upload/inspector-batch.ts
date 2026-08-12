@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 
-import { Node, SyntaxKind, type ArrayLiteralExpression, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ArrayLiteralExpression, type BinaryExpression, type CallExpression, type IfStatement, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
@@ -37,7 +37,19 @@ const requiredLocalQueueGuards = [
   "skipped_by_upload_ledger",
   "upload ledger preflight",
   "upload_ledger_preflight_failed",
+  "amazonInvoiceBatchRunning",
+  "batch_already_running",
+  "duplicate_order_id_in_batch",
+  "startButton.disabled = true",
+  "startButton.disabled = false",
+  "amount_mismatch_skipped",
+  "amountCheck: record.amountCheck",
+  "shouldStopAmazonInvoiceLocalQueue",
+  "review_required",
+  "Local file queue stopped on the current review-required order; queued orders were not started.",
 ] as const;
+
+const INTER_ITEM_PACING_CHECK_ID = "amazon-invoice-upload/batch-inter-item-pacing";
 
 export const inspectAmazonInvoiceBatchGuard = (
   context: InspectorContext,
@@ -168,6 +180,149 @@ function inspectLocalQueueUi(context: InspectorContext, findings: InspectorFindi
   ])].join("\n");
   inspectLocalQueueLayout(layoutCorpus, batchSurfaceCorpus, findings, lawId);
   inspectLocalQueueClient(clientCorpus, findings, lawId);
+  inspectInterItemPacing(context, client, findings, lawId);
+}
+
+function generatedClientTemplate(file: SourceFile, declarationName: string): string | null {
+  const initializer = file.getVariableDeclaration(declarationName)?.getInitializer();
+  if (!initializer || !Node.isArrowFunction(initializer)) return null;
+  const body = initializer.getBody();
+  return Node.isNoSubstitutionTemplateLiteral(body) ? body.getLiteralText() : null;
+}
+
+function inspectInterItemPacing(
+  context: InspectorContext,
+  client: SourceFile | null,
+  findings: InspectorFinding[],
+  lawId: string,
+): void {
+  const generated = createPacingVirtualSource(context, client, findings, lawId);
+  if (!generated) return;
+  inspectPacingEntropy(generated, findings, lawId);
+  inspectPacingSequence(generated, findings, lawId);
+  inspectPacingSignals(generated, findings, lawId);
+  inspectPacingOwnerBoundary(context, findings, lawId);
+}
+
+function createPacingVirtualSource(
+  context: InspectorContext,
+  client: SourceFile | null,
+  findings: InspectorFinding[],
+  lawId: string,
+): SourceFile | null {
+  const helperTemplate = client ? generatedClientTemplate(client, "amazonInvoiceLocalQueueHelpersClient") : null;
+  const runnerTemplate = client ? generatedClientTemplate(client, "amazonInvoiceLocalQueueRunnerClient") : null;
+  const lifecycleTemplate = client ? generatedClientTemplate(client, "amazonInvoiceBatchLifecycleClient") : null;
+  if (!helperTemplate || !runnerTemplate || !lifecycleTemplate) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", INTER_ITEM_PACING_CHECK_ID, "Batch pacing must remain in the existing generated local-queue client templates.");
+    return null;
+  }
+  return context.project.createSourceFile(
+    "/__grasseye_audit_virtual__/amazon-invoice-local-queue-pacing.ts",
+    `${helperTemplate}\n${runnerTemplate}\n${lifecycleTemplate}`,
+    { overwrite: true },
+  );
+}
+
+function inspectPacingEntropy(generated: SourceFile, findings: InspectorFinding[], lawId: string): void {
+  const minDelay = generated.getVariableDeclaration("AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS")?.getInitializerIfKind(SyntaxKind.NumericLiteral)?.getLiteralValue();
+  const maxDelay = generated.getVariableDeclaration("AMAZON_INVOICE_INTER_ITEM_DELAY_MAX_MS")?.getInitializerIfKind(SyntaxKind.NumericLiteral)?.getLiteralValue();
+  if (minDelay !== 2000 || maxDelay !== 15000) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", INTER_ITEM_PACING_CHECK_ID, "Batch pacing bounds must be fixed at exactly 2000ms and 15000ms.");
+  }
+
+  const sampler = generated.getVariableDeclaration("sampleAmazonInvoiceInterItemDelayMs")?.getInitializer();
+  const samplerCalls = sampler?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const hasCryptoEntropy = samplerCalls.some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && expression.getName() === "getRandomValues"
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === "crypto";
+  });
+  const hasMathRandom = samplerCalls.some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && expression.getName() === "random"
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === "Math";
+  });
+  if (!sampler || !Node.isArrowFunction(sampler) || sampler.getParameters().length !== 0 || !hasCryptoEntropy || hasMathRandom) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", INTER_ITEM_PACING_CHECK_ID, "Batch pacing must sample one internal delay from crypto.getRandomValues without Math.random or caller input.");
+  }
+}
+
+function inspectPacingSequence(generated: SourceFile, findings: InspectorFinding[], lawId: string): void {
+  const startBatch = generated.getVariableDeclaration("startAmazonInvoiceBatch")?.getInitializer();
+  const startBatchCalls = startBatch?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const pacingCall = findIdentifierCall(startBatchCalls, "runAmazonInvoiceInterItemPacing");
+  const uploadCall = findIdentifierCall(startBatchCalls, "uploadAmazonInvoiceLocalQueueItem");
+  const stopCall = findIdentifierCall(startBatchCalls, "shouldStopAmazonInvoiceLocalQueue");
+  const ledgerSkip = findLedgerSkip(startBatch);
+  const pendingDelay = startBatch?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((declaration) => declaration.getName() === "pendingInterItemDelay");
+  const pendingTrue = findPendingDelayAssignment(startBatch);
+  const requiredNodes = [pendingDelay, ledgerSkip, pacingCall, uploadCall, stopCall, pendingTrue];
+  const allPresent = requiredNodes.every((node) => node !== undefined);
+  const orderedNodes = [ledgerSkip, pacingCall, uploadCall, stopCall, pendingTrue]
+    .filter((node) => node !== undefined);
+  const validOrder = orderedNodes.every((node, index) =>
+    index === 0 || orderedNodes[index - 1]!.getStart() < node.getStart());
+  const validSequence = allPresent && validOrder;
+  if (!validSequence) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", INTER_ITEM_PACING_CHECK_ID, "The pending delay must survive ledger skips and run only before the next real upload, after the previous terminal stop decision.");
+  }
+}
+
+function findIdentifierCall(calls: readonly CallExpression[], name: string): CallExpression | undefined {
+  return calls.find((call) =>
+    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === name);
+}
+
+function findLedgerSkip(startBatch: Node | undefined): IfStatement | undefined {
+  return startBatch?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) => {
+    const expression = statement.getExpression();
+    const directlyNamed = Node.isIdentifier(expression) && expression.getText() === "ledgerRecord";
+    const containsName = expression.getDescendantsOfKind(SyntaxKind.Identifier)
+      .some((identifier) => identifier.getText() === "ledgerRecord");
+    const continues = statement.getThenStatement()
+      .getDescendantsOfKind(SyntaxKind.ContinueStatement).length === 1;
+    return (directlyNamed || containsName) && continues;
+  });
+}
+
+function findPendingDelayAssignment(startBatch: Node | undefined): BinaryExpression | undefined {
+  return startBatch?.getDescendantsOfKind(SyntaxKind.BinaryExpression).find((expression) => {
+    const left = expression.getLeft();
+    return expression.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+      && Node.isIdentifier(left)
+      && left.getText() === "pendingInterItemDelay"
+      && expression.getRight().getKind() === SyntaxKind.TrueKeyword;
+  });
+}
+
+function inspectPacingSignals(generated: SourceFile, findings: InspectorFinding[], lawId: string): void {
+  const literals = stringLiteralValues(generated);
+  for (const requiredSignal of ["inter_item_pacing", "single_upload_transport_outcome_unknown", "review_required"]) {
+    if (![...literals].some((literal) => literal.includes(requiredSignal))) {
+      addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", INTER_ITEM_PACING_CHECK_ID, `Batch pacing safety is missing ${requiredSignal}.`);
+    }
+  }
+}
+
+function inspectPacingOwnerBoundary(context: InspectorContext, findings: InspectorFinding[], lawId: string): void {
+  for (const forbiddenPath of [
+    "src/lib/browser/browser-controller.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
+  ]) {
+    const forbiddenSource = source(context, forbiddenPath);
+    if (forbiddenSource?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) =>
+      identifier.getText() === "runAmazonInvoiceInterItemPacing"
+        || identifier.getText() === "AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS"
+        || identifier.getText() === "AMAZON_INVOICE_INTER_ITEM_DELAY_MAX_MS")) {
+      addFinding(findings, lawId, forbiddenPath, INTER_ITEM_PACING_CHECK_ID, "Batch-only pacing must not enter BrowserController, the single-item flow, or the execution lease.");
+    }
+  }
 }
 
 function inspectLocalQueueLayout(layoutCorpus: string, batchSurfaceCorpus: string, findings: InspectorFinding[], lawId: string): void {
@@ -199,5 +354,26 @@ function inspectLocalQueueClient(clientCorpus: string, findings: InspectorFindin
   }
   if (clientCorpus.includes("body.append(\"invoicePdfs\"") || clientCorpus.includes("requireHumanFinalSubmit") || clientCorpus.includes("stopOnManualRequired")) {
     addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/no-obsolete-batch-request-shape", "Batch client must not send huge invoicePdfs multipart or human/manual compatibility fields.");
+  }
+  const amountMismatchBranchIndex = clientCorpus.indexOf('record.status === "amount_mismatch_skipped"');
+  const explicitReviewBranchIndex = clientCorpus.indexOf('record.status === "review_required"');
+  if (amountMismatchBranchIndex < 0 || explicitReviewBranchIndex <= amountMismatchBranchIndex) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-local-queue-health", "Batch normalization must preserve amount_mismatch_skipped before classifying explicit review_required.");
+  }
+  if (clientCorpus.includes('record.status === "review_required" || record.reviewRequired === true')) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-local-queue-health", "reviewRequired metadata must not be converted into the batch-stopping review_required status.");
+  }
+  if (clientCorpus.includes('result.status === "amount_mismatch_skipped"')) {
+    addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-local-queue-health", "amount_mismatch_skipped must not enter the local queue break condition.");
+  }
+  for (const requiredContinuitySignal of [
+    'status: "amount_mismatch_skipped", reviewRequired: true, amountCheck: record.amountCheck',
+    'amount_mismatch_skipped: "failed"',
+    'item.status === "amount_mismatch_skipped" || item.status === "failed"',
+    'shouldStopAmazonInvoiceLocalQueue(result, form.stopOnFailed.checked)',
+  ]) {
+    if (!clientCorpus.includes(requiredContinuitySignal)) {
+      addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", "amazon-invoice-upload/batch-local-queue-health", `Batch amount-mismatch continuation is missing ${requiredContinuitySignal}.`);
+    }
   }
 }

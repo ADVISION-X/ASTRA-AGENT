@@ -2,7 +2,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { existsSync, readFileSync } from "node:fs";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const domain = "amazon-listing-edit-read-sync";
@@ -33,6 +33,7 @@ const runtimeHandlePath = "src/lib/local-runtime/workbench-handle.ts";
 const acceptancePath = "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts";
 const pluginStatusPath = "scripts/audit/config/plugin-status.json";
 const ciPhasePath = "scripts/audit/ci-full-phase-plan.ts";
+const ciAcceptanceBindingsPath = "scripts/audit/ci-acceptance-law-bindings.ts";
 const packagePath = "package.json";
 
 const inspectedFiles = [
@@ -62,6 +63,7 @@ const inspectedFiles = [
   acceptancePath,
   pluginStatusPath,
   ciPhasePath,
+  ciAcceptanceBindingsPath,
   packagePath,
 ] as const;
 
@@ -137,7 +139,7 @@ const inspectLawAndRegistration = (
     law: string | null;
     packageJson: string | null;
     pluginStatus: string | null;
-    ciPhase: SourceFile | null;
+    ciAcceptanceBindings: SourceFile | null;
   },
   findings: InspectorFinding[],
   lawId: string,
@@ -166,8 +168,8 @@ const inspectLawAndRegistration = (
   if (!textHas(sources.pluginStatus, domain)) {
     addFinding(findings, lawId, pluginStatusPath, "amazon-listing-edit-read-sync/plugin-status", "plugin-status must register the owner once.");
   }
-  if (!hasLiteral(sources.ciPhase, "amazon-listing-edit-read-sync")) {
-    addFinding(findings, lawId, ciPhasePath, "amazon-listing-edit-read-sync/ci-full", "ci:full phase plan must run acceptance.");
+  if (!hasLiteral(sources.ciAcceptanceBindings, acceptancePath)) {
+    addFinding(findings, lawId, ciAcceptanceBindingsPath, "amazon-listing-edit-read-sync/ci-full", "ci:full acceptance binding must include the physical acceptance leaf.");
   }
 };
 
@@ -360,7 +362,9 @@ const inspectIsolation = (context: InspectorContext, findings: InspectorFinding[
   }
 };
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawId = selectLawId(context.planEntry.lawIds, "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1");
   const findings: InspectorFinding[] = [];
   const law = requireRepoFile(findings, lawId, lawPath);
@@ -385,10 +389,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const runtimeHandle = requireSourceFile(context, findings, lawId, runtimeHandlePath);
   requireSourceFile(context, findings, lawId, acceptancePath);
   const pluginStatus = requireRepoFile(findings, lawId, pluginStatusPath);
-  const ciPhase = requireSourceFile(context, findings, lawId, ciPhasePath);
+  requireSourceFile(context, findings, lawId, ciPhasePath);
+  const ciAcceptanceBindings = requireSourceFile(context, findings, lawId, ciAcceptanceBindingsPath);
   const packageJson = requireRepoFile(findings, lawId, packagePath);
 
-  inspectLawAndRegistration({ law, packageJson, pluginStatus, ciPhase }, findings, lawId);
+  inspectLawAndRegistration({ law, packageJson, pluginStatus, ciAcceptanceBindings }, findings, lawId);
   inspectSchema(schema, findings, lawId);
   inspectDomSafety(domScripts, findings, lawId);
   inspectFlow([
@@ -403,8 +408,27 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   return {
     capabilityDomain: domain,
     reportedLawIds: [lawId],
-      executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...inspectedFiles],
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("amazon-listing-edit-read-sync requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

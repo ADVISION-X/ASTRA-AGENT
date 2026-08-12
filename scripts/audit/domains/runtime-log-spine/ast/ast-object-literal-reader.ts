@@ -146,16 +146,13 @@ export const getArrayLiteralPropertyValues = (objectLiteral: ObjectLiteralExpres
     ? toExpression(traceVariableInitializer(initializer) ?? traceDestructuredBinding(initializer))
     : initializer;
   if (!target || !Node.isArrayLiteralExpression(target)) return null;
-  return target
-    .getElements()
-    .map((element) => {
-      if (Node.isStringLiteral(element)) {
-        return element.getLiteralValue();
-      }
-      const text = element.getText();
-      return text.startsWith("RuntimeLogMode.") ? text.slice("RuntimeLogMode.".length) : text;
-    })
-    .filter((value) => value.length > 0);
+  const values: string[] = [];
+  for (const element of target.getElements()) {
+    if (!Node.isStringLiteral(element)) return null;
+    const value = element.getLiteralValue();
+    if (value.length > 0) values.push(value);
+  }
+  return values;
 };
 
 export const isEventTypeFromRegistry = (objectLiteral: ObjectLiteralExpression): boolean =>

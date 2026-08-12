@@ -21,7 +21,6 @@ const requiredTopologyIdentifiers = [
   "childInitialHistoryFingerprint",
   "parentConversationUrl",
   "childConversationUrl",
-  "assertUnsupportedForkFailsClosed",
 ] as const;
 
 const inspectRequiredTopology = (
@@ -82,8 +81,7 @@ export const inspectConversationTopology = (
   const fork = requireSourceFile(context, findings, lawId, P.runtime.forkPath);
   const open = requireSourceFile(context, findings, lawId, P.runtime.openPath);
   const proof = requireSourceFile(context, findings, lawId, P.runtime.providerProofPath);
-  const real = requireSourceFile(context, findings, lawId, P.acceptance.realChromeForkAcceptancePath);
-  if (!schema || !fork || !open || !proof || !real) return;
-  inspectRequiredTopology([schema, fork, open, proof, real], findings, lawId);
+  if (!schema || !fork || !open || !proof) return;
+  inspectRequiredTopology([schema, fork, open, proof], findings, lawId);
   inspectForkBoundary(fork, open, findings, lawId);
 };

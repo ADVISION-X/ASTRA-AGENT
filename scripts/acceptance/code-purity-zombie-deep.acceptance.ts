@@ -5,6 +5,8 @@ import path from "node:path";
 import { Project } from "ts-morph";
 
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
+import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
+import { loadGeneratedAuditPlan } from "../audit/core/load-audit-plan.js";
 import { resolveFromRepo, toRepoPath } from "../audit/shared/paths.js";
 import {
   resolveCodePurityBudget,
@@ -48,6 +50,9 @@ const LAW_IDS = [
 ];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
+const CODE_PURITY_PLAN_ENTRY = loadGeneratedAuditPlan()
+  .find((entry) => entry.capabilityDomain === "code-purity");
+if (!CODE_PURITY_PLAN_ENTRY) throw new Error("Generated audit plan is missing the code-purity owner entry.");
 
 const readFixtureConfig = (caseName: string): FixtureConfig =>
   JSON.parse(readFileSync(path.join(FIXTURE_ROOT, caseName, "fixture.json"), "utf8")) as FixtureConfig;
@@ -133,16 +138,16 @@ const buildManifest = (runtimeRepoPath: string, manifest: FixtureManifestConfig 
   })),
 });
 
-const createFixtureContext = (project: Project): InspectorContext => ({
-  completedReports: {},
-  generatedPlan: [],
-  planEntry: {
-    capabilityDomain: "code-purity",
-    executionGroup: "foundation",
-    lawIds: LAW_IDS,
-  } as InspectorContext["planEntry"],
-  project,
-});
+const createFixtureContext = (project: Project): InspectorContext => {
+  const planEntry = CODE_PURITY_PLAN_ENTRY;
+  return {
+    checks: createInspectorCheckSession(planEntry).checks,
+    completedReports: {},
+    generatedPlan: [planEntry],
+    planEntry,
+    project,
+  };
+};
 
 const parseInventoryEvidence = (finding: { evidence?: string | undefined }): Record<string, unknown> => {
   if (!finding.evidence) {

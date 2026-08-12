@@ -16,6 +16,12 @@ const getCandidateTypes = (node: MorphNode) => {
   return nodeType.isUnion() ? nodeType.getUnionTypes() : [nodeType];
 };
 
+const isGlobalIdentifier = (node: MorphNode | undefined, names: ReadonlySet<string>): boolean =>
+  Node.isIdentifier(node)
+  && names.has(node.getSymbol()?.getEscapedName().toString() ?? "")
+  && (node.getSymbol()?.getDeclarations().every((declaration) =>
+    declaration.getSourceFile().isDeclarationFile()) ?? false);
+
 const looksLikeStringOrRegexOrUnknown = (node: MorphNode | undefined): boolean => {
   if (!node) {
     return false;
@@ -96,8 +102,7 @@ const resolvePrototypeMethodFromPropertyAccess = (node: MorphNode | undefined): 
   if (!Node.isIdentifier(owner)) {
     return undefined;
   }
-  const ownerName = owner.getText();
-  return ownerName === "String" || ownerName === "RegExp" ? methodName : undefined;
+  return isGlobalIdentifier(owner, new Set(["String", "RegExp"])) ? methodName : undefined;
 };
 
 const resolvePrototypeBannedMethod = (
@@ -119,7 +124,7 @@ const isRegExpConstructorExpression = (
   if (!node) {
     return false;
   }
-  if (Node.isIdentifier(node) && node.getText() === "RegExp") {
+  if (isGlobalIdentifier(node, new Set(["RegExp"]))) {
     return true;
   }
   const initializer = resolveVariableInitializer(node, seenSymbols);

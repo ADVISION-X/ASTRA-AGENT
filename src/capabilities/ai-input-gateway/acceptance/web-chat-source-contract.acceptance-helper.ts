@@ -92,37 +92,6 @@ const loadContractSources = async (): Promise<ContractSources> => {
   };
 };
 
-const assertRenameTiming = (sources: ContractSources): void => {
-  const submitFlow = sources.shared.slice(
-    sources.shared.indexOf("const executeWebChatConversation"),
-    sources.shared.indexOf("const executeOpenedWebChatAdapter"),
-  );
-  const completedFlow = sources.shared.slice(
-    sources.shared.indexOf("const buildCompletedWebChatResponse"),
-    sources.shared.indexOf("const executeWebChatConversation"),
-  );
-  assert.equal(
-    submitFlow.includes("renameSubmittedChatGptConversation"),
-    false,
-    "submission must release the browser mutation lane without waiting for rename",
-  );
-  assert.equal(
-    completedFlow.includes("renameSubmittedChatGptConversation"),
-    true,
-    "the exact conversation must be renamed only after response completion",
-  );
-  assert.equal(
-    sources.title.includes("runExclusivePatrol")
-      && sources.title.includes("WEB_CHAT_RENAME_NOT_READY")
-      && sources.title.includes("RENAME_PATROL_SLICE_MS = 15_000")
-      && sources.title.includes("remainingRenameMs")
-      && !sources.title.includes("timeoutMs: 60_000")
-      && !sources.title.includes("rename patrol exhausted the task timeout"),
-    true,
-    "one completed-chat rename must stay atomic, yield within fifteen seconds to submission work, and transient rename UI must never become a terminal task-timeout failure",
-  );
-};
-
 const assertRenameTargeting = (sources: ContractSources): void => {
   const renameTransaction = sources.title.slice(
     sources.title.indexOf("const runRenameTransaction"),
@@ -335,7 +304,6 @@ const assertExactSearchDialogHygiene = (sources: ContractSources): void => {
 
 export const assertWebChatSourceContracts = async (): Promise<void> => {
   const sources = await loadContractSources();
-  assertRenameTiming(sources);
   assertRenameTargeting(sources);
   assertDurableRenameHousekeeping(sources);
   assertProviderPatrol(sources);

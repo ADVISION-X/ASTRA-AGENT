@@ -1,4 +1,3 @@
-import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import {
   MediaProcessingArtifactJobInputSchema,
   runMediaProcessingArtifactFlow,
@@ -8,10 +7,8 @@ import {
 
 export const routeMediaProcessingArtifactJob = async (
   request: MediaProcessingArtifactJobInput,
-  workbench: GrassEyeWorkbenchHandle,
+  runtime: Parameters<typeof runMediaProcessingArtifactFlow>[1],
 ): Promise<MediaProcessingArtifactJobResult> => {
   const input = MediaProcessingArtifactJobInputSchema.parse(request);
-  return runMediaProcessingArtifactFlow(input, {
-    mediaProcessing: workbench.getMediaProcessingAbilityGroup(),
-  });
+  return runMediaProcessingArtifactFlow(input, runtime);
 };

@@ -242,20 +242,12 @@ const buildSamePathMatch = (url: string): { base: string } | null => {
   }
 };
 
-const readFrontChromeWindowState = async (fallbackUrl?: string): Promise<ChromeWindowState> => {
-  const restoreUrl = fallbackUrl && fallbackUrl !== "about:blank"
-    ? `set URL of active tab of front window to "${escapeAppleScriptString(fallbackUrl)}"`
-    : "";
+const readFrontChromeWindowState = async (abortSignal?: AbortSignal): Promise<ChromeWindowState> => {
   const windowCount = await runAppleScript(`
 tell application "Google Chrome"
-    if (count of windows) = 0 then
-        make new window
-        ${restoreUrl}
-        delay 1
-    end if
     return count of windows
 end tell
-`);
+`, abortSignal ? { signal: abortSignal } : undefined);
   if (Number(windowCount) === 0) {
     throw new Error("Google Chrome window is not available for current-browser control.");
   }
@@ -281,7 +273,7 @@ JSON.stringify({
   currentUrl,
   currentTitle,
 });
-`);
+`, abortSignal ? { signal: abortSignal } : undefined);
   return JSON.parse(output) as ChromeWindowState;
 };
 

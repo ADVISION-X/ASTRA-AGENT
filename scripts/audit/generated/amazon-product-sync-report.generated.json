@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:11:00.003Z",
+  "generatedAt": "2026-08-12T23:45:31.844Z",
   "status": "PASS",
   "findings": [],
   "capabilityDomain": "amazon-product-sync",
@@ -10,26 +10,56 @@
     "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
     "GRASSEYE-RUNTIME-LOG-SPINE-016-V1"
   ],
+  "checkRuns": [
+    {
+      "runId": "audit-run:57f36414-7d7f-4e02-a210-5244e11d5d06",
+      "checkRunId": "audit-run:57f36414-7d7f-4e02-a210-5244e11d5d06:check:44144409-538d-434e-8854-083b08e01a2b",
+      "capabilityDomain": "amazon-product-sync",
+      "checkId": "amazon-product-sync/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:31.059Z",
+      "endedAt": "2026-08-12T23:45:31.844Z",
+      "durationMs": 785,
+      "evidenceRefs": [
+        ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
+        "docs/法案辅助文件/GrassEye Amazon 产品更新同步施工图.md",
+        "scripts/acceptance/amazon-product-sync.acceptance.ts",
+        "scripts/audit/config/plugin-status.json",
+        "scripts/audit/domains/amazon-product-sync/inspector.ts",
+        "scripts/audit/domains/amazon-product-sync/manifest.json",
+        "src/app/create-workbench-server.ts",
+        "src/app/workbench-amazon-product-sync-routes.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync-task-config.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
+        "src/plugins/amazon-product-sync/index.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
       "clauseId": "grasseye-amazon-product-sync-001-requirement",
-      "checkId": "amazon-product-sync/contract"
+      "checkId": "amazon-product-sync/owner-assertion-set",
+      "checkRunId": "audit-run:57f36414-7d7f-4e02-a210-5244e11d5d06:check:44144409-538d-434e-8854-083b08e01a2b"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
       "clauseId": "grasseye-amazon-product-sync-002-requirement",
-      "checkId": "amazon-product-sync/contract"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
-      "clauseId": "grasseye-amazon-product-sync-003-requirement",
-      "checkId": "amazon-product-sync/contract"
+      "checkId": "amazon-product-sync/owner-assertion-set",
+      "checkRunId": "audit-run:57f36414-7d7f-4e02-a210-5244e11d5d06:check:44144409-538d-434e-8854-083b08e01a2b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "runtime-log-spine-016-amazon-product-sync-log-matrix",
-      "checkId": "amazon-product-sync/contract"
+      "checkId": "amazon-product-sync/owner-assertion-set",
+      "checkRunId": "audit-run:57f36414-7d7f-4e02-a210-5244e11d5d06:check:44144409-538d-434e-8854-083b08e01a2b"
     }
   ],
   "inspectedFiles": [

@@ -4,6 +4,7 @@ import {
   type ConstructorDeclaration,
   Node,
   SyntaxKind,
+  ts,
   type FunctionDeclaration,
   type FunctionExpression,
   type GetAccessorDeclaration,
@@ -46,7 +47,15 @@ const functionLikeKinds = [
   SyntaxKind.SetAccessor,
 ] as const;
 
-const suppressedDirectiveTokens = ["@ts-ignore", "@ts-expect-error", "eslint-disable"];
+const isSuppressionDirectiveComment = (commentText: string): boolean => {
+  const normalized = commentText.trimStart();
+  return normalized.startsWith("// @ts-ignore")
+    || normalized.startsWith("// @ts-expect-error")
+    || normalized.startsWith("/* @ts-ignore")
+    || normalized.startsWith("/* @ts-expect-error")
+    || normalized.startsWith("// eslint-disable")
+    || normalized.startsWith("/* eslint-disable");
+};
 
 export const collectFunctionLikes = (governedFile: GovernedFile): BudgetFunctionNode[] =>
   functionLikeKinds.flatMap((kind) => governedFile.sourceFile.getDescendantsOfKind(kind)) as BudgetFunctionNode[];
@@ -66,29 +75,30 @@ export const computeCyclomaticComplexity = (body: MorphNode): number =>
     if (controlFlowKinds.has(descendant.getKind())) {
       return true;
     }
-    return Node.isBinaryExpression(descendant) && ["&&", "||", "??"].includes(descendant.getOperatorToken().getText());
+    return Node.isBinaryExpression(descendant) && [
+      SyntaxKind.AmpersandAmpersandToken,
+      SyntaxKind.BarBarToken,
+      SyntaxKind.QuestionQuestionToken,
+    ].includes(descendant.getOperatorToken().getKind());
   }).length;
 
 export const collectDirectiveComments = (governedFile: GovernedFile): { line: number; text: string }[] => {
-  const seenRanges = new Set<string>();
   const directives: { line: number; text: string }[] = [];
-  governedFile.sourceFile.forEachDescendant((node) => {
-    for (const range of [...node.getLeadingCommentRanges(), ...node.getTrailingCommentRanges()]) {
-      const key = `${range.getPos()}:${range.getEnd()}`;
-      if (seenRanges.has(key)) {
-        continue;
-      }
-      seenRanges.add(key);
-      const text = range.getText();
-      if (!suppressedDirectiveTokens.some((token) => text.includes(token))) {
-        continue;
-      }
-      directives.push({
-        line: governedFile.sourceFile.getLineAndColumnAtPos(range.getPos()).line,
-        text,
-      });
-    }
-  });
+  const scanner = ts.createScanner(
+    ts.ScriptTarget.Latest,
+    false,
+    ts.LanguageVariant.Standard,
+    governedFile.sourceFile.compilerNode.text,
+  );
+  for (let token = scanner.scan(); token !== SyntaxKind.EndOfFileToken; token = scanner.scan()) {
+    if (token !== SyntaxKind.SingleLineCommentTrivia && token !== SyntaxKind.MultiLineCommentTrivia) continue;
+    const text = scanner.getTokenText();
+    if (!isSuppressionDirectiveComment(text)) continue;
+    directives.push({
+      line: governedFile.sourceFile.getLineAndColumnAtPos(scanner.getTokenPos()).line,
+      text,
+    });
+  }
   return directives;
 };
 

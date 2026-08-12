@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:11:01.449Z",
+  "generatedAt": "2026-08-12T23:45:33.394Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -12,756 +12,93 @@
   ],
   "status": "PASS",
   "findings": [],
+  "checkRuns": [
+    {
+      "runId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81",
+      "capabilityDomain": "facebook-product-video-mining",
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:45:33.344Z",
+      "endedAt": "2026-08-12T23:45:33.394Z",
+      "durationMs": 50,
+      "evidenceRefs": [
+        "package.json",
+        "scripts/acceptance/facebook-live-dom-probe.ts",
+        "scripts/acceptance/facebook-product-video-mining-ai-upload.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+        "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+        "src/app/app-shell/app-shell-layout.ts",
+        "src/app/workbench-facebook-routes.ts",
+        "src/app/workbench-home-client.ts",
+        "src/app/workbench-home-page.ts",
+        "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-proof.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.records.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
+        "src/plugins/facebook-product-video-mining/index.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "APEX-FACEBOOK-MINING-001-V1",
       "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/ai-hard-timeout"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/ai-judgment-failure-terminal"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/app-shell-routes"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/attachment-proof-boundary"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/export-saved-product-only"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/fixed-navigation-action-ladder"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/forbidden-client-payload-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/forbidden-visible-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/minimal-target-count-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/navigation-proof-quorum"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/no-arbitrary-provider-tab"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/no-dom-next-primary-controller"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/not-interested-default-off"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/plugin-public-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/provider-tab-focus-guard"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/required-acceptance-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/required-plugin-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/round-state-machine"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/saved-records-client-fetch"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/saved-records-visible-export"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/schema-default-mission-parameter"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/standard-attachment-child"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/submit-wait-short-cap"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/workbench-handle-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
-      "clauseId": "apex-facebook-mining-001-requirement",
-      "checkId": "facebook-mining/workspace-url-pinning"
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-002-V1",
       "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/ai-hard-timeout"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/ai-judgment-failure-terminal"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/app-shell-routes"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/attachment-proof-boundary"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/export-saved-product-only"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/fixed-navigation-action-ladder"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/forbidden-client-payload-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/forbidden-visible-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/minimal-target-count-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/navigation-proof-quorum"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/no-arbitrary-provider-tab"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/no-dom-next-primary-controller"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/not-interested-default-off"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/plugin-public-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/provider-tab-focus-guard"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/required-acceptance-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/required-plugin-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/round-state-machine"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/saved-records-client-fetch"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/saved-records-visible-export"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/schema-default-mission-parameter"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/standard-attachment-child"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/submit-wait-short-cap"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/workbench-handle-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "clauseId": "apex-facebook-mining-002-requirement",
-      "checkId": "facebook-mining/workspace-url-pinning"
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-003-V1",
       "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/ai-hard-timeout"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/ai-judgment-failure-terminal"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/app-shell-routes"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/attachment-proof-boundary"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/export-saved-product-only"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/fixed-navigation-action-ladder"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/forbidden-client-payload-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/forbidden-visible-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/minimal-target-count-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/navigation-proof-quorum"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/no-arbitrary-provider-tab"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/no-dom-next-primary-controller"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/not-interested-default-off"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/plugin-public-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/provider-tab-focus-guard"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/required-acceptance-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/required-plugin-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/round-state-machine"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/saved-records-client-fetch"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/saved-records-visible-export"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/schema-default-mission-parameter"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/standard-attachment-child"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/submit-wait-short-cap"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/workbench-handle-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "clauseId": "apex-facebook-mining-003-requirement",
-      "checkId": "facebook-mining/workspace-url-pinning"
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-004-V1",
       "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/ai-hard-timeout"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/ai-judgment-failure-terminal"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/app-shell-routes"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/attachment-proof-boundary"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/export-saved-product-only"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/fixed-navigation-action-ladder"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/forbidden-client-payload-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/forbidden-visible-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/minimal-target-count-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/navigation-proof-quorum"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/no-arbitrary-provider-tab"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/no-dom-next-primary-controller"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/not-interested-default-off"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/plugin-public-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/provider-tab-focus-guard"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/required-acceptance-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/required-plugin-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/round-state-machine"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/saved-records-client-fetch"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/saved-records-visible-export"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/schema-default-mission-parameter"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/standard-attachment-child"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/submit-wait-short-cap"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/workbench-handle-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "clauseId": "apex-facebook-mining-004-requirement",
-      "checkId": "facebook-mining/workspace-url-pinning"
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-005-V1",
       "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/ai-hard-timeout"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/ai-judgment-failure-terminal"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/app-shell-routes"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/attachment-proof-boundary"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/export-saved-product-only"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/fixed-navigation-action-ladder"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/forbidden-client-payload-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/forbidden-visible-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/minimal-target-count-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/navigation-proof-quorum"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/no-arbitrary-provider-tab"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/no-dom-next-primary-controller"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/not-interested-default-off"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/plugin-public-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/provider-tab-focus-guard"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/required-acceptance-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/required-plugin-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/round-state-machine"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/saved-records-client-fetch"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/saved-records-visible-export"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/schema-default-mission-parameter"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/standard-attachment-child"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/submit-wait-short-cap"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/workbench-handle-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "clauseId": "apex-facebook-mining-005-requirement",
-      "checkId": "facebook-mining/workspace-url-pinning"
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-006-V1",
       "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/ai-hard-timeout"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/ai-judgment-failure-terminal"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/app-shell-routes"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/attachment-proof-boundary"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/export-saved-product-only"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/fixed-navigation-action-ladder"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/forbidden-client-payload-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/forbidden-visible-advanced-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/minimal-target-count-input"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/navigation-proof-quorum"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/no-arbitrary-provider-tab"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/no-dom-next-primary-controller"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/not-interested-default-off"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/plugin-public-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/provider-tab-focus-guard"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/required-acceptance-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/required-plugin-file"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/round-state-machine"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/saved-records-client-fetch"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/saved-records-visible-export"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/schema-default-mission-parameter"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/standard-attachment-child"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/submit-wait-short-cap"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/workbench-handle-surface"
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "clauseId": "apex-facebook-mining-006-requirement",
-      "checkId": "facebook-mining/workspace-url-pinning"
+      "checkId": "facebook-product-video-mining/owner-assertion-set",
+      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
     }
   ],
   "inspectedFiles": [
@@ -771,6 +108,7 @@
     "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+    "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
     "src/app/app-shell/app-shell-layout.ts",
     "src/app/workbench-facebook-routes.ts",
     "src/app/workbench-home-client.ts",
@@ -781,7 +119,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
-    "src/lib/local-runtime/workbench.ts",
+    "src/lib/local-runtime/workbench-marketplace-handles.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",

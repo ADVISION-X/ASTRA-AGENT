@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
+  LotteryTicketPlanInputSchema,
   type LotteryTicketLine,
   type LotteryTicketPlanBucket,
   type LotteryTicketPlanInput,
@@ -12,42 +13,13 @@ const bucketDigits: Record<LotteryTicketPlanBucket, readonly number[]> = {
   upper: [5, 6, 7, 8, 9],
 };
 
-const parseBucket = (value: unknown, position: string): LotteryTicketPlanBucket => {
-  if (value === "upper" || value === "lower") return value;
-  throw new Error(`invalid_${position}_bucket`);
-};
-
-const parseInput = (input: unknown): LotteryTicketPlanInput => {
-  if (!input || typeof input !== "object" || Array.isArray(input)) {
-    throw new Error("invalid_lottery_ticket_plan_input");
-  }
-  const value = input as {
-    entryCost?: unknown;
-    game?: unknown;
-    positions?: Partial<Record<string, unknown>>;
-  };
-  if (value.game !== "pick3") throw new Error("unsupported_lottery_ticket_plan_game");
-  if (typeof value.entryCost !== "number" || !Number.isFinite(value.entryCost) || value.entryCost <= 0) {
-    throw new Error("invalid_entry_cost");
-  }
-  return {
-    game: "pick3",
-    entryCost: value.entryCost,
-    positions: {
-      hundreds: parseBucket(value.positions?.hundreds, "hundreds"),
-      tens: parseBucket(value.positions?.tens, "tens"),
-      ones: parseBucket(value.positions?.ones, "ones"),
-    },
-  };
-};
-
 const buildTicketHash = (tickets: readonly LotteryTicketLine[]): string =>
   createHash("sha256")
     .update(JSON.stringify(tickets.map((ticket) => ticket.digits)))
     .digest("hex");
 
 export const generateLotteryTicketPlan = (rawInput: unknown): LotteryTicketPlanResult => {
-  const input = parseInput(rawInput);
+  const input: LotteryTicketPlanInput = LotteryTicketPlanInputSchema.parse(rawInput);
   const hundredsDigits = bucketDigits[input.positions.hundreds];
   const tensDigits = bucketDigits[input.positions.tens];
   const onesDigits = bucketDigits[input.positions.ones];

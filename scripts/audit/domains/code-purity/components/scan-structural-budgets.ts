@@ -1,7 +1,7 @@
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { createInventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
-import type { CodePurityInventoryItem } from "./code-purity-report-writer.js";
+import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
 import { scanStructuralFunctionBudgets } from "./scan-structural-function-budgets.js";
 import { scanStructuralSourceShape } from "./scan-structural-source-shape.js";
 

@@ -30,6 +30,7 @@ export async function verifyUploadSuccess(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
+  abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const success = await waitForState(browser, {
     expectedStates: ["success-message"],
@@ -47,7 +48,7 @@ export async function verifyUploadSuccess(
     evidenceRef: success.evidenceRef,
   });
   if (success.status !== "success") {
-    const existing = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
+    const existing = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission, abortSignal);
     if (existing?.status === "already_uploaded") return existing;
     return buildUploadReviewResult(mission, success);
   }

@@ -470,7 +470,8 @@ reachedStep
 amazonOrderId
 invoiceNo
 evidenceRef
-domTraceRef
+runtimeLogRef
+navigationEvidenceRef
 reviewRequired
 updatedAt
 ```

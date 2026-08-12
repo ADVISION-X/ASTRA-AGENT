@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
@@ -287,34 +287,32 @@ const failedPersistence = await persistTerminalVideoDownloadTask(
 assert.equal(failedPersistence.status, "failed");
 assert(failedPersistence.failureReason?.startsWith("video_download_task_persistence_failed"));
 
-const missingDelivery = await copyResultToDownloads({
-  jobType: "video-download-artifact",
-  status: "success",
-  result: {
-    status: "success",
-    output: {
-      filePath: path.join(await mkdtemp(path.join(tmpdir(), "grasseye-missing-delivery-")), "missing.mp4"),
-    },
-  },
-} as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true)
-  .then(() => "unexpected_success")
-  .catch((error: unknown) => error instanceof Error ? error.message : String(error));
-assert.notEqual(missingDelivery, "unexpected_success");
-
 const deliveryFixtureDir = await mkdtemp(path.join(tmpdir(), "grasseye-delivery-"));
-const deliverySource = path.join(deliveryFixtureDir, "video.mp4");
-await writeFile(deliverySource, "fixture");
-const deliveredPath = await copyResultToDownloads({
-  jobType: "video-download-artifact",
-  status: "success",
-  result: {
+try {
+  const deliveryRoot = path.join(deliveryFixtureDir, "acceptance-downloads");
+  const missingDelivery = await copyResultToDownloads({
+    jobType: "video-download-artifact",
     status: "success",
-    output: { filePath: deliverySource, displayTitle: "Real YouTube Title" },
-  },
-} as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true);
-assert(deliveredPath);
-assert.equal(path.basename(deliveredPath).startsWith("Real YouTube Title-"), true);
-assert.equal(path.basename(deliveredPath).endsWith(".mp4"), true);
-assert.notEqual(path.basename(deliveredPath), `${Date.now()}-video.mp4`);
+    result: { status: "success", output: { filePath: path.join(deliveryFixtureDir, "missing.mp4") } },
+  } as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true, deliveryRoot)
+    .then(() => "unexpected_success")
+    .catch((error: unknown) => error instanceof Error ? error.message : String(error));
+  assert.notEqual(missingDelivery, "unexpected_success");
+
+  const deliverySource = path.join(deliveryFixtureDir, "video.mp4");
+  await writeFile(deliverySource, "fixture");
+  const deliveredPath = await copyResultToDownloads({
+    jobType: "video-download-artifact",
+    status: "success",
+    result: { status: "success", output: { filePath: deliverySource, displayTitle: "Real YouTube Title" } },
+  } as Awaited<ReturnType<typeof import("../../src/mediator/video-download-artifact-route.js").routeVideoDownloadArtifactJob>>, true, deliveryRoot);
+  assert(deliveredPath);
+  assert.equal(path.dirname(deliveredPath), deliveryRoot);
+  assert.equal(path.basename(deliveredPath).startsWith("Real YouTube Title-"), true);
+  assert.equal(path.basename(deliveredPath).endsWith(".mp4"), true);
+  assert.notEqual(path.basename(deliveredPath), `${Date.now()}-video.mp4`);
+} finally {
+  await rm(deliveryFixtureDir, { force: true, recursive: true });
+}
 
 process.stdout.write("[ACCEPTANCE][video-download-youtube-production] PASS\n");

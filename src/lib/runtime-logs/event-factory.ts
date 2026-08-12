@@ -16,6 +16,7 @@ type CreateRuntimeEventInput = {
   preview?: Record<string, string>;
   payload?: Record<string, unknown>;
   durationMs?: number;
+  capabilityCallId?: string;
 };
 
 const createTraceFields = (context: RuntimeTraceContext) => ({
@@ -39,6 +40,7 @@ const createOptionalEventFields = (input: CreateRuntimeEventInput) => ({
   ...(input.preview ? { preview: input.preview } : {}),
   ...(input.payload ? { payload: input.payload } : {}),
   ...(input.durationMs !== undefined ? { durationMs: input.durationMs } : {}),
+  ...(input.capabilityCallId ? { capabilityCallId: input.capabilityCallId } : {}),
 });
 
 export const createRuntimeEvent = (input: CreateRuntimeEventInput): RuntimeLogEventInput => ({

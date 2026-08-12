@@ -19,7 +19,8 @@ Required roots:
 - `src/lib/browser/**` owns browser session primitives.
 - `src/lib/local-runtime/**` owns local assembly only.
 - `src/app/**` owns minimal local HTTP workbench.
+- `src/types/**` owns declarative shared type and schema contracts only; it must not contain functions, classes, control flow, I/O, side effects, or business steps.
 
 Retired roots must not exist as active code.
 
-New job roots are legal only after architecture law, mediator route, evidence contract, and acceptance proof exist.
+Every active job root must own exactly one `src/mediator/<job-id>-route.ts` that parses its schema and calls its plugin task entry. App and Local Runtime may not call that task entry directly. New job roots are legal only after architecture law, mediator route, evidence contract, and acceptance proof exist.

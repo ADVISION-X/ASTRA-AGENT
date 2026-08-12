@@ -51,15 +51,17 @@ const matchesImportedSpecifier = (input: {
   imported: ImportDeclaration;
   moduleFragment: string;
   exportName: string;
-  identifierText: string;
+  identifier: Identifier;
 }): boolean => {
   if (!input.imported.getModuleSpecifierValue().includes(input.moduleFragment)) {
     return false;
   }
   return input.imported.getNamedImports().some((item) => {
-    const importName = item.getNameNode().getText();
-    const aliasName = item.getAliasNode()?.getText() ?? importName;
-    return importName === input.exportName && aliasName === input.identifierText;
+    const local = item.getAliasNode() ?? item.getNameNode();
+    const localDeclarations = getAliasedOrDirectSymbol(local)?.getDeclarations() ?? [];
+    const targetDeclarations = getAliasedOrDirectSymbol(input.identifier)?.getDeclarations() ?? [];
+    return item.getName() === input.exportName
+      && localDeclarations.some((declaration) => targetDeclarations.includes(declaration));
   });
 };
 
@@ -79,7 +81,7 @@ export const isSymbolFromModule = (node: MorphNode, moduleFragment: string, expo
     imported,
     moduleFragment,
     exportName,
-    identifierText: target.getText(),
+    identifier: target,
   }));
 };
 
@@ -93,14 +95,16 @@ const traceBindingSource = (identifier: Identifier): {
     if (!Node.isBindingElement(declaration)) {
       continue;
     }
-    const propertyName = declaration.getPropertyNameNode()?.getText() ?? declaration.getNameNode().getText();
+    const propertyName = declaration.getPropertyNameNode();
     const owner = declaration.getFirstAncestor((ancestor) =>
       Node.isVariableDeclaration(ancestor) || Node.isParameterDeclaration(ancestor),
     );
     if (Node.isVariableDeclaration(owner) || Node.isParameterDeclaration(owner)) {
       return {
         source: unwrapExpression(owner.getInitializer()),
-        propertyName,
+        propertyName: Node.isStringLiteral(propertyName)
+          ? propertyName.getLiteralValue()
+          : propertyName?.getSymbol()?.getEscapedName().toString() ?? declaration.getName(),
       };
     }
   }
@@ -149,8 +153,7 @@ const tracePropertyFromSource = (source: MorphNode | null, propertyName: string 
 };
 
 const identifierMatchesExpectedName = (identifier: Identifier, expectedName: string): boolean =>
-  identifier.getText() === expectedName
-  || resolveSymbolName(identifier) === expectedName
+  resolveSymbolName(identifier) === expectedName
   || resolveAliasedSymbolName(identifier) === expectedName;
 
 const tracedBindingMatchesExpectedName = (traced: MorphNode, expectedName: string): boolean => {

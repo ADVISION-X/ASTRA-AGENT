@@ -110,7 +110,7 @@ const FacebookProductVideoMiningRawMissionInputSchema = z.object({
   maxRounds: value.maxRounds ?? Math.max(value.targetProductCount, value.targetProductCount * FACEBOOK_MINING_ROUNDS_PER_TARGET),
 }));
 
-const FacebookProductVideoMiningMissionInputSchema =
+export const FacebookProductVideoMiningMissionInputSchema =
   FacebookProductVideoMiningRawMissionInputSchema.pipe(FacebookProductVideoMiningResolvedMissionConfigSchema);
 
 const FacebookProductVideoMiningRunConfigSchema = FacebookProductVideoMiningResolvedMissionConfigObjectSchema.extend({

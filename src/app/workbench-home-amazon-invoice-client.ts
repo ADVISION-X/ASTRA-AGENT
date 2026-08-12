@@ -45,7 +45,7 @@ const resumeAmazon = async () => {
 const amazonInvoiceBatchListClient = (): string => `
 const AMAZON_INVOICE_BATCH_ITEM_RENDER_LIMIT = 200;
 const summarizeAmazonInvoiceBatchItems = (items) => {
-  const summary = { upload_success: 0, already_uploaded: 0, failed: 0, blocked_auth: 0, invalid: 0 };
+  const summary = { upload_success: 0, already_uploaded: 0, amount_mismatch_skipped: 0, review_required: 0, failed: 0, blocked_auth: 0, invalid: 0 };
   for (const item of items || []) {
     if (item.status in summary) summary[item.status] += 1;
   }
@@ -108,12 +108,15 @@ const renderAmazonInvoiceBatch = (payload) => {
   const needsSummary = [record.succeeded, record.alreadyUploaded, record.failed, record.blockedAuth].some((value) => typeof value !== "number");
   const summary = needsSummary ? summarizeAmazonInvoiceBatchItems(items) : null;
   setText("[data-amazon-invoice-batch-id]", batchId || "-");
-  setText("[data-amazon-invoice-batch-state]", record.status || "-");
+  const batchStateText = record.status === "inter_item_pacing"
+    ? "inter_item_pacing · " + String(record.interItemDelayMs || 0) + "ms · next " + (record.nextItemAt || "-")
+    : record.status || "-";
+  setText("[data-amazon-invoice-batch-state]", batchStateText);
   setText("[data-amazon-invoice-batch-current]", record.currentOrderId || "-");
   setText("[data-amazon-invoice-batch-total]", String(record.total ?? items.length));
   setText("[data-amazon-invoice-batch-succeeded]", String(record.succeeded ?? summary.upload_success));
   setText("[data-amazon-invoice-batch-already]", String(record.alreadyUploaded ?? summary.already_uploaded));
-  setText("[data-amazon-invoice-batch-failed]", String(record.failed ?? summary.failed + summary.invalid));
+  setText("[data-amazon-invoice-batch-failed]", String(record.failed ?? summary.amount_mismatch_skipped + summary.review_required + summary.failed + summary.invalid));
   setText("[data-amazon-invoice-batch-blocked-auth]", String(record.blockedAuth ?? summary.blocked_auth));
   renderAmazonInvoiceBatchItems(items, record.currentIndex);
   renderLedger(compactAmazonInvoiceBatchRecord(record), { job: "amazon" });
@@ -121,6 +124,24 @@ const renderAmazonInvoiceBatch = (payload) => {
 `;
 
 const amazonInvoiceLocalQueueHelpersClient = (): string => `
+const AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS = 2000;
+const AMAZON_INVOICE_INTER_ITEM_DELAY_MAX_MS = 15000;
+const sampleAmazonInvoiceInterItemDelayMs = () => {
+  const entropy = new Uint32Array(1);
+  crypto.getRandomValues(entropy);
+  const unitInterval = entropy[0] / 0x100000000;
+  return AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS + Math.floor(unitInterval * (AMAZON_INVOICE_INTER_ITEM_DELAY_MAX_MS - AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS + 1));
+};
+const waitAmazonInvoiceInterItemDelay = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
+const runAmazonInvoiceInterItemPacing = async (record, item) => {
+  const delayMs = sampleAmazonInvoiceInterItemDelayMs();
+  const nextItemAt = new Date(Date.now() + delayMs).toISOString();
+  const pacing = { ...record, status: "inter_item_pacing", reason: "Waiting a bounded random interval before the next real single-upload request.", reachedStep: "inter-item pacing", currentIndex: item.index, currentOrderId: item.amazonOrderId, interItemDelayMs: delayMs, nextItemAt, updatedAt: new Date().toISOString() };
+  renderAmazonInvoiceBatch(pacing);
+  writeActivity("amazon invoice local queue pacing " + delayMs + "ms before " + item.amazonOrderId, "running");
+  await waitAmazonInvoiceInterItemDelay(delayMs);
+  return { ...pacing, status: "running", reason: "Inter-item pacing completed; the next real single-upload request may start.", reachedStep: "local file queue", interItemDelayMs: null, nextItemAt: null, updatedAt: new Date().toISOString() };
+};
 const parseAmazonInvoiceBatchFileName = (fileName) => /^\\d{3}-\\d{7}-\\d{7}\\.pdf$/i.test(fileName || "") ? fileName.slice(0, -4) : "";
 const ensureAmazonInvoiceBackendReady = async () => {
   try {
@@ -133,21 +154,27 @@ const ensureAmazonInvoiceBackendReady = async () => {
 const normalizeAmazonInvoiceLocalBatchResult = (result) => {
   const record = result?.record || result?.task || result;
   if (!record || typeof record !== "object") return { status: "failed", reason: "empty upload response", reachedStep: "single upload response" };
-  const payload = { reason: record.reason || record.failureReason || "-", reachedStep: record.reachedStep || "-", taskId: record.taskId, evidenceRef: record.evidenceRef, domTraceRef: record.domTraceRef };
+  const payload = { reason: record.reason || record.failureReason || "-", reachedStep: record.reachedStep || "-", taskId: record.taskId, evidenceRef: record.evidenceRef, runtimeLogRef: record.runtimeLogRef, navigationEvidenceRef: record.orderNavigationProof?.evidenceRef || record.navigationEvidenceRef };
   if (record.status === "upload_success") return { ...payload, status: "upload_success" };
   if (record.status === "already_uploaded") return { ...payload, status: "already_uploaded" };
+  if (record.status === "amount_mismatch_skipped") return { ...payload, status: "amount_mismatch_skipped", reviewRequired: true, amountCheck: record.amountCheck };
   if (record.status === "login_required" || record.status === "captcha_or_2fa_required") return { ...payload, status: "blocked_auth" };
-  return { ...payload, status: "failed" };
+  if (record.status === "review_required") return { ...payload, status: "review_required", reviewRequired: true };
+  return { ...payload, status: "failed", reviewRequired: record.reviewRequired === true };
 };
 const buildAmazonInvoiceLocalQueueRecord = (files) => {
   const now = new Date().toISOString();
+  const seenOrderIds = new Set();
   const items = files.map((file, index) => {
     const orderId = parseAmazonInvoiceBatchFileName(file.name);
-    return { index, originalFileName: file.name, safeFileName: file.name, amazonOrderId: orderId, invoiceNo: orderId, status: orderId ? "queued" : "invalid", reason: orderId ? "queued" : "invalid_pdf_filename", reachedStep: orderId ? "queued" : "validate local file", updatedAt: now };
+    const duplicate = Boolean(orderId && seenOrderIds.has(orderId));
+    if (orderId) seenOrderIds.add(orderId);
+    return { index, originalFileName: file.name, safeFileName: file.name, amazonOrderId: orderId, invoiceNo: orderId, status: orderId && !duplicate ? "queued" : "invalid", reason: duplicate ? "duplicate_order_id_in_batch" : orderId ? "queued" : "invalid_pdf_filename", reachedStep: orderId && !duplicate ? "queued" : "validate local file", updatedAt: now };
   });
   return { batchId: "local-file-queue-" + Date.now().toString(36), status: "running", reason: "Local file queue started through existing single-upload API.", reachedStep: "local file queue", total: files.length, succeeded: 0, alreadyUploaded: 0, failed: items.filter((item) => item.status === "invalid").length, blockedAuth: 0, items, createdAt: now, updatedAt: now };
 };
-const amazonInvoiceLocalQueueCounterKey = (status) => ({ upload_success: "succeeded", already_uploaded: "alreadyUploaded", failed: "failed", invalid: "failed", blocked_auth: "blockedAuth" })[status] || "";
+const amazonInvoiceLocalQueueCounterKey = (status) => ({ upload_success: "succeeded", already_uploaded: "alreadyUploaded", amount_mismatch_skipped: "failed", review_required: "failed", failed: "failed", invalid: "failed", blocked_auth: "blockedAuth" })[status] || "";
+const shouldStopAmazonInvoiceLocalQueue = (result, stopOnFailed) => result.status === "blocked_auth" || result.status === "review_required" || (result.status === "failed" && stopOnFailed === true);
 const amazonInvoiceLocalQueueItemKey = (item) => item.amazonOrderId + "::" + item.invoiceNo;
 const loadAmazonInvoiceUploadLedgerIndex = async () => {
   const payload = await readJson("/api/plugins/amazon-invoice-upload/ledger");
@@ -171,7 +198,7 @@ const markAmazonInvoiceLocalQueueItem = (record, item, patch) => {
 };
 `;
 
-const amazonInvoiceLocalQueueRunnerClient = (): string => `
+const amazonInvoiceLocalQueueUploadClient = (): string => `
 const uploadAmazonInvoiceLocalQueueItem = async (form, files, record, item) => {
   record = markAmazonInvoiceLocalQueueItem({ ...record, currentIndex: item.index, currentOrderId: item.amazonOrderId }, item, { status: "uploading", reason: "Uploading through existing single-upload API.", reachedStep: "single upload start", startedAt: new Date().toISOString() });
   renderAmazonInvoiceBatch(record);
@@ -182,9 +209,20 @@ const uploadAmazonInvoiceLocalQueueItem = async (form, files, record, item) => {
   const result = normalizeAmazonInvoiceLocalBatchResult(await readJson("/api/plugins/amazon-invoice-upload/start", { method: "POST", body }));
   return markAmazonInvoiceLocalQueueItem(record, item, { ...result, completedAt: new Date().toISOString() });
 };
+`;
+
+const amazonInvoiceLocalQueueRunnerClient = (): string => `
 const startAmazonInvoiceBatch = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  if (state.amazonInvoiceBatchRunning === true) {
+    writeActivity("amazon invoice local queue rejected: batch_already_running", "failed");
+    return;
+  }
+  state.amazonInvoiceBatchRunning = true;
+  const startButton = form.querySelector('button[type="submit"]');
+  if (startButton) startButton.disabled = true;
+  try {
   const files = Array.from(form.invoicePdfs.files || []);
   let record = buildAmazonInvoiceLocalQueueRecord(files);
   renderAmazonInvoiceBatch(record);
@@ -204,35 +242,53 @@ const startAmazonInvoiceBatch = async (event) => {
     writeActivity("amazon invoice local queue blocked: upload_ledger_preflight_failed", "failed");
     return;
   }
+  let pendingInterItemDelay = false;
   for (const item of record.items) {
     if (item.status !== "queued") continue;
     const ledgerRecord = uploadedLedgerIndex.get(amazonInvoiceLocalQueueItemKey(item));
     if (ledgerRecord) {
-      record = markAmazonInvoiceLocalQueueItem(record, item, { status: "already_uploaded", reason: "skipped_by_upload_ledger", reachedStep: "upload ledger preflight", taskId: ledgerRecord.taskId, evidenceRef: ledgerRecord.evidenceRef, domTraceRef: ledgerRecord.domTraceRef, completedAt: new Date().toISOString() });
+      record = markAmazonInvoiceLocalQueueItem(record, item, { status: "already_uploaded", reason: "skipped_by_upload_ledger", reachedStep: "upload ledger preflight", taskId: ledgerRecord.taskId, evidenceRef: ledgerRecord.evidenceRef, runtimeLogRef: ledgerRecord.runtimeLogRef, navigationEvidenceRef: ledgerRecord.navigationEvidenceRef, completedAt: new Date().toISOString() });
       renderAmazonInvoiceBatch(record);
       continue;
+    }
+    if (pendingInterItemDelay) {
+      try {
+        record = await runAmazonInvoiceInterItemPacing(record, item);
+        pendingInterItemDelay = false;
+      } catch (error) {
+        record = markAmazonInvoiceLocalQueueItem(record, item, { status: "review_required", reviewRequired: true, reason: "inter_item_pacing_failed: " + (error.message || "bounded random delay failed"), reachedStep: "inter-item pacing", completedAt: new Date().toISOString() });
+        renderAmazonInvoiceBatch(record);
+        writeActivity("amazon invoice local queue stopped: inter_item_pacing_failed", "failed");
+        break;
+      }
     }
     try {
       record = await uploadAmazonInvoiceLocalQueueItem(form, files, record, item);
     } catch (error) {
-      record = markAmazonInvoiceLocalQueueItem(record, item, { status: "failed", reason: error.message || "single upload request failed", reachedStep: "single upload request", completedAt: new Date().toISOString() });
-      writeActivity("amazon invoice local queue item failed: " + item.amazonOrderId + " " + (error.message || "single upload request failed"), "failed");
+      record = markAmazonInvoiceLocalQueueItem(record, item, { status: "review_required", reviewRequired: true, reason: "single_upload_transport_outcome_unknown: " + (error.message || "single upload response was not received"), reachedStep: "single upload response unknown", completedAt: new Date().toISOString() });
+      writeActivity("amazon invoice local queue stopped on unknown upload outcome: " + item.amazonOrderId, "failed");
     }
     renderAmazonInvoiceBatch(record);
     const result = record.items[item.index];
     if (result.status === "upload_success" || result.status === "already_uploaded") uploadedLedgerIndex.set(amazonInvoiceLocalQueueItemKey(item), result);
-    if (result.status === "blocked_auth" || (result.status === "failed" && form.stopOnFailed.checked)) break;
+    if (shouldStopAmazonInvoiceLocalQueue(result, form.stopOnFailed.checked)) break;
+    pendingInterItemDelay = true;
   }
   const hasBlockedAuth = record.items.some((item) => item.status === "blocked_auth");
-  const hasFailed = record.items.some((item) => item.status === "failed" || item.status === "invalid");
-  record = { ...record, status: hasBlockedAuth ? "blocked_auth" : hasFailed ? "completed_with_errors" : "completed", reason: "Local file queue completed through existing single-upload API.", reachedStep: "local file queue completed", completedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  const hasReviewRequired = record.items.some((item) => item.status === "review_required");
+  const hasFailed = record.items.some((item) => item.status === "amount_mismatch_skipped" || item.status === "failed" || item.status === "invalid");
+  record = { ...record, status: hasBlockedAuth ? "blocked_auth" : hasReviewRequired ? "review_required" : hasFailed ? "completed_with_errors" : "completed", reason: hasReviewRequired ? "Local file queue stopped on the current review-required order; queued orders were not started." : "Local file queue completed through existing single-upload API.", reachedStep: hasReviewRequired ? "local file queue paused for review" : "local file queue completed", completedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   renderAmazonInvoiceBatch(record);
   await refreshAmazonInvoiceUploadLedger();
+  } finally {
+    state.amazonInvoiceBatchRunning = false;
+    if (startButton) startButton.disabled = false;
+  }
 };
 `;
 
 const amazonInvoiceLocalQueueClient = (): string =>
-  `${amazonInvoiceLocalQueueHelpersClient()}${amazonInvoiceLocalQueueRunnerClient()}`;
+  `${amazonInvoiceLocalQueueHelpersClient()}${amazonInvoiceLocalQueueUploadClient()}${amazonInvoiceLocalQueueRunnerClient()}`;
 
 const amazonInvoiceBatchHistoryClient = (routes: AmazonInvoiceClientRoutes): string => `
 const refreshAmazonInvoiceUploadLedger = async () => {

@@ -10,7 +10,7 @@ import {
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
-import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
+import type { AmazonInvoiceUploadExecutionContext, AmazonInvoiceUploadTaskResult, AmazonOrderNavigationProof } from "./amazon-invoice-upload.flow.js";
 import { openApprovedOrderDetail } from "./amazon-invoice-upload-order-detail.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 export { uploadApprovedInvoice } from "./amazon-invoice-upload-file-attachment.js";
@@ -32,9 +32,10 @@ export async function openOrderDetail(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
-): Promise<StepResult<void>> {
-  const detailFailure = await openApprovedOrderDetail(browser, runtimeLogger, mission);
-  return detailFailure ? stepFailure(detailFailure) : stepSuccess(undefined);
+  execution: AmazonInvoiceUploadExecutionContext,
+): Promise<StepResult<AmazonOrderNavigationProof>> {
+  const detail = await openApprovedOrderDetail(browser, runtimeLogger, mission, execution);
+  return detail.ok ? stepSuccess(detail.proof) : stepFailure(detail.failure);
 }
 
 export async function openUploadInvoiceEntry(

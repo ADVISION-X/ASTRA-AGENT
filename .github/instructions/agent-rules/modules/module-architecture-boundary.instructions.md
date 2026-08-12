@@ -69,6 +69,7 @@ src/mediator/**
 src/plugins/**
 src/capabilities/**
 src/lib/**
+src/types/**
 scripts/startup/**
 scripts/acceptance/**
 scripts/audit/**
@@ -76,6 +77,8 @@ scripts/audit/**
 ```
 
 Any new active source root outside this allowlist is forbidden unless this law is explicitly updated first.
+
+`src/types/**` 只允许共享 type declaration 与声明式 schema contract；禁止函数、类、控制流、I/O、副作用和业务步骤。
 
 ## First Flow Is Not Only Flow
 
@@ -153,7 +156,7 @@ Retired names may appear only in deletion notes, migration reports, archive note
   "capabilityDomain": "architecture-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture.",
+  "summary": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture, with one canonical mediator route for every active plugin.",
   "appliesTo": [
     "src/**/*.{ts,tsx,js,jsx,mjs}",
     "scripts/**/*.{ts,js,mjs}",
@@ -169,7 +172,7 @@ Retired names may appear only in deletion notes, migration reports, archive note
   "clauses": [
     {
       "clauseId": "apex-arch-001-requirement",
-      "statement": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture.",
+      "statement": "GrassEye must expand only through the single-line architecture, and every active plugin must have exactly one canonical mediator route before its job flow.",
       "evidenceMode": "static",
       "ownerDomain": "architecture-boundary"
     }
@@ -184,6 +187,8 @@ GrassEye 只允许一条架构主链：
 **用户需求 → 中介 → 业务流程 → 能力组 → 子能力 → 证据/日志/结果**
 
 任何新增代码必须能被归属到这条链中的一个位置。
+
+每个 `active` plugin 必须且只能登记一个 `src/mediator/<job-id>-route.ts`；App / Local Runtime 不得绕过它直接调用该 job 的任务入口。
 
 ### 禁止
 
@@ -261,6 +266,11 @@ GrassEye 只允许一条架构主链：
 * 变成通用工作流引擎
 * 变成第二个 orchestration
 
+每个 route export 必须在 `plugin-status.json.mediatorBindings` 精确登记
+`routeExport + schemaExport + taskExport`。route 只能用该 schema parse 一次，并把解析结果交给
+该 task 一次；禁止额外 call、模块状态、`let/var`、nested helper、class/new 或赋值式状态机。
+同一 plugin 被第二个 mediator 文件导入时直接 FAIL。
+
 ````
 
 ---
@@ -278,7 +288,7 @@ GrassEye 只允许一条架构主链：
   "capabilityDomain": "architecture-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "Each new user demand must be implemented as one explicit job flow under src/plugins/<job-id>.",
+  "summary": "Each active user demand must be implemented as one explicit job flow under src/plugins/<job-id> and reached only through its canonical mediator route.",
   "appliesTo": [
     "src/plugins/**/*.{ts,tsx}"
   ],
@@ -294,7 +304,7 @@ GrassEye 只允许一条架构主链：
   "clauses": [
     {
       "clauseId": "apex-arch-003-requirement",
-      "statement": "Each new user demand must be implemented as one explicit job flow under src/plugins/<job-id>.",
+      "statement": "Each active user demand must have one explicit job flow under src/plugins/<job-id> and one canonical mediator route that owns task intake.",
       "evidenceMode": "static",
       "ownerDomain": "architecture-boundary"
     }
@@ -577,7 +587,7 @@ verify-dom-state-once
   "capabilityDomain": "architecture-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs",
-  "summary": "New active directories must belong to the approved architecture root allowlist.",
+  "summary": "Active directories must belong to the approved architecture root allowlist; src/types is limited to declarative shared type and schema contracts.",
   "appliesTo": [
     "src/**",
     "scripts/**"
@@ -591,7 +601,7 @@ verify-dom-state-once
   "clauses": [
     {
       "clauseId": "apex-arch-006-requirement",
-      "statement": "New active directories must belong to the approved architecture root allowlist.",
+      "statement": "Active directories must belong to the approved architecture root allowlist, and src/types must contain only declarative shared type and schema contracts without runtime behavior.",
       "evidenceMode": "static",
       "ownerDomain": "architecture-boundary"
     }
@@ -609,6 +619,7 @@ src/mediator
 src/plugins
 src/capabilities
 src/lib
+src/types
 ```
 
 `scripts/` 下面只允许：
@@ -618,6 +629,8 @@ scripts/startup
 scripts/acceptance
 scripts/audit
 ```
+
+`src/types` 允许 type/interface/declaration 以及由 `zod` 或本目录既有 schema 继续声明的共享合同；禁止函数 declaration 或函数值、类/enum、控制流、非 `zod` 外部运行时 import、I/O、`new/await`、赋值/更新副作用或任何业务步骤。禁令必须深入变量 initializer，不能只检查顶层 Statement。
 
 其他新增目录一律 FAIL。
 
@@ -722,7 +735,7 @@ src/adapters
   "capabilityDomain": "architecture-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
-  "summary": "Every new user demand must enter through a job schema, mediator route, explicit flow, and acceptance proof.",
+  "summary": "Every active user demand must enter through one canonical job schema mediator route, explicit flow, and acceptance proof.",
   "appliesTo": [
     "src/mediator/**/*.{ts,tsx}",
     "src/plugins/**/*.{ts,tsx}",
@@ -738,7 +751,7 @@ src/adapters
   "clauses": [
     {
       "clauseId": "apex-arch-008-requirement",
-      "statement": "Every new user demand must enter through a job schema, mediator route, explicit flow, and acceptance proof.",
+      "statement": "Every active plugin must enter through exactly one canonical mediator route that parses its job schema, calls its explicit flow, and has acceptance proof.",
       "evidenceMode": "static",
       "ownerDomain": "architecture-boundary"
     }
@@ -758,6 +771,10 @@ src/adapters
 5. acceptance smoke
 6. architecture owner
 ```
+
+`scripts/audit/config/plugin-status.json` 中的每个 `active` plugin 必须登记唯一 `mediatorRoute`，固定为 `src/mediator/<job-id>-route.ts`，并用 `mediatorBindings` 精确登记每个 `routeExport + schemaExport + taskExport`。route exports 与 bindings 必须全集相等；每个 route 只能调用一次自己的 schema parse 和一次自己的 task，并把解析结果真实传入 task。额外 mediator 文件、额外 action/state call、模块状态、App 或 Local Runtime 对同一 task 的直连一律 FAIL。
+
+App / Local Runtime 中以 `start / resume / retry / recover / continue / run / enqueue / generate / create / execute` 开头的生命周期方法，只要调用同样属于该生命周期集合的 plugin public export，就属于 job task intake；即使该 export 未写入 `mediatorBindings`，Inspector 也必须通过 AST symbol 反向发现并 FAIL。不得用“未登记所以不扫描”把第二个任务入口洗成普通 helper。
 
 例如新增 Facebook 种草视频挖掘：
 
@@ -868,7 +885,7 @@ Flow 可以问 AI 一个有限选择题，但最终动作由 Flow 根据固定�
   "capabilityDomain": "architecture-boundary",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "hybrid",
-  "summary": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted.",
+  "summary": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted; src/types is already approved only for declarative shared contracts.",
   "appliesTo": [
     "src/**",
     "scripts/**",
@@ -883,7 +900,7 @@ Flow 可以问 AI 一个有限选择题，但最终动作由 Flow 根据固定�
   "clauses": [
     {
       "clauseId": "apex-arch-010-requirement",
-      "statement": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted.",
+      "statement": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted, while src/types remains restricted to declarative shared contracts.",
       "evidenceMode": "static",
       "ownerDomain": "architecture-boundary"
     }
@@ -943,10 +960,10 @@ scripts/audit/domains/architecture-boundary/
 Inspector 最少检查这些：
 
 ```txt
-1. src 一级目录是否只包含 app / mediator / plugins / capabilities / lib
+1. src 一级目录是否只包含 app / mediator / plugins / capabilities / lib / types，且 types 不含 runtime 行为
 2. scripts 一级目录是否只包含 startup / acceptance / audit
 3. 是否出现 forbidden root：orchestration / nerve-bus / planner / engine / agent / workflows
-4. src/plugins/<job-id> 是否至少有 flow.ts / schema.ts / index.ts
+4. 每个 active plugin 是否有唯一 canonical mediator route、schema parse、plugin flow call，且 App / Local Runtime 无直连绕过
 5. src/capabilities/<ability-id> 是否没有 import src/plugins
 6. src/mediator 是否没有直接 import browser primitive / DOM runtime private file
 7. src/lib 是否没有出现 Amazon/Facebook 业务关键词

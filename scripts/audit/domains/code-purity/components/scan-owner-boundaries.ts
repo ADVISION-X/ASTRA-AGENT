@@ -15,7 +15,7 @@ import {
   normalizeCodePurityPath,
   resolveCodePurityOwner,
 } from "./code-purity-owner-model.js";
-import type { CodePurityInventoryItem } from "./code-purity-report-writer.js";
+import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
 
 const getPathSegments = (repoPath: string): string[] => repoPath.split("/").filter((segment) => segment.length > 0);
 

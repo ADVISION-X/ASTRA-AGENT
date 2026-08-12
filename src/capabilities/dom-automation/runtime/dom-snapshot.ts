@@ -165,12 +165,14 @@ function buildSnapshotScript(maxTextLengthPerNode: number, includeFrames: boolea
 export async function readDomSnapshotOnce(
   browser: BrowserController,
   input: ReadDomSnapshotInput = {},
+  options?: { abortSignal?: AbortSignal },
 ): Promise<DomSnapshot> {
   const parsed = DOM_SCHEMAS.ReadDomSnapshotInput.parse(input);
   const raw = await browser.evaluateActiveTab<unknown>({
     description: "read governed DOM structural summary from active tab",
     script: buildSnapshotScript(parsed.maxTextLengthPerNode, parsed.includeFrames),
     ...(parsed.timeoutMs ? { timeoutMs: parsed.timeoutMs } : {}),
+    ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
   });
   return DOM_SCHEMAS.DomSnapshot.parse(raw) as DomSnapshot;
 }

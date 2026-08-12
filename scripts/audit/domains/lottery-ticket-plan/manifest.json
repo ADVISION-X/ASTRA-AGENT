@@ -9,11 +9,7 @@
         "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
         "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
         "checkIds": [
-          "lottery-ticket-plan/ast-contract",
-          "lottery-ticket-plan/file-present",
-          "lottery-ticket-plan/forbidden-import",
-          "lottery-ticket-plan/no-purchase-runtime",
-          "lottery-ticket-plan/package-script"
+          "lottery-ticket-plan/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

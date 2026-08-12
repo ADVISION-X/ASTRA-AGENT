@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { runDeepResearchAnalysis, type DeepResearchAnalysisContext } from "./deep-research-analysis.analysis-runner.js";
+export { runDeepResearchAnalysis } from "./deep-research-analysis.analysis-runner.js";
 import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.parser.js";
 import type { DeepResearchTimelineEntry, PromptReconstructionStatus } from "./deep-research-analysis.public-contracts.js";
 import { type DeepResearchHistorySnapshot, type DeepResearchJobSnapshot, type DeepResearchPrimaryBusinessReportView, type DeepResearchReportViewModel, type DeepResearchTimelineSnapshot } from "./deep-research-analysis.public-contracts.js";
@@ -24,6 +25,7 @@ import type { ResearchAnswer, ResearchInteraction, ResearchSubQuestion } from ".
 import { createDeepResearchRecordStore, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH, type ResearchExport, type ResearchExportKind, type ResearchJob } from "./deep-research-analysis.records.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 import { type DeepResearchInputAttachment, type DeepResearchInputPayload } from "./deep-research-analysis.schema.js";
+export { DeepResearchInputSchema } from "./deep-research-analysis.schema.js";
 const truncateText = (value: string, maxLength = 220): string => {
   const normalized = value.replace(/\s+/gu, " ").trim();
   if (normalized.length <= maxLength) {

@@ -1,11 +1,10 @@
-import { type InspectorContext, type InspectorOutput, executedChecksForPlan } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { collectFacebookMiningAiLogCoverage } from "./facebook-mining-ai-log-coverage.js";
 import { collectFacebookMiningArtifactLogCoverage } from "./facebook-mining-artifact-log-coverage.js";
 import { collectFacebookMiningFailureCoverage } from "./facebook-mining-failure-coverage.js";
 import {
   renderFacebookLogCoverageMarkdown,
   type FacebookLogCoverageReport,
-  writeFacebookLogCoverageReport,
   toInspectorFinding,
 } from "./facebook-mining-report-writer.js";
 import { collectFacebookMiningNavigationLogCoverage } from "./facebook-mining-navigation-log-coverage.js";
@@ -104,7 +103,9 @@ const buildFacebookCoverageReport = (
   findings: [...findings],
 });
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const sectionRuns = collectSectionRuns({ ...context, project: context.project });
   const sections = toSectionList(sectionRuns);
   const findings = sections.flatMap((section) => section.findings);
@@ -113,15 +114,32 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const missingMandatoryStages = collectMissingMandatoryStages(sectionRuns.stage.stageCoverage);
   const report = buildFacebookCoverageReport(sectionRuns, reportSections, findings, missingMandatoryStages);
 
-  writeFacebookLogCoverageReport(report);
-
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-      executedChecks: executedChecksForPlan(context),
+
     findings: findings.map(toInspectorFinding),
     inspectedFiles,
     reportJson: report,
     reportMarkdown: renderFacebookLogCoverageMarkdown(report),
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("facebook-product-video-mining-log-coverage requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

@@ -109,7 +109,7 @@ const AmazonKeywordHistoryRelationSchema = z.enum([
   "historical_refresh",
 ]);
 
-const AmazonMiningInputSchema = z.object({
+export const AmazonMiningInputSchema = z.object({
   taskId: z.string().min(1).optional(),
   amazonMarketplace: AmazonMarketplaceSchema,
   targetMarket: z.string().min(1),
@@ -119,6 +119,8 @@ const AmazonMiningInputSchema = z.object({
   providerKind: AmazonKeywordProviderKindSchema,
   keywordHistoryPolicy: AmazonKeywordHistoryPolicySchema.default("new_keywords_only"),
 }).strict();
+
+export const AmazonMiningContinueInputSchema = z.object({}).strict();
 
 const AmazonKeywordRecordSchema = z.object({
   keywordId: z.string().min(1),
@@ -329,6 +331,7 @@ export const AmazonMiningSchemas = {
 } as const;
 
 export type AmazonMiningInput = z.infer<typeof AmazonMiningInputSchema>;
+export type AmazonMiningContinueInput = z.infer<typeof AmazonMiningContinueInputSchema>;
 export type AmazonTaskRecord = z.infer<typeof AmazonTaskRecordSchema>;
 export type AmazonKeywordRecord = z.infer<typeof AmazonKeywordRecordSchema>;
 export type AmazonSearchResultItem = z.infer<typeof AmazonSearchResultItemSchema>;

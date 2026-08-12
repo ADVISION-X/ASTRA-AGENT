@@ -1,7 +1,10 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
-import { collectUploadRuntimeStabilityGaps, hasConstInitializer } from "./inspector-upload-runtime-stability.js";
+import { collectUploadRuntimeStabilityGaps } from "./inspector-upload-runtime-stability.js";
+import { collectOrderRefreshGuardGaps } from "./inspector-upload-order-readiness.js";
+import { collectEnglishUploadEvidenceGaps, collectExistingInvoiceEvidenceWaitGaps, collectNoHumanFinalSubmitContractGaps, collectUploadRetryGuardGaps, functionCallsIdentifier, functionCallsProperty, hasObjectProperty, hasPropertyAssignment, hasTemplateExpressionWithIdentifier, hasTruePropertyAssignment, retryStepNames, sourceCallsMethod, sourceCallsProperty, stringLiteralValues } from "./inspector-upload-stability-checks.js";
+
 const uploadFlowPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts";
 const orderDetailPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts";
 const taskServicePath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts";
@@ -10,9 +13,14 @@ const verifyPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-veri
 const existingUploadPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts";
 const existingEvidencePath = "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts";
 const flowSupportPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts";
+const uploadStepsPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts";
+const uploadFileAttachmentPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
 const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
+const chromeExecutionPath = "src/lib/browser/current-chrome-browser-controller-execution.ts";
 const chromeScreenshotPath = "src/lib/browser/current-chrome-browser-screenshot.ts";
+const smokeAcceptancePath = "scripts/acceptance/amazon-invoice-upload-smoke.ts";
+const smokeAcceptanceSupportPath = "scripts/acceptance/amazon-invoice-upload-smoke-support.ts";
 type UploadStabilityGuardInput = { [Key in keyof UploadStabilityFiles]: SourceFile | null } & {
   findings: InspectorFinding[];
   lawId: string;
@@ -21,7 +29,7 @@ type UploadStabilityGuardInput = { [Key in keyof UploadStabilityFiles]: SourceFi
   tabLifecycleLawId: string;
   apiFocusReturnLawId: string;
 };
-type UploadStabilityFiles = {
+export type UploadStabilityFiles = {
   flowFile: SourceFile;
   flowSupportFile: SourceFile;
   orderFile: SourceFile;
@@ -34,84 +42,15 @@ type UploadStabilityFiles = {
   existingEvidenceFile: SourceFile;
   browserControllerFile: SourceFile;
   chromeWindowControlFile: SourceFile;
+  chromeExecutionFile: SourceFile;
   chromeScreenshotFile: SourceFile;
+  smokeAcceptanceFile: SourceFile;
+  smokeAcceptanceSupportFile: SourceFile;
 };
-
-const stringLiteralValues = (file: SourceFile): Set<string> =>
-  new Set([
-    ...file.getDescendantsOfKind(SyntaxKind.StringLiteral).map((item) => item.getLiteralText()),
-    ...file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((item) => item.getLiteralText()),
-    ...file.getDescendantsOfKind(SyntaxKind.TemplateHead).map((item) => item.getLiteralText()),
-    ...file.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((item) => item.getLiteralText()),
-    ...file.getDescendantsOfKind(SyntaxKind.TemplateTail).map((item) => item.getLiteralText()),
-  ]);
-
-const propertyValue = (objectLiteral: Node, name: string): string | null => {
-  if (!Node.isObjectLiteralExpression(objectLiteral)) return null;
-  const property = objectLiteral.getProperties().find((item) =>
-    Node.isPropertyAssignment(item) && item.getName() === name);
-  if (!property || !Node.isPropertyAssignment(property)) return null;
-  const initializer = property.getInitializer();
-  return initializer && Node.isStringLiteral(initializer) ? initializer.getLiteralText() : null;
-};
-
-const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeName: string): boolean =>
-  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName);
-
-const functionIdentifierCallCount = (file: SourceFile, functionName: string, calleeName: string): number =>
-  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-    .filter((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName)
-    .length;
-
-const functionCallsProperty = (file: SourceFile, functionName: string, ownerName: string, methodName: string): boolean =>
-  (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-  .some((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression)
-      && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === ownerName
-      && expression.getName() === methodName;
-  });
-
-const sourceCallsProperty = (file: SourceFile, ownerName: string, methodName: string): boolean =>
-  file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression)
-      && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === ownerName
-      && expression.getName() === methodName;
-  });
-
-const sourcePropertyCallCount = (file: SourceFile, ownerName: string, methodName: string): number =>
-  file.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression)
-      && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === ownerName
-      && expression.getName() === methodName;
-  }).length;
-
-const sourceCallsMethod = (file: SourceFile, methodName: string): boolean =>
-  file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression) && expression.getName() === methodName;
-  });
-
-const retryStepNames = (file: SourceFile): Set<string> =>
-  new Set(file.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
-    const expression = call.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== "runUploadStepWithRetries") return [];
-    const argument = call.getArguments()[0];
-    if (!argument) return [];
-    const stepName = propertyValue(argument, "stepName");
-    return stepName ? [stepName] : [];
-  }));
-
 export const inspectUploadStabilityGuard = (input: UploadStabilityGuardInput): void => {
   const files = resolveUploadStabilityFiles(input);
   if (!files) return;
-  const refreshMissing = collectOrderRefreshGuardGaps(files.orderFile);
+  const refreshMissing = collectOrderRefreshGuardGaps(files);
   appendUploadStabilityFindings(input.findings, input.conditionalRefreshLawId, refreshMissing);
   const missing = collectUploadStabilityGaps(files);
   const manageDialogMissing = collectExistingInvoiceEvidenceWaitGaps(files.existingUploadFile);
@@ -125,9 +64,29 @@ export const inspectUploadStabilityGuard = (input: UploadStabilityGuardInput): v
 };
 
 function resolveUploadStabilityFiles(input: UploadStabilityGuardInput): UploadStabilityFiles | null {
-  if (!input.flowFile || !input.flowSupportFile || !input.orderFile || !input.stepsFile || !input.fileAttachmentFile || !input.taskServiceFile) return null;
-  if (!input.missionSchemaFile || !input.verifyFile || !input.existingUploadFile || !input.existingEvidenceFile) return null;
-  if (!input.browserControllerFile || !input.chromeWindowControlFile || !input.chromeScreenshotFile) return null;
+  const requiredFiles = [
+    [uploadFlowPath, input.flowFile],
+    [flowSupportPath, input.flowSupportFile],
+    [orderDetailPath, input.orderFile],
+    [uploadStepsPath, input.stepsFile],
+    [uploadFileAttachmentPath, input.fileAttachmentFile],
+    [taskServicePath, input.taskServiceFile],
+    [missionSchemaPath, input.missionSchemaFile],
+    [verifyPath, input.verifyFile],
+    [existingUploadPath, input.existingUploadFile],
+    [existingEvidencePath, input.existingEvidenceFile],
+    [browserControllerPath, input.browserControllerFile],
+    [chromeWindowControlPath, input.chromeWindowControlFile],
+    [chromeExecutionPath, input.chromeExecutionFile],
+    [chromeScreenshotPath, input.chromeScreenshotFile],
+    [smokeAcceptancePath, input.smokeAcceptanceFile],
+    [smokeAcceptanceSupportPath, input.smokeAcceptanceSupportFile],
+  ] as const;
+  const missingFiles = requiredFiles.filter(([, file]) => !file).map(([repoPath]) => repoPath);
+  if (missingFiles.length > 0) {
+    appendUploadStabilityFindings(input.findings, input.lawId, missingFiles.map((repoPath) => `required source missing: ${repoPath}`));
+    return null;
+  }
   return input as UploadStabilityFiles;
 }
 
@@ -150,6 +109,7 @@ function collectUploadStabilityGaps(files: UploadStabilityFiles): string[] {
   return [
     ...collectUploadRetryGuardGaps(files.flowFile),
     ...collectUploadRuntimeStabilityGaps(files),
+    ...collectOrderNavigationProofGaps(files),
     ...collectNoHumanFinalSubmitContractGaps(files.taskServiceFile, files.missionSchemaFile),
     ...collectEnglishUploadEvidenceGaps(files.verifyFile, files.existingUploadFile, files.existingEvidenceFile),
   ];
@@ -169,6 +129,12 @@ function uploadStabilityFindingPath(item: string): string {
     ["snapshot-deadline-flow-support", flowSupportPath],
     ["snapshot-deadline-order-detail", orderDetailPath],
     ["snapshot-deadline-screenshot", chromeScreenshotPath],
+    ["pure-browser-read", chromeWindowControlPath],
+    ["pure-browser-wait", chromeExecutionPath],
+    ["execution-lease", taskServicePath],
+    ["terminal-timeout", taskServicePath],
+    ["order-detail-window8-smoke-assertion", smokeAcceptancePath],
+    ["order-detail-window8-smoke-signal", smokeAcceptanceSupportPath],
   ];
   const prefixPath = prefixPaths.find(([prefix]) => item.startsWith(prefix));
   return prefixPath?.[1] ?? (isOrderRefreshFinding(item) ? orderDetailPath : uploadFlowPath);
@@ -201,8 +167,16 @@ function collectApiFocusSchemaGaps(files: UploadStabilityFiles): string[] {
 }
 
 function collectApiFocusServiceGaps(files: UploadStabilityFiles, taskValues: Set<string>): string[] {
+  return [
+    ...collectApiFocusServiceRouteGaps(files, taskValues),
+    ...collectApiFocusServiceAbortGaps(files),
+  ];
+}
+
+function collectApiFocusServiceRouteGaps(files: UploadStabilityFiles, taskValues: Set<string>): string[] {
   const missing: string[] = [];
-  if (!files.taskServiceFile.getFunction("returnApiUploadFocusToAdmin")) missing.push("api-focus-service:return-helper");
+  const returnHelper = files.taskServiceFile.getFunction("returnApiUploadFocusToAdmin");
+  if (!returnHelper) missing.push("api-focus-service:return-helper");
   if (!files.taskServiceFile.getFunction("isApiUploadMission")) missing.push("api-focus-service:api-source-guard");
   if (!functionCallsIdentifier(files.taskServiceFile, "startAmazonInvoiceUploadTask", "returnApiUploadFocusToAdmin")) {
     missing.push("api-focus-service:start-call");
@@ -210,7 +184,7 @@ function collectApiFocusServiceGaps(files: UploadStabilityFiles, taskValues: Set
   if (!functionCallsIdentifier(files.taskServiceFile, "resumeAmazonInvoiceUploadTask", "returnApiUploadFocusToAdmin")) {
     missing.push("api-focus-service:resume-call");
   }
-  if (!functionCallsIdentifier(files.taskServiceFile, "returnApiUploadFocusToAdmin", "openAmazonInvoiceAdminPage")) {
+  if (!functionCallsIdentifier(files.taskServiceFile, "returnApiUploadFocusToAdmin", "startAmazonInvoiceAdminOpenTask")) {
     missing.push("api-focus-service:admin-allowlist-open");
   }
   if (!hasPropertyAssignment(files.taskServiceFile, "focusOnlyExistingTab")) missing.push("api-focus-service:explicit-focus-flag");
@@ -220,7 +194,59 @@ function collectApiFocusServiceGaps(files: UploadStabilityFiles, taskValues: Set
   }
   if (!taskValues.has("focus-existing-same-path-url")) missing.push("api-focus-service:same-path-focus-only-policy");
   if (!taskValues.has("return API upload focus to website")) missing.push("api-focus-service:runtime-trace");
+  if (hasPromiseRace(files.taskServiceFile)) missing.push("api-focus-service:detached-promise-race");
   return missing;
+}
+
+function collectApiFocusServiceAbortGaps(files: UploadStabilityFiles): string[] {
+  return [
+    ...collectBoundedFocusAbortGaps(files),
+    ...collectFocusAbortPropagationGaps(files),
+  ];
+}
+
+function collectBoundedFocusAbortGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  const boundedHelper = files.taskServiceFile.getFunction("returnApiUploadFocusToAdminBounded");
+  if (!boundedHelper) missing.push("api-focus-service:bounded-return-helper");
+  if (!(boundedHelper?.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) =>
+    Node.isIdentifier(expression.getExpression()) && expression.getExpression().getText() === "AbortController") ?? false)) {
+    missing.push("api-focus-service:bounded-abort-controller");
+  }
+  if (!(boundedHelper?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === "abort";
+  }) ?? false)) missing.push("api-focus-service:timeout-aborts-focus");
+  if (!(boundedHelper?.getDescendantsOfKind(SyntaxKind.AwaitExpression).some((awaitExpression) =>
+    awaitExpression.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression)
+        && Node.isIdentifier(expression.getExpression())
+        && expression.getExpression().getText() === "input"
+        && expression.getName() === "focus";
+    })) ?? false)) missing.push("api-focus-service:await-focus-settlement");
+  return missing;
+}
+
+function collectFocusAbortPropagationGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  const returnHelper = files.taskServiceFile.getFunction("returnApiUploadFocusToAdmin");
+  if (!(returnHelper?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) =>
+    identifier.getText() === "abortSignal") ?? false)) missing.push("api-focus-service:return-helper-abort-signal");
+  const adminOpen = files.taskServiceFile.getFunction("startAmazonInvoiceAdminOpenTask");
+  if (!(adminOpen?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
+    property.getName() === "abortSignal") ?? false)) missing.push("api-focus-service:browser-open-abort-signal");
+  return missing;
+}
+
+function hasPromiseRace(file: SourceFile): boolean {
+  return file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === "Promise"
+      && expression.getName() === "race";
+  });
 }
 
 function collectApiFocusBrowserGaps(
@@ -267,62 +293,159 @@ function isOrderRefreshFinding(item: string): boolean {
   return item.startsWith("order-detail") || item.startsWith("single-order-navigation");
 }
 
-function collectOrderRefreshGuardGaps(orderFile: SourceFile): string[] {
+function collectOrderNavigationProofGaps(files: UploadStabilityFiles): string[] {
+  return [
+    ...collectOpenReceiptGaps(files),
+    ...collectReadinessObservationGaps(files),
+    ...collectExecutionLeaseGaps(files),
+    ...collectPureBrowserReadGaps(files),
+  ];
+}
+
+function collectOpenReceiptGaps(files: UploadStabilityFiles): string[] {
+  return [
+    ...collectOpenResultConsumptionGaps(files),
+    ...collectNavigationEvidenceWriterGaps(files),
+  ];
+}
+
+function collectOpenResultConsumptionGaps(files: UploadStabilityFiles): string[] {
   const missing: string[] = [];
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_TIMEOUT_MS", "2_000")) missing.push("order-detail-timeout-2000");
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_READY_POLL_INTERVAL_MS", "200")) missing.push("order-detail-poll-200");
-  if (!hasConstInitializer(orderFile, "ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT", "3")) missing.push("order-detail-window-limit-3");
-  if (!functionCallsIdentifier(orderFile, "openApprovedOrderDetail", "waitForApprovedOrderDetail")) {
-    missing.push("order-detail-readiness-wait-call");
-  }
-  if (sourcePropertyCallCount(orderFile, "browser", "open") !== 1) {
-    missing.push("single-order-navigation:browser-open-count");
-  }
-  for (const retiredFunction of ["refreshApprovedOrderDetailIfNeeded", "refreshApprovedOrderDetailOnce", "retryOrderDetailIfNeeded"]) {
-    if (orderFile.getFunction(retiredFunction) || orderFile.getVariableDeclaration(retiredFunction)) {
-      missing.push(`order-detail-retired-refresh-function:${retiredFunction}`);
-    }
-  }
-  for (const retiredConstant of [
-    "ORDER_DETAIL_READY_WAIT_MIN_MS",
-    "ORDER_DETAIL_READY_WAIT_MAX_MS",
-    "ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MIN_MS",
-    "ORDER_DETAIL_RECOVERY_REFRESH_WAIT_MAX_MS",
-  ]) {
-    if (orderFile.getVariableDeclaration(retiredConstant)) {
-      missing.push(`order-detail-retired-refresh-constant:${retiredConstant}`);
-    }
+  const openFunction = files.orderFile.getFunction("openAndPersistOrderDetailNavigation");
+  const openCalls = openFunction?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
+    const expression = call.getExpression();
+    if (!Node.isPropertyAccessExpression(expression)) return false;
+    const owner = expression.getExpression();
+    return Node.isPropertyAccessExpression(owner)
+      && owner.getName() === "browser"
+      && expression.getName() === "open";
+  }) ?? [];
+  if (openCalls.length !== 1) missing.push("single-order-navigation:owned-open-count");
+  if (!openCalls.some((call) => {
+    const awaitExpression = call.getParent();
+    const assignment = awaitExpression?.getParent();
+    return Node.isAwaitExpression(awaitExpression)
+      && Node.isBinaryExpression(assignment)
+      && assignment.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+      && Node.isIdentifier(assignment.getLeft())
+      && assignment.getLeft().getText() === "openResult";
+  })) missing.push("single-order-navigation:open-result-assigned");
+
+  const receiptValidator = files.orderFile.getFunction("hasStructuredNavigationReceipt");
+  const openResultProperties = new Set([
+    ...files.orderFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .filter((access) => Node.isIdentifier(access.getExpression()) && access.getExpression().getText() === "openResult"),
+    ...(receiptValidator?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression) ?? []),
+  ].map((access) => access.getName()));
+  for (const property of ["ok", "actionKind", "navigationMode", "observedUrl", "observedUrlMatchesRequest", "startedAt", "durationMs"]) {
+    if (!openResultProperties.has(property)) missing.push(`single-order-navigation:consume-open-result:${property}`);
   }
   return missing;
 }
 
-function collectNoHumanFinalSubmitContractGaps(taskServiceFile: SourceFile, missionSchemaFile: SourceFile): string[] {
+function collectNavigationEvidenceWriterGaps(files: UploadStabilityFiles): string[] {
   const missing: string[] = [];
-  if (taskServiceFile.getFunction("forceAutomatedFinalSubmit")) {
-    missing.push("no-human-final-submit-service:remove-normalizer");
+  const appendRecordCalls = files.orderFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
+    const expression = call.getExpression();
+    if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "appendRecord") return false;
+    const owner = expression.getExpression();
+    return Node.isPropertyAccessExpression(owner) && owner.getName() === "evidenceStore";
+  });
+  if (appendRecordCalls.length !== 1) {
+    missing.push("single-order-navigation:forensics-writer-count");
   }
-  if (hasPropertyAssignment(taskServiceFile, "requireHumanFinalSubmit")) {
-    missing.push("no-human-final-submit-service:hidden-field");
-  }
-  if (hasPropertyAssignment(missionSchemaFile, "requireHumanFinalSubmit")) {
-    missing.push("no-human-final-submit-schema:single-upload");
-  }
-  if (hasPropertyAssignment(missionSchemaFile, "stopOnManualRequired")) {
-    missing.push("no-human-final-submit-schema:batch-stop-switch");
+  for (const property of ["browserActionId", "integrityHash", "storageRef", "evidenceRef", "orderNavigationProof"]) {
+    if (!hasObjectProperty(files.orderFile, property)) missing.push(`single-order-navigation:proof-field:${property}`);
   }
   return missing;
 }
-
-function hasPropertyAssignment(file: SourceFile, propertyName: string): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
-    property.getName() === propertyName);
+function collectReadinessObservationGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  if (!functionCallsIdentifier(files.orderFile, "openApprovedOrderDetail", "waitForApprovedOrderDetail")) {
+    missing.push("single-order-navigation:readiness-owner-call");
+  }
+  const waitNode = files.orderFile.getVariableDeclaration("waitForApprovedOrderDetail")?.getInitializer();
+  if (!(waitNode?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "startAmazonDomStepTrace") ?? false)) {
+    missing.push("single-order-navigation:truthful-observation-start");
+  }
+  if (!stringLiteralValues(files.orderFile).has("observe approved order detail readiness window ")) {
+    missing.push("single-order-navigation:observation-window-identity");
+  }
+  const falseOpenStepName = files.orderFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
+    if (property.getName() !== "stepName") return false;
+    const initializer = property.getInitializer();
+    return Node.isStringLiteral(initializer) && initializer.getLiteralText() === "open approved order detail";
+  });
+  if (falseOpenStepName) missing.push("single-order-navigation:observation-labelled-open");
+  return missing;
 }
-
-function hasTruePropertyAssignment(file: SourceFile, propertyName: string): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
-    property.getName() === propertyName && property.getInitializer()?.getKind() === SyntaxKind.TrueKeyword);
+function collectExecutionLeaseGaps(files: UploadStabilityFiles): string[] {
+  return [
+    ...collectSingleFlightLeaseGaps(files),
+    ...collectTerminalGuardGaps(files),
+  ];
 }
-
+function collectSingleFlightLeaseGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  for (const functionName of ["startAmazonInvoiceUploadMission", "startAmazonInvoiceUploadTask", "resumeAmazonInvoiceUploadTask"]) {
+    if (!functionCallsIdentifier(files.taskServiceFile, functionName, "withAmazonInvoiceExecutionLease")) {
+      missing.push(`execution-lease:missing-owner-call:${functionName}`);
+    }
+  }
+  const leaseFunction = files.taskServiceFile.getFunction("withAmazonInvoiceExecutionLease");
+  const leaseMethods = new Set(leaseFunction?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).map((access) => access.getName()) ?? []);
+  if (!leaseMethods.has("setExecutionAbortSignal")) missing.push("execution-lease:browser-abort-signal");
+  if (!(leaseFunction?.getDescendantsOfKind(SyntaxKind.TryStatement).some((statement) => Boolean(statement.getFinallyBlock())) ?? false)) {
+    missing.push("execution-lease:finally-release");
+  }
+  if (!leaseFunction?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "activeUploadExecutionId")) {
+    missing.push("execution-lease:single-flight-state");
+  }
+  return missing;
+}
+function collectTerminalGuardGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  const terminalGuard = files.taskServiceFile.getFunction("runAmazonInvoiceUploadWithTerminalGuard");
+  if (!(terminalGuard?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === "abort";
+  }) ?? false)) missing.push("terminal-timeout:abort-active-flow");
+  if (terminalGuard?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === "Promise"
+      && expression.getName() === "race";
+  })) missing.push("terminal-timeout:detached-promise-race");
+  if (!(terminalGuard?.getDescendantsOfKind(SyntaxKind.AwaitExpression).some((awaitExpression) =>
+    awaitExpression.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+      Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "runAmazonInvoiceUpload")) ?? false)) {
+    missing.push("terminal-timeout:await-flow-settlement");
+  }
+  return missing;
+}
+function collectPureBrowserReadGaps(files: UploadStabilityFiles): string[] {
+  const missing: string[] = [];
+  const stateRead = files.chromeWindowControlFile.getVariableDeclaration("readFrontChromeWindowState")?.getInitializer();
+  if (!stateRead || !Node.isArrowFunction(stateRead)
+    || stateRead.getParameters().some((parameter) => parameter.getName() !== "abortSignal")) {
+    missing.push("pure-browser-read:no-fallback-input");
+  }
+  const readIdentifiers = new Set(stateRead?.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => identifier.getText()) ?? []);
+  for (const forbidden of ["fallbackUrl", "restoreUrl", "buildOpenUrlScript"]) {
+    if (readIdentifiers.has(forbidden)) missing.push(`pure-browser-read:no-hidden-navigation:${forbidden}`);
+  }
+  const waitFunction = files.chromeExecutionFile.getVariableDeclaration("waitForDuration")?.getInitializer();
+  if (!(waitFunction?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "abortSignal") ?? false)) {
+    missing.push("pure-browser-wait:abort-signal");
+  }
+  if (waitFunction?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
+    const expression = call.getExpression();
+    return Node.isIdentifier(expression) && (expression.getText() === "refreshSnapshot" || expression.getText() === "_refreshSnapshot");
+  })) missing.push("pure-browser-wait:no-refresh-snapshot");
+  return missing;
+}
 function hasFocusOnlyReusePolicyConditional(file: SourceFile): boolean {
   return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
     if (property.getName() !== "reusePolicy") return false;
@@ -346,138 +469,4 @@ function hasFocusOnlyReusePolicyConditional(file: SourceFile): boolean {
       && Node.isStringLiteral(whenFalse)
       && whenFalse.getLiteralText() === "reuse-exact-url";
   });
-}
-
-function hasTemplateExpressionWithIdentifier(file: SourceFile, identifierName: string): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.TemplateExpression).some((template) =>
-    template.getTemplateSpans().some((span) => {
-      const expression = span.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === identifierName;
-    }));
-}
-
-function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUploadFile: SourceFile, existingEvidenceFile: SourceFile): string[] {
-  const missing: string[] = [];
-  const verifyValues = stringLiteralValues(verifyFile);
-  if (!verifyValues.has("./amazon-invoice-upload-existing.js")) missing.push("post-submit-existing-evidence:import");
-  if (!functionCallsIdentifier(verifyFile, "verifyUploadSuccess", "verifyAlreadyUploadedInvoice")) {
-    missing.push("post-submit-existing-evidence:fallback-call");
-  }
-  if (!verifyValues.has("already_uploaded")) missing.push("post-submit-existing-evidence:already-uploaded-terminal");
-  for (const value of [
-    "Thank you for uploading the document",
-    "The customer will be able to download it directly from their account",
-    "Upload another invoice or credit note",
-  ]) {
-    if (!verifyValues.has(value)) missing.push(`english-success-evidence:${value}`);
-  }
-  const existingUploadValues = stringLiteralValues(existingUploadFile);
-  if (!existingUploadValues.has("already_uploaded")) {
-    missing.push("english-existing-evidence:already-uploaded-terminal");
-  }
-  const existingValues = stringLiteralValues(existingEvidenceFile);
-  for (const value of [
-    "Thank you for uploading the document",
-    "The customer will be able to download it directly from their account",
-    "Seller generated",
-  ]) {
-    if (!existingValues.has(value)) missing.push(`english-existing-evidence:${value}`);
-  }
-  const existingHints = new Set(
-    existingEvidenceFile
-      .getVariableDeclaration("EXISTING_INVOICE_HINTS")
-      ?.getInitializer()
-      ?.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .map((literal) => literal.getLiteralText()) ?? [],
-  );
-  for (const weakValue of ["Manage invoice", "Manage invoices", "Pending", "管理发票", "待处理"]) {
-    if (existingHints.has(weakValue)) missing.push(`weak-existing-evidence-forbidden:${weakValue}`);
-  }
-  return missing;
-}
-
-function collectExistingInvoiceEvidenceWaitGaps(existingUploadFile: SourceFile): string[] {
-  return [
-    ...collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile),
-    ...collectExistingInvoiceRecoveryCallGaps(existingUploadFile),
-    ...collectRetiredExistingInvoiceRecoveryGaps(existingUploadFile),
-  ];
-}
-function collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile: SourceFile): string[] {
-  const missing: string[] = [];
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidenceTimeoutMs", "2_000"))
-    missing.push("existing-invoice-evidence-timeout-2000");
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", "250"))
-    missing.push("existing-invoice-evidence-poll-250");
-  if (!hasConstInitializer(existingUploadFile, "noAvailableActionsDialogDismissTimeoutMs", "2_000"))
-    missing.push("existing-invoice-no-actions-dismiss-timeout-2000");
-  const blockerInitializer = existingUploadFile.getVariableDeclaration("noAvailableActionsDialogText")
-    ?.getInitializerIfKind(SyntaxKind.StringLiteral);
-  if (blockerInitializer?.getLiteralText() !== "很抱歉，目前没有可用的操作。")
-    missing.push("existing-invoice-exact-no-actions-dialog-text");
-  for (const functionName of [
-    "dismissNoAvailableActionsDialog",
-    "clickSafeOutsideDialogPoint",
-    "waitForNoAvailableActionsDialogDismissal",
-    "hasNoAvailableActionsDialog",
-  ]) {
-    if (!existingUploadFile.getFunction(functionName)) missing.push(`existing-invoice-no-actions-helper:${functionName}`);
-  }
-  return missing;
-}
-function collectExistingInvoiceRecoveryCallGaps(existingUploadFile: SourceFile): string[] {
-  const missing: string[] = [];
-  if (functionIdentifierCallCount(existingUploadFile, "verifyAlreadyUploadedInvoice", "dismissNoAvailableActionsDialog") !== 1)
-    missing.push("existing-invoice-single-dialog-dismiss-call");
-  if (functionIdentifierCallCount(existingUploadFile, "verifyAlreadyUploadedInvoice", "openManageInvoiceList") !== 2)
-    missing.push("existing-invoice-single-manage-reopen-call");
-  if (!functionCallsIdentifier(existingUploadFile, "waitForExistingInvoiceEvidence", "hasNoAvailableActionsDialog"))
-    missing.push("existing-invoice-wait-detects-no-actions-dialog");
-  if (!functionCallsProperty(existingUploadFile, "clickSafeOutsideDialogPoint", "browser", "evaluateActiveTab"))
-    missing.push("existing-invoice-live-dialog-click-evaluation");
-  if (!functionCallsIdentifier(existingUploadFile, "dismissNoAvailableActionsDialog", "clickSafeOutsideDialogPoint"))
-    missing.push("existing-invoice-outside-dialog-click");
-  if (!functionCallsIdentifier(existingUploadFile, "dismissNoAvailableActionsDialog", "waitForNoAvailableActionsDialogDismissal"))
-    missing.push("existing-invoice-dialog-dismissal-verification");
-  return missing;
-}
-function collectRetiredExistingInvoiceRecoveryGaps(existingUploadFile: SourceFile): string[] {
-  const missing: string[] = [];
-  if (existingUploadFile.getFunction("recoverExistingInvoiceList")) {
-    missing.push("existing-invoice-retired-order-refresh-helper-forbidden");
-  }
-  for (const retiredConstant of ["existingInvoiceEvidenceRecoveryAttempts", "existingInvoiceEvidenceRecoverySettleMs"]) {
-    if (existingUploadFile.getVariableDeclaration(retiredConstant)) {
-      missing.push(`existing-invoice-retired-order-refresh-constant-forbidden:${retiredConstant}`);
-    }
-  }
-  if (sourceCallsProperty(existingUploadFile, "browser", "open")) {
-    missing.push("existing-invoice-order-detail-refresh-forbidden");
-  }
-  return missing;
-}
-
-function collectUploadRetryGuardGaps(flowFile: SourceFile): string[] {
-  const flowValues = stringLiteralValues(flowFile);
-  const missing: string[] = [];
-  if (!hasConstInitializer(flowFile, "UPLOAD_STEP_RETRY_LIMIT", "2")) missing.push("retry-limit-2");
-  if (!flowFile.getFunction("runUploadStepWithRetries")) missing.push("recursive-retry-function");
-  if (!functionCallsIdentifier(flowFile, "runUploadStepWithRetries", "runUploadStepWithRetries")) {
-    missing.push("recursive-retry-self-call");
-  }
-  for (const stepName of ["open upload invoice entry", "upload approved invoice"]) {
-    if (!retryStepNames(flowFile).has(stepName)) missing.push(`retry-step:${stepName}`);
-  }
-  if (retryStepNames(flowFile).has("open order detail")) missing.push("repeat-order-navigation-retry-forbidden");
-  if (!flowValues.has("verify upload success")) missing.push("retry-sensitive-terminal-gates");
-  if (hasHumanFinalSubmitBranch(flowValues)) missing.push("human-final-submit-branch");
-  for (const value of ["Please upload your invoice or credit note", "Upload"]) {
-    if (!flowValues.has(value)) missing.push(`english-upload-copy:${value}`);
-  }
-  return missing;
-}
-
-function hasHumanFinalSubmitBranch(flowValues: ReadonlySet<string>): boolean {
-  return flowValues.has("file attached before final submit")
-    || flowValues.has("Approved PDF is attached; human final submit is required by mission payload.");
 }

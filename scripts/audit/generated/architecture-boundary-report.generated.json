@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T11:10:12.103Z",
+  "generatedAt": "2026-08-12T23:44:35.702Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -35,7 +35,36 @@
       "status": "active",
       "owner": "plugin:amazon-invoice-upload",
       "phase": "validated-mainline",
+      "mediatorRoute": "src/mediator/amazon-invoice-upload-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runAmazonInvoiceAdminOpenRoute",
+          "schemaExport": "AmazonInvoiceUploadAdminOpenInputSchema",
+          "taskExport": "startAmazonInvoiceAdminOpenTask"
+        },
+        {
+          "routeExport": "runAmazonInvoiceUploadMissionRoute",
+          "schemaExport": "AmazonInvoiceUploadMissionInputSchema",
+          "taskExport": "startAmazonInvoiceUploadMission"
+        },
+        {
+          "routeExport": "runAmazonInvoiceUploadTaskRoute",
+          "schemaExport": "AmazonInvoiceUploadTaskStartInputSchema",
+          "taskExport": "startAmazonInvoiceUploadTask"
+        },
+        {
+          "routeExport": "runAmazonInvoiceUploadResumeRoute",
+          "schemaExport": "AmazonInvoiceUploadResumeInputSchema",
+          "taskExport": "resumeAmazonInvoiceUploadTask"
+        },
+        {
+          "routeExport": "runAmazonTaxInvoiceDownloadRoute",
+          "schemaExport": "AmazonTaxInvoiceDownloadMissionInputSchema",
+          "taskExport": "startAmazonTaxInvoiceDownloadTask"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/amazon-invoice-upload-route.ts",
         "src/app/workbench-amazon-routes.ts",
         "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
         "src/lib/local-runtime/workbench.ts",
@@ -63,9 +92,24 @@
       "status": "active",
       "owner": "plugin:amazon-product-mining",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/amazon-product-mining-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runAmazonProductMiningRoute",
+          "schemaExport": "AmazonMiningInputSchema",
+          "taskExport": "startAmazonProductMiningMission"
+        },
+        {
+          "routeExport": "runContinueAmazonProductMiningRoute",
+          "schemaExport": "AmazonMiningContinueInputSchema",
+          "taskExport": "continueInterruptedAmazonProductMiningTasks"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/amazon-product-mining-route.ts",
         "src/app/workbench-amazon-product-mining-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
@@ -88,9 +132,19 @@
       "status": "active",
       "owner": "plugin:amazon-product-sync",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/amazon-product-sync-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runAmazonProductSyncRoute",
+          "schemaExport": "AmazonProductSyncInputSchema",
+          "taskExport": "startAmazonProductSyncTask"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/amazon-product-sync-route.ts",
         "src/app/workbench-amazon-product-sync-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
@@ -112,9 +166,19 @@
       "status": "active",
       "owner": "plugin:amazon-product-fee-sync",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/amazon-product-fee-sync-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runAmazonProductFeeSyncRoute",
+          "schemaExport": "AmazonProductFeeSyncInputSchema",
+          "taskExport": "startAmazonProductFeeSyncTask"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/amazon-product-fee-sync-route.ts",
         "src/app/workbench-amazon-product-fee-sync-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
@@ -136,7 +200,16 @@
       "status": "active",
       "owner": "plugin:amazon-listing-edit-read-sync",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/amazon-listing-edit-read-sync-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runAmazonListingEditReadSyncRoute",
+          "schemaExport": "AmazonListingEditReadSyncInputSchema",
+          "taskExport": "startAmazonListingEditReadSyncTask"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/amazon-listing-edit-read-sync-route.ts",
         "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
@@ -161,9 +234,19 @@
       "status": "active",
       "owner": "plugin:xuanyuan",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/xuanyuan-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runXuanyuanRoute",
+          "schemaExport": "XuanyuanRequestSchema",
+          "taskExport": "enqueueXuanyuanTask"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/xuanyuan-route.ts",
         "src/app/workbench-xuanyuan-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
@@ -185,8 +268,16 @@
       "status": "active",
       "owner": "plugin:xuanxue-ai-production",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/xuanxue-ai-production-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runXuanxueAiProductionRoute",
+          "schemaExport": "XuanxueAiProductionOrderSchema",
+          "taskExport": "createXuanxueAiProductionOrder"
+        }
+      ],
       "allowedEntrypoints": [
-        "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
+        "src/mediator/xuanxue-ai-production-route.ts",
         "src/lib/local-runtime/workbench.ts"
       ],
       "allowedAcceptanceTests": [
@@ -209,7 +300,21 @@
       "status": "active",
       "owner": "plugin:pick3-is-blind-eval",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/pick3-is-blind-eval-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runPick3IsBlindEvalRoute",
+          "schemaExport": "Pick3InputSchema",
+          "taskExport": "startPick3IsBlindEvalTask"
+        },
+        {
+          "routeExport": "runResumePick3IsBlindEvalRoute",
+          "schemaExport": "Pick3ResumeInputSchema",
+          "taskExport": "resumePick3IsBlindEvalTask"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/pick3-is-blind-eval-route.ts",
         "src/app/workbench-pick3-routes.ts",
         "src/lib/local-runtime/workbench-pick3-support.ts",
         "src/lib/local-runtime/workbench.ts",
@@ -234,7 +339,16 @@
       "status": "active",
       "owner": "plugin:lottery-ticket-plan",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/lottery-ticket-plan-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runLotteryTicketPlanRoute",
+          "schemaExport": "LotteryTicketPlanInputSchema",
+          "taskExport": "generateLotteryTicketPlan"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/lottery-ticket-plan-route.ts",
         "src/app/workbench-lottery-ticket-plan-routes.ts",
         "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
         "src/lib/local-runtime/workbench.ts",
@@ -259,9 +373,19 @@
       "status": "active",
       "owner": "plugin:deep-research-analysis",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/deep-research-analysis-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runDeepResearchAnalysisRoute",
+          "schemaExport": "DeepResearchInputSchema",
+          "taskExport": "runDeepResearchAnalysis"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/deep-research-analysis-route.ts",
         "src/app/workbench-deep-research-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-deep-research-handle.ts",
         "src/lib/local-runtime/workbench-deep-research-types.ts",
         "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
         "src/lib/local-runtime/workbench-handle.ts"
@@ -286,9 +410,19 @@
       "status": "active",
       "owner": "plugin:facebook-product-video-mining",
       "phase": "law-governed-active",
+      "mediatorRoute": "src/mediator/facebook-product-video-mining-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "runFacebookProductVideoMiningRoute",
+          "schemaExport": "FacebookProductVideoMiningMissionInputSchema",
+          "taskExport": "startFacebookProductVideoMiningMission"
+        }
+      ],
       "allowedEntrypoints": [
+        "src/mediator/facebook-product-video-mining-route.ts",
         "src/app/workbench-facebook-routes.ts",
         "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
       "allowedAcceptanceTests": [
@@ -310,6 +444,14 @@
       "status": "active",
       "owner": "plugin:media-processing-artifact",
       "phase": "capability-routed-active",
+      "mediatorRoute": "src/mediator/media-processing-artifact-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "routeMediaProcessingArtifactJob",
+          "schemaExport": "MediaProcessingArtifactJobInputSchema",
+          "taskExport": "runMediaProcessingArtifactFlow"
+        }
+      ],
       "allowedEntrypoints": [
         "src/app/workbench-media-processing-routes.ts",
         "src/mediator/media-processing-artifact-route.ts"
@@ -333,6 +475,14 @@
       "status": "active",
       "owner": "plugin:video-download-artifact",
       "phase": "capability-routed-active",
+      "mediatorRoute": "src/mediator/video-download-artifact-route.ts",
+      "mediatorBindings": [
+        {
+          "routeExport": "routeVideoDownloadArtifactJob",
+          "schemaExport": "VideoDownloadArtifactJobInputSchema",
+          "taskExport": "runVideoDownloadArtifactFlow"
+        }
+      ],
       "allowedEntrypoints": [
         "src/app/workbench-video-download-routes.ts",
         "src/mediator/video-download-artifact-route.ts"
@@ -354,49 +504,59 @@
   "pluginExposureFilesByPluginId": {
     "amazon-invoice-upload": [
       "src/app/workbench-amazon-routes.ts",
-      "src/lib/local-runtime/workbench-amazon-invoice-handle.ts"
+      "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+      "src/mediator/amazon-invoice-upload-route.ts"
     ],
     "amazon-product-mining": [
       "src/app/workbench-amazon-product-mining-routes.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/lib/local-runtime/workbench-marketplace-handles.ts",
+      "src/mediator/amazon-product-mining-route.ts"
     ],
     "amazon-product-sync": [
       "src/app/workbench-amazon-product-sync-routes.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/lib/local-runtime/workbench-marketplace-handles.ts",
+      "src/mediator/amazon-product-sync-route.ts"
     ],
     "amazon-product-fee-sync": [
       "src/app/workbench-amazon-product-fee-sync-routes.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/lib/local-runtime/workbench-marketplace-handles.ts",
+      "src/mediator/amazon-product-fee-sync-route.ts"
     ],
     "amazon-listing-edit-read-sync": [
       "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
-      "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts"
+      "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
+      "src/mediator/amazon-listing-edit-read-sync-route.ts"
     ],
     "xuanyuan": [
       "src/app/workbench-xuanyuan-routes.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
+      "src/mediator/xuanyuan-route.ts"
     ],
     "xuanxue-ai-production": [
-      "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts"
+      "src/lib/local-runtime/workbench.ts",
+      "src/mediator/xuanxue-ai-production-route.ts"
     ],
     "pick3-is-blind-eval": [
       "src/app/workbench-pick3-routes.ts",
-      "src/lib/local-runtime/workbench-pick3-support.ts"
+      "src/lib/local-runtime/workbench-pick3-support.ts",
+      "src/mediator/pick3-is-blind-eval-route.ts"
     ],
     "lottery-ticket-plan": [
       "src/app/workbench-lottery-ticket-plan-routes.ts",
-      "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts"
+      "src/mediator/lottery-ticket-plan-route.ts"
     ],
     "deep-research-analysis": [
       "src/app/workbench-deep-research-routes.ts",
+      "src/lib/local-runtime/workbench-deep-research-handle.ts",
       "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
       "src/lib/local-runtime/workbench-deep-research-types.ts",
       "src/lib/local-runtime/workbench-handle.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/mediator/deep-research-analysis-route.ts"
     ],
     "facebook-product-video-mining": [
       "src/app/workbench-facebook-routes.ts",
-      "src/lib/local-runtime/workbench.ts"
+      "src/lib/local-runtime/workbench-marketplace-handles.ts",
+      "src/mediator/facebook-product-video-mining-route.ts"
     ],
     "media-processing-artifact": [
       "src/app/workbench-media-processing-routes.ts",
@@ -408,6 +568,8 @@
     ]
   },
   "ciFullAcceptanceScripts": [
+    "acceptance:ai-input-gateway-attachment",
+    "acceptance:ai-input-gateway-web-chat-concurrency",
     "acceptance:amazon-invoice-upload-batch",
     "acceptance:amazon-invoice-upload-download",
     "acceptance:amazon-invoice-upload-smoke",
@@ -416,6 +578,7 @@
     "acceptance:amazon-product-mining",
     "acceptance:amazon-product-sync",
     "acceptance:app-shell-ui",
+    "acceptance:architecture-active-plugin-mediators",
     "acceptance:audit-truth-coverage",
     "acceptance:ci-summary-truth",
     "acceptance:code-purity-zombie-deep",
@@ -445,6 +608,7 @@
     "acceptance:deep-research-runtime-shell-only",
     "acceptance:deep-research-single-chain",
     "acceptance:deep-research-subquestion-failure-stop",
+    "acceptance:facebook-log-coverage",
     "acceptance:facebook-product-video-mining",
     "acceptance:lottery-ticket-plan",
     "acceptance:media-optimizer-app-ui",
@@ -456,6 +620,8 @@
     "acceptance:video-download-youtube-production",
     "acceptance:workbench-api-boundary",
     "acceptance:xuanxue-ai-production",
+    "acceptance:xuanxue-ai-production:real-chrome",
+    "acceptance:xuanxue-ai-production:real-proof-verify",
     "acceptance:xuanyuan"
   ],
   "activePluginViolations": [],
@@ -475,7 +641,6 @@
     ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
     ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
     ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
-    "scripts/acceptance/ai-input-gateway-attachment.real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
@@ -504,7 +669,15 @@
     "scripts/acceptance/app-shell-localization.acceptance.ts",
     "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
     "scripts/acceptance/app-shell-ui.acceptance.ts",
+    "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+    "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
+    "scripts/acceptance/audit-delivery-isolation.attacks.ts",
+    "scripts/acceptance/audit-phase-plan.attacks.ts",
+    "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
+    "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
+    "scripts/acceptance/audit-truth-coverage-fixture.ts",
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
+    "scripts/acceptance/audit-worker-lifecycle.attacks.ts",
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
@@ -652,12 +825,20 @@
     "scripts/audit/build/load-manifests.ts",
     "scripts/audit/build/parse-apex-laws.ts",
     "scripts/audit/build/write-generated-artifacts.ts",
+    "scripts/audit/ci-acceptance-law-bindings.ts",
+    "scripts/audit/ci-acceptance-leaf-plan.ts",
+    "scripts/audit/ci-audit-plan-runner.ts",
+    "scripts/audit/ci-command-runner.ts",
+    "scripts/audit/ci-fail-fast.ts",
     "scripts/audit/ci-full-phase-plan.ts",
     "scripts/audit/ci-full-summary.ts",
     "scripts/audit/ci-full.ts",
+    "scripts/audit/ci-phase-sealer.ts",
     "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/config/plugin-status.json",
     "scripts/audit/core/load-audit-plan.ts",
+    "scripts/audit/core/run-generated-plan-worker.mjs",
+    "scripts/audit/core/run-generated-plan-worker.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -671,8 +852,10 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability-checks.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
     "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
@@ -705,13 +888,25 @@
     "scripts/audit/domains/app-shell-ui/inspector.ts",
     "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-active-plugin-gate.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-active-plugin-mediators.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-mediator-shared-ai-scope.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-project-sources.ts",
     "scripts/audit/domains/architecture-boundary/components/scan-root-allowlist.ts",
+    "scripts/audit/domains/architecture-boundary/components/scan-types-contract-root.ts",
     "scripts/audit/domains/architecture-boundary/inspector.ts",
+    "scripts/audit/domains/audit-system/acceptance-delivery-isolation-inspector.ts",
+    "scripts/audit/domains/audit-system/ci-control-integrity-inspector.ts",
+    "scripts/audit/domains/audit-system/ci-entry-order-inspector.ts",
+    "scripts/audit/domains/audit-system/ci-integrity-ast.ts",
+    "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts",
+    "scripts/audit/domains/audit-system/control-flow-reachability.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
+    "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
+    "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
+    "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
     "scripts/audit/domains/audit-system/stale-code-purity-text-report.ts",
+    "scripts/audit/domains/audit-system/task-persistence-isolation-inspector.ts",
     "scripts/audit/domains/audit-truth/components/audit-truth-scope.ts",
     "scripts/audit/domains/audit-truth/components/scan-audit-meta-quality-no-regex.ts",
     "scripts/audit/domains/audit-truth/components/scan-audit-no-regex.ts",
@@ -724,9 +919,9 @@
     "scripts/audit/domains/capability-group-governance/inspector.ts",
     "scripts/audit/domains/code-purity/components/code-purity-finding-collector.ts",
     "scripts/audit/domains/code-purity/components/code-purity-governed-files.ts",
+    "scripts/audit/domains/code-purity/components/code-purity-inventory.ts",
     "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
     "scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts",
-    "scripts/audit/domains/code-purity/components/code-purity-report-writer.ts",
     "scripts/audit/domains/code-purity/components/scan-code-purity-no-regex.ts",
     "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
     "scripts/audit/domains/code-purity/components/scan-structural-budgets.ts",
@@ -803,7 +998,6 @@
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-matrix.ts",
     "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
-    "scripts/audit/domains/facebook-product-video-mining-log-coverage/run-inspector.ts",
     "scripts/audit/domains/facebook-product-video-mining/input-surface-inspector.ts",
     "scripts/audit/domains/facebook-product-video-mining/input-surface-safety-inspector.ts",
     "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
@@ -817,7 +1011,6 @@
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
-    "scripts/audit/domains/media-processing-capability/run-inspector.ts",
     "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
@@ -843,7 +1036,6 @@
     "scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/phase-runs.ts",
     "scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
-    "scripts/audit/domains/runtime-log-spine/run-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
     "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
@@ -862,6 +1054,7 @@
     "scripts/audit/run-domain-audit.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
+    "scripts/audit/shared/inspector-check-session.ts",
     "scripts/audit/shared/inspector-contracts.ts",
     "scripts/audit/shared/law-contracts.ts",
     "scripts/audit/shared/manifest-contracts.ts",
@@ -961,15 +1154,14 @@
     "src/app/workbench-xuanyuan-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-fork.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-parallel.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-restart-recovery.real-chrome.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-title-housekeeping-restart.real-chrome.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
@@ -1128,6 +1320,7 @@
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/current-chrome-accessibility-window.ts",
+    "src/lib/browser/current-chrome-browser-action-logging.ts",
     "src/lib/browser/current-chrome-browser-action-result.ts",
     "src/lib/browser/current-chrome-browser-click-probe.ts",
     "src/lib/browser/current-chrome-browser-controller-execution.ts",
@@ -1155,18 +1348,20 @@
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
+    "src/lib/local-runtime/workbench-deep-research-handle.ts",
     "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
     "src/lib/local-runtime/workbench-deep-research-types.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
     "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
+    "src/lib/local-runtime/workbench-marketplace-handles.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
-    "src/lib/local-runtime/workbench-xuanxue-ai-production-support.ts",
+    "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/lib/online-ai/config.ts",
     "src/lib/online-ai/gemini-client.ts",
@@ -1193,8 +1388,19 @@
     "src/lib/storage/refs.ts",
     "src/lib/storage/schema.ts",
     "src/lib/storage/storage-port.ts",
+    "src/mediator/amazon-invoice-upload-route.ts",
+    "src/mediator/amazon-listing-edit-read-sync-route.ts",
+    "src/mediator/amazon-product-fee-sync-route.ts",
+    "src/mediator/amazon-product-mining-route.ts",
+    "src/mediator/amazon-product-sync-route.ts",
+    "src/mediator/deep-research-analysis-route.ts",
+    "src/mediator/facebook-product-video-mining-route.ts",
+    "src/mediator/lottery-ticket-plan-route.ts",
     "src/mediator/media-processing-artifact-route.ts",
+    "src/mediator/pick3-is-blind-eval-route.ts",
     "src/mediator/video-download-artifact-route.ts",
+    "src/mediator/xuanxue-ai-production-route.ts",
+    "src/mediator/xuanyuan-route.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
@@ -1383,6 +1589,7 @@
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.progress.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
+    "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.resume-schema.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
     "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts",
@@ -1432,6 +1639,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
     "src/plugins/xuanyuan/index.ts",
     "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
     "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
@@ -1440,7 +1648,6 @@
     "src/plugins/xuanyuan/xuanyuan.schema.ts",
     "src/plugins/xuanyuan/xuanyuan.store.ts",
     "src/plugins/xuanyuan/xuanyuan.task.ts",
-    "src/plugins/xuanyuan/xuanyuan.workbench.ts",
     "src/types/dom-automation-inputs.ts",
     "src/types/dom-automation.ts",
     "src/types/evidence.ts",
@@ -1448,1106 +1655,1112 @@
     "src/types/structured-log.ts"
   ],
   "executionGroup": "foundation",
+  "checkRuns": [
+    {
+      "runId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f",
+      "capabilityDomain": "architecture-boundary",
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-12T23:44:32.154Z",
+      "endedAt": "2026-08-12T23:44:35.701Z",
+      "durationMs": 3547,
+      "evidenceRefs": [
+        ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
+        ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
+        ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
+        ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+        ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
+        ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+        ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+        ".github/instructions/agent-rules/modules/module-lottery-ticket-plan.instructions.md",
+        ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
+        ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
+        ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+        ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
+        ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
+        "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
+        "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+        "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
+        "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+        "scripts/acceptance/amazon-listing-edit-read-sync.acceptance.ts",
+        "scripts/acceptance/amazon-product-fee-sync.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-keyword-dedup.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-keyword-review-boundary.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-package-final-gate.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-package-fixture.ts",
+        "scripts/acceptance/amazon-product-mining-package-support-seed.ts",
+        "scripts/acceptance/amazon-product-mining-package-support.ts",
+        "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-production-attacks.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
+        "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
+        "scripts/acceptance/amazon-product-sync.acceptance.ts",
+        "scripts/acceptance/app-shell-localization.acceptance.ts",
+        "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
+        "scripts/acceptance/app-shell-ui.acceptance.ts",
+        "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+        "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
+        "scripts/acceptance/audit-delivery-isolation.attacks.ts",
+        "scripts/acceptance/audit-phase-plan.attacks.ts",
+        "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
+        "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
+        "scripts/acceptance/audit-truth-coverage-fixture.ts",
+        "scripts/acceptance/audit-truth-coverage.acceptance.ts",
+        "scripts/acceptance/audit-worker-lifecycle.attacks.ts",
+        "scripts/acceptance/ci-summary-truth.acceptance.ts",
+        "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
+        "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+        "scripts/acceptance/deep-research-analysis-smoke-support.ts",
+        "scripts/acceptance/deep-research-analysis-smoke.ts",
+        "scripts/acceptance/deep-research-app-ui.acceptance.ts",
+        "scripts/acceptance/deep-research-case-reader-ui.acceptance.ts",
+        "scripts/acceptance/deep-research-clean-raw-index-ui.acceptance.ts",
+        "scripts/acceptance/deep-research-final-adjudication-promptbundle-input.acceptance.ts",
+        "scripts/acceptance/deep-research-final-adjudication-raw.acceptance.ts",
+        "scripts/acceptance/deep-research-format-shell-boundary.acceptance.ts",
+        "scripts/acceptance/deep-research-full-case-file-support.ts",
+        "scripts/acceptance/deep-research-full-case-file.acceptance.ts",
+        "scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
+        "scripts/acceptance/deep-research-html-full-process-report.acceptance.ts",
+        "scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
+        "scripts/acceptance/deep-research-html-report-only.acceptance.ts",
+        "scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
+        "scripts/acceptance/deep-research-input-attachments.acceptance.ts",
+        "scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
+        "scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
+        "scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",
+        "scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
+        "scripts/acceptance/deep-research-promptbundle-visibility-ui.acceptance.ts",
+        "scripts/acceptance/deep-research-raw-response-sovereignty.acceptance.ts",
+        "scripts/acceptance/deep-research-report-export.acceptance.ts",
+        "scripts/acceptance/deep-research-runtime-shell-only.acceptance.ts",
+        "scripts/acceptance/deep-research-single-chain.acceptance.ts",
+        "scripts/acceptance/deep-research-single-format-path.acceptance.ts",
+        "scripts/acceptance/deep-research-subquestion-failure-stop.acceptance.ts",
+        "scripts/acceptance/facebook-live-dom-probe.ts",
+        "scripts/acceptance/facebook-product-video-mining-ai-upload.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-failure-diagnosis.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-log-coverage.acceptance.ts",
+        "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/commented-out-code/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/const-folded-dead-branch/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-class-used-only-by-dead-export/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-class-used-only-by-dead-export/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-export-internal-helper/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-export-internal-helper/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-export-nested-helper-chain/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-export-nested-helper-chain/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-type-used-only-by-dead-type-export/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dead-type-used-only-by-dead-type-export/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/default-import-alias/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/default-import-alias/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dynamic-import-nonliteral/src/entry.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dynamic-import-nonliteral/src/feature.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dynamic-import-owner-boundary-violation/src/capabilities/widget/runtime/private.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/dynamic-import-owner-boundary-violation/src/plugins/demo/entry.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/handler-map-unused-entry/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/handler-map-unused-entry/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/identifier-count-false-proof/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-dynamic-registry-consumer/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-dynamic-registry-consumer/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-manifest-entry/src/external-entry.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-manifest-entry/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-side-effect-import/src/bootstrap.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-side-effect-import/src/entry.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/lawful-side-effect-import/src/side-effect.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/literal-mode-dead-branch/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/named-import-alias/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/named-import-alias/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/namespace-dynamic-evasion/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/namespace-dynamic-evasion/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/namespace-property-usage/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/namespace-property-usage/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/object-bag-dynamic-usage/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/object-bag-dynamic-usage/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/object-bag-unused-property/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/object-bag-unused-property/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/orphan-top-level-declaration/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/reachable-file-dead-internal-subgraph/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/reachable-file-dead-internal-subgraph/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/reexport-barrel-laundering/src/a.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/reexport-barrel-laundering/src/index.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/reexport-barrel-laundering/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/registry-bag-laundering/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/registry-bag-laundering/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/side-effect-import-laundering/src/bootstrap.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/side-effect-import-laundering/src/entry.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/side-effect-import-laundering/src/side-effect.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/side-effect-import-owner-boundary-violation/src/capabilities/widget/runtime/private.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/side-effect-import-owner-boundary-violation/src/plugins/demo/entry.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/type-only-runtime-separation/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/type-only-runtime-separation/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-export/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-export/src/module.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-file/src/live.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-file/src/main.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-file/src/orphan.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/a.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/b.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/c.ts",
+        "scripts/acceptance/fixtures/code-purity-zombie-deep/zombie-to-zombie-chain/src/live.ts",
+        "scripts/acceptance/lottery-ticket-plan.acceptance.ts",
+        "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
+        "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
+        "scripts/acceptance/media-processing-async-route.acceptance.ts",
+        "scripts/acceptance/media-processing-image.acceptance.ts",
+        "scripts/acceptance/media-processing-job-flow.acceptance.ts",
+        "scripts/acceptance/media-processing-latest-dependencies.acceptance.ts",
+        "scripts/acceptance/media-processing-task-persistence.acceptance.ts",
+        "scripts/acceptance/media-processing-video.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval-completion-queue.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval-free-analysis.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval.acceptance-support.ts",
+        "scripts/acceptance/pick3-is-blind-eval.acceptance.ts",
+        "scripts/acceptance/pick3-is-blind-eval.contracts.acceptance.ts",
+        "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+        "scripts/acceptance/runtime-log-redaction.acceptance.ts",
+        "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
+        "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+        "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+        "scripts/acceptance/video-download-telegram-web.acceptance.ts",
+        "scripts/acceptance/video-download-youtube-production.acceptance.ts",
+        "scripts/acceptance/workbench-api-boundary-fixture.ts",
+        "scripts/acceptance/workbench-api-boundary-product-sync.acceptance.ts",
+        "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+        "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+        "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
+        "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
+        "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-v1-migration-fixture.ts",
+        "scripts/acceptance/xuanxue-ai-production-v1-migration.ts",
+        "scripts/acceptance/xuanxue-ai-production-v2-drain-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
+        "scripts/acceptance/xuanyuan-recovery.acceptance-helper.ts",
+        "scripts/acceptance/xuanyuan.acceptance.ts",
+        "scripts/audit/build-audit-artifacts.ts",
+        "scripts/audit/build/compose-artifact-domain-artifacts.ts",
+        "scripts/audit/build/compose-artifacts.ts",
+        "scripts/audit/build/discover-law-files.ts",
+        "scripts/audit/build/load-manifests.ts",
+        "scripts/audit/build/parse-apex-laws.ts",
+        "scripts/audit/build/write-generated-artifacts.ts",
+        "scripts/audit/ci-acceptance-law-bindings.ts",
+        "scripts/audit/ci-acceptance-leaf-plan.ts",
+        "scripts/audit/ci-audit-plan-runner.ts",
+        "scripts/audit/ci-command-runner.ts",
+        "scripts/audit/ci-fail-fast.ts",
+        "scripts/audit/ci-full-phase-plan.ts",
+        "scripts/audit/ci-full-summary.ts",
+        "scripts/audit/ci-full.ts",
+        "scripts/audit/ci-phase-sealer.ts",
+        "scripts/audit/codex-entry-gate.ts",
+        "scripts/audit/config/plugin-status.json",
+        "scripts/audit/core/load-audit-plan.ts",
+        "scripts/audit/core/run-generated-plan-worker.mjs",
+        "scripts/audit/core/run-generated-plan-worker.ts",
+        "scripts/audit/core/run-generated-plan.ts",
+        "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
+        "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
+        "scripts/audit/domains/ai-input-gateway/inspector.ts",
+        "scripts/audit/domains/ai-input-gateway/paths.ts",
+        "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
+        "scripts/audit/domains/ai-input-gateway/scheduler-inspector.ts",
+        "scripts/audit/domains/ai-input-gateway/topology-inspector.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability-checks.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+        "scripts/audit/domains/amazon-listing-edit-read-sync/inspector.ts",
+        "scripts/audit/domains/amazon-product-fee-sync/inspector.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-automation.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-runtime-truth.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
+        "scripts/audit/domains/amazon-product-mining/inspector.ts",
+        "scripts/audit/domains/amazon-product-sync/inspector-constants.ts",
+        "scripts/audit/domains/amazon-product-sync/inspector-files.ts",
+        "scripts/audit/domains/amazon-product-sync/inspector-task-service.ts",
+        "scripts/audit/domains/amazon-product-sync/inspector.ts",
+        "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
+        "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
+        "scripts/audit/domains/app-shell-ui/inspector-localization.ts",
+        "scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.ts",
+        "scripts/audit/domains/app-shell-ui/inspector-skill-registry.ts",
+        "scripts/audit/domains/app-shell-ui/inspector.ts",
+        "scripts/audit/domains/architecture-boundary/components/architecture-boundary-shared.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-active-plugin-gate.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-active-plugin-mediators.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-mediator-shared-ai-scope.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-project-sources.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-root-allowlist.ts",
+        "scripts/audit/domains/architecture-boundary/components/scan-types-contract-root.ts",
+        "scripts/audit/domains/architecture-boundary/inspector.ts",
+        "scripts/audit/domains/audit-system/acceptance-delivery-isolation-inspector.ts",
+        "scripts/audit/domains/audit-system/ci-control-integrity-inspector.ts",
+        "scripts/audit/domains/audit-system/ci-entry-order-inspector.ts",
+        "scripts/audit/domains/audit-system/ci-integrity-ast.ts",
+        "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts",
+        "scripts/audit/domains/audit-system/control-flow-reachability.ts",
+        "scripts/audit/domains/audit-system/inspector.ts",
+        "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
+        "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
+        "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+        "scripts/audit/domains/audit-system/stale-code-purity-text-report.ts",
+        "scripts/audit/domains/audit-system/task-persistence-isolation-inspector.ts",
+        "scripts/audit/domains/audit-truth/components/audit-truth-scope.ts",
+        "scripts/audit/domains/audit-truth/components/scan-audit-meta-quality-no-regex.ts",
+        "scripts/audit/domains/audit-truth/components/scan-audit-no-regex.ts",
+        "scripts/audit/domains/audit-truth/components/scan-audit-no-source-text-search.ts",
+        "scripts/audit/domains/audit-truth/components/scan-generated-plan-coverage.ts",
+        "scripts/audit/domains/audit-truth/inspector.ts",
+        "scripts/audit/domains/capability-group-governance/components/capability-facade-purity.ts",
+        "scripts/audit/domains/capability-group-governance/components/capability-governance-report.ts",
+        "scripts/audit/domains/capability-group-governance/components/capability-source-of-truth.ts",
+        "scripts/audit/domains/capability-group-governance/inspector.ts",
+        "scripts/audit/domains/code-purity/components/code-purity-finding-collector.ts",
+        "scripts/audit/domains/code-purity/components/code-purity-governed-files.ts",
+        "scripts/audit/domains/code-purity/components/code-purity-inventory.ts",
+        "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
+        "scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts",
+        "scripts/audit/domains/code-purity/components/scan-code-purity-no-regex.ts",
+        "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
+        "scripts/audit/domains/code-purity/components/scan-structural-budgets.ts",
+        "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts",
+        "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
+        "scripts/audit/domains/code-purity/components/scan-structural-type-escapes.ts",
+        "scripts/audit/domains/code-purity/components/scan-zombie-dead-branches.ts",
+        "scripts/audit/domains/code-purity/components/scan-zombie-internal-subgraphs.ts",
+        "scripts/audit/domains/code-purity/components/scan-zombie-object-bags.ts",
+        "scripts/audit/domains/code-purity/components/scan-zombie-reference-surfaces.ts",
+        "scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts",
+        "scripts/audit/domains/code-purity/components/structural-metrics.ts",
+        "scripts/audit/domains/code-purity/components/summarize-useless-code.ts",
+        "scripts/audit/domains/code-purity/components/zombie-anti-evasion.ts",
+        "scripts/audit/domains/code-purity/components/zombie-call-graph.ts",
+        "scripts/audit/domains/code-purity/components/zombie-commented-code.ts",
+        "scripts/audit/domains/code-purity/components/zombie-const-evaluator.ts",
+        "scripts/audit/domains/code-purity/components/zombie-declaration-live-graph.ts",
+        "scripts/audit/domains/code-purity/components/zombie-exemption-manifest.ts",
+        "scripts/audit/domains/code-purity/components/zombie-live-entrypoints.ts",
+        "scripts/audit/domains/code-purity/components/zombie-module-graph.ts",
+        "scripts/audit/domains/code-purity/components/zombie-namespace-usage.ts",
+        "scripts/audit/domains/code-purity/components/zombie-object-bag-liveness.ts",
+        "scripts/audit/domains/code-purity/components/zombie-reexport-trace.ts",
+        "scripts/audit/domains/code-purity/components/zombie-registry-bag-usage.ts",
+        "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts",
+        "scripts/audit/domains/code-purity/components/zombie-symbol-graph.ts",
+        "scripts/audit/domains/code-purity/components/zombie-symbol-usage.ts",
+        "scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
+        "scripts/audit/domains/code-purity/inspector.ts",
+        "scripts/audit/domains/constitutional-boundary/inspector.ts",
+        "scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
+        "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-format-shell-boundary.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-html-uses-raw-final-answer.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-no-system-generated-confidence.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-promptbundle-business-sovereignty.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-promptbundle-field-consistency.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
+        "scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
+        "scripts/audit/domains/deep-research-analysis/inspector.ts",
+        "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
+        "scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
+        "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
+        "scripts/audit/domains/dom-automation/components/inspect-dom-boundaries.ts",
+        "scripts/audit/domains/dom-automation/components/inspect-dom-contracts.ts",
+        "scripts/audit/domains/dom-automation/components/inspect-dom-foundation-gates.ts",
+        "scripts/audit/domains/dom-automation/components/inspect-dom-runtime-guards.ts",
+        "scripts/audit/domains/dom-automation/inspector.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ai-log-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-artifact-log-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-stage-detector.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-ast-token-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-failure-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-navigation-log-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-recovery-log-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-report-writer.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-matrix.ts",
+        "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+        "scripts/audit/domains/facebook-product-video-mining/input-surface-inspector.ts",
+        "scripts/audit/domains/facebook-product-video-mining/input-surface-safety-inspector.ts",
+        "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+        "scripts/audit/domains/facebook-product-video-mining/state-machine-inspector.ts",
+        "scripts/audit/domains/local-app-shell/components/deep-research-ui-ast.ts",
+        "scripts/audit/domains/local-app-shell/components/scan-deep-research-case-reader-ui.ts",
+        "scripts/audit/domains/local-app-shell/components/scan-deep-research-clean-raw-index-ui.ts",
+        "scripts/audit/domains/local-app-shell/components/scan-deep-research-form-polling-ui.ts",
+        "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
+        "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
+        "scripts/audit/domains/local-app-shell/inspector.ts",
+        "scripts/audit/domains/lottery-ticket-plan/inspector.ts",
+        "scripts/audit/domains/media-processing-capability/inspector.ts",
+        "scripts/audit/domains/pick3-is-blind-eval/inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
+        "scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-call-expression-resolvers.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-call-resolver-support.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-call-resolver.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-control-flow-utils.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-node-utils.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-object-literal-reader.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-object-literal-resolver.ts",
+        "scripts/audit/domains/runtime-log-spine/ast/ast-symbol-utils.ts",
+        "scripts/audit/domains/runtime-log-spine/browser-action-log-contract-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/catch-branch-log-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/constants.ts",
+        "scripts/audit/domains/runtime-log-spine/debug-bundle-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/event-type-registry-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/failure-class-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/file-walk.ts",
+        "scripts/audit/domains/runtime-log-spine/forbidden-console-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
+        "scripts/audit/domains/runtime-log-spine/inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/phase-runs.ts",
+        "scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
+        "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
+        "scripts/audit/domains/runtime-log-spine/source-read.ts",
+        "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
+        "scripts/audit/domains/runtime-truth/inspector.ts",
+        "scripts/audit/domains/startup-entrypoint/inspector.ts",
+        "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
+        "scripts/audit/domains/video-download-capability/inspector.ts",
+        "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
+        "scripts/audit/domains/workbench-api-boundary/inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+        "scripts/audit/domains/xuanyuan/inspector.ts",
+        "scripts/audit/run-domain-audit.ts",
+        "scripts/audit/shared/finding-utils.ts",
+        "scripts/audit/shared/generated-contracts.ts",
+        "scripts/audit/shared/inspector-check-session.ts",
+        "scripts/audit/shared/inspector-contracts.ts",
+        "scripts/audit/shared/law-contracts.ts",
+        "scripts/audit/shared/manifest-contracts.ts",
+        "scripts/audit/shared/no-regex.ts",
+        "scripts/audit/shared/paths.ts",
+        "scripts/audit/shared/project.ts",
+        "scripts/audit/shared/repo-path-classifier.ts",
+        "scripts/audit/shared/source-files.ts",
+        "scripts/audit/shared/source-module-targets.ts",
+        "scripts/startup/launch-grasseye.mjs",
+        "scripts/startup/lib/dependency-check.mjs",
+        "scripts/startup/lib/dependency-package-utils.mjs",
+        "scripts/startup/lib/dependency-state-analysis.mjs",
+        "scripts/startup/lib/open-workbench-page.mjs",
+        "scripts/startup/lib/port-listener-ops.mjs",
+        "scripts/startup/lib/process-control.mjs",
+        "scripts/startup/lib/service-process.mjs",
+        "scripts/startup/lib/service-readiness.mjs",
+        "scripts/startup/lib/source-fingerprint.mjs",
+        "scripts/startup/lib/startup-failure-bundle.mjs",
+        "scripts/startup/lib/startup-failure-handler.mjs",
+        "scripts/startup/lib/startup-log-helpers.mjs",
+        "scripts/startup/lib/startup-main-support.mjs",
+        "scripts/startup/lib/terminal-structured-log.mjs",
+        "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
+        "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
+        "scripts/startup/xuanxue-ai-production-v1-drain.ts",
+        "src/app/app-shell/amazon-invoice-workspace.ts",
+        "src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
+        "src/app/app-shell/app-shell-core-styles.ts",
+        "src/app/app-shell/app-shell-inspector-console-styles.ts",
+        "src/app/app-shell/app-shell-layout.ts",
+        "src/app/app-shell/app-shell-pick3-trend-styles.ts",
+        "src/app/app-shell/app-shell-styles.ts",
+        "src/app/app-shell/app-shell-workspace-styles.ts",
+        "src/app/app-shell/app-shell.ts",
+        "src/app/app-shell/command-bar.ts",
+        "src/app/app-shell/inspector.ts",
+        "src/app/app-shell/localization-client-runtime.ts",
+        "src/app/app-shell/localization.ts",
+        "src/app/app-shell/lottery-ticket-plan-workspace.ts",
+        "src/app/app-shell/runtime-console.ts",
+        "src/app/app-shell/sidebar.ts",
+        "src/app/app-shell/skill-registry.ts",
+        "src/app/create-workbench-server.ts",
+        "src/app/server.ts",
+        "src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts",
+        "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
+        "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
+        "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
+        "src/app/skills/media-optimizer/media-optimizer-client.ts",
+        "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+        "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
+        "src/app/workbench-amazon-product-fee-sync-routes.ts",
+        "src/app/workbench-amazon-product-mining-routes.ts",
+        "src/app/workbench-amazon-product-sync-routes.ts",
+        "src/app/workbench-amazon-routes.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-deep-research-case-reader-styles.ts",
+        "src/app/workbench-deep-research-client-attachments.ts",
+        "src/app/workbench-deep-research-client-boot.ts",
+        "src/app/workbench-deep-research-client-case-reader.ts",
+        "src/app/workbench-deep-research-client-contracts.ts",
+        "src/app/workbench-deep-research-client-delivery-sections.ts",
+        "src/app/workbench-deep-research-client-report-sections.ts",
+        "src/app/workbench-deep-research-client-shared.ts",
+        "src/app/workbench-deep-research-client.ts",
+        "src/app/workbench-deep-research-field-help.ts",
+        "src/app/workbench-deep-research-history-view.ts",
+        "src/app/workbench-deep-research-panel.ts",
+        "src/app/workbench-deep-research-report-styles.ts",
+        "src/app/workbench-deep-research-report-view.ts",
+        "src/app/workbench-deep-research-routes.ts",
+        "src/app/workbench-deep-research-styles.ts",
+        "src/app/workbench-facebook-routes.ts",
+        "src/app/workbench-home-amazon-invoice-client.ts",
+        "src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
+        "src/app/workbench-home-amazon-product-mining-review-client.ts",
+        "src/app/workbench-home-client.ts",
+        "src/app/workbench-home-lottery-ticket-plan-client.ts",
+        "src/app/workbench-home-page.ts",
+        "src/app/workbench-home-pick3-client.ts",
+        "src/app/workbench-home-pick3-history-client.ts",
+        "src/app/workbench-home-pick3-stability-client.ts",
+        "src/app/workbench-home-pick3-target-client.ts",
+        "src/app/workbench-home-pick3-trend-client.ts",
+        "src/app/workbench-home-skill-map-client.ts",
+        "src/app/workbench-home-styles.ts",
+        "src/app/workbench-http.ts",
+        "src/app/workbench-lottery-ticket-plan-routes.ts",
+        "src/app/workbench-media-processing-routes.ts",
+        "src/app/workbench-media-processing-task-store.ts",
+        "src/app/workbench-multipart.ts",
+        "src/app/workbench-pick3-routes.ts",
+        "src/app/workbench-video-download-client.ts",
+        "src/app/workbench-video-download-routes.ts",
+        "src/app/workbench-xuanyuan-routes.ts",
+        "src/capabilities/ai-input-gateway/ability-group.ts",
+        "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
+        "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
+        "src/capabilities/ai-input-gateway/contract.ts",
+        "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
+        "src/capabilities/ai-input-gateway/failure-classification.ts",
+        "src/capabilities/ai-input-gateway/index.ts",
+        "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
+        "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fork-tab-control.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-pick3-recovery-log.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-response-artifacts.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-response-extraction-script.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submit-attachment-verification.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submit-stage-log.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-turn-identity.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
+        "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
+        "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
+        "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
+        "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
+        "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
+        "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
+        "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
+        "src/capabilities/ai-input-gateway/schema.ts",
+        "src/capabilities/dom-automation/index.ts",
+        "src/capabilities/dom-automation/runtime/dom-action-result.ts",
+        "src/capabilities/dom-automation/runtime/dom-click.ts",
+        "src/capabilities/dom-automation/runtime/dom-evidence.ts",
+        "src/capabilities/dom-automation/runtime/dom-fill.ts",
+        "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
+        "src/capabilities/dom-automation/runtime/dom-locator.ts",
+        "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
+        "src/capabilities/dom-automation/runtime/dom-upload.ts",
+        "src/capabilities/dom-automation/runtime/dom-verify.ts",
+        "src/capabilities/dom-automation/runtime/dom-wait.ts",
+        "src/capabilities/dom-automation/schema.ts",
+        "src/capabilities/dom-automation/tests/dom-locator.fixture.ts",
+        "src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts",
+        "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
+        "src/capabilities/forensics-persistence/ability-group.ts",
+        "src/capabilities/forensics-persistence/children/append-artifact.ts",
+        "src/capabilities/forensics-persistence/children/append-record.ts",
+        "src/capabilities/forensics-persistence/children/proof-support.ts",
+        "src/capabilities/forensics-persistence/children/read-record-ref.ts",
+        "src/capabilities/forensics-persistence/contract.ts",
+        "src/capabilities/forensics-persistence/index.ts",
+        "src/capabilities/forensics-persistence/schema.ts",
+        "src/capabilities/forensics-persistence/storage-adapter.ts",
+        "src/capabilities/forensics-persistence/storage-port.ts",
+        "src/capabilities/media-processing/ability-group.ts",
+        "src/capabilities/media-processing/children/image-children.ts",
+        "src/capabilities/media-processing/children/video-children.ts",
+        "src/capabilities/media-processing/contract.ts",
+        "src/capabilities/media-processing/dependency-readiness.ts",
+        "src/capabilities/media-processing/index.ts",
+        "src/capabilities/media-processing/registry.ts",
+        "src/capabilities/media-processing/runtime/artifact-storage.ts",
+        "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
+        "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
+        "src/capabilities/media-processing/runtime/hash-stream.ts",
+        "src/capabilities/media-processing/runtime/image-redline-observer.ts",
+        "src/capabilities/media-processing/runtime/media-source.ts",
+        "src/capabilities/media-processing/runtime/result.ts",
+        "src/capabilities/media-processing/runtime/sharp-runner.ts",
+        "src/capabilities/media-processing/schema.ts",
+        "src/capabilities/video-download/ability-group.ts",
+        "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+        "src/capabilities/video-download/children/download-douyin-video-once.ts",
+        "src/capabilities/video-download/children/download-facebook-video-once.ts",
+        "src/capabilities/video-download/children/download-instagram-video-once.ts",
+        "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+        "src/capabilities/video-download/children/download-tiktok-video-once.ts",
+        "src/capabilities/video-download/children/download-web-video-once.ts",
+        "src/capabilities/video-download/children/download-x-video-once.ts",
+        "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+        "src/capabilities/video-download/children/download-youtube-video-once.ts",
+        "src/capabilities/video-download/contract.ts",
+        "src/capabilities/video-download/index.ts",
+        "src/capabilities/video-download/ports/browser-media-source-port.ts",
+        "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
+        "src/capabilities/video-download/registry.ts",
+        "src/capabilities/video-download/runtime/artifact-storage.ts",
+        "src/capabilities/video-download/runtime/candidate-schema.ts",
+        "src/capabilities/video-download/runtime/candidate-validation.ts",
+        "src/capabilities/video-download/runtime/facebook-candidates.ts",
+        "src/capabilities/video-download/runtime/facebook-page-probe-script.ts",
+        "src/capabilities/video-download/runtime/media-download.ts",
+        "src/capabilities/video-download/runtime/platform-router.ts",
+        "src/capabilities/video-download/runtime/result.ts",
+        "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+        "src/capabilities/video-download/runtime/telegram-web-visible-media-probe-script.ts",
+        "src/capabilities/video-download/runtime/tiktok-candidates.ts",
+        "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
+        "src/capabilities/video-download/runtime/universal-candidates.ts",
+        "src/capabilities/video-download/runtime/universal-page-probe-script.ts",
+        "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
+        "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
+        "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
+        "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
+        "src/capabilities/video-download/runtime/youtube-dlp-policy.ts",
+        "src/capabilities/video-download/runtime/youtube-url.ts",
+        "src/capabilities/video-download/schema.ts",
+        "src/capabilities/video-download/type-contracts.ts",
+        "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/current-chrome-accessibility-window.ts",
+        "src/lib/browser/current-chrome-browser-action-logging.ts",
+        "src/lib/browser/current-chrome-browser-action-result.ts",
+        "src/lib/browser/current-chrome-browser-click-probe.ts",
+        "src/lib/browser/current-chrome-browser-controller-execution.ts",
+        "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+        "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+        "src/lib/browser/current-chrome-browser-controller.ts",
+        "src/lib/browser/current-chrome-browser-field-input.ts",
+        "src/lib/browser/current-chrome-browser-screenshot.ts",
+        "src/lib/browser/current-chrome-browser-scroll-support.ts",
+        "src/lib/browser/current-chrome-cdp-file-input.ts",
+        "src/lib/browser/current-chrome-native-file-input.ts",
+        "src/lib/browser/current-chrome-native-multi-file-picker.ts",
+        "src/lib/browser/current-chrome-window-control.ts",
+        "src/lib/browser/local-browser-session.ts",
+        "src/lib/local-runtime/contract.ts",
+        "src/lib/local-runtime/default-data-dir.ts",
+        "src/lib/local-runtime/ids.ts",
+        "src/lib/local-runtime/settings-types.ts",
+        "src/lib/local-runtime/settings.ts",
+        "src/lib/local-runtime/structured-log-bus.ts",
+        "src/lib/local-runtime/structured-log-terminal.ts",
+        "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+        "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+        "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
+        "src/lib/local-runtime/workbench-api-boundary-log.ts",
+        "src/lib/local-runtime/workbench-assembly.ts",
+        "src/lib/local-runtime/workbench-browser-support.ts",
+        "src/lib/local-runtime/workbench-deep-research-handle.ts",
+        "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
+        "src/lib/local-runtime/workbench-deep-research-types.ts",
+        "src/lib/local-runtime/workbench-evidence-support.ts",
+        "src/lib/local-runtime/workbench-handle.ts",
+        "src/lib/local-runtime/workbench-launch-contract.ts",
+        "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
+        "src/lib/local-runtime/workbench-marketplace-handles.ts",
+        "src/lib/local-runtime/workbench-media-processing-support.ts",
+        "src/lib/local-runtime/workbench-pick3-support.ts",
+        "src/lib/local-runtime/workbench-status-types.ts",
+        "src/lib/local-runtime/workbench-status.ts",
+        "src/lib/local-runtime/workbench-video-download-support.ts",
+        "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/online-ai/config.ts",
+        "src/lib/online-ai/gemini-client.ts",
+        "src/lib/online-ai/index.ts",
+        "src/lib/runtime-logs/debug-bundle-contract.ts",
+        "src/lib/runtime-logs/debug-bundle-index.ts",
+        "src/lib/runtime-logs/debug-bundle.ts",
+        "src/lib/runtime-logs/event-factory.ts",
+        "src/lib/runtime-logs/event-types.ts",
+        "src/lib/runtime-logs/failure-classes.ts",
+        "src/lib/runtime-logs/index.ts",
+        "src/lib/runtime-logs/logger.ts",
+        "src/lib/runtime-logs/mode.ts",
+        "src/lib/runtime-logs/redaction-contract.ts",
+        "src/lib/runtime-logs/redaction.ts",
+        "src/lib/runtime-logs/schema.ts",
+        "src/lib/runtime-logs/sinks.ts",
+        "src/lib/runtime-logs/stage-logger.ts",
+        "src/lib/runtime-logs/trace-context.ts",
+        "src/lib/runtime-logs/trace.ts",
+        "src/lib/storage/file-storage.ts",
+        "src/lib/storage/hash.ts",
+        "src/lib/storage/index.ts",
+        "src/lib/storage/refs.ts",
+        "src/lib/storage/schema.ts",
+        "src/lib/storage/storage-port.ts",
+        "src/mediator/amazon-invoice-upload-route.ts",
+        "src/mediator/amazon-listing-edit-read-sync-route.ts",
+        "src/mediator/amazon-product-fee-sync-route.ts",
+        "src/mediator/amazon-product-mining-route.ts",
+        "src/mediator/amazon-product-sync-route.ts",
+        "src/mediator/deep-research-analysis-route.ts",
+        "src/mediator/facebook-product-video-mining-route.ts",
+        "src/mediator/lottery-ticket-plan-route.ts",
+        "src/mediator/media-processing-artifact-route.ts",
+        "src/mediator/pick3-is-blind-eval-route.ts",
+        "src/mediator/video-download-artifact-route.ts",
+        "src/mediator/xuanxue-ai-production-route.ts",
+        "src/mediator/xuanyuan-route.ts",
+        "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
+        "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
+        "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
+        "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+        "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
+        "src/plugins/amazon-invoice-upload/index.ts",
+        "src/plugins/amazon-invoice-upload/mission.schema.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync-task-service.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.dom-scripts.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.flow.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.inventory-search.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.schema.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.storage.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.target-resolution.ts",
+        "src/plugins/amazon-listing-edit-read-sync/amazon-listing-edit-read-sync.urls.ts",
+        "src/plugins/amazon-listing-edit-read-sync/index.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync-task-service.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.dom-scripts.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.flow.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.schema.ts",
+        "src/plugins/amazon-product-fee-sync/amazon-product-fee-sync.storage.ts",
+        "src/plugins/amazon-product-fee-sync/index.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure-schema.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.field-disclosure.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow-control.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow-packaging.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow-state.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-dedup.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-history.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.master-report-shell.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.master-report-types.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-build-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-evidence-shared.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-evidence.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-review-entries.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-review-evidence.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.search-extract-script.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage-keyword-review.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
+        "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
+        "src/plugins/amazon-product-mining/index.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync-task-config.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync-task-service.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.dom-scripts.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.flow.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.image-transfer.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.schema.ts",
+        "src/plugins/amazon-product-sync/amazon-product-sync.storage.ts",
+        "src/plugins/amazon-product-sync/index.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-capture-stage.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-persist-stage.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.chrome-tabs.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comment-scripts.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe-script.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.hints.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-proof.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.outcome-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.records.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-execution.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-candidates.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-runs.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-schema.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-statements.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
+        "src/plugins/facebook-product-video-mining/index.ts",
+        "src/plugins/lottery-ticket-plan/index.ts",
+        "src/plugins/lottery-ticket-plan/lottery-ticket-plan.flow.ts",
+        "src/plugins/lottery-ticket-plan/lottery-ticket-plan.schema.ts",
+        "src/plugins/media-processing-artifact/index.ts",
+        "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
+        "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
+        "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+        "src/plugins/pick3-is-blind-eval/index.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-checkpoint.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-contract.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-parse.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-quota.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-throttle.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai-types.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.ai.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.checkpoint-types.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.failure-review.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow-types.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.flow.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.history.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.image.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.logging.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.official-api.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-storage.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lesson-types.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook-lessons.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.playbook.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.progress.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.prompt-versioning.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.resume-schema.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.schema.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.scoring.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.stability.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-checkpoint.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-schema.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage-task.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.storage.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.sync.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.task-record.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.task.ts",
+        "src/plugins/pick3-is-blind-eval/pick3-is-blind-eval.trend.ts",
+        "src/plugins/video-download-artifact/index.ts",
+        "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
+        "src/plugins/video-download-artifact/video-download-artifact.result.ts",
+        "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
+        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
+        "src/plugins/xuanxue-ai-production/index.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-cutover-backup.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
+        "src/plugins/xuanyuan/index.ts",
+        "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
+        "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
+        "src/plugins/xuanyuan/xuanyuan.flow.ts",
+        "src/plugins/xuanyuan/xuanyuan.queue.ts",
+        "src/plugins/xuanyuan/xuanyuan.schema.ts",
+        "src/plugins/xuanyuan/xuanyuan.store.ts",
+        "src/plugins/xuanyuan/xuanyuan.task.ts",
+        "src/types/dom-automation-inputs.ts",
+        "src/types/dom-automation.ts",
+        "src/types/evidence.ts",
+        "src/types/local-browser-session.ts",
+        "src/types/structured-log.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
   "executedChecks": [
     {
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-001-V1",
-      "clauseId": "apex-arch-001-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-002-V1",
-      "clauseId": "apex-arch-002-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "apex-arch-003-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-004-V1",
-      "clauseId": "apex-arch-004-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-005-V1",
-      "clauseId": "apex-arch-005-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-006-V1",
-      "clauseId": "apex-arch-006-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-007-V1",
-      "clauseId": "apex-arch-007-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-008-V1",
-      "clauseId": "apex-arch-008-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "apex-arch-009-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-010-V1",
-      "clauseId": "apex-arch-010-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/ai-planner-ban"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/allowed-script-root"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/allowed-src-root"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/capability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/capability-imports-plugin"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/child-ability-cross-owner-import"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/flow-cross-job-import"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/flow-non-facade-capability-import"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/mediator-runtime-import"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-active-missing-ci-acceptance"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-archived-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-archived-root-present"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-entry-not-allowlisted"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-experimental-default-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-law-source-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-parked-exposure"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-root-file"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-script-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/plugin-status-missing"
-    },
-    {
-      "lawId": "APEX-ARCH-011-V1",
-      "clauseId": "apex-arch-011-requirement",
-      "checkId": "architecture/shared-owner-boundary"
+      "checkId": "architecture-boundary/owner-assertion-set",
+      "checkRunId": "audit-run:b421dabf-0c61-45e4-8fe7-8f59af3c9d85:check:3ee07934-e83b-423d-ac6c-da8c45e01b4f"
     }
   ]
 }

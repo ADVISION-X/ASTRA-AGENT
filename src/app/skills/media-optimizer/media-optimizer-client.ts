@@ -76,7 +76,7 @@ const applyMediaOptimizerPreset = (presetId) => {
   qs("[data-media-optimizer-variant-field]")?.classList.toggle("hidden", presetId !== "web-image-responsive");
   document.querySelectorAll("[data-media-optimizer-video-target-field]").forEach((field) => field.classList.toggle("hidden", presetId !== "web-video-compressed"));
 };
-const renderMediaOptimizerArtifacts = (result, downloadsPath, downloadsPaths = []) => {
+const renderMediaOptimizerArtifacts = (result, downloadsPaths = []) => {
   const list = qs("[data-media-optimizer-artifact-list]");
   const empty = qs("[data-media-optimizer-empty-artifacts]");
   const count = qs("[data-media-optimizer-artifact-count]");
@@ -110,11 +110,7 @@ const renderMediaOptimizerArtifacts = (result, downloadsPath, downloadsPaths = [
     list.append(item);
   }
   const primary = artifacts[0];
-  const savedPaths = Array.isArray(downloadsPaths) && downloadsPaths.length > 0
-    ? downloadsPaths
-    : downloadsPath
-      ? [downloadsPath]
-      : [];
+  const savedPaths = Array.isArray(downloadsPaths) ? downloadsPaths : [];
   const savedPath = savedPaths.length > 0 ? savedPaths.join(", ") : primary?.filePath || primary?.artifactRef || "-";
   if (result?.status === "success") {
     setMediaOptimizerResult(
@@ -167,7 +163,7 @@ const startMediaOptimizer = async (event) => {
     updateMediaOptimizerProgress(payload.status, payload.status === "success" ? "Processing complete" : "Processing needs review");
     if (!payload.record) throw new Error(payload.failureReason || "media processing ended without result record");
     renderLedger(payload.record, { job: "media-processing" });
-    renderMediaOptimizerArtifacts(payload.record?.result, payload.downloadsPath ?? null, payload.downloadsPaths ?? []);
+    renderMediaOptimizerArtifacts(payload.record?.result, payload.downloadsPaths ?? []);
     writeActivity("media processing stopped with status " + payload.status, payload.status === "success" ? "completed" : "manual-required");
   } catch (error) {
     updateMediaOptimizerProgress("failed", "Processing failed");

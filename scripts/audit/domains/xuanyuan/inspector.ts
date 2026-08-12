@@ -4,11 +4,9 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import {
-  executedChecksForPlan,
   type InspectorContext,
   type InspectorFinding,
-  type InspectorOutput,
-} from "../../shared/inspector-contracts.js";
+  type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const lawId = "GRASSEYE-XUANYUAN-001-V3";
@@ -24,7 +22,7 @@ const sourcePaths = [
   "src/plugins/xuanyuan/xuanyuan.queue.ts",
   "src/plugins/xuanyuan/xuanyuan-queue-owner.ts",
   "src/plugins/xuanyuan/xuanyuan-task-identity.ts",
-  "src/plugins/xuanyuan/xuanyuan.workbench.ts",
+  "src/mediator/xuanyuan-route.ts",
   "src/app/workbench-xuanyuan-routes.ts",
 ] as const;
 const authorityPaths = [
@@ -227,9 +225,11 @@ const inspectPackageScripts = (findings: InspectorFinding[]): void => {
   ));
 };
 
-export const inspectDomain = async (
+
+
+const inspectDomainEvaluation = async (
   context: InspectorContext,
-): Promise<InspectorOutput> => {
+): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const findings: InspectorFinding[] = [];
   const sources = loadSources(context, findings);
   inspectFileRegions(findings);
@@ -240,8 +240,27 @@ export const inspectDomain = async (
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: executedChecksForPlan(context),
+
     findings,
     inspectedFiles: [...authorityPaths, ...sourcePaths, ...removedCloudPaths],
   };
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
+  if (!context.checks) throw new Error("xuanyuan requires a runner-owned check session.");
+  let reportJson: unknown;
+  let reportMarkdown: string | undefined;
+  await context.checks.runAll(async () => {
+    const evaluation = await inspectDomainEvaluation(context);
+    reportJson = evaluation.reportJson;
+    reportMarkdown = evaluation.reportMarkdown;
+    return {
+      findings: evaluation.findings,
+      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
+    };
+  });
+  return context.checks.output({
+    ...(reportJson === undefined ? {} : { reportJson }),
+    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
+  });
 };

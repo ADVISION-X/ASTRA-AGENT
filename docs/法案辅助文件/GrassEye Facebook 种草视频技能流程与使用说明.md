@@ -46,7 +46,7 @@ Facebook 种草视频技能的目标是：
 |---|---|---|
 | Workbench 页面 | `src/app/workbench-home-page.ts` / `src/app/workbench-home-client.ts` | 展示独立 Facebook job card，收集结构化 mission input |
 | HTTP surface | `src/app/workbench-facebook-routes.ts` | 只暴露 mission / run / latest 三个 API |
-| Local runtime handle | `src/lib/local-runtime/workbench.ts` | 装配能力组并调用插件公开接口 |
+| Local runtime handle | `src/lib/local-runtime/workbench-marketplace-handles.ts` | 装配能力组并经唯一 mediator route 调用插件公开任务入口 |
 | Job flow owner | `src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts` | 拥有 mission 生命周期、轮次循环和终态 |
 | Round owner | `src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts` | 拥有单轮 probe、评论、下载、AI 判断、保存/拒绝 |
 

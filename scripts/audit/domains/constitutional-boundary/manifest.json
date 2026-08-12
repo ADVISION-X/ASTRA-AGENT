@@ -9,12 +9,7 @@
         "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
         "clauseId": "apex-capability-facade-symbol-001-requirement",
         "checkIds": [
-          "constitutional-boundary/dom-primitive-import",
-          "constitutional-boundary/external-non-facade-import",
-          "constitutional-boundary/external-private-import",
-          "constitutional-boundary/facade-private-symbol-export",
-          "constitutional-boundary/facade-private-symbol-import",
-          "constitutional-boundary/private-capability-protocol"
+          "constitutional-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -27,12 +22,7 @@
         "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
         "clauseId": "apex-constitutional-boundary-001-requirement",
         "checkIds": [
-          "constitutional-boundary/dom-primitive-import",
-          "constitutional-boundary/external-non-facade-import",
-          "constitutional-boundary/external-private-import",
-          "constitutional-boundary/facade-private-symbol-export",
-          "constitutional-boundary/facade-private-symbol-import",
-          "constitutional-boundary/private-capability-protocol"
+          "constitutional-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -45,12 +35,7 @@
         "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
         "clauseId": "apex-dom-automation-bridge-001-requirement",
         "checkIds": [
-          "constitutional-boundary/dom-primitive-import",
-          "constitutional-boundary/external-non-facade-import",
-          "constitutional-boundary/external-private-import",
-          "constitutional-boundary/facade-private-symbol-export",
-          "constitutional-boundary/facade-private-symbol-import",
-          "constitutional-boundary/private-capability-protocol"
+          "constitutional-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {
@@ -63,12 +48,7 @@
         "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
         "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
         "checkIds": [
-          "constitutional-boundary/dom-primitive-import",
-          "constitutional-boundary/external-non-facade-import",
-          "constitutional-boundary/external-private-import",
-          "constitutional-boundary/facade-private-symbol-export",
-          "constitutional-boundary/facade-private-symbol-import",
-          "constitutional-boundary/private-capability-protocol"
+          "constitutional-boundary/owner-assertion-set"
         ],
         "sourceEvidence": [
           {

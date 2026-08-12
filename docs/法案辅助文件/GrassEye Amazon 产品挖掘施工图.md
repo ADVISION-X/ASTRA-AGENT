@@ -18,6 +18,8 @@ targetJobFlowRoot: `src/plugins/amazon-product-mining/**`
 ```txt
 当前唯一生产链：
   -> src/plugins/amazon-product-mining/** owner 实现
+  -> src/mediator/amazon-product-mining-route.ts 精确校验和转发
+  -> src/lib/local-runtime/workbench-marketplace-handles.ts 依赖组装与窄 handle
   -> src/app/workbench-amazon-product-mining-routes.ts
   -> src/app/workbench-home-page.ts / workbench-home-client.ts 最小入口面
   -> scripts/audit/domains/amazon-product-mining/{manifest.json, inspector.ts}

@@ -36,6 +36,7 @@ import {
   assertResponseCheckpointRecovery,
 } from "./web-chat-recovery.acceptance-helper.js";
 import { assertWebChatSourceContracts } from "./web-chat-source-contract.acceptance-helper.js";
+import { assertRenamePatrolBehavior } from "./web-chat-rename-patrol.acceptance-helper.js";
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 import { assertWebChatIdentityAndRecoveryPolicies } from "./web-chat-identity-recovery.acceptance-helper.js";
 
@@ -401,6 +402,7 @@ if (workerArgs[0] === "--worker") {
     );
     await secondPatrolLease.release();
 
+    await assertRenamePatrolBehavior();
     await assertWebChatSourceContracts();
 
     let stableAnswerState = createStableAnswerState();

@@ -156,8 +156,8 @@ const inspectReaderPrimaryLayout = (input: InspectionInput, files: InspectionFil
     ...input,
     sourceFile: files.panelFile,
     checkId: "local-app-shell/deep-research-reader-before-history",
-    firstMarker: "${renderDeepResearchReportView()}",
-    secondMarker: "${renderDeepResearchHistoryView()}",
+    firstSymbolName: "renderDeepResearchReportView",
+    secondSymbolName: "renderDeepResearchHistoryView",
   });
 };
 
