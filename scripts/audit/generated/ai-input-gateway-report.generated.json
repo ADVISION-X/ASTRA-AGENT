@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-12T23:44:32.142Z",
+  "generatedAt": "2026-08-13T00:02:48.651Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -13,14 +13,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae",
-      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56",
+      "runId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc",
+      "checkRunId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc:check:9a916a21-4f8c-4ffd-a3db-86b03f785ed1",
       "capabilityDomain": "ai-input-gateway",
       "checkId": "ai-input-gateway/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:44:31.511Z",
-      "endedAt": "2026-08-12T23:44:32.141Z",
-      "durationMs": 630,
+      "startedAt": "2026-08-13T00:02:48.024Z",
+      "endedAt": "2026-08-13T00:02:48.650Z",
+      "durationMs": 626,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
         "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
@@ -91,31 +91,31 @@
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
       "clauseId": "apex-ai-input-gateway-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
+      "checkRunId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc:check:9a916a21-4f8c-4ffd-a3db-86b03f785ed1"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
       "clauseId": "apex-ai-input-gateway-002-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
+      "checkRunId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc:check:9a916a21-4f8c-4ffd-a3db-86b03f785ed1"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
       "clauseId": "apex-ai-input-gateway-003-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
+      "checkRunId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc:check:9a916a21-4f8c-4ffd-a3db-86b03f785ed1"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
       "clauseId": "apex-ai-input-gateway-004-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
+      "checkRunId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc:check:9a916a21-4f8c-4ffd-a3db-86b03f785ed1"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
       "clauseId": "apex-ai-input-gateway-005-v3-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:a3460d98-89b5-477d-b728-a525552182ae:check:dc6580ae-6cca-4ca6-8adb-8500bbef0e56"
+      "checkRunId": "audit-run:78c52974-8d41-4147-9b23-65d6cf845dfc:check:9a916a21-4f8c-4ffd-a3db-86b03f785ed1"
     }
   ],
   "inspectedFiles": [

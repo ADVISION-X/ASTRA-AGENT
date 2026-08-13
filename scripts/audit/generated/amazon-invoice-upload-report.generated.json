@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:29.745Z",
+  "generatedAt": "2026-08-13T00:03:51.231Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -22,14 +22,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b",
+      "runId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2",
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15",
       "capabilityDomain": "amazon-invoice-upload",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:29.567Z",
-      "endedAt": "2026-08-12T23:45:29.744Z",
-      "durationMs": 177,
+      "startedAt": "2026-08-13T00:03:51.046Z",
+      "endedAt": "2026-08-13T00:03:51.231Z",
+      "durationMs": 185,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
@@ -83,67 +83,67 @@
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
       "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
       "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
       "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
       "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
       "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
       "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
       "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
       "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
       "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
       "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
       "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:0ee0a795-a0b8-457c-afd9-ba782a1a0c70:check:ee77198d-d4f2-404c-ab7c-869520e77c7b"
+      "checkRunId": "audit-run:def32338-d7eb-42c7-a0ab-22544a686cf2:check:f0512c65-0d6b-45e1-84a4-a7cf9156ed15"
     }
   ],
   "inspectedFiles": [

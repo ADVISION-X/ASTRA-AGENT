@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:33.739Z",
+  "generatedAt": "2026-08-13T00:03:55.264Z",
   "status": "PASS",
   "summary": {
     "totalFindings": 0,
@@ -580,14 +580,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a",
+      "runId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650",
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f",
       "capabilityDomain": "facebook-product-video-mining-log-coverage",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:33.403Z",
-      "endedAt": "2026-08-12T23:45:33.738Z",
-      "durationMs": 335,
+      "startedAt": "2026-08-13T00:03:54.914Z",
+      "endedAt": "2026-08-13T00:03:55.263Z",
+      "durationMs": 349,
       "evidenceRefs": [
         "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
         "src/capabilities/ai-input-gateway/ability-group.ts",
@@ -614,37 +614,37 @@
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
       "checkId": "facebook-product-video-mining-log-coverage/owner-assertion-set",
-      "checkRunId": "audit-run:89def193-6130-4b3c-942a-07dd22bd82e1:check:93624011-2ea9-4bab-b347-394d1dcc3c8a"
+      "checkRunId": "audit-run:4bd9cdbd-80ab-48af-b4d7-7888bc459650:check:5a89c072-458a-4c37-b8e1-1414d7d6502f"
     }
   ],
   "inspectedFiles": [

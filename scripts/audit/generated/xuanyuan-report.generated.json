@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:35.441Z",
+  "generatedAt": "2026-08-13T00:03:57.186Z",
   "capabilityDomain": "xuanyuan",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,14 +9,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:baffc78b-06fe-4911-b5b2-9e97b5543cef",
-      "checkRunId": "audit-run:baffc78b-06fe-4911-b5b2-9e97b5543cef:check:2c2b0ba0-a122-4181-89a2-a6a578b6284b",
+      "runId": "audit-run:86f23650-e2f8-45b9-a4a3-e58c4fbabe11",
+      "checkRunId": "audit-run:86f23650-e2f8-45b9-a4a3-e58c4fbabe11:check:3b7e7808-45b9-42a5-b5c6-e51cde6a0633",
       "capabilityDomain": "xuanyuan",
       "checkId": "xuanyuan/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:35.425Z",
-      "endedAt": "2026-08-12T23:45:35.441Z",
-      "durationMs": 16,
+      "startedAt": "2026-08-13T00:03:57.167Z",
+      "endedAt": "2026-08-13T00:03:57.186Z",
+      "durationMs": 19,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
         "docs/法案辅助文件/GrassEye Xuanyuan 受控本地执行施工图.md",
@@ -53,7 +53,7 @@
       "lawId": "GRASSEYE-XUANYUAN-001-V3",
       "clauseId": "grasseye-xuanyuan-001-v3-requirement",
       "checkId": "xuanyuan/owner-assertion-set",
-      "checkRunId": "audit-run:baffc78b-06fe-4911-b5b2-9e97b5543cef:check:2c2b0ba0-a122-4181-89a2-a6a578b6284b"
+      "checkRunId": "audit-run:86f23650-e2f8-45b9-a4a3-e58c4fbabe11:check:3b7e7808-45b9-42a5-b5c6-e51cde6a0633"
     }
   ],
   "inspectedFiles": [

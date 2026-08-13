@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:33.904Z",
+  "generatedAt": "2026-08-13T00:03:55.457Z",
   "status": "PASS",
   "findings": [],
   "capabilityDomain": "lottery-ticket-plan",
@@ -9,14 +9,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:37f085a7-0e20-44a4-9e5c-8eec13572587",
-      "checkRunId": "audit-run:37f085a7-0e20-44a4-9e5c-8eec13572587:check:32e77b94-5c43-4e94-82a3-2a31ef369871",
+      "runId": "audit-run:d1f2de42-2035-4888-b2bd-06889150408c",
+      "checkRunId": "audit-run:d1f2de42-2035-4888-b2bd-06889150408c:check:c87816a4-a09b-4111-84d2-ca37ee93918a",
       "capabilityDomain": "lottery-ticket-plan",
       "checkId": "lottery-ticket-plan/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:33.902Z",
-      "endedAt": "2026-08-12T23:45:33.904Z",
-      "durationMs": 2,
+      "startedAt": "2026-08-13T00:03:55.454Z",
+      "endedAt": "2026-08-13T00:03:55.457Z",
+      "durationMs": 3,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-lottery-ticket-plan.instructions.md",
         "docs/法案辅助文件/GrassEye Lottery Ticket Plan 施工图.md",
@@ -40,7 +40,7 @@
       "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
       "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
       "checkId": "lottery-ticket-plan/owner-assertion-set",
-      "checkRunId": "audit-run:37f085a7-0e20-44a4-9e5c-8eec13572587:check:32e77b94-5c43-4e94-82a3-2a31ef369871"
+      "checkRunId": "audit-run:d1f2de42-2035-4888-b2bd-06889150408c:check:c87816a4-a09b-4111-84d2-ca37ee93918a"
     }
   ],
   "inspectedFiles": [

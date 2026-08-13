@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:29.975Z",
+  "generatedAt": "2026-08-13T00:03:51.422Z",
   "capabilityDomain": "amazon-listing-edit-read-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -18,14 +18,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:5bb6d0d8-250d-44fe-922a-d95505526554",
-      "checkRunId": "audit-run:5bb6d0d8-250d-44fe-922a-d95505526554:check:9086f800-626d-43b3-9436-e2fb4022695c",
+      "runId": "audit-run:43ba5522-1cdf-4742-aef5-d7f2f2447161",
+      "checkRunId": "audit-run:43ba5522-1cdf-4742-aef5-d7f2f2447161:check:04ebe0c6-9073-4bfb-ab4e-0a5c923b4dc7",
       "capabilityDomain": "amazon-listing-edit-read-sync",
       "checkId": "amazon-listing-edit-read-sync/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:29.748Z",
-      "endedAt": "2026-08-12T23:45:29.975Z",
-      "durationMs": 227,
+      "startedAt": "2026-08-13T00:03:51.237Z",
+      "endedAt": "2026-08-13T00:03:51.421Z",
+      "durationMs": 184,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
         "docs/法案辅助文件/GrassEye Amazon Listing Edit Read Sync 施工图.md",
@@ -64,25 +64,25 @@
       "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
       "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
       "checkId": "amazon-listing-edit-read-sync/owner-assertion-set",
-      "checkRunId": "audit-run:5bb6d0d8-250d-44fe-922a-d95505526554:check:9086f800-626d-43b3-9436-e2fb4022695c"
+      "checkRunId": "audit-run:43ba5522-1cdf-4742-aef5-d7f2f2447161:check:04ebe0c6-9073-4bfb-ab4e-0a5c923b4dc7"
     },
     {
       "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
       "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
       "checkId": "amazon-listing-edit-read-sync/owner-assertion-set",
-      "checkRunId": "audit-run:5bb6d0d8-250d-44fe-922a-d95505526554:check:9086f800-626d-43b3-9436-e2fb4022695c"
+      "checkRunId": "audit-run:43ba5522-1cdf-4742-aef5-d7f2f2447161:check:04ebe0c6-9073-4bfb-ab4e-0a5c923b4dc7"
     },
     {
       "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
       "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
       "checkId": "amazon-listing-edit-read-sync/owner-assertion-set",
-      "checkRunId": "audit-run:5bb6d0d8-250d-44fe-922a-d95505526554:check:9086f800-626d-43b3-9436-e2fb4022695c"
+      "checkRunId": "audit-run:43ba5522-1cdf-4742-aef5-d7f2f2447161:check:04ebe0c6-9073-4bfb-ab4e-0a5c923b4dc7"
     },
     {
       "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
       "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
       "checkId": "amazon-listing-edit-read-sync/owner-assertion-set",
-      "checkRunId": "audit-run:5bb6d0d8-250d-44fe-922a-d95505526554:check:9086f800-626d-43b3-9436-e2fb4022695c"
+      "checkRunId": "audit-run:43ba5522-1cdf-4742-aef5-d7f2f2447161:check:04ebe0c6-9073-4bfb-ab4e-0a5c923b4dc7"
     }
   ],
   "inspectedFiles": [

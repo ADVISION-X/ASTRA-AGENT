@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:33.394Z",
+  "generatedAt": "2026-08-13T00:03:54.903Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -14,14 +14,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81",
+      "runId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9",
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3",
       "capabilityDomain": "facebook-product-video-mining",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:33.344Z",
-      "endedAt": "2026-08-12T23:45:33.394Z",
-      "durationMs": 50,
+      "startedAt": "2026-08-13T00:03:54.848Z",
+      "endedAt": "2026-08-13T00:03:54.902Z",
+      "durationMs": 54,
       "evidenceRefs": [
         "package.json",
         "scripts/acceptance/facebook-live-dom-probe.ts",
@@ -68,37 +68,37 @@
       "lawId": "APEX-FACEBOOK-MINING-001-V1",
       "clauseId": "apex-facebook-mining-001-requirement",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-002-V1",
       "clauseId": "apex-facebook-mining-002-requirement",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-003-V1",
       "clauseId": "apex-facebook-mining-003-requirement",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-004-V1",
       "clauseId": "apex-facebook-mining-004-requirement",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-005-V1",
       "clauseId": "apex-facebook-mining-005-requirement",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3"
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-006-V1",
       "clauseId": "apex-facebook-mining-006-requirement",
       "checkId": "facebook-product-video-mining/owner-assertion-set",
-      "checkRunId": "audit-run:7a67f9ed-0f43-4bb6-a543-9c4265903e4a:check:ebe58228-24c2-4271-8918-6d5783107d81"
+      "checkRunId": "audit-run:74752907-12bb-4cb8-95c8-0c0d53a452f9:check:bd70f93e-1147-40fa-89e8-1fe42d9ab0b3"
     }
   ],
   "inspectedFiles": [

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:40.433Z",
+  "generatedAt": "2026-08-13T00:04:02.372Z",
   "status": "PASS",
   "inspectorFileCount": 28,
   "generatedPlanEntryCount": 28,
@@ -283,14 +283,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:19266885-7c19-44c1-87bc-a089dffa5115",
-      "checkRunId": "audit-run:19266885-7c19-44c1-87bc-a089dffa5115:check:e4e6bb79-22d1-4cee-a396-f5c8d18fe05e",
+      "runId": "audit-run:6a8905bf-7579-4fe5-b339-38282d92d5b5",
+      "checkRunId": "audit-run:6a8905bf-7579-4fe5-b339-38282d92d5b5:check:6004e94d-25f5-4311-975c-211869a781cd",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:35.924Z",
-      "endedAt": "2026-08-12T23:45:40.433Z",
-      "durationMs": 4509,
+      "startedAt": "2026-08-13T00:03:57.851Z",
+      "endedAt": "2026-08-13T00:04:02.372Z",
+      "durationMs": 4521,
       "evidenceRefs": [
         "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
         "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
@@ -569,19 +569,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:19266885-7c19-44c1-87bc-a089dffa5115:check:e4e6bb79-22d1-4cee-a396-f5c8d18fe05e"
+      "checkRunId": "audit-run:6a8905bf-7579-4fe5-b339-38282d92d5b5:check:6004e94d-25f5-4311-975c-211869a781cd"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:19266885-7c19-44c1-87bc-a089dffa5115:check:e4e6bb79-22d1-4cee-a396-f5c8d18fe05e"
+      "checkRunId": "audit-run:6a8905bf-7579-4fe5-b339-38282d92d5b5:check:6004e94d-25f5-4311-975c-211869a781cd"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:19266885-7c19-44c1-87bc-a089dffa5115:check:e4e6bb79-22d1-4cee-a396-f5c8d18fe05e"
+      "checkRunId": "audit-run:6a8905bf-7579-4fe5-b339-38282d92d5b5:check:6004e94d-25f5-4311-975c-211869a781cd"
     }
   ]
 }

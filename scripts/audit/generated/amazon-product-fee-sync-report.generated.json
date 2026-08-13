@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:30.164Z",
+  "generatedAt": "2026-08-13T00:03:51.560Z",
   "capabilityDomain": "amazon-product-fee-sync",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,14 +9,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:a04453db-6037-417b-a217-109fa73db7cd",
-      "checkRunId": "audit-run:a04453db-6037-417b-a217-109fa73db7cd:check:c2239b59-6a52-4250-9c47-08332f9cb38b",
+      "runId": "audit-run:47df1cc7-6f00-4af8-b646-c22df99e3e02",
+      "checkRunId": "audit-run:47df1cc7-6f00-4af8-b646-c22df99e3e02:check:9d6231ee-4bf7-496b-91ab-2103a739f3de",
       "capabilityDomain": "amazon-product-fee-sync",
       "checkId": "amazon-product-fee-sync/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:29.982Z",
-      "endedAt": "2026-08-12T23:45:30.163Z",
-      "durationMs": 181,
+      "startedAt": "2026-08-13T00:03:51.426Z",
+      "endedAt": "2026-08-13T00:03:51.559Z",
+      "durationMs": 133,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
         "docs/法案辅助文件/GrassEye Amazon 产品费用同步施工图.md",
@@ -43,7 +43,7 @@
       "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
       "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
       "checkId": "amazon-product-fee-sync/owner-assertion-set",
-      "checkRunId": "audit-run:a04453db-6037-417b-a217-109fa73db7cd:check:c2239b59-6a52-4250-9c47-08332f9cb38b"
+      "checkRunId": "audit-run:47df1cc7-6f00-4af8-b646-c22df99e3e02:check:9d6231ee-4bf7-496b-91ab-2103a739f3de"
     }
   ],
   "inspectedFiles": [

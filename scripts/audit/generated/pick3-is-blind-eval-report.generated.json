@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T23:45:34.732Z",
+  "generatedAt": "2026-08-13T00:03:56.402Z",
   "capabilityDomain": "pick3-is-blind-eval",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,14 +20,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646",
+      "runId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c",
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57",
       "capabilityDomain": "pick3-is-blind-eval",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-12T23:45:34.628Z",
-      "endedAt": "2026-08-12T23:45:34.731Z",
-      "durationMs": 103,
+      "startedAt": "2026-08-13T00:03:56.278Z",
+      "endedAt": "2026-08-13T00:03:56.401Z",
+      "durationMs": 123,
       "evidenceRefs": [
         "package.json",
         "scripts/acceptance/pick3-is-blind-eval-free-analysis.acceptance.ts",
@@ -70,55 +70,55 @@
       "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
       "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
       "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
       "clauseId": "grasseye-pick3-is-brain-006-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
       "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     },
     {
       "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
       "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
       "checkId": "pick3-is-blind-eval/owner-assertion-set",
-      "checkRunId": "audit-run:9a6fcd5e-228b-4fc5-a697-38a770038e95:check:c24ad8c3-0781-403c-808c-393610a31646"
+      "checkRunId": "audit-run:003e9b46-5163-4e5f-b7d9-26af1d161b9c:check:0eb4b914-fd8f-48ae-ad79-93a870c11f57"
     }
   ],
   "inspectedFiles": [
