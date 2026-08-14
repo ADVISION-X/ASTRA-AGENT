@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 
@@ -97,7 +98,7 @@ function callPositions(functionNode: Node, names: string[]): Record<string, numb
   for (const call of functionNode.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     const expression = call.getExpression();
     const name = Node.isIdentifier(expression)
-      ? expression.getText()
+      ? astIdentifierName(expression)
       : Node.isPropertyAccessExpression(expression) ? expression.getName() : null;
     if (name && wanted.has(name) && positions[name] === undefined) {
       positions[name] = call.getStart();
@@ -117,7 +118,7 @@ function stringLiteralValues(file: SourceFile): Set<string> {
 }
 
 function identifierExists(file: SourceFile, text: string): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.Identifier).some((item) => item.getText() === text);
+  return file.getDescendantsOfKind(SyntaxKind.Identifier).some((item) => astIdentifierName(item) === text);
 }
 
 function literalsContain(values: ReadonlySet<string>, text: string): boolean {
@@ -134,7 +135,7 @@ function sourceCallsProperty(file: SourceFile, ownerName: string, methodName: st
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression)
       && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === ownerName
+      && astIdentifierName(expression.getExpression()) === ownerName
       && expression.getName() === methodName;
   });
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { Project } from "ts-morph";
@@ -77,6 +77,19 @@ const createRuntimeProject = (runtimeDir: string): Project => {
   return new Project({ tsConfigFilePath: path.join(runtimeDir, "tsconfig.json") });
 };
 
+const activateFixtureSources = (directory: string): void => {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const absolutePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      activateFixtureSources(absolutePath);
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith(".ts.txt")) {
+      renameSync(absolutePath, absolutePath.slice(0, -4));
+    }
+  }
+};
+
 const buildFixtureGovernedFiles = (project: Project, runtimeRepoPath: string): GovernedFile[] =>
   project.getSourceFiles()
     .filter((sourceFile) => !sourceFile.isDeclarationFile())
@@ -141,7 +154,7 @@ const buildManifest = (runtimeRepoPath: string, manifest: FixtureManifestConfig 
 const createFixtureContext = (project: Project): InspectorContext => {
   const planEntry = CODE_PURITY_PLAN_ENTRY;
   return {
-    checks: createInspectorCheckSession(planEntry).checks,
+    checks: createInspectorCheckSession(planEntry, "acceptance-run:code-purity-zombie-deep").checks,
     completedReports: {},
     generatedPlan: [planEntry],
     planEntry,
@@ -183,6 +196,7 @@ const runFixtureCase = (caseName: string) => {
   rmSync(runtimeDir, { force: true, recursive: true });
   mkdirSync(path.dirname(runtimeDir), { recursive: true });
   cpSync(fixtureDir, runtimeDir, { recursive: true });
+  activateFixtureSources(runtimeDir);
 
   const runtimeRepoPath = toRepoPath(runtimeDir);
   const fixtureConfig = readFixtureConfig(caseName);

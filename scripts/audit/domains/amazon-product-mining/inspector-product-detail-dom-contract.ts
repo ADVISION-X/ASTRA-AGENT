@@ -1,19 +1,17 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const REQUIRED_DETAIL_DOM_TOKENS = [
-  "corePrice_feature_div",
+const REQUIRED_DETAIL_DOM_LITERALS = [
+  "#corePrice_feature_div .a-price .a-offscreen",
   "out of 5 stars",
-  "total-review-count",
-  "cr-summarization-attributes",
-  "productDetails_feature_div",
+  "[data-hook=\"total-review-count\"]",
+  "[data-hook=\"cr-summarization-attributes\"]",
+  "#productOverview_feature_div tr",
   "data-a-hires",
   "sortedDimValuesForAllDims",
   "desktop-twister-sort-filter-data",
-  "dimensionValueDisplayText",
-  "dimensionValueState",
 ] as const;
 
 const REQUIRED_DETAIL_DOM_IDENTIFIERS = [
@@ -23,6 +21,8 @@ const REQUIRED_DETAIL_DOM_IDENTIFIERS = [
   "serializeStarDistribution",
   "serializeTwisterVariationOptions",
   "normalizeVariationDimensionName",
+  "dimensionValueDisplayText",
+  "dimensionValueState",
 ] as const;
 
 export const inspectProductDetailDomContract = (input: {
@@ -34,20 +34,31 @@ export const inspectProductDetailDomContract = (input: {
   if (!input.sourceFile) {
     return;
   }
-  const literalText = [
-    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
-    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
-    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()),
-    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()),
-    ...input.sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
-  ].join("\n");
-  const identifierText = input.sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
-    .map((node) => node.getText())
-    .join("\n");
-  const missingTokens = REQUIRED_DETAIL_DOM_TOKENS.filter((token) => !literalText.includes(token));
-  const missingIdentifiers = REQUIRED_DETAIL_DOM_IDENTIFIERS
-    .filter((identifier) => !literalText.includes(identifier) && !identifierText.includes(identifier));
-  if (missingTokens.length === 0 && missingIdentifiers.length === 0) {
+  const scriptDeclaration = input.sourceFile.getVariableDeclaration("AMAZON_DETAIL_EXTRACT_SCRIPT");
+  const taggedTemplate = scriptDeclaration?.getInitializerIfKind(SyntaxKind.TaggedTemplateExpression);
+  const template = taggedTemplate?.getTemplate();
+  const embeddedScript = Node.isNoSubstitutionTemplateLiteral(template) ? template.getLiteralText() : null;
+  const embeddedSource = embeddedScript === null ? undefined : new Project({ useInMemoryFileSystem: true })
+    .createSourceFile("amazon-product-detail-script.js", embeddedScript);
+  if (!embeddedSource) {
+    input.findings.push(createFinding({
+      checkId: "amazon-mining/detail-dom-fallback-contract",
+      lawId: input.lawId,
+      filePath: input.filePath,
+      message: "Amazon detail extraction must remain one AST-parseable embedded script.",
+    }));
+    return;
+  }
+  const literalValues = new Set([
+    ...embeddedSource.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
+    ...embeddedSource.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
+  ]);
+  const identifierValues = new Set(embeddedSource.getDescendantsOfKind(SyntaxKind.Identifier)
+    .map((node) => node.getText()));
+  const missingLiterals = REQUIRED_DETAIL_DOM_LITERALS.filter((literal) =>
+    ![...literalValues].some((value) => value.includes(literal)));
+  const missingIdentifiers = REQUIRED_DETAIL_DOM_IDENTIFIERS.filter((identifier) => !identifierValues.has(identifier));
+  if (missingLiterals.length === 0 && missingIdentifiers.length === 0) {
     return;
   }
   input.findings.push(createFinding({
@@ -55,6 +66,6 @@ export const inspectProductDetailDomContract = (input: {
     lawId: input.lawId,
     filePath: input.filePath,
     message: "amazon-product-mining.product-detail.ts must keep fallback selectors for visible detail price/rating/review count extraction.",
-    evidence: `missingTokens=${missingTokens.join(",")};missingIdentifiers=${missingIdentifiers.join(",")}`,
+    evidence: `missingLiterals=${missingLiterals.join(",")};missingIdentifiers=${missingIdentifiers.join(",")}`,
   }));
 };

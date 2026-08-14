@@ -30,6 +30,21 @@ naming_bazi_analysis_and_naming
 naming_from_existing_bazi_report
 ```
 
+```apex-law
+{
+  "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "xuanxue-ai-production",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+acceptance+real-provider",
+  "summary": "Xuanxue production accepts revisioned whole-order intervention only from the local Workbench and resolves it at stage checkpoints.",
+  "required": ["The plugin store appends intervention request and acknowledgement events before CAS state mutation.", "Local named pause, cancel, takeover and resume methods accept only orderId, expectedRevision, reason and requestId.", "Safe points exist before scheduler dequeue, before stage feed, after response checkpoint, before joins, hashes and cloud publish.", "Cloud claim, heartbeat, recovery, checkpoint, result and failure contracts contain no intervention command or stage mutation."],
+  "forbidden": ["cloud human-control ingress", "stageId intervention", "generic intervention dispatcher", "duplicate stage or provider submit"],
+  "clauses": [{"clauseId": "grasseye-xuanxue-ai-production-004-requirement", "statement": "Xuanxue production accepts revisioned whole-order intervention only from the local Workbench and resolves it at stage checkpoints.", "evidenceMode": "acceptance", "ownerDomain": "xuanxue-ai-production"}]
+}
+```
+
 可复用基础工作使用三种内部订单，不计入网站 14 个产品：
 
 ```txt
@@ -207,7 +222,7 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
 
 ## 5. 禁止
 
-- 禁止 website → Xuanyuan 逐阶段生产协议。
+- 禁止网站逐阶段遥控生产工厂。
 - 禁止通用 planner、AI 决定 workflow、兼容执行器、影子队列或第二结果真相。
 - 禁止插件 import provider adapter、DOM/browser 私有实现或另一个插件。
 - 禁止把 5 个确定性产品送入 GPT。

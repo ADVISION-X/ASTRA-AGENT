@@ -3,7 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -202,7 +202,7 @@ const waitForDownloadedBusinessHtml = async (input: {
 };
 
 const waitBeforeHtmlArtifactRetry = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   attempt: number,
 ): Promise<void> => {
   const delayMs = HTML_ARTIFACT_CAPTURE_RETRY_DELAYS_MS[
@@ -212,7 +212,7 @@ const waitBeforeHtmlArtifactRetry = async (
 };
 
 const clickLocatedChatGptHtmlArtifactControl = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   located: ClickEvaluation,
   targetLabel: string,
 ): Promise<ClickEvaluation> => {
@@ -230,10 +230,10 @@ const clickLocatedChatGptHtmlArtifactControl = async (
 };
 
 const locatePrimaryChatGptHtmlArtifactEntry = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
-  browser.evaluateActiveTab<ClickEvaluation>({
+  browser.evaluate<ClickEvaluation>({
     description: `locate ChatGPT primary ${HTML_ARTIFACT_NAME} file entry`,
     script: `
 const buttons = Array.from(document.querySelectorAll("button"));
@@ -262,7 +262,7 @@ return {
   });
 
 const clickPrimaryChatGptHtmlArtifactEntry = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   clickLocatedChatGptHtmlArtifactControl(
@@ -272,10 +272,10 @@ const clickPrimaryChatGptHtmlArtifactEntry = async (
   );
 
 const locateSecondaryChatGptPreviewDownload = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
-  browser.evaluateActiveTab<ClickEvaluation>({
+  browser.evaluate<ClickEvaluation>({
     description: `locate ChatGPT preview ${HTML_ARTIFACT_NAME} download`,
     script: `
 const target = Array.from(document.querySelectorAll("button"))
@@ -298,7 +298,7 @@ return {
   });
 
 const clickSecondaryChatGptPreviewDownload = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   clickLocatedChatGptHtmlArtifactControl(
@@ -308,10 +308,10 @@ const clickSecondaryChatGptPreviewDownload = async (
   );
 
 const readActiveHtmlDocument = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<CapturedHtmlArtifact | null> => {
-  const captured = await browser.evaluateActiveTab<{
+  const captured = await browser.evaluate<{
     htmlDocument: string | null;
     pageUrl: string;
   }>({
@@ -338,7 +338,7 @@ return {htmlDocument, pageUrl: location.href};
 };
 
 const reopenConversation = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   conversationUrl: string;
 }): Promise<void> => {
   await input.browser.open({
@@ -350,7 +350,7 @@ const reopenConversation = async (input: {
 };
 
 const captureViaPrimaryEntry = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   startedAtMs: number;
   deadlineMs: number;
@@ -374,7 +374,7 @@ const captureViaPrimaryEntry = async (input: {
 };
 
 const captureViaSecondaryDownload = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   startedAtMs: number;
   deadlineMs: number;
@@ -390,7 +390,7 @@ const captureViaSecondaryDownload = async (input: {
 };
 
 export const captureChatGptBusinessHtmlArtifact = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   conversationUrl: string | null;

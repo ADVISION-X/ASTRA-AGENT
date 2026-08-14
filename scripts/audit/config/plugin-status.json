@@ -7,11 +7,51 @@
       "phase": "validated-mainline",
       "mediatorRoute": "src/mediator/amazon-invoice-upload-route.ts",
       "mediatorBindings": [
-        { "routeExport": "runAmazonInvoiceAdminOpenRoute", "schemaExport": "AmazonInvoiceUploadAdminOpenInputSchema", "taskExport": "startAmazonInvoiceAdminOpenTask" },
-        { "routeExport": "runAmazonInvoiceUploadMissionRoute", "schemaExport": "AmazonInvoiceUploadMissionInputSchema", "taskExport": "startAmazonInvoiceUploadMission" },
-        { "routeExport": "runAmazonInvoiceUploadTaskRoute", "schemaExport": "AmazonInvoiceUploadTaskStartInputSchema", "taskExport": "startAmazonInvoiceUploadTask" },
-        { "routeExport": "runAmazonInvoiceUploadResumeRoute", "schemaExport": "AmazonInvoiceUploadResumeInputSchema", "taskExport": "resumeAmazonInvoiceUploadTask" },
-        { "routeExport": "runAmazonTaxInvoiceDownloadRoute", "schemaExport": "AmazonTaxInvoiceDownloadMissionInputSchema", "taskExport": "startAmazonTaxInvoiceDownloadTask" }
+        {
+          "routeExport": "runAmazonInvoiceAdminOpenRoute",
+          "schemaExport": "AmazonInvoiceUploadAdminOpenInputSchema",
+          "taskExport": "startAmazonInvoiceAdminOpenTask"
+        },
+        {
+          "routeExport": "runAmazonInvoiceUploadMissionRoute",
+          "schemaExport": "AmazonInvoiceUploadMissionInputSchema",
+          "taskExport": "startAmazonInvoiceUploadMission"
+        },
+        {
+          "routeExport": "runAmazonInvoiceUploadTaskRoute",
+          "schemaExport": "AmazonInvoiceUploadTaskStartInputSchema",
+          "taskExport": "startAmazonInvoiceUploadTask"
+        },
+        {
+          "routeExport": "runAmazonInvoiceUploadResumeRoute",
+          "schemaExport": "AmazonInvoiceUploadResumeInputSchema",
+          "taskExport": "resumeAmazonInvoiceUploadTask"
+        },
+        {
+          "routeExport": "runAmazonTaxInvoiceDownloadRoute",
+          "schemaExport": "AmazonTaxInvoiceDownloadMissionInputSchema",
+          "taskExport": "startAmazonTaxInvoiceDownloadTask"
+        },
+        {
+          "routeExport": "runPauseAmazonInvoiceUploadRoute",
+          "schemaExport": "AmazonInvoiceUploadInterventionRequestSchema",
+          "taskExport": "pauseAmazonInvoiceUpload"
+        },
+        {
+          "routeExport": "runCancelAmazonInvoiceUploadRoute",
+          "schemaExport": "AmazonInvoiceUploadInterventionRequestSchema",
+          "taskExport": "cancelAmazonInvoiceUpload"
+        },
+        {
+          "routeExport": "runTakeoverAmazonInvoiceUploadRoute",
+          "schemaExport": "AmazonInvoiceUploadInterventionRequestSchema",
+          "taskExport": "takeoverAmazonInvoiceUpload"
+        },
+        {
+          "routeExport": "runResumeAmazonInvoiceUploadInterventionRoute",
+          "schemaExport": "AmazonInvoiceUploadInterventionRequestSchema",
+          "taskExport": "resumeAmazonInvoiceUpload"
+        }
       ],
       "allowedEntrypoints": [
         "src/mediator/amazon-invoice-upload-route.ts",
@@ -44,8 +84,36 @@
       "phase": "law-governed-active",
       "mediatorRoute": "src/mediator/amazon-product-mining-route.ts",
       "mediatorBindings": [
-        { "routeExport": "runAmazonProductMiningRoute", "schemaExport": "AmazonMiningInputSchema", "taskExport": "startAmazonProductMiningMission" },
-        { "routeExport": "runContinueAmazonProductMiningRoute", "schemaExport": "AmazonMiningContinueInputSchema", "taskExport": "continueInterruptedAmazonProductMiningTasks" }
+        {
+          "routeExport": "runAmazonProductMiningRoute",
+          "schemaExport": "AmazonMiningInputSchema",
+          "taskExport": "startAmazonProductMiningMission"
+        },
+        {
+          "routeExport": "runContinueAmazonProductMiningRoute",
+          "schemaExport": "AmazonMiningContinueInputSchema",
+          "taskExport": "continueInterruptedAmazonProductMiningTasks"
+        },
+        {
+          "routeExport": "runPauseAmazonProductMiningRoute",
+          "schemaExport": "AmazonProductMiningInterventionRequestSchema",
+          "taskExport": "pauseAmazonProductMining"
+        },
+        {
+          "routeExport": "runCancelAmazonProductMiningRoute",
+          "schemaExport": "AmazonProductMiningInterventionRequestSchema",
+          "taskExport": "cancelAmazonProductMining"
+        },
+        {
+          "routeExport": "runTakeoverAmazonProductMiningRoute",
+          "schemaExport": "AmazonProductMiningInterventionRequestSchema",
+          "taskExport": "takeoverAmazonProductMining"
+        },
+        {
+          "routeExport": "runResumeAmazonProductMiningRoute",
+          "schemaExport": "AmazonProductMiningInterventionRequestSchema",
+          "taskExport": "resumeAmazonProductMining"
+        }
       ],
       "allowedEntrypoints": [
         "src/mediator/amazon-product-mining-route.ts",
@@ -59,7 +127,6 @@
       ],
       "allowedNpmScripts": [
         "acceptance:amazon-product-mining",
-        "audit:amazon-product-mining",
         "amazon-product-mining:package:fixture"
       ],
       "exposureTokens": [
@@ -70,144 +137,30 @@
       ]
     },
     {
-      "pluginId": "amazon-product-sync",
-      "status": "active",
-      "owner": "plugin:amazon-product-sync",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/amazon-product-sync-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runAmazonProductSyncRoute", "schemaExport": "AmazonProductSyncInputSchema", "taskExport": "startAmazonProductSyncTask" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/amazon-product-sync-route.ts",
-        "src/app/workbench-amazon-product-sync-routes.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-marketplace-handles.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:amazon-product-sync"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:amazon-product-sync",
-        "audit:amazon-product-sync"
-      ],
-      "exposureTokens": [
-        "amazon-product-sync"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md"
-      ]
-    },
-    {
-      "pluginId": "amazon-product-fee-sync",
-      "status": "active",
-      "owner": "plugin:amazon-product-fee-sync",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/amazon-product-fee-sync-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runAmazonProductFeeSyncRoute", "schemaExport": "AmazonProductFeeSyncInputSchema", "taskExport": "startAmazonProductFeeSyncTask" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/amazon-product-fee-sync-route.ts",
-        "src/app/workbench-amazon-product-fee-sync-routes.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-marketplace-handles.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:amazon-product-fee-sync"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:amazon-product-fee-sync",
-        "audit:amazon-product-fee-sync"
-      ],
-      "exposureTokens": [
-        "amazon-product-fee-sync"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md"
-      ]
-    },
-    {
-      "pluginId": "amazon-listing-edit-read-sync",
-      "status": "active",
-      "owner": "plugin:amazon-listing-edit-read-sync",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/amazon-listing-edit-read-sync-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runAmazonListingEditReadSyncRoute", "schemaExport": "AmazonListingEditReadSyncInputSchema", "taskExport": "startAmazonListingEditReadSyncTask" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/amazon-listing-edit-read-sync-route.ts",
-        "src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:amazon-listing-edit-read-sync"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:amazon-listing-edit-read-sync",
-        "audit:amazon-listing-edit-read-sync"
-      ],
-      "exposureTokens": [
-        "amazon-listing-edit-read-sync"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md"
-      ]
-    },
-    {
-      "pluginId": "xuanyuan",
-      "status": "active",
-      "owner": "plugin:xuanyuan",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/xuanyuan-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runXuanyuanRoute", "schemaExport": "XuanyuanRequestSchema", "taskExport": "enqueueXuanyuanTask" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/xuanyuan-route.ts",
-        "src/app/workbench-xuanyuan-routes.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:xuanyuan"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:xuanyuan",
-        "audit:xuanyuan"
-      ],
-      "exposureTokens": [
-        "xuanyuan"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md"
-      ]
-    },
-    {
       "pluginId": "xuanxue-ai-production",
       "status": "active",
       "owner": "plugin:xuanxue-ai-production",
       "phase": "law-governed-active",
       "mediatorRoute": "src/mediator/xuanxue-ai-production-route.ts",
       "mediatorBindings": [
-        { "routeExport": "runXuanxueAiProductionRoute", "schemaExport": "XuanxueAiProductionOrderSchema", "taskExport": "createXuanxueAiProductionOrder" }
+        {
+          "routeExport": "runXuanxueAiProductionRoute",
+          "schemaExport": "XuanxueAiProductionOrderSchema",
+          "taskExport": "createXuanxueAiProductionOrder"
+        }
       ],
       "allowedEntrypoints": [
         "src/mediator/xuanxue-ai-production-route.ts",
-        "src/lib/local-runtime/workbench.ts"
+        "src/app/workbench-xuanxue-ai-production-routes.ts",
+        "src/lib/local-runtime/workbench.ts",
+        "src/lib/local-runtime/workbench-handle.ts",
+        "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts"
       ],
       "allowedAcceptanceTests": [
         "acceptance:xuanxue-ai-production"
       ],
       "allowedNpmScripts": [
         "acceptance:xuanxue-ai-production",
-        "audit:xuanxue-ai-production",
         "xuanxue-ai-production:cloud:enroll"
       ],
       "exposureTokens": [
@@ -218,81 +171,44 @@
       ]
     },
     {
-      "pluginId": "pick3-is-blind-eval",
-      "status": "active",
-      "owner": "plugin:pick3-is-blind-eval",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/pick3-is-blind-eval-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runPick3IsBlindEvalRoute", "schemaExport": "Pick3InputSchema", "taskExport": "startPick3IsBlindEvalTask" },
-        { "routeExport": "runResumePick3IsBlindEvalRoute", "schemaExport": "Pick3ResumeInputSchema", "taskExport": "resumePick3IsBlindEvalTask" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/pick3-is-blind-eval-route.ts",
-        "src/app/workbench-pick3-routes.ts",
-        "src/lib/local-runtime/workbench-pick3-support.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:pick3-is-blind-eval"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:pick3-is-blind-eval",
-        "audit:pick3-is-blind-eval"
-      ],
-      "exposureTokens": [
-        "pick3-is-blind-eval"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md"
-      ]
-    },
-    {
-      "pluginId": "lottery-ticket-plan",
-      "status": "active",
-      "owner": "plugin:lottery-ticket-plan",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/lottery-ticket-plan-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runLotteryTicketPlanRoute", "schemaExport": "LotteryTicketPlanInputSchema", "taskExport": "generateLotteryTicketPlan" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/lottery-ticket-plan-route.ts",
-        "src/app/workbench-lottery-ticket-plan-routes.ts",
-        "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:lottery-ticket-plan"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:lottery-ticket-plan",
-        "audit:lottery-ticket-plan"
-      ],
-      "exposureTokens": [
-        "lottery-ticket-plan"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-lottery-ticket-plan.instructions.md"
-      ]
-    },
-    {
       "pluginId": "deep-research-analysis",
       "status": "active",
       "owner": "plugin:deep-research-analysis",
       "phase": "law-governed-active",
       "mediatorRoute": "src/mediator/deep-research-analysis-route.ts",
       "mediatorBindings": [
-        { "routeExport": "runDeepResearchAnalysisRoute", "schemaExport": "DeepResearchInputSchema", "taskExport": "runDeepResearchAnalysis" }
+        {
+          "routeExport": "runDeepResearchAnalysisRoute",
+          "schemaExport": "DeepResearchInputSchema",
+          "taskExport": "runDeepResearchAnalysis"
+        },
+        {
+          "routeExport": "runPauseDeepResearchRoute",
+          "schemaExport": "DeepResearchInterventionRequestSchema",
+          "taskExport": "pauseDeepResearch"
+        },
+        {
+          "routeExport": "runCancelDeepResearchRoute",
+          "schemaExport": "DeepResearchInterventionRequestSchema",
+          "taskExport": "cancelDeepResearch"
+        },
+        {
+          "routeExport": "runTakeoverDeepResearchRoute",
+          "schemaExport": "DeepResearchInterventionRequestSchema",
+          "taskExport": "takeoverDeepResearch"
+        },
+        {
+          "routeExport": "runResumeDeepResearchRoute",
+          "schemaExport": "DeepResearchInterventionRequestSchema",
+          "taskExport": "resumeDeepResearch"
+        }
       ],
       "allowedEntrypoints": [
         "src/mediator/deep-research-analysis-route.ts",
         "src/app/workbench-deep-research-routes.ts",
+        "src/app/workbench-deep-research-intervention-routes.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/lib/local-runtime/workbench-deep-research-handle.ts",
-        "src/lib/local-runtime/workbench-deep-research-types.ts",
         "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
@@ -312,43 +228,17 @@
       ]
     },
     {
-      "pluginId": "facebook-product-video-mining",
-      "status": "active",
-      "owner": "plugin:facebook-product-video-mining",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/facebook-product-video-mining-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "runFacebookProductVideoMiningRoute", "schemaExport": "FacebookProductVideoMiningMissionInputSchema", "taskExport": "startFacebookProductVideoMiningMission" }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/facebook-product-video-mining-route.ts",
-        "src/app/workbench-facebook-routes.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-marketplace-handles.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:facebook-product-video-mining"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:facebook-product-video-mining",
-        "audit:facebook-product-video-mining"
-      ],
-      "exposureTokens": [
-        "facebook-product-video-mining"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md"
-      ]
-    },
-    {
       "pluginId": "media-processing-artifact",
       "status": "active",
       "owner": "plugin:media-processing-artifact",
       "phase": "capability-routed-active",
       "mediatorRoute": "src/mediator/media-processing-artifact-route.ts",
       "mediatorBindings": [
-        { "routeExport": "routeMediaProcessingArtifactJob", "schemaExport": "MediaProcessingArtifactJobInputSchema", "taskExport": "runMediaProcessingArtifactFlow" }
+        {
+          "routeExport": "routeMediaProcessingArtifactJob",
+          "schemaExport": "MediaProcessingArtifactJobInputSchema",
+          "taskExport": "runMediaProcessingArtifactFlow"
+        }
       ],
       "allowedEntrypoints": [
         "src/app/workbench-media-processing-routes.ts",
@@ -366,32 +256,6 @@
       ],
       "lawSourceRefs": [
         ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md"
-      ]
-    },
-    {
-      "pluginId": "video-download-artifact",
-      "status": "active",
-      "owner": "plugin:video-download-artifact",
-      "phase": "capability-routed-active",
-      "mediatorRoute": "src/mediator/video-download-artifact-route.ts",
-      "mediatorBindings": [
-        { "routeExport": "routeVideoDownloadArtifactJob", "schemaExport": "VideoDownloadArtifactJobInputSchema", "taskExport": "runVideoDownloadArtifactFlow" }
-      ],
-      "allowedEntrypoints": [
-        "src/app/workbench-video-download-routes.ts",
-        "src/mediator/video-download-artifact-route.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:video-download-telegram-web"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:video-download-telegram-web"
-      ],
-      "exposureTokens": [
-        "video-download"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md"
       ]
     }
   ]

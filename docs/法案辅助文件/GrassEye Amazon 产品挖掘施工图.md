@@ -75,24 +75,27 @@ INTAKE
   -> COMPLETE
 ```
 
-## 1.0.1 自动断点续跑与禁止人工控制
+## 1.0.1 自动断点续跑与插件自有人工干预
 
 ```txt
 TASK_CONTROL_CHECK
   -> 每个 keyword / product / review / packaging 安全点读取持久化 task.status
   -> failed: 停在当前持久化证据位置，阻断 handoff ready
-  -> running states: 继续单一生产 flow
+  -> running states 且无 pending intervention: 继续单一生产 flow
+  -> pause/cancel/takeover requested: 在最近安全点 ACK 并停止发出下一条外部命令
 
 WORKBENCH_STARTUP
   -> 扫描 created / keyword_generating / keyword_ready / mining / packaging
-  -> 对每个非终态 task 自动继续同一 flow
+  -> 对每个可恢复且未暂停/取消/接管的 task 自动继续同一 flow
 ```
 
 冻结细则：
 
 - 断点真相只能来自 SQLite 与已落地 evidence，不得来自前端缓存、zip、手工重包或第二执行链。
 - 自动续跑必须复用同一个 `taskId`，并跳过已完成的 keyword/search/detail/review/keyword review。
-- Amazon Product Mining 不暴露 Pause / Continue / Terminate 人工控制按钮、routes、workbench handle 或 plugin facade。
+- Amazon Product Mining 只暴露 plugin-owned revisioned pause/cancel/takeover/resume；App、route、mediator 和 handle 逐方法转发，不拥有状态。
+- 干预输入固定为 `taskId / expectedRevision / reason / requestId`，不接受 keywordId/productId/stageId、selector、coordinate、target id、browserCommand 或通用 action 字符串。
+- stale revision 零写入；ACK 后 2 秒内不得启动下一条 Browser/AI 命令。已提交外部副作用等待 owning checkpoint，歧义进入 `OUTCOME_UNKNOWN` / `review_required` 且不重放。
 - 同一 `taskId` 任意时刻只能有一个活动执行。
 - 需要恢复时只能由系统启动恢复链扫描非终态任务并进入同一生产 flow。
 
@@ -101,14 +104,14 @@ WORKBENCH_STARTUP
 ```txt
 MINING_BROWSER_TAB_PREPARE
   -> 打开一个 Amazon 挖掘专用工作标签
-  -> 后续 SEARCH / DETAIL / REVIEW / REVIEW_PAGINATION 全部复用当前活动标签
+  -> 后续 SEARCH / DETAIL / REVIEW / REVIEW_PAGINATION 全部复用同一个 opaque targetRef
 ```
 
 冻结细则：
 
 - 挖掘阶段开始时，只允许创建一个专用工作标签。
-- search.ts、product-detail.ts、reviews.ts 的页面跳转必须复用当前活动标签。
-- 评论翻页必须继续复用当前活动标签，不得按页面持续新开标签。
+- search.ts、product-detail.ts、reviews.ts 的页面跳转必须复用同一个 targetRef，并在每次 navigation 后接收新 documentRef。
+- 评论翻页必须继续复用同一个 exact target，不得按页面持续新开标签。
 - 禁止 one-page-one-tab、one-product-one-tab、review-page-one-tab 造成 Chrome 标签膨胀。
 
 ## 1.2 Amazon 页面打开节奏
@@ -217,7 +220,7 @@ docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md
 - 新建任务必须保存 `keywordHistoryPolicy`；默认是 `new_keywords_only`。
 - `refresh_historical_keywords` 只表示历史行情刷新，不表示删除历史、不表示关闭治理、不表示把历史关键词伪装成新关键词。
 - 如果同一 taskId 已存在，必须进入 Continue 语义，不得重新 create task 或重新生成已存在关键词。
-- App 必须允许用户在任务运行中暂停、继续、终止。
+- App 必须允许用户按 expectedRevision 对整单执行暂停、取消、接管、恢复；按钮只调用显式 plugin facade。
 - 系统重启后自动继续非终态运行状态；`paused` 与 `terminated` 不自动继续。
 
 ---
@@ -625,12 +628,12 @@ provider proof 保留该事实
 flow 继续进入下一 Amazon 挖掘步骤
 ```
 
-原因：Amazon mining 下一步会打开专用 Amazon 工作标签，source tab 恢复失败不是业务证据失败；GPT provider tab 不关闭会残留为旧 active tab，可能让后续 BrowserController DOM 提取打到过期页面。
+原因：Amazon mining 下一步继续使用自己的 Amazon exact target；provider target 的清理失败不得改变已捕获结果，也不得让后续 DOM 动作改绑到其他 target。BrowserController 不再依赖 active tab。
 
 禁止扩大适用范围：
 
 ```txt
-Deep Research / Facebook / invoice upload / other prompt contract 仍 fail closed
+Deep Research / invoice upload / other prompt contract 仍 fail closed
 不得新增 fallback provider
 不得新增第二导出链路
 不得隐藏 restoredSourcePage=false

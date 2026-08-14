@@ -3,6 +3,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import type {
   InspectorContext,
 } from "../../shared/inspector-contracts.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import {
   type AiInputGatewayFinding,
   identifiers,
@@ -83,7 +84,7 @@ const sharedPreparationCallOrderIsValid = (source: SourceFile): boolean => {
     .find((call) => {
       const expression = call.getExpression();
       return Node.isIdentifier(expression)
-        && expression.getText() === name;
+        && astIdentifierName(expression) === name;
     })?.getStart() ?? null;
   const preSubmit = position("readPreSubmitConversationState");
   const attachment = position("attachApprovedWebChatFilesOnce");

@@ -44,6 +44,21 @@ type FinalAdjudicationSuccess = {
   finalAdjudication: DeepResearchFinalAdjudicationRecord;
 };
 
+const failMissingFinalAdjudication = (context: AnalysisExecutionContext): AnalysisFailure => ({
+  ok: false,
+  result: finishFailure({
+    store: context.store,
+    runtimeLogger: context.runtimeLogger,
+    traceContext: context.traceContext,
+    jobId: context.jobId,
+    status: "failed",
+    phase: "FINAL_ADJUDICATION_PERSIST",
+    reason: "Deep Research final adjudication raw record is missing.",
+    failureClass: RuntimeFailureClass.INTERNAL_BUG,
+    recordHashes: context.recordHashes,
+  }),
+});
+
 const failFullCaseFileStage = (
   context: AnalysisExecutionContext,
   stage: FlowStageHandle,
@@ -137,11 +152,13 @@ export const runFinalAdjudicationPhase = async (
   const prompt = buildFinalAdjudicationShellPrompt();
   const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   const result = await runPromptExchange<DeepResearchFinalAdjudicationParse>({
+    dataDir: context.dataDir,
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
     stageLogger: context.stageLogger,
     sender: context.sender,
+    releaseForTakeover: context.releaseForTakeover,
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
@@ -191,12 +208,10 @@ export const runFinalAdjudicationPhase = async (
       };
     },
   });
-  if (result.status !== "parsed") {
-    return finishPromptFailure(context, result);
-  }
+  if (result.status !== "parsed") return finishPromptFailure(context, result);
   const finalAdjudication = context.store.getLatestFinalAdjudication(context.jobId);
   if (!finalAdjudication) {
-    throw new Error("Deep Research final adjudication raw record is missing.");
+    return failMissingFinalAdjudication(context);
   }
   return {
     ok: true,

@@ -39,6 +39,8 @@ export interface AiInputGatewayAbilityGroup {
   readonly abilityGroupId: AiInputGatewayAbilityGroupId;
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
   getRuntimeCapacity(): number;
+  releaseProviderTargetForOperator?(ownerKey: string): Promise<boolean>;
+  resumeProviderTargetAfterOperator?(ownerKey: string): void;
   close?(): Promise<void>;
   classifyFailure?(
     error: unknown,

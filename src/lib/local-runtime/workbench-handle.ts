@@ -1,7 +1,6 @@
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
-import type { VideoDownloadAbilityGroup } from "../../capabilities/video-download/index.js";
 import type {
   DeepResearchAnalysisStartInput,
   DeepResearchExportArtifactPayload,
@@ -13,15 +12,16 @@ import type {
 } from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
 import type {
-  VideoDownloadSourcePage,
-  VideoDownloadSourcePagePlatform,
-} from "./workbench-video-download-support.js";
-import type {
   WorkbenchHealthReport,
   WorkbenchMissionReadinessReport,
   WorkbenchPreflightInput,
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
+import type {
+  XuanxueAiInterventionRecord,
+  XuanxueAiOrderRecord,
+} from "../../plugins/xuanxue-ai-production/index.js";
+import type { PluginInterventionRequest, PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 
 type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceAdminOpenTask;
 type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
@@ -31,39 +31,12 @@ type ListAmazonInvoiceUploadLedger = typeof import("../../plugins/amazon-invoice
 type StartAmazonTaxInvoiceDownloadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonTaxInvoiceDownloadTask;
 type GetAmazonTaxInvoiceDownloadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonTaxInvoiceDownloadTaskStatus;
 type GetAmazonTaxInvoiceDownloadArtifact = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonTaxInvoiceDownloadArtifact;
-type StartFacebookProductVideoMiningMission = typeof import("../../plugins/facebook-product-video-mining/index.js").startFacebookProductVideoMiningMission;
-type GetFacebookProductVideoMiningRunStatus = typeof import("../../plugins/facebook-product-video-mining/index.js").getFacebookProductVideoMiningRunStatus;
-type ListFacebookProductVideoMiningSavedRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").listFacebookProductVideoMiningSavedRecords;
-type ExportFacebookProductVideoMiningSelectionRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").exportFacebookProductVideoMiningSelectionRecords;
 type StartAmazonProductMiningMission = typeof import("../../plugins/amazon-product-mining/index.js").startAmazonProductMiningMission;
 type GetAmazonProductMiningTaskStatus = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningTaskStatus;
 type ListAmazonProductMiningKeywordReviews = typeof import("../../plugins/amazon-product-mining/index.js").listAmazonProductMiningKeywordReviews;
 type GetAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-product-mining/index.js").getAmazonProductMiningKeywordReview;
 type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
 type ContinueInterruptedAmazonProductMiningTasks = typeof import("../../plugins/amazon-product-mining/index.js").continueInterruptedAmazonProductMiningTasks;
-type StartAmazonProductSyncTask = typeof import("../../plugins/amazon-product-sync/index.js").startAmazonProductSyncTask;
-type GetAmazonProductSyncTaskStatus = typeof import("../../plugins/amazon-product-sync/index.js").getAmazonProductSyncTaskStatus;
-type GetLatestAmazonProductSyncTask = typeof import("../../plugins/amazon-product-sync/index.js").getLatestAmazonProductSyncTask;
-type StartAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").startAmazonProductFeeSyncTask;
-type GetAmazonProductFeeSyncTaskStatus = typeof import("../../plugins/amazon-product-fee-sync/index.js").getAmazonProductFeeSyncTaskStatus;
-type GetLatestAmazonProductFeeSyncTask = typeof import("../../plugins/amazon-product-fee-sync/index.js").getLatestAmazonProductFeeSyncTask;
-type StartAmazonListingEditReadSyncTask = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").startAmazonListingEditReadSyncTask;
-type GetAmazonListingEditReadSyncTaskStatus = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").getAmazonListingEditReadSyncTaskStatus;
-type GetLatestAmazonListingEditReadSyncTask = typeof import("../../plugins/amazon-listing-edit-read-sync/index.js").getLatestAmazonListingEditReadSyncTask;
-type StartPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").startPick3IsBlindEvalTask;
-type GetPick3IsBlindEvalTaskStatus = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3IsBlindEvalTaskStatus;
-type GetLatestPick3IsBlindEvalTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getLatestPick3IsBlindEvalTask;
-type DeletePick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").deletePick3HumanReviewTask;
-type ListPick3HumanReviewHistory = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3HumanReviewHistory;
-type GetPick3HumanReviewTask = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewTask;
-type GetPick3HumanReviewInteraction = typeof import("../../plugins/pick3-is-blind-eval/index.js").getPick3HumanReviewInteraction;
-type ReviewPick3PlaybookLessonManually = typeof import("../../plugins/pick3-is-blind-eval/index.js").reviewPick3PlaybookLessonManually;
-type ListPick3TrendSnapshot = typeof import("../../plugins/pick3-is-blind-eval/index.js").listPick3TrendSnapshot;
-type GenerateLotteryTicketPlan = typeof import("../../plugins/lottery-ticket-plan/index.js").generateLotteryTicketPlan;
-type EnqueueXuanyuanTask = import("../../plugins/xuanyuan/index.js").XuanyuanTaskCoordinator["enqueue"];
-type GetXuanyuanTaskStatus = typeof import("../../plugins/xuanyuan/index.js").getXuanyuanTaskStatus;
-type GetLatestXuanyuanTask = typeof import("../../plugins/xuanyuan/index.js").getLatestXuanyuanTask;
-type ListXuanyuanHistory = typeof import("../../plugins/xuanyuan/index.js").listXuanyuanHistory;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -76,10 +49,6 @@ type AmazonInvoiceUploadLedgerRecord = ReturnType<ListAmazonInvoiceUploadLedger>
 type AmazonTaxInvoiceDownloadMissionInput = Parameters<StartAmazonTaxInvoiceDownloadTask>[0]["mission"];
 type AmazonTaxInvoiceDownloadTaskRecord = Awaited<ReturnType<GetAmazonTaxInvoiceDownloadTaskStatus>>;
 type AmazonTaxInvoiceDownloadArtifactMetadata = ReturnType<GetAmazonTaxInvoiceDownloadArtifact>;
-type FacebookProductVideoMiningMissionInput = Parameters<StartFacebookProductVideoMiningMission>[0];
-type FacebookProductVideoMiningRunStatus = Awaited<ReturnType<GetFacebookProductVideoMiningRunStatus>>;
-type FacebookProductVideoMiningSavedRecords = Awaited<ReturnType<ListFacebookProductVideoMiningSavedRecords>>;
-type FacebookProductVideoMiningSelectionExport = Awaited<ReturnType<ExportFacebookProductVideoMiningSelectionRecords>>;
 type AmazonProductMiningMissionInput = Parameters<StartAmazonProductMiningMission>[0]["rawInput"];
 type AmazonProductMiningStartResult = ReturnType<StartAmazonProductMiningMission>;
 type AmazonProductMiningTaskResult = ReturnType<GetAmazonProductMiningTaskStatus>;
@@ -87,32 +56,8 @@ type AmazonProductMiningKeywordReviewsResult = ReturnType<ListAmazonProductMinin
 type AmazonProductMiningKeywordReviewResult = ReturnType<GetAmazonProductMiningKeywordReview>;
 type AmazonProductMiningExportResult = ReturnType<ExportAmazonProductMiningResult>;
 type AmazonProductMiningAutoContinueResult = ReturnType<ContinueInterruptedAmazonProductMiningTasks>;
-type AmazonProductSyncStartInput = Parameters<StartAmazonProductSyncTask>[0];
-type AmazonProductSyncTaskRecord = Awaited<ReturnType<GetAmazonProductSyncTaskStatus>>;
-type AmazonProductSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductSyncTask>>;
-type AmazonProductFeeSyncStartInput = Parameters<StartAmazonProductFeeSyncTask>[0];
-type AmazonProductFeeSyncTaskRecord = Awaited<ReturnType<GetAmazonProductFeeSyncTaskStatus>>;
-type AmazonProductFeeSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonProductFeeSyncTask>>;
-type AmazonListingEditReadSyncStartInput = Parameters<StartAmazonListingEditReadSyncTask>[0];
-type AmazonListingEditReadSyncTaskRecord = Awaited<ReturnType<GetAmazonListingEditReadSyncTaskStatus>>;
-type AmazonListingEditReadSyncLatestTaskRecord = Awaited<ReturnType<GetLatestAmazonListingEditReadSyncTask>>;
-type Pick3IsBlindEvalStartInput = Parameters<StartPick3IsBlindEvalTask>[0];
-type Pick3IsBlindEvalResumeInput = unknown;
-type Pick3IsBlindEvalTaskRecord = Awaited<ReturnType<StartPick3IsBlindEvalTask>>;
-type Pick3IsBlindEvalStatusRecord = ReturnType<GetPick3IsBlindEvalTaskStatus>;
-type Pick3IsBlindEvalLatestTaskRecord = ReturnType<GetLatestPick3IsBlindEvalTask>;
-type Pick3HumanReviewDeleteResult = ReturnType<DeletePick3HumanReviewTask>;
-type Pick3HumanReviewHistoryResult = ReturnType<ListPick3HumanReviewHistory>;
-type Pick3HumanReviewTaskResult = ReturnType<GetPick3HumanReviewTask>;
-type Pick3HumanReviewInteractionResult = ReturnType<GetPick3HumanReviewInteraction>;
-type Pick3ManualPlaybookLessonResult = Awaited<ReturnType<ReviewPick3PlaybookLessonManually>>;
-type Pick3TrendSnapshotResult = ReturnType<ListPick3TrendSnapshot>;
-type LotteryTicketPlanResult = ReturnType<GenerateLotteryTicketPlan>;
-type XuanyuanTaskStartInput = Parameters<EnqueueXuanyuanTask>[0];
-type XuanyuanTaskRecord = Awaited<ReturnType<EnqueueXuanyuanTask>>;
-type XuanyuanTaskStatusRecord = Awaited<ReturnType<GetXuanyuanTaskStatus>>;
-type XuanyuanLatestTaskRecord = Awaited<ReturnType<GetLatestXuanyuanTask>>;
-type XuanyuanHistoryRecord = Awaited<ReturnType<ListXuanyuanHistory>>;
+type ReadPluginIntervention = (taskId: string) => Promise<PluginInterventionSnapshot | null>;
+type RequestPluginIntervention = (request: PluginInterventionRequest) => Promise<unknown>;
 
 export type DeepResearchInputAttachmentStagingFile = {
   fileName: string;
@@ -136,12 +81,22 @@ export type GrassEyeWorkbenchHandle = {
     sourceSystem?: string | undefined;
   }) => void;
   getDataDir: () => string;
-  getVideoDownloadAbilityGroup: () => VideoDownloadAbilityGroup;
+  readAmazonInvoiceUploadIntervention: ReadPluginIntervention;
+  pauseAmazonInvoiceUpload: RequestPluginIntervention;
+  cancelAmazonInvoiceUpload: RequestPluginIntervention;
+  takeoverAmazonInvoiceUpload: RequestPluginIntervention;
+  resumeAmazonInvoiceUpload: RequestPluginIntervention;
+  readAmazonProductMiningIntervention: ReadPluginIntervention;
+  pauseAmazonProductMining: RequestPluginIntervention;
+  cancelAmazonProductMining: RequestPluginIntervention;
+  takeoverAmazonProductMining: RequestPluginIntervention;
+  resumeAmazonProductMining: RequestPluginIntervention;
+  readDeepResearchIntervention: ReadPluginIntervention;
+  pauseDeepResearch: RequestPluginIntervention;
+  cancelDeepResearch: RequestPluginIntervention;
+  takeoverDeepResearch: RequestPluginIntervention;
+  resumeDeepResearch: RequestPluginIntervention;
   getMediaProcessingAbilityGroup: () => MediaProcessingAbilityGroup;
-  findOpenVideoDownloadSourcePage: (
-    platformId: VideoDownloadSourcePagePlatform,
-    preferredSourcePageUrl?: string,
-  ) => Promise<VideoDownloadSourcePage | null>;
   getAiInputGatewayAbilityGroup: () => AiInputGatewayAbilityGroup;
   getHealthReport: () => Promise<WorkbenchHealthReport>;
   getMissionReadinessReport: () => Promise<WorkbenchMissionReadinessReport>;
@@ -149,6 +104,22 @@ export type GrassEyeWorkbenchHandle = {
     input: WorkbenchPreflightInput,
   ) => Promise<WorkbenchPreflightResult>;
   getModeInfo: () => unknown;
+  readXuanxueAiProductionStatus: (orderId: string) => {
+    order: XuanxueAiOrderRecord;
+    intervention: XuanxueAiInterventionRecord;
+  } | null;
+  pauseXuanxueAiProduction: (
+    input: unknown,
+  ) => XuanxueAiInterventionRecord;
+  cancelXuanxueAiProduction: (
+    input: unknown,
+  ) => XuanxueAiInterventionRecord;
+  takeoverXuanxueAiProduction: (
+    input: unknown,
+  ) => XuanxueAiInterventionRecord;
+  resumeXuanxueAiProduction: (
+    input: unknown,
+  ) => XuanxueAiInterventionRecord;
   getAppRunLimitSettings: () => Promise<AppRunLimitSettings>;
   saveAppRunLimitSettings: (
     input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">,
@@ -190,19 +161,6 @@ export type GrassEyeWorkbenchHandle = {
   getAmazonTaxInvoiceDownloadArtifact: (
     taskId: string,
   ) => Promise<AmazonTaxInvoiceDownloadArtifactMetadata>;
-  startFacebookProductVideoMiningMission: (
-    input: FacebookProductVideoMiningMissionInput,
-  ) => Promise<NonNullable<FacebookProductVideoMiningRunStatus>>;
-  getFacebookProductVideoMiningRunStatus: (
-    runId: string,
-  ) => Promise<FacebookProductVideoMiningRunStatus>;
-  getLatestFacebookProductVideoMiningRun: () => Promise<FacebookProductVideoMiningRunStatus>;
-  listFacebookProductVideoMiningSavedRecords: (
-    runId: string,
-  ) => Promise<FacebookProductVideoMiningSavedRecords>;
-  exportFacebookProductVideoMiningSelectionRecords: (
-    runId: string,
-  ) => Promise<FacebookProductVideoMiningSelectionExport>;
   startDeepResearchAnalysis: (
     input: DeepResearchAnalysisStartInput,
   ) => Promise<DeepResearchJobSnapshot>;
@@ -247,63 +205,4 @@ export type GrassEyeWorkbenchHandle = {
     taskId: string,
   ) => AmazonProductMiningExportResult;
   continueInterruptedAmazonProductMiningTasks: () => AmazonProductMiningAutoContinueResult;
-  startAmazonProductSyncTask: (
-    input: AmazonProductSyncStartInput,
-  ) => Promise<NonNullable<AmazonProductSyncTaskRecord>>;
-  getAmazonProductSyncTaskStatus: (
-    taskId: string,
-  ) => Promise<AmazonProductSyncTaskRecord>;
-  getLatestAmazonProductSyncTask: () => Promise<AmazonProductSyncLatestTaskRecord>;
-  startAmazonProductFeeSyncTask: (
-    input: AmazonProductFeeSyncStartInput,
-  ) => Promise<NonNullable<AmazonProductFeeSyncTaskRecord>>;
-  getAmazonProductFeeSyncTaskStatus: (
-    taskId: string,
-  ) => Promise<AmazonProductFeeSyncTaskRecord>;
-  getLatestAmazonProductFeeSyncTask: () => Promise<AmazonProductFeeSyncLatestTaskRecord>;
-  startAmazonListingEditReadSyncTask: (
-    input: AmazonListingEditReadSyncStartInput,
-  ) => Promise<NonNullable<AmazonListingEditReadSyncTaskRecord>>;
-  getAmazonListingEditReadSyncTaskStatus: (
-    taskId: string,
-  ) => Promise<AmazonListingEditReadSyncTaskRecord>;
-  getLatestAmazonListingEditReadSyncTask: () => Promise<AmazonListingEditReadSyncLatestTaskRecord>;
-  startPick3IsBlindEvalTask: (
-    input: Pick3IsBlindEvalStartInput,
-  ) => Promise<Pick3IsBlindEvalTaskRecord>;
-  resumePick3IsBlindEvalTask: (
-    input: Pick3IsBlindEvalResumeInput,
-  ) => Promise<Pick3IsBlindEvalTaskRecord>;
-  getPick3IsBlindEvalTaskStatus: (
-    taskId: string,
-  ) => Promise<Pick3IsBlindEvalStatusRecord>;
-  getLatestPick3IsBlindEvalTask: () => Promise<Pick3IsBlindEvalLatestTaskRecord>;
-  listPick3TrendSnapshot: () => Promise<Pick3TrendSnapshotResult>;
-  listPick3HumanReviewHistory: () => Promise<Pick3HumanReviewHistoryResult>;
-  getPick3HumanReviewTask: (
-    taskId: string,
-  ) => Promise<Pick3HumanReviewTaskResult>;
-  getPick3HumanReviewInteraction: (input: {
-    interactionId: string;
-    taskId: string;
-  }) => Promise<Pick3HumanReviewInteractionResult>;
-  deletePick3HumanReviewTask: (
-    taskId: string,
-  ) => Promise<Pick3HumanReviewDeleteResult>;
-  reviewPick3PlaybookLessonManually: (input: {
-    phase: string;
-    position: string;
-    taskId: string;
-  }) => Promise<Pick3ManualPlaybookLessonResult>;
-  generateLotteryTicketPlan: (
-    input: unknown,
-  ) => LotteryTicketPlanResult;
-  enqueueXuanyuanTask: (
-    input: XuanyuanTaskStartInput,
-  ) => Promise<XuanyuanTaskRecord>;
-  getXuanyuanTaskStatus: (
-    taskId: string,
-  ) => Promise<XuanyuanTaskStatusRecord>;
-  getLatestXuanyuanTask: () => Promise<XuanyuanLatestTaskRecord>;
-  listXuanyuanHistory: () => Promise<XuanyuanHistoryRecord>;
 };

@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { taskResult, waitForState } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
@@ -27,7 +27,7 @@ const UPLOAD_SUCCESS_POLL_INTERVAL_MS = 250;
 type VerifySuccessResult = Awaited<ReturnType<typeof waitForState>>;
 
 export async function verifyUploadSuccess(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,

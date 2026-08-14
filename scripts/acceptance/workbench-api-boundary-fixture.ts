@@ -40,6 +40,7 @@ const createInvoiceRecord = (input: { mission?: AmazonInvoiceUploadMissionInput;
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
     reviewRequired: true,
+    intervention: { revision: 0, state: "running", reason: null, checkpoint: "acceptance_fixture", pending: null, updatedAt: new Date().toISOString() },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

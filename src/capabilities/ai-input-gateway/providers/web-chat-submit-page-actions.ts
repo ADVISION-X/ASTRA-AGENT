@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import {
   buildVerifyPromptPastedScript,
@@ -8,7 +8,7 @@ import { buildVerifyLastUserMessageAttachmentsScript } from "./web-chat-submitte
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 
 export const verifyPromptPasted = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   input: {
     expectedLength: number;
@@ -16,7 +16,7 @@ export const verifyPromptPasted = (
     expectedSuffix: string;
   },
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "verify AI web chat prompt was pasted",
     script: buildVerifyPromptPastedScript({
       expectedLength: input.expectedLength,
@@ -27,7 +27,7 @@ export const verifyPromptPasted = (
   });
 
 export const verifyPromptSubmitted = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   input: {
     expectedPrefix: string;
@@ -36,21 +36,21 @@ export const verifyPromptSubmitted = (
     wasPromptVerifiedBeforeSubmit: boolean;
   },
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "verify AI web chat prompt was submitted",
     script: buildVerifyPromptSubmittedScript(input),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
 export const verifyLastUserMessageAttachments = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedKind: "image" | "file",
   expectedFileNames: readonly string[],
   turnMarker: string,
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: `verify AI web chat submitted user message has bound ${expectedKind} attachment`,
     script: buildVerifyLastUserMessageAttachmentsScript(
       expectedCount,

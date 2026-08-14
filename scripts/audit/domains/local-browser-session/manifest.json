@@ -1,0 +1,41 @@
+{
+  "capabilityDomain": "local-browser-session",
+  "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "explicit",
+    "bindings": [
+      {
+        "lawId": "APEX-LOCAL-BROWSER-001-V1",
+        "clauseId": "apex-local-browser-001-requirement",
+        "checkIds": ["local-browser-session/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+      },
+      {
+        "lawId": "APEX-LOCAL-BROWSER-002-V1",
+        "clauseId": "apex-local-browser-002-requirement",
+        "checkIds": ["local-browser-session/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+      },
+      {
+        "lawId": "APEX-LOCAL-BROWSER-003-V1",
+        "clauseId": "apex-local-browser-003-requirement",
+        "checkIds": ["local-browser-session/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+      },
+      {
+        "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
+        "clauseId": "grasseye-security-privacy-browser-001-requirement",
+        "checkIds": ["local-browser-session/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+      }
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
+      "requiredAnchors": ["## 2. 唯一四跳链路", "## 9. PhysicalFocusLease", "## 11. Audit owner", "## 13. Security Privacy Ownership"]
+    }
+  ],
+  "description": "Exact target BrowserController, private MV3 Native Messaging transport and bounded physical focus lease owner."
+}

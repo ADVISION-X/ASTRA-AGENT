@@ -133,11 +133,41 @@
             "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
             "symbolName": "inspectDomain"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-ARCH-011-V1",
         "clauseId": "apex-arch-011-requirement",
+        "checkIds": [
+          "architecture-boundary/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
+        "clauseId": "grasseye-code-topology-001-requirement",
+        "checkIds": [
+          "architecture-boundary/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
+        "clauseId": "grasseye-type-safety-001-requirement",
         "checkIds": [
           "architecture-boundary/owner-assertion-set"
         ],
@@ -156,7 +186,8 @@
       "requiredAnchors": [
         "## 2. Owner 分工",
         "## 5. 禁止项",
-        "## 6. 目录原则"
+        "## 6. 目录原则",
+        "## 7. Topology And Type Governance"
       ]
     }
   ],

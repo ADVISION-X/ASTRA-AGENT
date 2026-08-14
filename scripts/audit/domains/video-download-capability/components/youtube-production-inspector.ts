@@ -118,17 +118,6 @@ const objectLiteralContainsPropertyAccessInitializer = (
 ): boolean => source.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((literal) =>
     isPropertyAccess(objectPropertyInitializer(literal, propertyName) ?? undefined, expressionName, initializerPropertyName));
 
-const objectLiteralContainsCallInitializer = (
-  source: SourceFile,
-  propertyName: string,
-  callName: string,
-): boolean => source.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((literal) => {
-    const initializer = objectPropertyInitializer(literal, propertyName);
-    if (initializer === null) return false;
-    if (!Node.isCallExpression(initializer)) return false;
-    return callExpressionName(initializer) === callName;
-  });
-
 const objectLiteralContainsStringInitializer = (
   source: SourceFile,
   propertyName: string,
@@ -151,11 +140,6 @@ const sourceImportsName = (source: SourceFile, moduleSpecifier: string, importNa
 
 const sourceContainsIdentifier = (source: SourceFile, identifierName: string): boolean =>
   source.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => String(identifier.compilerNode.escapedText) === identifierName);
-
-const hasNumericLiteralInitializer = (source: SourceFile, variableName: string, value: number): boolean => {
-  const initializer = source.getVariableDeclaration(variableName)?.getInitializer();
-  return Node.isNumericLiteral(initializer) && Number(initializer.getLiteralValue()) === value;
-};
 
 const hasPropertyAccess = (source: SourceFile, expressionText: string, propertyName: string): boolean =>
   source.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((access) =>
@@ -294,15 +278,15 @@ const inspectYoutubeTitleRuntime = (download: SourceFile, findings: Finding[], l
   }
 };
 
-const inspectYoutubeChildProof = (child: SourceFile, findings: Finding[], lawId: string): void => {
+const inspectYoutubeChildProof = (child: SourceFile, abortHandle: SourceFile, findings: Finding[], lawId: string): void => {
   if (!hasCall(child, "importVideoArtifactFromFile") || !objectLiteralContainsPropertyAccessInitializer(child, "sourceFilePath", "downloaded", "filePath")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/file-artifact-import", "YouTube child must import downloaded file path instead of full bytes.");
   }
   if (!objectLiteralContainsProperty(child, "selectedQuality")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/selected-quality-proof", "YouTube child must pass actual selectedQuality into result proof.");
   }
-  if (!hasCall(child, "setTimeout") || !hasPropertyAccess(child, "abortController", "abort")) {
-    pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/total-timeout-abort", "YouTube child must enforce total timeout by aborting the active yt-dlp process.");
+  if (!hasCall(child, "createVideoDownloadAbortHandle") || !hasCall(abortHandle, "setTimeout") || !hasCall(abortHandle, "abort")) {
+    pushFinding(findings, lawId, "src/capabilities/video-download/runtime/abort-handle.ts", "video-download/total-timeout-abort", "YouTube child must use the shared linked abort handle, which owns the total timeout and parent-task abort.");
   }
   if (!hasCall(child, "randomUUID")) {
     pushFinding(findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts", "video-download/collision-resistant-artifact-id", "YouTube artifact ids must use collision-resistant ids, not timestamp-only ids.");
@@ -341,48 +325,6 @@ const inspectYoutubeResultProofConsistency = (result: SourceFile, findings: Find
   }
 };
 
-const inspectYoutubeUiEvidence = (client: SourceFile, findings: Finding[], lawId: string): void => {
-  for (const literal of ["subtitleLanguages", "selectedQuality", "durationMs", "proofRef", "subtitleArtifacts", "sourceTitle", "displayTitle"]) {
-    if (!hasStringLiteral(client, literal)) {
-      pushFinding(findings, lawId, "src/app/workbench-video-download-client.ts", "video-download/youtube-ui-evidence-fields", `Workbench YouTube UI must expose/send ${literal}.`);
-    }
-  }
-};
-
-const inspectWorkbenchYoutubeBoundary = (route: SourceFile, findings: Finding[], lawId: string): void => {
-  if (!hasNumericLiteralInitializer(route, "YOUTUBE_DEFAULT_MAX_BYTES", 5_000_000_000)) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-finite-maxbytes", "YouTube Workbench requests must use a finite governed maxBytes constant.");
-  }
-  if (!objectLiteralContainsCallInitializer(route, "maxBytes", "min")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-request-maxbytes", "Workbench YouTube route must honor caller maxBytes while capping it to the governed finite maximum.");
-  }
-  if (!typeAliasPropertyNames(route, "VideoDownloadRequestBody").some((propertyName) => propertyName === "subtitleLanguages") ||
-    !hasCall(route, "readSubtitleLanguages")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/subtitle-language-pass-through", "Workbench route must pass caller subtitleLanguages through the mediated job input.");
-  }
-  if (!hasCall(route, "randomUUID")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/downloads-delivery-id", "Downloads delivery filenames must use collision-resistant ids.");
-  }
-  if (sourceContainsIdentifier(route, "Number") && hasPropertyAccess(route, "Number", "MAX_SAFE_INTEGER")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-unbounded-maxbytes", "YouTube Workbench requests must not use Number.MAX_SAFE_INTEGER for maxBytes.");
-  }
-  if (!hasCall(route, "rename")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/atomic-task-snapshot", "Async task snapshots must be persisted through an atomic temporary write and rename.");
-  }
-  if (!hasCall(route, "persistTerminalVideoDownloadTask") || !hasStringLiteral(route, "video_download_task_persistence_failed")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/terminal-persistence-failure", "Terminal async persistence failure must turn the task into an observable failed state.");
-  }
-  if (!hasCall(route, "persistenceFailureReason")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/initial-persistence-failure", "Initial async snapshot persistence failure must become an observable failed task response.");
-  }
-  if (!hasStringLiteral(route, "youtube_requires_async_status_route")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-sync-route-blocked", "Synchronous /api/video-download/start must reject YouTube long downloads.");
-  }
-  if (!hasCall(route, "safeDeliveryTitleSegment") || !sourceContainsIdentifier(route, "displayTitle")) {
-    pushFinding(findings, lawId, "src/app/workbench-video-download-routes.ts", "video-download/youtube-title-delivery-name", "Downloads delivery filenames must preserve sanitized displayTitle plus collision-resistant suffix.");
-  }
-};
-
 const inspectYoutubeTitleContract = (schema: SourceFile, findings: Finding[], lawId: string): void => {
   for (const propertyName of ["sourceTitle", "displayTitle"]) {
     if (!sourceContainsIdentifier(schema, propertyName)) {
@@ -412,27 +354,19 @@ export const inspectYoutubeProduction = (context: InspectorContext, findings: Fi
   const download = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-download.ts");
   const output = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/youtube-dlp-output.ts");
   const child = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/children/download-youtube-video-once.ts");
+  const abortHandle = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/abort-handle.ts");
   const result = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/runtime/result.ts");
   const abilityGroup = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/ability-group.ts");
-  const route = requiredSourceFile(context, findings, lawId, "src/app/workbench-video-download-routes.ts");
-  const client = requiredSourceFile(context, findings, lawId, "src/app/workbench-video-download-client.ts");
   const schema = requiredSourceFile(context, findings, lawId, "src/capabilities/video-download/schema.ts");
-  const support = requiredSourceFile(context, findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts");
-  if (!args || !binary || !download || !output || !child || !result || !abilityGroup || !route || !client || !schema || !support) return;
+  if (!args || !binary || !download || !output || !child || !abortHandle || !result || !abilityGroup || !schema) return;
   inspectYoutubeQualitySelectors(args, findings, lawId);
   inspectYoutubeSubtitleArgs(args, findings, lawId);
   inspectYoutubeDependencyGate(abilityGroup, binary, findings, lawId);
   inspectYoutubeMediaProbe(output, findings, lawId);
   inspectYoutubeDownloadRuntimeProof(download, findings, lawId);
   inspectYoutubeTitleRuntime(download, findings, lawId);
-  inspectYoutubeChildProof(child, findings, lawId);
+  inspectYoutubeChildProof(child, abortHandle, findings, lawId);
   inspectYoutubeResultProofConsistency(result, findings, lawId);
   inspectYoutubeTitleContract(schema, findings, lawId);
   inspectYoutubeFileArtifacts(output, child, findings, lawId);
-  inspectWorkbenchYoutubeBoundary(route, findings, lawId);
-  inspectYoutubeUiEvidence(client, findings, lawId);
-  if (support.getDescendantsOfKind(SyntaxKind.RegularExpressionLiteral).length > 0 ||
-    support.getDescendantsOfKind(SyntaxKind.NewExpression).some((node) => identifierName(node.getExpression()) === "RegExp")) {
-    pushFinding(findings, lawId, "src/lib/local-runtime/workbench-video-download-support.ts", "video-download/source-page-safety-no-regex", "Source-page script safety gate must not use regex or text blacklist enforcement.");
-  }
 };

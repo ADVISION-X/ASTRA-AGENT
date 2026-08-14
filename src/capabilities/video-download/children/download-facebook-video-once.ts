@@ -20,6 +20,7 @@ import {
   buildVideoDownloadFailure,
   buildVideoDownloadSuccess,
 } from "../runtime/result.js";
+import { createVideoDownloadAbortHandle } from "../runtime/abort-handle.js";
 
 type ParsedDownloadFacebookVideoInput = Extract<
   ParsedVideoDownloadAbilityInput,
@@ -62,7 +63,7 @@ const probeActiveFacebookPage = async (
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
 ): Promise<ReturnType<typeof parseFacebookMediaProbe>> =>
-  parseFacebookMediaProbe(await context.browserMediaSourcePort.evaluateActiveTab({
+  parseFacebookMediaProbe(await context.browserMediaSourcePort.evaluate({
     script: FACEBOOK_MEDIA_PROBE_SCRIPT,
     description: "collect Facebook video media candidates",
     abortSignal,
@@ -143,19 +144,18 @@ async function executeDownloadFacebookVideoOnce(
   context: VideoDownloadExecutionContext,
 ): Promise<VideoDownloadResult> {
   const base = { input, startedAt: new Date().toISOString() };
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), input.timeoutMs);
+  const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await probeActiveFacebookPage(context, abortController.signal);
+    const probe = await probeActiveFacebookPage(context, abortHandle.signal);
     if (!probe) return buildVideoDownloadFailure(base, "candidate_not_found", "Facebook media probe returned no structured result.");
     const candidates = selectCandidates(base, probe);
     return Array.isArray(candidates)
-      ? downloadFirstValidCandidate({ base, context, probe, candidates, abortSignal: abortController.signal })
+      ? downloadFirstValidCandidate({ base, context, probe, candidates, abortSignal: abortHandle.signal })
       : candidates;
   } catch (error) {
     return buildVideoDownloadFailure(base, "network_failed", asFailureMessage(error));
   } finally {
-    clearTimeout(timeout);
+    abortHandle.dispose();
   }
 }
 

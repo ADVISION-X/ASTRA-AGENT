@@ -1,6 +1,6 @@
 import type { AmazonKeywordRecord, AmazonTaskRecord, AmazonTaskStatus } from "./amazon-product-mining.schema.js";
 
-const COMPLETED_TASK_STATUSES = new Set<AmazonTaskStatus>(["package_completed", "failed", "manual_required", "terminated"]);
+const COMPLETED_TASK_STATUSES = new Set<AmazonTaskStatus>(["package_completed", "failed", "manual_required", "cancelled", "taken_over"]);
 
 export type AmazonTaskRunConfig = {
   taskId: string;

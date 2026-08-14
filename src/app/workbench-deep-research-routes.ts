@@ -3,6 +3,7 @@ import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { readJsonBody, readRequestBuffer, writeJson } from "./workbench-http.js";
+import { handleDeepResearchIntervention } from "./workbench-deep-research-intervention-routes.js";
 
 const DEEP_RESEARCH_PROVIDER_KINDS = [
   "gemini-api",
@@ -481,6 +482,7 @@ export const handleDeepResearchRequest = async (
   workbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> => {
+  if (await handleDeepResearchIntervention(request, response, workbench, url)) return true;
   const routeKey = `${request.method}:${url.pathname}`;
   const handler = buildDeepResearchRouteHandlers(request, response, workbench, url)[routeKey];
   return handler ? handler() : false;

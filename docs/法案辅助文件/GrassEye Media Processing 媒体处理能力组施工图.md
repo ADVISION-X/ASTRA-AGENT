@@ -43,11 +43,8 @@ Job Flow 决定什么时候处理、处理哪个 artifact、结果交给谁。
 
 已存在 App Shell skill registry：
 - Amazon Product Mining
-- Facebook Video Mining
 - Deep Research Analysis
-- Video Downloader
 - Amazon Invoice Upload
-- planned TikTok Product Mining
 
 已存在 video-download 能力组：
 - 负责下载单个视频 artifact

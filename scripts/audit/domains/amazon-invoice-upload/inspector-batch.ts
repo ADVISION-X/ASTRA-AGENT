@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 
 import { Node, SyntaxKind, type ArrayLiteralExpression, type BinaryExpression, type CallExpression, type IfStatement, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -238,14 +239,14 @@ function inspectPacingEntropy(generated: SourceFile, findings: InspectorFinding[
     return Node.isPropertyAccessExpression(expression)
       && expression.getName() === "getRandomValues"
       && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === "crypto";
+      && astIdentifierName(expression.getExpression()) === "crypto";
   });
   const hasMathRandom = samplerCalls.some((call) => {
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression)
       && expression.getName() === "random"
       && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === "Math";
+      && astIdentifierName(expression.getExpression()) === "Math";
   });
   if (!sampler || !Node.isArrowFunction(sampler) || sampler.getParameters().length !== 0 || !hasCryptoEntropy || hasMathRandom) {
     addFinding(findings, lawId, "src/app/workbench-home-amazon-invoice-client.ts", INTER_ITEM_PACING_CHECK_ID, "Batch pacing must sample one internal delay from crypto.getRandomValues without Math.random or caller input.");
@@ -275,15 +276,15 @@ function inspectPacingSequence(generated: SourceFile, findings: InspectorFinding
 
 function findIdentifierCall(calls: readonly CallExpression[], name: string): CallExpression | undefined {
   return calls.find((call) =>
-    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === name);
+    Node.isIdentifier(call.getExpression()) && astIdentifierName(call.getExpression()) === name);
 }
 
 function findLedgerSkip(startBatch: Node | undefined): IfStatement | undefined {
   return startBatch?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) => {
     const expression = statement.getExpression();
-    const directlyNamed = Node.isIdentifier(expression) && expression.getText() === "ledgerRecord";
+    const directlyNamed = Node.isIdentifier(expression) && astIdentifierName(expression) === "ledgerRecord";
     const containsName = expression.getDescendantsOfKind(SyntaxKind.Identifier)
-      .some((identifier) => identifier.getText() === "ledgerRecord");
+      .some((identifier) => astIdentifierName(identifier) === "ledgerRecord");
     const continues = statement.getThenStatement()
       .getDescendantsOfKind(SyntaxKind.ContinueStatement).length === 1;
     return (directlyNamed || containsName) && continues;
@@ -295,7 +296,7 @@ function findPendingDelayAssignment(startBatch: Node | undefined): BinaryExpress
     const left = expression.getLeft();
     return expression.getOperatorToken().getKind() === SyntaxKind.EqualsToken
       && Node.isIdentifier(left)
-      && left.getText() === "pendingInterItemDelay"
+      && astIdentifierName(left) === "pendingInterItemDelay"
       && expression.getRight().getKind() === SyntaxKind.TrueKeyword;
   });
 }
@@ -317,9 +318,9 @@ function inspectPacingOwnerBoundary(context: InspectorContext, findings: Inspect
   ]) {
     const forbiddenSource = source(context, forbiddenPath);
     if (forbiddenSource?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) =>
-      identifier.getText() === "runAmazonInvoiceInterItemPacing"
-        || identifier.getText() === "AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS"
-        || identifier.getText() === "AMAZON_INVOICE_INTER_ITEM_DELAY_MAX_MS")) {
+      astIdentifierName(identifier) === "runAmazonInvoiceInterItemPacing"
+        || astIdentifierName(identifier) === "AMAZON_INVOICE_INTER_ITEM_DELAY_MIN_MS"
+        || astIdentifierName(identifier) === "AMAZON_INVOICE_INTER_ITEM_DELAY_MAX_MS")) {
       addFinding(findings, lawId, forbiddenPath, INTER_ITEM_PACING_CHECK_ID, "Batch-only pacing must not enter BrowserController, the single-item flow, or the execution lease.");
     }
   }

@@ -1,5 +1,6 @@
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
+import type { PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 
 export type AmazonInvoiceUploadPdfFile = {
   filename: string;
@@ -12,6 +13,7 @@ export type AmazonInvoiceUploadTaskRecord = AmazonInvoiceUploadTaskResult & {
   mission: AmazonInvoiceUploadMissionInput;
   createdAt: string;
   updatedAt: string;
+  intervention: PluginInterventionSnapshot;
 };
 
 export type AmazonTaxInvoiceDownloadStatus =

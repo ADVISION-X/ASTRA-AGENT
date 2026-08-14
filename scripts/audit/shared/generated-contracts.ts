@@ -5,6 +5,7 @@ import {
   blueprintRefSchema,
   clauseBindingBaseSchema,
   executionGroupSchema,
+  primaryEvidenceSchema,
   sourceEvidenceSchema,
 } from "./manifest-contracts.js";
 
@@ -22,7 +23,11 @@ const auditConflictSchema = z
       "missing-clause-binding",
       "missing-source-evidence",
       "missing-source-symbol",
+      "unreachable-source-evidence",
+      "missing-blueprint-anchor",
       "missing-check-evidence",
+      "missing-primary-evidence",
+      "invalid-primary-evidence",
       "uncovered-law",
       "law-parse-error",
       "manifest-parse-error",
@@ -70,6 +75,7 @@ const staticClauseCoverageEntrySchema = z
     ownerInspectorPath: z.string().min(1),
     checkIds: z.array(z.string().min(1)).min(1),
     sourceEvidence: z.array(sourceEvidenceSchema).min(1),
+    primaryEvidence: primaryEvidenceSchema.optional(),
     manifestPath: z.string().min(1),
   })
   .strict();

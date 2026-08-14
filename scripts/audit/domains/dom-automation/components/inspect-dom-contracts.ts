@@ -17,7 +17,6 @@ import {
   zObjectPropertyNames,
   type DomFindingCollector,
 } from "./dom-inspector-support.js";
-import { allowedMigrationFunctionExports } from "./dom-lawful-zombie-exports.js";
 import type { InspectorContext } from "../../../shared/inspector-contracts.js";
 import type { SourceFile } from "ts-morph";
 
@@ -114,7 +113,7 @@ const inspectFacadeContract = (facade: SourceFile, collector: DomFindingCollecto
     filePath: domSurface.publicFacade,
     label: "DOM public facade",
   });
-  const allowedRuntimeExports = new Set<string>([...requiredChildFunctionExports, ...allowedMigrationFunctionExports]);
+  const allowedRuntimeExports = new Set<string>(requiredChildFunctionExports);
   for (const runtimeExport of runtimeExports) {
     if (allowedRuntimeExports.has(runtimeExport)) continue;
     collector.push({

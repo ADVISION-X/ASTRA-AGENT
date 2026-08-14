@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -160,7 +160,7 @@ type ExtractResult =
   | { blocker: string }
   | { reviews: ExtractedReview[]; hasNextPage: boolean };
 const extractActiveTabJson = async <T>(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   script: string,
   description: string,
   errorCode: string,
@@ -168,7 +168,7 @@ const extractActiveTabJson = async <T>(
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 8; attempt++) {
     try {
-      return await browser.evaluateActiveTab<T>({ script, description });
+      return await browser.evaluate<T>({ script, description });
     } catch (error) {
       lastError = error;
       await browser.wait(750);
@@ -187,13 +187,13 @@ export const buildReviewPageUrl = (reviewsUrl: string, pageIndex: number): strin
   return url.toString();
 };
 
-const buildBrowserReviewAdapter = (browser: BrowserController): ReviewPageAdapter => ({
+const buildBrowserReviewAdapter = (browser: BrowserTargetSession): ReviewPageAdapter => ({
   async extractReviewsFromPage({ reviewsUrl, pageIndex, detailId, taskId, asin }) {
     const url = buildReviewPageUrl(reviewsUrl, pageIndex);
     await browser.open({
       url,
       title: `Amazon reviews page ${pageIndex + 1}`,
-      reusePolicy: "reuse-active-tab",
+      reusePolicy: "reuse-exact-url",
     });
     await browser.wait(1500);
 
@@ -259,7 +259,7 @@ export type ReviewPaginationResult = {
 };
 
 export const runReviewPagination = async (input: {
-  browser?: BrowserController;
+  browser?: BrowserTargetSession;
   reviewsUrl: string;
   detailId: string;
   taskId: string;

@@ -61,7 +61,7 @@ export const createContext = (
 ): InspectorContext => {
   const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === "audit-truth");
   if (!planEntry) throw new Error("audit-truth plan entry is missing.");
-  const controller = createInspectorCheckSession(planEntry);
+  const controller = createInspectorCheckSession(planEntry, "acceptance-run:audit-truth-coverage");
   return {
     checks: controller.checks,
     completedReports: {},

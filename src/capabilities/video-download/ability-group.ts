@@ -22,41 +22,9 @@ import {
 } from "./registry.js";
 import { createFilesystemVideoArtifactStoragePort } from "./runtime/artifact-storage.js";
 import { buildVideoDownloadFailure } from "./runtime/result.js";
-import { buildTelegramWebVisibleMediaProbeScript } from "./runtime/telegram-web-visible-media-probe-script.js";
 import { resolveYtDlpBinaryPath } from "./runtime/youtube-dlp-binary.js";
 import { maxYoutubeHeightForQuality, youtubeDisplayTitle, youtubeExpectedSubtitleLanguages, youtubeLanguageMatches } from "./runtime/youtube-dlp-download.js";
 import { verifyFfprobeAvailable } from "./runtime/youtube-dlp-output.js";
-
-export type TelegramWebVisibleVideoCandidate = {
-  documentIdHash: string;
-  sourceKind: "visible_progressive_video";
-  redactedPathPrefix: string;
-  durationMs: number | null;
-  width: number | null;
-  height: number | null;
-  readyState: number;
-  visible: boolean;
-  viewportRect: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  cacheStorageAvailable: boolean;
-  cacheComplete: boolean;
-  cachedByteSize: number | null;
-  cacheRangeCount: number;
-};
-
-export type TelegramWebVisibleMediaProbeResult = {
-  ok: boolean;
-  status: "success" | "failed" | "review_required" | "invalid_input";
-  sourcePageUrl?: string;
-  candidateCount?: number;
-  candidates?: TelegramWebVisibleVideoCandidate[];
-  failureReason?: string;
-  reason?: string;
-};
 
 const stringOrFallback = (value: unknown, fallback: string): string =>
   typeof value === "string" ? value : fallback;
@@ -154,10 +122,10 @@ export const createVideoDownloadAbilityGroup = (
     listChildCapabilityIds(): VideoDownloadChildCapabilityId[] {
       return listVideoDownloadChildren();
     },
-    downloadVideo(input: VideoDownloadPublicRequest): Promise<VideoDownloadResult> {
+    downloadVideo(input: VideoDownloadPublicRequest, options?: { abortSignal?: AbortSignal }): Promise<VideoDownloadResult> {
       return executeVideoDownloadRequest({
         request: buildPublicRequestInput(input),
-        context,
+        context: options?.abortSignal ? { ...context, abortSignal: options.abortSignal } : context,
         registry,
       });
     },
@@ -183,30 +151,6 @@ export const createVideoDownloadAbilityGroupFromFilesystem = (input: {
     artifactStoragePort: createFilesystemVideoArtifactStoragePort(input.dataDir),
     ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   });
-
-export const probeTelegramWebVisibleMediaSourcePage = async (input: {
-  browserMediaSourcePort: BrowserMediaSourcePort;
-  sourcePageUrl: string;
-  abortSignal?: AbortSignal;
-}): Promise<TelegramWebVisibleMediaProbeResult> => {
-  if (!input.browserMediaSourcePort.evaluateSourcePage) {
-    return {
-      ok: false,
-      status: "review_required",
-      sourcePageUrl: input.sourcePageUrl,
-      candidateCount: 0,
-      candidates: [],
-      failureReason: "source_page_evaluation_unavailable",
-      reason: "Browser media source port does not support source page evaluation.",
-    };
-  }
-  return input.browserMediaSourcePort.evaluateSourcePage<TelegramWebVisibleMediaProbeResult>({
-    sourcePageUrl: input.sourcePageUrl,
-    script: buildTelegramWebVisibleMediaProbeScript(),
-    description: "collect Telegram Web visible media list",
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  });
-};
 
 export const prepareVideoDownloadRuntimeDependencies = async (): Promise<void> => {
   await resolveYtDlpBinaryPath({ refresh: process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0" });

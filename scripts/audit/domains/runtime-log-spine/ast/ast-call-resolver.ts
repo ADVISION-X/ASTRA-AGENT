@@ -11,13 +11,14 @@ import {
   resolveRuntimeEmitCall,
   resolveStageLifecycleCall,
 } from "./ast-call-resolver-support.js";
+import { astExpressionPath, astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { getStaticMemberName } from "./ast-node-utils.js";
 
 const createResolvedCall = (input: {
   filePath: string;
   line: number;
   kind: ResolvedCall["kind"];
-  calleeText: string;
+  callStart: number;
   symbolName: string | null;
   objectLiteralArg: ReturnType<typeof firstObjectArg>;
 }): ResolvedCall => input;
@@ -27,7 +28,7 @@ const firstObjectArg = (call: CallExpression) => call.getArguments()[0]?.asKind(
 const includesAny = (text: string, fragments: readonly string[]): boolean =>
   fragments.some((fragment) => text.includes(fragment));
 
-const browserActionNames = new Set(["open", "evaluateActiveTab", "textInput", "scroll", "click", "fill", "upload"]);
+const browserActionNames = new Set(["open", "evaluate", "textInput", "scroll", "click", "fill", "upload"]);
 
 const buildAliasIndex = (sourceFile: SourceFile): AliasIndex => {
   const index: AliasIndex = {
@@ -46,7 +47,8 @@ const buildAliasIndex = (sourceFile: SourceFile): AliasIndex => {
     const nameNode = declaration.getNameNode();
     const initializer = declaration.getInitializer();
     if (Node.isIdentifier(nameNode)) {
-      registerIdentifierAlias(index, nameNode.getText(), initializer);
+      const name = astIdentifierName(nameNode);
+      if (name) registerIdentifierAlias(index, name, initializer);
     }
     registerObjectBindingAliases(index, nameNode, initializer);
   }
@@ -57,36 +59,37 @@ const buildAliasIndex = (sourceFile: SourceFile): AliasIndex => {
 const resolveSemanticFallbackCall = (
   filePath: string,
   line: number,
-  calleeText: string,
+  calleePath: string,
+  callStart: number,
   memberName: string | null,
   objectLiteralArg: ReturnType<typeof firstObjectArg>,
 ): ResolvedCall | null => {
-  if (includesAny(calleeText, ["recoveryLogger", "Recovery"])) {
+  if (includesAny(calleePath, ["recoveryLogger", "Recovery"])) {
     return createResolvedCall({
       filePath,
       line,
       kind: "recovery-log",
-      calleeText,
+      callStart,
       symbolName: memberName,
       objectLiteralArg,
     });
   }
-  if (includesAny(calleeText, ["AI_", "ai", "upload", "parse"])) {
+  if (includesAny(calleePath, ["AI_", "ai", "upload", "parse"])) {
     return createResolvedCall({
       filePath,
       line,
       kind: "ai-log",
-      calleeText,
+      callStart,
       symbolName: memberName,
       objectLiteralArg,
     });
   }
-  if ((memberName !== null && browserActionNames.has(memberName)) || browserActionNames.has(calleeText)) {
+  if ((memberName !== null && browserActionNames.has(memberName)) || browserActionNames.has(calleePath)) {
     return createResolvedCall({
       filePath,
       line,
       kind: "browser-action-log",
-      calleeText,
+      callStart,
       symbolName: memberName,
       objectLiteralArg,
     });
@@ -96,22 +99,23 @@ const resolveSemanticFallbackCall = (
 
 const resolveCall = (filePath: string, call: CallExpression, index: AliasIndex): ResolvedCall => {
   const expression = call.getExpression();
-  const calleeText = expression.getText();
+  const calleePath = astExpressionPath(expression) ?? getStaticMemberName(expression) ?? "";
   const objectLiteralArg = firstObjectArg(call);
   const line = call.getStartLineNumber();
+  const callStart = call.getStart();
 
-  const resolved = resolveConsoleCall({ filePath, line, expression, calleeText, index, objectLiteralArg })
-    ?? resolveRuntimeEmitCall({ filePath, line, expression, calleeText, index, objectLiteralArg })
-    ?? resolveEventFactoryCall({ filePath, line, expression, calleeText, objectLiteralArg })
-    ?? resolveStageLifecycleCall({ filePath, line, expression, calleeText, index, objectLiteralArg })
-    ?? resolveRecoveryCall({ filePath, line, expression, calleeText, index, objectLiteralArg })
-    ?? resolveSemanticFallbackCall(filePath, line, calleeText, getStaticMemberName(expression), objectLiteralArg);
+  const resolved = resolveConsoleCall({ filePath, line, expression, callStart, index, objectLiteralArg })
+    ?? resolveRuntimeEmitCall({ filePath, line, expression, callStart, index, objectLiteralArg })
+    ?? resolveEventFactoryCall({ filePath, line, expression, callStart, objectLiteralArg })
+    ?? resolveStageLifecycleCall({ filePath, line, expression, callStart, index, objectLiteralArg })
+    ?? resolveRecoveryCall({ filePath, line, expression, callStart, index, objectLiteralArg })
+    ?? resolveSemanticFallbackCall(filePath, line, calleePath, callStart, getStaticMemberName(expression), objectLiteralArg);
 
   return resolved ?? createResolvedCall({
     filePath,
     line,
     kind: "unknown",
-    calleeText,
+    callStart,
     symbolName: getStaticMemberName(expression),
     objectLiteralArg,
   });
@@ -130,7 +134,7 @@ export const resolveCallsInSourceFile = (sourceFile: SourceFile, filePath: strin
         filePath,
         line: call.getStartLineNumber(),
         expression: argument,
-        calleeText: argument.getText(),
+        callStart: argument.getStart(),
         index,
         objectLiteralArg: undefined,
       });

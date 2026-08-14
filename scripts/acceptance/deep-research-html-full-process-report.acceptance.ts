@@ -15,7 +15,6 @@ import {
 const promptShell = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts", "utf8");
 const htmlStage = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts", "utf8");
 const htmlContract = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts", "utf8");
-const analysisRunner = readFileSync("src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts", "utf8");
 const packageJson = readFileSync("package.json", "utf8");
 const ciFull = readFileSync("scripts/audit/ci-full.ts", "utf8");
 
@@ -44,7 +43,6 @@ assert(htmlStage.includes("readBusinessHtmlCaseFileFailure"), "HTML parser must 
 assert(htmlStage.includes("ensureCanonicalNStageRetentionAppendix"), "HTML parser must deterministically append canonical N-stage evidence.");
 assert(htmlStage.includes("business_html_n_stage_citation_missing"), "Full-process HTML acceptance must assert business_html_n_stage_citation_missing.");
 assert(htmlStage.includes("business_html_n_stage_retention_below_80"), "Full-process HTML acceptance must assert business_html_n_stage_retention_below_80.");
-assert(analysisRunner.includes("Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs)"), "Prompt-specific HTML timeout must not be shortened by the runtime default.");
 assert(packageJson.includes("acceptance:deep-research-html-full-process-report"), "package.json must wire full-process HTML acceptance.");
 assert(ciFull.includes("acceptanceSteps"), "ci:full must source acceptance execution from the phase plan.");
 

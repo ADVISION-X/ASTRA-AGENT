@@ -31,7 +31,7 @@ DOM Automation does not own:
 
 - User-demand routing.
 - Business job flow.
-- Amazon / Facebook / platform-specific decisions.
+- Platform-specific decisions.
 - AI planning.
 - Browser session lifecycle.
 - Evidence store truth.
@@ -84,7 +84,7 @@ No new DOM child ability may be added until this law and its construction bluepr
   ],
   "forbidden": [
     "Amazon-specific workflow inside DOM Automation.",
-    "Facebook-specific workflow inside DOM Automation.",
+    "Platform-specific workflow inside DOM Automation.",
     "Business success decision inside DOM Automation.",
     "DOM code importing src/plugins.",
     "DOM code calling AI to plan browser actions."
@@ -821,7 +821,42 @@ Forbidden:
 - Hardcoding "Accept all cookies" in DOM core; the job flow provides the approved text.
 - Treating overlay dismissal as a business step; it is a page-clearing support action only.
 
-## 18. Web Compatibility Covenant
+## 18. Law APEX-DOM-020-V1 — Exact Target And Document Binding
+
+```apex-law
+{
+  "lawId": "APEX-DOM-020-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "dom-automation",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "summary": "Every DOM ref and action must remain bound to one opaque BrowserTargetRef and one current BrowserDocumentRef.",
+  "required": [
+    "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
+    "Locate, fill, click, upload, wait, verify and scroll reject stale, foreign, navigated or mismatched document refs before side effects.",
+    "DOM ordinary actions use target-bound BrowserController commands without foreground focus; only an explicitly approved native picker may request PhysicalFocusLease.",
+    "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
+  ],
+  "forbidden": [
+    "evaluateActiveTab or any active/current/first page fallback",
+    "raw tab, target, session or window identifiers in DOM public contracts",
+    "reusing an element ref after document generation changes",
+    "system mouse or keyboard for ordinary DOM click, fill or scroll",
+    "business plugins bypassing the DOM facade to call browser page primitives"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-dom-020-requirement",
+      "statement": "Every DOM ref and action must remain bound to one opaque BrowserTargetRef and one current BrowserDocumentRef.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "dom-automation"
+    }
+  ]
+}
+```
+
+## 19. Web Compatibility Covenant
 
 The seven active child abilities collectively must cover the interaction surface of the currently claimed web back-office interaction surface.
 
@@ -851,7 +886,7 @@ DOM Automation does not claim to handle:
 
 DOM Automation must not claim web compatibility readiness unless it can demonstrably handle all rows in the Capability Coverage Map above, or explicitly documents each gap with a structured `review_required` return and a known remediation path.
 
-## 19. Law APEX-DOM-013-V1 — Audit Enforcement
+## 20. Law APEX-DOM-013-V1 — Audit Enforcement
 
 ```apex-law
 {
@@ -902,7 +937,7 @@ Minimum acceptance:
 - Local DOM fixture smoke covers all seven child abilities: snapshot, locate, fill, click, upload, wait, and verify.
 - Amazon invoice upload smoke remains a job-flow acceptance, not DOM-only proof.
 
-## 20. Production Readiness Gate
+## 21. Production Readiness Gate
 
 DOM Automation may be called production-stable only when all are true:
 
@@ -927,7 +962,7 @@ If any item is missing, the correct status is:
 DOM Automation is active but not production-stable.
 ```
 
-## 21. Final Principle
+## 22. Final Principle
 
 ```txt
 DOM Automation is allowed to know the page structure.

@@ -6,6 +6,7 @@ import type {
   AmazonProductDetail,
   AmazonTaskRecord,
 } from "./amazon-product-mining.schema.js";
+import type { PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 
 type AmazonFlowControlStorage = {
   getKeywordOpportunityReview(reviewId: string): AmazonKeywordOpportunityReviewRecord | null;
@@ -13,15 +14,20 @@ type AmazonFlowControlStorage = {
   getSearchResultProductLinksForTask(taskId: string): Array<{ itemId: string; detailId: string }>;
   getTask(taskId: string): AmazonTaskRecord | null;
   listKeywordOpportunityReviews(input?: { taskId?: string }): AmazonKeywordOpportunityReviewRecord[];
+  getIntervention(taskId: string): PluginInterventionSnapshot | null;
+  acknowledgeIntervention(taskId: string, checkpoint: string): PluginInterventionSnapshot;
 };
 
 type AmazonFlowControlRuntime = {
+  ctx: {
+    browser: { releaseTargetForOperator?: (input: { reason: string }) => Promise<unknown>; getTarget?: () => unknown };
+    aiInputGateway: { releaseProviderTargetForOperator?: (ownerKey: string) => Promise<boolean> };
+  };
   miningInput: AmazonMiningInput;
   storage: AmazonFlowControlStorage;
   taskId: string;
 };
 
-export type AmazonFlowControlState = "active" | "paused" | "terminated";
 export type AmazonFlowHaltResult = { kind: "halted"; result: AmazonTaskResult };
 
 export const toAmazonTaskResult = (runtime: AmazonFlowControlRuntime): AmazonTaskResult =>
@@ -31,16 +37,19 @@ export const toAmazonTaskResult = (runtime: AmazonFlowControlRuntime): AmazonTas
     message: "task_record_missing",
   }));
 
-export const getAmazonFlowControlState = (runtime: AmazonFlowControlRuntime): AmazonFlowControlState => {
-  const task = runtime.storage.getTask(runtime.taskId);
-  if (task?.status === "paused") return "paused";
-  if (task?.status === "terminated") return "terminated";
-  return "active";
-};
-
-export const haltIfAmazonOperatorControlled = (runtime: AmazonFlowControlRuntime): AmazonFlowHaltResult | null => {
-  const state = getAmazonFlowControlState(runtime);
-  return state === "active" ? null : { kind: "halted", result: toAmazonTaskResult(runtime) };
+export const haltIfAmazonOperatorControlled = async (runtime: AmazonFlowControlRuntime): Promise<AmazonFlowHaltResult | null> => {
+  const intervention = runtime.storage.getIntervention(runtime.taskId);
+  if (!intervention || intervention.state === "running") return null;
+  if (intervention.state === "pause_requested" || intervention.state === "cancel_requested" || intervention.state === "takeover_requested") {
+    const acknowledged = runtime.storage.acknowledgeIntervention(runtime.taskId, runtime.storage.getTask(runtime.taskId)?.status ?? "unknown");
+    if (acknowledged.state === "taken_over" && runtime.ctx.browser.getTarget?.()) {
+      await runtime.ctx.browser.releaseTargetForOperator?.({ reason: `operator takeover for amazon-product-mining:${runtime.taskId}` });
+    }
+    if (acknowledged.state === "taken_over") {
+      await runtime.ctx.aiInputGateway.releaseProviderTargetForOperator?.(`amazon-product-mining:${runtime.taskId}`);
+    }
+  }
+  return { kind: "halted", result: toAmazonTaskResult(runtime) };
 };
 
 export const hasAmazonKeywordOpportunityReview = (

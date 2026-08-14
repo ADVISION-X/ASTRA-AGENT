@@ -1,6 +1,3 @@
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { composeArtifacts } from "./build/compose-artifacts.js";
 import { discoverLawFiles } from "./build/discover-law-files.js";
 import { loadManifests } from "./build/load-manifests.js";
@@ -26,12 +23,3 @@ export const buildAuditArtifacts = (): void => {
   }
   process.stdout.write("[AUDIT-BUILD] PASS\n");
 };
-
-const isEntrypoint = (): boolean => {
-  const invokedPath = process.argv[1];
-  return invokedPath !== undefined && resolve(invokedPath) === fileURLToPath(import.meta.url);
-};
-
-if (isEntrypoint()) {
-  buildAuditArtifacts();
-}

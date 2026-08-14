@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { waitForExactAttachmentCount as waitForExactAttachmentCountImpl } from "./web-chat-upload-page-actions.js";
@@ -15,27 +15,27 @@ import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hy
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
 
 export const focusComposer = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "focus AI web chat composer for file paste",
     script: FOCUS_COMPOSER_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
 const verifyComposerFocused = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "verify AI web chat composer focus",
     script: VERIFY_COMPOSER_FOCUSED_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
 export const waitForExactAttachmentCount = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],
@@ -56,7 +56,7 @@ export const waitForExactAttachmentCount = (
 );
 
 export const waitForComposerFocused = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   timeoutMs: number,
 ): Promise<void> => {
@@ -82,22 +82,22 @@ export const waitForComposerFocused = async (
 };
 
 export const clickChatGptSendButton = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "click ChatGPT send button for pasted text card",
     script: CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
 export const openChatGptNativeFilePicker = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   expectedPageUrl: string,
 ): Promise<void> => {
   await dismissChatGptSearchDialogIfVisible(browser, context);
-  const addButton = await browser.evaluateActiveTab<WebChatEvaluation>({
+  const addButton = await browser.evaluate<WebChatEvaluation>({
     description: "open ChatGPT attachment menu",
     script: buildClickChatGptAddButtonScript(expectedPageUrl),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
@@ -108,7 +108,7 @@ export const openChatGptNativeFilePicker = async (
   const deadline = Date.now() + 10_000;
   let lastMessage = "attachment menu was not checked";
   while (Date.now() < deadline) {
-    const menuItem = await browser.evaluateActiveTab<WebChatEvaluation & {
+    const menuItem = await browser.evaluate<WebChatEvaluation & {
       targetPoint?: { x: number; y: number };
     }>({
       description: "choose ChatGPT local file upload action",

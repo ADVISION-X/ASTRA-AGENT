@@ -1,6 +1,25 @@
 {
-  "generatedAt": "2026-08-13T00:02:46.275Z",
+  "generatedAt": "2026-08-14T23:37:42.054Z",
   "laws": [
+    {
+      "lawId": "GRASSEYE-AI-CHOICE-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "AI is a bounded choice judge by default; it may not plan workflows, control browsers, or choose sensitive final actions.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-ai-choice-001-requirement",
+          "statement": "Bounded-choice callers own the options and downstream action while AI returns only selectedOptionId, confidence, and reason unless one active P0 job law owns a narrower audited content contract.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "ai-input-gateway"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-ai-capability.instructions.md",
+      "blockIndex": 0
+    },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
       "status": "active",
@@ -17,6 +36,25 @@
           "ownerDomain": "ai-input-gateway"
         }
       ],
+      "codePurityLiveness": {
+        "lawfulDynamicRegistryConsumers": [
+          {
+            "consumerFilePath": "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
+            "registryFilePath": "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
+            "registryExportName": "geminiApiAdapter"
+          },
+          {
+            "consumerFilePath": "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
+            "registryFilePath": "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
+            "registryExportName": "geminiWebChatAdapter"
+          },
+          {
+            "consumerFilePath": "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
+            "registryFilePath": "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+            "registryExportName": "gptWebChatAdapter"
+          }
+        ]
+      },
       "required": [
         "The canonical ability-group id is ai-input-gateway and its public execute contract accepts governed prompt identity, input refs, provider kind, limits, and optional internally minted continuation proof.",
         "Every provider execution returns one AiFeedResult with raw response identity and provider proof.",
@@ -50,12 +88,14 @@
         "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
         "The serialized browser-mutation lease covers only opening a new conversation in that tab, attachment selection, prompt entry, submission proof, completed-chat manual-style rename, exact chat switching, DOM capture and cleanup; provider generation wait never holds that lease. Within the bounded admitted production window, tasks still waiting to submit have priority over ordinary response patrol. Submission and patrol waiters use one SQLite ticket ledger, and patrol admission is strict FIFO after the admitted submission set is drained.",
         "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
+        "When a plugin-owned task acknowledges takeover, AI Input Gateway records that exact owner key, stops title housekeeping, releases the single provider target to the operator, and makes all new web-chat executions wait without reacquiring the tab until that same owner explicitly resumes.",
         "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, and unproved native selection return review_required.",
         "Captured raw response text, hash, provider URL, timing, warnings, and continuation proof survive later cleanup failures."
       ],
       "forbidden": [
         "reading cookies, browser storage, passwords, tokens, or hidden credentials",
         "automatic login, CAPTCHA bypass, account rotation, or unbounded retry",
+        "title housekeeping, patrol, submission or another task reacquiring the provider target while any plugin takeover owner remains active",
         "downgrading or erasing a completely captured provider response because later cleanup failed"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
@@ -88,8 +128,8 @@
         "Submitted feeds release the browser-mutation lease before provider generation completes; while any admitted task still awaits submit, ordinary response patrol yields. Submission and patrol waiter identity, kind and monotonically increasing ticket persist in one SQLite scheduler ledger, stale process waiters are reclaimed, and patrols enter strictly by the oldest durable patrol ticket. After all admitted submissions are recorded, the patrol loop clicks the exact non-WEB sidebar row selected by captured canonical conversation identity and verifies the exact marker; a not-yet-materialized automatic sidebar title, a row that is visible but not yet focusable, and the same condition encountered during response-capture preflight or before-poll routing are retryable waiting_provider states rather than terminal failure. They must release the short patrol lease, wait until the next patrol, and must not persist review_required. The operator-owned WEB_CHAT_PATROL_INTERVAL_MS is bounded from one to sixty seconds and defaults to five seconds; it is never a caller field. After rename it clicks the exact system title and verifies the marker. Each patrol acquires only the short mutation lease.",
         "A ChatGPT answer remains generating whenever the exact assistant turn lacks its completion action or the current main conversation exposes a visible thinking, reasoning, loading or shimmer progress node. A page-global aria-busy owned by sidebar, navigation, composer, upload UI or another non-conversation surface is never generation evidence. Intermediate research prose, tool summaries and citation-verification text are never treated as a completed answer.",
         "Whenever ChatGPT shows the ordinary request-frequency dialog, one process-wide unrouted watcher serves the single physical ChatGPT tab for every in-flight task. The highest-priority survival action is fixed: immediately click the unique acknowledgement such as 明白了, remain on the current conversation without page refresh or reload, and wait for the live DOM to recover before any title search, prompt action or response capture resumes.",
-        "DOM evaluation and physical mouse or keyboard input must bind to the same exact Chrome automation window. Before every physical action the runtime matches the automation window to exactly one accessibility window by full bounds, raises that exact window with AXRaise, and fails closed when the match is missing or ambiguous. A zero-match caused by the bounded Chrome-to-accessibility synchronization race receives only one sub-second stabilization loop against the same full bounds; ambiguity still fails immediately, and this focus handoff may never turn a visibly completed response into minutes of blind provider polling. Application activation or an unrelated profile chooser, logged-out window or foreground Chrome window is never accepted as proof of physical focus.",
-        "A sidebar row is clickable only when its target point is inside the visible browser viewport. If the exact canonical URL or system-title row exists below or above the viewport, the runtime performs a real wheel scroll anchored in the sidebar, re-locates the same row, and only then clicks and verifies the marker. DOM existence or a positive rectangle outside the viewport is never click proof.",
+        "Every web-chat page operation binds to the internally held exact ChatGPT BrowserTargetRef and current BrowserDocumentRef. DOM evaluation, CDP mouse events, CDP text input, CDP scroll and screenshot do not activate Chrome and do not depend on the foreground tab. Only an approved native file picker or unavoidable OS pointer/keyboard action may acquire a Browser-owned PhysicalFocusLease bound to that exact target/window/document for at most fifteen seconds; operator focus change cancels it and no automatic reacquisition is allowed.",
+        "A sidebar row is actionable only after target-bound DOM evaluation proves it is inside the exact ChatGPT target viewport. If it is outside, the runtime performs target-bound CDP scrolling in that sidebar, re-locates the same row, then dispatches the click to the same target and verifies the marker. DOM existence outside the viewport, physical wheel fallback, current-active-tab selection and URL-first routing are never click proof.",
         "Immediately after the exact assistant turn is complete, the runtime atomically persists the answer bytes, hash, byte count, capture time and provider page URL as a response checkpoint before attempting chat rename, artifact projection or cleanup. The same execution record atomically persists chatTitleRename=pending when the canonical GPT title has not yet been verified; this is durable housekeeping debt, not provider-result state. The execution ledger persists the real capacity lease as soon as it is acquired. The durable checkpoint is already the completed provider result: gateway execution races provider post-processing against the checkpoint and must publish the checkpointed bytes and persisted provider lease as soon as the checkpoint exists, even while title rename, artifact decoration or cleanup remains blocked. The checkpoint patrol is owned by that race and is stopped in a finally path on provider success, provider failure or checkpoint publication; no failed provider attempt may leave a fifty-millisecond checkpoint poller alive. Those post-processing actions may continue under their existing lease after publication, and any failure appends evidence while preserving response_captured. A legacy checkpoint that predates lease persistence may receive one deterministic checkpoint-recovery lease only after execution id, attempt id, input hash, response hash and checkpoint bytes all match; that recovery lease is persisted before publication. An error after checkpoint persistence may never downgrade that result or return the task to provider polling. Row-scoped rename and other browser housekeeping are bounded post-processing only and can never withhold the user's captured answer.",
         "Every execution failure appends a bounded durable failure ledger entry containing occurrence time, attempt id, pre-failure phase, classification, recoverability and a bounded reason. A process exit or later successful recovery never erases the prior failure evidence.",
         "Temporary provider unavailability before or after submission, including an absent controlled tab, a composer that has not become ready, an incompletely hydrated parent conversation, bounded capacity or rate limiting, browser disconnection, transient network failure, and an exact submitted conversation that is not currently locatable, is recovery_pending and retains the same execution id, input hash, logical-turn marker, task title and failure evidence. Every accumulated failure entry is reclassified independently on recovery; any number of recoverable entries remains recoverable. A newly emitted terminal-state error must append the last real root reason in the same durable error, and recovery must classify that root rather than the terminal wrapper. A legacy synthetic terminal-state echo that lacks a root is evidence only and receives one bounded recovery pass rather than becoming a new blocking cause or an infinite restart authority. Retry count and failure-ledger length never promote recoverable provider lookup into a terminal user block. Each individual lookup is bounded and releases the browser lease before the next scheduled recovery. Login, captcha, two-factor, security barriers, multiple physical provider tabs or identity ambiguity require review_required inside the generic gateway; an authorized product factory keeps those conditions as internal recovery_pending while showing its user only processing. If multiple physical tabs are detected after durable submission, the gateway records the exact submitted URL in failure proof and retains the same execution and marker; monitor interference may never authorize a second provider submission. Invalid immutable input identity remains failed.",
@@ -206,6 +246,37 @@
       "blockIndex": 4
     },
     {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-invoice-upload",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance+real-chrome",
+      "summary": "Amazon invoice upload alone owns revisioned whole-task intervention at item and submission checkpoints.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
+          "statement": "Amazon invoice upload alone owns revisioned whole-task intervention at item and submission checkpoints.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "amazon-invoice-upload"
+        }
+      ],
+      "required": [
+        "The plugin store persists intervention revision, state, reason, request identity and owning checkpoint before acknowledgement.",
+        "Pause, cancel, takeover and resume use expectedRevision CAS and stop new Browser commands at the next item or submission-safe checkpoint.",
+        "A submitted upload waits only for its existing result checkpoint; uncertain submission becomes review_required and is never replayed.",
+        "App, route, mediator and local runtime only forward named plugin-facade methods."
+      ],
+      "forbidden": [
+        "route-owned intervention state",
+        "generic intervention dispatcher",
+        "automatic replay of an uncertain upload",
+        "persisted raw Chrome target ids"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+      "blockIndex": 0
+    },
+    {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
       "status": "active",
       "tier": "P0",
@@ -235,7 +306,7 @@
         "Second Amazon invoice HTTP server, route bus, mission loop, browser controller, evidence chain, or runtime log chain."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 0
+      "blockIndex": 1
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
@@ -265,7 +336,7 @@
         "DOM automation step without evidenceStepId."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
@@ -293,7 +364,7 @@
         "API Boundary or App Shell owning Seller Central DOM sequence."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
@@ -320,7 +391,7 @@
         "Uploading a downloaded CSV to the invoice upload dialog."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
@@ -350,7 +421,7 @@
         "External input selector, actionPlan, browserCommand, flowStep, abilityGroupId, cookie, sellerCentralCookie, or browserProfileDirectory."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
@@ -380,7 +451,7 @@
         "UI implementing Seller Central download sequence."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 6
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
@@ -411,7 +482,7 @@
         "External artifact response returns raw CSV content."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 7
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
@@ -441,7 +512,7 @@
         "Manual generated artifact truth."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 8
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
@@ -486,7 +557,7 @@
         "A ledger domTraceRef or runtime-evidence path that has no active writer and cannot be resolved."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 9
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
@@ -495,11 +566,11 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "flow+ast+acceptance+chrome",
-      "summary": "Amazon invoice batch upload must reuse the active Seller Central order worker tab across items and must not make per-item tab close a success condition.",
+      "summary": "Amazon invoice batch upload must retain one owner-bound exact Seller Central target across items and must not make target cleanup a per-item success condition.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
-          "statement": "Amazon invoice batch upload must reuse the active Seller Central order worker tab across items and must not make per-item tab close a success condition.",
+          "statement": "Amazon invoice batch upload must retain one owner-bound exact Seller Central target across items and must not make per-item target cleanup a success condition.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "amazon-invoice-upload"
         }
@@ -511,24 +582,23 @@
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
       ],
       "required": [
-        "Before deciding Seller Central tab reuse, the implementation refreshes current Chrome navigation state from the real browser.",
-        "When any retained browser tab is already on the same Seller Central host, the next order detail navigation uses reuse-host-tab to focus that tab and replace its URL.",
-        "When the active browser tab is already on the same non-HTTP test host, the next order detail navigation uses reuse-active-tab.",
-        "Successful upload verification records upload_success without calling closeActiveTab.",
-        "Already-uploaded verification records already_uploaded without calling closeActiveTab.",
+        "The amazon-invoice-upload owner retains one BrowserTargetSession whose exact target identity is refreshed from real Chrome before each item.",
+        "The next order detail navigation uses reuse-exact-url inside that owner session and never selects a same-host, active, current, first, or front tab fallback.",
+        "Successful upload verification records upload_success without closing the owner target.",
+        "Already-uploaded verification records already_uploaded without closing the owner target.",
         "upload_success and already_uploaded must remain distinct in task records, ledger projection, latest lookup, and APP batch rendering.",
         "Tab cleanup, if needed, is a batch/session cleanup concern and must not change per-item upload_success into review_required.",
         "Each reused-tab item must still verify the target order id and invoice action state before upload or already-uploaded judgment."
       ],
       "forbidden": [
-        "Per-item closeActiveTab inside upload success verification.",
-        "Per-item closeActiveTab inside already-uploaded verification.",
-        "Opening a new Seller Central tab for every batch item when any retained tab is already on the same Seller Central host.",
-        "Deciding Seller Central tab lifecycle from stale controller state without reading real Chrome state.",
+        "Per-item closeTarget inside upload success verification.",
+        "Per-item closeTarget inside already-uploaded verification.",
+        "Opening a new Seller Central target for every batch item instead of retaining the plugin-owned exact session.",
+        "Selecting a Seller Central target from active/current/front/first tab or same-host fallback.",
         "Treating tab close failure as invoice upload failure after Amazon success or already-uploaded state is verified."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
@@ -553,7 +623,7 @@
         "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
         "src/app/workbench-home-amazon-invoice-client.ts",
         "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
-        "src/lib/browser/current-chrome-browser-screenshot.ts",
+        "src/lib/browser/exact-target/browser-command-runtime.ts",
         "scripts/audit/domains/amazon-invoice-upload/**",
         "scripts/acceptance/amazon-invoice-upload*.ts",
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
@@ -570,7 +640,7 @@
         "Each order-detail snapshot timeout and poll wait is clamped to the current window's remaining time so eight nominal 2-second windows cannot silently become eight overlong waits.",
         "Every Amazon invoice DOM snapshot has an explicit execution deadline no greater than 1800ms so a low-level Chrome evaluation cannot silently exceed the 2-second business window.",
         "A DOM evaluation exception inside an order-detail observation is converted into that window's structured failure and the next finite same-page observation; it must not bypass the governed window sequence.",
-        "Evidence screenshot capture activates the controlled Chrome window before capture so a transient zero-accessibility-window state cannot fail the invoice item.",
+        "Evidence screenshot capture binds the exact targetRef/documentRef and runs through the background CDP target without activating Chrome or changing the operator's foreground tab.",
         "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting eight windows returns review-required failure without refresh or repeat navigation.",
         "After Manage invoice is clicked, existing-invoice discovery uses an AND THEN wait: the unique visible invoice dialog must bind to the current amazonOrderId and expose either a matching uploaded invoice row, a fully rendered upload-ready table and upload action, or the exact no-actions blocker before the flow may branch.",
         "A short elapsed-time deadline must not turn a still-loading Manage invoice dialog into review_required and must not permit the local batch to start the next invoice.",
@@ -595,7 +665,7 @@
         "Proceeding to upload before target order id, invoice action state, and amount equality are proven."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
@@ -664,7 +734,7 @@
         "Continuing after task watchdog timeout, execution busy, explicit review_required, blocked_auth, or an unknown single-upload transport outcome."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 11
+      "blockIndex": 12
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
@@ -673,11 +743,11 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "runtime-log+acceptance+audit",
-      "summary": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+      "summary": "API-triggered Amazon invoice upload must preserve the operator's foreground Chrome focus and must not perform a website-tab return action after the Amazon terminal result.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
-          "statement": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+          "statement": "API-triggered Amazon invoice upload must preserve the operator's foreground Chrome focus and perform no website-return browser action after terminal persistence.",
           "evidenceMode": "acceptance",
           "ownerDomain": "amazon-invoice-upload"
         }
@@ -685,7 +755,7 @@
       "appliesTo": [
         "src/app/workbench-amazon-routes.ts",
         "src/lib/browser/browser-controller.ts",
-        "src/lib/browser/current-chrome-window-control.ts",
+        "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
         "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
         "scripts/audit/domains/amazon-invoice-upload/**",
@@ -696,28 +766,21 @@
       "required": [
         "The external upload route may preserve sourceSystem and requestId only as API source metadata from X-GrassEye-Source-System / X-GrassEye-Request-Id or the legacy mission payload.",
         "sourceSystem and requestId must not become DOM selectors, browser commands, Seller Central workflow inputs, or upload success evidence.",
-        "For API-sourced upload missions with adminOrderUrl, the task service must first persist the original Amazon upload terminal result, then attempt website tab return.",
-        "Website return must use a focus-only existing-tab browser policy that first activates an exact matching adminOrderUrl tab, then may activate an existing same-origin same-path admin tab when the only mismatch is query/hash state.",
-        "Focus-only tab switching must be an explicit API-return mode and must not become the default behavior of normal Amazon Manage admin page opening.",
-        "The focus-only policy must not create a new Chrome window, create a new tab, set URL of an existing tab, refresh the website, or navigate by host fallback when the exact/same-path website tab is missing.",
-        "If the existing website tab is missing or cannot be focused, the focus failure must be recorded in runtime trace without overwriting the Amazon upload terminal status.",
-        "The bounded website-return timeout must abort the focus browser action and await its full settlement before the upload execution lease is released or another invoice may start.",
+        "For API-sourced upload missions with adminOrderUrl, the task service persists the original Amazon upload terminal result and performs no browser action against adminOrderUrl.",
+        "The operator's active window and active tab remain unchanged after the background exact-target upload finishes.",
+        "Normal Amazon Manage admin page opening remains an explicit user-started local action in its own owner-bound exact target session.",
         "adminOrderUrl must still pass the allowed Amazon admin host validation before any tab focus attempt.",
         "A post-change production-readiness claim for website tab return must cite fresh runtime evidence from the changed path; historical Seller Central upload success evidence is not proof that the website return IF was tested."
       ],
       "forbidden": [
-        "Opening adminOrderUrl as a new tab after upload completion.",
-        "Refreshing or navigating the website-side Amazon Manage page after upload completion.",
-        "Applying focus-only behavior to ordinary admin page open commands.",
-        "Using reuse-active-tab, reuse-host-tab, open-new-tab, or fallback URL navigation for website return.",
-        "Running website return before the Amazon upload reaches and persists a terminal result.",
-        "Using a detached Promise.race or any timeout path that can release the upload execution lease while the website focus browser action is still running.",
+        "Opening, activating, focusing, refreshing, or navigating adminOrderUrl after upload completion.",
+        "Any website-return browser policy or foreground-focus restoration helper.",
         "Inferring upload_success, already_uploaded, or review_required from website focus state.",
         "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
         "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 12
+      "blockIndex": 13
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
@@ -761,223 +824,7 @@
         "Logging raw PDF text, full DOM HTML, cookies, browser storage, or local absolute invoicePdfPath as amount evidence."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 13
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-001-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs+acceptance",
-      "summary": "Listing edit read sync must run as an independent plugin owner, not through amazon-product-sync or amazon-product-fee-sync.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-001-requirement",
-          "statement": "Listing edit read sync must run as an independent plugin owner, not through amazon-product-sync or amazon-product-fee-sync.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 0
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-002-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+chrome+acceptance",
-      "summary": "Seller Central interactions are limited to navigation, read-only variation expansion, and DOM value extraction.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-002-requirement",
-          "statement": "Seller Central interactions are limited to navigation, read-only variation expansion, and DOM value extraction.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 1
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-003-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "chrome-dom+acceptance",
-      "summary": "Inventory export evidence must come from Seller Central DOM label/value rows after parent variation expansion.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-003-requirement",
-          "statement": "Inventory export evidence must come from Seller Central DOM label/value rows after parent variation expansion.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 2
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-004-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "chrome-dom+acceptance",
-      "summary": "Each listing edit tab read must record bounded DOM controls and diagnostics, never fabricated values.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-004-requirement",
-          "statement": "Each listing edit tab read must record bounded DOM controls and diagnostics, never fabricated values.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 3
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-005-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs",
-      "summary": "Task artifacts must use bounded business evidence and redacted evidence refs.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-005-requirement",
-          "statement": "Task artifacts must use bounded business evidence and redacted evidence refs.",
-          "evidenceMode": "static",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 4
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-006-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "generated-plan+acceptance",
-      "summary": "The capability must have owner audit, acceptance, generated plan registration, and ci:full integration.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-006-requirement",
-          "statement": "The capability must have owner audit, acceptance, generated plan registration, and ci:full integration.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 5
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-007-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "chrome-dom+acceptance",
-      "summary": "Live Seller Central runs must advance one proven step at a time: inventory-only by default, single SKU search-only before any edit tab mode.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-007-requirement",
-          "statement": "Live Seller Central runs must advance one proven step at a time: inventory-only by default, single SKU search-only before any edit tab mode.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 6
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-008-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "chrome-dom+acceptance",
-      "summary": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-008-requirement",
-          "statement": "Full inventory listing edit reads may run only as an explicit read-only sequential batch with pagination, per-item progress persistence, and stop-on-first-issue semantics.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 7
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-009-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+acceptance+visual",
-      "summary": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-009-requirement",
-          "statement": "The capability must expose a bounded App Shell skill workspace for target selection, task start, status, and evidence inspection without browser-control or write-action UI.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 8
-    },
-    {
-      "lawId": "APEX-AMAZON-LISTING-EDIT-READ-SYNC-010-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-listing-edit-read-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "chrome-dom+acceptance",
-      "summary": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read.",
-      "clauses": [
-        {
-          "clauseId": "apex-amazon-listing-edit-read-sync-010-requirement",
-          "statement": "Specified ASIN, SKU, parent, and child targets must be resolved from Seller Central DOM evidence before any SKU Central or edit-tab read.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-listing-edit-read-sync"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-listing-edit-read-sync.instructions.md",
-      "blockIndex": 9
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-FEE-SYNC-001-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-product-fee-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs+acceptance",
-      "summary": "Amazon product fee sync must be an independent read-only job flow with bounded Seller Central fee evidence.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-amazon-product-fee-sync-001-requirement",
-          "statement": "Amazon product fee sync must be an independent read-only job flow with bounded Seller Central fee evidence.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-product-fee-sync"
-        }
-      ],
-      "forbidden": [
-        "Seller Central write-back",
-        "DOM selector control by external callers",
-        "fee fields in amazon-product-sync requiredFields",
-        "residual mislabeled as referral fee",
-        "raw HTML/cookie/credential evidence leakage"
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-fee-sync.instructions.md",
-      "blockIndex": 0
+      "blockIndex": 14
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -1000,7 +847,7 @@
       ],
       "forbidden": [
         "Amazon mining flow placed under src/capabilities, src/mediator, src/lib, or src/app.",
-        "Reusing facebook-product-video-mining as Amazon mining entrypoint.",
+        "Reusing another plugin as Amazon mining entrypoint.",
         "Universal marketplace crawler abstraction owning Amazon mining state.",
         "ERP, profit calculator, or purchase-decision modules introduced into the plugin owner.",
         "Amazon-specific workflow placed inside any ability group."
@@ -1350,7 +1197,6 @@
       ],
       "appliesTo": [
         "scripts/audit/domains/amazon-product-mining/manifest.json",
-        "scripts/audit/domains/amazon-product-mining/inspector.ts",
         "scripts/acceptance/amazon-product-mining-*.acceptance.ts",
         "package.json",
         "scripts/audit/ci-full.ts"
@@ -1570,7 +1416,7 @@
         "Route-level auto-progression into downstream business stages based on verdict.",
         "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
         "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts.",
-        "App exposing manual keyword review ingest or task pause/continue/terminate controls for Amazon Product Mining."
+        "App exposing manual keyword review ingest or any task intervention that bypasses the plugin-owned revisioned pause/cancel/takeover/resume contract."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
       "blockIndex": 18
@@ -1735,17 +1581,17 @@
       "blockIndex": 23
     },
     {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "storage+flow+app-surface+ast+acceptance",
-      "summary": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
+      "summary": "Amazon Product Mining must be restart-resumable from persisted evidence while exposing only plugin-owned revisioned whole-task pause, cancel, takeover and resume interventions through the explicit Workbench chain.",
       "clauses": [
         {
-          "clauseId": "grasseye-amazon-product-mining-024-requirement",
-          "statement": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
+          "clauseId": "grasseye-amazon-product-mining-024-v2-requirement",
+          "statement": "Amazon Product Mining must be restart-resumable from persisted evidence while exposing only plugin-owned revisioned whole-task pause, cancel, takeover and resume interventions through the explicit Workbench chain.",
           "evidenceMode": "acceptance",
           "ownerDomain": "amazon-product-mining"
         }
@@ -1767,8 +1613,8 @@
       "forbidden": [
         "Restarting an interrupted task from the beginning when persisted keyword/search/detail/review evidence exists.",
         "Running two active executions for the same taskId.",
-        "Exposing Pause, Continue, or Terminate Amazon Product Mining routes, UI buttons, workbench handle methods, or plugin facade exports.",
-        "Requiring a human action to move an interrupted Amazon Product Mining task forward.",
+        "Exposing a generic action dispatcher, route-owned task state, stage-level control or any intervention that bypasses the plugin facade and expectedRevision CAS.",
+        "Automatically resuming a paused, cancelled, taken-over or outcome-unknown task without the matching plugin-owned revisioned decision.",
         "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -1814,105 +1660,36 @@
       "blockIndex": 25
     },
     {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-001-V1",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
       "status": "active",
       "tier": "P0",
-      "capabilityDomain": "amazon-product-sync",
+      "capabilityDomain": "amazon-product-mining",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs+acceptance",
-      "summary": "Amazon product sync must be a single read-only job flow with bounded Seller Central evidence.",
+      "evidenceMode": "ast+acceptance+real-chrome",
+      "summary": "Amazon Product Mining owns revisioned local intervention at keyword, page, product, review, package and AI checkpoints.",
       "clauses": [
         {
-          "clauseId": "grasseye-amazon-product-sync-001-requirement",
-          "statement": "Amazon product sync must be a single read-only job flow with bounded Seller Central evidence.",
+          "clauseId": "grasseye-amazon-product-mining-027-requirement",
+          "statement": "Amazon Product Mining owns revisioned local intervention at keyword, page, product, review, package and AI checkpoints.",
           "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-product-sync"
-        }
-      ],
-      "forbidden": [
-        "Seller Central write-back",
-        "DOM selector control by external callers",
-        "second Amazon product sync owner",
-        "raw HTML/cookie/credential evidence leakage"
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
-      "blockIndex": 0
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-002-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-product-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+flow+acceptance",
-      "summary": "Amazon product sync must honor the website request contract: site + SKU + required fields, and must return only evidence-backed requested product update data.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-amazon-product-sync-002-requirement",
-          "statement": "Amazon product sync must honor the website request contract: site + SKU + required fields, and must return only evidence-backed requested product update data.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-product-sync"
+          "ownerDomain": "amazon-product-mining"
         }
       ],
       "required": [
-        "Input contains site.",
-        "Input contains exactly one SKU item.",
-        "The item contains requiredFields.",
-        "Every product update item requests mainImage, asin, availableInventory, and actualInventory together.",
-        "When mainImage is requested, the item contains mainImageUpload endpoint and token.",
-        "Partial requiredFields are rejected.",
-        "Multi-SKU AGENT tasks are rejected; website side owns the SKU queue.",
-        "Main image evidence uses BrowserController screenshotRegion.",
-        "Main image product update uses downloaded image bytes uploaded to the website image API.",
-        "Task status JSON contains requestedFields and missingRequestedFields."
+        "The plugin SQLite store persists revision, state, reason and checkpoint beside the canonical task.",
+        "Pause, cancel, takeover and resume use expectedRevision CAS and requestId identity.",
+        "Every Browser or AI mutation checks a plugin safe point and persisted checkpoints are not replayed.",
+        "Only the local Workbench may request intervention."
       ],
       "forbidden": [
-        "Agent or website narrows the product update field set based on local missing-field inference.",
-        "Agent accepts multiple SKU items in one product sync task.",
-        "Browser flow remains running indefinitely without observable progress or a terminal task status.",
-        "A fixed 3-second global stale timeout kills legitimate Seller Central startup/opening latency.",
-        "Main image evidence fabricated from public img src.",
-        "Website product main image written from public img src or screenshot evidence ref.",
-        "Plugin directly fetches arbitrary website callbackUrl.",
-        "External caller controls selectors, browser commands, or output overrides."
+        "terminated compatibility status",
+        "route-owned task state",
+        "generic intervention dispatcher",
+        "external intervention API",
+        "automatic replay of submitted AI turns"
       ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
-      "blockIndex": 1
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-SYNC-003-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "amazon-product-sync",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "chrome+ast+acceptance",
-      "summary": "Amazon product sync SKU lookup must use the inventory filter search box, explicitly exclude the top global search box, and verify search by result DOM.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-amazon-product-sync-003-requirement",
-          "statement": "Amazon product sync SKU lookup must use the inventory filter search box, explicitly exclude the top global search box, and verify search by result DOM.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "amazon-product-sync"
-        }
-      ],
-      "required": [
-        "Flow probes the inventory filter Katal search input placeholder.",
-        "Flow recursively handles open shadow DOM for the Katal input.",
-        "Flow excludes form#sc-global-search-form and input#sc-search-field.",
-        "Flow submits SKU search by writing the inventory Katal open shadow input, installing the host own value getter for React onInput retargeting, dispatching composed input/change events, waiting 1000-2000 ms, and dispatching DOM MouseEvents on the inventory search button.",
-        "Flow waits for and verifies search success from an exact SKU row in Seller Central result DOM.",
-        "Flow closes the active Seller Central tab after a successful closeAmazonTabOnCompletion task.",
-        "Acceptance asserts the top global search is excluded."
-      ],
-      "forbidden": [
-        "Top global Seller Central search for SKU lookup.",
-        "Coordinate focus or OS text input as the SKU search submission path.",
-        "Input value, Enter keypress, or search-button click event only success evidence.",
-        "Whole-row contains matching as the primary SKU match.",
-        "Search selector provided by external caller."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-sync.instructions.md",
-      "blockIndex": 2
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
+      "blockIndex": 26
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
@@ -2067,7 +1844,7 @@
       ],
       "forbidden": [
         "Mediator directly calling browser click/fill/upload primitives.",
-        "Mediator containing Amazon-specific or Facebook-specific step logic.",
+        "Mediator containing job-specific step logic.",
         "Mediator becoming a workflow engine.",
         "Mediator storing business process state."
       ],
@@ -2160,7 +1937,7 @@
       ],
       "forbidden": [
         "Amazon-specific workflow inside an ability group.",
-        "Facebook-specific workflow inside an ability group.",
+        "Platform-specific workflow inside an ability group.",
         "Ability group importing job flow files.",
         "Ability group importing unrelated capability owner files.",
         "Ability group deciding business success.",
@@ -2475,6 +2252,17 @@
           "ownerDomain": "audit-system"
         }
       ],
+      "codePurityLiveness": {
+        "externalEntryFiles": [
+          "scripts/audit/core/run-generated-plan-worker.mjs"
+        ],
+        "lawfulDynamicImports": [
+          {
+            "consumerFilePath": "scripts/audit/core/run-generated-plan-worker.mjs",
+            "targetFilePath": "scripts/audit/core/run-generated-plan-worker.ts"
+          }
+        ]
+      },
       "appliesTo": [
         "scripts/audit/**/*.{ts,js,mjs,json}"
       ],
@@ -2812,7 +2600,7 @@
       ],
       "forbidden": [
         "Amazon-specific workflow inside an ability group.",
-        "Facebook-specific workflow inside an ability group.",
+        "Platform-specific workflow inside an ability group.",
         "Order upload process order inside an ability group.",
         "Product-video mining workflow inside an ability group.",
         "Business final status inside an ability group."
@@ -3406,6 +3194,25 @@
       "blockIndex": 23
     },
     {
+      "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "GrassEye must keep one canonical job-flow topology with exact owner roots, one mediator route per active job, and no retired active-code roots.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-code-topology-001-requirement",
+          "statement": "Active source must remain inside the canonical mediator, plugin, capability, browser, local-runtime, app, storage, logging, and declarative type boundaries with exactly one mediator route per active job.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "architecture-boundary"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-code-topology.instructions.md",
+      "blockIndex": 0
+    },
+    {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "status": "active",
       "tier": "P0",
@@ -3938,6 +3745,37 @@
       "blockIndex": 23
     },
     {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance+real-provider",
+      "summary": "Deep Research owns revisioned execution intervention at every prompt exchange and artifact commit boundary.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-deep-research-061-requirement",
+          "statement": "Deep Research owns revisioned execution intervention at every prompt exchange and artifact commit boundary.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "deep-research-analysis"
+        }
+      ],
+      "required": [
+        "Execution records persist revision, intervention state, reason, phase, exchange identity and last persisted raw hash.",
+        "Named pause, cancel, takeover and resume use expectedRevision CAS.",
+        "An exchange already submitted waits only for provider timeout and raw-response persistence; uncertain outcome becomes review_required without resend.",
+        "Full case file and HTML commits stop at plugin-owned safe points without deleting raw material."
+      ],
+      "forbidden": [
+        "compact or fallback research chain",
+        "generic intervention dispatcher",
+        "duplicate prompt send",
+        "route-owned execution state"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 24
+    },
+    {
       "lawId": "APEX-DOM-001-V1",
       "status": "active",
       "tier": "P0",
@@ -3958,7 +3796,7 @@
       ],
       "forbidden": [
         "Amazon-specific workflow inside DOM Automation.",
-        "Facebook-specific workflow inside DOM Automation.",
+        "Platform-specific workflow inside DOM Automation.",
         "Business success decision inside DOM Automation.",
         "DOM code importing src/plugins.",
         "DOM code calling AI to plan browser actions."
@@ -4388,6 +4226,38 @@
       "blockIndex": 14
     },
     {
+      "lawId": "APEX-DOM-020-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "Every DOM ref and action must remain bound to one opaque BrowserTargetRef and one current BrowserDocumentRef.",
+      "clauses": [
+        {
+          "clauseId": "apex-dom-020-requirement",
+          "statement": "Every DOM ref and action must remain bound to one opaque BrowserTargetRef and one current BrowserDocumentRef.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "dom-automation"
+        }
+      ],
+      "required": [
+        "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
+        "Locate, fill, click, upload, wait, verify and scroll reject stale, foreign, navigated or mismatched document refs before side effects.",
+        "DOM ordinary actions use target-bound BrowserController commands without foreground focus; only an explicitly approved native picker may request PhysicalFocusLease.",
+        "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
+      ],
+      "forbidden": [
+        "evaluateActiveTab or any active/current/first page fallback",
+        "raw tab, target, session or window identifiers in DOM public contracts",
+        "reusing an element ref after document generation changes",
+        "system mouse or keyboard for ordinary DOM click, fill or scroll",
+        "business plugins bypassing the DOM facade to call browser page primitives"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 15
+    },
+    {
       "lawId": "APEX-DOM-013-V1",
       "status": "active",
       "tier": "P0",
@@ -4416,210 +4286,26 @@
         "Generated audit artifacts hand-edited to include DOM pass."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
-      "blockIndex": 15
+      "blockIndex": 16
     },
     {
-      "lawId": "APEX-FACEBOOK-MINING-001-V1",
+      "lawId": "GRASSEYE-EVIDENCE-001-V2",
       "status": "active",
       "tier": "P0",
-      "capabilityDomain": "facebook-product-video-mining",
+      "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "Facebook product video mining must remain one explicit plugin-owned flow that performs truthful probe, comment loading, video download, bounded AI judgment, reject-or-save, and persistence per round.",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Forensics Persistence is the single append-first evidence owner for step traces, artifact references, result records, and failure reasons, and it never owns workflow decisions.",
       "clauses": [
         {
-          "clauseId": "apex-facebook-mining-001-requirement",
-          "statement": "Facebook product video mining must remain one explicit plugin-owned flow that performs truthful probe, comment loading, video download, bounded AI judgment, reject-or-save, and persistence per round.",
-          "evidenceMode": "static",
-          "ownerDomain": "facebook-product-video-mining"
+          "clauseId": "grasseye-evidence-001-v2-requirement",
+          "statement": "Every persisted business result must remain traceable through append-first record or artifact references with success and failure truth, while the evidence owner never decides the next workflow step.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "forensics-persistence-capability"
         }
       ],
-      "appliesTo": [
-        "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
-        "scripts/acceptance/facebook-live-dom-probe.ts"
-      ],
-      "forbidden": [
-        "Business loop logic outside src/plugins/facebook-product-video-mining.",
-        "Skipping download, AI judgment, or persistence while claiming saved products.",
-        "Mock, fixture, or placeholder success for real-platform mining.",
-        "Parallel second flow for the same Facebook mining demand."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "filePath": ".github/instructions/agent-rules/modules/module-forensics-persistence-capability.instructions.md",
       "blockIndex": 0
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-002-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "facebook-product-video-mining",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "Facebook product video mining must expose lawful start/status/latest routes through the local workbench and must keep acceptance and audit ownership wired into CI-FULL.",
-      "clauses": [
-        {
-          "clauseId": "apex-facebook-mining-002-requirement",
-          "statement": "Facebook product video mining must expose lawful start/status/latest routes through the local workbench and must keep acceptance and audit ownership wired into CI-FULL.",
-          "evidenceMode": "static",
-          "ownerDomain": "facebook-product-video-mining"
-        }
-      ],
-      "appliesTo": [
-        "src/plugins/local-workbench-plugin-tasks.ts",
-        "src/lib/local-runtime/workbench*.ts",
-        "src/app/create-workbench-server.ts",
-        "src/app/server.ts",
-        "src/app/workbench-home-page.ts",
-        "src/app/workbench-home-client.ts",
-        "scripts/acceptance/facebook-product-video-mining*.ts",
-        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}",
-        "package.json"
-      ],
-      "forbidden": [
-        "App shell owning Facebook step order.",
-        "Missing mission start, run status, or latest status surface.",
-        "CI-FULL omitting Facebook mining acceptance after the domain is active.",
-        "Manifest pointing to a non-existent owner inspector."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
-      "blockIndex": 1
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-003-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "facebook-product-video-mining",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "The Facebook mining app-shell surface must ask the operator only for target product count and must derive all other mission parameters from governed defaults.",
-      "clauses": [
-        {
-          "clauseId": "apex-facebook-mining-003-requirement",
-          "statement": "The Facebook mining app-shell surface must ask the operator only for target product count and must derive all other mission parameters from governed defaults.",
-          "evidenceMode": "static",
-          "ownerDomain": "facebook-product-video-mining"
-        }
-      ],
-      "appliesTo": [
-        "src/app/workbench-home-page.ts",
-        "src/app/workbench-home-client.ts",
-        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
-        "scripts/acceptance/facebook-product-video-mining*.ts",
-        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
-      ],
-      "forbidden": [
-        "Visible Facebook feed URL input in the workbench.",
-        "Visible Facebook provider selector in the workbench.",
-        "Visible Facebook model, max rounds, or max minutes fields in the workbench.",
-        "Client-side Facebook mission payload requiring feedEntryUrl, providerKind, modelName, maxRounds, or maxMinutes.",
-        "Facebook mission schema requiring operator-supplied parameters beyond targetProductCount."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
-      "blockIndex": 2
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-004-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "facebook-product-video-mining",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "Facebook mining must not default to mutating the operator's recommendation profile and must convert AI web-chat stalls into bounded review-required evidence instead of leaving runs indefinitely running.",
-      "clauses": [
-        {
-          "clauseId": "apex-facebook-mining-004-requirement",
-          "statement": "Facebook mining must not default to mutating the operator's recommendation profile and must convert AI web-chat stalls into bounded review-required evidence instead of leaving runs indefinitely running.",
-          "evidenceMode": "static",
-          "ownerDomain": "facebook-product-video-mining"
-        }
-      ],
-      "appliesTo": [
-        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
-        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-        "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
-        "scripts/acceptance/facebook-product-video-mining*.ts",
-        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
-      ],
-      "forbidden": [
-        "Default notInterestedEnabled=true for operator-facing Facebook mining.",
-        "AI web-chat judgment without a hard timeout.",
-        "AI web-chat timeout that leaves the run in running with no candidate evidence.",
-        "AI web-chat upload completion wait that can consume the whole judgment timeout.",
-        "Provider composer wait that ignores the task abort signal.",
-        "Typing a governed file path unless a provider file input is located.",
-        "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace.",
-        "Selecting an arbitrary existing provider tab when no saved Facebook workspace URL exists.",
-        "Matching old provider conversations by title text instead of pinning the opened workspace URL."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
-      "blockIndex": 3
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-005-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "facebook-product-video-mining",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "The Facebook mining workbench must expose saved product-seeding records for the active run and must provide a structured export for downstream senior-AI product selection.",
-      "clauses": [
-        {
-          "clauseId": "apex-facebook-mining-005-requirement",
-          "statement": "The Facebook mining workbench must expose saved product-seeding records for the active run and must provide a structured export for downstream senior-AI product selection.",
-          "evidenceMode": "static",
-          "ownerDomain": "facebook-product-video-mining"
-        }
-      ],
-      "appliesTo": [
-        "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
-        "src/app/workbench-home-page.ts",
-        "src/app/workbench-home-client.ts",
-        "src/app/workbench-facebook-routes.ts",
-        "src/lib/local-runtime/workbench*.ts",
-        "scripts/acceptance/facebook-product-video-mining*.ts",
-        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
-      ],
-      "forbidden": [
-        "Workbench showing only run status while hiding saved PRODUCT_SEEDING records.",
-        "Exporting rejected, uncertain, failed, or review-required candidates as successful products.",
-        "Export payloads that omit source URL, product signals, AI reason, confidence, or artifact references.",
-        "Export logic outside the Facebook mining owner surface."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
-      "blockIndex": 4
-    },
-    {
-      "lawId": "APEX-FACEBOOK-MINING-006-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "facebook-product-video-mining",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "Facebook mining rounds must be controlled by a fixed flow state machine, fixed next-video action ladder, and multi-signal proof quorum; DOM selector feedback may observe but must not decide the next action.",
-      "clauses": [
-        {
-          "clauseId": "apex-facebook-mining-006-requirement",
-          "statement": "Facebook mining rounds must be controlled by a fixed flow state machine, fixed next-video action ladder, and multi-signal proof quorum; DOM selector feedback may observe but must not decide the next action.",
-          "evidenceMode": "static",
-          "ownerDomain": "facebook-product-video-mining"
-        }
-      ],
-      "appliesTo": [
-        "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
-        "scripts/acceptance/facebook-product-video-mining*.ts",
-        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
-      ],
-      "forbidden": [
-        "DOM next button candidates as the primary next-video decision source.",
-        "Single DOM signature change as the only proof of video transition.",
-        "next_video_did_not_change or next_video_not_confirmed stopping the whole mission.",
-        "Per-video download, comments, AI, duplicate, or navigation uncertainty treated as mission terminal.",
-        "AI returning workflow, selector, coordinate, browser command, or next action."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
-      "blockIndex": 5
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
@@ -4770,34 +4456,146 @@
       "blockIndex": 4
     },
     {
-      "lawId": "GRASSEYE-LOTTERY-TICKET-PLAN-001-V1",
+      "lawId": "APEX-LOCAL-BROWSER-001-V1",
       "status": "active",
       "tier": "P0",
-      "capabilityDomain": "lottery-ticket-plan",
+      "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Lottery Ticket Plan must generate local upper/lower ticket plans for human review only, starting with Pick3 125-line plans, without betting-site DOM automation or purchase submission.",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "The unique BrowserController must bind ordinary page actions to opaque exact target and document identities without foreground focus.",
       "clauses": [
         {
-          "clauseId": "grasseye-lottery-ticket-plan-001-requirement",
-          "statement": "Lottery Ticket Plan must generate local upper/lower ticket plans for human review only, starting with Pick3 125-line plans, without betting-site DOM automation or purchase submission.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "lottery-ticket-plan"
+          "clauseId": "apex-local-browser-001-requirement",
+          "statement": "The unique BrowserController must bind ordinary page actions to opaque exact target and document identities without foreground focus.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "local-browser-session"
         }
       ],
       "required": [
-        "Pick3 upper/lower bucket expansion generates exactly 125 local ticket lines.",
-        "Results include manualPurchaseOnly: true and deterministic ticketHash.",
-        "The domain stays independent from pick3-is-blind-eval."
+        "One BrowserController mints opaque session-bound BrowserTargetRef and generation-bound BrowserDocumentRef values while raw Chrome ids remain private.",
+        "Navigate, evaluate, click, fill, scroll, screenshot and DOM file-input commands execute only against the supplied exact target and current document generation.",
+        "A navigation or lifecycle change invalidates the prior document ref; stale, foreign or ambiguous refs fail closed without URL-first, first-page or active-tab fallback.",
+        "Plugin takeover detaches chrome.debugger from the exact tab without closing it, invalidates the old refs, blocks automatic reacquisition while the operator owns the tab, and requires fresh exact target resolution after explicit resume.",
+        "Real-Chrome acceptance proves a controlled background target can change while a non-target foreground tab keeps its URL, title, scroll position and input value unchanged."
       ],
       "forbidden": [
-        "betting-site DOM automation",
-        "official My Plan, cart, checkout, or payment writes",
-        "login, cookies, localStorage, account, age gate, location gate, or payment handling",
-        "wager recommendation, stake sizing, or probability claim"
+        "a second BrowserController or public Chrome transport",
+        "URL-first, first-page, current-page or active-tab target selection",
+        "raw tabId, windowId, targetId, sessionId or debugger id outside the browser owner",
+        "ordinary page actions activating Chrome or using system mouse and keyboard",
+        "compatibility wrappers, fallback, shadow transports or dual target identity",
+        "background target reacquisition while a plugin task remains taken_over"
       ],
-      "filePath": ".github/instructions/agent-rules/modules/module-lottery-ticket-plan.instructions.md",
+      "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-browser-session",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Chrome control must use one private authenticated MV3 Native Messaging debugger transport with bounded lifecycle and no startup-owned installation.",
+      "clauses": [
+        {
+          "clauseId": "apex-local-browser-002-requirement",
+          "statement": "Chrome control must use one private authenticated MV3 Native Messaging debugger transport with bounded lifecycle and no startup-owned installation.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "local-browser-session"
+        }
+      ],
+      "codePurityLiveness": {
+        "externalEntryFiles": [
+          "src/lib/browser/chrome-extension/build.mjs",
+          "src/lib/browser/chrome-extension/service-worker.ts",
+          "src/lib/browser/chrome-extension/dist/service-worker.js",
+          "src/lib/browser/native-messaging-host/host.mjs"
+        ]
+      },
+      "required": [
+        "The Controller connects through an owner-only Unix socket and memory-only nonce to one Native host, one fixed-id MV3 extension and chrome.debugger.",
+        "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed.",
+        "Release, extension disconnect, debugger detach and tab close remove extension attachment state so a human or another approved debugger can use the tab.",
+        "Dedicated Browser infrastructure install, verify and uninstall scripts own registration; the GrassEye startup entry remains unchanged and never installs or activates browser business infrastructure."
+      ],
+      "forbidden": [
+        "cookies, storage, password or token permissions",
+        "wildcard Native Messaging allowed_origins",
+        "world-readable socket, nonce or host manifest",
+        "Startup installing the extension, registering the host or starting a business job",
+        "silent CDP or AppleScript/JXA fallback"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-browser-session",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "Physical focus is an explicit short lease reserved for approved OS actions and must never be required by ordinary page control.",
+      "clauses": [
+        {
+          "clauseId": "apex-local-browser-003-requirement",
+          "statement": "Physical focus is an explicit short lease reserved for approved OS actions and must never be required by ordinary page control.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "local-browser-session"
+        }
+      ],
+      "required": [
+        "Only native_file_picker, os_pointer_action and os_keyboard_action may request PhysicalFocusLease.",
+        "A lease is bound to one exact target/window/document, lasts at most fifteen seconds and is cancelled on timeout, identity change or operator focus change.",
+        "Provider generation wait and ordinary navigate/evaluate/click/fill/scroll/screenshot/DOM file-input work never hold a focus lease."
+      ],
+      "forbidden": [
+        "automatic focus reacquisition after operator interruption",
+        "application-wide activation as target identity proof",
+        "focus leases controlled by external callers or business UI",
+        "holding physical focus while waiting for provider output"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Local persistence schema is a Forensics support contract for structured records, governed artifact storage, and browser-profile separation, not a second write owner.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-local-persistence-schema-001-requirement",
+          "statement": "Structured records and large artifacts must use the Forensics-owned schema and storage boundary while browser profiles, secrets, and business workflow truth remain outside it.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "forensics-persistence-capability"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-persistence-schema.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Forensics schema vocabulary must use record envelopes, refs, integrity metadata, export metadata, and deletion relations instead of retired business-domain objects.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-local-persistence-schema-002-v2-requirement",
+          "statement": "Local persistence types must be expressed in Forensics-native envelope and reference terms and must not restore retired product, agent-round, action-log, or runtime-delivery schema sovereignty.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "forensics-persistence-capability"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-persistence-schema.instructions.md",
+      "blockIndex": 1
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
@@ -4990,471 +4788,6 @@
       "blockIndex": 9
     },
     {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+acceptance",
-      "summary": "Pick3 IS blind eval must be a single UAE Lottery Pick 3 executor domain with official-source sync, isolated L80 image generation, sealed predictions, reveal scoring, and failure replay boundaries.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-is-blind-eval-001-requirement",
-          "statement": "Pick3 IS blind eval must be a single UAE Lottery Pick 3 executor domain with official-source sync, isolated L80 image generation, sealed predictions, reveal scoring, and failure replay boundaries.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "forbidden": [
-        "China lottery or 福彩 3D source mixing",
-        "betting or account handling",
-        "third-party lottery source of truth",
-        "contact-sheet blind payloads",
-        "answer reveal before prediction sealing",
-        "failure replay counted as future accuracy"
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 0
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-AI-PROMPT-EXCHANGE-007-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "prompt-exchange+interaction+acceptance+audit",
-      "summary": "Pick3 AI prediction must use a Deep-Research-style prompt exchange: governed prompt package, gateway sender capture, raw provider proof persistence, schema parse, interaction record, then sealed prediction.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-ai-prompt-exchange-007-requirement",
-          "statement": "Pick3 AI prediction must use a Deep-Research-style prompt exchange: governed prompt package, gateway sender capture, raw provider proof persistence, schema parse, interaction record, then sealed prediction.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Each one-image prompt package is sent through a Pick3 Prompt Exchange sender compatible with AI Input Gateway proof semantics.",
-        "Raw GPT/web-chat output is persisted as a Pick3 AI interaction before business prediction sealing.",
-        "Parse status is stored separately from prediction records.",
-        "Only parsed interactions may create sealed ai_predictions.",
-        "Manual GPT chat remains a capture surface, not a direct prediction write path.",
-        "Pick3 GPT web-chat feeds reuse one fixed AI Input Gateway workspace tab while starting a fresh ChatGPT conversation for each image.",
-        "Pick3 GPT workspace tab reuse is host/workspace based; conversation URLs are ledger facts only and must not become the saved workspace tab anchor.",
-        "Pick3 GPT workspace opening uses reuse-host-tab or an equivalent host-level workspace lease, never reuse-exact-url against /c/<conversation> URLs.",
-        "Every Pick3 prompt and GPT output carries matching imageId and promptPackageId identity fields before prediction sealing.",
-        "Pick3 GPT web-chat transport verifies the last submitted user message contains the expected bound image attachment before accepting GPT JSON output.",
-        "A missing bound image causes one same-workspace new-chat resend, then review_required if it persists.",
-        "AI-visible labels are lower, upper, and abstain only; front/back exist only after parser mapping for internal reveal/scoring.",
-        "Prompt package metadata, rendered prompt, parser, acceptance, and audit must agree on lower/upper/abstain.",
-        "AI-visible Playbook payload is de-lotteried and frames the image as an anonymous time-series chart.",
-        "Empty web-chat raw output is retried once inside the current one-image attempt before Pick3 interaction persistence; unresolved one-image requests are deferred to the bounded same-chain Prompt Exchange completion queue while remaining images/repeats continue.",
-        "Prompt Exchange exposes expectedCount, completedCount, deferredRetryCount, and unresolvedCount so full_pipeline and next_prediction_stability can prove batch convergence before completion.",
-        "Pick3 GPT rate-limit dialogs trigger an immediate in-place acknowledgement click followed by live DOM observation in the same current ChatGPT conversation without refreshing or reloading.",
-        "Pick3 GPT rate-limit acknowledgement emits Runtime Log Spine RECOVERY_STARTED, RECOVERY_COMPLETED, and RECOVERY_FAILED events for immediate acknowledgement.",
-        "Pick3 GPT prompt paste, prompt submit, submitted-image verification, pre-submit snapshot, and response-capture waits proactively click a visible rate-limit acknowledgement.",
-        "Pick3 GPT web-chat feed lifecycle starts a same-BrowserController rate-limit dialog watcher after provider workspace open and stops it only when the feed exits.",
-        "Pick3 GPT rate-limit dialog handling performs only the fixed in-place acknowledgement click and must not refresh, reload, reopen, navigate, open another tab, open a new chat, restart, or resend the image/prompt.",
-        "Pick3 GPT rate-limit recovery must not wait before clicking the acknowledgement.",
-        "Persistent Pick3 GPT rate-limit dialogs keep receiving the same in-place acknowledgement click in the same in-flight feed without an attempt cap.",
-        "Pick3 GPT cleanup is ledger-scoped and may close only stale recorded Pick3 provider tabs, keeping the current and immediately previous conversation.",
-        "Pick3 provider sidebar history deletion is temporarily disabled and must return provider_history_delete_temporarily_disabled or current_history_delete_temporarily_disabled instead of clicking Delete or confirming Delete chat?.",
-        "Pick3 GPT no-result and missing-bound-image recovery does not refresh or reload the timed-out conversation and opens a new chat in the same workspace tab without deleting provider conversation history.",
-        "Pick3 Gemini pre-image history cleanup records the temporarily-disabled cleanup status and must not block attachment upload while provider history deletion is disabled.",
-        "Only final unresolved parse_failed_raw_available interactions after Prompt Exchange completion rounds are exhausted block reveal and scoring for the batch.",
-        "Pick3 long-running full_pipeline and next_prediction_stability tasks are resumable by the same task id through the same Pick3 flow and Prompt Exchange.",
-        "Pick3 checkpoint records store progress only and do not replace pick3_ai_interactions, ai_predictions, reveal, scoring, or task history truth.",
-        "Pick3 quota-exhausted provider states persist paused_rate_limited with resumeAfter exactly 40 minutes after detection before continuing the same one-image work item.",
-        "Pick3 resume must skip already completed work items and must not reseal existing predictions."
-      ],
-      "forbidden": [
-        "Writing ai_predictions directly from pasted GPT text without an interaction record.",
-        "Treating provider transport success as business prediction success.",
-        "Dropping parse-failed raw output.",
-        "Treating a ChatGPT rate-limit dialog as model prediction output.",
-        "Continuing to send Pick3 GPT prompts while a rate-limit dialog is visible.",
-        "Creating a second prediction/scoring table or second AI transport chain.",
-        "Opening a new GPT browser tab for every Pick3 image.",
-        "Using exact /c/<conversation> URL matching as the Pick3 workspace tab reuse mechanism.",
-        "Accepting a GPT response whose imageId or promptPackageId does not match the active request.",
-        "Accepting GPT JSON when the last submitted user message does not contain the expected bound image attachment.",
-        "Treating composer/global attachment counts as final Pick3 image-delivery proof.",
-        "Allowing front/back to leak into the AI-visible output contract or prompt package allowedLabels.",
-        "Opening provider history sidebars, clicking Delete, or confirming Delete chat? while provider history deletion is temporarily disabled.",
-        "Closing untracked or user-owned ChatGPT tabs during Pick3 cleanup.",
-        "Treating quota-exhausted pause handling as a second runner, second route bus, second provider transport, second prediction table, or second scoring path.",
-        "Resuming a Pick3 task by creating a new task id, new batch id, regenerated prompt package, or duplicate sealed prediction for an already completed work item."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 1
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BRAIN-006-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "playbook+storage+acceptance+audit",
-      "summary": "Pick3 IS brain must be AGENT-owned: active Playbook assets live inside the Pick3 plugin, are versioned and hash-addressed, and blind prediction payloads must not depend on trend-intuition-brain or leak concrete answers.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-is-brain-006-requirement",
-          "statement": "Pick3 IS brain must be AGENT-owned: active Playbook assets live inside the Pick3 plugin, are versioned and hash-addressed, and blind prediction payloads must not depend on trend-intuition-brain or leak concrete answers.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Active Playbook assets live under src/plugins/pick3-is-blind-eval/playbooks/.",
-        "Playbook versions are persisted with content hash before prediction use.",
-        "Blind prompt packages include only visual grammar, decision rules, confidence discipline, abstain rules, and one image reference.",
-        "Failure examples with revealed answers stay in failure review records or candidate repair notes, not in active blind Playbook payloads."
-      ],
-      "forbidden": [
-        "Runtime dependency on /Users/nexgen/Documents/trend-intuition-brain.",
-        "External Playbook fallback or prompt bridge.",
-        "Active blind Playbook containing target phase, date, answer digit, answer label, or future results.",
-        "Failure replay or revealed-answer memory counted as future blind accuracy."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 2
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-002-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "source-contract+acceptance",
-      "summary": "Pick3 source sync must use the verified UAE Lottery official pages and API contracts, including lotteryType 72 and 660301 draw-history pagination.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-is-blind-eval-002-requirement",
-          "statement": "Pick3 source sync must use the verified UAE Lottery official pages and API contracts, including lotteryType 72 and 660301 draw-history pagination.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Official site is https://www.theuaelottery.ae.",
-        "Pick3 lotteryType is 72.",
-        "660201 reads current lottery metadata.",
-        "660104 reads official history bounds.",
-        "660301 reads draw history and cursor pages.",
-        "A successful sync refuses to pass when official startTime/endTime coverage is incomplete or has a date gap.",
-        "Chrome DOM first row must be comparable with API first row.",
-        "Digits map nums[0], nums[1], nums[2] to hundreds, tens, ones."
-      ],
-      "forbidden": [
-        "Non-official lottery source of truth.",
-        "Manual result edits without official evidence.",
-        "Synthesized missing draws.",
-        "Success status with missing earliest history, missing latest history, or an official date gap.",
-        "Digit position remapping by prompt preference."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 3
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-003-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "blind-boundary+acceptance",
-      "summary": "Pick3 image and AI execution must preserve blind-test integrity: L80 windows, separated positions, one-image AI payloads, sealed predictions, and no answer leakage.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-is-blind-eval-003-requirement",
-          "statement": "Pick3 image and AI execution must preserve blind-test integrity: L80 windows, separated positions, one-image AI payloads, sealed predictions, and no answer leakage.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Image window is L=80.",
-        "Position families are hundreds, tens, ones.",
-        "AI payload contains exactly one blind image.",
-        "Prediction is persisted before reveal.",
-        "Reveal refuses to run when prediction is missing.",
-        "Failed cases are reviewed against a prompt version."
-      ],
-      "forbidden": [
-        "Target draw/date/answer text in image.",
-        "Axis/title/label text in image.",
-        "Chart number or point count text in image.",
-        "File name leaks target phase, position answer, or sequence clue.",
-        "Mixed-position image or prompt.",
-        "Contact-sheet AI payload.",
-        "Post-reveal prediction overwrite."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 4
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-005-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "model-metadata+baseline+calibration+acceptance",
-      "summary": "Pick3 evaluation records must be reproducible and statistically honest: model settings are recorded, random baselines are reported, confidence is not probability, and abstain coverage is separated from accuracy.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-is-blind-eval-005-requirement",
-          "statement": "Pick3 evaluation records must be reproducible and statistically honest: model settings are recorded, random baselines are reported, confidence is not probability, and abstain coverage is separated from accuracy.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Prediction records include provider, model id, temperature, image detail, system prompt version, business prompt version, and prompt hashes.",
-        "Reports include one-position 50% random baseline.",
-        "Reports include three-position 12.5% random baseline.",
-        "Reports include the 25% three-position watch threshold and the approximate 63% per-position stability threshold.",
-        "Confidence calibration is reported separately from hit rate.",
-        "Abstain is an allowed prediction label and coverage is reported separately."
-      ],
-      "forbidden": [
-        "Provider-only model records.",
-        "Confidence presented as real开奖概率.",
-        "Accuracy report without random baseline comparison.",
-        "Abstain counted as hit or miss without separate coverage accounting."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 5
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-TREND-DISPLAY-010-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "official-storage+app-shell+acceptance+chrome",
-      "summary": "Pick3 trend display must be a local Workbench read model over official pick3_draws with a fixed L80 visible window, three separated position rows, full hover draw facts, and drag navigation without altering blind AI execution.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-trend-display-010-requirement",
-          "statement": "Pick3 trend display must be a local Workbench read model over official pick3_draws with a fixed L80 visible window, three separated position rows, full hover draw facts, and drag navigation without altering blind AI execution.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Trend data comes from existing Pick3 storage table pick3_draws through the Pick3 plugin owner.",
-        "The local route is /api/pick3-is-blind-eval/trend and is admitted by the existing Workbench API Boundary as local UI only.",
-        "The App Shell exposes a Pick3 Trend surface inside the existing Pick3 workspace.",
-        "The visible trend window size is fixed at 80 draws.",
-        "Hundreds, tens, and ones render as three separated rows.",
-        "Hover exposes phase, official drawn numbers, and expected prize time.",
-        "Mouse drag changes the historical start index while preserving the 80-draw window.",
-        "Historical generate_batch and full_pipeline runs may select a stored official lastTargetPhase so the batch ends at that phase and walks backward by batchSize across eligible target draws.",
-        "The Workbench lastTargetPhase selector is populated from stored official pick3_draws facts instead of free-form user typing."
-      ],
-      "forbidden": [
-        "External mirror, DOM scraping, localStorage, fixture rows, or trend-intuition-brain as trend truth.",
-        "Second HTTP server, route bus, or trend-specific data store.",
-        "Mixed-position single-line trend display.",
-        "Trend UI mutating blind images, AI payloads, sealed predictions, reveal, or scoring.",
-        "Free-form typed lastTargetPhase as production truth.",
-        "Applying lastTargetPhase to next_prediction_stability or using it to bypass the L80 history requirement."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 6
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-NEXT-PREDICTION-STABILITY-008-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "official-sync+prompt-exchange+acceptance+audit",
-      "summary": "Pick3 next-period stability mode must first prove latest official data, then send the same single next-period image per selected position multiple times through the existing Prompt Exchange and display only per-repeat results.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-next-prediction-stability-008-requirement",
-          "statement": "Pick3 next-period stability mode must first prove latest official data, then send the same single next-period image per selected position multiple times through the existing Prompt Exchange and display only per-repeat results.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "The mode id is next_prediction_stability.",
-        "The latest official UAE Lottery Pick 3 sync must pass full official coverage before any next-period image or AI feed is created.",
-        "Each selected position produces exactly one next-period blind L80 image from the latest confirmed 80 official draws.",
-        "Every repeat uses the user-selected promptMode: playbook_v1 uses the existing Playbook prompt package, and free_analysis_strict_reasoning uses the existing Free Analysis Strict Reasoning prompt package.",
-        "batchSize is the repeat-send count for that same image, not the number of generated target images.",
-        "Every repeat uses the existing Pick3 Prompt Exchange and AI Input Gateway one-image payload path.",
-        "The persisted/displayed stability result lists position, imageId, repeat index, interaction id, prediction label, confidence, parse status, and raw proof ref for each repeat.",
-        "The system must not produce a final selected label, majority-vote recommendation, betting advice, or user-choice instruction."
-      ],
-      "forbidden": [
-        "Running next-period stability without confirmed latest official data.",
-        "Generating multiple same-position images for the repeat count.",
-        "Hardcoding or overriding the user's selected promptMode for next-period stability.",
-        "Creating a second AI transport, prediction table, scoring path, route, or result chain.",
-        "Reveal, scoring, hit rate, or accuracy claims for next-period stability before the official answer exists.",
-        "System-generated final recommendation or majority vote decision."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 7
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HUMAN-REVIEW-HISTORY-009-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "task-history+raw-ai-answer+acceptance+chrome",
-      "summary": "Pick3 next-period stability runs must produce a human review history that shows the phase context, same-image repeat proof, every repeat result, and the full AI answer without generating a buying or voting recommendation.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-human-review-history-009-requirement",
-          "statement": "Pick3 next-period stability runs must produce a human review history that shows the phase context, same-image repeat proof, every repeat result, and the full AI answer without generating a buying or voting recommendation.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Workbench exposes a Pick3 History surface for persisted next_prediction_stability task records.",
-        "History rows show task id, batch id, status, created time, newest official phase, target phase, selected positions, provider, repeat count, and evidence completeness.",
-        "Task detail shows each generated next-period image with position, image id, image sha256, target phase, visible start phase, and visible end phase.",
-        "Task detail shows every repeat result with position, image id, repeat index, interaction id, prediction label, visible label, confidence, parse status, raw response hash, and raw proof ref.",
-        "The AI answer viewer shows raw_response_text, rendered prompt, prompt package id, prompt contract id, provider proof, raw response hash, and raw output ref from the existing pick3_ai_interactions record.",
-        "The primary source for AI answer review is the existing pick3_ai_interactions.raw_response_text field; raw output artifact refs are proof links only.",
-        "The human review surface may show observed distribution counts but must not compute or display a final selected label, majority-vote instruction, buying advice, or betting advice.",
-        "Observed distribution counts must be grouped by position. When a task selects more than one position, counts for different positions must never be summed into one shared total — mixing positions into a single count would let a human misread it as repeats of one position."
-      ],
-      "forbidden": [
-        "History visible only through latest-task.json or filesystem manual inspection.",
-        "History rows without newest official phase and target phase.",
-        "Repeat detail without full raw AI answer access.",
-        "Creating a second task history store, second AI answer store, or second result chain for human review.",
-        "System-generated buy, bet, wager, majority choice, final pick, or recommendation text."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 8
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "lesson-store+prompt-exchange+history-ui+acceptance+audit",
-      "summary": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records; every non-rejected lesson is assembled live into the blind prompt payload at prompt-build time as soon as it exists, with no minimum lesson count, no saved candidate file, and no human promotion step.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-playbook-lesson-store-011-requirement",
-          "statement": "Pick3 full_pipeline Playbook failures must automatically and manually produce position-specific post-mortem lesson records; every non-rejected lesson is assembled live into the blind prompt payload at prompt-build time as soon as it exists, with no minimum lesson count, no saved candidate file, and no human promotion step.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "After full_pipeline reveal/scoring, every failed Playbook-mode position creates an automatic Playbook lesson review.",
-        "History must also expose a manual Playbook review action for failed full_pipeline positions.",
-        "The Playbook lesson review promptContractId must contain the substring `pick3-is-blind-eval`, exactly like the blind-prediction promptContractId. The web-chat tab-reuse, workspace resolution, and rate-limit dialog click-acknowledgement guards are all keyed on that substring; a review-only contract id that lacks it silently disables tab reuse and rate-limit handling for every review call, opening a new browser tab per review and leaving review-phase rate-limit dialogs unhandled.",
-        "The review evidence package includes the failed image, historical rendered prompt, historical raw AI reply, sealed prediction, revealed answer, failure review note, playbook version id, prompt package id, phase, and position.",
-        "The sealed prediction, revealed answer, and failure review note lines in the review evidence package must never expose the internal front/back reveal tokens to the reviewing AI; they must be translated to the same lower/upper vocabulary the AI itself uses (sealed prediction and revealed answer via an exact label translation, the freeform failure review note via a word-boundary text replacement) before being interpolated into the prompt. Handing the AI the literal forbidden word as evidence and then instructing it not to write that word is a self-defeating leak source, not a leak-prevention instruction.",
-        "The review prompt must explicitly forbid the AI from writing the English words \"front\" or \"back\" in rootCause/candidateLesson in ANY form, including ordinary colloquial phrasing such as \"rebound back toward the shoulder\" — not only as a leaked answer label. The leak-detection guard's word-boundary check cannot distinguish a leaked internal label from ordinary English usage of the same word, so any occurrence forces rejection regardless of intent; the only way to keep the AI's natural phrasing from being discarded as a false positive is to instruct it up front to use alternative words (revert, reverse, retreat, return toward upper/lower) instead of front/back in every sense, not just the labeling sense.",
-        "Review prompts are post-mortem analysis prompts and must explicitly forbid a new prediction.",
-        "Lesson records are persisted in a dedicated pick3_playbook_lessons store.",
-        "Each lesson records position as hundreds, tens, or ones and has an aggregate key beginning with that position.",
-        "Lesson records preserve source as auto_review or manual_review and status as candidate, accepted, rejected, or promoted.",
-        "Every non-rejected lesson for a position/aggregateKey is assembled live into the blind prompt payload at prompt-build time, every time a prompt package is built, directly from the current pick3_playbook_lessons rows. One accepted lesson is already experience and must be included immediately; zero lessons means nothing exists to extract yet, not that a count was withheld.",
-        "There is no saved candidate Playbook file and no human promotion step; experience inclusion is mechanical (the lesson exists and is not rejected), never a minimum-count gate or a judgment call on lesson content.",
-        "The active Playbook files under src/plugins/pick3-is-blind-eval/playbooks/ are never edited or replaced by lesson accumulation; only the live-assembled prompt payload changes as lessons accumulate.",
-        "A generated lesson's rootCause and candidateLesson text must be stored exactly as the AI wrote it, with status always candidate. Code must never scan, judge, rewrite, or force-reject this text by keyword/regex matching (e.g. against the phase, imageId, or the words front/back) — a word-boundary text scan cannot distinguish a real leaked label from the AI's ordinary English usage of the same word (e.g. \"rebound back toward the shoulder\"), and false-rejecting good experience on that basis starves the live-assembled experience pool. Leak prevention belongs upstream, in what evidence the review prompt hands the AI (see the sanitization requirements above), never downstream as a judgment of the AI's summary.",
-        "Live experience assembly excludes a lesson only via the structural self-prediction guard below (same source phase/imageId as the chart currently being predicted) and via status === rejected (which manual review may still set, but auto_review never does). It must never re-scan lesson text content for leaked tokens at assembly time either.",
-        "Because a phase's blind chart is deterministic from official draws, re-targeting the same phase regenerates a pixel-identical chart. Live experience assembly must therefore exclude any lesson whose own source phase or source imageId matches the phase/image currently being predicted, even when that lesson's text contains no literal leaked token — a lesson authored with hindsight knowledge of that exact chart's answer must never be fed back into predicting that same chart again.",
-        "Within an included aggregate-key group, every non-excluded case must be rendered into the prompt in full, in order, regardless of group size (one case or ten thousand cases). Code must never select a single 'latest' or 'representative' case to stand in for the group and must never code-summarize multiple cases into one synthesized case; that would be dead code passing judgment on dynamically generated AI content, which it has no standing to do. Only the AI reading the full case text at prediction time may weigh which cases matter.",
-        "If a post-mortem review reply does not parse into a valid rootCause/candidateLesson JSON object, the review must be retried up to 3 attempts total for that same failure. If all 3 attempts fail to parse, that failure must be discarded entirely and not stored as a lesson at all; a placeholder/unstructured lesson record must never be written to pick3_playbook_lessons."
-      ],
-      "forbidden": [
-        "Generating Playbook lessons from free_analysis_strict_reasoning.",
-        "Merging hundreds, tens, and ones lessons into one shared bucket.",
-        "Writing lesson results into ai_predictions, ai_reveals, or pick3_ai_interactions as if they were blind predictions.",
-        "A write-time or read-time text-content scan (keyword/regex match against phase, imageId, front/back, or any other token) over a lesson's own rootCause/candidateLesson that forces its status to rejected or rewrites its text; this is dead code passing judgment on dynamically generated AI content and false-positives on the AI's ordinary English phrasing.",
-        "Writing a candidate or promoted Playbook file to disk from accumulated lessons.",
-        "A human review/approval gate before accumulated lessons enter the live-assembled prompt payload.",
-        "A minimum lesson count gate (e.g. requiring N occurrences) before a non-rejected lesson is extracted into the blind prompt payload.",
-        "Review prompts that ask the AI to predict the historical answer again.",
-        "Second AI transport, second scoring path, second prediction table, or second history chain for lesson review.",
-        "Code-side selection of a single representative case or code-side summarization/merging of multiple cases within an aggregate-key group before sending to the AI.",
-        "Storing a placeholder lesson (e.g. an unparsed/unstructured rootCause or candidateLesson) after a post-mortem review reply fails to parse, instead of retrying up to 3 attempts and discarding the failure entirely on exhaustion."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 9
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-HISTORY-PHYSICAL-DELETE-010-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "physical-delete+native-confirm+acceptance+chrome",
-      "summary": "Pick3 human review history deletion must be a deliberate irreversible physical delete guarded by a real browser confirmation dialog.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-history-physical-delete-010-requirement",
-          "statement": "Pick3 human review history deletion must be a deliberate irreversible physical delete guarded by a real browser confirmation dialog.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Workbench History exposes a delete action for the selected Pick3 next_prediction_stability task.",
-        "Delete action must show a native browser confirmation dialog before any backend delete request is sent.",
-        "The confirmation copy must state that this is a physical delete, irreversible, and includes task evidence and AI answers.",
-        "Canceling the confirmation dialog must send no delete request and must leave the history record readable.",
-        "Confirming delete must physically remove the task directory and task.json.",
-        "Confirming delete must remove matching SQLite rows for the task batch from pick3_ai_interactions, ai_predictions, ai_reveals, failure_reviews, is_blind_images, and is_blind_batches.",
-        "Confirming delete must remove the task-owned artifact directory and raw output refs recorded by the task interactions when those paths are inside GrassEye runtime data.",
-        "If latest-task.json points to the deleted task, it must be physically removed or rewritten from the newest remaining task record.",
-        "Deleted task detail API must return not found after successful delete."
-      ],
-      "forbidden": [
-        "Soft delete, hide-only, archive-only, or deleted flag storage.",
-        "Custom in-page modal used as the only irreversible-delete confirmation.",
-        "Deleting without a native browser confirmation.",
-        "Leaving raw AI answer rows readable after a confirmed delete.",
-        "Deleting paths outside GrassEye runtime data.",
-        "Creating a second delete ledger, second history chain, or recoverable trash folder."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 10
-    },
-    {
-      "lawId": "GRASSEYE-PICK3-IS-BLIND-EVAL-004-V1",
-      "status": "active",
-      "tier": "P1",
-      "capabilityDomain": "pick3-is-blind-eval",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "prompt-version+audit",
-      "summary": "Prompt repair must be versioned and failure replay must be marked as diagnostic only, never as valid future accuracy evidence.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-pick3-is-blind-eval-004-requirement",
-          "statement": "Prompt repair must be versioned and failure replay must be marked as diagnostic only, never as valid future accuracy evidence.",
-          "evidenceMode": "static",
-          "ownerDomain": "pick3-is-blind-eval"
-        }
-      ],
-      "required": [
-        "Prompt rewrite creates a new prompt version.",
-        "Failure replay records original prediction id.",
-        "Failure replay records repaired prompt version.",
-        "Failure replay sets not_valid_for_accuracy true."
-      ],
-      "forbidden": [
-        "Historical prompt mutation.",
-        "Failure replay reported as blind accuracy.",
-        "Replay overwrites original prediction or reveal."
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-pick3-is-blind-eval.instructions.md",
-      "blockIndex": 11
-    },
-    {
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",
       "status": "active",
       "tier": "P0",
@@ -5582,12 +4915,6 @@
           "statement": "Large artifacts, DOM, AI raw output, and binary content must be referenced by refs and hashes instead of embedded inline.",
           "evidenceMode": "acceptance",
           "ownerDomain": "runtime-log-spine"
-        },
-        {
-          "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-          "statement": "Facebook product video mining artifact operations must emit governed references and hashes.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "facebook-product-video-mining-log-coverage"
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
@@ -5664,12 +4991,6 @@
           "statement": "Failed, skipped, and review-required events must carry classified failure metadata instead of free text alone.",
           "evidenceMode": "acceptance",
           "ownerDomain": "runtime-log-spine"
-        },
-        {
-          "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-          "statement": "Facebook product video mining failure paths must emit the governed failure contract.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "facebook-product-video-mining-log-coverage"
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
@@ -5727,12 +5048,6 @@
           "statement": "AI request, upload, response, parse, and validation paths must emit provider proof, refs, hashes, and statuses.",
           "evidenceMode": "acceptance",
           "ownerDomain": "runtime-log-spine"
-        },
-        {
-          "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-          "statement": "Facebook product video mining AI stages must emit governed upload response and parse evidence.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "facebook-product-video-mining-log-coverage"
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
@@ -5752,12 +5067,6 @@
           "statement": "Browser and DOM actions must log before state, attempted action, after state, duration, and failure class.",
           "evidenceMode": "acceptance",
           "ownerDomain": "runtime-log-spine"
-        },
-        {
-          "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-          "statement": "Facebook product video mining navigation must emit before action after and stable-verification evidence.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "facebook-product-video-mining-log-coverage"
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
@@ -5777,12 +5086,6 @@
           "statement": "Every recovery and fallback path must emit a linked recovery trail tied to the originating failure.",
           "evidenceMode": "acceptance",
           "ownerDomain": "runtime-log-spine"
-        },
-        {
-          "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-          "statement": "Facebook product video mining recovery must emit a trail linked to the original failure.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "facebook-product-video-mining-log-coverage"
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
@@ -5802,18 +5105,6 @@
           "statement": "Each plugin and capability must maintain a machine-enforced logging matrix for mandatory stages and contracts.",
           "evidenceMode": "acceptance",
           "ownerDomain": "runtime-log-spine"
-        },
-        {
-          "clauseId": "runtime-log-spine-016-amazon-product-sync-log-matrix",
-          "statement": "Amazon product sync must maintain its machine-enforced mandatory-stage logging matrix.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "amazon-product-sync"
-        },
-        {
-          "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-          "statement": "Facebook product video mining must maintain its machine-enforced mandatory-stage logging matrix.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "facebook-product-video-mining-log-coverage"
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
@@ -5894,6 +5185,63 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
       "blockIndex": 20
+    },
+    {
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "runtime-log-spine",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Runtime logs and public evidence must never disclose credentials, browser storage, secret-bearing URLs, full HTML, or private artifact bodies.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-security-privacy-log-001-requirement",
+          "statement": "All runtime sinks must redact credentials, cookies, tokens, browser storage, signed queries, full HTML, and private artifact bodies before output.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "runtime-log-spine"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-security-privacy.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-browser-session",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+real-chrome",
+      "summary": "Browser session infrastructure must keep cookies, local storage, session storage, passwords, and tokens opaque and outside evidence persistence.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-security-privacy-browser-001-requirement",
+          "statement": "Browser control must not read or persist cookies, localStorage, sessionStorage, passwords, or tokens and must keep session profiles separate from evidence storage.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "local-browser-session"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-security-privacy.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-AI-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "AI transport must accept only caller-approved input references and may never choose files or control payment, refund, deletion, or sensitive submission.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-security-privacy-ai-001-requirement",
+          "statement": "AI transport may deliver only governed caller-approved input references and must never choose arbitrary files or control sensitive final actions.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "ai-input-gateway"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-security-privacy.instructions.md",
+      "blockIndex": 2
     },
     {
       "lawId": "APEX-STARTUP-001-V1",
@@ -6099,6 +5447,44 @@
       "blockIndex": 6
     },
     {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "runtime-log-spine",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "Structured logging is subordinate to the single Runtime Log Spine and must preserve FLOW, DEBUG, TRACE structure and sink-before-output redaction without a second logging authority.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-structured-logging-001-requirement",
+          "statement": "All structured log events must use the single Runtime Log Spine, remain redacted and subordinate to evidence and result truth, and never create a compatibility or parallel logging chain.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "runtime-log-spine"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-structured-logging.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+typecheck",
+      "summary": "External inputs, mediator boundaries, public facades, and flow results must remain schema-validated and explicitly typed, with typecheck retained as a blocking CI gate.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-type-safety-001-requirement",
+          "statement": "External inputs must be schema-validated and owner public contracts must expose explicit result states without any, unvalidated JSON, or silent parse success.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "architecture-boundary"
+        }
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-type-safety.instructions.md",
+      "blockIndex": 0
+    },
+    {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
       "status": "active",
       "tier": "P0",
@@ -6114,6 +5500,60 @@
           "ownerDomain": "video-download-capability"
         }
       ],
+      "codePurityLiveness": {
+        "lawfulDynamicRegistryConsumers": [
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-web-video-once.ts",
+            "registryExportName": "downloadWebVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-facebook-video-once.ts",
+            "registryExportName": "downloadFacebookVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-tiktok-video-once.ts",
+            "registryExportName": "downloadTikTokVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-instagram-video-once.ts",
+            "registryExportName": "downloadInstagramVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+            "registryExportName": "downloadBilibiliVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-douyin-video-once.ts",
+            "registryExportName": "downloadDouyinVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-x-video-once.ts",
+            "registryExportName": "downloadXVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+            "registryExportName": "downloadXiaohongshuVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-youtube-video-once.ts",
+            "registryExportName": "downloadYoutubeVideoOnce"
+          },
+          {
+            "consumerFilePath": "src/capabilities/video-download/registry.ts",
+            "registryFilePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+            "registryExportName": "downloadTelegramWebVideoOnce"
+          }
+        ]
+      },
       "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
       "blockIndex": 0
     },
@@ -6295,11 +5735,11 @@
       "capabilityDomain": "video-download-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection+acceptance",
-      "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+      "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, and startup dependency resilient.",
       "clauses": [
         {
           "clauseId": "grasseye-video-download-capability-011-requirement",
-          "statement": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+          "statement": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, and startup dependency resilient.",
           "evidenceMode": "acceptance",
           "ownerDomain": "video-download-capability"
         }
@@ -6333,11 +5773,11 @@
       "capabilityDomain": "video-download-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-      "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+      "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, and file-based subtitle artifacts.",
       "clauses": [
         {
           "clauseId": "grasseye-video-download-capability-013-requirement",
-          "statement": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+          "statement": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, and file-based subtitle artifacts.",
           "evidenceMode": "acceptance",
           "ownerDomain": "video-download-capability"
         }
@@ -6352,11 +5792,11 @@
       "capabilityDomain": "video-download-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-      "summary": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+      "summary": "YouTube production readiness must be proven by semantic AST checks and executable runtime fixtures, not marker strings, regex scans, or shape-only tests.",
       "clauses": [
         {
           "clauseId": "grasseye-video-download-capability-014-requirement",
-          "statement": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+          "statement": "YouTube production readiness must be proven by semantic AST checks and executable runtime fixtures, not marker strings, regex scans, or shape-only tests.",
           "evidenceMode": "acceptance",
           "ownerDomain": "video-download-capability"
         }
@@ -6371,11 +5811,11 @@
       "capabilityDomain": "video-download-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-      "summary": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+      "summary": "YouTube production runtime must close media-state gaps through variant subtitle matching, abortable metadata probes, temporary-file cleanup, bounded inputs, and real artifact evidence.",
       "clauses": [
         {
           "clauseId": "grasseye-video-download-capability-015-requirement",
-          "statement": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+          "statement": "YouTube production runtime must close media-state gaps through variant subtitle matching, abortable metadata probes, temporary-file cleanup, bounded inputs, and real artifact evidence.",
           "evidenceMode": "static",
           "ownerDomain": "video-download-capability"
         }
@@ -6390,11 +5830,11 @@
       "capabilityDomain": "video-download-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-      "summary": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+      "summary": "YouTube production evidence must be internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, and final release cannot ignore dependency audit risk.",
       "clauses": [
         {
           "clauseId": "grasseye-video-download-capability-016-requirement",
-          "statement": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+          "statement": "YouTube production evidence must be internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, and final release cannot ignore dependency audit risk.",
           "evidenceMode": "static",
           "ownerDomain": "video-download-capability"
         }
@@ -6409,11 +5849,11 @@
       "capabilityDomain": "video-download-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-      "summary": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+      "summary": "YouTube production artifacts must preserve the platform source title as operator-facing metadata; random ids may prevent collision but must not replace the title.",
       "clauses": [
         {
           "clauseId": "grasseye-video-download-capability-017-requirement",
-          "statement": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+          "statement": "YouTube production artifacts must preserve the platform source title as operator-facing metadata; random ids may prevent collision but must not replace the title.",
           "evidenceMode": "static",
           "ownerDomain": "video-download-capability"
         }
@@ -6683,6 +6123,37 @@
       "blockIndex": 7
     },
     {
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "xuanxue-ai-production",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance+real-provider",
+      "summary": "Xuanxue production accepts revisioned whole-order intervention only from the local Workbench and resolves it at stage checkpoints.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
+          "statement": "Xuanxue production accepts revisioned whole-order intervention only from the local Workbench and resolves it at stage checkpoints.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "xuanxue-ai-production"
+        }
+      ],
+      "required": [
+        "The plugin store appends intervention request and acknowledgement events before CAS state mutation.",
+        "Local named pause, cancel, takeover and resume methods accept only orderId, expectedRevision, reason and requestId.",
+        "Safe points exist before scheduler dequeue, before stage feed, after response checkpoint, before joins, hashes and cloud publish.",
+        "Cloud claim, heartbeat, recovery, checkpoint, result and failure contracts contain no intervention command or stage mutation."
+      ],
+      "forbidden": [
+        "cloud human-control ingress",
+        "stageId intervention",
+        "generic intervention dispatcher",
+        "duplicate stage or provider submit"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
+      "blockIndex": 0
+    },
+    {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "status": "active",
       "tier": "P0",
@@ -6729,7 +6200,7 @@
         "blank new GPT conversation used as a follow-up fallback"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-      "blockIndex": 0
+      "blockIndex": 1
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
@@ -6778,7 +6249,7 @@
         "publishing provider-internal citation residue as a production answer"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
@@ -6809,37 +6280,7 @@
         "secret output in logs, routes or evidence"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-      "blockIndex": 2
-    },
-    {
-      "lawId": "GRASSEYE-XUANYUAN-001-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "xuanyuan",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+acceptance+audit",
-      "summary": "Xuanyuan owns only durable generic one-feed local GPT acceptance tasks; xuanxue-ai-production exclusively owns website production orders and multi-stage graphs.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-xuanyuan-001-v3-requirement",
-          "statement": "Xuanyuan owns only durable generic one-feed local GPT acceptance tasks; xuanxue-ai-production exclusively owns website production orders and multi-stage graphs.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "xuanyuan"
-        }
-      ],
-      "required": [
-        "Xuanyuan persists one governed request and one gateway result under an idempotent local task identity.",
-        "Exact submitted work survives restart without duplicate prompt submission.",
-        "A gateway review_required result stops automatic retry and remains stopped after restart.",
-        "The former Xuanyuan cloud production region remains physically deleted."
-      ],
-      "forbidden": [
-        "website production claims or xuanxue product workflow graphs inside Xuanyuan",
-        "provider adapter, browser private implementation or provider SDK inside Xuanyuan",
-        "fake success, duplicate restart submission, review-required auto-retry or caller transport controls"
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-xuanyuan.instructions.md",
-      "blockIndex": 0
+      "blockIndex": 3
     }
   ]
 }

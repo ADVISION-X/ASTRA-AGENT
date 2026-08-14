@@ -1,7 +1,6 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { focusBoundWebChatConversation } from "../runtime/web-chat-single-tab-routing.js";
 import type { AiProviderAdapterContext, WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
-import { copyTextToMacClipboard, pasteMacClipboardIntoChrome } from "./web-chat-clipboard.js";
 import {
   buildConversationLinkTargetScript,
   buildConversationOptionsTargetScript,
@@ -47,8 +46,8 @@ export const runBoundedRenamePatrols = async <T>(input: {
   timeoutMs: number;
   now: () => number;
   wait: (durationMs: number) => Promise<void>;
-  runExclusivePatrol: (operation: (browser: BrowserController) => Promise<T>) => Promise<T>;
-  runTransaction: (browser: BrowserController, patrolSliceMs: number) => Promise<T>;
+  runExclusivePatrol: (operation: (browser: BrowserTargetSession) => Promise<T>) => Promise<T>;
+  runTransaction: (browser: BrowserTargetSession, patrolSliceMs: number) => Promise<T>;
 }): Promise<T> => {
   const deadline = input.now() + input.timeoutMs;
   let lastRenameNotReady: Error | null = null;
@@ -81,11 +80,11 @@ const remainingRenameMs = (deadline: number, capMs: number): number => {
   return Math.max(1, Math.min(remaining, capMs));
 };
 
-const locateTarget = async (input: { browser: BrowserController; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
+const locateTarget = async (input: { browser: BrowserTargetSession; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
   const deadline = Date.now() + input.timeoutMs;
   let last: LocatedTarget | null = null;
   while (Date.now() < deadline) {
-    last = await input.browser.evaluateActiveTab<LocatedTarget>({
+    last = await input.browser.evaluate<LocatedTarget>({
       description: input.description,
       script: input.script,
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
@@ -103,7 +102,7 @@ const locateTarget = async (input: { browser: BrowserController; context: AiProv
   );
 };
 
-const locateAndClick = async (input: { browser: BrowserController; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
+const locateAndClick = async (input: { browser: BrowserTargetSession; context: AiProviderAdapterContext; description: string; script: string; timeoutMs: number }): Promise<LocatedTarget> => {
   const target = await locateTarget(input);
   const clicked = await input.browser.click({
     targetLabel: input.description,
@@ -120,12 +119,12 @@ const locateAndClick = async (input: { browser: BrowserController; context: AiPr
   return target;
 };
 
-const applySystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<string | null> => {
+const applySystemChatTitle = async (input: { browser: BrowserTargetSession; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<string | null> => {
   const deadline = Date.now() + input.timeoutMs;
   const renameMenuScript = buildRenameMenuTargetScript({
     canonicalConversationUrl: input.canonicalConversationUrl,
   });
-  const openRenameMenu = await input.browser.evaluateActiveTab<LocatedTarget>({
+  const openRenameMenu = await input.browser.evaluate<LocatedTarget>({
     description:
       "detect an interrupted exact-conversation rename menu",
     script: renameMenuScript,
@@ -189,7 +188,7 @@ const applySystemChatTitle = async (input: { browser: BrowserController; context
   return observedTitle;
 };
 
-const writeExactSystemChatTitle = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<void> => {
+const writeExactSystemChatTitle = async (input: { browser: BrowserTargetSession; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string }): Promise<void> => {
   let last: TextboxValueVerification | null = null;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await input.browser.textInput({
@@ -197,10 +196,14 @@ const writeExactSystemChatTitle = async (input: { browser: BrowserController; co
       action: "clear-input",
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
     });
-    await copyTextToMacClipboard(input.systemChatTitle, input.context.abortSignal);
-    await pasteMacClipboardIntoChrome(input.context.abortSignal);
+    await input.browser.textInput({
+      targetLabel: "ChatGPT chat title textbox",
+      action: "type-text",
+      text: input.systemChatTitle,
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+    });
     await input.browser.wait(250);
-    last = await input.browser.evaluateActiveTab<TextboxValueVerification>({
+    last = await input.browser.evaluate<TextboxValueVerification>({
       description: "verify exact system title text before committing ChatGPT rename",
       script: buildRenameTextboxValueScript(input.systemChatTitle),
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
@@ -218,7 +221,7 @@ const writeExactSystemChatTitle = async (input: { browser: BrowserController; co
       return;
     }
     if (last.observedValue === null) {
-      const committed = await input.browser.evaluateActiveTab<RenameVerification>({
+      const committed = await input.browser.evaluate<RenameVerification>({
         description: "verify whether ChatGPT committed the exact pasted title before the textbox disappeared",
         script: buildRenamedIdentityVerificationScript(input),
         ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
@@ -234,7 +237,7 @@ const writeExactSystemChatTitle = async (input: { browser: BrowserController; co
   );
 };
 
-const waitForRenamedIdentity = async (input: { browser: BrowserController; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<RenameVerification> => {
+const waitForRenamedIdentity = async (input: { browser: BrowserTargetSession; context: AiProviderAdapterContext; canonicalConversationUrl: string; systemChatTitle: string; turnMarker: string; timeoutMs: number }): Promise<RenameVerification> => {
   const deadline = Date.now() + input.timeoutMs;
   let last: RenameVerification = {
     status: "pending",
@@ -244,7 +247,7 @@ const waitForRenamedIdentity = async (input: { browser: BrowserController; conte
     documentTitleMatches: false,
   };
   while (Date.now() < deadline) {
-    last = await input.browser.evaluateActiveTab<RenameVerification>({
+    last = await input.browser.evaluate<RenameVerification>({
       description: "verify exact system title and marker after ChatGPT rename",
       script: buildRenamedIdentityVerificationScript(input),
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
@@ -256,7 +259,7 @@ const waitForRenamedIdentity = async (input: { browser: BrowserController; conte
 };
 
 type RenameTransactionInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   canonicalConversationUrl: string;
   systemChatTitle: string;
@@ -296,7 +299,7 @@ const recoverOpenTitleEditor = async (
   input: RenameTransactionInput & { timeoutMs: number },
 ): Promise<boolean> => {
   const deadline = Date.now() + input.timeoutMs;
-  const openTitleEditor = await input.browser.evaluateActiveTab<InterruptedRenameEditorObservation>({
+  const openTitleEditor = await input.browser.evaluate<InterruptedRenameEditorObservation>({
     description: "detect an interrupted ChatGPT title editor before rename recovery",
     script: buildInterruptedRenameTextboxTargetScript({
       canonicalConversationUrl: input.canonicalConversationUrl,
@@ -401,7 +404,7 @@ const runRenameTransaction = async (input: {
   return observedTitle;
 };
 
-export const renameSubmittedChatGptConversation = async (input: { browser: BrowserController; context: AiProviderAdapterContext; submission: WebChatSubmissionProof; timeoutMs: number }): Promise<WebChatSubmissionProof> => {
+export const renameSubmittedChatGptConversation = async (input: { browser: BrowserTargetSession; context: AiProviderAdapterContext; submission: WebChatSubmissionProof; timeoutMs: number }): Promise<WebChatSubmissionProof> => {
   const execution = input.context.webChatExecution;
   if (!execution || execution.providerKind !== "gpt-web-chat") return input.submission;
   if (!execution.systemChatTitle || !input.submission.canonicalConversationUrl) {

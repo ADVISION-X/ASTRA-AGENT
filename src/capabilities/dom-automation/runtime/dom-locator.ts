@@ -28,6 +28,8 @@ function buildElementRef(input: LocateDomElementInput, scored: ScoredDomLocatorC
     .digest("hex")
     .slice(0, 16);
   return DOM_SCHEMAS.DomElementRef.parse({
+    targetRef: input.snapshot.targetRef,
+    documentRef: input.snapshot.documentRef,
     elementRef: `dom:${hash}`,
     selector: scored.candidate.selectorCandidate,
     targetKind: input.targetKind,
@@ -98,6 +100,8 @@ export function locateDomElementOnce(rawInput: LocateDomElementInput): DomElemen
   if (result.ok) return result.elementRef;
   const input = DOM_SCHEMAS.LocateDomElementInput.parse(rawInput) as LocateDomElementInput;
   return DOM_SCHEMAS.DomElementRef.parse({
+    targetRef: input.snapshot.targetRef,
+    documentRef: input.snapshot.documentRef,
     elementRef: `dom:unresolved:${result.status}`,
     selector: "__DOM_LOCATE_UNRESOLVED__",
     targetKind: input.targetKind,

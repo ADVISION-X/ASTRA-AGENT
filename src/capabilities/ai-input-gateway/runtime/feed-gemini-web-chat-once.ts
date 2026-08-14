@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatAttachmentUploadProof } from "../contracts/ai-provider-adapter.contract.js";
@@ -13,7 +13,7 @@ import { executeAiFeedOnce } from "./feed-provider-once.js";
 export const feedGeminiWebChatOnce = async (input: {
   request: AiFeedInput;
   dataDir: string;
-  browser?: BrowserController;
+  browser?: BrowserTargetSession;
   runtimeLogger?: RuntimeLogger;
   adapter?: AiProviderAdapter;
   signal?: AbortSignal;

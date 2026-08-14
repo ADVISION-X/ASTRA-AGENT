@@ -61,14 +61,6 @@ const resolveStringConstant = (
   return resolveStringConstant(declaration.getInitializer(), seenSymbols);
 };
 
-const resolveBannedMethodName = (
-  node: MorphNode | undefined,
-  seenSymbols: Set<string> = new Set<string>(),
-): BannedMethodName | undefined => {
-  const literalValue = resolveStringConstant(node, seenSymbols);
-  return literalValue && isBannedMethodName(literalValue) ? literalValue : undefined;
-};
-
 const resolveVariableInitializer = (
   node: MorphNode | undefined,
   seenSymbols: Set<string>,
@@ -252,10 +244,13 @@ const scanCallExpressionFinding = (input: {
   if (!Node.isElementAccessExpression(expression)) {
     return;
   }
-  const bannedMethod = resolveBannedMethodName(expression.getArgumentExpression());
-  if (!bannedMethod || !looksLikeStringOrRegexOrUnknown(expression.getExpression())) {
+  const methodArgument = expression.getArgumentExpression();
+  const resolvedMethod = resolveStringConstant(methodArgument);
+  if ((resolvedMethod !== undefined && !isBannedMethodName(resolvedMethod))
+    || !looksLikeStringOrRegexOrUnknown(expression.getExpression())) {
     return;
   }
+  const bannedMethod = resolvedMethod ?? "<unresolved>";
   pushCallFinding({
     callText: input.callExpression.getText(),
     checkId: "audit-truth/meta-quality-dynamic-method-escape",

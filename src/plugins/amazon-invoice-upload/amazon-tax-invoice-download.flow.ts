@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -56,14 +56,14 @@ type DownloadStep = {
   evidenceStepId: AmazonTaxInvoiceDownloadEvidenceStepId;
   reachedStep: string;
   run: (
-    browser: BrowserController,
+    browser: BrowserTargetSession,
     runtimeLogger: RuntimeLogger,
     mission: AmazonTaxInvoiceDownloadMissionInput,
   ) => Promise<StepOutcome>;
 };
 
 export async function runAmazonTaxInvoiceDownload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   rawMission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<AmazonTaxInvoiceDownloadTaskResult> {
@@ -113,12 +113,12 @@ export async function runAmazonTaxInvoiceDownload(
 async function runDownloadStep<T = void>(
   step: Omit<DownloadStep, "run"> & {
     run: (
-      browser: BrowserController,
+      browser: BrowserTargetSession,
       runtimeLogger: RuntimeLogger,
       mission: AmazonTaxInvoiceDownloadMissionInput,
     ) => Promise<StepOutcome<T>>;
   },
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome<T>> {
@@ -139,7 +139,7 @@ async function runDownloadStep<T = void>(
 }
 
 async function openSellerCentralHome(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -158,7 +158,7 @@ async function openSellerCentralHome(
 }
 
 async function openGlobalMenu(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -176,7 +176,7 @@ async function openGlobalMenu(
 }
 
 async function chooseReportsMenu(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -194,7 +194,7 @@ async function chooseReportsMenu(
 }
 
 async function openFulfillmentReports(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -203,7 +203,7 @@ async function openFulfillmentReports(
   if (!fulfillment.ok) return fail(manualRequired(mission, "AID-04", fulfillment.reason, "locate fulfillment reports"));
   if (snapshot.url.includes("sellercentral.amazon.")) {
     const url = new URL(FULFILLMENT_REPORTS_URL_PATH, snapshot.url);
-    await browser.open({ url: url.toString(), title: "Open Amazon fulfillment reports", reusePolicy: "reuse-active-tab" });
+    await browser.open({ url: url.toString(), title: "Open Amazon fulfillment reports", reusePolicy: "reuse-exact-url" });
     await browser.wait(REPORTCENTRAL_PAGE_SETTLE_MS);
     recordAmazonDomStepTrace({
       runtimeLogger,
@@ -224,7 +224,7 @@ async function openFulfillmentReports(
 }
 
 async function openAfnShipmentInvoicingReport(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -235,7 +235,7 @@ async function openAfnShipmentInvoicingReport(
       return fail(manualRequired(mission, "AID-05", "Tax invoice report link was not proven present on Seller Central report central.", "locate tax invoice report"));
     }
     const url = new URL(TAX_REPORT_URL_PATH, snapshot.url);
-    await browser.open({ url: url.toString(), title: "Open Amazon tax invoice report", reusePolicy: "reuse-active-tab" });
+    await browser.open({ url: url.toString(), title: "Open Amazon tax invoice report", reusePolicy: "reuse-exact-url" });
     await browser.wait(REPORTCENTRAL_PAGE_SETTLE_MS);
     recordAmazonDomStepTrace({
       runtimeLogger,
@@ -257,7 +257,7 @@ async function openAfnShipmentInvoicingReport(
 }
 
 async function selectLast30Days(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -294,7 +294,7 @@ async function selectLast30Days(
 }
 
 async function requestCsvDownload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -325,7 +325,7 @@ async function requestCsvDownload(
 }
 
 async function waitLatestReportDownloadReady(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
 ): Promise<StepOutcome> {
@@ -350,7 +350,7 @@ async function waitLatestReportDownloadReady(
 }
 
 async function clickLatestReportDownload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
   baselineFiles: FileCandidate[],
@@ -390,7 +390,7 @@ async function clickLatestReportDownload(
 }
 
 async function clickLocated(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
   evidenceStepId: AmazonTaxInvoiceDownloadEvidenceStepId,
@@ -418,7 +418,7 @@ async function clickLocated(
 }
 
 async function hoverLocated(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
   evidenceStepId: AmazonTaxInvoiceDownloadEvidenceStepId,
@@ -426,7 +426,7 @@ async function hoverLocated(
   element: DomElementRef,
 ): Promise<StepOutcome> {
   assertEvidenceStepId(evidenceStepId);
-  const point = await browser.evaluateActiveTab<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }>({
+  const point = await browser.evaluate<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }>({
     description: "locate Seller Central hover target point",
     script: `
 const selector = ${JSON.stringify(element.selector)};

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiProviderUploadedFileProof, WebChatAttachmentUploadProof, WebChatExecutionContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiInputGatewayProgress } from "../contract.js";
@@ -36,7 +36,7 @@ export type ManagedWebChatInput = {
   request: AiFeedInput;
   dataDir: string;
   transport: "api" | "web-chat";
-  browser?: BrowserController;
+  browser?: BrowserTargetSession;
   runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
   executionId?: string;
@@ -46,7 +46,7 @@ export type ManagedWebChatInput = {
 
 export type ManagedWebChatExecution = {
   request: AiFeedInput;
-  browser?: BrowserController;
+  browser?: BrowserTargetSession;
   webChatExecution?: WebChatExecutionContext;
   providerLeaseId: string | null;
   durableSubmission(): WebChatExecutionRecord["submission"];

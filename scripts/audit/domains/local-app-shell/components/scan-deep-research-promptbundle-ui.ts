@@ -1,5 +1,10 @@
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
-import { requireAstMarker, requireIdentifier, requireNamedImport } from "./deep-research-ui-ast.js";
+import {
+  requireAstMarker,
+  requireFunctionDeclaration,
+  requireIdentifier,
+  requireNamedImport,
+} from "./deep-research-ui-ast.js";
 
 export const inspectDeepResearchPromptBundleUi = (input: {
   context: InspectorContext;
@@ -30,11 +35,16 @@ export const inspectDeepResearchPromptBundleUi = (input: {
     moduleSuffix: "./workbench-deep-research-client-case-reader.js",
   });
 
-  for (const marker of [
-    "renderPromptBundleDetails",
-    "Final Adjudication PromptBundle",
-    "HTML Report PromptBundle",
-  ]) {
+  requireFunctionDeclaration({
+    findings: input.findings,
+    inspectedFiles: input.inspectedFiles,
+    sourceFile: caseReaderFile,
+    lawId: input.lawId,
+    checkId: "local-app-shell/deep-research-promptbundle-renderer",
+    functionName: "renderPromptBundleDetails",
+  });
+
+  for (const marker of ["Final Adjudication PromptBundle", "HTML Report PromptBundle"]) {
     requireAstMarker({
       findings: input.findings,
       inspectedFiles: input.inspectedFiles,

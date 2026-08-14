@@ -1,5 +1,6 @@
 import { Node } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { toRepoPath } from "../../../shared/paths.js";
 import {
   isLawfulDynamicRegistryConsumer,
@@ -25,7 +26,8 @@ const isDynamicObjectUtilityCall = (referenceNode: Parameters<typeof classifyZom
     return false;
   }
   const callee = parent.getExpression();
-  if (!Node.isPropertyAccessExpression(callee) || callee.getExpression().getText() !== "Object") {
+  if (!Node.isPropertyAccessExpression(callee) || !Node.isIdentifier(callee.getExpression())
+    || astIdentifierName(callee.getExpression()) !== "Object") {
     return false;
   }
   const methodName = callee.getName();

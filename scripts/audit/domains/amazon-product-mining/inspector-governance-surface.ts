@@ -1,5 +1,7 @@
 import { existsSync } from "node:fs";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -8,7 +10,6 @@ import {
   getRequiredSourceFile,
   hasIdentifier,
   hasStringLiteral,
-  identifierText,
   literalText,
   trackSourceFile,
 } from "./inspector-ast-shared.js";
@@ -66,6 +67,10 @@ const FORBIDDEN_AI_IDENTIFIERS = [
 
 const FORBIDDEN_PLUGIN_TERMS = ["fallback", "shadow", "bridge", "legacy", "compatibility"] as const;
 
+const identifierNames = (sourceFile: SourceFile): string[] =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
+    .flatMap((identifier) => astIdentifierName(identifier) ?? []);
+
 const keywordReviewLawIds = [
     "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
@@ -75,7 +80,7 @@ const keywordReviewLawIds = [
     "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
     "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
 ] as const;
 
@@ -273,9 +278,9 @@ export const inspectForbiddenAiIdentifiers = (
     if (!sourceFile) {
       continue;
     }
-    const sourceText = `${literalText(sourceFile)}\n${identifierText(sourceFile)}`;
+    const literalValues = literalText(sourceFile);
     for (const forbiddenId of FORBIDDEN_AI_IDENTIFIERS) {
-      if (!sourceText.includes(forbiddenId) && !hasIdentifier(sourceFile, forbiddenId)) {
+      if (!literalValues.includes(forbiddenId) && !hasIdentifier(sourceFile, forbiddenId)) {
         continue;
       }
       findings.push(createFinding({
@@ -300,9 +305,11 @@ export const inspectForbiddenPluginTerms = (
     if (!sourceFile) {
       continue;
     }
-    const sourceText = `${literalText(sourceFile)}\n${identifierText(sourceFile)}`.toLowerCase();
+    const literalValues = literalText(sourceFile).toLowerCase();
+    const identifiers = identifierNames(sourceFile).map((name) => name.toLowerCase());
     for (const forbiddenTerm of FORBIDDEN_PLUGIN_TERMS) {
-      if (!sourceText.includes(forbiddenTerm)) {
+      if (!literalValues.includes(forbiddenTerm)
+        && !identifiers.some((name) => name.includes(forbiddenTerm))) {
         continue;
       }
       findings.push(createFinding({

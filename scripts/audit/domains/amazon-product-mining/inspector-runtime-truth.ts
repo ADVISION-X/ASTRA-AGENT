@@ -1,5 +1,6 @@
 import { Node, SyntaxKind } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
@@ -40,7 +41,8 @@ const propertyAssignmentCallsIdentifier = (
     ...(initializer?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []),
   ];
   return callExpressions.some((callExpression) =>
-    Node.isIdentifier(callExpression.getExpression()) && callExpression.getExpression().getText() === identifierName,
+    Node.isIdentifier(callExpression.getExpression())
+    && astIdentifierName(callExpression.getExpression()) === identifierName,
   );
 });
 
@@ -50,7 +52,8 @@ const exportedFunctionCallsIdentifier = (
   identifierName: string,
 ): boolean => (sourceFile.getExportedDeclarations().get(exportedFunctionName) ?? []).some((declaration) =>
   declaration.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) =>
-    Node.isIdentifier(callExpression.getExpression()) && callExpression.getExpression().getText() === identifierName,
+    Node.isIdentifier(callExpression.getExpression())
+    && astIdentifierName(callExpression.getExpression()) === identifierName,
   ),
 );
 
@@ -220,7 +223,7 @@ export const inspectDuplicateProductDetailSuppressionContract = (
       return false;
     }
     const firstArgument = callExpression.getArguments()[0];
-    return Node.isIdentifier(firstArgument) && firstArgument.getText() === "existingDetail";
+    return Node.isIdentifier(firstArgument) && astIdentifierName(firstArgument) === "existingDetail";
   });
   if (checksExistingDetails && linksExistingDetail) {
     return;

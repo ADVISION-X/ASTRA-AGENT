@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
   AiProviderUploadedFileProof,
@@ -26,7 +26,6 @@ import {
   acknowledgeChatGptRateLimitDialogIfVisible,
 } from "./web-chat-rate-limit-dialog.js";
 import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hygiene.js";
-import { acknowledgePick3RateLimitIfVisible } from "./web-chat-pick3-recovery-log.js";
 import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
 import {
   finalizeObservedWebChatSubmission,
@@ -61,7 +60,7 @@ const withWebChatStep = async <T>(
 };
 
 const waitForPromptSubmitted = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedPrefix: string;
@@ -92,7 +91,7 @@ const waitForPromptSubmitted = async (input: {
 };
 
 const waitForSendButtonClick = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   step: "click_send_after_prompt_paste";
@@ -115,7 +114,7 @@ const waitForSendButtonClick = async (input: {
 };
 
 type SubmitPromptViaClipboardInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   previousAssistantCount: number;
@@ -124,17 +123,13 @@ type SubmitPromptViaClipboardInput = {
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
 };
-type Pick3RateLimitSubmitGuardInput = {
-  browser: BrowserController;
+type RateLimitSubmitGuardInput = {
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };
-const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: Pick3RateLimitSubmitGuardInput): Promise<void> => {
+const acknowledgeChatGptSubmitRateLimitIfVisible = async (input: RateLimitSubmitGuardInput): Promise<void> => {
   if (input.request.providerKind !== "gpt-web-chat") return;
-  if (input.request.promptContractId.includes("pick3-is-blind-eval")) {
-    await acknowledgePick3RateLimitIfVisible(input);
-    return;
-  }
   const ackStatus = await acknowledgeChatGptRateLimitDialogIfVisible({
     browser: input.browser,
     context: input.context,
@@ -187,7 +182,7 @@ const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): 
 };
 
 const waitForPromptReady = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedLength: number;

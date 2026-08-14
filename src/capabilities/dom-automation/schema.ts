@@ -108,6 +108,8 @@ const DomFrameSummarySchema = z.object({
 }).strict();
 
 const DomSnapshotSchema = z.object({
+  targetRef: z.string().min(1),
+  documentRef: z.string().min(1),
   url: z.string(),
   title: z.string(),
   forms: z.array(DomFormSummarySchema),
@@ -133,11 +135,13 @@ const ReadDomSnapshotInputSchema = z.object({
   includeFrames: z.boolean().optional().default(false),
   includeHidden: z.literal(false).optional().default(false),
   maxTextLengthPerNode: z.number().int().min(20).max(240).optional().default(120),
-  targetScope: z.enum(["active-tab", "current-frame"]).optional().default("active-tab"),
+  targetScope: z.enum(["exact-target", "current-frame"]).optional().default("exact-target"),
   timeoutMs: z.number().int().min(100).max(10_000).optional(),
 }).strict();
 
 const DomElementRefSchema = z.object({
+  targetRef: z.string().min(1),
+  documentRef: z.string().min(1),
   elementRef: z.string().min(1),
   selector: z.string().min(1),
   frameRef: z.string().min(1).optional(),

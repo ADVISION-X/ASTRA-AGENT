@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -53,7 +54,8 @@ export const inspectForbiddenAppShellActions = (
       }
     }
     const localStorageAccess = sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-      .find((expression) => expression.getExpression().getText() === "localStorage");
+      .find((expression) => Node.isIdentifier(expression.getExpression())
+        && astIdentifierName(expression.getExpression()) === "localStorage");
     if (localStorageAccess) {
       findings.push(createFinding({
         checkId: "app-shell-ui/local-storage-truth-source",
@@ -65,7 +67,7 @@ export const inspectForbiddenAppShellActions = (
     }
     const computedVerdictIdentifier = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
       .find((identifier) => {
-        const text = identifier.getText();
+        const text = astIdentifierName(identifier) ?? "";
         return text === "computeVerdict" || text === "calculateVerdict" || text === "deriveVerdict";
       });
     if (computedVerdictIdentifier && Node.isIdentifier(computedVerdictIdentifier)) {

@@ -1,0 +1,9 @@
+{
+  "name": "com.grasseye.browser",
+  "description": "GrassEye private exact-target Native Messaging relay",
+  "path": "__HOST_ABSOLUTE_PATH__",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://mepfnlhndaiihhfejbbhfehegpbdnipl/"
+  ]
+}

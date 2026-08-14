@@ -1,5 +1,5 @@
 import type {
-  BrowserController,
+  BrowserTargetSession,
 } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
@@ -69,12 +69,11 @@ return {
 `;
 
 interface FreshConversationInput {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   providerUrl: string;
   required: boolean;
-  pick3Gemini: boolean;
   waitForProviderComposer: () => Promise<void>;
   isRecoverableComposerTimeout: (error: unknown) => boolean;
   emitStage: (input: {
@@ -87,7 +86,7 @@ interface FreshConversationInput {
 
 const isTransientProviderEvaluationTimeout = (error: unknown): boolean =>
   error instanceof Error
-  && /active-tab evaluation.*timed out/iu.test(error.message);
+  && /COMMAND_TIMEOUT|browser command .*exceeded/iu.test(error.message);
 
 const waitForFreshChatGptConversation = async (
   input: FreshConversationInput,
@@ -108,7 +107,7 @@ const waitForFreshChatGptConversation = async (
       );
     }
     try {
-      const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+      const state = await input.browser.evaluate<WebChatEvaluation>({
         description: "verify isolated ChatGPT fresh conversation",
         script: CHATGPT_FRESH_CONVERSATION_SCRIPT,
         ...(input.context.abortSignal
@@ -150,7 +149,7 @@ const waitForFreshChatGptConversation = async (
 const alreadyOnFreshChatGptConversation = async (
   input: FreshConversationInput,
 ): Promise<boolean> => {
-  const state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+  const state = await input.browser.evaluate<WebChatEvaluation>({
     description:
       "check whether ChatGPT is already on a clean unsubmitted root conversation",
     script: CHATGPT_FRESH_CONVERSATION_SCRIPT,
@@ -164,22 +163,6 @@ const alreadyOnFreshChatGptConversation = async (
   return state.status === "success";
 };
 
-const openFreshGeminiConversation = async (
-  input: FreshConversationInput,
-): Promise<void> => {
-  const opened = await input.browser.open({
-    url: input.providerUrl,
-    title: "gemini-web-chat:pick3-is-blind-eval:fresh",
-    reusePolicy: "reuse-active-tab",
-  });
-  if (!opened.ok) {
-    throw new Error(
-      `Web chat provider page could not be opened: ${opened.message}`,
-    );
-  }
-  await input.waitForProviderComposer();
-};
-
 const clickChatGptNewConversation = async (
   input: FreshConversationInput,
 ): Promise<void> => {
@@ -188,7 +171,7 @@ const clickChatGptNewConversation = async (
   while (Date.now() < deadline) {
     let state: WebChatEvaluation;
     try {
-      state = await input.browser.evaluateActiveTab<WebChatEvaluation>({
+      state = await input.browser.evaluate<WebChatEvaluation>({
         description: "click ChatGPT new chat before isolated GPT prompt",
         script: CHATGPT_NEW_CHAT_SCRIPT,
         ...(input.context.abortSignal
@@ -224,7 +207,7 @@ const recoverChatGptComposer = async (
   const reopened = await input.browser.open({
     url: input.providerUrl,
     title: "recover-provider-composer",
-    reusePolicy: "reuse-active-tab",
+    reusePolicy: "reuse-exact-url",
   });
   if (!reopened.ok) {
     throw new Error(
@@ -239,7 +222,6 @@ export const startFreshChatGptConversation = async (
   input: FreshConversationInput,
 ): Promise<void> => {
   if (!input.required) return;
-  if (input.pick3Gemini) return openFreshGeminiConversation(input);
   if (!await alreadyOnFreshChatGptConversation(input)) {
     await clickChatGptNewConversation(input);
   }

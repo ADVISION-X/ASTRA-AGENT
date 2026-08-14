@@ -6,7 +6,7 @@ const isLawIdCharacter = (character: string): boolean =>
 const hasLawIdPrefix = (value: string): boolean =>
   value.startsWith("APEX-") || value.startsWith("GRASSEYE-");
 
-const isLawId = (value: string): boolean =>
+export const isLawId = (value: string): boolean =>
   hasLawIdPrefix(value)
   && value.slice(value.indexOf("-") + 1).length > 0
   && [...value.slice(value.indexOf("-") + 1)].every(isLawIdCharacter);
@@ -24,6 +24,29 @@ export const lawClauseSchema = z
   })
   .strict();
 
+const lawPathPairSchema = z.object({
+  consumerFilePath: z.string().min(1),
+  targetFilePath: z.string().min(1),
+}).strict();
+
+const lawRegistryConsumerSchema = z.object({
+  consumerFilePath: z.string().min(1),
+  registryFilePath: z.string().min(1),
+  registryExportName: z.string().min(1),
+}).strict();
+
+const codePurityLivenessSchema = z.object({
+  externalEntryExports: z.array(z.object({
+    exportName: z.string().min(1),
+    filePath: z.string().min(1),
+  }).strict()).optional(),
+  externalEntryFiles: z.array(z.string().min(1)).optional(),
+  lawfulDynamicImports: z.array(lawPathPairSchema).optional(),
+  lawfulDynamicNamespaceConsumers: z.array(lawPathPairSchema).optional(),
+  lawfulDynamicRegistryConsumers: z.array(lawRegistryConsumerSchema).optional(),
+  lawfulSideEffectImports: z.array(lawPathPairSchema).optional(),
+}).strict();
+
 const lawMetadataBaseSchema = z
   .object({
     lawId: lawIdSchema,
@@ -34,28 +57,64 @@ const lawMetadataBaseSchema = z
     evidenceMode: z.string().min(1),
     summary: z.string().min(1),
     clauses: z.array(lawClauseSchema).min(1),
+    codePurityLiveness: codePurityLivenessSchema.optional(),
   })
   .passthrough();
 
+const inspectExtensionMetadata = (
+  value: unknown,
+  path: Array<string | number>,
+  addIssue: (path: Array<string | number>, message: string) => void,
+): void => {
+  if (typeof value === "string") {
+    const normalized = value.split("\\").join("/");
+    if (normalized.includes("/inspector.ts") || normalized === "inspector.ts") {
+      addIssue(path, `Law metadata must not hard-bind inspector path ${value}.`);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => inspectExtensionMetadata(item, [...path, index], addIssue));
+    return;
+  }
+  if (value === null || typeof value !== "object") return;
+  for (const [key, nestedValue] of Object.entries(value)) {
+    const nestedPath = [...path, key];
+    if (key.toLowerCase().includes("inspector")) {
+      addIssue(nestedPath, `Law metadata must not hard-bind inspector field ${key}.`);
+    }
+    inspectExtensionMetadata(nestedValue, nestedPath, addIssue);
+  }
+};
+
 export const lawMetadataSchema = lawMetadataBaseSchema.superRefine((law, context) => {
-    if (law.status === "active" && law.clauses.length === 0) {
+  const clauseIds = new Set<string>();
+  for (const [index, clause] of law.clauses.entries()) {
+    if (clause.ownerDomain !== law.capabilityDomain) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Active laws must declare at least one stable clause.",
-        path: ["clauses"],
+        message: `Clause ${clause.clauseId} ownerDomain must equal law capabilityDomain ${law.capabilityDomain}.`,
+        path: ["clauses", index, "ownerDomain"],
       });
     }
-    const clauseIds = new Set<string>();
-    for (const [index, clause] of law.clauses.entries()) {
-      if (clauseIds.has(clause.clauseId)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate clauseId ${clause.clauseId}.`,
-          path: ["clauses", index, "clauseId"],
-        });
-      }
-      clauseIds.add(clause.clauseId);
+    if (clauseIds.has(clause.clauseId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate clauseId ${clause.clauseId}.`,
+        path: ["clauses", index, "clauseId"],
+      });
     }
+    clauseIds.add(clause.clauseId);
+  }
+  const addIssue = (path: Array<string | number>, message: string): void => {
+    context.addIssue({ code: z.ZodIssueCode.custom, message, path });
+  };
+  for (const [key, value] of Object.entries(law)) {
+    if (key.toLowerCase().includes("inspector")) {
+      addIssue([key], `Law metadata must not hard-bind inspector field ${key}.`);
+    }
+    inspectExtensionMetadata(value, [key], addIssue);
+  }
 });
 
 export type LawSource = z.infer<typeof lawMetadataBaseSchema> & {

@@ -21,6 +21,31 @@ Amazon invoice upload is one bounded job-flow owner:
 src/plugins/amazon-invoice-upload/**
 ```
 
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-invoice-upload",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+acceptance+real-chrome",
+  "summary": "Amazon invoice upload alone owns revisioned whole-task intervention at item and submission checkpoints.",
+  "required": [
+    "The plugin store persists intervention revision, state, reason, request identity and owning checkpoint before acknowledgement.",
+    "Pause, cancel, takeover and resume use expectedRevision CAS and stop new Browser commands at the next item or submission-safe checkpoint.",
+    "A submitted upload waits only for its existing result checkpoint; uncertain submission becomes review_required and is never replayed.",
+    "App, route, mediator and local runtime only forward named plugin-facade methods."
+  ],
+  "forbidden": ["route-owned intervention state", "generic intervention dispatcher", "automatic replay of an uncertain upload", "persisted raw Chrome target ids"],
+  "clauses": [{
+    "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
+    "statement": "Amazon invoice upload alone owns revisioned whole-task intervention at item and submission checkpoints.",
+    "evidenceMode": "acceptance",
+    "ownerDomain": "amazon-invoice-upload"
+  }]
+}
+```
+
 The unified chain is:
 
 ```txt
@@ -356,7 +381,7 @@ Download completion is not upload completion. Website status return is not task 
   "capabilityDomain": "amazon-invoice-upload",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "flow+ast+acceptance+chrome",
-  "summary": "Amazon invoice batch upload must reuse the active Seller Central order worker tab across items and must not make per-item tab close a success condition.",
+  "summary": "Amazon invoice batch upload must retain one owner-bound exact Seller Central target across items and must not make target cleanup a per-item success condition.",
   "appliesTo": [
     "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
     "scripts/audit/domains/amazon-invoice-upload/**",
@@ -364,26 +389,25 @@ Download completion is not upload completion. Website status return is not task 
     "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
   ],
   "required": [
-    "Before deciding Seller Central tab reuse, the implementation refreshes current Chrome navigation state from the real browser.",
-    "When any retained browser tab is already on the same Seller Central host, the next order detail navigation uses reuse-host-tab to focus that tab and replace its URL.",
-    "When the active browser tab is already on the same non-HTTP test host, the next order detail navigation uses reuse-active-tab.",
-    "Successful upload verification records upload_success without calling closeActiveTab.",
-    "Already-uploaded verification records already_uploaded without calling closeActiveTab.",
+    "The amazon-invoice-upload owner retains one BrowserTargetSession whose exact target identity is refreshed from real Chrome before each item.",
+    "The next order detail navigation uses reuse-exact-url inside that owner session and never selects a same-host, active, current, first, or front tab fallback.",
+    "Successful upload verification records upload_success without closing the owner target.",
+    "Already-uploaded verification records already_uploaded without closing the owner target.",
     "upload_success and already_uploaded must remain distinct in task records, ledger projection, latest lookup, and APP batch rendering.",
     "Tab cleanup, if needed, is a batch/session cleanup concern and must not change per-item upload_success into review_required.",
     "Each reused-tab item must still verify the target order id and invoice action state before upload or already-uploaded judgment."
   ],
   "forbidden": [
-    "Per-item closeActiveTab inside upload success verification.",
-    "Per-item closeActiveTab inside already-uploaded verification.",
-    "Opening a new Seller Central tab for every batch item when any retained tab is already on the same Seller Central host.",
-    "Deciding Seller Central tab lifecycle from stale controller state without reading real Chrome state.",
+    "Per-item closeTarget inside upload success verification.",
+    "Per-item closeTarget inside already-uploaded verification.",
+    "Opening a new Seller Central target for every batch item instead of retaining the plugin-owned exact session.",
+    "Selecting a Seller Central target from active/current/front/first tab or same-host fallback.",
     "Treating tab close failure as invoice upload failure after Amazon success or already-uploaded state is verified."
   ],
   "clauses": [
     {
       "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
-      "statement": "Amazon invoice batch upload must reuse the active Seller Central order worker tab across items and must not make per-item tab close a success condition.",
+      "statement": "Amazon invoice batch upload must retain one owner-bound exact Seller Central target across items and must not make per-item target cleanup a success condition.",
       "evidenceMode": "real-chrome",
       "ownerDomain": "amazon-invoice-upload"
     }
@@ -409,7 +433,7 @@ Download completion is not upload completion. Website status return is not task 
     "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
     "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
-    "src/lib/browser/current-chrome-browser-screenshot.ts",
+    "src/lib/browser/exact-target/browser-command-runtime.ts",
     "scripts/audit/domains/amazon-invoice-upload/**",
     "scripts/acceptance/amazon-invoice-upload*.ts",
     "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
@@ -426,7 +450,7 @@ Download completion is not upload completion. Website status return is not task 
     "Each order-detail snapshot timeout and poll wait is clamped to the current window's remaining time so eight nominal 2-second windows cannot silently become eight overlong waits.",
     "Every Amazon invoice DOM snapshot has an explicit execution deadline no greater than 1800ms so a low-level Chrome evaluation cannot silently exceed the 2-second business window.",
     "A DOM evaluation exception inside an order-detail observation is converted into that window's structured failure and the next finite same-page observation; it must not bypass the governed window sequence.",
-    "Evidence screenshot capture activates the controlled Chrome window before capture so a transient zero-accessibility-window state cannot fail the invoice item.",
+    "Evidence screenshot capture binds the exact targetRef/documentRef and runs through the background CDP target without activating Chrome or changing the operator's foreground tab.",
     "After a failed order-detail observation window, the only allowed next action is another bounded DOM observation on the unchanged page; exhausting eight windows returns review-required failure without refresh or repeat navigation.",
     "After Manage invoice is clicked, existing-invoice discovery uses an AND THEN wait: the unique visible invoice dialog must bind to the current amazonOrderId and expose either a matching uploaded invoice row, a fully rendered upload-ready table and upload action, or the exact no-actions blocker before the flow may branch.",
     "A short elapsed-time deadline must not turn a still-loading Manage invoice dialog into review_required and must not permit the local batch to start the next invoice.",
@@ -543,11 +567,11 @@ Download completion is not upload completion. Website status return is not task 
   "capabilityDomain": "amazon-invoice-upload",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "runtime-log+acceptance+audit",
-  "summary": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+  "summary": "API-triggered Amazon invoice upload must preserve the operator's foreground Chrome focus and must not perform a website-tab return action after the Amazon terminal result.",
   "appliesTo": [
     "src/app/workbench-amazon-routes.ts",
     "src/lib/browser/browser-controller.ts",
-    "src/lib/browser/current-chrome-window-control.ts",
+    "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
     "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
     "scripts/audit/domains/amazon-invoice-upload/**",
@@ -558,22 +582,15 @@ Download completion is not upload completion. Website status return is not task 
   "required": [
     "The external upload route may preserve sourceSystem and requestId only as API source metadata from X-GrassEye-Source-System / X-GrassEye-Request-Id or the legacy mission payload.",
     "sourceSystem and requestId must not become DOM selectors, browser commands, Seller Central workflow inputs, or upload success evidence.",
-    "For API-sourced upload missions with adminOrderUrl, the task service must first persist the original Amazon upload terminal result, then attempt website tab return.",
-    "Website return must use a focus-only existing-tab browser policy that first activates an exact matching adminOrderUrl tab, then may activate an existing same-origin same-path admin tab when the only mismatch is query/hash state.",
-    "Focus-only tab switching must be an explicit API-return mode and must not become the default behavior of normal Amazon Manage admin page opening.",
-    "The focus-only policy must not create a new Chrome window, create a new tab, set URL of an existing tab, refresh the website, or navigate by host fallback when the exact/same-path website tab is missing.",
-    "If the existing website tab is missing or cannot be focused, the focus failure must be recorded in runtime trace without overwriting the Amazon upload terminal status.",
-    "The bounded website-return timeout must abort the focus browser action and await its full settlement before the upload execution lease is released or another invoice may start.",
+    "For API-sourced upload missions with adminOrderUrl, the task service persists the original Amazon upload terminal result and performs no browser action against adminOrderUrl.",
+    "The operator's active window and active tab remain unchanged after the background exact-target upload finishes.",
+    "Normal Amazon Manage admin page opening remains an explicit user-started local action in its own owner-bound exact target session.",
     "adminOrderUrl must still pass the allowed Amazon admin host validation before any tab focus attempt.",
     "A post-change production-readiness claim for website tab return must cite fresh runtime evidence from the changed path; historical Seller Central upload success evidence is not proof that the website return IF was tested."
   ],
   "forbidden": [
-    "Opening adminOrderUrl as a new tab after upload completion.",
-    "Refreshing or navigating the website-side Amazon Manage page after upload completion.",
-    "Applying focus-only behavior to ordinary admin page open commands.",
-    "Using reuse-active-tab, reuse-host-tab, open-new-tab, or fallback URL navigation for website return.",
-    "Running website return before the Amazon upload reaches and persists a terminal result.",
-    "Using a detached Promise.race or any timeout path that can release the upload execution lease while the website focus browser action is still running.",
+    "Opening, activating, focusing, refreshing, or navigating adminOrderUrl after upload completion.",
+    "Any website-return browser policy or foreground-focus restoration helper.",
     "Inferring upload_success, already_uploaded, or review_required from website focus state.",
     "Declaring the changed API website return path production verified from logs, acceptance strings, or pre-change upload evidence alone.",
     "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
@@ -581,7 +598,7 @@ Download completion is not upload completion. Website status return is not task 
   "clauses": [
     {
       "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
-      "statement": "API-triggered Amazon invoice upload must switch Chrome focus back to the existing website-side Amazon Manage tab after the Amazon upload reaches a terminal result, without opening, refreshing, or navigating the website page.",
+      "statement": "API-triggered Amazon invoice upload must preserve the operator's foreground Chrome focus and perform no website-return browser action after terminal persistence.",
       "evidenceMode": "acceptance",
       "ownerDomain": "amazon-invoice-upload"
     }

@@ -172,7 +172,11 @@
             "filePath": "scripts/audit/domains/code-purity/inspector.ts",
             "symbolName": "inspectDomain"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-CODE-PURITY-014-V1",
@@ -211,7 +215,11 @@
             "filePath": "scripts/audit/domains/code-purity/inspector.ts",
             "symbolName": "inspectDomain"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-CODE-PURITY-017-V1",

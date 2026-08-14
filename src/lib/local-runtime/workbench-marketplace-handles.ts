@@ -1,25 +1,19 @@
 import {
-  exportFacebookProductVideoMiningSelectionRecords,
-  getFacebookProductVideoMiningRunStatus,
-  getLatestFacebookProductVideoMiningRun,
-  listFacebookProductVideoMiningSavedRecords,
-} from "../../plugins/facebook-product-video-mining/index.js";
-import {
   exportAmazonProductMiningResult,
   getAmazonProductMiningKeywordReview,
   getAmazonProductMiningTaskStatus,
   getLatestAmazonProductMiningTask,
   listAmazonProductMiningKeywordReviews,
+  readAmazonProductMiningIntervention,
 } from "../../plugins/amazon-product-mining/index.js";
-import { getAmazonProductSyncTaskStatus, getLatestAmazonProductSyncTask } from "../../plugins/amazon-product-sync/index.js";
-import { getAmazonProductFeeSyncTaskStatus, getLatestAmazonProductFeeSyncTask } from "../../plugins/amazon-product-fee-sync/index.js";
-import { runFacebookProductVideoMiningRoute } from "../../mediator/facebook-product-video-mining-route.js";
 import {
+  runCancelAmazonProductMiningRoute,
   runAmazonProductMiningRoute,
   runContinueAmazonProductMiningRoute,
+  runPauseAmazonProductMiningRoute,
+  runResumeAmazonProductMiningRoute,
+  runTakeoverAmazonProductMiningRoute,
 } from "../../mediator/amazon-product-mining-route.js";
-import { runAmazonProductSyncRoute } from "../../mediator/amazon-product-sync-route.js";
-import { runAmazonProductFeeSyncRoute } from "../../mediator/amazon-product-fee-sync-route.js";
 import { loadOnlineAiProviderPublicStatus, saveOnlineAiProviderConfig } from "../online-ai/index.js";
 import { loadAppRunLimitSettings, saveAppRunLimitSettings } from "./settings.js";
 import type { WorkbenchAssembly } from "./workbench-assembly.js";
@@ -39,33 +33,9 @@ export const buildSettingsHandle = (dataDir: string) => ({
   },
 });
 
-export const buildFacebookMiningHandle = (assembly: WorkbenchAssembly, dataDir: string) => ({
-  async startFacebookProductVideoMiningMission(input: Parameters<typeof runFacebookProductVideoMiningRoute>[0]) {
-    return runFacebookProductVideoMiningRoute(input, {
-      browser: assembly.browserController,
-      videoDownload: assembly.videoDownload,
-      aiInputGateway: assembly.aiInputGateway,
-      runtimeLogger: assembly.runtimeLogger,
-      dataDir,
-    });
-  },
-  async getFacebookProductVideoMiningRunStatus(runId: string) {
-    return getFacebookProductVideoMiningRunStatus({ dataDir, runId });
-  },
-  async getLatestFacebookProductVideoMiningRun() {
-    return getLatestFacebookProductVideoMiningRun({ dataDir });
-  },
-  async listFacebookProductVideoMiningSavedRecords(runId: string) {
-    return listFacebookProductVideoMiningSavedRecords({ dataDir, runId });
-  },
-  async exportFacebookProductVideoMiningSelectionRecords(runId: string) {
-    return exportFacebookProductVideoMiningSelectionRecords({ dataDir, runId });
-  },
-});
-
 const buildAmazonMiningRuntime = (assembly: WorkbenchAssembly, dataDir: string) => ({
   dataDir,
-  browser: assembly.browserController,
+  browser: assembly.browserController.createTargetSession("amazon-product-mining"),
   aiInputGateway: assembly.aiInputGateway,
   runtimeLogger: assembly.runtimeLogger,
 });
@@ -92,40 +62,22 @@ export const buildAmazonMiningHandle = (assembly: WorkbenchAssembly, dataDir: st
   continueInterruptedAmazonProductMiningTasks() {
     return runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(assembly, dataDir));
   },
+  ...buildAmazonMiningInterventionHandle(assembly, dataDir),
+});
+
+const buildAmazonMiningInterventionHandle = (assembly: WorkbenchAssembly, dataDir: string) => ({
+  async readAmazonProductMiningIntervention(taskId: string) { return readAmazonProductMiningIntervention(dataDir, taskId); },
+  async pauseAmazonProductMining(input: Parameters<typeof runPauseAmazonProductMiningRoute>[0]) { return runPauseAmazonProductMiningRoute(input, dataDir); },
+  async cancelAmazonProductMining(input: Parameters<typeof runCancelAmazonProductMiningRoute>[0]) { return runCancelAmazonProductMiningRoute(input, dataDir); },
+  async takeoverAmazonProductMining(input: Parameters<typeof runTakeoverAmazonProductMiningRoute>[0]) { return runTakeoverAmazonProductMiningRoute(input, dataDir); },
+  async resumeAmazonProductMining(input: Parameters<typeof runResumeAmazonProductMiningRoute>[0]) {
+    const snapshot = runResumeAmazonProductMiningRoute(input, dataDir);
+    assembly.aiInputGateway.resumeProviderTargetAfterOperator?.(`amazon-product-mining:${input.taskId}`);
+    runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(assembly, dataDir));
+    return snapshot;
+  },
 });
 
 export const continueInterruptedAmazonMiningForWorkbench = (assembly: WorkbenchAssembly): void => {
   runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(assembly, assembly.dataDir));
 };
-
-export const buildAmazonProductSyncHandle = (assembly: WorkbenchAssembly, dataDir: string) => ({
-  async startAmazonProductSyncTask(rawInput: unknown) {
-    return runAmazonProductSyncRoute(rawInput, {
-      dataDir,
-      browser: assembly.browserController,
-      runtimeLogger: assembly.runtimeLogger,
-    });
-  },
-  async getAmazonProductSyncTaskStatus(taskId: string) {
-    return getAmazonProductSyncTaskStatus({ dataDir, taskId, runtimeLogger: assembly.runtimeLogger });
-  },
-  async getLatestAmazonProductSyncTask() {
-    return getLatestAmazonProductSyncTask({ dataDir, runtimeLogger: assembly.runtimeLogger });
-  },
-});
-
-export const buildAmazonProductFeeSyncHandle = (assembly: WorkbenchAssembly, dataDir: string) => ({
-  async startAmazonProductFeeSyncTask(rawInput: unknown) {
-    return runAmazonProductFeeSyncRoute(rawInput, {
-      dataDir,
-      browser: assembly.browserController,
-      runtimeLogger: assembly.runtimeLogger,
-    });
-  },
-  async getAmazonProductFeeSyncTaskStatus(taskId: string) {
-    return getAmazonProductFeeSyncTaskStatus({ dataDir, taskId, runtimeLogger: assembly.runtimeLogger });
-  },
-  async getLatestAmazonProductFeeSyncTask() {
-    return getLatestAmazonProductFeeSyncTask({ dataDir, runtimeLogger: assembly.runtimeLogger });
-  },
-});

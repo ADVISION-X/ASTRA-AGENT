@@ -13,8 +13,8 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-truth/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-truth/components/scan-audit-no-source-text-search.ts",
+            "symbolName": "scanAuditNoSourceTextSearch"
           }
         ]
       },
@@ -26,8 +26,8 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-truth/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-truth/components/scan-generated-plan-coverage.ts",
+            "symbolName": "scanGeneratedPlanCoverage"
           }
         ]
       },
@@ -39,8 +39,8 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-truth/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-truth/components/scan-audit-meta-quality-no-regex.ts",
+            "symbolName": "scanAuditMetaQualityNoRegex"
           }
         ]
       }
@@ -50,7 +50,10 @@
     {
       "filePath": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
       "requiredAnchors": [
+        "## 主矩阵",
+        "## CI-FULL 应该做",
         "## audit-system 边界",
+        "## READY 标准",
         "## CI 真绿硬边界链路"
       ]
     }

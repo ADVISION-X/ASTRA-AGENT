@@ -1,21 +1,26 @@
+import { execFile } from "node:child_process";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import type {
-  BrowserController,
+  BrowserTargetSession,
   BrowserNativeMultiFilePickerResult,
 } from "./browser-controller.js";
 import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser-action-result.js";
-import { escapeAppleScriptText } from "./current-chrome-browser-controller-primitives.js";
-import {
-  runAppleScript,
-  type ChromeWindowState,
-} from "./current-chrome-window-control.js";
 
-type NativePickerInput = Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0];
-type NativePickerWindowIdentity = Pick<
-  ChromeWindowState,
-  "windowX" | "windowY" | "width" | "height"
->;
+type NativePickerInput = Parameters<NonNullable<BrowserTargetSession["selectFilesInNativePicker"]>>[0];
+type NativePickerWindowIdentity = { windowX: number; windowY: number; width: number; height: number };
+
+const execFileAsync = promisify(execFile);
+const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => {
+  const { stdout } = await execFileAsync("/usr/bin/osascript", ["-e", script], {
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+    ...(options?.signal ? { signal: options.signal } : {}),
+  });
+  return stdout.trim();
+};
 
 const NATIVE_PICKER_PROCESS_TIMEOUT_MS = 35_000;
 const NATIVE_PICKER_CLEANUP_TIMEOUT_MS = 5_000;
@@ -357,4 +362,41 @@ export const runNativeMultiFilePickerSelection = async (
       `NATIVE_PICKER_AUTOMATION_FAILED:${message.replace(/\s+/gu, " ").slice(0, 500)}`,
     );
   }
+};
+
+const readFocusedChromeWindowIdentity = async (abortSignal?: AbortSignal): Promise<NativePickerWindowIdentity> => {
+  const raw = await runAppleScript(`tell application "Google Chrome"
+if (count of windows) is 0 then error "Chrome window unavailable"
+set p to position of front window
+set s to size of front window
+return (item 1 of p as string) & "," & (item 2 of p as string) & "," & (item 1 of s as string) & "," & (item 2 of s as string)
+end tell`, abortSignal ? { signal: abortSignal } : undefined);
+  const [windowX, windowY, width, height] = raw.split(",").map((value) => Number(value));
+  if (![windowX, windowY, width, height].every(Number.isFinite)) throw new Error("focused Chrome window identity is invalid");
+  return { windowX: windowX!, windowY: windowY!, width: width!, height: height! };
+};
+
+export const selectCurrentChromeNativePickerFiles = async (
+  input: NativePickerInput,
+): Promise<{ ok: boolean; message: string; observedFileNames: string[] }> => {
+  const identity = await readFocusedChromeWindowIdentity(input.abortSignal);
+  const result = await runNativeMultiFilePickerSelection(input, identity);
+  return { ok: result.ok, message: result.message, observedFileNames: result.observedFileNames };
+};
+
+export const pasteCurrentChromeFileFromSystemClipboard = async (
+  filePath: string,
+  abortSignal?: AbortSignal,
+): Promise<void> => {
+  const script = [
+    `set targetFile to POSIX file "${escapeAppleScriptText(filePath)}" as alias`,
+    "set the clipboard to {targetFile}",
+    'tell application "System Events"',
+    '  tell process "Google Chrome"',
+    '    if frontmost is false then error "OPERATOR_INTERRUPTED: Chrome lost focus before clipboard paste"',
+    '    keystroke "v" using command down',
+    "  end tell",
+    "end tell",
+  ].join("\n");
+  await runAppleScript(script, abortSignal ? { signal: abortSignal } : undefined);
 };

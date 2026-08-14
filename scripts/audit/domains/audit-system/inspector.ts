@@ -2,12 +2,19 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 
 import { Node, SyntaxKind } from "ts-morph";
 
+import { discoverLawFiles } from "../../build/discover-law-files.js";
+import { parseApexLaws } from "../../build/parse-apex-laws.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { isLawId } from "../../shared/law-contracts.js";
 import { extractMarkdownHeadings, normalizeMarkdownHeading } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { pushStaleCodePurityTextReportFindings } from "./stale-code-purity-text-report.js";
-import { inspectPhysicalCheckReceiptContract } from "./physical-check-receipt-inspector.js";
+import { inspectPhysicalCheckReceiptContract, inspectWorkflowEntrySurface } from "./physical-check-receipt-inspector.js";
+import { inspectBinaryVerdictContract } from "./binary-verdict-inspector.js";
+import { inspectManualMatrixConsumption } from "./manual-matrix-consumption-inspector.js";
+import { inspectGeneratedArtifactTruthContract } from "./generated-artifact-truth-inspector.js";
+import { inspectPrimaryEvidenceContract } from "./primary-evidence-inspector.js";
 
 const requiredArtifacts = [
   "scripts/audit/generated/law-registry.generated.json",
@@ -38,7 +45,7 @@ const fileHasContent = (repoPath: string): boolean => {
   return existsSync(absolutePath) && statSync(absolutePath).size > 2;
 };
 
-const pushRequiredArtifactFindings = (
+export const pushRequiredArtifactFindings = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
   artifactLawId: string,
@@ -92,7 +99,25 @@ const pushGeneratedPlanUniquenessFindings = (
   }
 };
 
-const pushBlueprintAnchorFindings = (
+export const pushLawParserSovereigntyFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const lawFiles = discoverLawFiles();
+  lawFiles.forEach((filePath) => inspectedFiles.add(filePath));
+  const parsed = parseApexLaws(lawFiles);
+  for (const conflict of parsed.conflicts) {
+    findings.push(createFinding({
+      checkId: "audit-system/law-parser-sovereignty",
+      lawId,
+      filePath: conflict.filePath,
+      message: conflict.message,
+    }));
+  }
+};
+
+export const pushBlueprintAnchorFindings = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
   blueprintLawId: string,
@@ -148,7 +173,7 @@ const readStaticCoverageSummary = (): StaticCoverageSummary => {
   return summary;
 };
 
-const pushStaticCoverageFindings = (
+export const pushStaticCoverageFindings = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
   metaLawId: string,
@@ -191,7 +216,7 @@ const pushStaticCoverageFindings = (
   }
 };
 
-const pushCiFullEntryGateFindings = (
+export const pushCiFullEntryGateFindings = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
   chainLawId: string,
@@ -235,7 +260,7 @@ const pushCiFullEntryGateFindings = (
 const findHardcodedLawLiteral = (sourceFile: NonNullable<ReturnType<InspectorContext["project"]["getSourceFile"]>>) =>
   sourceFile
     .getDescendantsOfKind(SyntaxKind.StringLiteral)
-    .find((literal) => literal.getLiteralValue().startsWith("APEX-"));
+    .find((literal) => isLawId(literal.getLiteralValue()));
 
 const findHardcodedDomainArray = (
   sourceFile: NonNullable<ReturnType<InspectorContext["project"]["getSourceFile"]>>,
@@ -312,27 +337,108 @@ const pushRunnerTruthFindings = (
   }
 };
 
+type AuditSystemFinding = ReturnType<typeof createFinding>;
+
+export const inspectCiEntryContract = (
+  context: InspectorContext,
+  lawId: string,
+  inspectedFiles: Set<string>,
+): AuditSystemFinding[] => {
+  const findings: AuditSystemFinding[] = [];
+  pushCiFullEntryGateFindings(findings, inspectedFiles, lawId, context);
+  pushStaleCodePurityTextReportFindings(findings, inspectedFiles, lawId);
+  const workflowEntrySurface = inspectWorkflowEntrySurface(lawId);
+  findings.push(...workflowEntrySurface.findings);
+  workflowEntrySurface.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
+  return findings;
+};
+
+export const inspectLawParserContract = (
+  lawId: string,
+  inspectedFiles: Set<string>,
+): AuditSystemFinding[] => {
+  const findings: AuditSystemFinding[] = [];
+  pushLawParserSovereigntyFindings(findings, inspectedFiles, lawId);
+  return findings;
+};
+
+export const inspectGeneratedArtifactContract = (
+  lawId: string,
+  inspectedFiles: Set<string>,
+): AuditSystemFinding[] => {
+  const findings: AuditSystemFinding[] = [];
+  pushRequiredArtifactFindings(findings, inspectedFiles, lawId);
+  return findings;
+};
+
+export const inspectBlueprintContract = (
+  lawId: string,
+  inspectedFiles: Set<string>,
+  blueprintRefs: ReadonlyArray<NonNullable<InspectorContext["planEntry"]["blueprintRefs"]>[number]>,
+): AuditSystemFinding[] => {
+  const findings: AuditSystemFinding[] = [];
+  pushBlueprintAnchorFindings(findings, inspectedFiles, lawId, blueprintRefs);
+  return findings;
+};
+
+export const inspectMetaCoverageContract = (
+  context: InspectorContext,
+  lawId: string,
+  inspectedFiles: Set<string>,
+): AuditSystemFinding[] => {
+  const findings: AuditSystemFinding[] = [];
+  pushCodePurityPrerequisiteFinding(findings, lawId, context.completedReports);
+  pushStaticCoverageFindings(findings, inspectedFiles, lawId);
+  const generatedTruth = inspectGeneratedArtifactTruthContract(context, lawId);
+  findings.push(...generatedTruth.findings);
+  generatedTruth.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
+  const matrixConsumption = inspectManualMatrixConsumption(context, lawId);
+  findings.push(...matrixConsumption.findings);
+  matrixConsumption.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
+  return findings;
+};
+
+export const inspectBinaryContract = (
+  context: InspectorContext,
+  lawId: string,
+  inspectedFiles: Set<string>,
+): AuditSystemFinding[] => {
+  const findings: AuditSystemFinding[] = [];
+  inspectBinaryVerdictContract(context, findings, inspectedFiles, lawId);
+  return findings;
+};
+
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const chainLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-001-V1");
+  const lawParserLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-002-V1");
   const manifestLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-003-V1");
   const artifactLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-004-V1");
   const runnerLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-005-V1");
+  const enforcementTruthLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-006-V1");
   const blueprintLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-007-V1");
   const metaLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-008-V1");
+  const deletionLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-009-V1");
+  const binaryVerdictLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-010-V1");
   const findings: ReturnType<typeof createFinding>[] = [];
   const inspectedFiles = new Set<string>();
 
-  pushRequiredArtifactFindings(findings, inspectedFiles, artifactLawId);
+  findings.push(...inspectCiEntryContract(context, chainLawId, inspectedFiles));
+  findings.push(...inspectLawParserContract(lawParserLawId, inspectedFiles));
+  findings.push(...inspectGeneratedArtifactContract(artifactLawId, inspectedFiles));
   pushGeneratedPlanUniquenessFindings(findings, manifestLawId, context.generatedPlan);
-  pushBlueprintAnchorFindings(findings, inspectedFiles, blueprintLawId, context.planEntry.blueprintRefs ?? []);
-  pushCodePurityPrerequisiteFinding(findings, metaLawId, context.completedReports);
-  pushStaleCodePurityTextReportFindings(findings, inspectedFiles, chainLawId);
-  pushStaticCoverageFindings(findings, inspectedFiles, metaLawId);
-  pushCiFullEntryGateFindings(findings, inspectedFiles, chainLawId, context);
+  findings.push(...inspectBlueprintContract(blueprintLawId, inspectedFiles, context.planEntry.blueprintRefs ?? []));
+  findings.push(...inspectMetaCoverageContract(context, metaLawId, inspectedFiles));
+  findings.push(...inspectPrimaryEvidenceContract(context, enforcementTruthLawId, inspectedFiles));
   pushRunnerTruthFindings(findings, inspectedFiles, chainLawId, runnerLawId, context);
-  const receiptContract = inspectPhysicalCheckReceiptContract(context, runnerLawId);
+  findings.push(...inspectBinaryContract(context, binaryVerdictLawId, inspectedFiles));
+  const receiptContract = inspectPhysicalCheckReceiptContract(context, {
+    binaryVerdict: binaryVerdictLawId,
+    deletion: deletionLawId,
+    enforcementTruth: enforcementTruthLawId,
+    runner: runnerLawId,
+  });
   findings.push(...receiptContract.findings);
   receiptContract.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
 

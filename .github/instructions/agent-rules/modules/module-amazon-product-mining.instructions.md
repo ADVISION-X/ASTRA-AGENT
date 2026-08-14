@@ -131,7 +131,7 @@ User Requirement
   ],
   "forbidden": [
     "Amazon mining flow placed under src/capabilities, src/mediator, src/lib, or src/app.",
-    "Reusing facebook-product-video-mining as Amazon mining entrypoint.",
+    "Reusing another plugin as Amazon mining entrypoint.",
     "Universal marketplace crawler abstraction owning Amazon mining state.",
     "ERP, profit calculator, or purchase-decision modules introduced into the plugin owner.",
     "Amazon-specific workflow placed inside any ability group."
@@ -153,7 +153,7 @@ User Requirement
 
 业务流程禁止放入：
 
-- `src/plugins/facebook-product-video-mining/**`
+- 其他 plugin 的业务实现
 - `src/plugins/deep-research-analysis/**`
 - `src/capabilities/**`
 - `src/mediator/**`
@@ -171,7 +171,7 @@ User Requirement
 - AI planner 漂移
 - 能力组业务化漂移
 - Deep Research 子流程漂移
-- Facebook mining 复用错位漂移
+- 其他 plugin 复用错位漂移
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-002-V1] Single Fixed Flow
 
@@ -682,7 +682,6 @@ amazon-product-mining-package-{taskId}/
   "summary": "Amazon Product Mining production readiness must be enforced by owner inspector, acceptance tests, generated audit plan, and npm run ci:full; warning-only or partial pass must not be called complete.",
   "appliesTo": [
     "scripts/audit/domains/amazon-product-mining/manifest.json",
-    "scripts/audit/domains/amazon-product-mining/inspector.ts",
     "scripts/acceptance/amazon-product-mining-*.acceptance.ts",
     "package.json",
     "scripts/audit/ci-full.ts"
@@ -1024,7 +1023,7 @@ updatedAt
     "Route-level auto-progression into downstream business stages based on verdict.",
     "App using localStorage, fixture rows, demo rows, or raw package scanning as keyword review history truth.",
     "App computing PASS / WATCH / REJECT / INSUFFICIENT_DATA inside the app shell instead of reading persisted verdicts.",
-    "App exposing manual keyword review ingest or task pause/continue/terminate controls for Amazon Product Mining."
+    "App exposing manual keyword review ingest or any task intervention that bypasses the plugin-owned revisioned pause/cancel/takeover/resume contract."
   ],
   "clauses": [
     {
@@ -1279,7 +1278,7 @@ App 可保存最近 taskId，
 
 - Amazon 产品挖掘所有 `promptContractId` 以 `amazon-product-mining-` 开头的 GPT Web Chat 请求，完成响应捕获后必须关闭 provider tab，避免旧 GPT 页面残留干扰 current active tab。
 - `promptContractId` 以 `amazon-product-mining-` 开头且 GPT Web Chat 已捕获有效输出时，`restoredSourcePage=false` 必须保留在 provider proof，但不得阻断后续 Amazon 挖掘流程。
-- 该连续性例外只适用于 Amazon 产品挖掘 prompt contract；Deep Research、Facebook、invoice upload 或其他能力仍必须对 source restoration failure fail closed。
+- 该连续性例外只适用于 Amazon 产品挖掘 prompt contract；Deep Research、invoice upload 或其他能力仍必须对 source restoration failure fail closed。
 - 该例外不得新增 fallback、第二 provider、第二导出链路或手工 repack。
 - Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`，并以 AST 证明 Amazon GPT provider tab 收口路径存在。
 
@@ -1328,17 +1327,17 @@ App 可保存最近 taskId，
 - keyword opportunity review 的 GPT Web Chat `maxInputChars` 必须不低于 `900_000`，避免导航与 prompt 被旧上限挡住。
 - AST 级执法必须证明上述字段进入生产 navigation input，并由 acceptance 读取实际生成的 review input 校验。
 
-## [GRASSEYE-AMAZON-PRODUCT-MINING-024-V1] Automatic Breakpoint Resume Without Manual Controls
+## [GRASSEYE-AMAZON-PRODUCT-MINING-024-V2] Automatic Resume With Plugin-Owned Intervention
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "amazon-product-mining",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "storage+flow+app-surface+ast+acceptance",
-  "summary": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
+  "summary": "Amazon Product Mining must be restart-resumable from persisted evidence while exposing only plugin-owned revisioned whole-task pause, cancel, takeover and resume interventions through the explicit Workbench chain.",
   "appliesTo": [
     "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
@@ -1356,14 +1355,14 @@ App 可保存最近 taskId，
   "forbidden": [
     "Restarting an interrupted task from the beginning when persisted keyword/search/detail/review evidence exists.",
     "Running two active executions for the same taskId.",
-    "Exposing Pause, Continue, or Terminate Amazon Product Mining routes, UI buttons, workbench handle methods, or plugin facade exports.",
-    "Requiring a human action to move an interrupted Amazon Product Mining task forward.",
+    "Exposing a generic action dispatcher, route-owned task state, stage-level control or any intervention that bypasses the plugin facade and expectedRevision CAS.",
+    "Automatically resuming a paused, cancelled, taken-over or outcome-unknown task without the matching plugin-owned revisioned decision.",
     "Resuming through a second flow, fallback flow, manual repack, or package-only truth source."
   ],
   "clauses": [
     {
-      "clauseId": "grasseye-amazon-product-mining-024-requirement",
-      "statement": "Amazon Product Mining must be restart-resumable from persisted task evidence and must not expose manual Pause, Continue, Terminate, or manual-ingest controls; every non-terminal interrupted task auto-continues on system startup through the same production flow.",
+      "clauseId": "grasseye-amazon-product-mining-024-v2-requirement",
+      "statement": "Amazon Product Mining must be restart-resumable from persisted evidence while exposing only plugin-owned revisioned whole-task pause, cancel, takeover and resume interventions through the explicit Workbench chain.",
       "evidenceMode": "acceptance",
       "ownerDomain": "amazon-product-mining"
     }
@@ -1373,11 +1372,13 @@ App 可保存最近 taskId，
 
 ### 法条
 
-- `created | keyword_generating | keyword_ready | mining | packaging` 都属于可自动续跑状态。
+- `created | keyword_generating | keyword_ready | mining | packaging` 在没有 pending intervention 时属于可自动续跑状态。
 - 自动续跑必须复用同一个 `taskId` 与同一套持久化证据，从已入库的 keyword/search/detail/review/keyword review 位置继续。
 - Workbench 启动必须扫描可自动续跑任务并启动同一生产 flow 继续执行。
-- App、routes、workbench handle 与 plugin facade 不得暴露 Amazon Product Mining `pause / continue / terminate` 人工控制入口。
-- Acceptance 与 AST audit 必须证明：持久化状态存在、自动续跑 facade 存在、人工控制 routes/UI/handle/export 不存在、自动续跑不会覆盖已有证据。
+- Plugin facade 必须暴露具名 `pause / cancel / takeover / resume` 整单方法，输入只有 `taskId / expectedRevision / reason / requestId`；每个 keyword/product/review/package 安全点只读取 plugin-owned pending intervention。
+- App、route、mediator 与 Workbench handle 只能逐方法解析和转发；不得接受 selector、coordinate、target id、browser command、nextAction 或通用 action 字符串。
+- pause/cancel/takeover ACK 后不得启动下一条 Browser/AI 命令；已提交的外部副作用只等待 owning checkpoint，结果歧义进入 `OUTCOME_UNKNOWN` / `review_required` 且不重放。
+- Acceptance 与 AST audit 必须证明：自动续跑不覆盖既有证据、stale revision 零写入、暂停状态不自动恢复、App 不拥有状态、无第二 flow 或人工重包。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-025-V1] Keyword Full Package Deep Research Handoff Governance
 
@@ -1448,7 +1449,7 @@ App 可保存最近 taskId，
 
 ### task status
 
-`created | keyword_generating | keyword_ready | mining | packaging | package_completed | failed | manual_required | paused | terminated`
+`created | keyword_generating | keyword_ready | mining | packaging | package_completed | failed | manual_required | paused | cancelled | taken_over`
 
 ### keyword status
 
@@ -1509,10 +1510,6 @@ App 可保存最近 taskId，
 
 Amazon 产品挖掘学习 Deep Research 的原则：单一流程、全量原始记录、结构化索引不可替代 raw evidence、最终报告基于完整案卷、禁止 legacy / fallback / lite package。但 Amazon 产品挖掘不是 Deep Research 的子流程。
 
-### 与 Facebook Product Video Mining 的关系
-
-Amazon 产品挖掘学习 Facebook mining 的原则：独立插件 owner、固定 round / flow 顺序、失败诚实记录、导出成功候选和证据、AI 不决定浏览器下一步动作、不绕过平台限制。但 Amazon 产品挖掘不是 Facebook mining 的复用版，不能共享其业务 flow。
-
 ### 与能力组的关系
 
 Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程顺序；Ability Group 执行同类动作；Child Ability 执行原子动作；Evidence / Logs 证明发生过什么；Storage 保存业务记录。
@@ -1560,4 +1557,19 @@ Amazon 产品挖掘只能调用能力组 public facade。Job Flow 决定流程�
 禁止 PDF 替代结构化数据包
 禁止 warning-only 当 P0 通过
 禁止把 partial pass 当完成
+```
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-product-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+acceptance+real-chrome",
+  "summary": "Amazon Product Mining owns revisioned local intervention at keyword, page, product, review, package and AI checkpoints.",
+  "required": ["The plugin SQLite store persists revision, state, reason and checkpoint beside the canonical task.", "Pause, cancel, takeover and resume use expectedRevision CAS and requestId identity.", "Every Browser or AI mutation checks a plugin safe point and persisted checkpoints are not replayed.", "Only the local Workbench may request intervention."],
+  "forbidden": ["terminated compatibility status", "route-owned task state", "generic intervention dispatcher", "external intervention API", "automatic replay of submitted AI turns"],
+  "clauses": [{"clauseId": "grasseye-amazon-product-mining-027-requirement", "statement": "Amazon Product Mining owns revisioned local intervention at keyword, page, product, review, package and AI checkpoints.", "evidenceMode": "acceptance", "ownerDomain": "amazon-product-mining"}]
+}
 ```

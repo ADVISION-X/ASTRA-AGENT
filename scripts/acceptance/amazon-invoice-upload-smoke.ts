@@ -13,6 +13,7 @@ import {
 } from "../../src/plugins/amazon-invoice-upload/index.js";
 import { extractOrderDomTotalAmount, parsePdfTotalAmount } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.js";
 import type { DomSnapshot } from "../../src/types/dom-automation.js";
+import type { BrowserDocumentRef, BrowserTargetRef } from "../../src/types/browser-target.js";
 import {
   AmazonHangingOpenBrowserAdapter,
   AmazonSmokeBrowserAdapter,
@@ -72,11 +73,11 @@ async function runPrimaryUploadSmoke(
 }
 
 function assertPrimaryBrowserContract(browser: AmazonSmokeBrowserAdapter): void {
-  if (browser.closeActiveTabCalls !== 0) {
-    throw new Error(`Amazon invoice smoke must retain the order tab; closeActiveTabCalls=${browser.closeActiveTabCalls}`);
+  if (browser.closeTargetCalls !== 0) {
+    throw new Error(`Amazon invoice smoke must retain the order tab; closeTargetCalls=${browser.closeTargetCalls}`);
   }
-  if (!browser.openReusePolicies.includes("open-new-tab")) {
-    throw new Error("Amazon invoice smoke must use the order-detail owner's single navigation policy for a fresh file fixture.");
+  if (!browser.openReusePolicies.includes("reuse-exact-url")) {
+    throw new Error("Amazon invoice smoke must bind the order-detail owner to the exact target URL.");
   }
   if (browser.duplicateOrderDetailOpenCount !== 0 || browser.fileUrlOpenCount !== 1) {
     throw new Error(`Amazon invoice smoke must open the order detail exactly once; opens=${browser.fileUrlOpenCount}, duplicates=${browser.duplicateOrderDetailOpenCount}`);
@@ -262,6 +263,8 @@ function assertBackendPdfTextAmountReadable(): void {
 
 function assertSplitSellerCentralOrderTotalReadable(): void {
   const amount = extractOrderDomTotalAmount({
+    targetRef: "bt_fixture" as BrowserTargetRef,
+    documentRef: "bd_fixture" as BrowserDocumentRef,
     url: "https://sellercentral.amazon.ae/orders-v3/order/402-2948017-0456349",
     title: "亚马逊",
     forms: [],
@@ -299,6 +302,8 @@ function assertSplitSellerCentralOrderTotalReadable(): void {
 
 function assertLongSellerCentralOrderTotalReadable(): void {
   const amount = extractOrderDomTotalAmount({
+    targetRef: "bt_fixture" as BrowserTargetRef,
+    documentRef: "bd_fixture" as BrowserDocumentRef,
     url: "https://sellercentral.amazon.ae/orders-v3/order/402-2948017-0456349",
     title: "Amazon",
     forms: [],

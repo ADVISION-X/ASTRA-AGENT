@@ -36,6 +36,15 @@ export const AMAZON_PRODUCT_MINING_SCHEMA_SQL = [
     created_at TEXT NOT NULL,
     updated_at TEXT
   )`,
+  `CREATE TABLE IF NOT EXISTS amazon_mining_interventions (
+    task_id TEXT PRIMARY KEY,
+    revision INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    reason TEXT,
+    checkpoint TEXT NOT NULL,
+    pending_json TEXT,
+    updated_at TEXT NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS amazon_mining_search_results (
     item_id TEXT PRIMARY KEY,
     keyword_id TEXT NOT NULL,

@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -27,14 +28,14 @@ const getArrowFunctionDeclaration = (sourceFile: SourceFile, name: string) =>
 const arrowFunctionCalls = (sourceFile: SourceFile, functionName: string, calledName: string): boolean =>
   getArrowFunctionDeclaration(sourceFile, functionName)
     ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((callExpression) => callExpression.getExpression().getText() === calledName) ?? false;
+    .some((callExpression) => astExpressionPath(callExpression.getExpression()) === calledName) ?? false;
 
 const objectLiteralHasProperty = (sourceFile: SourceFile, variableName: string, propertyName: string): boolean => {
   const objectLiteral = sourceFile.getVariableDeclaration(variableName)?.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
   return objectLiteral?.getProperties().some((property) => {
     if (!Node.isPropertyAssignment(property)) return false;
     const nameNode = property.getNameNode();
-    return Node.isIdentifier(nameNode) && nameNode.getText() === propertyName;
+    return Node.isIdentifier(nameNode) && astIdentifierName(nameNode) === propertyName;
   }) ?? false;
 };
 
@@ -48,12 +49,12 @@ const hasLatestTabRefreshHandler = (sourceFile: SourceFile): boolean =>
     const hasLatestGuard = handler.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((binaryExpression) => {
       const left = binaryExpression.getLeft();
       const right = binaryExpression.getRight();
-      return left.getText() === "tab.dataset.amazonProductMiningPage"
+      return astExpressionPath(left) === "tab.dataset.amazonProductMiningPage"
         && Node.isStringLiteral(right)
         && right.getLiteralValue() === "latest";
     });
     const refreshesLatest = handler.getDescendantsOfKind(SyntaxKind.CallExpression)
-      .some((nestedCall) => nestedCall.getExpression().getText() === "refreshAmazonProductMiningLatest");
+      .some((nestedCall) => astExpressionPath(nestedCall.getExpression()) === "refreshAmazonProductMiningLatest");
     return hasLatestGuard && refreshesLatest;
   });
 

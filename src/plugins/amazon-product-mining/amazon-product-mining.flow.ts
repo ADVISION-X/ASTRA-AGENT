@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonKeywordRecord, AmazonMiningInput, AmazonProductDetail, AmazonSearchResultItem } from "./amazon-product-mining.schema.js";
 import { createAmazonMiningLogger } from "./amazon-product-mining.logging.js";
@@ -33,7 +33,7 @@ export type AmazonFlowContext = {
   miningInput: AmazonMiningInput;
   taskId: string;
   dataDir: string;
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   aiInputGateway: AiInputGatewayAbilityGroup;
   runtimeLogger: RuntimeLogger;
   providerKind: AmazonKeywordProviderKind;
@@ -89,7 +89,7 @@ const linkExistingDetailForSearchItem = async (
   runtime.storage.persistProductDetail(existingDetail, [item.itemId]);
   if (existingDetail.asin && existingDetail.status !== "completed") {
     await extractAndPersistReviews(runtime, existingDetail.detailId, existingDetail.asin);
-    return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+    return await haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
   }
   return "active";
 };
@@ -109,9 +109,6 @@ const ensureTaskRecord = (runtime: AmazonFlowRuntime): void => {
   const { storage, logger, taskId, miningInput } = runtime;
   const existingTask = storage.getTask(taskId);
   if (existingTask) {
-    if (existingTask.status === "paused") {
-      storage.updateTaskStatus({ taskId, status: "mining" });
-    }
     return;
   }
   storage.createTask({
@@ -210,7 +207,7 @@ const extractAndPersistReviews = async (
   const reviewsUrl = `https://www.${miningInput.amazonMarketplace}/product-reviews/${asin}`;
   storage.updateProductStatus({ detailId, status: "review_extracting" });
   await waitForReviewPageOpenPacingDelay(runtime);
-  if (haltIfAmazonOperatorControlled(runtime)) return;
+  if (await haltIfAmazonOperatorControlled(runtime)) return;
 
   const paginationResult = await runReviewPagination({
     browser: ctx.browser,
@@ -244,7 +241,7 @@ const shouldSkipLinkedDetail = (detail: AmazonProductDetail): boolean =>
   || detail.status === "failed";
 
 const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: string; productUrl: string | null; asinIfAvailable: string | null }): Promise<KeywordWorkResult> => {
-  if (haltIfAmazonOperatorControlled(runtime)) return "halted";
+  if (await haltIfAmazonOperatorControlled(runtime)) return "halted";
   if (!item.productUrl) return "active";
   const linkedDetail = getAmazonLinkedProductDetail(runtime, item.itemId);
   if (linkedDetail) {
@@ -253,7 +250,7 @@ const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: str
     }
     if (linkedDetail.asin && (linkedDetail.status === "pending_detail" || linkedDetail.status === "detail_completed" || linkedDetail.status === "review_extracting")) {
       await extractAndPersistReviews(runtime, linkedDetail.detailId, linkedDetail.asin);
-      return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+      return await haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
     }
   }
   const asin = resolveAmazonItemAsin(item.productUrl, item.asinIfAvailable);
@@ -268,7 +265,7 @@ const processSearchItem = async (runtime: AmazonFlowRuntime, item: { itemId: str
     return "active";
   }
   await extractAndPersistReviews(runtime, productDetail.detailId, productDetail.asin);
-  return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+  return await haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
 };
 
 export const selectSearchItemsForDetailMining = <T extends { rankPosition: number }>(
@@ -361,12 +358,12 @@ const processKeywordRecord = async (
   runtime: AmazonFlowRuntime,
   keywordRecord: AmazonKeywordRecord,
 ): Promise<KeywordWorkResult> => {
-  if (haltIfAmazonOperatorControlled(runtime)) return "halted";
+  if (await haltIfAmazonOperatorControlled(runtime)) return "halted";
   const searchItems = await loadOrSearchKeywordItems(runtime, keywordRecord);
   const itemResult = await processKeywordSearchItems(runtime, keywordRecord, searchItems);
-  if (itemResult === "halted" || haltIfAmazonOperatorControlled(runtime)) return "halted";
+  if (itemResult === "halted" || await haltIfAmazonOperatorControlled(runtime)) return "halted";
   await runKeywordReviewIfNeeded(runtime, keywordRecord);
-  return haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
+  return await haltIfAmazonOperatorControlled(runtime) ? "halted" : "active";
 };
 
 const extractAndPersistProductDetail = async (
@@ -377,7 +374,7 @@ const extractAndPersistProductDetail = async (
 ) => {
   const { ctx, storage, logger, taskId } = runtime;
   await waitForProductDetailOpenPacingDelay(runtime);
-  if (haltIfAmazonOperatorControlled(runtime)) return null;
+  if (await haltIfAmazonOperatorControlled(runtime)) return null;
   logger.logDetailOpen({ taskId, detailId: itemId, productUrl });
 
   try {
@@ -417,7 +414,7 @@ const runMiningPhase = async (
   runtime.storage.updateTaskStatus({ taskId: runtime.taskId, status: "mining" });
   await openDedicatedMiningTab(runtime);
   for (const keywordRecord of keywordRecords) {
-    const control = haltIfAmazonOperatorControlled(runtime);
+    const control = await haltIfAmazonOperatorControlled(runtime);
     if (control) return control;
     const result = await processKeywordRecord(runtime, keywordRecord);
     if (result === "halted") return { kind: "halted", result: toAmazonTaskResult(runtime) };
@@ -442,7 +439,7 @@ export const runAmazonProductMiningFlow = async (ctx: AmazonFlowContext): Promis
 
   try {
     ensureTaskRecord(runtime);
-    const initialControl = haltIfAmazonOperatorControlled(runtime);
+    const initialControl = await haltIfAmazonOperatorControlled(runtime);
     if (initialControl) return initialControl.result;
     const keywordPhase = await runKeywordPhase(runtime);
     if (keywordPhase.kind === "stop") {
@@ -450,7 +447,7 @@ export const runAmazonProductMiningFlow = async (ctx: AmazonFlowContext): Promis
     }
     const miningPhase = await runMiningPhase(runtime, keywordPhase.keywordRecords);
     if (miningPhase.kind === "halted") return miningPhase.result;
-    const packagingControl = haltIfAmazonOperatorControlled(runtime);
+    const packagingControl = await haltIfAmazonOperatorControlled(runtime);
     if (packagingControl) return packagingControl.result;
     return await finalizeAmazonMiningPackaging(runtime, AMAZON_PRODUCT_MINING_DETAIL_RANK_LIMIT);
   } catch (error) {

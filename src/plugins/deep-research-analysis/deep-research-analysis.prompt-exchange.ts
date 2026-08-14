@@ -9,14 +9,15 @@ import {
     type StageLogger,
     type StageTraceContext,
     buildFlowStageStartFields,
-    buildPromptPackage,
 } from "./deep-research-analysis.analysis-runner.js";
+import { buildPromptPackage } from "./deep-research-analysis.gateway.js";
 import { logDeepResearchPromptSent } from "./deep-research-analysis.logging.js";
 import type { DeepResearchParserResult } from "./deep-research-analysis.parser.js";
 import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-bundle-shell.js";
 import type { CaptureSuccess } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
 import {
     capturePromptOutput,
+    throwUnsupportedPromptExchangeStage,
 } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
 import type { ParseRawAvailable } from "./deep-research-analysis.prompt-exchange-persist-stage.js";
 import { parsePromptOutput, persistPromptOutput } from "./deep-research-analysis.prompt-exchange-persist-stage.js";
@@ -26,6 +27,7 @@ import {
     type ResearchInteraction,
 } from "./deep-research-analysis.records.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
+import { awaitDeepResearchSafePoint } from "./deep-research-analysis.intervention.js";
 
 type PromptPreview = {
   promptId: string;
@@ -34,11 +36,13 @@ type PromptPreview = {
 };
 
 type PromptExchangeInput<TParsed> = {
+  dataDir: string;
   store: DeepResearchRecordStore;
   runtimeLogger: RuntimeLogger;
   traceContext: StageTraceContext;
   stageLogger: StageLogger;
   sender: DeepResearchGatewaySender;
+  releaseForTakeover: () => Promise<void>;
   recordHashes: Record<string, string>;
   jobId: string;
   providerKind: ProviderKind;
@@ -207,7 +211,7 @@ const startPromptSend = (input: {
   if (handlePrimarySendStages(sharedInput) || handleExtendedSendStages(sharedInput)) {
     return;
   }
-  throw new Error(`Unsupported Deep Research send stage ${input.stage}.`);
+  return throwUnsupportedPromptExchangeStage(input, "send");
 };
 
 const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => {
@@ -297,6 +301,8 @@ export const runPromptExchange = async <TParsed>(
 ): Promise<PromptExchangeSuccess<TParsed> | PromptExchangeRawAvailable | PromptExchangeFailure> => {
   const prepared = preparePromptExchange(input);
 
+  await awaitDeepResearchSafePoint(input.dataDir, input.jobId, `${input.stages.send}:before`, input.releaseForTakeover);
+
   startPromptSend({
     store: input.store,
     runtimeLogger: input.runtimeLogger,
@@ -327,6 +333,8 @@ export const runPromptExchange = async <TParsed>(
   if ("status" in captured) {
     return captured;
   }
+
+  await awaitDeepResearchSafePoint(input.dataDir, input.jobId, `${input.stages.capture}:checkpointed`, input.releaseForTakeover);
 
   return continuePromptExchange(input, prepared, captured);
 };

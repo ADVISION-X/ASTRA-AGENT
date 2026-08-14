@@ -29,8 +29,6 @@ export const AiTaskLabelKeySchema = z.enum([
   "naming_analysis",
   "deep_research",
   "amazon_product_mining",
-  "facebook_video_mining",
-  "pick3_analysis",
   "full_corpus_analysis",
   "system_acceptance",
   "generic_ai",

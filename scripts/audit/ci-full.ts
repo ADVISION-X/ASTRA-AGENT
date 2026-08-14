@@ -55,6 +55,8 @@ type AuditPlanJson = {
 
 const generatedPlanLawId = preArtifactPlannedSteps
   .find(([phase]) => phase === "generated-plan-runner")?.[4] ?? null;
+const generatedArtifactTruthLawId = preArtifactPlannedSteps
+  .find(([phase]) => phase === "generated-artifact-truth")?.[4] ?? null;
 
 const defaultLawCoverage = (): CiFullLawCoverage => ({
   activeLawCount: 0,
@@ -383,6 +385,7 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
     command: "internal:verifyGeneratedArtifactTruth()",
     error: artifactError ?? undefined,
     name: "generated-artifact-truth",
+    lawId: generatedArtifactTruthLawId,
     phase: "generated-artifact-truth",
     startedAtMs,
     status: artifactError ? "FAIL" : "PASS",
@@ -393,7 +396,7 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
       ? createFirstFailure({
           phase: step.phase,
           command: step.command,
-          lawId: null,
+          lawId: generatedArtifactTruthLawId,
           filePath: missingArtifact ?? "scripts/audit/generated/static-clause-coverage.generated.json",
           message: artifactError,
           minimalFixHint: "Repair generated artifact emission so ci:full rebuilds the generated truth set before declaring PASS.",
@@ -483,7 +486,7 @@ const main = async (): Promise<void> => {
     finalDecision: "PASS",
   });
 
-  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/format-shell/no-confidence/promptbundle/raw-html/full-process-html/no-compatibility/export/UI acceptance, Amazon smoke, and Facebook mining acceptance passed.\n");
+  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/format-shell/no-confidence/promptbundle/raw-html/full-process-html/no-compatibility/export/UI acceptance, and Amazon smoke passed.\n");
 };
 
 const isEntrypoint = (): boolean => {

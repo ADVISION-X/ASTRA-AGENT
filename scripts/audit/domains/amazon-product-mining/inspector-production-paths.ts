@@ -1,5 +1,6 @@
 import { Node, SyntaxKind } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
@@ -46,7 +47,7 @@ const firstCallStartByName = (
     .flatMap((callExpression) => {
       const expression = callExpression.getExpression();
       const matches = Node.isIdentifier(expression)
-        ? expression.getText() === callName
+        ? astIdentifierName(expression) === callName
         : Node.isPropertyAccessExpression(expression) && expression.getName() === callName;
       return matches ? [callExpression.getStart()] : [];
     });
@@ -244,7 +245,7 @@ const sourceHasCallExpression = (
 ): boolean => sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
   .some((callExpression) => {
     const expression = callExpression.getExpression();
-    return expression.getText() === identifier
+    return astIdentifierName(expression) === identifier
       || (Node.isPropertyAccessExpression(expression) && expression.getName() === identifier);
   });
 
@@ -311,9 +312,8 @@ export const inspectAmazonWebChatRestoreContinuity = (
     : false;
   const recoveryOk = recoveryFile
     ? hasIdentifier(recoveryFile, "restoredSourcePage")
-      && fileIncludesText(recoveryFile, "SOURCE_PAGE_RESTORE_FAILED")
-      && fileIncludesText(recoveryFile, "transportWarnings")
-      && sourceHasCallExpression(recoveryFile, "closeActiveTab")
+      && !fileIncludesText(recoveryFile, "SOURCE_PAGE_RESTORE_FAILED")
+      && !sourceHasCallExpression(recoveryFile, "closeTarget")
     : false;
   const runtimeOk = runtimeFile
     ? !sourceHasCallExpression(runtimeFile, "canContinueAfterWebChatSourceRestoreFailure")
@@ -361,7 +361,7 @@ export const inspectGptWebChatIsolationForKeywordMining = (
     ?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((callExpression) =>
       Node.isIdentifier(callExpression.getExpression())
-      && callExpression.getExpression().getText() === "isAmazonProductMiningGptRequest",
+      && astIdentifierName(callExpression.getExpression()) === "isAmazonProductMiningGptRequest",
     ) ?? false;
 
   if (!freshConversationUsesAmazonClassifier) {

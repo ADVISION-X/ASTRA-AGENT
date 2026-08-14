@@ -36,7 +36,8 @@ const AmazonTaskStatusSchema = z.enum([
   "failed",
   "manual_required",
   "paused",
-  "terminated",
+  "cancelled",
+  "taken_over",
 ]);
 
 const AmazonKeywordStatusSchema = z.enum([

@@ -1,4 +1,3 @@
-import { getLawfulDomZombieExports } from "../../dom-automation/components/dom-lawful-zombie-exports.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import {
@@ -53,5 +52,4 @@ export const isLawfulZombieExport = (
 ): boolean =>
   (isOwnerInspectorPath(governedFile.repoPath)
     && exportName === "inspectDomain")
-  || isLawfulManifestEntryExport(manifest, governedFile.repoPath, exportName)
-  || getLawfulDomZombieExports(governedFile.repoPath).includes(exportName);
+  || isLawfulManifestEntryExport(manifest, governedFile.repoPath, exportName);

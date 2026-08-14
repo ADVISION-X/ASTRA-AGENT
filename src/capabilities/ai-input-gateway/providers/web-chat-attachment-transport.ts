@@ -3,7 +3,7 @@ import type {
   AiProviderUploadedFileProof,
   WebChatAttachmentTransportKind,
 } from "../contracts/ai-provider-adapter.contract.js";
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiFeedInput } from "../schema.js";
 
 export type StagedWebChatAttachment = {
@@ -17,7 +17,7 @@ export type StagedWebChatAttachment = {
 };
 
 export type WebChatAttachmentTransportInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   stagingDirectoryPath: string;

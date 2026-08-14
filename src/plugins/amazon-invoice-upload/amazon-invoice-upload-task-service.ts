@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -39,17 +39,17 @@ import {
   type AmazonInvoiceUploadTaskStartInput,
 } from "./amazon-invoice-upload-task-service.types.js";
 import type { AmazonInvoiceUploadLedgerRecord } from "./amazon-invoice-upload-ledger.js";
+import { AmazonInvoiceUploadInterventionStop, awaitAmazonInvoiceUploadSafePoint } from "./amazon-invoice-upload-intervention.js";
 
 const DEFAULT_ALLOWED_ADMIN_HOSTS = ["localhost", "127.0.0.1"] as const;
 const DEFAULT_UPLOAD_FLOW_TIMEOUT_MS = 300_000;
-const API_UPLOAD_FOCUS_RETURN_TIMEOUT_MS = 10_000;
 const UPLOAD_FLOW_TIMEOUT_REASON_PREFIX = "amazon_invoice_upload_flow_timeout_after_";
 const AMAZON_INVOICE_RUNTIME_LOG_REF = "runtime-logs/workbench.jsonl";
 
 let activeUploadExecutionId: string | null = null;
 
 export async function startAmazonInvoiceAdminOpenTask(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   rawInput: AmazonInvoiceUploadAdminOpenInput,
   options: { abortSignal?: AbortSignal } = {},
 ): Promise<AmazonInvoiceUploadAdminOpenResult> {
@@ -67,7 +67,7 @@ export async function startAmazonInvoiceAdminOpenTask(
   const openResult = await browser.open({
     url: adminUrl.toString(),
     title: "Amazon Manage invoice workspace",
-    reusePolicy: input.focusOnlyExistingTab === true ? "focus-existing-same-path-url" : "reuse-exact-url",
+    reusePolicy: "reuse-exact-url",
     ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
   });
   const currentUrl = browser.getSessionState().currentUrl;
@@ -89,7 +89,7 @@ export async function startAmazonInvoiceAdminOpenTask(
 }
 
 export async function startAmazonInvoiceUploadMission(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   evidenceStore: ForensicsPersistenceAbilityGroup,
   rawInput: AmazonInvoiceUploadMissionInput,
@@ -113,7 +113,7 @@ export async function startAmazonInvoiceUploadMission(
 }
 
 export async function startAmazonInvoiceUploadTask(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   dataDir: string;
@@ -157,27 +157,20 @@ export async function startAmazonInvoiceUploadTask(input: {
         taskId,
         abortController,
         mission: approvedMission,
+        safePoint: (checkpoint) => awaitAmazonInvoiceUploadSafePoint(input.dataDir, taskId, checkpoint, async () => {
+          if (input.browser.getTarget?.()) await input.browser.releaseTargetForOperator?.({ reason: `operator takeover for amazon-invoice-upload:${taskId}` });
+        }),
         ...(input.flowTimeoutMs === undefined ? {} : { flowTimeoutMs: input.flowTimeoutMs }),
       });
       const completed = updateTaskRecord(uploading, result);
       saveTaskRecord(input.dataDir, completed);
-      await returnApiUploadFocusToAdminBounded({
-        runtimeLogger: input.runtimeLogger,
-        mission: approvedMission,
-        focus: (abortSignal) => returnApiUploadFocusToAdmin({
-          browser: input.browser,
-          runtimeLogger: input.runtimeLogger,
-          mission: approvedMission,
-          abortSignal,
-        }),
-      });
       return completed;
     },
   });
 }
 
 export async function resumeAmazonInvoiceUploadTask(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   dataDir: string;
@@ -210,20 +203,13 @@ export async function resumeAmazonInvoiceUploadTask(input: {
         taskId: input.taskId,
         abortController,
         mission: record.mission,
+        safePoint: (checkpoint) => awaitAmazonInvoiceUploadSafePoint(input.dataDir, input.taskId, checkpoint, async () => {
+          if (input.browser.getTarget?.()) await input.browser.releaseTargetForOperator?.({ reason: `operator takeover for amazon-invoice-upload:${input.taskId}` });
+        }),
         ...(input.flowTimeoutMs === undefined ? {} : { flowTimeoutMs: input.flowTimeoutMs }),
       });
       const completed = updateTaskRecord(resumed, result);
       saveTaskRecord(input.dataDir, completed);
-      await returnApiUploadFocusToAdminBounded({
-        runtimeLogger: input.runtimeLogger,
-        mission: record.mission,
-        focus: (abortSignal) => returnApiUploadFocusToAdmin({
-          browser: input.browser,
-          runtimeLogger: input.runtimeLogger,
-          mission: record.mission,
-          abortSignal,
-        }),
-      });
       return completed;
     },
   });
@@ -235,6 +221,7 @@ export function getAmazonInvoiceUploadTaskStatus(input: {
 }): AmazonInvoiceUploadTaskRecord {
   return loadRequiredTaskRecord(input.dataDir, input.taskId);
 }
+
 
 export function getLatestAmazonInvoiceUploadTaskForInvoice(input: {
   dataDir: string;
@@ -251,7 +238,7 @@ export function listAmazonInvoiceUploadLedger(input: {
 }
 
 export async function startAmazonTaxInvoiceDownloadTask(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   dataDir: string;
   mission: AmazonTaxInvoiceDownloadMissionInput;
@@ -317,30 +304,6 @@ function getAllowedAmazonAdminHosts(): Set<string> {
     .filter(Boolean);
   return new Set(configuredHosts && configuredHosts.length > 0 ? configuredHosts : DEFAULT_ALLOWED_ADMIN_HOSTS);
 }
-async function returnApiUploadFocusToAdmin(input: {
-  browser: BrowserController;
-  runtimeLogger: RuntimeLogger;
-  mission: AmazonInvoiceUploadMissionInput;
-  abortSignal: AbortSignal;
-}): Promise<void> {
-  if (!isApiUploadMission(input.mission) || !input.mission.adminOrderUrl) return;
-  const result = await startAmazonInvoiceAdminOpenTask(input.browser, {
-    adminUrl: input.mission.adminOrderUrl,
-    focusOnlyExistingTab: true,
-  }, { abortSignal: input.abortSignal });
-  recordAmazonDomStepTrace({
-    runtimeLogger: input.runtimeLogger,
-    mission: input.mission,
-    stepName: "return API upload focus to website",
-    status: result.ok ? "success" : "failed",
-    reason: result.ok
-      ? "API upload reached a terminal result; switched back to the existing Amazon Manage invoice tab."
-      : result.failureReason ?? "Existing Amazon Manage invoice tab could not be focused.",
-  });
-}
-function isApiUploadMission(mission: AmazonInvoiceUploadMissionInput): boolean {
-  return Boolean(mission.sourceSystem || mission.requestId);
-}
 function loadRequiredTaskRecord(dataDir: string, taskId: string): AmazonInvoiceUploadTaskRecord {
   const record = loadTaskRecord(dataDir, taskId);
   if (!record) {
@@ -356,7 +319,7 @@ function loadRequiredDownloadTaskRecord(dataDir: string, taskId: string): Amazon
   return record;
 }
 async function runAmazonInvoiceUploadWithTerminalGuard(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   executionId: string;
@@ -364,6 +327,7 @@ async function runAmazonInvoiceUploadWithTerminalGuard(input: {
   abortController: AbortController;
   mission: AmazonInvoiceUploadMissionInput;
   flowTimeoutMs?: number;
+  safePoint?: (checkpoint: string) => Promise<void>;
 }): Promise<AmazonInvoiceUploadTaskResult> {
   const timeoutMs = resolveUploadFlowTimeoutMs(input.flowTimeoutMs);
   let timedOut = false;
@@ -378,7 +342,10 @@ async function runAmazonInvoiceUploadWithTerminalGuard(input: {
       abortSignal: input.abortController.signal,
       evidenceStore: input.evidenceStore,
       runtimeLogRef: AMAZON_INVOICE_RUNTIME_LOG_REF,
-    }).catch((error: unknown) => buildUploadFlowFailureResult(input.mission, error));
+      ...(input.safePoint ? { safePoint: input.safePoint } : {}),
+    }).catch((error: unknown) => error instanceof AmazonInvoiceUploadInterventionStop
+      ? ({ ok: false, status: "review_required" as const, reason: error.message, reachedStep: "intervention", amazonOrderId: input.mission.amazonOrderId, invoiceNo: input.mission.invoiceNo, reviewRequired: true })
+      : buildUploadFlowFailureResult(input.mission, error));
     return timedOut ? buildUploadFlowTimeoutResult(input.mission, timeoutMs) : result;
   } finally {
     clearTimeout(timeout);
@@ -388,7 +355,7 @@ function createUploadExecutionId(taskId: string): string {
   return `amazon-invoice-execution:${randomUUID()}:task:${taskId}`;
 }
 async function withAmazonInvoiceExecutionLease<T>(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   executionId: string;
   mission: AmazonInvoiceUploadMissionInput;
   action: (abortController: AbortController) => Promise<T>;
@@ -455,42 +422,4 @@ function buildUploadFlowFailureResult(
 function sanitizeFailureReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.replace(/\/[^\s"'<>]+/g, "[path]").slice(0, 240) || "unknown_error";
-}
-async function returnApiUploadFocusToAdminBounded(input: {
-  runtimeLogger: RuntimeLogger;
-  mission: AmazonInvoiceUploadMissionInput;
-  focus: (abortSignal: AbortSignal) => Promise<void>;
-}): Promise<void> {
-  if (!isApiUploadMission(input.mission) || !input.mission.adminOrderUrl) return;
-  const abortController = new AbortController();
-  let timedOut = false;
-  let focusError: unknown;
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    abortController.abort(new Error(`amazon_invoice_admin_focus_timeout_after_${API_UPLOAD_FOCUS_RETURN_TIMEOUT_MS}ms`));
-  }, API_UPLOAD_FOCUS_RETURN_TIMEOUT_MS);
-  try {
-    await input.focus(abortController.signal).catch((error: unknown) => {
-      focusError = error;
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
-  if (timedOut) {
-    recordAmazonDomStepTrace({
-      runtimeLogger: input.runtimeLogger,
-      mission: input.mission,
-      stepName: "return API upload focus to website",
-      status: "failed",
-      reason: `API upload focus return timed out after ${API_UPLOAD_FOCUS_RETURN_TIMEOUT_MS}ms; the browser action was aborted and fully settled before lease release.`,
-    });
-  } else if (focusError) {
-    recordAmazonDomStepTrace({
-      runtimeLogger: input.runtimeLogger,
-      mission: input.mission,
-      stepName: "return API upload focus to website",
-      status: "failed",
-      reason: `API upload focus return failed after terminal upload result: ${sanitizeFailureReason(focusError)}`,
-    });
-  }
 }

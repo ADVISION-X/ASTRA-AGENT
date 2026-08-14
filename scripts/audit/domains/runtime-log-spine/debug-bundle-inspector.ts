@@ -1,78 +1,78 @@
 import { existsSync } from "node:fs";
 
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
-import { readRepoFile } from "./source-read.js";
 
-const requiredDebugBundleTokens = [
+const requiredDebugBundleLiterals = [
   "runtime-log.jsonl",
   "mission-summary.json",
   "index.json",
   "round-summary.json",
   "stage-timeline.json",
   "recovery-trail.json",
-  "redactRuntimeLog",
 ] as const;
 
-const appendMissingDebugBundleFiles = (findings: RuntimeLogSpineFinding[]): void => {
-  for (const repoPath of ["src/lib/runtime-logs/debug-bundle.ts", "src/lib/runtime-logs/debug-bundle-index.ts"]) {
-    if (existsSync(resolveFromRepo(repoPath))) continue;
-    findings.push({
-      checkId: "runtime-log-spine/debug-bundle-file",
-      lawId: RuntimeLogSpineLaw.DEBUG_BUNDLE,
-      file: repoPath,
-      line: 1,
-      severity: "fatal",
-      message: "debug bundle replay infrastructure is missing or incomplete",
-      hint: "Implement debug bundle writer/index and acceptance proving failed rounds can be reconstructed.",
-    });
-  }
-};
+const requiredFiles = [
+  "src/lib/runtime-logs/debug-bundle.ts",
+  "src/lib/runtime-logs/debug-bundle-index.ts",
+] as const;
 
-const appendMissingDebugBundleTokens = (findings: RuntimeLogSpineFinding[], combined: string): void => {
-  for (const token of requiredDebugBundleTokens) {
-    if (combined.includes(token)) continue;
-    findings.push({
-      checkId: "runtime-log-spine/debug-bundle-contract",
-      lawId: RuntimeLogSpineLaw.DEBUG_BUNDLE,
-      file: "src/lib/runtime-logs/debug-bundle.ts",
-      line: 1,
-      severity: "fatal",
-      message: "debug bundle replay infrastructure is missing or incomplete",
-      hint: `Debug bundle must write ${token} or prove equivalent replayable structure.`,
-    });
-  }
-};
+const literalValues = (source: SourceFile): Set<string> => new Set([
+  ...source.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralText()),
+  ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((literal) => literal.getLiteralText()),
+]);
 
-const appendMissingDebugBundleAcceptance = (findings: RuntimeLogSpineFinding[]): void => {
-  if (existsSync(resolveFromRepo("scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"))) return;
+const hasCallToRedaction = (source: SourceFile): boolean => source
+  .getDescendantsOfKind(SyntaxKind.CallExpression)
+  .some((call) => {
+    const expression = call.getExpression();
+    if (!Node.isIdentifier(expression)) return false;
+    const symbol = expression.getSymbol();
+    const resolved = symbol?.getAliasedSymbol() ?? symbol;
+    return resolved?.getDeclarations().some((declaration) =>
+      declaration.getSourceFile().getFilePath() === resolveFromRepo("src/lib/runtime-logs/redaction.ts")
+      && (declaration.getSymbol()?.getName() === "redactRuntimeLogEvent"
+        || declaration.getSymbol()?.getName() === "redactRuntimeLogRecord")) ?? false;
+  });
+
+const pushFinding = (findings: RuntimeLogSpineFinding[], file: string, hint: string): void => {
   findings.push({
-    checkId: "runtime-log-spine/debug-bundle-acceptance",
+    checkId: "runtime-log-spine/debug-bundle-contract",
     lawId: RuntimeLogSpineLaw.DEBUG_BUNDLE,
-    file: "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+    file,
     line: 1,
     severity: "fatal",
-    message: "debug bundle replay acceptance is missing",
-    hint: "Add acceptance proving bundle creation, runtime-log.jsonl, index.json, round lookup, and redaction.",
+    message: "debug bundle replay infrastructure is missing or incomplete",
+    hint,
   });
 };
 
-export const collectDebugBundleFindings = (_context: InspectorContext): {
+export const collectDebugBundleFindings = (context: InspectorContext): {
   findings: RuntimeLogSpineFinding[];
   inspectedFiles: string[];
 } => {
   const findings: RuntimeLogSpineFinding[] = [];
-  const inspectedFiles = [
-    "src/lib/runtime-logs/debug-bundle.ts",
-    "src/lib/runtime-logs/debug-bundle-index.ts",
-    "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
-  ];
-  const debugBundle = readRepoFile("src/lib/runtime-logs/debug-bundle.ts");
-  const debugBundleIndex = readRepoFile("src/lib/runtime-logs/debug-bundle-index.ts");
-  appendMissingDebugBundleFiles(findings);
-  const combined = `${debugBundle?.text ?? ""}\n${debugBundleIndex?.text ?? ""}`;
-  appendMissingDebugBundleTokens(findings, combined);
-  appendMissingDebugBundleAcceptance(findings);
+  const inspectedFiles = [...requiredFiles, "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"];
+  const sources = requiredFiles.map((repoPath) => ({ repoPath, source: context.project.getSourceFile(resolveFromRepo(repoPath)) }));
+
+  for (const { repoPath, source } of sources) {
+    if (source) continue;
+    pushFinding(findings, repoPath, `Restore the governed debug bundle owner file ${repoPath}.`);
+  }
+  const combinedLiterals = new Set(sources.flatMap(({ source }) => source ? [...literalValues(source)] : []));
+  for (const literal of requiredDebugBundleLiterals) {
+    if (combinedLiterals.has(literal)) continue;
+    pushFinding(findings, "src/lib/runtime-logs/debug-bundle.ts", `Debug bundle must own exact artifact name ${literal}.`);
+  }
+  const debugBundleSource = sources.find(({ repoPath }) => repoPath === "src/lib/runtime-logs/debug-bundle.ts")?.source;
+  if (debugBundleSource && !hasCallToRedaction(debugBundleSource)) {
+    pushFinding(findings, "src/lib/runtime-logs/debug-bundle.ts", "Debug bundle writes must call the canonical runtime-log redaction exports.");
+  }
+  if (!existsSync(resolveFromRepo("scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"))) {
+    pushFinding(findings, "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts", "Restore the debug bundle production acceptance.");
+  }
   return { findings, inspectedFiles };
 };

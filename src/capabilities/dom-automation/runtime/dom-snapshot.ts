@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { DOM_SCHEMAS } from "../schema.js";
 import type { DomSnapshot } from "../../../types/dom-automation.js";
 import type { ReadDomSnapshotInput } from "../../../types/dom-automation-inputs.js";
@@ -163,16 +163,22 @@ function buildSnapshotScript(maxTextLengthPerNode: number, includeFrames: boolea
 }
 
 export async function readDomSnapshotOnce(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   input: ReadDomSnapshotInput = {},
   options?: { abortSignal?: AbortSignal },
 ): Promise<DomSnapshot> {
   const parsed = DOM_SCHEMAS.ReadDomSnapshotInput.parse(input);
-  const raw = await browser.evaluateActiveTab<unknown>({
-    description: "read governed DOM structural summary from active tab",
+  const raw = await browser.evaluate<unknown>({
+    description: "read governed DOM structural summary from exact target",
     script: buildSnapshotScript(parsed.maxTextLengthPerNode, parsed.includeFrames),
     ...(parsed.timeoutMs ? { timeoutMs: parsed.timeoutMs } : {}),
     ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
   });
-  return DOM_SCHEMAS.DomSnapshot.parse(raw) as DomSnapshot;
+  const target = browser.getTarget?.();
+  if (!target) throw new Error("TARGET_NOT_FOUND:DOM snapshot requires an acquired exact target");
+  return DOM_SCHEMAS.DomSnapshot.parse({
+    ...(raw as Record<string, unknown>),
+    targetRef: target.targetRef,
+    documentRef: target.documentRef,
+  }) as DomSnapshot;
 }

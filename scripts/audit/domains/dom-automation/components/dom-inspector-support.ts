@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { Node, SyntaxKind, type Expression, type Project, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
@@ -84,7 +85,7 @@ const unwrapZodCall = (expression: Expression | undefined): Expression | undefin
 };
 
 export const hasIdentifier = (sourceFile: SourceFile, name: string): boolean =>
-  sourceFile.getDescendants().some((node) => Node.isIdentifier(node) && node.getText() === name);
+  sourceFile.getDescendants().some((node) => Node.isIdentifier(node) && astIdentifierName(node) === name);
 
 export const hasSourceToken = (sourceFile: SourceFile, value: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === value)

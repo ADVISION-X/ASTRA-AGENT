@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
@@ -25,7 +25,7 @@ const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });
 const stepFailure = <T>(failure: AmazonInvoiceUploadTaskResult): StepResult<T> => ({ ok: false, failure });
 
 export async function uploadApprovedInvoice(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<string | undefined>> {
@@ -40,7 +40,7 @@ export async function uploadApprovedInvoice(
 }
 
 const locateFileInput = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<DomElementRef>> => {
@@ -59,7 +59,7 @@ const locateFileInput = async (
 };
 
 async function pollForFileInput(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ) {
@@ -99,7 +99,7 @@ function traceFileInputInitialSnapshot(
 }
 
 const uploadApprovedPdf = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   fileInput: DomElementRef,
@@ -142,7 +142,7 @@ function traceUploadApprovedPdf(
 }
 
 const waitForAttachedInvoice = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<string | undefined>> => {

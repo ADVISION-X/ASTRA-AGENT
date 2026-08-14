@@ -24,8 +24,7 @@ import {
     logDeepResearchJobStarted,
 } from "./deep-research-analysis.logging.js";
 import type { DeepResearchResult } from "./deep-research-analysis.parser.js";
-import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-bundle-shell.js";
-import { mapGatewayResult, type AiGatewayExecutionResult } from "./deep-research-analysis.gateway-result.js";
+import { buildGatewaySender } from "./deep-research-analysis.gateway.js";
 import type {
     DeepResearchRecordStore,
     ResearchInteraction,
@@ -36,6 +35,7 @@ import type {
     DeepResearchInputPayload,
     DeepResearchPhase,
 } from "./deep-research-analysis.schema.js";
+import { DeepResearchInterventionStop, awaitDeepResearchSafePoint, initializeDeepResearchIntervention } from "./deep-research-analysis.intervention.js";
 import {
     DeepResearchInputSchema
 } from "./deep-research-analysis.schema.js";
@@ -115,100 +115,6 @@ export type DeepResearchAnalysisContext = {
   timeoutMs?: number;
   sendPromptPackage?: DeepResearchGatewaySender;
 };
-
-const toAiGatewayInputRef = (ref: DeepResearchGatewayInputRef) => {
-  if (typeof ref === "string") {
-    return {
-      id: ref,
-      kind: "prompt-input",
-      summary: ref,
-    };
-  }
-  return ref;
-};
-
-export const buildGatewaySender = (
-  context: DeepResearchAnalysisContext,
-): DeepResearchGatewaySender => {
-  if (context.sendPromptPackage) {
-    return context.sendPromptPackage;
-  }
-  const aiInputGateway = context.aiInputGateway;
-  if (!aiInputGateway) {
-    const preflightLogger = context.runtimeLogger ?? createRuntimeLogger();
-    preflightLogger.emit(createRuntimeEvent({
-      context: createDeepResearchTraceContext("deep-research-preflight:gateway"),
-      eventType: RuntimeLogEventType.DEEP_RESEARCH_JOB_FAILED,
-      level: "error",
-      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-      status: "failed",
-      reason: "Deep Research analysis requires sendPromptPackage or aiInputGateway.",
-      payload: {
-        phase: "INTAKE",
-        failureClass: RuntimeFailureClass.INTERNAL_BUG,
-        stageName: "INTAKE",
-        retryable: false,
-        terminal: true,
-        recoveryPolicy: "terminal",
-      },
-    }));
-    throw new Error(
-      "Deep Research analysis requires sendPromptPackage or aiInputGateway.",
-    );
-  }
-  return async (promptPackage) => {
-    const result = await aiInputGateway.execute({
-      providerKind: promptPackage.providerKind,
-      taskIdentity: {
-        labelKey: "deep_research",
-        sourceProject: "deep-research-analysis",
-        taskKind: "analysis-prompt-package",
-        sourceTaskId: promptPackage.jobId,
-      },
-      promptPackageId: promptPackage.promptPackageId,
-      promptContractId: promptPackage.promptContractId,
-      expectedOutputSchemaRef: null,
-      textPrompt: promptPackage.promptText,
-      inputRefs: promptPackage.inputRefs.map(toAiGatewayInputRef),
-      modelName: context.modelName ?? null,
-      timeoutMs: Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs),
-      maxInputChars: promptPackage.maxInputChars,
-      maxFileCount: promptPackage.maxFileCount,
-      maxFileBytes: promptPackage.maxFileBytes,
-      requestedBy: "ai-capability",
-      missionId: promptPackage.jobId,
-      runId: promptPackage.jobId,
-      roundId: null,
-    });
-    return mapGatewayResult(result);
-  };
-};
-
-export const buildPromptPackage = (input: {
-  jobId: string;
-  prompt: DeepResearchPrompt;
-  promptKey: string;
-  renderedPromptText: string;
-  promptHash: string;
-  providerKind: ProviderKind;
-  inputRefs: DeepResearchGatewayInputRef[];
-  timeoutMs?: number;
-  maxInputChars?: number;
-  maxFileCount?: number;
-  maxFileBytes?: number;
-}): DeepResearchGatewayPromptPackage => ({
-  jobId: input.jobId,
-  promptPackageId: `${input.jobId}:${input.promptKey}:${input.prompt.promptVersion}`,
-  promptContractId: input.prompt.expectedOutputContract.contractId,
-  promptText: input.renderedPromptText,
-  promptHash: input.promptHash,
-  inputRefs: input.inputRefs,
-  providerKind: input.providerKind,
-  timeoutMs: input.timeoutMs ?? 180_000,
-  maxInputChars: input.maxInputChars ?? 30_000,
-  maxFileCount: input.maxFileCount ?? 0,
-  maxFileBytes: input.maxFileBytes ?? 1,
-});
 
 export const rememberInteractionHashes = (
   recordHashes: Record<string, string>,
@@ -347,6 +253,7 @@ export type AnalysisExecutionContext = {
   traceContext: StageTraceContext;
   stageLogger: StageLogger;
   sender: DeepResearchGatewaySender;
+  releaseForTakeover: () => Promise<void>;
   jobId: string;
   providerKind: DeepResearchAnalysisContext["providerKind"];
   recordHashes: Record<string, string>;
@@ -382,6 +289,7 @@ const createExecutionContext = (
   const sender = buildGatewaySender(context);
   const store = createDeepResearchRecordStore(dataDir);
   const job = store.createJob(input);
+  initializeDeepResearchIntervention(dataDir, job.id);
   return {
     input,
     dataDir,
@@ -390,6 +298,9 @@ const createExecutionContext = (
     traceContext: createDeepResearchTraceContext(job.id),
     stageLogger: createStageLogger({ logger: runtimeLogger }),
     sender,
+    releaseForTakeover: async () => {
+      await context.aiInputGateway?.releaseProviderTargetForOperator?.(`deep-research-analysis:${job.id}`);
+    },
     jobId: job.id,
     providerKind: context.providerKind,
     recordHashes: {},
@@ -399,6 +310,7 @@ const createExecutionContext = (
 const runAnalysisPhases = async (
   executionContext: AnalysisExecutionContext,
 ): Promise<DeepResearchResult> => {
+  await awaitDeepResearchSafePoint(executionContext.dataDir, executionContext.jobId, "decomposition_before", executionContext.releaseForTakeover);
   const decomposition = await runDecompositionPhase(executionContext);
   if (!decomposition.ok) {
     return decomposition.result;
@@ -410,6 +322,7 @@ const runAnalysisPhases = async (
   if (!subQuestionOutcome.ok) {
     return subQuestionOutcome.result;
   }
+  await awaitDeepResearchSafePoint(executionContext.dataDir, executionContext.jobId, "full_case_file_commit_before", executionContext.releaseForTakeover);
   const finalPackageStage = buildFullCaseFileStage(executionContext);
   if (!finalPackageStage.ok) {
     return finalPackageStage.result;
@@ -423,6 +336,7 @@ const runAnalysisPhases = async (
   if (!finalAdjudication.ok) {
     return finalAdjudication.result;
   }
+  await awaitDeepResearchSafePoint(executionContext.dataDir, executionContext.jobId, "html_report_commit_before", executionContext.releaseForTakeover);
   const businessHtmlReport = await runBusinessHtmlReportPhase(
     executionContext,
     finalPackageStage.structuredIndex,
@@ -458,6 +372,9 @@ export const runDeepResearchAnalysis = async (
     });
     return await runAnalysisPhases(executionContext);
   } catch (error) {
+    if (error instanceof DeepResearchInterventionStop) {
+      return buildTerminalResult({ jobId, status: "review_required", phase: store.getJob(jobId)?.phase ?? "INTAKE", reason: error.message, recordHashes: executionContext.recordHashes });
+    }
     const currentPhase = store.getJob(jobId)?.phase ?? "INTAKE";
     const reason =
       error instanceof Error ? error.message : "deep_research_internal_failure";

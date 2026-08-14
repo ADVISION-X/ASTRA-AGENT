@@ -1,5 +1,6 @@
 import { Node, SyntaxKind } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
@@ -19,8 +20,6 @@ const requiredEventFactoryFields = ["context", "level", "modeVisibility", "event
 const failurePayloadFields = ["failureClass", "stageName", "retryable", "terminal", "recoveryPolicy"] as const;
 const authorizedHelperNames = [
   "createRuntimeEvent",
-  "logFacebookMiningFlow",
-  "logFacebookNavigationDebug",
   "createStageLogger",
 ] as const;
 
@@ -127,7 +126,8 @@ const appendRuntimeEmitFindingsForCall = (input: {
 const appendAuthorizedHelperPresentFindings = (context: InspectorContext, findings: RuntimeLogSpineFinding[]): void => {
   for (const helperName of authorizedHelperNames) {
     if (context.project.getSourceFiles().some((sourceFile) =>
-      sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === helperName))) {
+      sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
+        .some((identifier) => astIdentifierName(identifier) === helperName))) {
       continue;
     }
     findings.push({

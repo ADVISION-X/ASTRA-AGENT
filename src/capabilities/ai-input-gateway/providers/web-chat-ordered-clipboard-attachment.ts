@@ -2,11 +2,6 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import {
-  activateChromeForClipboardPaste,
-  copyFileObjectToMacClipboard,
-  pasteMacClipboardIntoChrome,
-} from "./web-chat-clipboard.js";
-import {
   focusComposer,
   waitForComposerFocused,
   waitForExactAttachmentCount,
@@ -52,14 +47,16 @@ export const attachByOrderedClipboard = async (
     await assertStagedFileIntegrity(file);
     await focusComposer(input.browser, input.context);
     await waitForComposerFocused(input.browser, input.context, 5_000);
+    const pasteFile = input.browser.pasteFileFromSystemClipboard;
+    if (!pasteFile) throw new Error("review_required: SYSTEM_CLIPBOARD_FOCUS_LEASE_UNAVAILABLE");
     await withTimeout(
       "ordered file clipboard paste",
       CLIPBOARD_OPERATION_TIMEOUT_MS,
-      copyFileObjectToMacClipboard(file.stagedFilePath, input.context.abortSignal)
-        .then(() => activateChromeForClipboardPaste(input.context.abortSignal))
-        .then(() => focusComposer(input.browser, input.context))
-        .then(() => waitForComposerFocused(input.browser, input.context, 5_000))
-        .then(() => pasteMacClipboardIntoChrome(input.context.abortSignal)),
+      pasteFile.call(input.browser, {
+        filePath: file.stagedFilePath,
+        description: `paste approved attachment ${file.displayFileName}`,
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      }),
     );
     const expectedFiles = input.files
       .slice(0, file.order)

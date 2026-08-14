@@ -1,6 +1,7 @@
 import { renderAmazonProductMiningKeywordHistory } from "./amazon-product-mining-keyword-history.js";
 import { renderAmazonProductMiningInspectorTemplate } from "./amazon-product-mining-inspector.js";
 import { renderAmazonProductMiningTaskPublish } from "./amazon-product-mining-task-publish.js";
+import { renderPluginInterventionPanel } from "../../app-shell/plugin-intervention-panel.js";
 
 const renderAmazonProductMiningLatestTaskSurface = (): string => `
 <section class="panel latest-task-summary-card" data-amazon-product-mining-latest-summary>
@@ -59,5 +60,6 @@ export const renderAmazonProductMiningWorkspace = (): string => `
       ${renderAmazonProductMiningLatestTaskSurface()}
     </div>
   </div>
+  ${renderPluginInterventionPanel({ owner: "amazon-product-mining", label: "Product mining task control", routePrefix: "/api/amazon-product-mining/intervention/" })}
   ${renderAmazonProductMiningInspectorTemplate()}
 </section>`;

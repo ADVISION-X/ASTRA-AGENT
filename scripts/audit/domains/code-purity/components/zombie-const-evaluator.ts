@@ -8,6 +8,8 @@ import {
   type VariableDeclaration,
 } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
+
 type ZombieConstValue =
   | { kind: "boolean"; value: boolean }
   | { kind: "null"; value: null }
@@ -50,33 +52,33 @@ const toZombieConstBoolean = (value: ZombieConstValue): boolean => {
   return false;
 };
 
-const compareOrderedNumbers = (left: number, right: number, operator: string): boolean | undefined => {
-  if (operator === ">") {
+const compareOrderedNumbers = (left: number, right: number, operator: SyntaxKind): boolean | undefined => {
+  if (operator === SyntaxKind.GreaterThanToken) {
     return left > right;
   }
-  if (operator === ">=") {
+  if (operator === SyntaxKind.GreaterThanEqualsToken) {
     return left >= right;
   }
-  if (operator === "<") {
+  if (operator === SyntaxKind.LessThanToken) {
     return left < right;
   }
-  if (operator === "<=") {
+  if (operator === SyntaxKind.LessThanEqualsToken) {
     return left <= right;
   }
   return undefined;
 };
 
-const compareOrderedStrings = (left: string, right: string, operator: string): boolean | undefined => {
-  if (operator === ">") {
+const compareOrderedStrings = (left: string, right: string, operator: SyntaxKind): boolean | undefined => {
+  if (operator === SyntaxKind.GreaterThanToken) {
     return left > right;
   }
-  if (operator === ">=") {
+  if (operator === SyntaxKind.GreaterThanEqualsToken) {
     return left >= right;
   }
-  if (operator === "<") {
+  if (operator === SyntaxKind.LessThanToken) {
     return left < right;
   }
-  if (operator === "<=") {
+  if (operator === SyntaxKind.LessThanEqualsToken) {
     return left <= right;
   }
   return undefined;
@@ -85,11 +87,11 @@ const compareOrderedStrings = (left: string, right: string, operator: string): b
 const compareZombieConstValues = (
   left: ZombieConstValue,
   right: ZombieConstValue,
-  operator: string,
+  operator: SyntaxKind,
 ): boolean | undefined => {
-  if (operator === "===" || operator === "!==") {
+  if (operator === SyntaxKind.EqualsEqualsEqualsToken || operator === SyntaxKind.ExclamationEqualsEqualsToken) {
     const equal = left.kind === right.kind && left.value === right.value;
-    return operator === "===" ? equal : !equal;
+    return operator === SyntaxKind.EqualsEqualsEqualsToken ? equal : !equal;
   }
   if (left.kind === "number" && right.kind === "number") {
     return compareOrderedNumbers(left.value, right.value, operator);
@@ -137,7 +139,7 @@ const evaluateIdentifierConstValue = (
   identifier: Identifier,
   visited: Set<number>,
 ): ZombieConstValue | undefined => {
-  if (identifier.getText() === "undefined") {
+  if (astIdentifierName(identifier) === "undefined") {
     return { kind: "undefined", value: undefined };
   }
   const declaration = resolveConstDeclaration(identifier);
@@ -172,7 +174,8 @@ const evaluateBooleanCallConstValue = (
   expression: MorphNode,
   visited: Set<number>,
 ): ZombieConstValue | undefined => {
-  if (!Node.isCallExpression(expression) || expression.getExpression().getText() !== "Boolean") {
+  if (!Node.isCallExpression(expression) || !Node.isIdentifier(expression.getExpression())
+    || astIdentifierName(expression.getExpression()) !== "Boolean") {
     return undefined;
   }
   const argument = expression.getArguments()[0];
@@ -190,16 +193,16 @@ const evaluateBinaryConstValue = (
   if (!Node.isBinaryExpression(expression)) {
     return undefined;
   }
-  const operator = expression.getOperatorToken().getText();
+  const operator = expression.getOperatorToken().getKind();
   const leftValue = evaluateZombieConstValue(expression.getLeft(), visited);
   const rightValue = evaluateZombieConstValue(expression.getRight(), visited);
   if (!leftValue || !rightValue) {
     return undefined;
   }
-  if (operator === "&&" || operator === "||") {
+  if (operator === SyntaxKind.AmpersandAmpersandToken || operator === SyntaxKind.BarBarToken) {
     return {
       kind: "boolean",
-      value: operator === "&&"
+      value: operator === SyntaxKind.AmpersandAmpersandToken
         ? toZombieConstBoolean(leftValue) && toZombieConstBoolean(rightValue)
         : toZombieConstBoolean(leftValue) || toZombieConstBoolean(rightValue),
     };
@@ -248,7 +251,7 @@ export const evaluateZombieBooleanExpression = (expression: Expression): boolean
     const leftValue = evaluateZombieConstValue(current.getLeft(), new Set<number>());
     const rightValue = evaluateZombieConstValue(current.getRight(), new Set<number>());
     if (leftValue && rightValue) {
-      const comparison = compareZombieConstValues(leftValue, rightValue, current.getOperatorToken().getText());
+      const comparison = compareZombieConstValues(leftValue, rightValue, current.getOperatorToken().getKind());
       if (comparison !== undefined) {
         return comparison;
       }

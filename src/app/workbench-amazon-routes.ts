@@ -2,8 +2,33 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { PluginInterventionRequestSchema } from "../types/plugin-intervention.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
+
+const handleAmazonInvoiceIntervention = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const base = "/api/amazon-invoice-upload/intervention";
+  if (request.method === "GET" && url.pathname === `${base}/status`) {
+    const taskId = url.searchParams.get("taskId")?.trim();
+    if (!taskId) { writeJson(response, 400, { error: "TASK_ID_REQUIRED" }); return true; }
+    writeJson(response, 200, await workbench.readAmazonInvoiceUploadIntervention(taskId));
+    return true;
+  }
+  if (request.method !== "POST") return false;
+  const invoke = url.pathname === `${base}/pause` ? workbench.pauseAmazonInvoiceUpload
+    : url.pathname === `${base}/cancel` ? workbench.cancelAmazonInvoiceUpload
+      : url.pathname === `${base}/takeover` ? workbench.takeoverAmazonInvoiceUpload
+        : url.pathname === `${base}/resume` ? workbench.resumeAmazonInvoiceUpload : null;
+  if (!invoke) return false;
+  try { writeJson(response, 200, await invoke(PluginInterventionRequestSchema.parse(await readJsonBody(request)))); }
+  catch (error) { const reason = error instanceof Error ? error.message : String(error); writeJson(response, reason === "STALE_INTERVENTION_REVISION" ? 409 : 400, { error: reason }); }
+  return true;
+};
 
 type AmazonRouteHandler = () => Promise<boolean>;
 type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GrassEyeWorkbenchHandle["getAmazonInvoiceUploadTaskStatus"]>>;
@@ -284,6 +309,7 @@ export const handleAmazonRequest = async (
   workbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> => {
+  if (await handleAmazonInvoiceIntervention(request, response, workbench, url)) return true;
   if (request.method !== "POST" && request.method !== "GET") {
     return false;
   }

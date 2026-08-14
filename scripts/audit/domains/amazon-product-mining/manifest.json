@@ -305,8 +305,8 @@
         ]
       },
       {
-        "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
-        "clauseId": "grasseye-amazon-product-mining-024-requirement",
+        "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
+        "clauseId": "grasseye-amazon-product-mining-024-v2-requirement",
         "checkIds": [
           "amazon-product-mining/owner-assertion-set"
         ],
@@ -333,6 +333,19 @@
       {
         "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
         "clauseId": "grasseye-amazon-product-mining-maximum-visible-extraction-requirement",
+        "checkIds": [
+          "amazon-product-mining/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
+      },
+      {
+        "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
+        "clauseId": "grasseye-amazon-product-mining-027-requirement",
         "checkIds": [
           "amazon-product-mining/owner-assertion-set"
         ],

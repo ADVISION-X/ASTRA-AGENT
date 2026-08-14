@@ -145,13 +145,6 @@ const geminiBodyAnswer = location.hostname.includes("gemini.google.com") && gemi
 const answerText = geminiBodyAnswer || lastCandidate?.text || "";
 const geminiStructuredJsonAnswer = location.hostname.includes("gemini.google.com") ? extractLastJsonObject(answerText) : "";
 const normalizedAnswerText = geminiStructuredJsonAnswer || answerText;
-const geminiPick3JsonMissing = location.hostname.includes("gemini.google.com")
-  && !geminiBodyAnswer
-  && !geminiStructuredJsonAnswer
-  && (normalizedAnswerText.length < 80 || !normalizedAnswerText.includes('"imageId"') || !normalizedAnswerText.includes('"predictionLabel"'));
-const promptTemplateAnswer = normalizedAnswerText.includes('"lower | upper | abstain"')
-  || normalizedAnswerText.includes('"number or null"')
-  || normalizedAnswerText.includes('"full visible-series analysis, not a short label"');
 const assistantCount = structuredCandidates.length > 0
   ? structuredCandidates.length
   : answerText
@@ -181,19 +174,13 @@ const quotaExhaustedText = Array.from(document.querySelectorAll("[role='dialog']
 const quotaExhaustedVisible = /usage limit|message cap|limit reached|come back later|try again in|额度|上限|用完|已达到.*限制|稍后再回来/i.test(quotaExhaustedText)
   && !/请求过于频繁|请稍等几分钟后再重试|too many requests|request too frequent/i.test(quotaExhaustedText);
 if (quotaExhaustedVisible) {
-  return {status: "review_required", message: "pick3_quota_exhausted_wait_required", answerText: null, pageUrl: location.href, generating: false, assistantCount, userMessageCount, conversationTurnIds};
+  return {status: "review_required", message: "provider_quota_exhausted_wait_required", answerText: null, pageUrl: location.href, generating: false, assistantCount, userMessageCount, conversationTurnIds};
 }
 if (!normalizedAnswerText && responseGenerating) {
   return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount, userMessageCount, conversationTurnIds};
 }
 if (!normalizedAnswerText) {
   return {status: "pending", message: "provider answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount, userMessageCount, conversationTurnIds};
-}
-if (geminiPick3JsonMissing) {
-  return {status: "pending", message: "gemini pick3 structured json answer not found yet", answerText: null, pageUrl: location.href, generating: responseGenerating, assistantCount, userMessageCount, conversationTurnIds};
-}
-if (promptTemplateAnswer) {
-  return {status: "pending", message: "provider answer is still the prompt contract template", answerText: null, pageUrl: location.href, generating: true, assistantCount, userMessageCount, conversationTurnIds};
 }
 return {
   status: "success",

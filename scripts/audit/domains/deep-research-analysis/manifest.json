@@ -316,6 +316,19 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
+        "clauseId": "grasseye-deep-research-061-requirement",
+        "checkIds": [
+          "deep-research-analysis/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },

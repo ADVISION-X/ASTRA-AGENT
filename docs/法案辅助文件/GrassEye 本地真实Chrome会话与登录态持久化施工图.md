@@ -1,46 +1,251 @@
-# GrassEye 本地真实 Chrome 会话与登录态持久化施工图
+# GrassEye 精确标签页本地 Chrome 会话施工图
 
-版本：2026-07-26
-状态：active
+版本：2026-08-14
+状态：active construction blueprint
+权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`
 
-## 1. 当前定位
+## 1. 唯一责任区
 
-本地浏览器会话层提供真实 Chrome 控制与会话复用基础能力。
+```txt
+src/lib/browser/**
+  one BrowserController
+  one in-memory target registry
+  one private Native Messaging transport
+  one MV3 extension
+  one bounded PhysicalFocusLease owner
+```
 
-## 2. 当前允许的能力
+Browser 只负责浏览器目标、文档世代、低层命令、连接生命周期和焦点租约，不拥有业务步骤、AI 判断、业务状态、Evidence 真相或 Runtime Log 真相。
 
-- 复用本地 profile directory
-- 打开 URL
-- 在一个 BrowserController 内只控制当前物理标签页
-- 当前标签页离开预期 provider origin 时失败关闭
-- 等待页面
-- 读取当前 session state
-- 生成 screenshot evidence
-- 配合 file input 完成批准文件附加
+## 2. 唯一四跳链路
 
-## 3. 当前登录策略
+```txt
+CurrentChromeBrowserController
+  -> 0600 <dataDir>/browser-runtime/controller-native.sock
+      -> com.grasseye.browser Native host
+          -> Chrome Native Messaging
+              -> fixed-id MV3 service worker
+                  -> chrome.debugger
+                      -> exact target
+```
 
-- 登录由操作者完成
-- 已登录会话由本地 profile 复用
-- 遇到登录页、验证码、2FA 时返回人工接管
+- Controller 创建 socket、内存 nonce、session id 和 command correlation。
+- Native host 只转发有界消息；不保存 target、业务状态、证据或 secret。
+- MV3 worker 只枚举 target、attach/detach debugger、发送 CDP 命令和返回事件。
+- target registry 只在 Controller 进程内把 raw ids 映射为 opaque refs。
+- 任一 hop 断连即失效全部 refs；mutation 已发出但未确认时返回 `OUTCOME_UNKNOWN`，绝不自动重放。
 
-## 4. 当前隐私边界
+## 3. 文件落位
 
-- 不读取 cookie
-- 不读取 localStorage / sessionStorage
-- 不自动输入账号密码
-- 不把 secret 写入日志或文档
+```txt
+src/lib/browser/exact-target/
+  browser-target-ref.ts
+  browser-command-contract.ts
+  browser-target-registry.ts
+  browser-native-transport-protocol.ts
+  browser-native-transport-server.ts
+  browser-command-runtime.ts
+  physical-focus-lease.ts
 
-## 5. 单标签页边界
+src/lib/browser/chrome-extension/
+  manifest.json
+  protocol.ts
+  service-worker.ts
+  tsconfig.json
+  build.mjs
+  dist/                       # build output, never source truth
 
-BrowserController 不创建多标签池，不为每个任务生成 tab lease，也不使用 `window.name`
-保存任务身份。外部网站不得提交 tab、window、聊天名、marker、selector 或并发数。
+src/lib/browser/native-messaging-host/
+  host.mjs
+  controller-channel.mjs
+  manifest.template.json
+  install.mjs
+```
 
-原生文件选择器、鼠标、键盘、聊天切换和 DOM 读取均作用于同一个受控标签页，必须由上层
-唯一短时浏览器操作权串行调用。任务并发发生在 provider 的不同聊天会话，不发生在 Chrome
-标签页数量上。
+现役 `browser-controller.ts`、`current-chrome-browser-controller*.ts` 只保留 target-bound 主链。旧 active-tab helpers、URL-first、first-page、AppleScript/JXA 页面动作和 CDP file-input 旁路在原子 cutover 物理删除。
 
-## 6. 当前与 Amazon 主线的关系
+## 4. 身份合同
 
-Amazon flow 只把浏览器会话当作基础设施。  
-业务顺序不在浏览器层，页面判断不在浏览器层。
+```ts
+type BrowserTargetRef = string & { readonly __brand: "BrowserTargetRef" };
+type BrowserDocumentRef = string & { readonly __brand: "BrowserDocumentRef" };
+
+interface ControlledBrowserTarget {
+  targetRef: BrowserTargetRef;
+  documentRef: BrowserDocumentRef;
+  origin: string;
+  lifecycle: "attached" | "navigating" | "detached" | "closed";
+}
+```
+
+- `BrowserTargetRef` 绑定 controller session、target raw id、获准 origin 和 target generation。
+- `BrowserDocumentRef` 额外绑定 frame/document loader generation。
+- opaque ref 只可由 registry mint/resolve；调用方不得解析、构造或持久化。
+- navigation committed、frame replacement、detach、target close、extension reload、controller restart 都使旧 document ref 失效。
+- evidence/log 只记录 opaque ref、origin、generation 和 command id，不记录 raw ids。
+
+## 5. Public BrowserController
+
+```ts
+interface BrowserController {
+  acquireTarget(input: AcquireTargetInput): Promise<ControlledBrowserTarget>;
+  navigateTarget(input: NavigateTargetInput): Promise<ControlledBrowserTarget>;
+  evaluateTarget<T>(input: TargetDocumentCommand): Promise<T>;
+  clickTarget(input: TargetDocumentPointCommand): Promise<BrowserActionResult>;
+  fillTarget(input: TargetDocumentTextCommand): Promise<BrowserActionResult>;
+  scrollTarget(input: TargetDocumentScrollCommand): Promise<BrowserActionResult>;
+  captureTargetScreenshot(input: TargetDocumentCommand): Promise<BrowserActionResult>;
+  setTargetFileInputFiles(input: TargetDocumentFileInputCommand): Promise<BrowserActionResult>;
+  withPhysicalFocusLease<T>(input: PhysicalFocusLeaseInput, action: () => Promise<T>): Promise<T>;
+  releaseTarget(targetRef: BrowserTargetRef): Promise<void>;
+}
+```
+
+所有页面动作都必须同时携带 `targetRef + documentRef`。普通页面动作通过 CDP 对后台 target 执行，不激活 Chrome、不切换用户当前标签页。
+
+## 6. 命令与失败语义
+
+每条 command envelope 最少包含：
+
+```txt
+protocolVersion
+controllerSessionId
+commandId
+targetRef
+documentRef
+originConstraint
+mutationClass = observation | idempotent_mutation | non_idempotent_mutation
+deadlineAt
+payload
+```
+
+Terminal errors：
+
+```txt
+TARGET_NOT_FOUND
+TARGET_AMBIGUOUS
+TARGET_FOREIGN_SESSION
+TARGET_ORIGIN_MISMATCH
+DOCUMENT_STALE
+TARGET_CLOSED
+TRANSPORT_DISCONNECTED
+EXTENSION_VERSION_MISMATCH
+DEVTOOLS_ATTACHMENT_CONFLICT
+COMMAND_TIMEOUT
+OUTCOME_UNKNOWN
+FOCUS_LEASE_DENIED
+OPERATOR_INTERRUPTED
+```
+
+Observation 可以由 owning caller 重新从 checkpoint 发起；任何 mutation 在 terminal receipt 不确定时只进入 `OUTCOME_UNKNOWN`，禁止 transport 自动重试。
+
+## 7. MV3 与 Native Messaging
+
+- `manifest_version=3`。
+- 固定 public key 产生稳定 extension id。
+- 权限只包含 `debugger`、`nativeMessaging`、必要 tabs 和明确 provider host permissions。
+- 禁止 cookies、storage、password、webRequest body、任意远程代码。
+- Native host manifest `allowed_origins` 只有固定 extension origin。
+- Native 消息遵守 Chrome 4-byte length framing，并设置 request/response size 上限。
+- Controller、host、extension protocol version 必须完全一致。
+- duplicate/out-of-order commandId、nonce/version/origin/size 错误全部 fail closed。
+
+## 8. 安装、升级、卸载
+
+`install.mjs` 执行：
+
+```txt
+build extension
+-> verify fixed extension id and source hash
+-> render absolute Native host manifest
+-> chmod owner-only
+-> install into Chrome NativeMessagingHosts
+-> emit install receipt
+```
+
+升级必须先停止新的 Browser command，等待有界在途观察完成；未决 mutation 进入 `OUTCOME_UNKNOWN`。新旧 protocol 不一致时不启动 consumer。卸载先阻断新命令、detach debugger、停止 host/socket，再删除注册 manifest 和 build 目录。
+
+Startup 法定入口不参与安装、升级、卸载或 provider 激活。
+
+## 9. PhysicalFocusLease
+
+允许 reason code：
+
+```txt
+native_file_picker
+os_pointer_action
+os_keyboard_action
+```
+
+规则：
+
+- 绑定 exact target/window/document。
+- 最大 15 秒。
+- 用户主动切走、window bounds/identity 改变或超时即取消。
+- 用户打断后不重抢。
+- `os_keyboard_action` 的文件剪贴板粘贴由 Browser owner 执行：扩展先精确激活 target/window，动作前后都核对 active tab + focused window；AI capability 不得直接调用 AppleScript/JXA。
+- provider generation wait 永不持有。
+- navigate/evaluate/click/fill/scroll/screenshot/DOM file-input 永不申请。
+
+## 10. Consumer 迁移
+
+```txt
+Business Flow acquires exact target
+-> passes opaque target/document refs to DOM or owning capability
+-> every action returns the same identity receipt
+-> navigation returns a new document ref
+-> caller discards all prior DomElementRef values
+```
+
+AI Input Gateway 仍只控制一个物理 ChatGPT target，但每次 mutation/patrol 都用同一个 opaque targetRef；等待回答时释放 mutation lease。各业务 target 互不影响。
+
+## 11. Audit owner
+
+```txt
+scripts/audit/domains/local-browser-session/
+  manifest.json
+  inspector.ts
+  inspector-old-path-zero.ts
+```
+
+Inspector 使用 ts-morph AST/symbol 证明：
+
+- 唯一 BrowserController 构造点。
+- raw Chrome id 不越界。
+- 所有 public page command 要求 target/document refs。
+- 普通动作不能调用 FocusLease。
+- active-tab、URL-first、first-page 和 AppleScript/JXA 页面动作符号不可达且退休文件不存在。
+- extension/host 不能拥有业务状态、evidence 或 secret。
+- Startup 未获得安装或业务职责。
+
+## 12. Acceptance
+
+```txt
+local-browser-exact-target-contract.acceptance.ts
+local-browser-native-transport.acceptance.ts
+local-browser-target-actions.acceptance.ts
+local-browser-focus-lease.acceptance.ts
+local-browser-real-chrome-scenarios.acceptance.ts
+local-browser-business-workday.acceptance.ts
+local-browser-atomic-cutover.acceptance.ts
+```
+
+真实 Chrome 最小矩阵：
+
+1. 前台打开用户测试页并写入 title/scroll/input marker。
+2. 后台受控 target 完成 navigate/evaluate/click/fill/scroll/screenshot。
+3. 前台 marker 全部不变。
+4. navigation 后旧 document/element ref 必须拒绝。
+5. 关闭 target、extension reload、host/controller exit、DevTools 冲突全部 fail closed。
+6. native picker 只在 focus lease 内运行；用户切走后不重抢。
+7. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
+
+## 13. Security Privacy Ownership
+
+`GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1` 归 `local-browser-session` 唯一 owner：BrowserController 不读取或持久化 cookie、localStorage、sessionStorage、password、token，browser profile 与 evidence storage 物理分离。该条款复用现有 Browser owner inspector 与 acceptance，不增加隐私旁路或第二 browser owner。
+
+## 14. 完成定义
+
+- 三条 active local-browser laws、图纸、owner manifest/inspector、acceptance 和 ci:full 绑定一致。
+- 旧链及全部消费者物理归零，没有 wrapper、alias、fallback、mode switch 或第二 transport。
+- 同一最终候选通过 typecheck、owner audit、deterministic acceptance、真实 Chrome 和 `npm run ci:full`。

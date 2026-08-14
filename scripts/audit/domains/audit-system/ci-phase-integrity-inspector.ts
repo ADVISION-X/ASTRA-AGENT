@@ -1,6 +1,5 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { ciEntryGateIsFirstMainPhase } from "./ci-entry-order-inspector.js";
 import { isDefinitelyUnreachable } from "./control-flow-reachability.js";
@@ -10,7 +9,6 @@ const phasePlanPath = "scripts/audit/ci-full-phase-plan.ts";
 const acceptanceLeafPlanPath = "scripts/audit/ci-acceptance-leaf-plan.ts";
 const acceptanceLawBindingsPath = "scripts/audit/ci-acceptance-law-bindings.ts";
 const failFastPath = "scripts/audit/ci-fail-fast.ts";
-const phaseSealerPath = "scripts/audit/ci-phase-sealer.ts";
 const phaseSealerDeclaration = (ciFull: SourceFile | undefined) => ciFull?.getImportDeclarations()
   .find((item) => item.getModuleSpecifierValue() === "./ci-phase-sealer.js")
   ?.getModuleSpecifierSourceFile()?.getVariableDeclaration("sealCiPhasePlanOrFail");
@@ -78,19 +76,19 @@ const leafPlanLoadsCurrentAuthority = (leafPlan: SourceFile | undefined): boolea
 const leafExpansionIsAtomic = (leafPlan: SourceFile | undefined): boolean => {
   const packageLoader = leafPlan?.getVariableDeclaration("loadPackageScripts");
   const expander = leafPlan?.getVariableDeclaration("expandNpmScript");
-  const discovery = leafPlan?.getVariableDeclaration("discoverAcceptanceLeafPaths");
+  const discovery = leafPlan?.getVariableDeclaration("discoverAcceptanceLeafInvocations");
   const closure = leafPlan?.getVariableDeclaration("assertAcceptanceBindingClosure");
   const skeletonBuilder = leafPlan?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
     ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
   const packageScripts = skeletonBuilder?.getParameters()[0];
   const packageLoaderCall = packageScripts?.getInitializerIfKind(SyntaxKind.CallExpression);
-  const filePaths = skeletonBuilder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((item) => item.getName() === "filePaths");
-  const discoveryCall = filePaths?.getInitializerIfKind(SyntaxKind.CallExpression);
+  const invocations = skeletonBuilder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((item) => item.getName() === "invocations");
+  const discoveryCall = invocations?.getInitializerIfKind(SyntaxKind.CallExpression);
   const skeletonMap = skeletonBuilder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => callMapsDeclaration(call, "map", filePaths));
+    .find((call) => callMapsDeclaration(call, "map", invocations));
   const closureCall = skeletonBuilder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => callUsesDeclaration(call, closure, filePaths));
+    .find((call) => callUsesDeclaration(call, closure, invocations));
   const recursiveExpansion = expander?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((call) => resolvesTo(call.getExpression(), expander)) ?? false;
   const discoveryUsesExpander = discovery?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
@@ -133,7 +131,7 @@ const leafPlanHasOneAuthorityChain = (leafPlan: SourceFile | undefined): boolean
     && leafPlan.getVariableDeclaration("sealAcceptanceLeafSteps")
     && leafPlan.getVariableDeclaration("expandNpmScript")
     && leafPlan.getVariableDeclaration("loadPackageScripts")
-    && leafPlan.getVariableDeclaration("discoverAcceptanceLeafPaths")
+    && leafPlan.getVariableDeclaration("discoverAcceptanceLeafInvocations")
     && leafPlan.getVariableDeclaration("assertAcceptanceBindingClosure")
     && !leafPlan.getVariableDeclaration("acceptanceOwner") && !leafPlan.getVariableDeclaration("ownerRules"));
 
@@ -143,19 +141,20 @@ const deferredAcceptanceUsesGeneratedEvidence = (leafPlan: SourceFile | undefine
   const authorityResolver = leafPlan?.getVariableDeclaration("acceptanceAuthority");
   const generatedPlan = builder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((item) => item.getName() === "generatedPlan");
-  const filePaths = builder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((item) => item.getName() === "filePaths");
+  const invocations = builder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((item) => item.getName() === "invocations");
   const mapCall = builder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => callMapsDeclaration(call, "map", filePaths));
+    .find((call) => callMapsDeclaration(call, "map", invocations));
   const callback = mapCall?.getArguments()[0];
   const callbackBody = Node.isArrowFunction(callback) ? callback.getBody() : undefined;
-  const filePath = Node.isArrowFunction(callback) ? callback.getParameters()[0] : undefined;
+  const filePath = callbackBody?.getDescendantsOfKind(SyntaxKind.BindingElement)
+    .find((item) => item.getName() === "filePath");
   const authority = callbackBody?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((item) => item.getName() === "authority");
   const authorityCall = authority?.getInitializerIfKind(SyntaxKind.CallExpression);
   const deferredGuard = callbackBody?.getDescendantsOfKind(SyntaxKind.IfStatement)
     .find((guard) => guardDefersGeneratedRealChrome(guard, authority));
-  const discoveryFunctions = ["expandNpmScript", "discoverAcceptanceLeafPaths"]
+  const discoveryFunctions = ["expandNpmScript", "discoverAcceptanceLeafInvocations"]
     .flatMap((name) => {
       const initializer = leafPlan?.getVariableDeclaration(name)?.getInitializer();
       return initializer ? [initializer] : [];
@@ -476,24 +475,3 @@ export const evaluateCiPhaseIntegrity = (context: InspectorContext) => {
     physicalPlansMapEveryLeaf: physicalPlansMapEveryLeaf(phasePlan),
   };
 };
-
-const inspectAtomicAcceptancePlan = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-): void => {
-  for (const path of [ciFullPath, phasePlanPath, acceptanceLeafPlanPath, acceptanceLawBindingsPath, failFastPath, phaseSealerPath]) {
-    inspectedFiles.add(path);
-  }
-  const evidence = evaluateCiPhaseIntegrity(context);
-  if (Object.values(evidence).some((passed) => !passed)) {
-    findings.push(createFinding({
-      checkId: "audit-system/ci-full-entry-gate",
-      lawId,
-      filePath: phasePlanPath,
-      message: "CI must bind fail-fast to one complete physical skeleton before entry, seal that same skeleton from rebuilt generated authority, and execute only unique direct leaves.",
-    }));
-  }
-};
-export const inspectCiPhaseIntegrity = inspectAtomicAcceptancePlan;

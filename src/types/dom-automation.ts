@@ -22,6 +22,8 @@ type DomElementSummary = {
 };
 
 export type DomElementRef = {
+  targetRef: BrowserTargetRef;
+  documentRef: BrowserDocumentRef;
   elementRef: string;
   selector: string;
   frameRef?: string | undefined;
@@ -38,6 +40,8 @@ export type DomElementRef = {
 };
 
 export type DomSnapshot = {
+  targetRef: BrowserTargetRef;
+  documentRef: BrowserDocumentRef;
   url: string;
   title: string;
   forms: Array<{ selectorCandidate: string; id?: string | undefined; name?: string | undefined; labelText?: string | undefined; inputCount: number; buttonCount: number }>;
@@ -79,3 +83,4 @@ export type DomVerificationResult = {
 export type DomLocateResult =
   | { ok: true; status: "success"; elementRef: DomElementRef }
   | { ok: false; status: "not_found" | "ambiguous" | "review_required"; reason: string; candidates?: DomElementRef[] };
+import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target.js";

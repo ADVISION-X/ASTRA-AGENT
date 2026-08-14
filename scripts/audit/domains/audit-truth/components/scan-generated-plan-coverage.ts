@@ -1,35 +1,44 @@
+import { Node, type SourceFile } from "ts-morph";
+
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 import { isOwnerInspectorRepoPath, normalizeAuditTruthPath } from "./audit-truth-scope.js";
 
-const orchestrationPaths = new Set([
-  "scripts/audit/ci-full.ts",
-  "scripts/audit/ci-full-phase-plan.ts",
-]);
+const runnerPath = "scripts/audit/core/run-generated-plan.ts";
+const workerPath = "scripts/audit/core/run-generated-plan-worker.ts";
 
-const isFilteredPlanCall = (sourceFile: SourceFile): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (Node.isIdentifier(expression)) {
-      return expression.getSymbol()?.getDeclarations().some((declaration) =>
-        Node.isImportSpecifier(declaration)
-        && declaration.getName() === "runGeneratedPlanFiltered"
-        && declaration.getImportDeclaration().getModuleSpecifierValue().includes("run-generated-plan")) ?? false;
-    }
-    if (!Node.isPropertyAccessExpression(expression)
-      || expression.getName() !== "runGeneratedPlanFiltered") return false;
-    const receiver = expression.getExpression();
-    return Node.isIdentifier(receiver)
-      && (receiver.getSymbol()?.getDeclarations().some((declaration) =>
-        Node.isNamespaceImport(declaration)
-        && declaration.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
-          ?.getModuleSpecifierValue().includes("run-generated-plan")) ?? false);
+const importsGeneratedPlanRuntime = (sourceFile: SourceFile): boolean =>
+  sourceFile.getImportDeclarations().some((declaration) => {
+    const targetPath = declaration.getModuleSpecifierSourceFile();
+    const targetsRunner = targetPath
+      ? normalizeAuditTruthPath(getRepoSourcePath(targetPath)) === runnerPath
+      : declaration.getModuleSpecifierValue().includes("core/run-generated-plan");
+    if (!targetsRunner || declaration.isTypeOnly()) return false;
+    return declaration.getNamespaceImport() !== undefined
+      || declaration.getDefaultImport() !== undefined
+      || declaration.getNamedImports().some((specifier) => !specifier.isTypeOnly());
   });
 
-const hasFilteredPlanCommandLiteral = (sourceFile: SourceFile): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) =>
-    literal.getLiteralText().includes("runGeneratedPlanFiltered"));
+const workerImportIsExact = (sourceFile: SourceFile): boolean => {
+  const runtimeImports = sourceFile.getImportDeclarations().filter((declaration) => {
+    const targetPath = declaration.getModuleSpecifierSourceFile();
+    return targetPath
+      ? normalizeAuditTruthPath(getRepoSourcePath(targetPath)) === runnerPath
+      : declaration.getModuleSpecifierValue().includes("core/run-generated-plan");
+  });
+  return runtimeImports.length === 1
+    && runtimeImports[0]?.getNamespaceImport() === undefined
+    && runtimeImports[0]?.getDefaultImport() === undefined
+    && runtimeImports[0]?.getNamedImports().length === 1
+    && runtimeImports[0]?.getNamedImports()[0]?.getName() === "runGeneratedPlan"
+    && runtimeImports[0]?.getNamedImports()[0]?.isTypeOnly() === false;
+};
+
+const runnerHasOnlyCanonicalRuntimeExport = (sourceFile: SourceFile): boolean =>
+  [...sourceFile.getExportedDeclarations()].every(([name, declarations]) =>
+    name === "runGeneratedPlan" || declarations.every((declaration) =>
+      Node.isInterfaceDeclaration(declaration) || Node.isTypeAliasDeclaration(declaration)));
 
 const listOwnerInspectorPaths = (context: InspectorContext): string[] =>
   context.project
@@ -39,45 +48,58 @@ const listOwnerInspectorPaths = (context: InspectorContext): string[] =>
     .filter((repoPath) => isOwnerInspectorRepoPath(repoPath))
     .sort((left, right) => left.localeCompare(right));
 
+const countPaths = (paths: readonly string[]): Map<string, number> => {
+  const counts = new Map<string, number>();
+  for (const path of paths) counts.set(path, (counts.get(path) ?? 0) + 1);
+  return counts;
+};
+
 export const scanGeneratedPlanCoverage = (input: {
   context: InspectorContext;
   inspectedFiles: Set<string>;
   lawId: string;
 }): { findings: InspectorFinding[] } => {
   const findings: InspectorFinding[] = [];
-  const inspectorPaths = new Set(listOwnerInspectorPaths(input.context));
-  const generatedPlanPaths = new Set(input.context.generatedPlan.map((entry) => entry.ownerInspectorPath));
+  const inspectorPaths = listOwnerInspectorPaths(input.context);
+  const inspectorPathSet = new Set(inspectorPaths);
+  const generatedPlanPathCounts = countPaths(input.context.generatedPlan.map((entry) => entry.ownerInspectorPath));
 
   for (const sourceFile of input.context.project.getSourceFiles()) {
     const repoPath = getRepoSourcePath(sourceFile);
-    if (!orchestrationPaths.has(normalizeAuditTruthPath(repoPath))) {
-      continue;
-    }
+    const normalizedPath = normalizeAuditTruthPath(repoPath);
+    if (!normalizedPath.startsWith("scripts/audit/")) continue;
     input.inspectedFiles.add(repoPath);
-    if (!isFilteredPlanCall(sourceFile) && !hasFilteredPlanCommandLiteral(sourceFile)) {
-      continue;
-    }
+    const invalidRunnerSource = normalizedPath === runnerPath && !runnerHasOnlyCanonicalRuntimeExport(sourceFile);
+    const invalidRuntimeImport = normalizedPath === workerPath
+      ? !workerImportIsExact(sourceFile)
+      : importsGeneratedPlanRuntime(sourceFile);
+    if (!invalidRunnerSource && !invalidRuntimeImport) continue;
     findings.push(
       createFinding({
         checkId: "audit-truth/ci-owner-special-case",
         lawId: input.lawId,
         filePath: repoPath,
-        message: `${repoPath} dispatches a filtered generated plan instead of the complete owner-neutral plan.`,
+        message: `${repoPath} exposes or imports generated-plan execution outside the one complete worker-owned runner path.`,
       }),
     );
   }
 
   for (const inspectorPath of inspectorPaths) {
     input.inspectedFiles.add(inspectorPath);
-    if (generatedPlanPaths.has(inspectorPath)) {
+    const generatedCount = generatedPlanPathCounts.get(inspectorPath) ?? 0;
+    if (generatedCount === 1) {
       continue;
     }
     findings.push(
       createFinding({
-        checkId: "audit-truth/missing-generated-plan-entry",
+        checkId: generatedCount === 0
+          ? "audit-truth/missing-generated-plan-entry"
+          : "audit-truth/duplicate-generated-plan-entry",
         lawId: input.lawId,
         filePath: inspectorPath,
-        message: `${inspectorPath} exists in the project but is missing from the generated plan.`,
+        message: generatedCount === 0
+          ? `${inspectorPath} exists in the project but is missing from the generated plan.`
+          : `${inspectorPath} appears ${generatedCount} times in the generated plan and must appear exactly once.`,
       }),
     );
   }
@@ -85,7 +107,7 @@ export const scanGeneratedPlanCoverage = (input: {
   for (const planEntry of input.context.generatedPlan) {
     input.inspectedFiles.add(planEntry.manifestPath);
     input.inspectedFiles.add(planEntry.ownerInspectorPath);
-    if (inspectorPaths.has(planEntry.ownerInspectorPath)) {
+    if (inspectorPathSet.has(planEntry.ownerInspectorPath)) {
       continue;
     }
     findings.push(
@@ -100,4 +122,3 @@ export const scanGeneratedPlanCoverage = (input: {
 
   return { findings };
 };
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";

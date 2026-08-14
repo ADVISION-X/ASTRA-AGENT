@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type Node as MorphNode, type Project } from "ts-morph";
+import { Node, SyntaxKind, type Node as MorphNode, type Project, type Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
@@ -17,6 +17,40 @@ const looksLikeRegExpType = (node: MorphNode): boolean => {
   return candidateTypes.some((candidateType) => {
     const symbolName = candidateType.getSymbol()?.getName() ?? candidateType.getAliasSymbol()?.getName();
     return symbolName === "RegExp";
+  });
+};
+
+const isGlobalRegExpIdentifier = (node: MorphNode | undefined): boolean =>
+  Node.isIdentifier(node)
+  && node.getSymbol()?.getEscapedName().toString() === "RegExp"
+  && (node.getSymbol()?.getDeclarations().every((declaration) =>
+    declaration.getSourceFile().isDeclarationFile()) ?? false);
+
+const resolveVariableInitializer = (
+  node: MorphNode | undefined,
+  seenSymbols: Set<MorphSymbol>,
+): MorphNode | undefined => {
+  if (!Node.isIdentifier(node)) return undefined;
+  const symbol = node.getSymbol();
+  if (!symbol || seenSymbols.has(symbol)) return undefined;
+  seenSymbols.add(symbol);
+  const declaration = symbol.getDeclarations()[0];
+  return declaration && Node.isVariableDeclaration(declaration) ? declaration.getInitializer() : undefined;
+};
+
+const isRegExpConstructorExpression = (
+  node: MorphNode | undefined,
+  seenSymbols: Set<MorphSymbol> = new Set<MorphSymbol>(),
+): boolean => {
+  if (!node) return false;
+  if (isGlobalRegExpIdentifier(node)) return true;
+  const initializer = resolveVariableInitializer(node, seenSymbols);
+  if (initializer && isRegExpConstructorExpression(initializer, seenSymbols)) return true;
+  const nodeType = node.getType();
+  const candidateTypes = nodeType.isUnion() ? nodeType.getUnionTypes() : [nodeType];
+  return candidateTypes.some((candidateType) => {
+    const symbolName = candidateType.getSymbol()?.getName() ?? candidateType.getAliasSymbol()?.getName();
+    return symbolName === "RegExp" || symbolName === "RegExpConstructor";
   });
 };
 
@@ -56,8 +90,10 @@ export const scanCodePurityNoRegex = (project: Project, lawIds: readonly string[
       );
     }
 
-    const regExpConstructor = sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) => expression.getExpression().getText() === "RegExp")
-      ?? sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((expression) => expression.getExpression().getText() === "RegExp");
+    const regExpConstructor = sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression)
+      .find((expression) => isRegExpConstructorExpression(expression.getExpression()))
+      ?? sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+        .find((expression) => isRegExpConstructorExpression(expression.getExpression()));
     if (regExpConstructor) {
       findings.push(
         buildNoRegexFinding({

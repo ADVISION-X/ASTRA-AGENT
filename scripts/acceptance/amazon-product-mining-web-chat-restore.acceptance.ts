@@ -117,13 +117,13 @@ try {
   const openSource = project.getSourceFileOrThrow("src/capabilities/ai-input-gateway/providers/web-chat-open.ts");
   assert.equal(
     sourceHasCallExpression(recoverySource, "isAmazonProductMiningGptRequest"),
-    true,
-    "Amazon GPT Web Chat provider tabs must be closed after response capture.",
+    false,
+    "Amazon mining must not fork the provider target lifecycle from the single exact provider target.",
   );
   assert.equal(
-    sourceHasCallExpression(recoverySource, "closeActiveTab"),
-    true,
-    "Web chat restore stage must close governed provider tabs instead of leaving stale GPT tabs open.",
+    sourceHasCallExpression(recoverySource, "closeTarget"),
+    false,
+    "Web chat restore stage must retain the one exact provider target after response capture.",
   );
   assert.equal(
     sourceHasCallExpression(sharedSource, "restoreAfterWebChatFeed"),

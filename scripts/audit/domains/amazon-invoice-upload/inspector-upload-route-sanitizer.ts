@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 
@@ -23,7 +24,8 @@ export const inspectUploadRouteSanitizer = (
   const sanitizer = file.getFunction("sanitizeAmazonInvoiceUploadMission");
   const startHandler = file.getFunction("handleAmazonPluginStartRequest");
   const callsSanitizer = startHandler?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "sanitizeAmazonInvoiceUploadMission");
+    Node.isIdentifier(call.getExpression())
+    && astIdentifierName(call.getExpression()) === "sanitizeAmazonInvoiceUploadMission");
   if (!sanitizer || !callsSanitizer) {
     findings.push(createFinding({
       checkId: "amazon-invoice-upload/upload-route-sanitizer-missing",

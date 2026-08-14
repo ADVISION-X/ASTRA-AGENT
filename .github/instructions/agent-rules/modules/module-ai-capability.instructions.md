@@ -37,6 +37,26 @@ type AiChoiceQuestion = {
 
 ## Law GRASSEYE-AI-CHOICE-001-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-AI-CHOICE-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "ai-input-gateway",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "AI is a bounded choice judge by default; it may not plan workflows, control browsers, or choose sensitive final actions.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-ai-choice-001-requirement",
+      "statement": "Bounded-choice callers own the options and downstream action while AI returns only selectedOptionId, confidence, and reason unless one active P0 job law owns a narrower audited content contract.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "ai-input-gateway"
+    }
+  ]
+}
+```
+
 Required:
 - For bounded-choice tasks, the caller supplies all options.
 - For bounded-choice tasks, AI returns only `selectedOptionId`, `confidence`, and `reason`.

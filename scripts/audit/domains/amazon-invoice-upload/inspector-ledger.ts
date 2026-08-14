@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type ArrayLiteralExpression, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -57,7 +58,7 @@ const hasStringLiteralValue = (file: SourceFile, value: string): boolean =>
 
 const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeName: string): boolean =>
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName);
+    .some((call) => Node.isIdentifier(call.getExpression()) && astIdentifierName(call.getExpression()) === calleeName);
 
 const functionHasStringLiteral = (file: SourceFile, functionName: string, value: string): boolean =>
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.StringLiteral) ?? [])
@@ -146,7 +147,8 @@ function inspectLedgerStorage(ledgerFile: SourceFile, findings: InspectorFinding
 function inspectLedgerProjectionWrites(storageFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
   const saveTaskRecord = storageFile.getFunction("saveTaskRecord");
   const callsLedger = saveTaskRecord?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "upsertAmazonInvoiceUploadLedgerRecord");
+    Node.isIdentifier(call.getExpression())
+    && astIdentifierName(call.getExpression()) === "upsertAmazonInvoiceUploadLedgerRecord");
   if (!literalCorpus(storageFile).includes("./amazon-invoice-upload-ledger.js") || !callsLedger) {
     addFinding(findings, lawId, uploadStoragePath, "amazon-invoice-upload/ledger-save-task-record", "saveTaskRecord must write the Agent upload ledger through the existing upload task record path.");
   }
@@ -189,7 +191,8 @@ function inspectLedgerCanonicalProjection(
 function inspectLedgerServiceAndRoute(taskServiceFile: SourceFile, routesFile: SourceFile, findings: InspectorFinding[], lawId: string): void {
   const listLedgerFunction = taskServiceFile.getFunction("listAmazonInvoiceUploadLedger");
   const callsLedgerStore = taskServiceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "listAmazonInvoiceUploadLedgerRecords");
+    Node.isIdentifier(call.getExpression())
+    && astIdentifierName(call.getExpression()) === "listAmazonInvoiceUploadLedgerRecords");
   if (!callsLedgerStore || !listLedgerFunction?.getReturnTypeNode()) {
     addFinding(findings, lawId, taskServicePath, "amazon-invoice-upload/ledger-task-service", "Task service must expose a typed listAmazonInvoiceUploadLedger wrapper over the ledger store.");
   }
@@ -207,7 +210,8 @@ function inspectUploadTaskRecordResponseSanitizer(routesFile: SourceFile, findin
   const sanitizer = routesFile.getFunction("sanitizeAmazonInvoiceUploadTaskRecordForResponse");
   if (!sanitizer
     || !functionHasStringLiteral(routesFile, "sanitizeAmazonInvoiceUploadTaskRecordForResponse", "redacted-local-invoice-pdf-path")
-    || !sanitizer.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "invoicePdfPath")) {
+    || !sanitizer.getDescendantsOfKind(SyntaxKind.Identifier)
+      .some((identifier) => astIdentifierName(identifier) === "invoicePdfPath")) {
     addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-response-sanitizer", "Upload task record API responses must redact mission.invoicePdfPath before leaving Workbench routes.");
   }
   inspectSanitizerUseByRouteHandlers(routesFile, findings, lawId);
@@ -226,7 +230,8 @@ function inspectSanitizerUseByRouteHandlers(routesFile: SourceFile, findings: In
   ]) {
     const routeHandler = routesFile.getFunction(functionName) ?? routesFile.getVariableDeclaration(functionName)?.getInitializer();
     const callsSanitizer = routeHandler?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-      Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "sanitizeAmazonInvoiceUploadTaskRecordForResponse");
+      Node.isIdentifier(call.getExpression())
+      && astIdentifierName(call.getExpression()) === "sanitizeAmazonInvoiceUploadTaskRecordForResponse");
     if (!callsSanitizer) {
       addFinding(findings, lawId, routesPath, "amazon-invoice-upload/task-record-route-sanitizer", `${functionName} must return only sanitized upload task records.`);
     }
@@ -238,13 +243,14 @@ function inspectRawTaskRecordResponses(routesFile: SourceFile, findings: Inspect
     const routeHandler = routesFile.getFunction(functionName) ?? routesFile.getVariableDeclaration(functionName)?.getInitializer();
     const rawWriteJsonCall = routeHandler?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
       const expression = call.getExpression();
-      if (!Node.isIdentifier(expression) || expression.getText() !== "writeJson") return false;
+      if (!Node.isIdentifier(expression) || astIdentifierName(expression) !== "writeJson") return false;
       const args = call.getArguments();
       const statusArg = args[1];
       const payloadArg = args[2];
-      const payloadIsRawRecordIdentifier = Node.isIdentifier(payloadArg) && ["result", "record"].includes(payloadArg.getText());
-      return statusArg?.getKind() === SyntaxKind.NumericLiteral
-        && statusArg.getText() === "200"
+      const payloadIsRawRecordIdentifier = Node.isIdentifier(payloadArg)
+        && ["result", "record"].includes(astIdentifierName(payloadArg) ?? "");
+      return Node.isNumericLiteral(statusArg)
+        && Number(statusArg.getLiteralValue()) === 200
         && Boolean(payloadIsRawRecordIdentifier);
     }) ?? false;
     if (rawWriteJsonCall) {

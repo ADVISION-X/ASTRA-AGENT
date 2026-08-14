@@ -19,7 +19,7 @@ const context = (current: Project): InspectorContext => {
   const generatedPlan = loadGeneratedAuditPlan();
   const planEntry = generatedPlan.find((entry) => entry.capabilityDomain === "audit-system");
   if (!planEntry) throw new Error("audit-system plan entry is missing.");
-  return { checks: createInspectorCheckSession(planEntry).checks, completedReports: {}, generatedPlan, planEntry, project: current };
+  return { checks: createInspectorCheckSession(planEntry, "acceptance-run:audit-phase-plan").checks, completedReports: {}, generatedPlan, planEntry, project: current };
 };
 
 const rejected = (current: Project): boolean => {

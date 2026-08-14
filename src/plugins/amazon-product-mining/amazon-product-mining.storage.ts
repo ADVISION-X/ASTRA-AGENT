@@ -31,6 +31,7 @@ import type {
   AmazonTaskStatus,
   AmazonHandoffStatus,
 } from "./amazon-product-mining.schema.js";
+import type { PluginInterventionAction, PluginInterventionRequest, PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 
 export type AmazonMiningStorage = {
   dbPath: string;
@@ -39,7 +40,6 @@ export type AmazonMiningStorage = {
     taskId: string;
     status: AmazonTaskStatus;
     failureReason?: string | null;
-    operatorOverride?: boolean;
     packageJsonPath?: string | null;
     pdfReportPath?: string | null;
     evidenceIndexPath?: string | null;
@@ -49,6 +49,9 @@ export type AmazonMiningStorage = {
   getTask(taskId: string): AmazonTaskRecord | null;
   getLatestTask(): AmazonTaskRecord | null;
   listTasksByStatuses(statuses: readonly AmazonTaskStatus[]): AmazonTaskRecord[];
+  getIntervention(taskId: string): PluginInterventionSnapshot | null;
+  requestIntervention(action: PluginInterventionAction, input: PluginInterventionRequest): PluginInterventionSnapshot;
+  acknowledgeIntervention(taskId: string, checkpoint: string): PluginInterventionSnapshot;
   saveKeywords(keywords: readonly AmazonKeywordRecord[]): void;
   updateKeywordStatus(input: { keywordId: string; status: AmazonKeywordStatus; }): void;
   getKeywordsForTask(taskId: string): AmazonKeywordRecord[];
@@ -105,18 +108,21 @@ export const createAmazonMiningDatabase = (dataDir: string): Database.Database =
     db.exec(sql);
   }
   ensureAmazonMiningStorageColumns(db);
+  db.prepare("UPDATE amazon_mining_tasks SET status = 'cancelled' WHERE status = 'terminated'").run();
+  db.prepare(`INSERT OR IGNORE INTO amazon_mining_interventions (task_id, revision, state, reason, checkpoint, pending_json, updated_at)
+    SELECT task_id, 0, CASE WHEN status = 'paused' THEN 'paused' WHEN status = 'cancelled' THEN 'cancelled' ELSE 'running' END,
+      failure_reason, COALESCE(status, 'created'), NULL, COALESCE(updated_at, created_at) FROM amazon_mining_tasks`).run();
   return db;
 };
 
 const shouldKeepOperatorLockedTask = (
+  db: Database.Database,
   current: AmazonTaskRecord | null,
   input: AmazonTaskStatusUpdateInput,
 ): boolean => {
-  if (current?.status === "terminated" && input.status !== "terminated") return true;
-  return current?.status === "paused"
-    && !input.operatorOverride
-    && input.status !== "paused"
-    && input.status !== "terminated";
+  if (!current) return false;
+  const row = db.prepare("SELECT state FROM amazon_mining_interventions WHERE task_id = ?").get(input.taskId) as { state?: string } | undefined;
+  return Boolean(row?.state && row.state !== "running");
 };
 
 const createTaskRecord = (
@@ -131,7 +137,56 @@ const createTaskRecord = (
     task.requestedKeywordCount, task.languagePreference, task.providerKind, task.keywordHistoryPolicy,
     task.status, task.handoffStatus, task.createdAt,
   );
+  db.prepare("INSERT INTO amazon_mining_interventions (task_id, revision, state, reason, checkpoint, pending_json, updated_at) VALUES (?, 0, 'running', NULL, 'created', NULL, ?)").run(task.taskId, task.createdAt);
   return getTask(task.taskId)!;
+};
+
+type AmazonMiningInterventionRow = { revision: number; state: PluginInterventionSnapshot["state"]; reason: string | null; checkpoint: string; pending_json: string | null; updated_at: string };
+const mapIntervention = (row: AmazonMiningInterventionRow): PluginInterventionSnapshot => ({ revision: row.revision, state: row.state, reason: row.reason, checkpoint: row.checkpoint, pending: row.pending_json ? JSON.parse(row.pending_json) : null, updatedAt: row.updated_at });
+
+const requestInterventionOperation = (
+  db: Database.Database,
+  getIntervention: (taskId: string) => PluginInterventionSnapshot | null,
+): AmazonMiningStorage["requestIntervention"] => (action, input) => db.transaction(() => {
+  const current = getIntervention(input.taskId);
+  if (!current) throw new Error("AMAZON_PRODUCT_MINING_TASK_NOT_FOUND");
+  if (current.revision !== input.expectedRevision) throw new Error("STALE_INTERVENTION_REVISION");
+  const now = new Date().toISOString();
+  if (action === "resume") {
+    if (current.state !== "paused" && current.state !== "taken_over") throw new Error("INTERVENTION_RESUME_REQUIRES_PAUSED_OR_TAKEN_OVER");
+    db.prepare("UPDATE amazon_mining_interventions SET revision = ?, state = 'running', reason = ?, pending_json = NULL, updated_at = ? WHERE task_id = ?").run(current.revision + 1, input.reason, now, input.taskId);
+    db.prepare("UPDATE amazon_mining_tasks SET status = 'mining', failure_reason = NULL, updated_at = ? WHERE task_id = ?").run(now, input.taskId);
+  } else {
+    if (current.state !== "running") throw new Error("INTERVENTION_TASK_NOT_RUNNING");
+    const state = action === "pause" ? "pause_requested" : action === "cancel" ? "cancel_requested" : "takeover_requested";
+    db.prepare("UPDATE amazon_mining_interventions SET revision = ?, state = ?, reason = ?, pending_json = ?, updated_at = ? WHERE task_id = ?").run(current.revision + 1, state, input.reason, JSON.stringify({ ...input, action, requestedAt: now }), now, input.taskId);
+  }
+  return getIntervention(input.taskId)!;
+})();
+
+const acknowledgeInterventionOperation = (
+  db: Database.Database,
+  getIntervention: (taskId: string) => PluginInterventionSnapshot | null,
+): AmazonMiningStorage["acknowledgeIntervention"] => (taskId, checkpoint) => {
+  const current = getIntervention(taskId);
+  if (!current) throw new Error("AMAZON_PRODUCT_MINING_TASK_NOT_FOUND");
+  const now = new Date().toISOString();
+  const state = current.state === "pause_requested" ? "paused" : current.state === "cancel_requested" ? "cancelled" : current.state === "takeover_requested" ? "taken_over" : current.state;
+  db.prepare("UPDATE amazon_mining_interventions SET state = ?, checkpoint = ?, pending_json = CASE WHEN ? IN ('cancelled','taken_over') THEN NULL ELSE pending_json END, updated_at = ? WHERE task_id = ?").run(state, checkpoint, state, now, taskId);
+  if (state === "paused" || state === "cancelled" || state === "taken_over") db.prepare("UPDATE amazon_mining_tasks SET status = ?, failure_reason = ?, updated_at = ? WHERE task_id = ?").run(state, current.reason, now, taskId);
+  return getIntervention(taskId)!;
+};
+
+const createInterventionOperations = (db: Database.Database): Pick<AmazonMiningStorage, "getIntervention" | "requestIntervention" | "acknowledgeIntervention"> => {
+  const getIntervention = (taskId: string): PluginInterventionSnapshot | null => {
+    const row = db.prepare("SELECT revision, state, reason, checkpoint, pending_json, updated_at FROM amazon_mining_interventions WHERE task_id = ?").get(taskId) as AmazonMiningInterventionRow | undefined;
+    return row ? mapIntervention(row) : null;
+  };
+  return {
+    getIntervention,
+    requestIntervention: requestInterventionOperation(db, getIntervention),
+    acknowledgeIntervention: acknowledgeInterventionOperation(db, getIntervention),
+  };
 };
 
 const updateTaskStatusRecord = (
@@ -139,7 +194,7 @@ const updateTaskStatusRecord = (
   getTask: (taskId: string) => AmazonTaskRecord | null,
 ) => (input: AmazonTaskStatusUpdateInput): AmazonTaskRecord | null => {
   const current = getTask(input.taskId);
-  if (shouldKeepOperatorLockedTask(current, input)) return current;
+  if (shouldKeepOperatorLockedTask(db, current, input)) return current;
   db.prepare(`UPDATE amazon_mining_tasks SET status=?, failure_reason=?, package_json_path=?,
     pdf_report_path=?, evidence_index_path=?, exception_summary_path=?,
     handoff_status=COALESCE(?, handoff_status), updated_at=? WHERE task_id=?`).run(
@@ -420,6 +475,7 @@ export const createAmazonMiningStorage = (dataDir: string): AmazonMiningStorage 
   return {
     dbPath,
     ...createTaskOperations(db),
+    ...createInterventionOperations(db),
     ...createKeywordOperations(db),
     ...createKeywordReviewOperations(db),
     ...createSearchOperations(db),

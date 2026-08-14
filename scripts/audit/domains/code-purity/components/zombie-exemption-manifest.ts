@@ -1,3 +1,9 @@
+import { readFileSync } from "node:fs";
+
+import { z } from "zod";
+
+import { resolveFromRepo } from "../../../shared/paths.js";
+
 export type ZombieEntryFileExemption = {
   filePath: string;
   reason: string;
@@ -15,17 +21,8 @@ export type ZombieDynamicImportExemption = {
   targetFilePath: string;
 };
 
-export type ZombieSideEffectImportExemption = {
-  consumerFilePath: string;
-  reason: string;
-  targetFilePath: string;
-};
-
-export type ZombieDynamicNamespaceExemption = {
-  consumerFilePath: string;
-  reason: string;
-  targetFilePath: string;
-};
+export type ZombieSideEffectImportExemption = ZombieDynamicImportExemption;
+export type ZombieDynamicNamespaceExemption = ZombieDynamicImportExemption;
 
 export type ZombieDynamicRegistryConsumerExemption = {
   consumerFilePath: string;
@@ -43,130 +40,64 @@ export type ZombieExemptionManifest = {
   lawfulSideEffectImports: readonly ZombieSideEffectImportExemption[];
 };
 
-const emptyEntryExports: readonly ZombieEntryExportExemption[] = [];
-const externalEntryFiles: readonly ZombieEntryFileExemption[] = [
-  {
-    filePath: "scripts/audit/core/run-generated-plan-worker.mjs",
-    reason: "CI-FULL launches this bounded worker as the only cancellable adapter around the existing generated-plan runner.",
-  },
-];
-const lawfulDynamicImports: readonly ZombieDynamicImportExemption[] = [
-  {
-    consumerFilePath: "scripts/audit/core/run-generated-plan-worker.mjs",
-    targetFilePath: "scripts/audit/core/run-generated-plan-worker.ts",
-    reason: "The bounded JavaScript bootstrap registers the TypeScript loader and enters the typechecked worker implementation.",
-  },
-];
-const emptyDynamicNamespaceConsumers: readonly ZombieDynamicNamespaceExemption[] = [];
-const emptySideEffectImports: readonly ZombieSideEffectImportExemption[] = [];
+const pathPairSchema = z.object({
+  consumerFilePath: z.string().min(1),
+  targetFilePath: z.string().min(1),
+}).strict();
 
-const lawfulDynamicRegistryConsumers: readonly ZombieDynamicRegistryConsumerExemption[] = [
-  {
-    consumerFilePath: "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
-    registryFilePath: "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
-    registryExportName: "geminiApiAdapter",
-    reason: "Default Gemini API adapter is intentionally passed as a full provider contract.",
-  },
-  {
-    consumerFilePath: "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
-    registryFilePath: "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
-    registryExportName: "geminiWebChatAdapter",
-    reason: "Default Gemini web-chat adapter is intentionally passed as a full provider contract.",
-  },
-  {
-    consumerFilePath: "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
-    registryFilePath: "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
-    registryExportName: "gptWebChatAdapter",
-    reason: "Default GPT web-chat adapter is intentionally passed as a full provider contract.",
-  },
-  {
-    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-    registryExportName: "businessHtmlReportPublisherPrompt",
-    reason: "HTML report stage passes the full prompt contract as a bounded prompt asset.",
-  },
-  {
-    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-    registryExportName: "finalAdjudicationPrompt",
-    reason: "Final adjudication stage passes the full prompt contract as a bounded prompt asset.",
-  },
-  {
-    consumerFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
-    registryFilePath: "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-    registryExportName: "finalAdjudicationPrompt",
-    reason: "Report reader prompt reconstruction uses the full prompt contract for hash verification.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-web-video-once.ts",
-    registryExportName: "downloadWebVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-facebook-video-once.ts",
-    registryExportName: "downloadFacebookVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-tiktok-video-once.ts",
-    registryExportName: "downloadTikTokVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-instagram-video-once.ts",
-    registryExportName: "downloadInstagramVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-bilibili-video-once.ts",
-    registryExportName: "downloadBilibiliVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-douyin-video-once.ts",
-    registryExportName: "downloadDouyinVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-x-video-once.ts",
-    registryExportName: "downloadXVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
-    registryExportName: "downloadXiaohongshuVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-youtube-video-once.ts",
-    registryExportName: "downloadYoutubeVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-  {
-    consumerFilePath: "src/capabilities/video-download/registry.ts",
-    registryFilePath: "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
-    registryExportName: "downloadTelegramWebVideoOnce",
-    reason: "Video download registry intentionally stores full child capability contracts.",
-  },
-];
+const livenessSchema = z.object({
+  externalEntryExports: z.array(z.object({
+    exportName: z.string().min(1),
+    filePath: z.string().min(1),
+  }).strict()).default([]),
+  externalEntryFiles: z.array(z.string().min(1)).default([]),
+  lawfulDynamicImports: z.array(pathPairSchema).default([]),
+  lawfulDynamicNamespaceConsumers: z.array(pathPairSchema).default([]),
+  lawfulDynamicRegistryConsumers: z.array(z.object({
+    consumerFilePath: z.string().min(1),
+    registryExportName: z.string().min(1),
+    registryFilePath: z.string().min(1),
+  }).strict()).default([]),
+  lawfulSideEffectImports: z.array(pathPairSchema).default([]),
+}).strict();
 
-export const createZombieExemptionManifest = (): ZombieExemptionManifest => ({
-  externalEntryExports: emptyEntryExports,
-  externalEntryFiles,
-  lawfulDynamicImports,
-  lawfulDynamicRegistryConsumers: lawfulDynamicRegistryConsumers,
-  lawfulDynamicNamespaceConsumers: emptyDynamicNamespaceConsumers,
-  lawfulSideEffectImports: emptySideEffectImports,
-});
+const lawRegistrySchema = z.object({
+  laws: z.array(z.object({
+    codePurityLiveness: livenessSchema.optional(),
+    lawId: z.string().min(1),
+    status: z.enum(["active", "draft", "retired"]),
+  }).passthrough()),
+}).passthrough();
+
+type LawLiveness = z.infer<typeof livenessSchema>;
+
+const readActiveLawLiveness = (): Array<{ lawId: string; liveness: LawLiveness }> => {
+  const registry = lawRegistrySchema.parse(JSON.parse(readFileSync(
+    resolveFromRepo("scripts/audit/generated/law-registry.generated.json"),
+    "utf8",
+  )));
+  return registry.laws.flatMap((law) => law.status === "active" && law.codePurityLiveness
+    ? [{ lawId: law.lawId, liveness: law.codePurityLiveness }]
+    : []);
+};
+
+export const createZombieExemptionManifest = (): ZombieExemptionManifest => {
+  const authorities = readActiveLawLiveness();
+  return {
+    externalEntryExports: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.externalEntryExports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
+    externalEntryFiles: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.externalEntryFiles.map((filePath) => ({ filePath, reason: `active law ${lawId}` }))),
+    lawfulDynamicImports: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.lawfulDynamicImports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
+    lawfulDynamicNamespaceConsumers: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.lawfulDynamicNamespaceConsumers.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
+    lawfulDynamicRegistryConsumers: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.lawfulDynamicRegistryConsumers.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
+    lawfulSideEffectImports: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.lawfulSideEffectImports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
+  };
+};
 
 export const isLawfulManifestEntryFile = (
   manifest: ZombieExemptionManifest,
@@ -177,44 +108,40 @@ export const isLawfulManifestEntryExport = (
   manifest: ZombieExemptionManifest,
   filePath: string,
   exportName: string,
-): boolean =>
-  manifest.externalEntryExports.some((entry) => entry.filePath === filePath && entry.exportName === exportName);
+): boolean => manifest.externalEntryExports.some((entry) =>
+  entry.filePath === filePath && entry.exportName === exportName);
+
+const hasPathPair = (
+  entries: readonly ZombieDynamicImportExemption[],
+  consumerFilePath: string,
+  targetFilePath: string,
+): boolean => entries.some((entry) =>
+  entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath);
 
 export const isLawfulDynamicImport = (
   manifest: ZombieExemptionManifest,
   consumerFilePath: string,
   targetFilePath: string,
-): boolean =>
-  manifest.lawfulDynamicImports.some(
-    (entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath,
-  );
+): boolean => hasPathPair(manifest.lawfulDynamicImports, consumerFilePath, targetFilePath);
 
 export const isLawfulSideEffectImport = (
   manifest: ZombieExemptionManifest,
   consumerFilePath: string,
   targetFilePath: string,
-): boolean =>
-  manifest.lawfulSideEffectImports.some(
-    (entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath,
-  );
+): boolean => hasPathPair(manifest.lawfulSideEffectImports, consumerFilePath, targetFilePath);
 
 export const isLawfulDynamicNamespaceConsumer = (
   manifest: ZombieExemptionManifest,
   consumerFilePath: string,
   targetFilePath: string,
-): boolean =>
-  manifest.lawfulDynamicNamespaceConsumers.some(
-    (entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath,
-  );
+): boolean => hasPathPair(manifest.lawfulDynamicNamespaceConsumers, consumerFilePath, targetFilePath);
 
 export const isLawfulDynamicRegistryConsumer = (
   manifest: ZombieExemptionManifest,
   consumerFilePath: string,
   registryFilePath: string,
   registryExportName: string,
-): boolean =>
-  manifest.lawfulDynamicRegistryConsumers.some(
-    (entry) => entry.consumerFilePath === consumerFilePath
-      && entry.registryFilePath === registryFilePath
-      && entry.registryExportName === registryExportName,
-  );
+): boolean => manifest.lawfulDynamicRegistryConsumers.some((entry) =>
+  entry.consumerFilePath === consumerFilePath
+  && entry.registryFilePath === registryFilePath
+  && entry.registryExportName === registryExportName);

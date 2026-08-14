@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
@@ -61,6 +61,7 @@ export type AmazonInvoiceUploadExecutionContext = {
   abortSignal: AbortSignal;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   runtimeLogRef: string;
+  safePoint?: (checkpoint: string) => Promise<void>;
 };
 
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
@@ -74,7 +75,7 @@ const UPLOAD_STEP_RETRY_SETTLE_MS = 500;
 type UploadStepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
 
 export async function runAmazonInvoiceUpload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   rawMission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
@@ -84,14 +85,17 @@ export async function runAmazonInvoiceUpload(
 }
 
 async function continueInvoiceUpload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
 ): Promise<AmazonInvoiceUploadTaskResult> {
+  await execution.safePoint?.("order_detail_before");
   const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission, execution);
   if (!orderDetailResult.ok) return orderDetailResult.failure;
   const navigationProof = orderDetailResult.value;
+
+  await execution.safePoint?.("order_detail_after");
 
   const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission, execution.abortSignal);
   if (alreadyUploaded) return { ...alreadyUploaded, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
@@ -99,6 +103,7 @@ async function continueInvoiceUpload(
   const amountGate = await verifyInvoiceAmountBeforeUpload(browser, runtimeLogger, mission);
   if (amountGate) return { ...amountGate, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 
+  await execution.safePoint?.("upload_entry_before");
   const uploadEntryResult = await runUploadStepWithRetries({
     browser,
     runtimeLogger,
@@ -108,12 +113,14 @@ async function continueInvoiceUpload(
   });
   if (!uploadEntryResult.ok) return { ...uploadEntryResult.failure, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 
-  const result = await uploadAndSubmitInvoice(browser, runtimeLogger, mission, execution.abortSignal);
+  await execution.safePoint?.("approved_file_attach_before");
+  const result = await uploadAndSubmitInvoice(browser, runtimeLogger, mission, execution.abortSignal, execution.safePoint);
+  await execution.safePoint?.("result_checkpoint_after");
   return { ...result, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
 }
 
 async function runUploadStepWithRetries<T>(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   mission: AmazonInvoiceUploadMissionInput;
   stepName: string;
@@ -144,10 +151,11 @@ function isRetryableUploadStepFailure(failure: AmazonInvoiceUploadTaskResult): b
 }
 
 async function uploadAndSubmitInvoice(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
+  safePoint?: (checkpoint: string) => Promise<void>,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const uploadResult = await runUploadStepWithRetries({
     browser,
@@ -157,11 +165,12 @@ async function uploadAndSubmitInvoice(
     action: () => uploadApprovedInvoice(browser, runtimeLogger, mission),
   });
   if (!uploadResult.ok) return uploadResult.failure;
+  await safePoint?.("submit_before");
   return submitAndVerifyInvoice(browser, runtimeLogger, mission, abortSignal);
 }
 
 async function submitAndVerifyInvoice(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
@@ -226,7 +235,7 @@ function traceSubmitButtonLocated(
 }
 
 async function clickSubmitButton(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   element: DomElementRef,
@@ -253,7 +262,7 @@ async function clickSubmitButton(
 }
 
 async function readAndTraceSubmitSnapshot(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<DomSnapshot> {

@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { dismissChatGptSearchDialogIfVisible } from "../providers/web-chat-search-dialog-hygiene.js";
 
 type SearchTarget = {
@@ -69,7 +69,7 @@ return {
 `;
 
 const clickTarget = async (input: {
-  base: BrowserController;
+  base: BrowserTargetSession;
   description: string;
   targetPoint: { x: number; y: number } | undefined;
 }): Promise<void> => {
@@ -91,7 +91,7 @@ const clickTarget = async (input: {
 };
 
 const locateSearchTarget = async (input: {
-  base: BrowserController;
+  base: BrowserTargetSession;
   script: string;
   description: string;
   signal?: AbortSignal;
@@ -99,7 +99,7 @@ const locateSearchTarget = async (input: {
   const deadline = Date.now() + 10_000;
   let last: SearchTarget | null = null;
   while (Date.now() < deadline) {
-    last = await input.base.evaluateActiveTab<SearchTarget>({
+    last = await input.base.evaluate<SearchTarget>({
       description: input.description,
       script: input.script,
       ...(input.signal ? { abortSignal: input.signal } : {}),
@@ -116,7 +116,7 @@ const locateSearchTarget = async (input: {
 };
 
 export const searchAndOpenNamedConversation = async (input: {
-  base: BrowserController;
+  base: BrowserTargetSession;
   systemChatTitle: string;
   searchPoint: { x: number; y: number } | undefined;
   signal?: AbortSignal;

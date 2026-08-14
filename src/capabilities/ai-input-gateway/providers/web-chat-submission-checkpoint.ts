@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
   AiProviderUploadedFileProof,
@@ -10,7 +10,7 @@ import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
 
 type SubmissionCheckpointInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   previousAssistantCount: number;

@@ -235,6 +235,27 @@ const persistStageResult = (
   }, "stage_terminal");
 };
 
+const acknowledgeInterventionSafePoint = async (
+  runtime: XuanxueAiProductionRuntime,
+  orderId: string,
+  checkpoint: string,
+): Promise<void> => {
+  const acknowledged = runtime.store.acknowledgeInterventionAtSafePoint(
+    orderId,
+    checkpoint,
+  );
+  if (acknowledged) {
+    if (acknowledged.state === "taken_over") {
+      await runtime.aiInputGateway.releaseProviderTargetForOperator?.(
+        `xuanxue-ai-production:${orderId}`,
+      );
+    }
+    throw new Error(
+      `XUANXUE_AI_INTERVENTION_STOPPED:${acknowledged.state}:${checkpoint}`,
+    );
+  }
+};
+
 const executeStage = async (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
@@ -250,6 +271,11 @@ const executeStage = async (
     stage.status === "completed"
     || hasTerminalAttachmentTransportProof(stage)
   ) return stage;
+  await acknowledgeInterventionSafePoint(
+    runtime,
+    orderId,
+    `before-stage-feed:${definition.stageId}`,
+  );
   const feedInput = await buildXuanxueAiFeedInput(
     runtime,
     current,
@@ -291,7 +317,13 @@ const executeStage = async (
     stage.stageId,
     gatewayResult,
   );
-  return persistStageResult(runtime, orderId, stage, result);
+  const persisted = persistStageResult(runtime, orderId, stage, result);
+  await acknowledgeInterventionSafePoint(
+    runtime,
+    orderId,
+    `after-response-checkpoint:${definition.stageId}`,
+  );
+  return persisted;
 };
 
 const executeStageUntilSettled = async (
@@ -381,6 +413,7 @@ export const executeXuanxueAiProductionOrder = async (
     || record.status === "review_required"
     || record.status === "failed"
   ) return record;
+  acknowledgeInterventionSafePoint(runtime, orderId, "before-order-execution");
   const profile = assertXuanxueAiOrderMatchesProfile(record.order);
   record = runtime.store.updateOrder({
     orderId,
@@ -390,6 +423,7 @@ export const executeXuanxueAiProductionOrder = async (
     eventType: "order_started",
   });
   while (pendingDefinitions(record, profile).length > 0) {
+    acknowledgeInterventionSafePoint(runtime, orderId, "before-stage-dequeue");
     const runnable = runnableDefinitions(record, profile);
     if (runnable.length === 0) {
       const blocking = firstBlockingStage(record);
@@ -429,5 +463,6 @@ export const executeXuanxueAiProductionOrder = async (
       });
     }
   }
+  acknowledgeInterventionSafePoint(runtime, orderId, "before-order-result-commit");
   return completeXuanxueAiProductionOrder(runtime, record, profile);
 };

@@ -1,7 +1,5 @@
 import { renderAmazonInvoiceClient } from "./workbench-home-amazon-invoice-client.js";
 import { renderAmazonProductMiningReviewClient } from "./workbench-home-amazon-product-mining-review-client.js";
-import { renderPick3Client } from "./workbench-home-pick3-client.js";
-import { renderLotteryTicketPlanClient } from "./workbench-home-lottery-ticket-plan-client.js";
 import { WORKBENCH_HOME_SKILL_MAP_CLIENT } from "./workbench-home-skill-map-client.js";
 
 const WORKBENCH_HOME_CLIENT = `
@@ -26,9 +24,6 @@ const state = {
   amazonProductMiningReviewLoading: false,
   amazonProductMiningReviewError: "",
   amazonProductMiningPoll: null,
-  facebookRunId: "",
-  facebookPoll: null,
-  pick3TaskId: "",
 };
 
 ${WORKBENCH_HOME_SKILL_MAP_CLIENT}
@@ -207,8 +202,6 @@ ${renderAmazonInvoiceClient({
   downloadArtifact: "/api/plugins/amazon-invoice-upload/download/artifact/",
   uploadLedger: "/api/plugins/amazon-invoice-upload/ledger",
 })}
-${renderPick3Client()}
-${renderLotteryTicketPlanClient()}
 const renderLedger = (payload, options = {}) => {
   const record = payload?.record || payload?.task || payload;
   if (!record || typeof record !== "object") return;
@@ -218,11 +211,7 @@ const renderLedger = (payload, options = {}) => {
     return;
   }
   let recordId = "-";
-  if (job === "facebook" || job === "facebook-video-mining") {
-    const nextRunId = typeof record.runId === "string" && record.runId ? record.runId : state.facebookRunId;
-    recordId = nextRunId || "-";
-    if (nextRunId) state.facebookRunId = nextRunId;
-  } else if (job === "amazon-product-mining") {
+  if (job === "amazon-product-mining") {
     const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.amazonProductMiningTaskId;
     recordId = nextTaskId || "-";
     if (nextTaskId) state.amazonProductMiningTaskId = nextTaskId;
@@ -239,55 +228,6 @@ const renderLedger = (payload, options = {}) => {
   setText("[data-evidence-ref]", record.evidenceRef || record.videoArtifactRef || "-");
   const raw = qs("[data-raw-result]");
   if (raw) raw.textContent = JSON.stringify(record, null, 2);
-};
-const renderFacebookRecords = (records) => {
-  const list = qs("[data-facebook-record-list]");
-  if (!list) return;
-  list.innerHTML = "";
-  for (const record of records || []) {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "record-item";
-    const title = document.createElement("strong");
-    title.textContent = [record.visibleProduct, record.productCategory, record.pageTitle].filter(Boolean).join(" · ") || record.candidateId;
-    const reason = document.createElement("div");
-    reason.textContent = record.aiReason || "-";
-    const meta = document.createElement("div");
-    meta.className = "record-meta";
-    meta.textContent = [record.sourcePageUrl, record.videoArtifactRef || record.videoFilePath || ""].filter(Boolean).join(" | ");
-    item.append(title, reason, meta);
-    item.addEventListener("click", () => openInspector({ kind: "evidence", title: title.textContent, payload: record }));
-    list.append(item);
-  }
-};
-const renderFacebookResults = async (runId) => {
-  if (!runId) return;
-  const payload = await readJson("/api/facebook-product-video-mining/results?runId=" + encodeURIComponent(runId));
-  setText("[data-facebook-saved-count]", String(payload.records?.length || 0));
-  setText("[data-facebook-target-count]", String(payload.run?.targetProductCount || 0));
-  renderFacebookRecords(payload.records || []);
-  return payload;
-};
-const stopFacebookPolling = () => {
-  if (state.facebookPoll) clearInterval(state.facebookPoll);
-  state.facebookPoll = null;
-};
-const pollFacebookRun = async (runId) => {
-  const payload = await renderFacebookResults(runId);
-  if (payload?.run) renderLedger(payload.run, { job: "facebook" });
-  const status = payload?.run?.status;
-  if (status && status !== "queued" && status !== "running") {
-    stopFacebookPolling();
-    writeActivity("facebook run stopped with status " + status, status === "completed" ? "completed" : "manual-required");
-  }
-};
-const startFacebookPolling = (runId) => {
-  state.facebookRunId = runId;
-  stopFacebookPolling();
-  state.facebookPoll = setInterval(() => {
-    pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "failed"));
-  }, 5000);
-  pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "failed"));
 };
 const startAmazonProductMining = async (event) => {
   event.preventDefault();
@@ -366,39 +306,6 @@ const exportAmazonProductMining = async () => {
   URL.revokeObjectURL(link.href);
   writeActivity("package generated: amazon product mining export ready", "completed");
 };
-const startFacebook = async (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  writeActivity("task started: facebook video mining", "running");
-  const run = await readJson("/api/facebook-product-video-mining/mission", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ targetProductCount: Number(form.targetProductCount.value) }),
-  });
-  renderLedger(run, { job: "facebook" });
-  startFacebookPolling(run.runId);
-};
-const refreshFacebookLatest = async () => {
-  const run = await readJson("/api/facebook-product-video-mining/latest");
-  renderLedger(run, { job: "facebook" });
-  if (run?.runId) {
-    state.facebookRunId = run.runId;
-    await renderFacebookResults(run.runId);
-    if (run.status === "queued" || run.status === "running") startFacebookPolling(run.runId);
-  }
-};
-const exportFacebookSelection = async () => {
-  const runId = state.facebookRunId;
-  if (!runId) return writeActivity("facebook run id is required", "manual-required");
-  const exported = await readJson("/api/facebook-product-video-mining/export?runId=" + encodeURIComponent(runId));
-  const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "facebook-product-video-selection-" + runId + ".json";
-  link.click();
-  URL.revokeObjectURL(link.href);
-  writeActivity("facebook export ready", "completed");
-};
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-skill-id]").forEach((item) => {
     item.addEventListener("click", () => showSkill(item.dataset.skillId));
@@ -407,7 +314,6 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-inspector-toggle]")?.addEventListener("click", () => document.body.classList.toggle("inspector-collapsed"));
   qs("[data-amazon-form]")?.addEventListener("submit", startAmazon);
   qs("[data-amazon-product-mining-form]")?.addEventListener("submit", startAmazonProductMining);
-  qs("[data-facebook-form]")?.addEventListener("submit", startFacebook);
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
   document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -450,22 +356,6 @@ document.addEventListener("DOMContentLoaded", () => {
       syncAmazonProductMiningReviewFiltersFromDom();
       renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
     });
-  });
-  qs("[data-facebook-latest]")?.addEventListener("click", refreshFacebookLatest);
-  qs("[data-facebook-export]")?.addEventListener("click", exportFacebookSelection);
-  qs("[data-pick3-form]")?.addEventListener("submit", startPick3);
-  qs("[data-lottery-ticket-plan-form]")?.addEventListener("submit", generateLotteryTicketPlan);
-  qs("[data-pick3-latest]")?.addEventListener("click", refreshPick3Latest);
-  qs("[data-pick3-trend-refresh]")?.addEventListener("click", () => {
-    refreshPick3Trend().catch((error) => writeActivity("pick3 trend refresh failed: " + error.message, "failed"));
-  });
-  bindPick3TrendDrag();
-  refreshPick3Trend().catch(() => undefined);
-  qs("[data-pick3-history-refresh]")?.addEventListener("click", () => {
-    refreshPick3History().catch((error) => writeActivity("pick3 history refresh failed: " + error.message, "failed"));
-  });
-  qs("[data-pick3-history-delete]")?.addEventListener("click", () => {
-    deletePick3SelectedHistoryTask().catch((error) => writeActivity("pick3 history delete failed: " + error.message, "failed"));
   });
   showSkill("amazon-product-mining");
   showAmazonProductMiningPage("history");

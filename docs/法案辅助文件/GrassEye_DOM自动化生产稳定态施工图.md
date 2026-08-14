@@ -21,7 +21,7 @@ read snapshot -> locate element -> scroll (if needed) -> fill / click / upload /
 
 - 用户需求接入
 - job flow 顺序
-- Amazon / Facebook 业务判断
+- 平台业务判断
 - AI 规划
 - 浏览器会话生命周期
 - 证据存储真相
@@ -796,26 +796,34 @@ DOM 需要的浏览器端口:
 
 ```ts
 interface DomCapableBrowserController {
-  evaluateActiveTab<T>(input: {
+  evaluateTarget<T>(input: {
+    targetRef: BrowserTargetRef;
+    documentRef: BrowserDocumentRef;
     script: string;
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<T>;
 
-  setFileInputFiles(input: {
+  setTargetFileInputFiles(input: {
+    targetRef: BrowserTargetRef;
+    documentRef: BrowserDocumentRef;
     elementRef: { selector: string; targetKind: "file-input" };
     filePath: string;
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
 
-  clickLocatedDomElement(input: {
+  clickTarget(input: {
+    targetRef: BrowserTargetRef;
+    documentRef: BrowserDocumentRef;
     targetLabel: string;
     point: { x: number; y: number };
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
 
-  scrollElementIntoView(input: {
+  scrollTarget(input: {
+    targetRef: BrowserTargetRef;
+    documentRef: BrowserDocumentRef;
     selector: string;
     stickyHeaderOffset?: number;
     description: string;
@@ -829,7 +837,9 @@ interface DomCapableBrowserController {
 - BrowserController 只执行受治理脚本和低层浏览器动作。
 - DOM 解析、定位、验证不能搬进 BrowserController。
 - Business plugin 不能直接调用 file-input private implementation。
-- select 的面板开/关检测逻辑在 DOM runtime 完成，BrowserController 只负责执行 click 和 evaluateActiveTab。
+- 每个 `DomSnapshot` 与 `DomElementRef` 同时绑定 opaque `targetRef + documentRef`；导航后旧 ref 必须拒绝。
+- select 的面板开/关检测逻辑在 DOM runtime 完成，BrowserController 只负责执行 target-bound click 和 evaluate。
+- 普通 DOM click/fill/scroll/screenshot/file-input 不得申请 PhysicalFocusLease，也不得依赖前台标签页。
 
 ---
 
@@ -862,7 +872,8 @@ manifest:
     "APEX-DOM-010-V1",
     "APEX-DOM-011-V1",
     "APEX-DOM-012-V1",
-    "APEX-DOM-013-V1"
+    "APEX-DOM-013-V1",
+    "APEX-DOM-020-V1"
   ]
 }
 ```
@@ -878,6 +889,8 @@ Phase 1 inspector minimum:
 - Check retired action owner roots do not exist。
 - Check `dom-upload.ts` contains approved path equality and file-input target checks。
 - Check `dom-click.ts` contains sensitive review gate。
+- Check every public snapshot/element/action schema carries opaque target/document refs without raw Chrome ids。
+- Check evaluateActiveTab/current-page/first-page fallback and ordinary-action FocusLease calls are absent。
 
 Phase 2 inspector:
 
@@ -933,6 +946,8 @@ Smoke 子流程:
 11. assert ambiguous duplicate target returns ambiguous
 12. assert dangerous click returns review_required
 13. assert login/captcha states outrank generic success
+14. navigate target and assert every old DomElementRef fails with DOCUMENT_STALE
+15. keep a non-target foreground tab marker unchanged while all seven actions run on the controlled background target
 ```
 
 验收原则:

@@ -12,12 +12,13 @@ type ForensicsPersistenceAbilityResult = ForensicsResult;
 type ForensicsAppendRecordRequest = Omit<ForensicsAppendRecordInput, "childCapabilityId" | "capabilityCallId"> & {
   correlationId?: string;
 };
+type ForensicsAppendArtifactRequest = Omit<ForensicsAppendArtifactInput, "childCapabilityId">;
 
 interface ForensicsPersistenceAbilityGroup {
   readonly abilityGroupId: ForensicsPersistenceAbilityGroupId;
   execute(input: ForensicsAbilityInput): Promise<ForensicsPersistenceAbilityResult>;
   appendRecord(input: ForensicsAppendRecordRequest): Promise<ForensicsPersistenceAbilityResult>;
-  appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsPersistenceAbilityResult>;
+  appendArtifact(input: ForensicsAppendArtifactRequest): Promise<ForensicsPersistenceAbilityResult>;
   readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsPersistenceAbilityResult>;
 }
 

@@ -1,5 +1,6 @@
 import { Node, type Expression, type Node as MorphNode } from "ts-morph";
 
+import { astExpressionPath, astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { getStaticMemberName } from "./ast-node-utils.js";
 import type { AliasIndex } from "./ast-call-resolver-support.js";
 import {
@@ -49,20 +50,21 @@ export const expressionResolvesToConsoleObject = (expression: Expression | undef
     return false;
   }
   if (Node.isIdentifier(target)) {
-    return consoleObjectTexts.has(target.getText()) || index.consoleObjects.has(target.getText());
+    const name = astIdentifierName(target) ?? "";
+    return consoleObjectTexts.has(name) || index.consoleObjects.has(name);
   }
   if (Node.isPropertyAccessExpression(target)) {
-    return consoleObjectTexts.has(target.getText())
+    return consoleObjectTexts.has(astExpressionPath(target) ?? "")
       || (target.getName() === "console" && expressionResolvesToConsoleObject(target.getExpression(), index, depth + 1));
   }
-  return consoleObjectTexts.has(target.getText());
+  return consoleObjectTexts.has(astExpressionPath(target) ?? "");
 };
 
 const resolveConsoleMethodIdentifier = (target: Expression, index: AliasIndex, depth: number): boolean => {
   if (!Node.isIdentifier(target)) {
     return false;
   }
-  if (index.consoleMethods.has(target.getText())) {
+  if (index.consoleMethods.has(astIdentifierName(target) ?? "")) {
     return true;
   }
   const traced = traceVariableInitializer(target, depth + 1) ?? traceDestructuredBinding(target, depth + 1);
@@ -92,8 +94,9 @@ export const expressionResolvesToRuntimeLoggerReceiver = (expression: Expression
     return false;
   }
   if (Node.isIdentifier(target)) {
-    return runtimeLoggerNames.has(target.getText())
-      || index.runtimeLoggerObjects.has(target.getText())
+    const name = astIdentifierName(target) ?? "";
+    return runtimeLoggerNames.has(name)
+      || index.runtimeLoggerObjects.has(name)
       || isIdentifierBoundTo(target, "RuntimeLogger");
   }
   if (Node.isCallExpression(target)) {
@@ -111,7 +114,8 @@ export const expressionResolvesToStageLogger = (expression: Expression | undefin
     return false;
   }
   if (Node.isIdentifier(target)) {
-    return target.getText() === "stageLogger" || index.stageLoggerObjects.has(target.getText());
+    const name = astIdentifierName(target);
+    return name === "stageLogger" || index.stageLoggerObjects.has(name ?? "");
   }
   if (Node.isCallExpression(target)) {
     return isCallToImportedName(target.getExpression(), "createStageLogger", "runtime-logs")
@@ -124,7 +128,7 @@ const resolveStageHandleIdentifier = (target: Expression, index: AliasIndex, dep
   if (!Node.isIdentifier(target)) {
     return false;
   }
-  if (index.stageHandleObjects.has(target.getText())) {
+  if (index.stageHandleObjects.has(astIdentifierName(target) ?? "")) {
     return true;
   }
   const traced = traceVariableInitializer(target, depth + 1) ?? traceDestructuredBinding(target, depth + 1);
@@ -155,7 +159,8 @@ export const expressionResolvesToRecoveryLogger = (expression: Expression | unde
     return false;
   }
   if (Node.isIdentifier(target)) {
-    return target.getText() === "recoveryLogger" || index.recoveryLoggerObjects.has(target.getText());
+    const name = astIdentifierName(target);
+    return name === "recoveryLogger" || index.recoveryLoggerObjects.has(name ?? "");
   }
   return Node.isPropertyAccessExpression(target) && target.getName() === "recoveryLogger";
 };
@@ -166,7 +171,7 @@ export const expressionResolvesToRuntimeEmitCall = (expression: Expression, inde
     return false;
   }
   if (Node.isIdentifier(target)) {
-    return index.runtimeEmitMethods.has(target.getText());
+    return index.runtimeEmitMethods.has(astIdentifierName(target) ?? "");
   }
   if (Node.isPropertyAccessExpression(target) || Node.isElementAccessExpression(target)) {
     return (getStaticMemberName(target) === "emit" || Node.isElementAccessExpression(target))

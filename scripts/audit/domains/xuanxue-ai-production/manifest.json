@@ -56,6 +56,19 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
+        "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
+        "checkIds": [
+          "xuanxue-ai-production/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },

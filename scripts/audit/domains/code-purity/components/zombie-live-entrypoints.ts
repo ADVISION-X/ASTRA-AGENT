@@ -9,7 +9,7 @@ import {
 } from "./zombie-exemption-manifest.js";
 
 export type ZombieLiveEntryPoint = {
-  entryKind: "manifest" | "owner-inspector" | "package-script";
+  entryKind: "active-law" | "owner-inspector" | "package-script";
   filePath: string;
   reason: string;
   scriptName: string | null;
@@ -140,9 +140,9 @@ export const collectZombieLiveEntrypoints = (input: {
     }
     entryFiles.add(governedFile.repoPath);
     liveEntryPoints.push({
-      entryKind: "manifest",
+      entryKind: "active-law",
       filePath: governedFile.repoPath,
-      reason: "explicit lawful external entry manifest",
+      reason: "generated active-law liveness authority",
       scriptName: null,
     });
   }

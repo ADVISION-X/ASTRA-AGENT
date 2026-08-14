@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { AiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
-import type { BrowserActionResult, BrowserController } from "../../src/lib/browser/browser-controller.js";
+import type { BrowserActionResult, BrowserTargetSession } from "../../src/lib/browser/browser-controller.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runAmazonProductMiningFlow } from "../../src/plugins/amazon-product-mining/amazon-product-mining.flow.js";
 import { parseKeywordReviewResponse } from "../../src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.js";
@@ -184,7 +184,7 @@ const browser = {
     viewportHeight: 900,
     sourceFilePath: "/tmp/keyword-review-acceptance.png",
   }),
-  evaluateActiveTab: async <T,>({ description }: Parameters<BrowserController["evaluateActiveTab"]>[0]): Promise<T> => {
+  evaluate: async <T,>({ description }: Parameters<BrowserTargetSession["evaluate"]>[0]): Promise<T> => {
     let result: unknown;
     if (description.includes("search results")) {
       const keyword = currentKeyword();
@@ -250,9 +250,9 @@ const browser = {
   },
   setFileInputFiles: async () => actionResult("files-set"),
   wait: async () => actionResult("waited"),
-  closeActiveTab: async () => actionResult("closed-tab"),
+  closeTarget: async () => actionResult("closed-tab"),
   close: async () => actionResult("closed"),
-} satisfies BrowserController;
+} satisfies BrowserTargetSession;
 
 const aiInputGateway: AiInputGatewayAbilityGroup = {
   abilityGroupId: "ai-input-gateway",

@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomSnapshot } from "../../types/dom-automation.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -26,7 +26,7 @@ export const assertEvidenceStepId = (
 };
 
 export const readSnapshotAndTrace = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
   evidenceStepId: AmazonTaxInvoiceDownloadEvidenceStepId,

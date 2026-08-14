@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
@@ -16,10 +16,10 @@ type StableAnswerState = {
 };
 
 const extractAnswer = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: context.webChatExecution
       ? "extract response belonging to the exact internally marked web-chat turn"
       : "extract last AI web chat response",
@@ -31,7 +31,7 @@ const extractAnswer = (
 
 export const isTransientNavigationExtractionError = (error: unknown): boolean =>
   error instanceof Error
-  && /missing value|execution context|navigation|loading|not valid JSON|active-tab evaluation.*timed out|WEB_CHAT_BOUND_CONVERSATION_NOT_READY/iu.test(error.message);
+  && /missing value|execution context|navigation|loading|not valid JSON|COMMAND_TIMEOUT|browser command .*exceeded|WEB_CHAT_BOUND_CONVERSATION_NOT_READY/iu.test(error.message);
 
 const updateStableAnswerState = (input: {
   evaluation: WebChatEvaluation;
@@ -102,7 +102,7 @@ export const noteStableAnswerActivity = (input: {
 };
 
 export const readAnswerEvaluation = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   pollIntervalMs: number;
 }): Promise<WebChatEvaluation | null> => {
@@ -151,7 +151,7 @@ export const advanceStableAnswer = (input: {
 };
 
 export const buildTimedOutAnswerEvaluation = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   lastText: string,
   lastGenerating: boolean,
   lastAssistantCount: number,
@@ -167,7 +167,7 @@ export const buildTimedOutAnswerEvaluation = (
 });
 
 export const shouldContinueWaiting = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   evaluation: WebChatEvaluation;
   minAssistantCount: number | undefined;
   pollIntervalMs: number;

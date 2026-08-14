@@ -239,15 +239,15 @@ const declarationReturnsFinding = (
   if (visited.has(declaration)) return false;
   const nextVisited = new Set(visited).add(declaration);
   return returnedExpressions(declaration).some((expression) =>
-    valueCalls(expression).some((call) => callReturnsFinding(call, nextVisited)));
+    valueCalls(expression, declaration).some((call) => callReturnsFinding(call, nextVisited)));
 };
 
 const callReturnsFinding = (call: MorphNode, visited: Set<MorphNode> = new Set()): boolean =>
   Node.isCallExpression(call)
   && callDeclarations(call).some((declaration) => declarationReturnsFinding(declaration, visited));
 
-const valueCalls = (expression: MorphNode | undefined): MorphNode[] => {
-  if (!expression) return [];
+const valueCalls = (expression: MorphNode | undefined, boundary: MorphNode): MorphNode[] => {
+  if (!expression || isDefinitelyUnreachable(expression, boundary)) return [];
   if (
     Node.isParenthesizedExpression(expression)
     || Node.isAwaitExpression(expression)
@@ -255,21 +255,21 @@ const valueCalls = (expression: MorphNode | undefined): MorphNode[] => {
     || Node.isTypeAssertion(expression)
     || Node.isNonNullExpression(expression)
     || Node.isSpreadElement(expression)
-  ) return valueCalls(expression.getExpression());
+  ) return valueCalls(expression.getExpression(), boundary);
   if (Node.isConditionalExpression(expression)) {
     return [
-      ...valueCalls(expression.getWhenTrue()),
-      ...valueCalls(expression.getWhenFalse()),
+      ...valueCalls(expression.getWhenTrue(), boundary),
+      ...valueCalls(expression.getWhenFalse(), boundary),
     ];
   }
   if (Node.isArrayLiteralExpression(expression)) {
-    return expression.getElements().flatMap((element) => valueCalls(element));
+    return expression.getElements().flatMap((element) => valueCalls(element, boundary));
   }
   if (!Node.isCallExpression(expression)) return [];
   const callee = expression.getExpression();
   const receiverCalls = Node.isPropertyAccessExpression(callee)
     && ["filter", "flatMap", "map"].includes(callee.getName())
-    ? valueCalls(callee.getExpression())
+    ? valueCalls(callee.getExpression(), boundary)
     : [];
   return [expression, ...receiverCalls];
 };
@@ -347,7 +347,7 @@ function expressionCarriesExecutedWork(
   visitedDeclarations: Set<MorphNode>,
 ): boolean {
   if (Node.isArrayLiteralExpression(expression) && expression.getElements().length === 0) return false;
-  if (valueCalls(expression).some((call) => callReturnsExecutedWork(
+  if (valueCalls(expression, ownerFunction).some((call) => callReturnsExecutedWork(
     ownerFunction,
     call,
     visitedVariables,

@@ -7,5 +7,8 @@ export function createWorkbenchAiInputGateway(
   browserController: BrowserController,
   runtimeLogger: RuntimeLogger,
 ) {
-  return createAiInputGatewayAbilityGroup({ dataDir, runtimeLogger }, browserController);
+  return createAiInputGatewayAbilityGroup(
+    { dataDir, runtimeLogger },
+    browserController.createTargetSession("ai-input-gateway:single-provider-target"),
+  );
 }

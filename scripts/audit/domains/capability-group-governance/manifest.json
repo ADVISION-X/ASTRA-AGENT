@@ -107,7 +107,11 @@
             "filePath": "scripts/audit/domains/capability-group-governance/inspector.ts",
             "symbolName": "inspectDomain"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       }
     ]
   },

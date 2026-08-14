@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-08-14T23:38:29.040Z",
+  "capabilityDomain": "forensics-persistence-capability",
+  "executionGroup": "foundation",
+  "lawIds": [
+    "GRASSEYE-EVIDENCE-001-V2",
+    "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
+    "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "checkRuns": [
+    {
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:94a226e2-27b9-4903-9f55-36d2fe3054ca",
+      "capabilityDomain": "forensics-persistence-capability",
+      "checkId": "forensics-persistence-capability/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-14T23:38:29.037Z",
+      "endedAt": "2026-08-14T23:38:29.040Z",
+      "durationMs": 3,
+      "evidenceRefs": [
+        "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
+        "src/capabilities/forensics-persistence/ability-group.ts",
+        "src/capabilities/forensics-persistence/children/append-artifact.ts",
+        "src/capabilities/forensics-persistence/children/append-record.ts",
+        "src/capabilities/forensics-persistence/children/proof-support.ts",
+        "src/capabilities/forensics-persistence/children/read-record-ref.ts",
+        "src/capabilities/forensics-persistence/contract.ts",
+        "src/capabilities/forensics-persistence/index.ts",
+        "src/capabilities/forensics-persistence/schema.ts",
+        "src/capabilities/forensics-persistence/storage-adapter.ts",
+        "src/capabilities/forensics-persistence/storage-port.ts",
+        "src/lib/storage/file-storage.ts",
+        "src/lib/storage/hash.ts",
+        "src/lib/storage/index.ts",
+        "src/lib/storage/refs.ts",
+        "src/lib/storage/schema.ts",
+        "src/lib/storage/storage-port.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
+  "executedChecks": [
+    {
+      "lawId": "GRASSEYE-EVIDENCE-001-V2",
+      "clauseId": "grasseye-evidence-001-v2-requirement",
+      "checkId": "forensics-persistence-capability/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:94a226e2-27b9-4903-9f55-36d2fe3054ca"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
+      "clauseId": "grasseye-local-persistence-schema-001-requirement",
+      "checkId": "forensics-persistence-capability/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:94a226e2-27b9-4903-9f55-36d2fe3054ca"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
+      "clauseId": "grasseye-local-persistence-schema-002-v2-requirement",
+      "checkId": "forensics-persistence-capability/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:94a226e2-27b9-4903-9f55-36d2fe3054ca"
+    }
+  ],
+  "inspectedFiles": [
+    "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
+    "src/capabilities/forensics-persistence/ability-group.ts",
+    "src/capabilities/forensics-persistence/children/append-artifact.ts",
+    "src/capabilities/forensics-persistence/children/append-record.ts",
+    "src/capabilities/forensics-persistence/children/proof-support.ts",
+    "src/capabilities/forensics-persistence/children/read-record-ref.ts",
+    "src/capabilities/forensics-persistence/contract.ts",
+    "src/capabilities/forensics-persistence/index.ts",
+    "src/capabilities/forensics-persistence/schema.ts",
+    "src/capabilities/forensics-persistence/storage-adapter.ts",
+    "src/capabilities/forensics-persistence/storage-port.ts",
+    "src/lib/storage/file-storage.ts",
+    "src/lib/storage/hash.ts",
+    "src/lib/storage/index.ts",
+    "src/lib/storage/refs.ts",
+    "src/lib/storage/schema.ts",
+    "src/lib/storage/storage-port.ts"
+  ]
+}

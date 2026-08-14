@@ -1,5 +1,6 @@
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { inspectPluginInterventionContract } from "../../shared/plugin-intervention-contract-inspector.js";
 import { inspectArtifactOutputs, inspectWorkbenchHomeSurface } from "./inspector-app-surface.js";
 import {
   inspectAppShellRoutes,
@@ -80,7 +81,7 @@ const selectAmazonMiningLawIds = (context: InspectorContext): AmazonMiningLawIds
   keywordReviewSchema: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1"),
   keywordReviewSurface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1"),
   rejectedKeywordRetention: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1"),
-  taskResumeAndControls: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1"),
+  taskResumeAndControls: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2"),
   review: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1"),
   search: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1"),
   surface: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1"),
@@ -184,6 +185,15 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectKeywordReviewContracts(context, findings, inspectedFiles, lawIds);
   inspectProductionContracts(context, findings, inspectedFiles, lawIds);
   const tabLifecycleDebug = inspectBrowserTabLifecycle({ ...context, project }, findings, inspectedFiles, lawIds.surface);
+  findings.push(...inspectPluginInterventionContract(context, {
+    lawId: "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1", domain: "amazon-product-mining",
+    ownerFilePaths: ["src/plugins/amazon-product-mining/amazon-product-mining.storage.ts", "src/plugins/amazon-product-mining/amazon-product-mining.flow-control.ts", "src/plugins/amazon-product-mining/index.ts"],
+    routeFilePath: "src/app/workbench-amazon-product-mining-routes.ts", routePrefix: "/api/amazon-product-mining/intervention/",
+    handleMethods: ["pauseAmazonProductMining", "cancelAmazonProductMining", "takeoverAmazonProductMining", "resumeAmazonProductMining"], safePointSymbol: "acknowledgeIntervention",
+    interventionSymbol: "requestAmazonProductMiningIntervention",
+    acceptancePath: "scripts/acceptance/amazon-product-mining-browser-intervention.acceptance.ts",
+    forbiddenSymbols: ["operatorOverride"],
+  }));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

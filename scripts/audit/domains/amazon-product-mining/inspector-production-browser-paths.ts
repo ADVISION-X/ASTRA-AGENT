@@ -21,12 +21,12 @@ const pushSearchBrowserContractFindings = (input: {
   searchRepoPath: string;
   usesRunJxa: boolean;
 }): void => {
-  if (!hasPropertyAccessNamed(input.searchFile, "evaluateActiveTab")) {
+  if (!hasPropertyAccessNamed(input.searchFile, "evaluate")) {
     input.findings.push(createFinding({
       checkId: "amazon-mining/search-browser-controller-contract",
       lawId: input.lawId,
       filePath: input.searchRepoPath,
-      message: "Amazon search extraction must use BrowserController.evaluateActiveTab so audited production code matches the acceptance browser contract.",
+      message: "Amazon search extraction must use BrowserTargetSession.evaluate so audited production code matches the exact-target contract.",
     }));
   }
 
@@ -101,12 +101,12 @@ const pushBrowserTabExtractionFindings = (input: {
   subject: string;
   usesRunJxa: boolean;
 }): void => {
-  if (!hasPropertyAccessNamed(input.sourceFile, "evaluateActiveTab")) {
+  if (!hasPropertyAccessNamed(input.sourceFile, "evaluate")) {
     input.findings.push(createFinding({
       checkId: `amazon-mining/${input.checkPrefix}-browser-controller-contract`,
       lawId: input.lawId,
       filePath: input.filePath,
-      message: `${input.subject} extraction must use BrowserController.evaluateActiveTab so audited production code matches the acceptance browser contract.`,
+      message: `${input.subject} extraction must use BrowserTargetSession.evaluate so audited production code matches the exact-target contract.`,
     }));
   }
 
@@ -124,7 +124,7 @@ const pushBrowserTabExtractionFindings = (input: {
       checkId: `amazon-mining/${input.checkPrefix}-no-front-tab-json-wrapper`,
       lawId: input.lawId,
       filePath: input.filePath,
-      message: `${input.subject} extraction must not keep the direct JXA front-tab JSON wrapper once BrowserController.evaluateActiveTab is the governed path.`,
+      message: `${input.subject} extraction must not keep the direct JXA front-tab JSON wrapper once BrowserTargetSession.evaluate is the governed path.`,
     }));
   }
 };

@@ -1,25 +1,18 @@
-import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import {
+  Node,
+  SyntaxKind,
+  type ObjectLiteralExpression,
+  type PropertyAssignment,
+  type SourceFile,
+} from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
 const deepResearchResultPath = "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts";
-const facebookSchemaPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts";
-
 const deepResearchEvidenceCheckId = "runtime-truth/deep-research-completed-contract";
-const facebookEvidenceCheckId = "runtime-truth/facebook-completed-contract";
-
-const evidencePropertyNames = new Set([
-  "artifactRef",
-  "artifactRefs",
-  "evidenceRef",
-  "evidenceRefs",
-  "videoArtifactRef",
-  "videoEvidenceRef",
-  "videoEvidenceRefs",
-  "videoSha256",
-]);
 
 const findObjectSchemaLiteral = (
   sourceFile: SourceFile,
@@ -29,7 +22,8 @@ const findObjectSchemaLiteral = (
   const objectCall = initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
     const expression = callExpression.getExpression();
     return Node.isPropertyAccessExpression(expression)
-      && expression.getExpression().getText() === "z"
+      && Node.isIdentifier(expression.getExpression())
+      && astIdentifierName(expression.getExpression()) === "z"
       && expression.getName() === "object";
   });
   const argument = objectCall?.getArguments()[0];
@@ -39,13 +33,14 @@ const findObjectSchemaLiteral = (
 const findSchemaProperty = (
   schemaObject: ObjectLiteralExpression,
   propertyName: string,
-) =>
+): PropertyAssignment | undefined =>
   schemaObject.getProperties().find(
-    (property) => Node.isPropertyAssignment(property) && property.getName() === propertyName,
+    (property): property is PropertyAssignment =>
+      Node.isPropertyAssignment(property) && property.getName() === propertyName,
   );
 
 const propertyHasMethodCall = (
-  property: ReturnType<typeof findSchemaProperty>,
+  property: PropertyAssignment | undefined,
   methodName: string,
 ): boolean =>
   property !== undefined
@@ -56,36 +51,27 @@ const propertyHasMethodCall = (
       return Node.isPropertyAccessExpression(expression) && expression.getName() === methodName;
     });
 
-const propertyHasDefaultNull = (property: ReturnType<typeof findSchemaProperty>): boolean =>
+const propertyHasLiteralValue = (
+  property: PropertyAssignment | undefined,
+  expectedValue: string,
+): boolean =>
   property !== undefined
   && property
     .getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((callExpression) => {
       const expression = callExpression.getExpression();
-      const defaultArgument = callExpression.getArguments()[0];
+      const literalArgument = callExpression.getArguments()[0];
       return Node.isPropertyAccessExpression(expression)
-        && expression.getName() === "default"
-        && defaultArgument?.getKind() === SyntaxKind.NullKeyword;
+        && expression.getName() === "literal"
+        && literalArgument !== undefined
+        && Node.isStringLiteral(literalArgument)
+        && literalArgument.getLiteralValue() === expectedValue;
     });
 
-const propertyHasEmptyObjectDefault = (property: ReturnType<typeof findSchemaProperty>): boolean =>
+const propertyIsRequired = (property: PropertyAssignment | undefined): boolean =>
   property !== undefined
-  && property
-    .getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((callExpression) => {
-      const expression = callExpression.getExpression();
-      const defaultArgument = callExpression.getArguments()[0];
-      return Node.isPropertyAccessExpression(expression)
-        && expression.getName() === "default"
-        && defaultArgument !== undefined
-        && Node.isObjectLiteralExpression(defaultArgument)
-        && defaultArgument.getProperties().length === 0;
-    });
-
-const schemaHasEvidenceProperty = (schemaObject: ObjectLiteralExpression): boolean =>
-  schemaObject.getProperties().some(
-    (property) => Node.isPropertyAssignment(property) && evidencePropertyNames.has(property.getName()),
-  );
+  && !["optional", "nullable", "default"].some((methodName) =>
+    propertyHasMethodCall(property, methodName));
 
 export const inspectDeepResearchCompletedContract = (
   sourceFile: SourceFile,
@@ -102,9 +88,25 @@ export const inspectDeepResearchCompletedContract = (
       }),
     ];
   }
+  const statusProperty = findSchemaProperty(schemaObject, "status");
+  const jobStatusProperty = findSchemaProperty(schemaObject, "jobStatus");
   const finalAdjudicationProperty = findSchemaProperty(schemaObject, "finalAdjudication");
   const recordHashesProperty = findSchemaProperty(schemaObject, "recordHashes");
-  if (!propertyHasMethodCall(finalAdjudicationProperty, "nullable") && !propertyHasDefaultNull(finalAdjudicationProperty) && !propertyHasEmptyObjectDefault(recordHashesProperty)) {
+  const contractProblems = [
+    ...(!propertyIsRequired(statusProperty) || !propertyHasLiteralValue(statusProperty, "success")
+      ? ["status must be the required literal success"]
+      : []),
+    ...(!propertyIsRequired(jobStatusProperty) || !propertyHasLiteralValue(jobStatusProperty, "completed")
+      ? ["jobStatus must be the required literal completed"]
+      : []),
+    ...(!propertyIsRequired(finalAdjudicationProperty)
+      ? ["finalAdjudication must be present and required"]
+      : []),
+    ...(!propertyIsRequired(recordHashesProperty)
+      ? ["recordHashes must be present and required"]
+      : []),
+  ];
+  if (contractProblems.length === 0) {
     return [];
   }
   return [
@@ -112,35 +114,7 @@ export const inspectDeepResearchCompletedContract = (
       checkId: deepResearchEvidenceCheckId,
       lawId,
       filePath: toRepoPath(sourceFile.getFilePath()),
-      message: `${toRepoPath(sourceFile.getFilePath())} allows completed Deep Research results to omit final adjudication or record-hash evidence by default.`,
-    }),
-  ];
-};
-
-export const inspectFacebookCompletedContract = (
-  sourceFile: SourceFile,
-  lawId: string,
-): InspectorFinding[] => {
-  const schemaObject = findObjectSchemaLiteral(sourceFile, "FacebookProductVideoMiningRunStatusSchema");
-  if (!schemaObject) {
-    return [
-      createFinding({
-        checkId: facebookEvidenceCheckId,
-        lawId,
-        filePath: toRepoPath(sourceFile.getFilePath()),
-        message: `${toRepoPath(sourceFile.getFilePath())} is missing FacebookProductVideoMiningRunStatusSchema object truth.`,
-      }),
-    ];
-  }
-  if (schemaHasEvidenceProperty(schemaObject)) {
-    return [];
-  }
-  return [
-    createFinding({
-      checkId: facebookEvidenceCheckId,
-      lawId,
-      filePath: toRepoPath(sourceFile.getFilePath()),
-      message: `${toRepoPath(sourceFile.getFilePath())} allows completed Facebook run status without any video evidence-bearing field.`,
+      message: `${toRepoPath(sourceFile.getFilePath())} has an invalid completed Deep Research evidence contract: ${contractProblems.join("; ")}.`,
     }),
   ];
 };
@@ -157,14 +131,12 @@ const missingSourceFinding = (
     });
 
 const inspectDomainEvaluation = (context: InspectorContext, lawId: string) => {
-  const inspectedFiles = [deepResearchResultPath, facebookSchemaPath];
+  const inspectedFiles = [deepResearchResultPath];
   const deepResearchSource = context.project.getSourceFile(resolveFromRepo(deepResearchResultPath));
-  const facebookSource = context.project.getSourceFile(resolveFromRepo(facebookSchemaPath));
   return {
     evidenceRefs: inspectedFiles,
     findings: [
       ...(deepResearchSource ? [] : [missingSourceFinding(lawId, deepResearchResultPath)]),
-      ...(facebookSource ? [] : [missingSourceFinding(lawId, facebookSchemaPath)]),
       ...(deepResearchSource
         ? inspectDeepResearchCompletedContract(deepResearchSource, lawId)
         : [createFinding({
@@ -173,14 +145,6 @@ const inspectDomainEvaluation = (context: InspectorContext, lawId: string) => {
             filePath: deepResearchResultPath,
             message: `${deepResearchResultPath} is unavailable, so its completed-evidence contract could not execute.`,
           })]),
-      ...(facebookSource
-        ? inspectFacebookCompletedContract(facebookSource, lawId)
-        : [createFinding({
-            checkId: facebookEvidenceCheckId,
-            lawId,
-            filePath: facebookSchemaPath,
-            message: `${facebookSchemaPath} is unavailable, so its completed-evidence contract could not execute.`,
-          })]),
     ],
   };
 };
@@ -188,7 +152,7 @@ const inspectDomainEvaluation = (context: InspectorContext, lawId: string) => {
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   if (!context.checks) throw new Error("runtime-truth requires a runner-owned check session.");
   const lawId = selectLawId(context.planEntry.lawIds, "APEX-RUNTIME-TRUTH-001-V1");
-  const inspectedFiles = [deepResearchResultPath, facebookSchemaPath];
+  const inspectedFiles = [deepResearchResultPath];
   const evaluation = await context.checks.runAll(() => {
     const ownerEvaluation = inspectDomainEvaluation(context, lawId);
     return { findings: ownerEvaluation.findings, evidenceRefs: ownerEvaluation.evidenceRefs };

@@ -223,14 +223,18 @@ const createSessionOutput = (
 
 export const createInspectorCheckSession = (
   planEntry: AuditPlanEntry,
+  runId: string,
 ): InspectorCheckSessionController => {
+  if (runId.trim().length === 0) {
+    throw new Error("Inspector check session requires the generated-plan run identity.");
+  }
   const expectedCheckIds = uniqueCheckIds(planEntry);
   if (expectedCheckIds.length !== 1
     || expectedCheckIds[0] !== `${planEntry.capabilityDomain}/owner-assertion-set`) {
     throw new Error(`${planEntry.capabilityDomain} must declare exactly one owner-assertion-set physical check.`);
   }
   const state: CheckSessionState = {
-    runId: `audit-run:${randomUUID()}`,
+    runId,
     expectedCheckIds,
     evaluationCompleted: false,
     receipts: new Map(),

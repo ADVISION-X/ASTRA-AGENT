@@ -21,7 +21,8 @@ export type SourceModuleTarget = {
 };
 
 export type SourceDynamicImportProblem = {
-  argumentText: string;
+  argumentKind: SyntaxKind;
+  argumentStart: number;
   column: number;
   line: number;
   problemKind: "non-literal";
@@ -387,7 +388,8 @@ export const collectDynamicImportProblems = (sourceFile: SourceFile): SourceDyna
     }
     problems.push(
       createDynamicImportProblem(sourceFile, callExpression.getStart(), {
-        argumentText: argument.getText(),
+        argumentKind: argument.getKind(),
+        argumentStart: argument.getStart(),
         problemKind: "non-literal",
       }),
     );

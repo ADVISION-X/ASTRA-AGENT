@@ -18,10 +18,11 @@ type ContractSources = {
   namedConversationSearch: string;
   pageActions: string;
   submit: string;
-  accessibilityWindow: string;
-  browserPrimitives: string;
-  providerTab: string;
+  exactTargetRef: string;
+  exactTargetRuntime: string;
+  singleTabBrowser: string;
   abilityGroup: string;
+  providerOperatorControl: string;
   feedProviderOnce: string;
   titleHousekeeping: string;
   titleHousekeepingWorker: string;
@@ -47,10 +48,11 @@ const contractSourcePaths = [
   "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-  "src/lib/browser/current-chrome-accessibility-window.ts",
-  "src/lib/browser/current-chrome-browser-controller-primitives.ts",
-  "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
+  "src/lib/browser/exact-target/browser-target-ref.ts",
+  "src/lib/browser/exact-target/browser-command-runtime.ts",
+  "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
   "src/capabilities/ai-input-gateway/ability-group.ts",
+  "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
   "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
   "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
   "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
@@ -81,14 +83,15 @@ const loadContractSources = async (): Promise<ContractSources> => {
     namedConversationSearch: requiredSource(values, 12),
     pageActions: requiredSource(values, 13),
     submit: requiredSource(values, 14),
-    accessibilityWindow: requiredSource(values, 15),
-    browserPrimitives: requiredSource(values, 16),
-    providerTab: requiredSource(values, 17),
+    exactTargetRef: requiredSource(values, 15),
+    exactTargetRuntime: requiredSource(values, 16),
+    singleTabBrowser: requiredSource(values, 17),
     abilityGroup: requiredSource(values, 18),
-    feedProviderOnce: requiredSource(values, 19),
-    titleHousekeeping: requiredSource(values, 20),
-    titleHousekeepingWorker: requiredSource(values, 21),
-    recoveryAcceptance: requiredSource(values, 22),
+    providerOperatorControl: requiredSource(values, 19),
+    feedProviderOnce: requiredSource(values, 20),
+    titleHousekeeping: requiredSource(values, 21),
+    titleHousekeepingWorker: requiredSource(values, 22),
+    recoveryAcceptance: requiredSource(values, 23),
   };
 };
 
@@ -172,7 +175,15 @@ const assertDurableRenameHousekeeping = (
     "published answers with an unverified title must remain explicit durable housekeeping debt",
   );
   assert.equal(
-    sources.abilityGroup.includes("scheduleWebChatTitleHousekeeping")
+    sources.abilityGroup.includes("createProviderOperatorControl")
+      && sources.abilityGroup.includes("operatorControl.ensureHousekeeping()")
+      && sources.providerOperatorControl.includes(
+        "scheduleWebChatTitleHousekeeping",
+      )
+      && sources.providerOperatorControl.includes("ensureHousekeeping();")
+      && sources.providerOperatorControl.includes(
+        "stopWebChatTitleHousekeeping",
+      )
       && sources.feedProviderOnce.includes(
         "schedulePublishedTitleHousekeeping",
       )
@@ -187,9 +198,9 @@ const assertDurableRenameHousekeeping = (
       )
       && sources.titleHousekeepingWorker.includes(
         "timer.unref()",
-      ),
+    ),
     true,
-    "startup, checkpoint recovery and post-publication failure must all reawaken one bounded durable rename worker",
+    "the provider operator owner, checkpoint recovery and post-publication failure must all reawaken one bounded durable rename worker",
   );
   assert.equal(
     sources.recoveryAcceptance.includes(
@@ -255,27 +266,14 @@ const assertSharedScheduling = (sources: ContractSources): void => {
 
 const assertExactWindowStabilization = (sources: ContractSources): void => {
   assert.equal(
-    sources.accessibilityWindow.includes(
-      "EXACT_ACCESSIBILITY_WINDOW_STABILIZATION_ATTEMPTS = 30",
-    )
-      && sources.accessibilityWindow.includes(
-        "EXACT_ACCESSIBILITY_WINDOW_STABILIZATION_DELAY_SECONDS = 0.025",
-      )
-      && sources.accessibilityWindow.includes(
-        "exactChromeMatchingWindows.length === 1",
-      )
-      && sources.accessibilityWindow.includes(
-        "exactChromeMatchingWindows.length > 1",
-      )
-      && sources.accessibilityWindow.includes('actions.byName("AXRaise")')
-      && sources.browserPrimitives.includes(
-        "buildExactChromeAccessibilityWindowRaiseScript",
-      )
-      && sources.providerTab.includes(
-        "buildExactChromeAccessibilityWindowRaiseScript",
-      ),
+    sources.exactTargetRef.includes("BrowserTargetRef")
+      && sources.exactTargetRef.includes("BrowserDocumentRef")
+      && sources.exactTargetRuntime.includes("BrowserTargetRegistry")
+      && sources.exactTargetRuntime.includes("createTargetSession")
+      && sources.singleTabBrowser.includes("BrowserTargetSession")
+      && !sources.singleTabBrowser.includes("focusSingleProviderTab"),
     true,
-    "exact Chrome and accessibility window identity must survive a bounded zero-match stabilization race while ambiguity still fails closed",
+    "web chat must stay bound to one exact target and document identity without foreground focus",
   );
 };
 

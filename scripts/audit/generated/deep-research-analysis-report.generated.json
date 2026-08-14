@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T00:03:54.753Z",
+  "generatedAt": "2026-08-14T23:38:42.320Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -26,21 +26,23 @@
     "GRASSEYE-DEEP-RESEARCH-057-V1",
     "GRASSEYE-DEEP-RESEARCH-058-V1",
     "GRASSEYE-DEEP-RESEARCH-059-V1",
-    "GRASSEYE-DEEP-RESEARCH-060-V1"
+    "GRASSEYE-DEEP-RESEARCH-060-V1",
+    "GRASSEYE-DEEP-RESEARCH-061-V1"
   ],
   "status": "PASS",
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55",
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0",
       "capabilityDomain": "deep-research-analysis",
       "checkId": "deep-research-analysis/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-13T00:03:53.673Z",
-      "endedAt": "2026-08-13T00:03:54.753Z",
-      "durationMs": 1080,
+      "startedAt": "2026-08-14T23:38:41.203Z",
+      "endedAt": "2026-08-14T23:38:42.320Z",
+      "durationMs": 1117,
       "evidenceRefs": [
+        "scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts",
         "scripts/acceptance/deep-research-analysis-smoke-support.ts",
         "scripts/acceptance/deep-research-analysis-smoke.ts",
         "scripts/acceptance/deep-research-app-ui.acceptance.ts",
@@ -71,6 +73,7 @@
         "scripts/audit/ci-acceptance-law-bindings.ts",
         "scripts/audit/ci-full.ts",
         "scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
+        "scripts/audit/domains/deep-research-analysis/components/deep-research-boundary-inspectors.ts",
         "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
         "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
         "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
@@ -106,6 +109,7 @@
         "src/app/workbench-deep-research-client.ts",
         "src/app/workbench-deep-research-field-help.ts",
         "src/app/workbench-deep-research-history-view.ts",
+        "src/app/workbench-deep-research-intervention-routes.ts",
         "src/app/workbench-deep-research-panel.ts",
         "src/app/workbench-deep-research-report-styles.ts",
         "src/app/workbench-deep-research-report-view.ts",
@@ -123,34 +127,33 @@
         "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
         "src/lib/local-runtime/workbench-ai-gateway-support.ts",
         "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
-        "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
         "src/lib/local-runtime/workbench-api-boundary-log.ts",
         "src/lib/local-runtime/workbench-assembly.ts",
         "src/lib/local-runtime/workbench-browser-support.ts",
         "src/lib/local-runtime/workbench-deep-research-handle.ts",
         "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
-        "src/lib/local-runtime/workbench-deep-research-types.ts",
         "src/lib/local-runtime/workbench-evidence-support.ts",
         "src/lib/local-runtime/workbench-handle.ts",
         "src/lib/local-runtime/workbench-launch-contract.ts",
-        "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
         "src/lib/local-runtime/workbench-marketplace-handles.ts",
         "src/lib/local-runtime/workbench-media-processing-support.ts",
-        "src/lib/local-runtime/workbench-pick3-support.ts",
         "src/lib/local-runtime/workbench-status-types.ts",
         "src/lib/local-runtime/workbench-status.ts",
         "src/lib/local-runtime/workbench-video-download-support.ts",
-        "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
+        "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.export-artifact.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.gateway.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
+        "src/plugins/deep-research-analysis/deep-research-analysis.intervention.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
         "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
@@ -177,142 +180,149 @@
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "clauseId": "grasseye-deep-research-001-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
       "clauseId": "grasseye-deep-research-038-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-039-V1",
       "clauseId": "grasseye-deep-research-039-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-040-V1",
       "clauseId": "grasseye-deep-research-040-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
       "clauseId": "grasseye-deep-research-041-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
       "clauseId": "grasseye-deep-research-042-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
       "clauseId": "grasseye-deep-research-043-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
       "clauseId": "grasseye-deep-research-044-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
       "clauseId": "grasseye-deep-research-045-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
       "clauseId": "grasseye-deep-research-046-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
       "clauseId": "grasseye-deep-research-047-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
       "clauseId": "grasseye-deep-research-048-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
       "clauseId": "grasseye-deep-research-049-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
       "clauseId": "grasseye-deep-research-050-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-051-V1",
       "clauseId": "grasseye-deep-research-051-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-052-V1",
       "clauseId": "grasseye-deep-research-052-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
       "clauseId": "grasseye-deep-research-053-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
       "clauseId": "grasseye-deep-research-054-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
       "clauseId": "grasseye-deep-research-055-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
       "clauseId": "grasseye-deep-research-056-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
       "clauseId": "grasseye-deep-research-057-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
       "clauseId": "grasseye-deep-research-058-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
       "clauseId": "grasseye-deep-research-060-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:cfae818c-9672-459a-bc2e-6ed6a2a6529e:check:f69d02b3-a565-407a-a8c5-49bc5b869f55"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
+      "clauseId": "grasseye-deep-research-061-requirement",
+      "checkId": "deep-research-analysis/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6e653753-5820-44de-a2cc-4e1192b755c0"
     }
   ],
   "inspectedFiles": [
+    "scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts",
     "scripts/acceptance/deep-research-analysis-smoke-support.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-app-ui.acceptance.ts",
@@ -343,6 +353,7 @@
     "scripts/audit/ci-acceptance-law-bindings.ts",
     "scripts/audit/ci-full.ts",
     "scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
+    "scripts/audit/domains/deep-research-analysis/components/deep-research-boundary-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
     "scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
@@ -378,6 +389,7 @@
     "src/app/workbench-deep-research-client.ts",
     "src/app/workbench-deep-research-field-help.ts",
     "src/app/workbench-deep-research-history-view.ts",
+    "src/app/workbench-deep-research-intervention-routes.ts",
     "src/app/workbench-deep-research-panel.ts",
     "src/app/workbench-deep-research-report-styles.ts",
     "src/app/workbench-deep-research-report-view.ts",
@@ -395,34 +407,33 @@
     "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
     "src/lib/local-runtime/workbench-ai-gateway-support.ts",
     "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
-    "src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
     "src/lib/local-runtime/workbench-deep-research-handle.ts",
     "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
-    "src/lib/local-runtime/workbench-deep-research-types.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
-    "src/lib/local-runtime/workbench-lottery-ticket-plan-support.ts",
     "src/lib/local-runtime/workbench-marketplace-handles.ts",
     "src/lib/local-runtime/workbench-media-processing-support.ts",
-    "src/lib/local-runtime/workbench-pick3-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
     "src/lib/local-runtime/workbench-video-download-support.ts",
-    "src/lib/local-runtime/workbench-xuanyuan-handle.ts",
+    "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.export-artifact.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.gateway.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.intervention.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",

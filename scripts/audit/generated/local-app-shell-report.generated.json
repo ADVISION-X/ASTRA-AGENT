@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T00:03:55.451Z",
+  "generatedAt": "2026-08-14T23:38:42.493Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,14 +13,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77",
-      "checkRunId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77:check:5f45a106-9965-496c-a748-d68a31f540ea",
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:a8721ce7-9b3f-42d2-97f5-bc87e1a0ff25",
       "capabilityDomain": "local-app-shell",
       "checkId": "local-app-shell/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-13T00:03:55.274Z",
-      "endedAt": "2026-08-13T00:03:55.450Z",
-      "durationMs": 176,
+      "startedAt": "2026-08-14T23:38:42.398Z",
+      "endedAt": "2026-08-14T23:38:42.493Z",
+      "durationMs": 95,
       "evidenceRefs": [
         "scripts/audit/domains/local-app-shell/inspector.ts",
         "src/app/app-shell/amazon-invoice-workspace.ts",
@@ -44,9 +44,7 @@
         "src/app/workbench-deep-research-routes.ts",
         "src/app/workbench-home-client.ts",
         "src/app/workbench-home-page.ts",
-        "src/app/workbench-home-styles.ts",
-        "src/app/workbench-video-download-client.ts",
-        "src/app/workbench-video-download-routes.ts"
+        "src/app/workbench-home-styles.ts"
       ],
       "findingCount": 0
     }
@@ -56,31 +54,31 @@
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
       "clauseId": "apex-local-app-shell-001-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77:check:5f45a106-9965-496c-a748-d68a31f540ea"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:a8721ce7-9b3f-42d2-97f5-bc87e1a0ff25"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
       "clauseId": "apex-local-app-shell-002-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77:check:5f45a106-9965-496c-a748-d68a31f540ea"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:a8721ce7-9b3f-42d2-97f5-bc87e1a0ff25"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
       "clauseId": "apex-local-app-shell-003-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77:check:5f45a106-9965-496c-a748-d68a31f540ea"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:a8721ce7-9b3f-42d2-97f5-bc87e1a0ff25"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
       "clauseId": "apex-local-app-shell-004-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77:check:5f45a106-9965-496c-a748-d68a31f540ea"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:a8721ce7-9b3f-42d2-97f5-bc87e1a0ff25"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
       "clauseId": "apex-local-app-shell-005-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:e4509639-d003-4b95-93d4-f277a074cf77:check:5f45a106-9965-496c-a748-d68a31f540ea"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:a8721ce7-9b3f-42d2-97f5-bc87e1a0ff25"
     }
   ],
   "inspectedFiles": [
@@ -106,8 +104,6 @@
     "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
-    "src/app/workbench-home-styles.ts",
-    "src/app/workbench-video-download-client.ts",
-    "src/app/workbench-video-download-routes.ts"
+    "src/app/workbench-home-styles.ts"
   ]
 }

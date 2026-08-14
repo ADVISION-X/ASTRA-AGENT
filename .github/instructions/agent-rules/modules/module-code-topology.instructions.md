@@ -9,6 +9,28 @@ applyTo: "src/**, scripts/**, package.json"
 status: active
 version: 2026-05-21
 
+## Law GRASSEYE-CODE-TOPOLOGY-001-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "architecture-boundary",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "GrassEye must keep one canonical job-flow topology with exact owner roots, one mediator route per active job, and no retired active-code roots.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-code-topology-001-requirement",
+      "statement": "Active source must remain inside the canonical mediator, plugin, capability, browser, local-runtime, app, storage, logging, and declarative type boundaries with exactly one mediator route per active job.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "architecture-boundary"
+    }
+  ]
+}
+```
+
 Required roots:
 - `src/mediator/**` owns job request routing only.
 - `src/plugins/<job-id>/**` owns exactly one business job flow.

@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { DOM_SCHEMAS } from "../schema.js";
 import type { DomActionResult } from "../../../types/dom-automation.js";
 import type { FillDomElementInput } from "../../../types/dom-automation-inputs.js";
@@ -8,6 +8,7 @@ import {
   buildDomReviewRequiredResult,
 } from "./dom-action-result.js";
 import { captureDomEvidenceRef } from "./dom-evidence.js";
+import { assertDomTargetBinding } from "./dom-target-binding.js";
 
 type DomFillEvaluation = Pick<DomActionResult, "status" | "message">;
 
@@ -111,7 +112,7 @@ return {status: values.some((value) => value === approvedText || value.endsWith(
 `;
 }
 
-const captureRequiredFillEvidence = async (browser: BrowserController): Promise<DomActionResult | string> => {
+const captureRequiredFillEvidence = async (browser: BrowserTargetSession): Promise<DomActionResult | string> => {
   const beforeEvidenceRef = await captureDomEvidenceRef(browser, "dom-fill-before");
   return beforeEvidenceRef ?? buildDomReviewRequiredResult(
     "before-action evidence capture failed",
@@ -120,14 +121,14 @@ const captureRequiredFillEvidence = async (browser: BrowserController): Promise<
 };
 
 const evaluateFillScript = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   description: string,
   script: string,
 ): Promise<DomFillEvaluation> =>
-  browser.evaluateActiveTab<DomFillEvaluation>({ description, script });
+  browser.evaluate<DomFillEvaluation>({ description, script });
 
 const buildIntermediateFillOutcome = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   result: DomFillEvaluation,
   beforeEvidenceRef: string,
 ): Promise<DomActionResult> => {
@@ -136,7 +137,7 @@ const buildIntermediateFillOutcome = async (
 };
 
 const buildFinalFillOutcome = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   result: DomFillEvaluation,
   beforeEvidenceRef: string,
 ): Promise<DomActionResult> => {
@@ -147,11 +148,12 @@ const buildFinalFillOutcome = async (
 };
 
 export async function fillDomElementOnce(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   rawInput: FillDomElementInput,
 ): Promise<DomActionResult> {
   const input = DOM_SCHEMAS.FillDomElementInput.parse(rawInput) as FillDomElementInput;
   const elementRef = DOM_SCHEMAS.DomElementRef.parse(input.elementRef) as FillDomElementInput["elementRef"];
+  assertDomTargetBinding(browser, elementRef);
   if (input.approvedText.length === 0) {
     return buildDomReviewRequiredResult(
       "approvedText is empty",

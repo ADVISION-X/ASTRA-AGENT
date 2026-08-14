@@ -113,8 +113,11 @@ export function createForensicsPersistenceAbilityGroup(
       }, storage, runtimeLogger);
     },
 
-    async appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsResult> {
-      return appendArtifactWithLog(input, storage, runtimeLogger);
+    async appendArtifact(input): Promise<ForensicsResult> {
+      return appendArtifactWithLog({
+        ...input,
+        childCapabilityId: "append-artifact",
+      }, storage, runtimeLogger);
     },
 
     readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsResult> {

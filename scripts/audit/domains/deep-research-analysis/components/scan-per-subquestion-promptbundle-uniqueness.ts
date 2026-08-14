@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type CallExpression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -87,7 +88,7 @@ const isPromptBundleExtendCall = (expression: CallExpression | undefined): boole
     return false;
   }
   const target = callee.getExpression();
-  return Node.isIdentifier(target) && target.getText() === "DeepResearchPromptBundleSchema";
+  return Node.isIdentifier(target) && astIdentifierName(target) === "DeepResearchPromptBundleSchema";
 };
 
 const inspectPromptBundleInitializer = (initializer: ReturnType<typeof findPromptBundleInitializer>): {

@@ -53,3 +53,11 @@ flow script -> evidence store -> generic file storage
 - 保存失败原因
 - 保存上传结果 ref
 - 让人工接管时能看到发生了什么
+
+## 7. Audit owner
+
+唯一 owner 位于 `scripts/audit/domains/forensics-persistence-capability/`。它检查 public facade、append-first storage port、业务插件反向依赖和退休 schema 词汇，不借用其他 domain 的 inspector。
+
+## 8. Acceptance
+
+`scripts/acceptance/forensics-persistence-capability.acceptance.ts` 使用临时目录调用真实 storage 与真实 ability group，证明 record/artifact ref、integrity hash、append-only 落盘和 artifact body 不进入索引。完整入口仍是 `npm run ci:full`。

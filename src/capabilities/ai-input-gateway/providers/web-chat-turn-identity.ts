@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
   WebChatSubmissionProof,
@@ -151,7 +151,7 @@ const buildSubmissionProof = (input: {
 });
 
 export const captureWebChatSubmissionProof = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   previousAssistantCount: number;
@@ -166,7 +166,7 @@ export const captureWebChatSubmissionProof = async (input: {
     input.initialConversationUrl ?? null;
   let last: TurnIdentityObservation | null = null;
   while (Date.now() < deadline) {
-    last = await input.browser.evaluateActiveTab<TurnIdentityObservation>({
+    last = await input.browser.evaluate<TurnIdentityObservation>({
       description: "bind submitted web-chat turn to its internal marker and canonical conversation",
       script: observationScript(execution.turnMarker),
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),

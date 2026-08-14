@@ -15,6 +15,7 @@ import {
   buildVideoDownloadFailure,
   buildVideoDownloadSuccess,
 } from "../runtime/result.js";
+import { createVideoDownloadAbortHandle } from "../runtime/abort-handle.js";
 
 type ParsedDownloadTikTokVideoInput = Extract<
   ParsedVideoDownloadAbilityInput,
@@ -27,7 +28,7 @@ const asFailureMessage = (error: unknown): string =>
 const probePage = async (
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
-) => parseTikTokMediaProbe(await context.browserMediaSourcePort.evaluateActiveTab({
+) => parseTikTokMediaProbe(await context.browserMediaSourcePort.evaluate({
   script: TIKTOK_MEDIA_PROBE_SCRIPT,
   description: "collect TikTok/Douyin video media candidates",
   abortSignal,
@@ -83,10 +84,9 @@ async function executeDownloadTikTokVideoOnce(
   context: VideoDownloadExecutionContext,
 ): Promise<VideoDownloadResult> {
   const base = { input, startedAt: new Date().toISOString() };
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), input.timeoutMs);
+  const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await probePage(context, abortController.signal);
+    const probe = await probePage(context, abortHandle.signal);
     if (!probe) {
       return buildVideoDownloadFailure(base, "candidate_not_found", "TikTok media probe returned no structured result.");
     }
@@ -95,14 +95,14 @@ async function executeDownloadTikTokVideoOnce(
       return buildVideoDownloadFailure(base, "candidate_not_found", "No video candidates found on TikTok page.");
     }
     for (const candidate of candidates) {
-      const result = await tryCandidate(input, context, candidate, abortController.signal, probe.videoFact);
+      const result = await tryCandidate(input, context, candidate, abortHandle.signal, probe.videoFact);
       if (result) return result;
     }
     return buildVideoDownloadFailure(base, "candidate_not_video", "TikTok video candidates failed validation or download.");
   } catch (error) {
     return buildVideoDownloadFailure(base, "network_failed", asFailureMessage(error));
   } finally {
-    clearTimeout(timeout);
+    abortHandle.dispose();
   }
 }
 

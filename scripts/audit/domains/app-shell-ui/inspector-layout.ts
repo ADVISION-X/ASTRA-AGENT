@@ -1,5 +1,6 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -14,7 +15,10 @@ const astText = (sourceFile: SourceFile): string => [
   ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
-  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).flatMap((node) => {
+    const name = astIdentifierName(node);
+    return name === undefined ? [] : [name];
+  }),
 ].join("\n");
 
 const requireAstToken = (input: {
@@ -94,7 +98,7 @@ const requireArrayExportedIdentifier = (input: {
     .asKind(SyntaxKind.ArrayLiteralExpression)
     ?? initializer?.asKind(SyntaxKind.ArrayLiteralExpression);
   const found = arrayExpression?.getElements().some((element) =>
-    element.asKind(SyntaxKind.Identifier)?.getText() === input.symbolName,
+    Node.isIdentifier(element) && astIdentifierName(element) === input.symbolName,
   );
   if (found) return;
   input.findings.push(createFinding({

@@ -1,43 +1,36 @@
 import type { LocalBrowserSessionState } from "../../types/local-browser-session.js";
 
-import { createId } from "../local-runtime/ids.js";
+import type {
+  BrowserDocumentRef,
+  BrowserTargetRef,
+  ControlledBrowserTarget,
+} from "./exact-target/browser-target-ref.js";
 
 type BrowserActionResult = {
   browserActionId: string;
   ok: boolean;
   message: string;
   createdAt: string;
+  targetRef?: BrowserTargetRef;
+  documentRef?: BrowserDocumentRef;
+  observedUrl?: string;
+  startedAt?: string;
+  durationMs?: number;
   actionKind?: "open";
   requestedHost?: string;
   reusePolicy?: BrowserOpenReusePolicy;
-  navigationMode?: BrowserOpenNavigationMode;
-  observedUrl?: string;
+  navigationMode?: BrowserOpenNavigationMode | string;
   observedUrlMatchesRequest?: boolean;
-  startedAt?: string;
-  durationMs?: number;
+  focusLeaseId?: string;
 };
 
-type BrowserOpenNavigationMode =
-  | "focused_existing_tab"
-  | "focused_existing_same_path_tab"
-  | "opened_new_window"
-  | "opened_new_tab"
-  | "opened_new_host_tab"
-  | "reused_active_tab"
-  | "reused_host_tab"
-  | "no_existing_tab"
-  | "unknown";
+type BrowserOpenReusePolicy =
+  | "reuse-exact-url"
+  | "open-new-tab";
 
-type BrowserOpenResult = BrowserActionResult & {
-  actionKind: "open";
-  requestedHost: string;
-  reusePolicy: BrowserOpenReusePolicy;
-  navigationMode: BrowserOpenNavigationMode;
-  observedUrl: string;
-  observedUrlMatchesRequest: boolean;
-  startedAt: string;
-  durationMs: number;
-};
+type BrowserOpenNavigationMode = "acquired_exact_target" | "navigated_exact_target";
+
+type BrowserOpenResult = BrowserActionResult;
 
 type BrowserCaptureResult = {
   browserActionId: string;
@@ -52,6 +45,8 @@ type BrowserCaptureResult = {
   contentLines?: string[];
   sourceFilePath: string;
   createdAt: string;
+  targetRef?: BrowserTargetRef;
+  documentRef?: BrowserDocumentRef;
 };
 
 type BrowserScreenshotProfile = "default" | "observation_lightweight";
@@ -61,6 +56,8 @@ type BrowserStateSnapshot = LocalBrowserSessionState & {
   currentUrl: string;
   currentTitle: string;
   browserExecutable: string | null;
+  exactTargetCount?: number;
+  transportReady?: boolean;
 };
 
 type BrowserGeometrySnapshot = {
@@ -73,32 +70,29 @@ type BrowserGeometrySnapshot = {
   scaleFactor: number;
   currentUrl: string;
   pageTitle: string;
-  visibleContentBounds: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  visibleContentBounds: { x: number; y: number; width: number; height: number };
   capturedAt: string;
+  targetRef?: BrowserTargetRef;
+  documentRef?: BrowserDocumentRef;
 };
 
-type BrowserClickCoordinateSpace = "browserViewport" | "desktopScreen";
+type BrowserClickCoordinateSpace = "browserViewport";
 type BrowserClickButton = "left" | "right" | "middle";
-type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
+type BrowserScrollCoordinateSpace = "browserViewport";
 type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
 type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
-type BrowserOpenReusePolicy = "reuse-exact-url" | "focus-existing-exact-url" | "focus-existing-same-path-url" | "open-new-tab" | "reuse-active-tab" | "reuse-host-tab";
 
-type BrowserFileInputRef = {
-  selector: string;
-  targetKind: "file-input";
-};
+type BrowserFileInputRef = { selector: string; targetKind: "file-input" };
 
 type BrowserNativeMultiFilePickerResult = BrowserActionResult & {
   observedFileNames: string[];
+  focusLeaseId?: string;
 };
 
-interface BrowserController {
+interface BrowserTargetSession {
+  readonly ownerId?: string;
+  getTarget?(): ControlledBrowserTarget | null;
+  releaseTargetForOperator?(input: { reason: string }): Promise<BrowserActionResult>;
   setExecutionAbortSignal?(abortSignal: AbortSignal | null): void;
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
@@ -109,7 +103,7 @@ interface BrowserController {
     reusePolicy?: BrowserOpenReusePolicy;
     browserActionId?: string;
     abortSignal?: AbortSignal;
-  }): Promise<BrowserActionResult>;
+  }): Promise<BrowserOpenResult>;
   scroll(input: {
     targetLabel: string;
     deltaX: number;
@@ -144,8 +138,13 @@ interface BrowserController {
     key?: BrowserTextInputKey | null;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
-  screenshotRegion(input: { regionLabel: string; contentLines?: string[]; captureProfile?: BrowserScreenshotProfile; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;
-  evaluateActiveTab<T>(input: {
+  screenshotRegion(input: {
+    regionLabel: string;
+    contentLines?: string[];
+    captureProfile?: BrowserScreenshotProfile;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserCaptureResult>;
+  evaluate<T>(input: {
     script: string;
     description: string;
     abortSignal?: AbortSignal;
@@ -163,9 +162,37 @@ interface BrowserController {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserNativeMultiFilePickerResult>;
+  pasteFileFromSystemClipboard?(input: {
+    filePath: string;
+    description: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
   wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult>;
-  closeActiveTab(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
+  closeTarget(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 
-export type { BrowserActionResult, BrowserOpenResult, BrowserOpenNavigationMode, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserOpenReusePolicy, BrowserNativeMultiFilePickerResult, BrowserController };
+interface BrowserController {
+  setExecutionAbortSignal?(abortSignal: AbortSignal | null): void;
+  getHealth(): { ok: boolean; detail: string };
+  getSessionState(): BrowserStateSnapshot;
+  createTargetSession(ownerId: string): BrowserTargetSession;
+  close(): Promise<{ browserActionId: string; ok: boolean; message: string; createdAt: string }>;
+}
+
+export type {
+  BrowserActionResult,
+  BrowserOpenResult,
+  BrowserOpenNavigationMode,
+  BrowserCaptureResult,
+  BrowserStateSnapshot,
+  BrowserGeometrySnapshot,
+  BrowserClickCoordinateSpace,
+  BrowserScrollCoordinateSpace,
+  BrowserTextInputAction,
+  BrowserTextInputKey,
+  BrowserOpenReusePolicy,
+  BrowserNativeMultiFilePickerResult,
+  BrowserTargetSession,
+  BrowserController,
+};

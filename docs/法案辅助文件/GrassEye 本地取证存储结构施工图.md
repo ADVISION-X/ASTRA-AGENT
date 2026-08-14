@@ -54,3 +54,7 @@
 - 不做复杂关系数据库宇宙
 - 不做旧 owner ledger 系统
 - 不在 storage 层重建业务流程
+
+## 5. Governance Closure
+
+本结构只由 `forensics-persistence-capability` owner 执法；`GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1` 和 `GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2` 与 Evidence 法案共用这一 owner，不另建 schema writer、兼容 adapter 或第二 persistence truth。

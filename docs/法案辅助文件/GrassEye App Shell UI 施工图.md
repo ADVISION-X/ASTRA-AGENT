@@ -183,10 +183,7 @@ type SkillRegistryItem = {
 
 ```txt
 amazon-product-mining
-facebook-video-mining
-tiktok-product-mining
 deep-research-analysis
-video-downloader
 invoice-manager
 tax-document-assistant
 ```
@@ -704,10 +701,7 @@ Exception Detail
 ### Phase 4：多技能接入
 
 ```txt
-Facebook Video Mining
-TikTok Product Mining
 Deep Research
-Video Downloader
 Invoice / Tax / Finance Skills
 ```
 

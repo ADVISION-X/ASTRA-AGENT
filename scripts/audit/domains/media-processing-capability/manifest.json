@@ -133,7 +133,11 @@
             "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
             "symbolName": "inspectDomain"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       }
     ]
   },

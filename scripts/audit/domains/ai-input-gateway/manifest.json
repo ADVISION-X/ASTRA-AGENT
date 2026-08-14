@@ -69,6 +69,18 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "GRASSEYE-AI-CHOICE-001-V1",
+        "clauseId": "grasseye-ai-choice-001-requirement",
+        "checkIds": ["ai-input-gateway/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts", "symbolName": "inspectDomain"}]
+      },
+      {
+        "lawId": "GRASSEYE-SECURITY-PRIVACY-AI-001-V1",
+        "clauseId": "grasseye-security-privacy-ai-001-requirement",
+        "checkIds": ["ai-input-gateway/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts", "symbolName": "inspectDomain"}]
       }
     ]
   },
@@ -82,6 +94,7 @@
         "## DOM Inclusion And Exclusion",
         "## Success Gate",
         "## Bounded Parallel Web Chat",
+        "## Choice And Security Boundary",
         "## Acceptance"
       ]
     }

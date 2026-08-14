@@ -186,6 +186,19 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
+        "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
+        "checkIds": [
+          "amazon-invoice-upload/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },

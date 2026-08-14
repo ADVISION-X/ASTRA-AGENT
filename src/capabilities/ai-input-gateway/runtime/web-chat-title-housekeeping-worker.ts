@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import {
   createRuntimeEvent,
   RuntimeFailureClass,
@@ -29,7 +29,7 @@ import {
 } from "./web-chat-single-tab-browser.js";
 
 type RenameWorkerState = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger?: RuntimeLogger;
   requested: boolean;
   running: Promise<void> | null;
@@ -70,7 +70,7 @@ const buildRecoveryExecutionContext = (
 
 const executePersistedRename = async (input: {
   dataDir: string;
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   record: WebChatExecutionRecord;
 }): Promise<NonNullable<WebChatExecutionRecord["submission"]>> => {
   if (
@@ -179,7 +179,7 @@ const emitRecoverySummary = (
 
 export const runWebChatTitleHousekeepingNow = async (input: {
   dataDir: string;
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger?: RuntimeLogger;
 }): Promise<WebChatTitleHousekeepingSummary> => {
   const summary = await drainWebChatTitleHousekeeping({
@@ -289,7 +289,7 @@ const startWorker = (key: string, state: RenameWorkerState): void => {
 
 export const scheduleWebChatTitleHousekeeping = (input: {
   dataDir: string;
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger?: RuntimeLogger;
 }): void => {
   const key = path.resolve(input.dataDir);

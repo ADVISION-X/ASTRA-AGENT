@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
-import type { BrowserActionResult, BrowserController } from "../../src/lib/browser/browser-controller.js";
+import type { BrowserActionResult, BrowserTargetSession } from "../../src/lib/browser/browser-controller.js";
 import {
   runAmazonSearch,
   type SearchPageAdapter,
@@ -214,7 +214,7 @@ const sponsoredBrowser = {
     viewportHeight: 900,
     sourceFilePath: "/tmp/acceptance.png",
   }),
-  evaluateActiveTab: async <T,>(): Promise<T> => ({
+  evaluate: async <T,>(): Promise<T> => ({
     items: [{
       asin: "B0SPONSOR1",
       title: "Sponsored Bottle",
@@ -235,9 +235,9 @@ const sponsoredBrowser = {
   } as T),
   setFileInputFiles: async () => sponsoredAction("files-set"),
   wait: async () => sponsoredAction("waited"),
-  closeActiveTab: async () => sponsoredAction("closed-tab"),
+  closeTarget: async () => sponsoredAction("closed-tab"),
   close: async () => sponsoredAction("closed"),
-} satisfies BrowserController;
+} satisfies BrowserTargetSession;
 const result8 = await runAmazonSearch({
   marketplace: "amazon.ae",
   keyword: "water bottle",

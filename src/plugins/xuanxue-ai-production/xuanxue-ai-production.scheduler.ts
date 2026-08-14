@@ -205,7 +205,9 @@ export class XuanxueAiProductionCoordinator {
       : `parent-stage:${parent.jobId}:${parent.stageId}`;
   }
 
-  execute(orderId: string): Promise<XuanxueAiOrderRecord> {
+  async execute(orderId: string): Promise<XuanxueAiOrderRecord> {
+    const alreadyScheduled = this.scheduled.get(orderId);
+    if (alreadyScheduled) return alreadyScheduled.promise;
     const existing = this.runtime.store.readOrder(orderId);
     if (!existing) {
       return Promise.reject(
@@ -213,6 +215,20 @@ export class XuanxueAiProductionCoordinator {
       );
     }
     if (terminal(existing)) return Promise.resolve(existing);
+    const intervention = this.runtime.store.readIntervention(orderId);
+    if (intervention.state.endsWith("_requested")) {
+      const acknowledged = this.runtime.store.acknowledgeInterventionAtSafePoint(
+        orderId,
+        "scheduler-dequeue",
+      );
+      if (acknowledged?.state === "taken_over") {
+        await this.runtime.aiInputGateway.releaseProviderTargetForOperator?.(
+          `xuanxue-ai-production:${orderId}`,
+        );
+      }
+      return Promise.resolve(this.runtime.store.readOrder(orderId)!);
+    }
+    if (intervention.state !== "running") return Promise.resolve(existing);
     const lane = this.continuationLaneKey(existing);
     if (lane) {
       for (const predecessor of this.runtime.store.listRecoverableOrders()) {
@@ -357,6 +373,10 @@ export class XuanxueAiProductionCoordinator {
       reason = error instanceof Error ? error.message : String(error);
       const existing = this.runtime.store.readOrder(scheduled.orderId);
       if (!existing) throw error;
+      if (reason.startsWith("XUANXUE_AI_INTERVENTION_STOPPED:")) {
+        scheduled.resolve(existing);
+        return;
+      }
       if (continuationRebuildDefect(reason)) {
         try {
           await rebuildContinuationParent(this.runtime, existing);

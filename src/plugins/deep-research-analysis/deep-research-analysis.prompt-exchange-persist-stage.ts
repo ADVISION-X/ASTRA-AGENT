@@ -22,6 +22,7 @@ import {
     buildParseFailure,
     createFailedInteractionRecord,
     createInteractionRecord,
+    throwUnsupportedPromptExchangeStage,
 } from "./deep-research-analysis.prompt-exchange-capture-stage.js";
 import type { ResearchInteraction } from "./deep-research-analysis.records.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
@@ -264,7 +265,7 @@ export const parsePromptOutput = <TParsed>(
   if (extendedResult) {
     return extendedResult;
   }
-  throw new Error(`Unsupported Deep Research parse stage ${input.stage}.`);
+  return throwUnsupportedPromptExchangeStage(input, "parse");
 };
 
 const completePersistSuccess = <TParsed>(input: {
@@ -404,5 +405,5 @@ export const persistPromptOutput = <TParsed>(
   if (extendedResult) {
     return extendedResult;
   }
-  throw new Error(`Unsupported Deep Research persist stage ${input.stage}.`);
+  return throwUnsupportedPromptExchangeStage(input, "persist");
 };

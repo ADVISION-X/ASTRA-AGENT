@@ -1,9 +1,20 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 import { collectUploadRuntimeStabilityGaps } from "./inspector-upload-runtime-stability.js";
 import { collectOrderRefreshGuardGaps } from "./inspector-upload-order-readiness.js";
-import { collectEnglishUploadEvidenceGaps, collectExistingInvoiceEvidenceWaitGaps, collectNoHumanFinalSubmitContractGaps, collectUploadRetryGuardGaps, functionCallsIdentifier, functionCallsProperty, hasObjectProperty, hasPropertyAssignment, hasTemplateExpressionWithIdentifier, hasTruePropertyAssignment, retryStepNames, sourceCallsMethod, sourceCallsProperty, stringLiteralValues } from "./inspector-upload-stability-checks.js";
+import {
+  collectEnglishUploadEvidenceGaps,
+  collectExistingInvoiceEvidenceWaitGaps,
+  collectNoHumanFinalSubmitContractGaps,
+  collectUploadRetryGuardGaps,
+  functionCallsIdentifier,
+  hasObjectProperty,
+  hasPropertyAssignment,
+  sourceCallsMethod,
+  stringLiteralValues,
+} from "./inspector-upload-stability-checks.js";
 
 const uploadFlowPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts";
 const orderDetailPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts";
@@ -16,9 +27,9 @@ const flowSupportPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload
 const uploadStepsPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts";
 const uploadFileAttachmentPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
-const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
-const chromeExecutionPath = "src/lib/browser/current-chrome-browser-controller-execution.ts";
-const chromeScreenshotPath = "src/lib/browser/current-chrome-browser-screenshot.ts";
+const chromeWindowControlPath = "src/lib/browser/exact-target/browser-command-runtime.ts";
+const chromeExecutionPath = "src/lib/browser/exact-target/browser-command-runtime.ts";
+const chromeScreenshotPath = "src/lib/browser/exact-target/browser-command-runtime.ts";
 const smokeAcceptancePath = "scripts/acceptance/amazon-invoice-upload-smoke.ts";
 const smokeAcceptanceSupportPath = "scripts/acceptance/amazon-invoice-upload-smoke-support.ts";
 type UploadStabilityGuardInput = { [Key in keyof UploadStabilityFiles]: SourceFile | null } & {
@@ -149,119 +160,35 @@ function apiFocusFindingPath(item: string): string | null {
 }
 
 function collectApiFocusReturnGaps(files: UploadStabilityFiles): string[] {
-  const taskValues = stringLiteralValues(files.taskServiceFile);
-  const controllerValues = stringLiteralValues(files.browserControllerFile);
-  const chromeValues = stringLiteralValues(files.chromeWindowControlFile);
-  return [
-    ...collectApiFocusSchemaGaps(files),
-    ...collectApiFocusServiceGaps(files, taskValues),
-    ...collectApiFocusBrowserGaps(files, controllerValues, chromeValues),
-  ];
+  const missing = collectApiFocusSchemaGaps(files);
+  for (const retired of [
+    "returnApiUploadFocusToAdmin",
+    "returnApiUploadFocusToAdminBounded",
+    "focusOnlyExistingTab",
+  ]) {
+    if (files.taskServiceFile.getDescendantsOfKind(SyntaxKind.Identifier).some(
+      (identifier) => astIdentifierName(identifier) === retired,
+    )) missing.push(`api-focus-service:retired-${retired}`);
+  }
+  const forbiddenPolicies = ["focus-existing-same-path-url", "reuse-host-tab"];
+  const combinedValues = new Set([
+    ...stringLiteralValues(files.taskServiceFile),
+    ...stringLiteralValues(files.browserControllerFile),
+    ...stringLiteralValues(files.chromeWindowControlFile),
+  ]);
+  for (const policy of forbiddenPolicies) {
+    if (combinedValues.has(policy)) missing.push(`api-focus-service:retired-policy-${policy}`);
+  }
+  if (!stringLiteralValues(files.orderFile).has("reuse-exact-url")) {
+    missing.push("api-focus-service:exact-target-navigation");
+  }
+  return missing;
 }
 
 function collectApiFocusSchemaGaps(files: UploadStabilityFiles): string[] {
   const missing: string[] = [];
   if (!hasPropertyAssignment(files.missionSchemaFile, "sourceSystem")) missing.push("api-focus-schema:sourceSystem");
   if (!hasPropertyAssignment(files.missionSchemaFile, "requestId")) missing.push("api-focus-schema:requestId");
-  return missing;
-}
-
-function collectApiFocusServiceGaps(files: UploadStabilityFiles, taskValues: Set<string>): string[] {
-  return [
-    ...collectApiFocusServiceRouteGaps(files, taskValues),
-    ...collectApiFocusServiceAbortGaps(files),
-  ];
-}
-
-function collectApiFocusServiceRouteGaps(files: UploadStabilityFiles, taskValues: Set<string>): string[] {
-  const missing: string[] = [];
-  const returnHelper = files.taskServiceFile.getFunction("returnApiUploadFocusToAdmin");
-  if (!returnHelper) missing.push("api-focus-service:return-helper");
-  if (!files.taskServiceFile.getFunction("isApiUploadMission")) missing.push("api-focus-service:api-source-guard");
-  if (!functionCallsIdentifier(files.taskServiceFile, "startAmazonInvoiceUploadTask", "returnApiUploadFocusToAdmin")) {
-    missing.push("api-focus-service:start-call");
-  }
-  if (!functionCallsIdentifier(files.taskServiceFile, "resumeAmazonInvoiceUploadTask", "returnApiUploadFocusToAdmin")) {
-    missing.push("api-focus-service:resume-call");
-  }
-  if (!functionCallsIdentifier(files.taskServiceFile, "returnApiUploadFocusToAdmin", "startAmazonInvoiceAdminOpenTask")) {
-    missing.push("api-focus-service:admin-allowlist-open");
-  }
-  if (!hasPropertyAssignment(files.taskServiceFile, "focusOnlyExistingTab")) missing.push("api-focus-service:explicit-focus-flag");
-  if (!hasTruePropertyAssignment(files.taskServiceFile, "focusOnlyExistingTab")) missing.push("api-focus-service:return-helper-explicit-focus");
-  if (!hasFocusOnlyReusePolicyConditional(files.taskServiceFile)) {
-    missing.push("api-focus-service:normal-open-not-focus-only");
-  }
-  if (!taskValues.has("focus-existing-same-path-url")) missing.push("api-focus-service:same-path-focus-only-policy");
-  if (!taskValues.has("return API upload focus to website")) missing.push("api-focus-service:runtime-trace");
-  if (hasPromiseRace(files.taskServiceFile)) missing.push("api-focus-service:detached-promise-race");
-  return missing;
-}
-
-function collectApiFocusServiceAbortGaps(files: UploadStabilityFiles): string[] {
-  return [
-    ...collectBoundedFocusAbortGaps(files),
-    ...collectFocusAbortPropagationGaps(files),
-  ];
-}
-
-function collectBoundedFocusAbortGaps(files: UploadStabilityFiles): string[] {
-  const missing: string[] = [];
-  const boundedHelper = files.taskServiceFile.getFunction("returnApiUploadFocusToAdminBounded");
-  if (!boundedHelper) missing.push("api-focus-service:bounded-return-helper");
-  if (!(boundedHelper?.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) =>
-    Node.isIdentifier(expression.getExpression()) && expression.getExpression().getText() === "AbortController") ?? false)) {
-    missing.push("api-focus-service:bounded-abort-controller");
-  }
-  if (!(boundedHelper?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression) && expression.getName() === "abort";
-  }) ?? false)) missing.push("api-focus-service:timeout-aborts-focus");
-  if (!(boundedHelper?.getDescendantsOfKind(SyntaxKind.AwaitExpression).some((awaitExpression) =>
-    awaitExpression.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-      const expression = call.getExpression();
-      return Node.isPropertyAccessExpression(expression)
-        && Node.isIdentifier(expression.getExpression())
-        && expression.getExpression().getText() === "input"
-        && expression.getName() === "focus";
-    })) ?? false)) missing.push("api-focus-service:await-focus-settlement");
-  return missing;
-}
-
-function collectFocusAbortPropagationGaps(files: UploadStabilityFiles): string[] {
-  const missing: string[] = [];
-  const returnHelper = files.taskServiceFile.getFunction("returnApiUploadFocusToAdmin");
-  if (!(returnHelper?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) =>
-    identifier.getText() === "abortSignal") ?? false)) missing.push("api-focus-service:return-helper-abort-signal");
-  const adminOpen = files.taskServiceFile.getFunction("startAmazonInvoiceAdminOpenTask");
-  if (!(adminOpen?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
-    property.getName() === "abortSignal") ?? false)) missing.push("api-focus-service:browser-open-abort-signal");
-  return missing;
-}
-
-function hasPromiseRace(file: SourceFile): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression)
-      && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === "Promise"
-      && expression.getName() === "race";
-  });
-}
-
-function collectApiFocusBrowserGaps(
-  files: UploadStabilityFiles,
-  controllerValues: Set<string>,
-  chromeValues: Set<string>,
-): string[] {
-  const missing: string[] = [];
-  if (!controllerValues.has("focus-existing-same-path-url")) missing.push("api-focus-controller:same-path-policy-type");
-  if (!chromeValues.has("focus-existing-same-path-url")) missing.push("api-focus-browser:same-path-policy-implementation");
-  if (!chromeValues.has("focused_existing_same_path_tab")) missing.push("api-focus-browser:same-path-focus-result");
-  if (!chromeValues.has("no_existing_tab")) missing.push("api-focus-browser:missing-tab-fails-closed");
-  if (hasTemplateExpressionWithIdentifier(files.chromeWindowControlFile, "input")) {
-    missing.push("api-focus-browser:no-full-url-leak");
-  }
   return missing;
 }
 
@@ -277,8 +204,7 @@ function collectTabLifecycleGaps(files: UploadStabilityFiles): string[] {
   const orderValues = stringLiteralValues(files.orderFile);
   const verifyValues = stringLiteralValues(files.verifyFile);
   const existingValues = stringLiteralValues(files.existingUploadFile);
-  if (!orderValues.has("reuse-active-tab")) missing.push("tab-lifecycle-order:reuse-active-tab");
-  if (!orderValues.has("reuse-host-tab")) missing.push("tab-lifecycle-order:reuse-host-tab");
+  if (!orderValues.has("reuse-exact-url")) missing.push("tab-lifecycle-order:reuse-exact-url");
   if (!sourceCallsMethod(files.orderFile, "getGeometrySnapshot")) {
     missing.push("tab-lifecycle-order:refresh-current-chrome-state");
   }
@@ -328,13 +254,14 @@ function collectOpenResultConsumptionGaps(files: UploadStabilityFiles): string[]
       && Node.isBinaryExpression(assignment)
       && assignment.getOperatorToken().getKind() === SyntaxKind.EqualsToken
       && Node.isIdentifier(assignment.getLeft())
-      && assignment.getLeft().getText() === "openResult";
+      && astIdentifierName(assignment.getLeft()) === "openResult";
   })) missing.push("single-order-navigation:open-result-assigned");
 
   const receiptValidator = files.orderFile.getFunction("hasStructuredNavigationReceipt");
   const openResultProperties = new Set([
     ...files.orderFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-      .filter((access) => Node.isIdentifier(access.getExpression()) && access.getExpression().getText() === "openResult"),
+      .filter((access) => Node.isIdentifier(access.getExpression())
+        && astIdentifierName(access.getExpression()) === "openResult"),
     ...(receiptValidator?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression) ?? []),
   ].map((access) => access.getName()));
   for (const property of ["ok", "actionKind", "navigationMode", "observedUrl", "observedUrlMatchesRequest", "startedAt", "durationMs"]) {
@@ -366,7 +293,8 @@ function collectReadinessObservationGaps(files: UploadStabilityFiles): string[] 
   }
   const waitNode = files.orderFile.getVariableDeclaration("waitForApprovedOrderDetail")?.getInitializer();
   if (!(waitNode?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "startAmazonDomStepTrace") ?? false)) {
+    Node.isIdentifier(call.getExpression())
+    && astIdentifierName(call.getExpression()) === "startAmazonDomStepTrace") ?? false)) {
     missing.push("single-order-navigation:truthful-observation-start");
   }
   if (!stringLiteralValues(files.orderFile).has("observe approved order detail readiness window ")) {
@@ -399,7 +327,8 @@ function collectSingleFlightLeaseGaps(files: UploadStabilityFiles): string[] {
   if (!(leaseFunction?.getDescendantsOfKind(SyntaxKind.TryStatement).some((statement) => Boolean(statement.getFinallyBlock())) ?? false)) {
     missing.push("execution-lease:finally-release");
   }
-  if (!leaseFunction?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "activeUploadExecutionId")) {
+  if (!leaseFunction?.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => astIdentifierName(identifier) === "activeUploadExecutionId")) {
     missing.push("execution-lease:single-flight-state");
   }
   return missing;
@@ -415,58 +344,34 @@ function collectTerminalGuardGaps(files: UploadStabilityFiles): string[] {
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression)
       && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === "Promise"
+      && astIdentifierName(expression.getExpression()) === "Promise"
       && expression.getName() === "race";
   })) missing.push("terminal-timeout:detached-promise-race");
   if (!(terminalGuard?.getDescendantsOfKind(SyntaxKind.AwaitExpression).some((awaitExpression) =>
     awaitExpression.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-      Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "runAmazonInvoiceUpload")) ?? false)) {
+      Node.isIdentifier(call.getExpression())
+      && astIdentifierName(call.getExpression()) === "runAmazonInvoiceUpload")) ?? false)) {
     missing.push("terminal-timeout:await-flow-settlement");
   }
   return missing;
 }
 function collectPureBrowserReadGaps(files: UploadStabilityFiles): string[] {
   const missing: string[] = [];
-  const stateRead = files.chromeWindowControlFile.getVariableDeclaration("readFrontChromeWindowState")?.getInitializer();
-  if (!stateRead || !Node.isArrowFunction(stateRead)
-    || stateRead.getParameters().some((parameter) => parameter.getName() !== "abortSignal")) {
-    missing.push("pure-browser-read:no-fallback-input");
+  const exactIdentifiers = new Set(files.chromeWindowControlFile
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .flatMap((identifier) => astIdentifierName(identifier) ?? []));
+  for (const required of ["BrowserTargetRegistry", "targetRef", "documentRef"]) {
+    if (!exactIdentifiers.has(required)) missing.push(`pure-browser-read:missing-exact-identity:${required}`);
   }
-  const readIdentifiers = new Set(stateRead?.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => identifier.getText()) ?? []);
-  for (const forbidden of ["fallbackUrl", "restoreUrl", "buildOpenUrlScript"]) {
-    if (readIdentifiers.has(forbidden)) missing.push(`pure-browser-read:no-hidden-navigation:${forbidden}`);
-  }
-  const waitFunction = files.chromeExecutionFile.getVariableDeclaration("waitForDuration")?.getInitializer();
-  if (!(waitFunction?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === "abortSignal") ?? false)) {
+  const waitFunction = files.chromeExecutionFile.getClass("ExactBrowserTargetSession")?.getMethod("wait");
+  if (!(waitFunction?.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => astIdentifierName(identifier) === "abortSignal") ?? false)) {
     missing.push("pure-browser-wait:abort-signal");
   }
   if (waitFunction?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
     const expression = call.getExpression();
-    return Node.isIdentifier(expression) && (expression.getText() === "refreshSnapshot" || expression.getText() === "_refreshSnapshot");
+    const name = astIdentifierName(expression);
+    return Node.isIdentifier(expression) && (name === "refreshSnapshot" || name === "_refreshSnapshot");
   })) missing.push("pure-browser-wait:no-refresh-snapshot");
   return missing;
-}
-function hasFocusOnlyReusePolicyConditional(file: SourceFile): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
-    if (property.getName() !== "reusePolicy") return false;
-    const initializer = property.getInitializer();
-    if (!initializer || !Node.isConditionalExpression(initializer)) return false;
-    const condition = initializer.getCondition();
-    const whenTrue = initializer.getWhenTrue();
-    const whenFalse = initializer.getWhenFalse();
-    if (!Node.isBinaryExpression(condition)) return false;
-    const left = condition.getLeft();
-    const right = condition.getRight();
-    const operatorIsStrictEquals = condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken;
-    const leftIsFocusFlag = Node.isPropertyAccessExpression(left)
-      && left.getExpression().getKind() === SyntaxKind.Identifier
-      && left.getName() === "focusOnlyExistingTab";
-    return operatorIsStrictEquals
-      && leftIsFocusFlag
-      && right.getKind() === SyntaxKind.TrueKeyword
-      && Node.isStringLiteral(whenTrue)
-      && whenTrue.getLiteralText() === "focus-existing-same-path-url"
-      && Node.isStringLiteral(whenFalse)
-      && whenFalse.getLiteralText() === "reuse-exact-url";
-  });
 }

@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 import { toRepoPath } from "../../shared/paths.js";
@@ -77,7 +78,8 @@ const inspectDownloadStaticContracts = (
 ): void => {
   const { file, pageStateFile, findings, lawIds } = input;
   const calls = file.getDescendantsOfKind(SyntaxKind.CallExpression);
-  if (!calls.some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "recordAmazonDomStepTrace")) {
+  if (!calls.some((call) => Node.isIdentifier(call.getExpression())
+    && astIdentifierName(call.getExpression()) === "recordAmazonDomStepTrace")) {
     addFinding(findings, {
       checkId: "amazon-invoice-upload/download-flow-dom-trace",
       lawId: lawIds.evidence,

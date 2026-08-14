@@ -1,7 +1,9 @@
 import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
+
 const identifierName = (expression: Expression): string | null =>
-  Node.isIdentifier(expression) ? expression.getText() : null;
+  Node.isIdentifier(expression) ? astIdentifierName(expression) ?? null : null;
 
 export const propertyAccessSegments = (expression: Expression): string[] | null => {
   const segments: string[] = [];
@@ -28,7 +30,7 @@ export const hasPropertyAccessSegments = (
 
 export const hasIdentifierName = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => identifier.getText() === value));
+    .some((identifier) => astIdentifierName(identifier) === value));
 
 export const hasLiteralValue = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendants().some((node) =>

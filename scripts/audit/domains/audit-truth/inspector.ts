@@ -31,7 +31,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const sourceTextScan = scanAuditNoSourceTextSearch({
     context: { ...context, project },
     inspectedFiles,
-    lawId: metaQualityLawId,
+    lawId: astTruthLawId,
   });
   const coverageScan = scanGeneratedPlanCoverage({
     context: { ...context, project },
@@ -41,7 +41,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const regexScan = scanAuditNoRegex({
     context: { ...context, project },
     inspectedFiles,
-    lawId: metaQualityLawId,
+    lawId: astTruthLawId,
   });
   const metaQualityScan = scanAuditMetaQualityNoRegex({
     context: { ...context, project },

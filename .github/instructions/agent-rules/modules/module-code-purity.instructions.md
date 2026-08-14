@@ -381,7 +381,7 @@ The mediator may only:
 Forbidden:
 
 - Direct click, fill, upload, DOM read, screenshot, or browser primitive call.
-- Amazon-specific or Facebook-specific step logic.
+- Platform-specific step logic.
 - Business state persistence.
 - Workflow engine behavior.
 - Dispatcher resurrection under a neutral name.

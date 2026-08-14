@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -58,10 +58,10 @@ const classifyBlockingDialog = (text) => {
 `;
 
 export const isChatGptRateLimitDialogVisible = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
 }): Promise<boolean> => {
-  const detected = await input.browser.evaluateActiveTab<{ kind: string; text: string } | null>({
+  const detected = await input.browser.evaluate<{ kind: string; text: string } | null>({
     description: "detect visible ChatGPT rate-limit dialog",
     script: `${RATE_LIMIT_DIALOG_TEXT_SCRIPT}
 const match = dialogs.map((node) => {
@@ -82,10 +82,10 @@ return match;
 };
 
 export const acknowledgeChatGptRateLimitDialogIfVisible = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
 }): Promise<string | null> => {
-  const target = await input.browser.evaluateActiveTab<{
+  const target = await input.browser.evaluate<{
     status: string;
     pageUrl: string;
     clickPoint?: { x: number; y: number };
@@ -149,7 +149,7 @@ const sharedAcknowledgementWatchers = new Map<
 >();
 
 type AcknowledgementWatcherInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };

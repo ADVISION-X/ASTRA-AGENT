@@ -2,7 +2,6 @@ import {
   Node,
   SyntaxKind,
   type CallExpression,
-  type ClassDeclaration,
   type ObjectLiteralExpression,
   type SourceFile,
   type Symbol as MorphSymbol,
@@ -20,17 +19,19 @@ const browserActionMethods: ReadonlySet<string> = new Set([
   "move",
   "clickLocatedDomElement",
   "textInput",
-  "evaluateActiveTab",
+  "evaluate",
   "setFileInputFiles",
   "selectFilesInNativePicker",
   "screenshotRegion",
-  "closeActiveTab",
+  "closeTarget",
   "close",
 ]);
 
 const terminalBrowserEvents = new Set(["BROWSER_ACTION_COMPLETED", "BROWSER_ACTION_FAILED", "BROWSER_ACTION_RESULT"]);
 const centralLogHelperPath = "src/lib/browser/current-chrome-browser-action-logging.ts";
 const currentChromeControllerPath = "src/lib/browser/current-chrome-browser-controller.ts";
+const currentChromeRuntimePath = "src/lib/browser/current-chrome-browser-controller-runtime.ts";
+const exactBrowserRuntimePath = "src/lib/browser/exact-target/browser-command-runtime.ts";
 const workbenchBrowserSupportPath = "src/lib/local-runtime/workbench-browser-support.ts";
 const workbenchAssemblyPath = "src/lib/local-runtime/workbench-assembly.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
@@ -80,6 +81,8 @@ export const collectBrowserActionLogContractFindings = (context: InspectorContex
       ...actionFiles.map(({ file }) => toRepoPath(file.getFilePath())),
       centralLogHelperPath,
       currentChromeControllerPath,
+      currentChromeRuntimePath,
+      exactBrowserRuntimePath,
       workbenchBrowserSupportPath,
       workbenchAssemblyPath,
     ])].sort(),
@@ -90,11 +93,13 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   const source = (repoPath: string) => context.project.getSourceFiles().find((file) => toRepoPath(file.getFilePath()) === repoPath);
   const helper = source(centralLogHelperPath);
   const controller = source(currentChromeControllerPath);
+  const controllerRuntime = source(currentChromeRuntimePath);
+  const exactRuntime = source(exactBrowserRuntimePath);
   const browserSupport = source(workbenchBrowserSupportPath);
   const assembly = source(workbenchAssemblyPath);
   const missing: string[] = [];
   if (!helper) return ["central-helper-file"];
-  for (const functionName of ["runLoggedBrowserResultAction", "runLoggedBrowserValueAction"]) {
+  for (const functionName of ["runLoggedBrowserValueAction"]) {
     if (!helper.getFunction(functionName)) missing.push(`central-helper:${functionName}`);
   }
   const eventTypes = new Set(runtimeEventTypeAccesses(helper).map((access) => access.getName()));
@@ -105,7 +110,7 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   for (const property of ["capabilityCallId", "beforeHash", "afterHash", "durationMs", "actionResult", "failureClass", "fallbackUsed"]) {
     if (!propertyNames.has(property)) missing.push(`central-field:${property}`);
   }
-  inspectControllerMethodWrappers(controller, missing);
+  inspectExactRuntimeLogging(controller, controllerRuntime, exactRuntime, missing);
   const browserConstructor = browserSupport?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
     symbolHasDeclarationAt(expression.getExpression().getSymbol(), currentChromeControllerPath));
   if (!browserConstructor?.getArguments().some(isRuntimeLoggerReference)) {
@@ -179,43 +184,63 @@ function missingGovernedBrowserLogContract(file: SourceFile, governedCalls: Call
   return missing;
 }
 
-function inspectControllerMethodWrappers(controller: SourceFile | undefined, missing: string[]): void {
-  const declaration = controller?.getClass("CurrentChromeBrowserController");
-  if (!declaration) {
-    missing.push("controller-class:CurrentChromeBrowserController");
+function inspectExactRuntimeLogging(
+  controller: SourceFile | undefined,
+  controllerRuntime: SourceFile | undefined,
+  exactRuntime: SourceFile | undefined,
+  missing: string[],
+): void {
+  const controllerDeclaration = controller?.getClass("CurrentChromeBrowserController");
+  if (!controllerDeclaration) missing.push("controller-class:CurrentChromeBrowserController");
+  const controllerConstructor = controllerDeclaration?.getConstructors()[0];
+  const controllerFactoryCall = controllerConstructor?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+    symbolHasDeclarationAt(call.getExpression().getSymbol(), currentChromeRuntimePath));
+  if (!controllerFactoryCall?.getArguments().some(isRuntimeLoggerReference)) {
+    missing.push("controller:runtime-logger-forwarding");
+  }
+
+  const commandRuntimeConstructor = controllerRuntime?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
+    symbolHasDeclarationAt(expression.getExpression().getSymbol(), exactBrowserRuntimePath));
+  if (!commandRuntimeConstructor?.getArguments().some(isRuntimeLoggerReference)) {
+    missing.push("controller-runtime:runtime-logger-forwarding");
+  }
+
+  const runtimeDeclaration = exactRuntime?.getClass("BrowserCommandRuntime");
+  if (!runtimeDeclaration) {
+    missing.push("exact-runtime-class:BrowserCommandRuntime");
     return;
   }
-  for (const methodName of browserActionMethods) {
-    const method = declaration.getMethod(methodName);
-    if (!method) {
-      missing.push(`controller-method:${methodName}`);
-      continue;
-    }
-    const wrapperNames = new Set(method.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
-      const expression = call.getExpression();
-      if (!Node.isPropertyAccessExpression(expression) || !Node.isThisExpression(expression.getExpression())) return [];
-      return [expression.getName()];
-    }));
-    if (!wrapperNames.has("loggedResult") && !wrapperNames.has("loggedValue")) {
-      missing.push(`controller-method-wrapper:${methodName}`);
+  const loggedMethod = runtimeDeclaration.getMethod("logged");
+  const delegatesToCentralHelper = loggedMethod?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+    symbolDeclarations(call.getExpression().getSymbol()).some((declaration) =>
+      toRepoPath(declaration.getSourceFile().getFilePath()) === centralLogHelperPath
+      && declaration.getSymbol()?.getName() === "runLoggedBrowserValueAction"));
+  if (!delegatesToCentralHelper) missing.push("exact-runtime:central-log-helper-delegate");
+
+  const targetSession = exactRuntime?.getClass("ExactBrowserTargetSession");
+  const transportCalls = targetSession?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(isTransportCommandCall) ?? [];
+  if (transportCalls.length === 0) missing.push("exact-target-session:transport-command");
+  for (const call of transportCalls) {
+    const method = call.getFirstAncestor(Node.isMethodDeclaration);
+    if (method?.getName() === "loggedTransportCommand") continue;
+    const enclosingLoggedCall = call.getAncestors().find(isLoggedCall);
+    if (!enclosingLoggedCall) {
+      missing.push(`exact-target-session:unlogged-transport-command:${call.getStartLineNumber()}`);
     }
   }
-  inspectWrapperDelegates(declaration, missing);
 }
 
-function inspectWrapperDelegates(controller: ClassDeclaration, missing: string[]): void {
-  const expected = new Map([
-    ["loggedResult", "runLoggedBrowserResultAction"],
-    ["loggedValue", "runLoggedBrowserValueAction"],
-  ]);
-  for (const [methodName, helperName] of expected) {
-    const method = controller.getMethod(methodName);
-    const hasDelegate = method?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-      symbolDeclarations(call.getExpression().getSymbol()).some((declaration) =>
-        declaration.getSourceFile().getFilePath().endsWith(centralLogHelperPath)
-        && declaration.getSymbol()?.getName() === helperName));
-    if (!hasDelegate) missing.push(`controller-wrapper-delegate:${methodName}`);
-  }
+function isLoggedCall(node: Node): boolean {
+  if (!Node.isCallExpression(node)) return false;
+  const expression = node.getExpression();
+  return Node.isPropertyAccessExpression(expression) && expression.getName() === "logged";
+}
+
+function isTransportCommandCall(call: CallExpression): boolean {
+  const expression = call.getExpression();
+  if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "command") return false;
+  const receiver = expression.getExpression();
+  return Node.isPropertyAccessExpression(receiver) && receiver.getName() === "transport";
 }
 
 function calledAuthorizedHelperUsesBrowserActionId(call: CallExpression, expectedExpression: Node): boolean {
@@ -235,7 +260,7 @@ function calledAuthorizedHelperUsesBrowserActionId(call: CallExpression, expecte
     : Node.isShorthandPropertyAssignment(property)
       ? property.getNameNode()
       : undefined;
-  return Boolean(value && bindingKey(value) === bindingKey(expectedExpression));
+  return Boolean(value && sameBinding(value, expectedExpression));
 }
 
 function browserActionIdExpression(call: CallExpression): Node | undefined {
@@ -248,17 +273,16 @@ function browserActionIdExpression(call: CallExpression): Node | undefined {
   return Node.isShorthandPropertyAssignment(property) ? property.getNameNode() : undefined;
 }
 
-function bindingKey(node: Node): string {
-  if (Node.isPropertyAccessExpression(node)) {
-    return `${bindingKey(node.getExpression())}.${node.getName()}`;
+function sameBinding(left: Node, right: Node): boolean {
+  if (Node.isPropertyAccessExpression(left) && Node.isPropertyAccessExpression(right)) {
+    return left.getName() === right.getName() && sameBinding(left.getExpression(), right.getExpression());
   }
-  if (Node.isIdentifier(node)) {
-    const declaration = symbolDeclarations(node.getSymbol())[0];
-    return declaration
-      ? `${toRepoPath(declaration.getSourceFile().getFilePath())}:${declaration.getStart()}`
-      : `unresolved:${node.getText()}`;
+  if (Node.isIdentifier(left) && Node.isIdentifier(right)) {
+    const leftDeclarations = symbolDeclarations(left.getSymbol());
+    const rightDeclarations = new Set(symbolDeclarations(right.getSymbol()));
+    return leftDeclarations.length > 0 && leftDeclarations.some((declaration) => rightDeclarations.has(declaration));
   }
-  return `${toRepoPath(node.getSourceFile().getFilePath())}:${node.getStart()}`;
+  return left.getSourceFile() === right.getSourceFile() && left.getStart() === right.getStart();
 }
 
 function runtimeEventTypeAccesses(file: SourceFile) {

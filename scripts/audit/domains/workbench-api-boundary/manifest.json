@@ -107,7 +107,11 @@
             "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
             "symbolName": "inspectDomain"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       }
     ]
   },

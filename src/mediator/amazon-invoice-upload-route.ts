@@ -1,15 +1,29 @@
 import {
   AmazonInvoiceUploadAdminOpenInputSchema,
+  AmazonInvoiceUploadInterventionRequestSchema,
   AmazonInvoiceUploadMissionInputSchema,
   AmazonInvoiceUploadResumeInputSchema,
   AmazonInvoiceUploadTaskStartInputSchema,
   AmazonTaxInvoiceDownloadMissionInputSchema,
+  cancelAmazonInvoiceUpload,
+  pauseAmazonInvoiceUpload,
   resumeAmazonInvoiceUploadTask,
   startAmazonInvoiceAdminOpenTask,
   startAmazonInvoiceUploadMission,
   startAmazonInvoiceUploadTask,
   startAmazonTaxInvoiceDownloadTask,
+  takeoverAmazonInvoiceUpload,
+  resumeAmazonInvoiceUpload,
 } from "../plugins/amazon-invoice-upload/index.js";
+
+export const runPauseAmazonInvoiceUploadRoute = (rawInput: Parameters<typeof pauseAmazonInvoiceUpload>[1], dataDir: string) =>
+  pauseAmazonInvoiceUpload(dataDir, AmazonInvoiceUploadInterventionRequestSchema.parse(rawInput));
+export const runCancelAmazonInvoiceUploadRoute = (rawInput: Parameters<typeof cancelAmazonInvoiceUpload>[1], dataDir: string) =>
+  cancelAmazonInvoiceUpload(dataDir, AmazonInvoiceUploadInterventionRequestSchema.parse(rawInput));
+export const runTakeoverAmazonInvoiceUploadRoute = (rawInput: Parameters<typeof takeoverAmazonInvoiceUpload>[1], dataDir: string) =>
+  takeoverAmazonInvoiceUpload(dataDir, AmazonInvoiceUploadInterventionRequestSchema.parse(rawInput));
+export const runResumeAmazonInvoiceUploadInterventionRoute = (rawInput: Parameters<typeof resumeAmazonInvoiceUpload>[1], dataDir: string) =>
+  resumeAmazonInvoiceUpload(dataDir, AmazonInvoiceUploadInterventionRequestSchema.parse(rawInput));
 
 export const runAmazonInvoiceAdminOpenRoute = (
   rawInput: unknown,

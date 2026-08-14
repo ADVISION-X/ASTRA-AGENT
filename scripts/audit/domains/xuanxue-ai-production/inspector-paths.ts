@@ -46,6 +46,11 @@ export const acceptanceSupportPaths = [
 
 export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/index.ts", schemaPath, profilePath, storePath,
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
+  "src/app/workbench-xuanxue-ai-production-routes.ts",
+  "src/app/workbench-xuanxue-ai-production-client.ts",
+  "src/app/workbench-api-boundary.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",

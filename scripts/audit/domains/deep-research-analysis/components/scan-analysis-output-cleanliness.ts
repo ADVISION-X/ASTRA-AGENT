@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type ObjectLiteralExpression, type PropertyAssignment, type SourceFile } from "ts-morph";
 
+import { astExpressionPath, astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -46,7 +47,7 @@ const getAnalysisContractFormat = (sourceFile: SourceFile | undefined): string |
 
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => identifier.getText() === value);
+    .some((identifier) => astIdentifierName(identifier) === value);
 
 const hasStringLiteral = (sourceFile: SourceFile | undefined, value: string): boolean =>
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.StringLiteral)
@@ -54,7 +55,7 @@ const hasStringLiteral = (sourceFile: SourceFile | undefined, value: string): bo
 
 const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, value: string): boolean =>
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === value);
+    .some((expression) => astExpressionPath(expression) === value);
 
 export const inspectAnalysisOutputCleanliness = (input: {
   promptBundleShellFile: SourceFile | undefined;

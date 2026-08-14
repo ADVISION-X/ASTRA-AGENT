@@ -237,6 +237,40 @@ export type XuanxueAiOrderStatus =
   | "review_required"
   | "failed";
 
+export const XuanxueAiInterventionRequestSchema = z.object({
+  orderId: z.string().min(1).max(200),
+  expectedRevision: z.number().int().nonnegative(),
+  reason: z.string().min(1).max(1_000),
+  requestId: z.string().min(1).max(240),
+}).strict();
+
+export type XuanxueAiInterventionRequest = z.infer<
+  typeof XuanxueAiInterventionRequestSchema
+>;
+
+export type XuanxueAiInterventionState =
+  | "running"
+  | "pause_requested"
+  | "paused"
+  | "cancel_requested"
+  | "cancelled"
+  | "takeover_requested"
+  | "taken_over"
+  | "recovery_pending"
+  | "review_required";
+
+export interface XuanxueAiInterventionRecord {
+  readonly orderId: string;
+  readonly revision: number;
+  readonly state: XuanxueAiInterventionState;
+  readonly reason: string | null;
+  readonly requestId: string | null;
+  readonly pendingRequest: "pause" | "cancel" | "takeover" | null;
+  readonly lastSafeCheckpoint: string | null;
+  readonly requestedAt: string | null;
+  readonly updatedAt: string;
+}
+
 export interface XuanxueAiStageRecord {
   readonly orderId: string;
   readonly stageId: XuanxueAiStageId;

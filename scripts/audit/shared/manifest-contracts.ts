@@ -18,12 +18,20 @@ export const sourceEvidenceSchema = z
   })
   .strict();
 
+export const primaryEvidenceSchema = z
+  .object({
+    engine: z.enum(["ast", "fs", "config"]),
+    sourceEvidenceIndex: z.number().int().nonnegative(),
+  })
+  .strict();
+
 export const clauseBindingBaseSchema = z
   .object({
     lawId: lawIdSchema,
     clauseId: z.string().min(1).refine((value) => value !== "primary", "Clause binding cannot use primary."),
     checkIds: z.array(z.string().min(1)).min(1),
     sourceEvidence: z.array(sourceEvidenceSchema).min(1),
+    primaryEvidence: primaryEvidenceSchema.optional(),
   })
   .strict();
 

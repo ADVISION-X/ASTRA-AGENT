@@ -1,7 +1,21 @@
 import Database from "better-sqlite3";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { runDeepResearchAnalysis, type DeepResearchAnalysisContext } from "./deep-research-analysis.analysis-runner.js";
+import {
+  readDeepResearchIntervention,
+  pauseDeepResearch,
+  cancelDeepResearch,
+  takeoverDeepResearch,
+  resumeDeepResearch,
+} from "./deep-research-analysis.intervention.js";
+export {
+  DeepResearchInterventionRequestSchema,
+  cancelDeepResearch,
+  pauseDeepResearch,
+  resumeDeepResearch,
+  takeoverDeepResearch,
+} from "./deep-research-analysis.intervention.js";
 export { runDeepResearchAnalysis } from "./deep-research-analysis.analysis-runner.js";
 import type { DeepResearchFinalAdjudicationRecord } from "./deep-research-analysis.parser.js";
 import type { DeepResearchTimelineEntry, PromptReconstructionStatus } from "./deep-research-analysis.public-contracts.js";
@@ -22,7 +36,8 @@ import {
 } from "./deep-research-analysis.public-report-support.js";
 import { mapJobRow } from "./deep-research-analysis.record-db.js";
 import type { ResearchAnswer, ResearchInteraction, ResearchSubQuestion } from "./deep-research-analysis.records.js";
-import { createDeepResearchRecordStore, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH, type ResearchExport, type ResearchExportKind, type ResearchJob } from "./deep-research-analysis.records.js";
+import { createDeepResearchRecordStore, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH, type ResearchExport, type ResearchJob } from "./deep-research-analysis.records.js";
+import { getDeepResearchExportArtifact, type DeepResearchExportArtifactPayload } from "./deep-research-analysis.export-artifact.js";
 import type { DeepResearchPhase } from "./deep-research-analysis.schema.js";
 import { type DeepResearchInputAttachment, type DeepResearchInputPayload } from "./deep-research-analysis.schema.js";
 export { DeepResearchInputSchema } from "./deep-research-analysis.schema.js";
@@ -33,7 +48,7 @@ const truncateText = (value: string, maxLength = 220): string => {
   }
   return `${normalized.slice(0, maxLength - 1)}...`;
 };
-export const buildPromptText = (input: {
+const buildPromptText = (input: {
   interaction: ResearchInteraction;
 }): {
   promptText: string | null;
@@ -50,7 +65,7 @@ export const buildPromptText = (input: {
     promptReconstructionStatus: "unavailable",
   };
 };
-export const buildParsedEntry = (input: {
+const buildParsedEntry = (input: {
   interaction: ResearchInteraction;
   subQuestions: readonly ResearchSubQuestion[];
   answersByInteractionId: Map<string, ResearchAnswer>;
@@ -184,7 +199,7 @@ const buildTimelineEntries = (input: { interactions: readonly ResearchInteractio
     };
   });
 };
-export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null =>
+const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResearchTimelineSnapshot | null =>
   withTimelineStore(dataDir, (store) => {
     const job = store.getJob(jobId);
     if (!job) {
@@ -220,7 +235,7 @@ export const buildTimelineSnapshot = (dataDir: string, jobId: string): DeepResea
       exports,
     };
   });
-export const buildJobSnapshotForId = (dataDir: string, jobId: string): DeepResearchJobSnapshot | null =>
+const buildJobSnapshotForId = (dataDir: string, jobId: string): DeepResearchJobSnapshot | null =>
   withTimelineStore(dataDir, (store) => {
     const job = store.getJob(jobId);
     if (!job) {
@@ -240,7 +255,7 @@ export const buildJobSnapshotForId = (dataDir: string, jobId: string): DeepResea
       exports,
     });
   });
-export const buildReportSubQuestionState = (snapshot: DeepResearchTimelineSnapshot) => {
+const buildReportSubQuestionState = (snapshot: DeepResearchTimelineSnapshot) => {
   const subQuestions = buildReportSubQuestionViews(snapshot.subQuestions);
   const subQuestionById = new Map(subQuestions.map((record) => [record.id, record]));
   const timelineByPhaseAndSubQuestionId = buildTimelineByPhaseAndSubQuestionId(snapshot.timeline);
@@ -269,7 +284,7 @@ const readExportPayload = (record: ResearchExport | null): Record<string, unknow
   }
 };
 const selectBusinessHtmlExport = (exports: DeepResearchTimelineSnapshot["exports"]): ResearchExport | null => exports.find((entry) => entry.exportKind === "business-report.html") ?? null;
-export const buildPrimaryBusinessReportView = (input: { job: DeepResearchTimelineSnapshot["job"]; exports: DeepResearchTimelineSnapshot["exports"]; exportViews: ReturnType<typeof buildReportExportViews> }): DeepResearchPrimaryBusinessReportView => {
+const buildPrimaryBusinessReportView = (input: { job: DeepResearchTimelineSnapshot["job"]; exports: DeepResearchTimelineSnapshot["exports"]; exportViews: ReturnType<typeof buildReportExportViews> }): DeepResearchPrimaryBusinessReportView => {
   const htmlExport = selectBusinessHtmlExport(input.exports);
   const htmlExportView = input.exportViews.find((entry) => entry.exportKind === "business-report.html") ?? null;
   const payload = readExportPayload(htmlExport);
@@ -283,18 +298,6 @@ export const buildPrimaryBusinessReportView = (input: { job: DeepResearchTimelin
     failureReason: htmlExportView ? null : input.job.failureReason,
     reviewReason: htmlExportView ? null : input.job.reviewReason,
   };
-};
-export type DeepResearchExportArtifactPayload = {
-  jobId: string;
-  kind: ResearchExportKind;
-  fileName: string;
-  filePath: string;
-  contentType: "text/markdown" | "text/html" | "application/json";
-  fileHash: string;
-  payloadHash: string;
-  textContent?: string;
-  jsonContent?: unknown;
-  base64Content?: string;
 };
 const JOB_STATUSES: readonly ResearchJob["status"][] = ["queued", "running", "completed", "review_required", "failed"];
 const resolveDbPath = (dataDir: string): string => path.join(dataDir, DEEP_RESEARCH_ANALYSIS_DB_RELATIVE_PATH);
@@ -434,49 +437,8 @@ export const deleteDeepResearchAnalysisJob = (input: { dataDir: string; jobId: s
     });
     return { deleted, jobId: input.jobId };
   });
-export const getDeepResearchExportArtifact = (input: { dataDir: string; jobId: string; kind: ResearchExportKind }): DeepResearchExportArtifactPayload | null =>
-  withStore(input.dataDir, (store) => {
-    const exported = store.listExports(input.jobId).find((record) => record.exportKind === input.kind);
-    if (!exported || !existsSync(exported.filePath)) {
-      return null;
-    }
-    const fileName = path.basename(exported.filePath);
-    if (input.kind === "final-adjudication-raw.md" || input.kind === "full-case-file.md") {
-      return {
-        jobId: input.jobId,
-        kind: input.kind,
-        fileName,
-        filePath: exported.filePath,
-        contentType: "text/markdown",
-        fileHash: exported.fileHash,
-        payloadHash: exported.payloadHash,
-        textContent: readFileSync(exported.filePath, "utf8"),
-      };
-    }
-    if (input.kind === "business-report.html") {
-      return {
-        jobId: input.jobId,
-        kind: input.kind,
-        fileName,
-        filePath: exported.filePath,
-        contentType: "text/html",
-        fileHash: exported.fileHash,
-        payloadHash: exported.payloadHash,
-        textContent: readFileSync(exported.filePath, "utf8"),
-      };
-    }
-    return {
-      jobId: input.jobId,
-      kind: input.kind,
-      fileName,
-      filePath: exported.filePath,
-      contentType: "application/json",
-      fileHash: exported.fileHash,
-      payloadHash: exported.payloadHash,
-      jsonContent: JSON.parse(readFileSync(exported.filePath, "utf8")) as unknown,
-    };
-  });
 export type { DeepResearchInputAttachment };
+export type { DeepResearchExportArtifactPayload };
 export type { DeepResearchHistorySnapshot, DeepResearchJobSnapshot, DeepResearchReportViewModel, DeepResearchTimelineSnapshot } from "./deep-research-analysis.public-contracts.js";
 export const deepResearchAnalysisPublicFacade = {
   runDeepResearchAnalysis,
@@ -487,6 +449,11 @@ export const deepResearchAnalysisPublicFacade = {
   getDeepResearchAnalysisTimeline,
   getDeepResearchExportArtifact,
   deleteDeepResearchAnalysisJob,
+  readDeepResearchIntervention,
+  pauseDeepResearch,
+  cancelDeepResearch,
+  takeoverDeepResearch,
+  resumeDeepResearch,
 } as const;
 export type DeepResearchAnalysisStartInput = DeepResearchInputPayload & {
   providerKind: DeepResearchAnalysisContext["providerKind"];

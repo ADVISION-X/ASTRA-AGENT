@@ -2,7 +2,32 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { PluginInterventionRequestSchema } from "../types/plugin-intervention.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
+
+const handleAmazonProductMiningIntervention = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const base = "/api/amazon-product-mining/intervention";
+  if (request.method === "GET" && url.pathname === `${base}/status`) {
+    const taskId = url.searchParams.get("taskId")?.trim();
+    if (!taskId) { writeJson(response, 400, { error: "TASK_ID_REQUIRED" }); return true; }
+    writeJson(response, 200, await workbench.readAmazonProductMiningIntervention(taskId));
+    return true;
+  }
+  if (request.method !== "POST") return false;
+  const invoke = url.pathname === `${base}/pause` ? workbench.pauseAmazonProductMining
+    : url.pathname === `${base}/cancel` ? workbench.cancelAmazonProductMining
+      : url.pathname === `${base}/takeover` ? workbench.takeoverAmazonProductMining
+        : url.pathname === `${base}/resume` ? workbench.resumeAmazonProductMining : null;
+  if (!invoke) return false;
+  try { writeJson(response, 200, await invoke(PluginInterventionRequestSchema.parse(await readJsonBody(request)))); }
+  catch (error) { const reason = error instanceof Error ? error.message : String(error); writeJson(response, reason === "STALE_INTERVENTION_REVISION" ? 409 : 400, { error: reason }); }
+  return true;
+};
 
 type AmazonRouteHandler = () => Promise<boolean>;
 
@@ -95,6 +120,7 @@ export const handleAmazonProductMiningRequest = async (
   workbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> => {
+  if (await handleAmazonProductMiningIntervention(request, response, workbench, url)) return true;
   if (request.method !== "POST" && request.method !== "GET") {
     return false;
   }

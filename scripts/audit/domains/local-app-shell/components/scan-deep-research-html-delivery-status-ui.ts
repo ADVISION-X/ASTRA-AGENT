@@ -130,7 +130,15 @@ const inspectBrowserFunctions = (input: InspectionInput, files: InspectionFiles)
 };
 
 const inspectDeliveryMarkers = (input: InspectionInput, files: InspectionFiles): void => {
-  for (const marker of ["sourceKind", "fileHash", "fileSizeBytes", "failureReason", "reviewReason", "Open HTML Report", "Download HTML Report"]) {
+  for (const identifierName of ["sourceKind", "fileHash", "fileSizeBytes", "failureReason", "reviewReason"]) {
+    requireIdentifier({
+      ...input,
+      sourceFile: files.deliveryFile,
+      checkId: "local-app-shell/deep-research-html-delivery-field",
+      identifierName,
+    });
+  }
+  for (const marker of ["Open HTML Report", "Download HTML Report"]) {
     requireAstMarker({ ...input, sourceFile: files.deliveryFile, checkId: "local-app-shell/deep-research-html-delivery-marker", marker });
   }
   for (const marker of [

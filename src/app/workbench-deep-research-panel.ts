@@ -1,5 +1,6 @@
 import { renderDeepResearchHistoryView } from "./workbench-deep-research-history-view.js";
 import { renderDeepResearchReportView } from "./workbench-deep-research-report-view.js";
+import { renderPluginInterventionPanel } from "./app-shell/plugin-intervention-panel.js";
 
 const renderDeepResearchNewResearchSurface = (): string => `
 <section class="research-form-shell" data-deep-research-form-shell>
@@ -87,4 +88,5 @@ export const renderDeepResearchPanel = (): string => `
       </aside>
     </section>
   </div>
+  ${renderPluginInterventionPanel({ owner: "deep-research-analysis", label: "Research job control", routePrefix: "/api/deep-research-analysis/intervention/" })}
 </section>`;

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -62,11 +62,11 @@ const normalizeSearchProductUrl = (productUrl: string): string => {
 };
 
 const evaluateSearchResultSlice = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   keyword: string;
   startIndex: number;
 }): Promise<{ items: ExtractedItem[]; rawText: string | null; totalCards: number }> => {
-  const result = await input.browser.evaluateActiveTab<ExtractResult>({
+  const result = await input.browser.evaluate<ExtractResult>({
     script: buildAmazonSearchExtractScript({
       includeRawText: input.startIndex === 0,
       limit: 10,
@@ -93,7 +93,7 @@ const evaluateSearchResultSlice = async (input: {
 };
 
 const collectBrowserSearchItems = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   keyword: string;
 }): Promise<{ extractedItems: ExtractedItem[]; rawVisibleTextSnapshot: string }> => {
   const extractedItems: ExtractedItem[] = [];
@@ -168,13 +168,13 @@ const mapExtractedSearchItems = (input: {
   }));
 };
 
-const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: string): SearchPageAdapter => ({
+const buildBrowserSearchAdapter = (browser: BrowserTargetSession, marketplace: string): SearchPageAdapter => ({
   async extractSearchResults({ keyword, keywordId, taskId }) {
     const searchUrl = `https://www.${marketplace}/s?k=${encodeURIComponent(keyword)}`;
     await browser.open({
       url: searchUrl,
       title: `Amazon search: ${keyword}`,
-      reusePolicy: "reuse-active-tab",
+      reusePolicy: "reuse-exact-url",
     });
     await browser.wait(3000);
 
@@ -194,7 +194,7 @@ const buildBrowserSearchAdapter = (browser: BrowserController, marketplace: stri
 });
 
 export const runAmazonSearch = async (input: {
-  browser?: BrowserController;
+  browser?: BrowserTargetSession;
   marketplace: string;
   keywordId: string;
   keyword: string;

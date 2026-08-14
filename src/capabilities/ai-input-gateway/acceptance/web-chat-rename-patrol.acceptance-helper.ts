@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import {
   interruptedRenameEditorIdentityMatches,
   RENAME_PATROL_SLICE_MS,
@@ -29,7 +29,7 @@ const assertBoundedRenamePatrol = async (): Promise<void> => {
       const patrolNumber = attempt + 1;
       order.push(`patrol-${patrolNumber}-acquire`);
       try {
-        return await operation({} as BrowserController);
+        return await operation({} as BrowserTargetSession);
       } finally {
         order.push(`patrol-${patrolNumber}-release`);
       }

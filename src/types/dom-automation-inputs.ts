@@ -4,7 +4,7 @@ export type ReadDomSnapshotInput = {
   includeFrames?: boolean | undefined;
   includeHidden?: false;
   maxTextLengthPerNode?: number | undefined;
-  targetScope?: "active-tab" | "current-frame" | undefined;
+  targetScope?: "exact-target" | "current-frame" | undefined;
   timeoutMs?: number | undefined;
 };
 

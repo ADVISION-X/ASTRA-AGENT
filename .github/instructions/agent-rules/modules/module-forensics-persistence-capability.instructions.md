@@ -30,6 +30,26 @@ It does not own:
 
 ## Law GRASSEYE-EVIDENCE-001-V2
 
+```apex-law
+{
+  "lawId": "GRASSEYE-EVIDENCE-001-V2",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "forensics-persistence-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "Forensics Persistence is the single append-first evidence owner for step traces, artifact references, result records, and failure reasons, and it never owns workflow decisions.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-evidence-001-v2-requirement",
+      "statement": "Every persisted business result must remain traceable through append-first record or artifact references with success and failure truth, while the evidence owner never decides the next workflow step.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "forensics-persistence-capability"
+    }
+  ]
+}
+```
+
 Required:
 - Every business step may append a concise trace.
 - Success and failure both include enough evidence to inspect what happened.

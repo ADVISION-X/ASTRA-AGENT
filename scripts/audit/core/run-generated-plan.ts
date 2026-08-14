@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -25,13 +26,6 @@ type DomainExecutionReport = CompletedReport & {
 };
 
 type AuditOwnerOutput = InspectorOutput | ParsedSessionInspectorOutput;
-
-type RunGeneratedPlanOptions = {
-  capabilityDomains?: readonly string[];
-  excludeCapabilityDomains?: readonly string[];
-  executionGroups?: readonly AuditPlanEntry["executionGroup"][];
-  initialCompletedReports?: Record<string, CompletedReport>;
-};
 
 const executionOrder = {
   foundation: 0,
@@ -104,6 +98,7 @@ const findInspectorOutputError = (planEntry: AuditPlanEntry, output: InspectorOu
 const findReceiptIdentityError = (
   planEntry: AuditPlanEntry,
   output: ParsedSessionInspectorOutput,
+  expectedRunId: string,
 ): string | null => {
   const expectedCheckIds = new Set(planEntry.bindings.flatMap((binding) => binding.checkIds));
   const checkRunIds = output.checkRuns.map((receipt) => receipt.checkRunId);
@@ -118,8 +113,8 @@ const findReceiptIdentityError = (
   if (missingCheckId) return `Inspector omitted physical check ${missingCheckId}.`;
   const extraCheckId = checkIds.find((checkId) => !expectedCheckIds.has(checkId));
   if (extraCheckId) return `Inspector executed undeclared physical check ${extraCheckId}.`;
-  const runIds = new Set(output.checkRuns.map((receipt) => receipt.runId));
-  return runIds.size !== 1 ? "Inspector mixed physical check receipts from multiple runs." : null;
+  const invalidRunId = output.checkRuns.find((receipt) => receipt.runId !== expectedRunId);
+  return invalidRunId ? "Inspector reported a physical check receipt outside the current generated-plan run." : null;
 };
 
 const findReceiptResultError = (planEntry: AuditPlanEntry, output: ParsedSessionInspectorOutput): string | null => {
@@ -144,10 +139,11 @@ const findReceiptResultError = (planEntry: AuditPlanEntry, output: ParsedSession
 const findSessionOutputError = (
   planEntry: AuditPlanEntry,
   output: ParsedSessionInspectorOutput,
+  expectedRunId: string,
 ): string | null => {
   const baseError = findInspectorOutputError(planEntry, output);
   if (baseError) return baseError;
-  const identityError = findReceiptIdentityError(planEntry, output);
+  const identityError = findReceiptIdentityError(planEntry, output, expectedRunId);
   if (identityError) return identityError;
   const resultError = findReceiptResultError(planEntry, output);
   if (resultError) return resultError;
@@ -162,6 +158,7 @@ const findSessionOutputError = (
 const validateSessionInspectorOutput = (
   planEntry: AuditPlanEntry,
   controller: InspectorCheckSessionController,
+  expectedRunId: string,
   rawOutput: unknown,
 ): AuditOwnerOutput => {
   if (!controller.isAuthenticOutput(rawOutput)) {
@@ -169,7 +166,7 @@ const validateSessionInspectorOutput = (
   }
   const parsed = sessionInspectorOutputSchema.safeParse(rawOutput);
   if (!parsed.success) return buildFailureOutput(planEntry, parsed.error.message);
-  const validationError = findSessionOutputError(planEntry, parsed.data);
+  const validationError = findSessionOutputError(planEntry, parsed.data, expectedRunId);
   return validationError ? buildFailureOutput(planEntry, validationError) : parsed.data;
 };
 
@@ -222,10 +219,11 @@ const executePlanEntry = async (
   planEntry: AuditPlanEntry,
   generatedPlan: readonly AuditPlanEntry[],
   completedReports: Record<string, CompletedReport>,
+  runId: string,
 ): Promise<AuditOwnerOutput> => {
   try {
     const inspectDomain = await loadInspector(planEntry);
-    const controller = createInspectorCheckSession(planEntry);
+    const controller = createInspectorCheckSession(planEntry, runId);
     const rawOutput = await inspectDomain({
         project,
         planEntry,
@@ -233,7 +231,7 @@ const executePlanEntry = async (
         completedReports,
         checks: controller.checks,
       });
-    return validateSessionInspectorOutput(planEntry, controller, rawOutput);
+    return validateSessionInspectorOutput(planEntry, controller, runId, rawOutput);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown inspector execution failure.";
     return buildFailureOutput(planEntry, message);
@@ -254,36 +252,20 @@ const buildDomainExecutionReport = (
   };
 };
 
-const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promise<{
+const runGeneratedPlanInternal = async (): Promise<{
   domainReports: DomainExecutionReport[];
   executedChecks: InspectorOutput["executedChecks"];
   hasFailures: boolean;
 }> => {
   const project = createAuditProject();
-  const fullGeneratedPlan = sortPlanEntries(loadGeneratedAuditPlan());
-  const allowedGroups = options.executionGroups ? new Set(options.executionGroups) : null;
-  const allowedDomains = options.capabilityDomains ? new Set(options.capabilityDomains) : null;
-  const excludedDomains = options.excludeCapabilityDomains ? new Set(options.excludeCapabilityDomains) : null;
-  const generatedPlan = fullGeneratedPlan.filter((entry) => {
-    if (allowedGroups && !allowedGroups.has(entry.executionGroup)) {
-      return false;
-    }
-    if (allowedDomains && !allowedDomains.has(entry.capabilityDomain)) {
-      return false;
-    }
-    if (excludedDomains && excludedDomains.has(entry.capabilityDomain)) {
-      return false;
-    }
-    return true;
-  });
-  const completedReports: Record<string, CompletedReport> = {
-    ...(options.initialCompletedReports ?? {}),
-  };
+  const runId = `audit-run:${randomUUID()}`;
+  const generatedPlan = sortPlanEntries(loadGeneratedAuditPlan());
+  const completedReports: Record<string, CompletedReport> = {};
   const domainReports: DomainExecutionReport[] = [];
   const executedChecks: InspectorOutput["executedChecks"] = [];
 
   for (const planEntry of generatedPlan) {
-    const output = await executePlanEntry(project, planEntry, fullGeneratedPlan, completedReports);
+    const output = await executePlanEntry(project, planEntry, generatedPlan, completedReports, runId);
     const report = buildDomainExecutionReport(planEntry, output);
     executedChecks.push(...output.executedChecks);
     completedReports[planEntry.capabilityDomain] = {
@@ -301,22 +283,11 @@ const runGeneratedPlanInternal = async (options: RunGeneratedPlanOptions): Promi
   };
 };
 
-export const runGeneratedPlanFiltered = async (options: RunGeneratedPlanOptions): Promise<{
-  domainReports: DomainExecutionReport[];
-  hasFailures: boolean;
-}> => {
-  const result = await runGeneratedPlanInternal(options);
-  return {
-    domainReports: result.domainReports,
-    hasFailures: result.hasFailures,
-  };
-};
-
 export const runGeneratedPlan = async (): Promise<{
   domainReports: DomainExecutionReport[];
   hasFailures: boolean;
 }> => {
-  const result = await runGeneratedPlanInternal({});
+  const result = await runGeneratedPlanInternal();
   const registry = JSON.parse(
     readFileSync(resolveFromRepo("scripts/audit/generated/law-registry.generated.json"), "utf8"),
   ) as { laws: LawSource[] };

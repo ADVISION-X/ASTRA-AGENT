@@ -1,6 +1,6 @@
 import type {
   BrowserActionResult,
-  BrowserController,
+  BrowserTargetSession,
 } from "../../../lib/browser/browser-controller.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import {
@@ -8,11 +8,10 @@ import {
   acquireWebChatBrowserMutationLease,
   type WebChatRuntimeLease,
 } from "./web-chat-concurrency-lease.js";
-import { focusSingleProviderTab } from "./web-chat-single-provider-tab.js";
 import { focusBoundWebChatConversation } from "./web-chat-single-tab-routing.js";
 
 type SingleTabBrowserInput = {
-  base: BrowserController;
+  base: BrowserTargetSession;
   dataDir: string;
   executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
@@ -43,10 +42,10 @@ const delay = (durationMs: number, signal?: AbortSignal): Promise<void> =>
   });
 
 export type SingleTabWebChatBrowser = {
-  browser: BrowserController;
-  globalBrowser: BrowserController;
+  browser: BrowserTargetSession;
+  globalBrowser: BrowserTargetSession;
   runExclusivePatrol<T>(
-    operation: (browser: BrowserController) => Promise<T>,
+    operation: (browser: BrowserTargetSession) => Promise<T>,
   ): Promise<T>;
   bindObservedConversation(submission: WebChatSubmissionProof): void;
   bindConversationIdentity(submission: WebChatSubmissionProof): void;
@@ -105,18 +104,9 @@ const createMutationRunner =
           }));
     const ownsLease = lease !== initialLease;
     try {
-      const providerTab = await focusSingleProviderTab({
-        providerKind: input.providerKind,
-        ...(input.signal ? { signal: input.signal } : {}),
-      });
-      if (providerTab === "ambiguous") {
+      if (!input.base.getTarget?.() && !options.allowMissingProviderTab) {
         throw new Error(
-          "review_required: more than one physical provider tab is open.",
-        );
-      }
-      if (providerTab === "not_found" && !options.allowMissingProviderTab) {
-        throw new Error(
-          "review_required: the single controlled provider tab is not open.",
+          "review_required: the exact provider target is not acquired.",
         );
       }
       if (options.route !== false) await routeToBoundConversation(input, state);
@@ -130,11 +120,11 @@ const createBrowserFacade = (
   input: SingleTabBrowserInput,
   withMutation: MutationRunner,
   routeByDefault: boolean,
-): BrowserController => {
+): BrowserTargetSession => {
   const browser = {
     ...createInteractiveBrowserFacade(input, withMutation, routeByDefault),
     ...createObservationBrowserFacade(input, withMutation, routeByDefault),
-  } as BrowserController;
+  } as BrowserTargetSession;
   if (input.base.move) {
     browser.move = (value) =>
       withMutation(() => input.base.move!(value), {
@@ -147,11 +137,17 @@ const createBrowserFacade = (
         route: routeByDefault,
       });
   }
+  if (input.base.pasteFileFromSystemClipboard) {
+    browser.pasteFileFromSystemClipboard = (value) =>
+      withMutation(() => input.base.pasteFileFromSystemClipboard!(value), {
+        route: routeByDefault,
+      });
+  }
   return browser;
 };
 
 type InteractiveBrowserFacade = Pick<
-  BrowserController,
+  BrowserTargetSession,
   | "getHealth"
   | "getSessionState"
   | "getGeometrySnapshot"
@@ -175,7 +171,7 @@ const createInteractiveBrowserFacade = (
       }),
     open: (value) =>
       withMutation(
-        () => input.base.open({ ...value, reusePolicy: "reuse-host-tab" }),
+        () => input.base.open({ ...value, reusePolicy: "reuse-exact-url" }),
         { route: false, allowMissingProviderTab: true },
       ),
     scroll: (value) =>
@@ -193,12 +189,12 @@ const createInteractiveBrowserFacade = (
 });
 
 type ObservationBrowserFacade = Pick<
-  BrowserController,
+  BrowserTargetSession,
   | "screenshotRegion"
-  | "evaluateActiveTab"
+  | "evaluate"
   | "setFileInputFiles"
   | "wait"
-  | "closeActiveTab"
+  | "closeTarget"
   | "close"
 >;
 
@@ -211,10 +207,10 @@ const createObservationBrowserFacade = (
       withMutation(() => input.base.screenshotRegion(value), {
         route: routeByDefault,
       }),
-    evaluateActiveTab: <T>(
-      value: Parameters<BrowserController["evaluateActiveTab"]>[0],
+    evaluate: <T>(
+      value: Parameters<BrowserTargetSession["evaluate"]>[0],
     ) =>
-      withMutation(() => input.base.evaluateActiveTab<T>(value), {
+      withMutation(() => input.base.evaluate<T>(value), {
         route: routeByDefault,
       }),
     setFileInputFiles: (value) =>
@@ -230,7 +226,7 @@ const createObservationBrowserFacade = (
         createdAt: new Date().toISOString(),
       };
     },
-    closeActiveTab: async (): Promise<BrowserActionResult> => ({
+    closeTarget: async (): Promise<BrowserActionResult> => ({
       browserActionId: "single-tab-web-chat-leave-open",
       ok: true,
       message: "left the single controlled web-chat tab open",
@@ -287,7 +283,7 @@ export const createSingleTabWebChatBrowser = (
     browser: createBrowserFacade(input, withSubmissionThenPatrol, true),
     globalBrowser: createBrowserFacade(input, withGlobalSurvival, false),
     async runExclusivePatrol<T>(
-      operation: (browser: BrowserController) => Promise<T>,
+      operation: (browser: BrowserTargetSession) => Promise<T>,
     ): Promise<T> {
       const lease = await acquireWebChatBrowserPatrolLease({
         dataDir: input.dataDir,
@@ -296,18 +292,9 @@ export const createSingleTabWebChatBrowser = (
         ...(input.signal ? { signal: input.signal } : {}),
       });
       try {
-        const providerTab = await focusSingleProviderTab({
-          providerKind: input.providerKind,
-          ...(input.signal ? { signal: input.signal } : {}),
-        });
-        if (providerTab === "ambiguous") {
+        if (!input.base.getTarget?.()) {
           throw new Error(
-            "review_required: more than one physical provider tab is open.",
-          );
-        }
-        if (providerTab === "not_found") {
-          throw new Error(
-            "review_required: the single controlled provider tab is not open.",
+            "review_required: the exact provider target is not acquired.",
           );
         }
         return await operation(input.base);

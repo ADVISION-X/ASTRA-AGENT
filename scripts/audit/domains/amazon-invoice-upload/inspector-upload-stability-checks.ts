@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { hasConstInitializer } from "./inspector-upload-runtime-stability.js";
 
 export const stringLiteralValues = (file: SourceFile): Set<string> =>
@@ -22,11 +23,11 @@ const propertyValue = (objectLiteral: Node, name: string): string | null => {
 
 export const functionCallsIdentifier = (file: SourceFile, functionName: string, calleeName: string): boolean =>
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName)
+    .some((call) => Node.isIdentifier(call.getExpression()) && astIdentifierName(call.getExpression()) === calleeName)
 
 const functionIdentifierCallCount = (file: SourceFile, functionName: string, calleeName: string): number =>
   (file.getFunction(functionName)?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
-    .filter((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === calleeName)
+    .filter((call) => Node.isIdentifier(call.getExpression()) && astIdentifierName(call.getExpression()) === calleeName)
     .length
 
 export const functionCallsProperty = (file: SourceFile, functionName: string, ownerName: string, methodName: string): boolean =>
@@ -35,7 +36,7 @@ export const functionCallsProperty = (file: SourceFile, functionName: string, ow
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression)
       && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === ownerName
+      && astIdentifierName(expression.getExpression()) === ownerName
       && expression.getName() === methodName;
   })
 
@@ -44,7 +45,7 @@ export const sourceCallsProperty = (file: SourceFile, ownerName: string, methodN
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression)
       && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === ownerName
+      && astIdentifierName(expression.getExpression()) === ownerName
       && expression.getName() === methodName;
   })
 
@@ -57,7 +58,7 @@ export const sourceCallsMethod = (file: SourceFile, methodName: string): boolean
 export const retryStepNames = (file: SourceFile): Set<string> =>
   new Set(file.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
     const expression = call.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== "runUploadStepWithRetries") return [];
+    if (!Node.isIdentifier(expression) || astIdentifierName(expression) !== "runUploadStepWithRetries") return [];
     const argument = call.getArguments()[0];
     if (!argument) return [];
     const stepName = propertyValue(argument, "stepName");
@@ -90,19 +91,6 @@ export function hasObjectProperty(file: SourceFile, propertyName: string): boole
   return file.getDescendants().some((node) =>
     (Node.isPropertyAssignment(node) || Node.isShorthandPropertyAssignment(node))
       && node.getName() === propertyName);
-}
-
-export function hasTruePropertyAssignment(file: SourceFile, propertyName: string): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
-    property.getName() === propertyName && property.getInitializer()?.getKind() === SyntaxKind.TrueKeyword);
-}
-
-export function hasTemplateExpressionWithIdentifier(file: SourceFile, identifierName: string): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.TemplateExpression).some((template) =>
-    template.getTemplateSpans().some((span) => {
-      const expression = span.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === identifierName;
-    }));
 }
 
 export function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUploadFile: SourceFile, existingEvidenceFile: SourceFile): string[] {
@@ -168,11 +156,11 @@ function collectExistingInvoiceTimingAndSymbolGaps(existingUploadFile: SourceFil
   const missing: string[] = [];
   if (existingUploadFile.getVariableDeclaration("existingInvoiceEvidenceTimeoutMs"))
     missing.push("existing-invoice-short-business-timeout-forbidden");
-  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", "250"))
+  if (!hasConstInitializer(existingUploadFile, "existingInvoiceEvidencePollMs", 250))
     missing.push("existing-invoice-evidence-poll-250");
-  if (!hasConstInitializer(existingUploadFile, "INVOICE_DIALOG_READY_CONFIRMATION_COUNT", "2"))
+  if (!hasConstInitializer(existingUploadFile, "INVOICE_DIALOG_READY_CONFIRMATION_COUNT", 2))
     missing.push("existing-invoice-ready-confirmation-count-2");
-  if (!hasConstInitializer(existingUploadFile, "noAvailableActionsDialogDismissTimeoutMs", "2_000"))
+  if (!hasConstInitializer(existingUploadFile, "noAvailableActionsDialogDismissTimeoutMs", 2_000))
     missing.push("existing-invoice-no-actions-dismiss-timeout-2000");
   const blockerInitializer = existingUploadFile.getVariableDeclaration("noAvailableActionsDialogText")
     ?.getInitializerIfKind(SyntaxKind.StringLiteral);
@@ -226,7 +214,7 @@ function collectExistingInvoiceRecoveryCallGaps(existingUploadFile: SourceFile):
     missing.push("existing-invoice-wait-detects-read-failure-dialog");
   if (!functionCallsIdentifier(existingUploadFile, "findInvoiceReadFailureDialogText", "findOrderBoundInvoiceDialogText"))
     missing.push("existing-invoice-read-failure-must-bind-current-order-dialog");
-  if (!functionCallsProperty(existingUploadFile, "clickSafeOutsideDialogPoint", "browser", "evaluateActiveTab"))
+  if (!functionCallsProperty(existingUploadFile, "clickSafeOutsideDialogPoint", "browser", "evaluate"))
     missing.push("existing-invoice-live-dialog-click-evaluation");
   if (!functionCallsIdentifier(existingUploadFile, "dismissInvoiceReadFailureDialog", "clickSafeOutsideDialogPoint"))
     missing.push("existing-invoice-outside-dialog-click");
@@ -254,7 +242,7 @@ function collectRetiredExistingInvoiceRecoveryGaps(existingUploadFile: SourceFil
 export function collectUploadRetryGuardGaps(flowFile: SourceFile): string[] {
   const flowValues = stringLiteralValues(flowFile);
   const missing: string[] = [];
-  if (!hasConstInitializer(flowFile, "UPLOAD_STEP_RETRY_LIMIT", "2")) missing.push("retry-limit-2");
+  if (!hasConstInitializer(flowFile, "UPLOAD_STEP_RETRY_LIMIT", 2)) missing.push("retry-limit-2");
   if (!flowFile.getFunction("runUploadStepWithRetries")) missing.push("recursive-retry-function");
   if (!functionCallsIdentifier(flowFile, "runUploadStepWithRetries", "runUploadStepWithRetries")) {
     missing.push("recursive-retry-self-call");

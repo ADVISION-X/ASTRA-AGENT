@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 
 import { Node, Project, SyntaxKind } from "ts-morph";
 
-import { inspectLegacyReceiptContract } from "../audit/domains/audit-system/physical-check-receipt-inspector.js";
+import {
+  inspectPhysicalCheckReceiptContract,
+  inspectRetiredEnforcementSurfaces,
+} from "../audit/domains/audit-system/physical-check-receipt-inspector.js";
 import { inspectOwnerRegistrations } from "../audit/domains/audit-system/owner-registration-inspector.js";
 import { appendDomainArtifactsFromIndexes } from "../audit/build/compose-artifact-domain-artifacts.js";
 import { discoverLawFiles } from "../audit/build/discover-law-files.js";
@@ -11,15 +14,23 @@ import { parseApexLaws } from "../audit/build/parse-apex-laws.js";
 import { loadGeneratedAuditPlan } from "../audit/core/load-audit-plan.js";
 import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
+import type { LawSource } from "../audit/shared/law-contracts.js";
+import type { ManifestSource } from "../audit/shared/manifest-contracts.js";
 import { resolveFromRepo } from "../audit/shared/paths.js";
+import {
+  runOwnerFilesystemWriterEscapeAttacks,
+  runSourceEvidenceReachabilityAttacks,
+} from "./audit-source-evidence-reachability.attacks.js";
+import { runGrasseyeRunnerLawTruthAttack } from "./audit-runner-law-truth.attacks.js";
+import { assertStandaloneAuditEntrypointRejected } from "./audit-standalone-entry.attacks.js";
 
-const xuanyuanInspectorPath = resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts");
+const mediaProcessingInspectorPath = resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts");
 const legacyFixturePath = resolveFromRepo("scripts/audit/shared/legacy-receipt-attack.fixture.ts");
 const attackProject = new Project({ tsConfigFilePath: resolveFromRepo("tsconfig.json") });
 
 const resetAttackProject = (): Project => {
   attackProject.getSourceFile(legacyFixturePath)?.forget();
-  attackProject.getSourceFileOrThrow(xuanyuanInspectorPath).refreshFromFileSystemSync();
+  attackProject.getSourceFileOrThrow(mediaProcessingInspectorPath).refreshFromFileSystemSync();
   return attackProject;
 };
 
@@ -28,7 +39,7 @@ const buildContext = (project: Project): InspectorContext => {
   const planEntry = generatedPlan.find((entry) => entry.capabilityDomain === "audit-system");
   if (!planEntry) throw new Error("audit-system plan entry is missing.");
   return {
-    checks: createInspectorCheckSession(planEntry).checks,
+    checks: createInspectorCheckSession(planEntry, "acceptance-run:audit-physical-check-receipts").checks,
     completedReports: {},
     generatedPlan,
     planEntry,
@@ -38,7 +49,7 @@ const buildContext = (project: Project): InspectorContext => {
 
 const inspectOwnerSurface = (context: InspectorContext) => {
   const findings: import("../audit/shared/inspector-contracts.js").InspectorFinding[] = [];
-  const generatedPlan = context.generatedPlan.filter((entry) => entry.capabilityDomain === "xuanyuan");
+  const generatedPlan = context.generatedPlan.filter((entry) => entry.capabilityDomain === "media-processing-capability");
   inspectOwnerRegistrations({ ...context, generatedPlan }, findings, new Set<string>(), "APEX-AUDIT-005-V1");
   return { findings };
 };
@@ -46,13 +57,13 @@ const inspectOwnerSurface = (context: InspectorContext) => {
 const runRegistrationAttack = (): void => {
   const project = resetAttackProject();
   const context = buildContext(project);
-  const generatedPlan = context.generatedPlan.map((entry) => entry.capabilityDomain !== "xuanyuan"
+  const generatedPlan = context.generatedPlan.map((entry) => entry.capabilityDomain !== "media-processing-capability"
     ? entry
     : {
         ...entry,
         bindings: entry.bindings.map((binding, index) => index !== 0
           ? binding
-          : { ...binding, checkIds: [...binding.checkIds, "xuanyuan/diagnostic-category-laundered-as-physical"] }),
+          : { ...binding, checkIds: [...binding.checkIds, "media-processing-capability/diagnostic-category-laundered-as-physical"] }),
       });
   const result = inspectOwnerSurface({ ...context, generatedPlan });
   assert.equal(
@@ -69,7 +80,7 @@ const runLegacyHelperAttack = (): void => {
     "export const executedChecksForPlan = () => [];",
     { overwrite: true },
   );
-  const result = inspectLegacyReceiptContract(buildContext(project), "APEX-AUDIT-005-V1");
+  const result = inspectRetiredEnforcementSurfaces(buildContext(project), "APEX-AUDIT-009-V1");
   assert.equal(
     result.findings.some((finding) =>
       finding.checkId === "audit-system/runner-law-truth"
@@ -79,9 +90,9 @@ const runLegacyHelperAttack = (): void => {
   );
 };
 
-const mutateXuanyuanInspectDomain = (bodyText: string): Project => {
+const mutateMediaProcessingInspectDomain = (bodyText: string): Project => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(xuanyuanInspectorPath);
+  const inspector = project.getSourceFileOrThrow(mediaProcessingInspectorPath);
   const inspectDomain = inspector.getVariableDeclarationOrThrow("inspectDomain")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   inspectDomain.setBodyText(bodyText);
@@ -101,8 +112,8 @@ const assertSignedWindowAttackRejected = (project: Project, label: string): void
 
 const assertBuilderSessionReceiverRejected = (project: Project): void => {
   const laws = parseApexLaws(discoverLawFiles()).laws.filter((law) => law.status === "active");
-  const manifest = loadManifests().manifests.find((entry) => entry.capabilityDomain === "xuanyuan");
-  if (!manifest) throw new Error("xuanyuan manifest fixture is missing.");
+  const manifest = loadManifests().manifests.find((entry) => entry.capabilityDomain === "media-processing-capability");
+  if (!manifest) throw new Error("media-processing-capability manifest fixture is missing.");
   const lawsById = new Map<string, typeof laws>();
   for (const law of laws) lawsById.set(law.lawId, [...(lawsById.get(law.lawId) ?? []), law]);
   const outputs: Parameters<typeof appendDomainArtifactsFromIndexes>[0] = {
@@ -119,12 +130,12 @@ const assertBuilderSessionReceiverRejected = (project: Project): void => {
   );
   assert.equal(outputs.conflicts.some((conflict) =>
     conflict.kind === "missing-check-evidence"
-    && conflict.capabilityDomain === "xuanyuan"), true,
+    && conflict.capabilityDomain === "media-processing-capability"), true,
   "generated artifact composition must reject a shadow checks receiver as owner check evidence.");
 };
 
 const runPostHocReceiptAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     const evaluation = await inspectDomainEvaluation(context);
     await context.checks.runAll(() => ({ findings: evaluation.findings, evidenceRefs: evaluation.inspectedFiles }));
     return context.checks.output();
@@ -132,7 +143,7 @@ const runPostHocReceiptAttack = (): void => {
 };
 
 const runAliasedPostHocReceiptAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     const renamedEvaluation = inspectDomainEvaluation;
     const evaluation = await renamedEvaluation(context);
     await context.checks.runAll(() => ({ findings: evaluation.findings, evidenceRefs: evaluation.inspectedFiles }));
@@ -141,14 +152,14 @@ const runAliasedPostHocReceiptAttack = (): void => {
 };
 
 const runHollowCallbackAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     await context.checks.runAll(() => ({ findings: [], evidenceRefs: [context.planEntry.ownerInspectorPath] }));
     return context.checks.output();
   `), "a hollow callback with arbitrary non-empty evidence");
 };
 
 const runUnrelatedHelperHollowAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     await context.checks.runAll(() => {
       values([]);
       return { findings: [], evidenceRefs: [context.planEntry.ownerInspectorPath] };
@@ -158,14 +169,14 @@ const runUnrelatedHelperHollowAttack = (): void => {
 };
 
 const runOwnerLocalHollowEvaluationAttack = (): void => {
-  const project = mutateXuanyuanInspectDomain(`
+  const project = mutateMediaProcessingInspectDomain(`
     await context.checks.runAll(() => {
       const evaluation = hollowOwnerEvaluation();
       return { findings: evaluation.findings, evidenceRefs: evaluation.inspectedFiles };
     });
     return context.checks.output();
   `);
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   inspector.insertStatements(inspector.getImportDeclarations().length,
     "const hollowOwnerEvaluation = () => ({ findings: [], inspectedFiles: ['decoy'] });");
   assertSignedWindowAttackRejected(project, "an owner-local hollow evaluation helper replacing the governed owner entrypoint");
@@ -173,7 +184,7 @@ const runOwnerLocalHollowEvaluationAttack = (): void => {
 
 const runGovernedEntrypointHollowAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   evaluation.setBodyText(`
@@ -189,7 +200,7 @@ const runGovernedEntrypointHollowAttack = (): void => {
 
 const runGovernedEntrypointDecoyCallAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   evaluation.setBodyText(`
@@ -207,7 +218,7 @@ const runGovernedEntrypointDecoyCallAttack = (): void => {
 
 const runGovernedEntrypointDecoyReceiverAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   inspector.insertStatements(inspector.getImportDeclarations().length, `
@@ -235,12 +246,12 @@ const runGovernedEntrypointDecoyReceiverAttack = (): void => {
 
 const runGovernedEntrypointDiscardedFindingAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   inspector.insertStatements(inspector.getImportDeclarations().length, `
     const discardedFindingEvaluation = () => {
-      createFinding({ checkId: "decoy", lawId: "GRASSEYE-XUANYUAN-001-V3", message: "discarded" });
+      createFinding({ checkId: "decoy", lawId: "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1", message: "discarded" });
       return [];
     };
   `);
@@ -261,7 +272,7 @@ const runGovernedEntrypointDiscardedFindingAttack = (): void => {
 
 const runGovernedEntrypointInlineDiscardedFindingAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   inspector.insertStatements(inspector.getImportDeclarations().length, `
@@ -270,7 +281,7 @@ const runGovernedEntrypointInlineDiscardedFindingAttack = (): void => {
   evaluation.setBodyText(`
     const findings = discardInlineFinding(createFinding({
       checkId: "decoy",
-      lawId: "GRASSEYE-XUANYUAN-001-V3",
+      lawId: "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
       message: "discarded argument",
     }));
     return {
@@ -288,13 +299,13 @@ const runGovernedEntrypointInlineDiscardedFindingAttack = (): void => {
 
 const runGovernedEntrypointNestedDiscardedFindingAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   inspector.insertStatements(inspector.getImportDeclarations().length, `
     const collectNestedFinding = () => [createFinding({
       checkId: "decoy",
-      lawId: "GRASSEYE-XUANYUAN-001-V3",
+      lawId: "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
       message: "discarded nested result",
     })];
     const discardNestedFindingCollection = () => {
@@ -319,7 +330,7 @@ const runGovernedEntrypointNestedDiscardedFindingAttack = (): void => {
 
 const runGovernedEntrypointUnreachableFindingAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   evaluation.setBodyText(`
@@ -327,7 +338,7 @@ const runGovernedEntrypointUnreachableFindingAttack = (): void => {
     if (false) {
       findings.push(createFinding({
         checkId: "decoy",
-        lawId: "GRASSEYE-XUANYUAN-001-V3",
+        lawId: "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
         message: "unreachable",
       }));
     }
@@ -347,13 +358,13 @@ const runGovernedEntrypointUnreachableFindingAttack = (): void => {
 
 const runGovernedEntrypointFakeFindingShapeAttack = (): void => {
   const project = resetAttackProject();
-  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/xuanyuan/inspector.ts"));
+  const inspector = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts"));
   const evaluation = inspector.getVariableDeclarationOrThrow("inspectDomainEvaluation")
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   inspector.insertStatements(inspector.getImportDeclarations().length, `
     const fakeFinding = () => ({
       checkId: "decoy",
-      lawId: "GRASSEYE-XUANYUAN-001-V3",
+      lawId: "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
       message: "shape-only object",
     });
   `);
@@ -374,7 +385,7 @@ const runGovernedEntrypointFakeFindingShapeAttack = (): void => {
 };
 
 const runOwnerCallbackShadowAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     await context.checks.runAll(async () => {
       const evaluation = await inspectDomainEvaluation(context);
       {
@@ -387,7 +398,7 @@ const runOwnerCallbackShadowAttack = (): void => {
 };
 
 const runOwnerSessionReceiverShadowAttack = (): void => {
-  const project = mutateXuanyuanInspectDomain(`
+  const project = mutateMediaProcessingInspectDomain(`
     const { checks } = context;
     const shadowSession = {
       checks: {
@@ -410,7 +421,7 @@ const runOwnerSessionReceiverShadowAttack = (): void => {
 };
 
 const runOwnerSessionUncalledRunAllAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     const discardedSignedWindow = async () => {
       await context.checks.runAll(async () => {
         const evaluation = await inspectDomainEvaluation(context);
@@ -423,7 +434,7 @@ const runOwnerSessionUncalledRunAllAttack = (): void => {
 };
 
 const runOwnerSessionUncalledOutputAttack = (): void => {
-  const project = mutateXuanyuanInspectDomain(`
+  const project = mutateMediaProcessingInspectDomain(`
     await context.checks.runAll(async () => {
       const evaluation = await inspectDomainEvaluation(context);
       return { findings: evaluation.findings, evidenceRefs: evaluation.inspectedFiles };
@@ -440,7 +451,7 @@ const runOwnerSessionUncalledOutputAttack = (): void => {
 };
 
 const runOwnerCallbackNestedReturnAttack = (): void => {
-  assertSignedWindowAttackRejected(mutateXuanyuanInspectDomain(`
+  assertSignedWindowAttackRejected(mutateMediaProcessingInspectDomain(`
     await context.checks.runAll(async () => {
       const evaluation = await inspectDomainEvaluation(context);
       const discardedOwnerReturn = () => ({
@@ -454,28 +465,11 @@ const runOwnerCallbackNestedReturnAttack = (): void => {
   `), "owner findings returned only by an uncalled nested callback");
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-export const runPhysicalCheckReceiptAttacks = (): void => {
+export const runPhysicalCheckReceiptAttacks = async (): Promise<void> => {
   runRegistrationAttack();
   runLegacyHelperAttack();
+  assertStandaloneAuditEntrypointRejected(resetAttackProject(), buildContext);
+  await runGrasseyeRunnerLawTruthAttack();
   runPostHocReceiptAttack();
   runAliasedPostHocReceiptAttack();
   runHollowCallbackAttack();
@@ -494,4 +488,6 @@ export const runPhysicalCheckReceiptAttacks = (): void => {
   runOwnerSessionUncalledRunAllAttack();
   runOwnerSessionUncalledOutputAttack();
   runOwnerCallbackNestedReturnAttack();
+  runSourceEvidenceReachabilityAttacks();
+  runOwnerFilesystemWriterEscapeAttacks();
 };

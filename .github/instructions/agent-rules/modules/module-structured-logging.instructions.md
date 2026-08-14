@@ -10,6 +10,28 @@ status: active
 version: 2026-05-21
 capabilityDomain: runtime-logs
 
+## Law GRASSEYE-STRUCTURED-LOGGING-001-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "runtime-log-spine",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "Structured logging is subordinate to the single Runtime Log Spine and must preserve FLOW, DEBUG, TRACE structure and sink-before-output redaction without a second logging authority.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-structured-logging-001-requirement",
+      "statement": "All structured log events must use the single Runtime Log Spine, remain redacted and subordinate to evidence and result truth, and never create a compatibility or parallel logging chain.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "runtime-log-spine"
+    }
+  ]
+}
+```
+
 Structured logging is a support law under Runtime Log Spine.
 
 Required:

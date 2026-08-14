@@ -22,7 +22,7 @@ import type {
   WebChatAttachmentTransportResult,
 } from "../providers/web-chat-attachment-transport.js";
 import { clearRecentChatGptBlockingDialog } from "../providers/web-chat-rate-limit-dialog.js";
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 
 const ATTACHMENT_STABILITY_POLL_COUNT = 15;
 const ATTACHMENT_STABILITY_POLL_MS = 2_000;
@@ -34,7 +34,7 @@ export type AttachApprovedWebChatFilesResult = {
 };
 
 type AttachmentChildInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };
@@ -140,7 +140,7 @@ const stageApprovedFiles = async (input: {
 };
 
 const waitForStableAttachmentSet = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   files: StagedWebChatAttachment[];
   expectedPageUrl: string;

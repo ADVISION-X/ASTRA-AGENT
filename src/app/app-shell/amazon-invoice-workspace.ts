@@ -1,3 +1,5 @@
+import { renderPluginInterventionPanel } from "./plugin-intervention-panel.js";
+
 const marketplaceSelect = (): string =>
   `<select name="marketplace"><option>AE</option><option>SA</option><option>JP</option><option>US</option><option>UK</option></select>`;
 
@@ -80,4 +82,5 @@ export const renderAmazonInvoiceWorkspace = (): string => `
     ${renderEmptyAmazonInvoiceSurface("latest", "Latest Task", "No invoice task selected", "Use Latest after entering an Amazon order ID. Task details open in the Inspector only when selected.")}
     ${renderEmptyAmazonInvoiceSurface("evidence", "Evidence", "No evidence loaded", "Completed invoice upload evidence and failure reasons appear here from persisted task records.")}
   </div>
+  ${renderPluginInterventionPanel({ owner: "amazon-invoice-upload", label: "Invoice upload task control", routePrefix: "/api/amazon-invoice-upload/intervention/" })}
 </section>`;

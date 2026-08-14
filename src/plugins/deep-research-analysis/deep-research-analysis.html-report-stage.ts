@@ -436,11 +436,13 @@ export const runBusinessHtmlReportPhase = async (
   const outputPath = buildBusinessHtmlReportOutputPath(context.dataDir, context.jobId);
   const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   const result = await runPromptExchange<DeepResearchBusinessHtmlReportRecord>({
+    dataDir: context.dataDir,
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
     stageLogger: context.stageLogger,
     sender: context.sender,
+    releaseForTakeover: context.releaseForTakeover,
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,

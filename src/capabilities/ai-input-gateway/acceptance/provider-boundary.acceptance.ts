@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { classifyWebChatFailure } from "../failure-classification.js";
 import { AiFeedInputSchema } from "../schema.js";
 import {
@@ -8,16 +8,16 @@ import {
   requireBrowser,
 } from "../providers/web-chat-shared-support.js";
 
-const governedBrowser = {} as BrowserController;
+const governedBrowser = {} as BrowserTargetSession;
 assert.equal(
   requireBrowser({ dataDir: "/tmp/provider-boundary-acceptance", browser: governedBrowser }),
   governedBrowser,
-  "web-chat transport must use the injected governed BrowserController",
+  "web-chat transport must use the injected governed BrowserTargetSession",
 );
 assert.throws(
   () => requireBrowser({ dataDir: "/tmp/provider-boundary-acceptance" }),
-  /governed BrowserController/u,
-  "web-chat transport must fail closed without an operator-authorized BrowserController",
+  /governed BrowserTargetSession/u,
+  "web-chat transport must fail closed without an operator-authorized BrowserTargetSession",
 );
 
 for (const reason of [

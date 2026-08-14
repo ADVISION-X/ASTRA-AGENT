@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
@@ -7,18 +7,14 @@ import type {
   WebChatForkActionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import { isPick3WebChatRequest, openProviderPage } from "./web-chat-open.js";
-import { GEMINI_STALE_CLEANUP_MAX_PER_RUN } from "./web-chat-pick3-history-cleanup.js";
-import { startPick3RateLimitDialogWatcher } from "./web-chat-pick3-recovery-log.js";
+import { openProviderPage } from "./web-chat-open.js";
 import { startChatGptAcknowledgementWatcher } from "./web-chat-rate-limit-dialog.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
 import { attachApprovedWebChatFilesOnce } from "../children/attach-approved-web-chat-files-once.js";
 import {
   assertActiveProviderPage,
   buildWebChatRawResponse,
-  cleanupGeminiPick3HistoryBeforeNextImage,
   cleanupProviderWorkspaceAfterResponse,
-  isBlockingGeminiPick3PreImageHistoryCleanupStatus,
   persistWorkspaceAfterResponse,
   readActivePageUrl,
   requireBrowser,
@@ -26,15 +22,10 @@ import {
 import { captureWebChatResponseArtifacts } from "./web-chat-response-artifacts.js";
 import { captureChatGptGeneratedImage } from "./web-chat-generated-image-capture.js";
 import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
-import {
-  recoverPick3MissingBoundImageConversation,
-  recoverPick3NoResultConversation,
-  restoreAfterWebChatFeed,
-} from "./web-chat-recovery.js";
+import { restoreAfterWebChatFeed } from "./web-chat-recovery.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
 import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
 import {
-  emitWebChatStage,
   extractWebChatConversation,
 } from "./web-chat-response-capture.js";
 import { resumeSubmittedWebChatConversation } from "./web-chat-resume.js";
@@ -42,28 +33,8 @@ import {
   readPreSubmitConversationState,
 } from "./web-chat-pre-submit-state.js";
 
-const PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS = 1;
-
-const isPick3NoResultTimeoutError = (input: {
-  error: unknown;
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean =>
-  isPick3WebChatRequest({ request: input.request }) &&
-  input.error instanceof Error &&
-  input.error.message.includes("failed: provider response polling timed out");
-
-const isPick3MissingBoundImageError = (input: {
-  error: unknown;
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean =>
-  isPick3WebChatRequest({ request: input.request }) &&
-  input.error instanceof Error &&
-  input.error.message.includes("provider_missing_bound_image");
-
 const submitWebChatPrompt = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
@@ -95,7 +66,7 @@ const submitWebChatPrompt = async (input: {
 };
 
 type OpenedWebChatConversationInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
@@ -117,34 +88,6 @@ const prepareWebChatConversation = async (
     ...input,
     allowAnyProviderTab: false,
   });
-  const preImageCleanupStartedAtMs = Date.now();
-  const preImageCleanupStatus = await cleanupGeminiPick3HistoryBeforeNextImage({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-  });
-  if (preImageCleanupStatus !== null) {
-    emitWebChatStage({
-      request: input.request,
-      stage: "pre_image_history_cleanup",
-      status: preImageCleanupStatus,
-      startedAtMs: preImageCleanupStartedAtMs,
-      refs: {
-        provider: "gemini",
-        policy: "delete_previous_stale_history_before_next_image",
-        keepRecentCount: 1,
-        triggerThreshold: 1,
-        maxDeleteCount: GEMINI_STALE_CLEANUP_MAX_PER_RUN,
-      },
-    });
-  }
-  if (
-    isBlockingGeminiPick3PreImageHistoryCleanupStatus(preImageCleanupStatus)
-  ) {
-    throw new Error(
-      `review_required: Gemini Pick3 pre-image history cleanup failed before attachment upload: ${preImageCleanupStatus}`,
-    );
-  }
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -313,56 +256,7 @@ const executeWebChatConversation = async (
 const executeOpenedWebChatAdapter = async (
   input: OpenedWebChatConversationInput,
 ): Promise<AiProviderRawResponse> => {
-  let recoveryStatus: string | null = null;
-  let response: AiProviderRawResponse;
-  let missingBoundImageRecovered = false;
-  for (;;) {
-    try {
-      response = await executeWebChatConversation(input);
-      break;
-    } catch (error) {
-      if (
-        isPick3MissingBoundImageError({
-          error,
-          providerUrl: input.providerUrl,
-          request: input.request,
-        })
-      ) {
-        if (missingBoundImageRecovered) {
-          throw new Error(
-            "review_required: provider_missing_bound_image persisted after Pick3 recovery.",
-          );
-        }
-        missingBoundImageRecovered = true;
-        const imageRecoveryStatus =
-          await recoverPick3MissingBoundImageConversation(input);
-        recoveryStatus = recoveryStatus
-          ? `${recoveryStatus};${imageRecoveryStatus}`
-          : imageRecoveryStatus;
-        continue;
-      }
-      if (
-        !isPick3NoResultTimeoutError({
-          error,
-          providerUrl: input.providerUrl,
-          request: input.request,
-        })
-      ) {
-        throw error;
-      }
-      recoveryStatus = await recoverPick3NoResultConversation(input);
-      response = await executeWebChatConversation(input);
-      break;
-    }
-  }
-  if (recoveryStatus) {
-    response.providerRecoveryAttemptCount = recoveryStatus.includes(
-      "pick3_rate_limit_immediate_ack",
-    )
-      ? recoveryStatus.split("pick3_rate_limit_immediate_ack").length - 1
-      : PICK3_NO_RESULT_RECOVERY_MAX_ATTEMPTS;
-    response.providerRecoveryStatus = recoveryStatus;
-  }
+  const response = await executeWebChatConversation(input);
   persistWorkspaceAfterResponse({
     request: input.request,
     context: input.context,
@@ -401,11 +295,6 @@ export const runWebChatAdapter = async (input: {
     context: input.context,
     request: input.request,
   });
-  const rateLimitDialogWatcher = startPick3RateLimitDialogWatcher({
-    browser,
-    request: input.request,
-    context: input.context,
-  });
   const chatGptAcknowledgementWatcher = startChatGptAcknowledgementWatcher({
     browser: input.context.webChatExecution?.globalBrowser ?? browser,
     request: input.request,
@@ -424,11 +313,6 @@ export const runWebChatAdapter = async (input: {
     return response;
   } finally {
     let watcherFailure: unknown = null;
-    try {
-      await rateLimitDialogWatcher?.stop();
-    } catch (error) {
-      watcherFailure = error;
-    }
     try {
       await chatGptAcknowledgementWatcher?.stop();
     } catch (error) {

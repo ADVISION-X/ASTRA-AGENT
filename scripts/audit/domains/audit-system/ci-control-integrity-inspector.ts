@@ -12,7 +12,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { nodeReferencesDeclaration, resolvesTo, variableCall } from "./ci-integrity-ast.js";
-import { inspectCiPhaseIntegrity } from "./ci-phase-integrity-inspector.js";
+import { inspectCiPhaseIntegrity } from "./ci-phase-integrity-entry-inspector.js";
 import { isDefinitelyUnreachable } from "./control-flow-reachability.js";
 
 const commandRunnerPath = "scripts/audit/ci-command-runner.ts";

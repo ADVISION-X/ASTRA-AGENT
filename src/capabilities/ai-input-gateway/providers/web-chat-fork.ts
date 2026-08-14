@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
   WebChatForkActionProof,
@@ -9,7 +9,6 @@ import type { AiFeedInput } from "../schema.js";
 import {
   focusChatGptConversationByCanonicalPath,
 } from "../runtime/web-chat-single-tab-routing.js";
-import { collapseForkToSingleProviderTab } from "./web-chat-fork-tab-control.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
@@ -167,9 +166,9 @@ const transientBranchChildConversationUrl = (value: string): string => {
 };
 
 const observeCheckpoint = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
-): Promise<ForkCheckpointObservation> => browser.evaluateActiveTab<ForkCheckpointObservation>({
+): Promise<ForkCheckpointObservation> => browser.evaluate<ForkCheckpointObservation>({
   description: "verify exact ChatGPT fork checkpoint",
   script: CHECKPOINT_OBSERVATION_SCRIPT,
   ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
@@ -216,7 +215,7 @@ const inspectCheckpointAssistant = (
 };
 
 type ForkRuntimeInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   waitForComposer: () => Promise<void>;
@@ -303,7 +302,7 @@ const clickBranchMenuItem = async (
     labels: string[];
   } | null = null;
   while (Date.now() < deadline) {
-    clicked = await input.browser.evaluateActiveTab<{
+    clicked = await input.browser.evaluate<{
       status: "success" | "review_required";
       message: string;
       labels: string[];
@@ -327,7 +326,7 @@ const triggerForkAction = async (
   assistantTurnId: string,
   startedAtMs: number,
 ): Promise<{ actionMessage: string; actionLabels: string[]; forkActionClickedMs: number }> => {
-  const openedAction = await input.browser.evaluateActiveTab<{
+  const openedAction = await input.browser.evaluate<{
     status: "success" | "menu_opened" | "review_required";
     message: string;
     labels: string[];
@@ -423,7 +422,6 @@ const verifyForkChild = async (
   startedAtMs: number,
 ): Promise<{ child: ForkCheckpointObservation; childUrl: string;
   childSingleTabMs: number; childVerifiedMs: number }> => {
-  await collapseForkToSingleProviderTab(parent.parentUrl);
   const childSingleTabMs = Date.now() - startedAtMs;
   emitForkStage({
     request: input.request,

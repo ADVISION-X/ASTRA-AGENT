@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 export type UploadRuntimeStabilityFiles = {
   flowFile: SourceFile;
   flowSupportFile: SourceFile;
@@ -10,32 +11,43 @@ export type UploadRuntimeStabilityFiles = {
   chromeScreenshotFile: SourceFile;
 };
 
-export const hasConstInitializer = (file: SourceFile, name: string, initializerText: string): boolean =>
-  file.getVariableDeclaration(name)?.getInitializer()?.getText() === initializerText;
+export const hasConstInitializer = (file: SourceFile, name: string, initializerValue: number): boolean => {
+  const initializer = file.getVariableDeclaration(name)?.getInitializer();
+  return Boolean(initializer && Node.isNumericLiteral(initializer)
+    && Number(initializer.getLiteralValue()) === initializerValue);
+};
 
 export function collectUploadRuntimeStabilityGaps(files: UploadRuntimeStabilityFiles): string[] {
   const missing: string[] = [];
-  if (!hasConstInitializer(files.flowSupportFile, "AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS", "1_800")) {
+  if (!hasConstInitializer(files.flowSupportFile, "AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS", 1_800)) {
     missing.push("snapshot-deadline-flow-support:1800ms");
   }
   if (!(files.flowSupportFile.getVariableDeclaration("readSnapshot")?.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => identifier.getText() === "AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS") ?? false)) {
+    .some((identifier) => astIdentifierName(identifier) === "AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS") ?? false)) {
     missing.push("snapshot-deadline-flow-support:explicit-timeout");
   }
   if (!(files.orderFile.getVariableDeclaration("waitForApprovedOrderDetail")?.getDescendantsOfKind(SyntaxKind.CatchClause).length)) {
     missing.push("snapshot-deadline-order-detail:structured-exception");
   }
-  if (!(files.chromeScreenshotFile.getVariableDeclaration("captureCurrentChromeScreenshot")?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "activateChrome") ?? false)) {
-    missing.push("snapshot-deadline-screenshot:activate-controlled-window");
+  const screenshotValues = new Set(files.chromeScreenshotFile
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .map((identifier) => identifier.getText()));
+  const screenshotLiterals = new Set(files.chromeScreenshotFile
+    .getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .map((literal) => literal.getLiteralText()));
+  if (!screenshotLiterals.has("screenshot_target") || !screenshotValues.has("BrowserTargetRegistry")) {
+    missing.push("snapshot-deadline-screenshot:exact-target-capture");
   }
-  if (!hasConstInitializer(files.stepsFile, "UPLOAD_DIALOG_READY_TIMEOUT_MS", "2_000")) {
+  if (screenshotValues.has("activateChrome")) {
+    missing.push("snapshot-deadline-screenshot:no-foreground-activation");
+  }
+  if (!hasConstInitializer(files.stepsFile, "UPLOAD_DIALOG_READY_TIMEOUT_MS", 2_000)) {
     missing.push("upload-dialog-timeout-2000");
   }
-  if (!hasConstInitializer(files.fileAttachmentFile, "FILE_INPUT_READY_TIMEOUT_MS", "2_000")) {
+  if (!hasConstInitializer(files.fileAttachmentFile, "FILE_INPUT_READY_TIMEOUT_MS", 2_000)) {
     missing.push("file-input-timeout-2000");
   }
-  if (!hasConstInitializer(files.verifyFile, "UPLOAD_SUCCESS_TIMEOUT_MS", "2_000")) {
+  if (!hasConstInitializer(files.verifyFile, "UPLOAD_SUCCESS_TIMEOUT_MS", 2_000)) {
     missing.push("upload-success-timeout-2000");
   }
   if (files.flowFile.getFunction("openSellerCentralEntry") || files.flowFile.getFunction("waitForSellerCentralEntry")) {

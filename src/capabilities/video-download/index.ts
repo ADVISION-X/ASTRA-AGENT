@@ -2,7 +2,6 @@ export {
   createVideoDownloadAbilityGroup,
   createVideoDownloadAbilityGroupFromFilesystem,
   prepareVideoDownloadRuntimeDependencies,
-  probeTelegramWebVisibleMediaSourcePage,
   youtubeProductionDisplayTitle,
   youtubeProductionExpectedSubtitleLanguages,
   youtubeProductionLanguageMatches,
@@ -16,10 +15,6 @@ export type {
   VideoArtifactStoragePort,
   WriteVideoArtifactInput,
 } from "./ports/video-artifact-storage-port.js";
-export type {
-  TelegramWebVisibleMediaProbeResult,
-  TelegramWebVisibleVideoCandidate,
-} from "./ability-group.js";
 export type {
   VideoDownloadAbilityGroup,
 } from "./contract.js";

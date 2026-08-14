@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
@@ -62,7 +63,10 @@ const inspectSingleGate = (findings: Finding[], lawId: string): void => {
 };
 
 const sourceAstTokens = (sourceFile: SourceFile): string[] => [
-  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).flatMap((node) => {
+    const name = astIdentifierName(node);
+    return name === undefined ? [] : [name];
+  }),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((node) => node.getName()),
@@ -86,7 +90,6 @@ const inspectForbiddenStartupSurface = (
     "typecheck",
     "acceptance:",
     "amazon-invoice-upload.flow",
-    "facebook-product-video-mining.flow",
     "dom-automation",
   ] as const;
 
@@ -123,8 +126,8 @@ const inspectReadinessProbe = (context: InspectorContext, findings: Finding[], l
     const expression = callExpression.getExpression();
     const firstArgument = callExpression.getArguments()[0];
     return Node.isIdentifier(expression)
-      && expression.getText() === "fetch"
-      && Boolean(firstArgument && Node.isIdentifier(firstArgument) && firstArgument.getText() === "baseUrl");
+      && astIdentifierName(expression) === "fetch"
+      && Boolean(firstArgument && Node.isIdentifier(firstArgument) && astIdentifierName(firstArgument) === "baseUrl");
   }) ?? false;
   if (probesRootHtml) {
     pushFinding(findings, {
@@ -179,7 +182,7 @@ const hasNamedImport = (sourceFile: SourceFile, modulePart: string, importedName
 const hasCall = (sourceFile: SourceFile, callName: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === callName;
+    return Node.isIdentifier(expression) && astIdentifierName(expression) === callName;
   });
 
 const countCalls = (sourceFile: SourceFile, callName: string): number =>
@@ -187,7 +190,7 @@ const countCalls = (sourceFile: SourceFile, callName: string): number =>
     .getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((callExpression) => {
       const expression = callExpression.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === callName;
+      return Node.isIdentifier(expression) && astIdentifierName(expression) === callName;
     }).length;
 
 const callStartInFunction = (sourceFile: SourceFile, functionName: string, callName: string): number | undefined => {
@@ -196,7 +199,7 @@ const callStartInFunction = (sourceFile: SourceFile, functionName: string, callN
     ?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .find((callExpression) => {
       const expression = callExpression.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === callName;
+      return Node.isIdentifier(expression) && astIdentifierName(expression) === callName;
     })
     ?.getStart();
 };
@@ -303,7 +306,7 @@ const hasStringLiteral = (sourceFile: SourceFile, value: string): boolean =>
 
 const hasIdentifier = (sourceFile: SourceFile, value: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => identifier.getText() === value);
+    .some((identifier) => astIdentifierName(identifier) === value);
 
 const hasObjectPropertyName = (sourceFile: SourceFile, value: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment)

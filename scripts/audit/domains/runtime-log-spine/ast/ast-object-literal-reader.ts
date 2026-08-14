@@ -6,6 +6,7 @@ import {
   type ObjectLiteralExpression,
 } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { containsAny } from "../../../shared/no-regex.js";
 import { resolveObjectLiteralExpression } from "./ast-object-literal-resolver.js";
 import { traceDestructuredBinding, traceImportedBinding, traceVariableInitializer, unwrapExpression } from "./ast-symbol-utils.js";
@@ -59,15 +60,15 @@ const matchesRuntimeLogEventTypeImport = (identifier: Identifier): boolean => {
   const moduleSpecifier = imported.getModuleSpecifierValue();
   return containsAny(moduleSpecifier, ["runtime-logs"])
     && imported.getNamedImports().some((item) => {
-      const importName = item.getNameNode().getText();
-      const aliasName = item.getAliasNode()?.getText() ?? importName;
-      return importName === "RuntimeLogEventType" && aliasName === identifier.getText();
+      const importName = item.getName();
+      const aliasName = astIdentifierName(item.getAliasNode()) ?? importName;
+      return importName === "RuntimeLogEventType" && aliasName === astIdentifierName(identifier);
     });
 };
 
 const isRuntimeLogEventTypeSourceIdentifier = (identifier: Identifier): boolean =>
   identifier.getSourceFile().getFilePath().endsWith("/src/lib/runtime-logs/event-types.ts")
-  && identifier.getText() === "RuntimeLogEventType";
+  && astIdentifierName(identifier) === "RuntimeLogEventType";
 
 const isRuntimeLogEventTypeNamespace = (node: MorphNode | null, depth = 0): boolean => {
   const target = unwrapExpression(node);

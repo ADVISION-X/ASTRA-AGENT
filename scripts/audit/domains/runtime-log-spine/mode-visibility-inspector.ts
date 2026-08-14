@@ -1,10 +1,10 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ObjectLiteralExpression } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
-import { containsAny } from "../../shared/no-regex.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
-import { getArrayLiteralPropertyValues, getNestedObject, getPropertyInitializer, hasProperty } from "./ast/ast-object-literal-reader.js";
+import { getArrayLiteralPropertyValues, getNestedObject, hasProperty } from "./ast/ast-object-literal-reader.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { isAuthorizedRuntimeLogHelperPath, isRuntimeLogLawSourcePath } from "./runtime-log-scope.js";
 
@@ -18,19 +18,35 @@ const hasInvalidModeVisibility = (input: {
   || input.values.length === 0
   || input.values.some((value) => !["FLOW", "DEBUG", "TRACE"].includes(value));
 
+const payloadHasHeavyKey = (payload: ObjectLiteralExpression | null): boolean => payload !== null
+  && payload.getProperties().some((property) =>
+    (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property))
+    && heavyPayloadKeys.includes(property.getName() as (typeof heavyPayloadKeys)[number]));
+
+const isDebugTraceGuardCall = (call: import("ts-morph").CallExpression): boolean => {
+  const expression = call.getExpression();
+  const name = Node.isPropertyAccessExpression(expression)
+    ? expression.getName()
+    : astIdentifierName(expression);
+  return name === "isDebugEnabled" || name === "isTraceEnabled";
+};
+
+const hasDebugTraceGuard = (objectLiteral: ObjectLiteralExpression): boolean => objectLiteral.getAncestors()
+  .filter((ancestor) => Node.isIfStatement(ancestor) || Node.isConditionalExpression(ancestor))
+  .some((ancestor) => ancestor.getDescendantsOfKind(SyntaxKind.CallExpression).some(isDebugTraceGuardCall));
+
 const shouldFlagHeavyPayloadFlow = (input: {
   values: string[] | null;
-  payloadText: string;
-  nearbyText: string;
+  objectLiteral: ObjectLiteralExpression;
+  payload: ObjectLiteralExpression | null;
 }): boolean => (input.values ?? []).includes("FLOW")
-  && containsAny(input.payloadText, heavyPayloadKeys)
-  && !containsAny(input.nearbyText, ["isDebugEnabled(", "isTraceEnabled("]);
+  && payloadHasHeavyKey(input.payload)
+  && !hasDebugTraceGuard(input.objectLiteral);
 
 const appendModeVisibilityFindingsForCall = (input: {
   call: ReturnType<typeof resolveCallsInSourceFile>[number];
   findings: RuntimeLogSpineFinding[];
   repoPath: string;
-  sourceFile: SourceFile;
 }): void => {
   const objectLiteral = input.call.objectLiteralArg;
   if (!objectLiteral) {
@@ -49,9 +65,7 @@ const appendModeVisibilityFindingsForCall = (input: {
     });
   }
   const payload = getNestedObject(objectLiteral, "payload");
-  const payloadText = payload?.getText() ?? getPropertyInitializer(objectLiteral, "payload")?.getText() ?? "";
-  const nearbyText = input.sourceFile.getText().slice(Math.max(0, objectLiteral.getStart() - 900), objectLiteral.getEnd() + 900);
-  if (shouldFlagHeavyPayloadFlow({ values, payloadText, nearbyText })) {
+  if (shouldFlagHeavyPayloadFlow({ values, objectLiteral, payload })) {
     input.findings.push({
       checkId: "runtime-log-spine/heavy-payload-flow-guard",
       lawId: RuntimeLogSpineLaw.MODE_VISIBILITY,
@@ -76,7 +90,7 @@ export const collectModeVisibilityFindings = (context: InspectorContext): {
     if (isAuthorizedRuntimeLogHelperPath(repoPath)) continue;
     inspectedFiles.push(repoPath);
     for (const call of resolveCallsInSourceFile(sourceFile, repoPath).filter((resolvedCall) => resolvedCall.kind === "runtime-log-emit" || resolvedCall.kind === "event-factory")) {
-      appendModeVisibilityFindingsForCall({ call, findings, repoPath, sourceFile });
+      appendModeVisibilityFindingsForCall({ call, findings, repoPath });
     }
   }
   return { findings, inspectedFiles: inspectedFiles.sort() };

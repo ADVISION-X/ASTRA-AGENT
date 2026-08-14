@@ -54,7 +54,7 @@ const createStorage = (): VideoArtifactStoragePort => ({
 });
 
 const createBrowser = (result: unknown): BrowserMediaSourcePort => ({
-  async evaluateActiveTab<T>() {
+  async evaluate<T>() {
     return result as T;
   },
 });

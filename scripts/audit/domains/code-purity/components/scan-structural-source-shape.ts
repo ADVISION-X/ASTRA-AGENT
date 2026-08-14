@@ -1,4 +1,4 @@
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type Identifier } from "ts-morph";
 
 import { selectLawId } from "../../../shared/finding-utils.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
@@ -208,13 +208,24 @@ const scanDefaultExport = (
   }
 };
 
+const isNodeRequireReference = (identifier: Identifier): boolean => {
+  const symbol = identifier.getSymbol();
+  const resolved = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+  if (resolved?.getName() !== "require") return false;
+  return resolved.getDeclarations().some((declaration) =>
+    Node.isVariableDeclaration(declaration)
+    && declaration.getSourceFile().isDeclarationFile()
+    && declaration.getSourceFile().getFilePath().endsWith("/node_modules/@types/node/module.d.ts"));
+};
+
 const scanRequireCall = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   sourceAtomicityLawId: string,
 ): void => {
-  const requireCall = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText() === "require");
-  if (requireCall) {
+  const requireReference = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
+    .find(isNodeRequireReference);
+  if (requireReference) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/require-call",
       governedFile,

@@ -264,6 +264,18 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
+        "clauseId": "grasseye-structured-logging-001-requirement",
+        "checkIds": ["runtime-log-spine/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts", "symbolName": "inspectDomain"}]
+      },
+      {
+        "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
+        "clauseId": "grasseye-security-privacy-log-001-requirement",
+        "checkIds": ["runtime-log-spine/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts", "symbolName": "inspectDomain"}]
       }
     ]
   },
@@ -273,16 +285,10 @@
       "requiredAnchors": [
         "## 1. 推荐目录结构",
         "## 8. Inspector 施工",
-        "## 9. Acceptance 测试"
-      ]
-    },
-    {
-      "filePath": "docs/法案辅助文件/GrassEye Facebook Mining 日志矩阵施工图.md",
-      "requiredAnchors": [
-        "## 3. Mandatory Stages",
-        "## 11. Inspector 验收"
+        "## 9. Acceptance 测试",
+        "## 13. Structured Logging And Privacy Ownership"
       ]
     }
   ],
-  "description": "Enforces Runtime Log Spine machine-blocking law, report generation, and downstream Facebook log coverage anchors."
+  "description": "Enforces the single Runtime Log Spine, structured logging, privacy redaction, and report generation."
 }

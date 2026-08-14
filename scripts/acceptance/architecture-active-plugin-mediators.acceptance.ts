@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { inspectDomain } from "../audit/domains/architecture-boundary/inspector.js";
@@ -37,25 +37,44 @@ const writeStatus = (): void => {
       taskExport: "startFixtureTask",
     }],
     allowedEntrypoints: [mediatorPath, bypassPath],
-    allowedAcceptanceTests: ["acceptance:lottery-ticket-plan"],
-    allowedNpmScripts: ["acceptance:lottery-ticket-plan"],
+    allowedAcceptanceTests: ["acceptance:app-shell-skill-registry"],
+    allowedNpmScripts: ["acceptance:app-shell-skill-registry"],
     exposureTokens: [marker],
     lawSourceRefs: [".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md"],
   });
   writeFileSync(resolveFromRepo(statusPath), `${JSON.stringify(parsed, null, 2)}\n`);
 };
 
+let project: ReturnType<typeof createAuditProject> | null = null;
+const refreshFixtureSources = async (): Promise<ReturnType<typeof createAuditProject>> => {
+  project ??= createAuditProject();
+  for (const repoPath of [
+    `${pluginRoot}/schema.ts`, `${pluginRoot}/flow.ts`, `${pluginRoot}/index.ts`,
+    mediatorPath, duplicateMediatorPath, bypassPath, typesPath,
+  ]) {
+    const absolutePath = resolveFromRepo(repoPath);
+    const existing = project.getSourceFile(absolutePath);
+    if (!existsSync(absolutePath)) {
+      if (existing) project.removeSourceFile(existing);
+      continue;
+    }
+    if (existing) await existing.refreshFromFileSystem();
+    else project.addSourceFileAtPath(absolutePath);
+  }
+  return project;
+};
+
 const runInspector = async () => {
-  const project = createAuditProject();
+  const currentProject = await refreshFixtureSources();
   const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === "architecture-boundary");
   if (!planEntry) throw new Error("architecture-boundary plan entry is missing");
-  const controller = createInspectorCheckSession(planEntry);
+  const controller = createInspectorCheckSession(planEntry, "acceptance-run:architecture-active-plugin-mediators");
   return inspectDomain({
     checks: controller.checks,
     completedReports: {},
     generatedPlan: [],
     planEntry,
-    project,
+    project: currentProject,
   });
 };
 

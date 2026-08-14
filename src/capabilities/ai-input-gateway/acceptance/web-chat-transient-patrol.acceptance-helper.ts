@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import type {
   BrowserActionResult,
-  BrowserController,
+  BrowserTargetSession,
 } from "../../../lib/browser/browser-controller.js";
 import { waitForStableAnswer } from "../providers/web-chat-answer.js";
 
@@ -72,7 +72,7 @@ const answerEvaluation = <T>(): T => ({
 
 const createTransientPatrolBrowser = (
   onWait: () => void,
-): BrowserController => ({
+): BrowserTargetSession => ({
     getHealth: () => ({ ok: true, detail: "acceptance browser" }),
     getSessionState: browserState,
     getGeometrySnapshot: async () => geometrySnapshot(),
@@ -82,13 +82,13 @@ const createTransientPatrolBrowser = (
     clickLocatedDomElement: async () => actionResult(),
     textInput: async () => actionResult(),
     screenshotRegion: async () => screenshotCapture(),
-    evaluateActiveTab: async <T>() => answerEvaluation<T>(),
+    evaluate: async <T>() => answerEvaluation<T>(),
     setFileInputFiles: async () => actionResult(),
     wait: async () => {
       onWait();
       return actionResult();
     },
-    closeActiveTab: async () => actionResult(),
+    closeTarget: async () => actionResult(),
     close: async () => actionResult(),
 });
 

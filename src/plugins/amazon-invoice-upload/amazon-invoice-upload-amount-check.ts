@@ -4,7 +4,7 @@ import { PDFParse } from "pdf-parse";
 
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomSnapshot } from "../../types/dom-automation.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
@@ -42,7 +42,7 @@ const ORDER_TOTAL_READ_ATTEMPTS = 3;
 const ORDER_TOTAL_READ_RETRY_MS = 1000;
 
 export async function verifyInvoiceAmountBeforeUpload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
@@ -86,7 +86,7 @@ export async function verifyInvoiceAmountBeforeUpload(
   return null;
 }
 
-async function readOrderDomTotalAmountWithRetry(browser: BrowserController): Promise<{
+async function readOrderDomTotalAmountWithRetry(browser: BrowserTargetSession): Promise<{
   readonly attempts: number;
   readonly orderAmount: AmazonInvoiceMoney | null;
   readonly snapshot: DomSnapshot;

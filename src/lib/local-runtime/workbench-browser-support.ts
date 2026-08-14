@@ -19,6 +19,7 @@ export function createWorkbenchBrowserController(
   return new CurrentChromeBrowserController({
     sessionConfig: browserSessionConfig,
     screenshotDir: path.join(dataDir, "browser-captures"),
+    dataDir,
     headlessRequested: options.browserHeadless === true,
   }, runtimeLogger);
 }

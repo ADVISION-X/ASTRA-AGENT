@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T00:03:52.460Z",
+  "generatedAt": "2026-08-14T23:38:40.859Z",
   "capabilityDomain": "amazon-product-mining",
   "status": "PASS",
   "findingCount": 0,
@@ -15,17 +15,17 @@
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
         "line": 174,
-        "reusePolicy": "reuse-active-tab"
+        "reusePolicy": "reuse-exact-url"
       },
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
         "line": 217,
-        "reusePolicy": "reuse-active-tab"
+        "reusePolicy": "reuse-exact-url"
       },
       {
         "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
         "line": 193,
-        "reusePolicy": "reuse-active-tab"
+        "reusePolicy": "reuse-exact-url"
       }
     ]
   },
@@ -54,21 +54,22 @@
     "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
     "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
+    "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
     "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
   ],
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046",
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45",
       "capabilityDomain": "amazon-product-mining",
       "checkId": "amazon-product-mining/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-13T00:03:51.574Z",
-      "endedAt": "2026-08-13T00:03:52.460Z",
-      "durationMs": 886,
+      "startedAt": "2026-08-14T23:38:39.881Z",
+      "endedAt": "2026-08-14T23:38:40.858Z",
+      "durationMs": 977,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
         "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
@@ -149,157 +150,163 @@
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
       "clauseId": "grasseye-amazon-product-mining-001-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
       "clauseId": "grasseye-amazon-product-mining-002-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
       "clauseId": "grasseye-amazon-product-mining-003-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
       "clauseId": "grasseye-amazon-product-mining-004-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
       "clauseId": "grasseye-amazon-product-mining-005-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
       "clauseId": "grasseye-amazon-product-mining-006-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
       "clauseId": "grasseye-amazon-product-mining-007-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
       "clauseId": "grasseye-amazon-product-mining-008-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
       "clauseId": "grasseye-amazon-product-mining-009-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
       "clauseId": "grasseye-amazon-product-mining-010-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
       "clauseId": "grasseye-amazon-product-mining-011-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
       "clauseId": "grasseye-amazon-product-mining-012-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
       "clauseId": "grasseye-amazon-product-mining-013-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
       "clauseId": "grasseye-amazon-product-mining-014-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
       "clauseId": "grasseye-amazon-product-mining-015-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
       "clauseId": "grasseye-amazon-product-mining-016-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
       "clauseId": "grasseye-amazon-product-mining-017-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
       "clauseId": "grasseye-amazon-product-mining-018-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
       "clauseId": "grasseye-amazon-product-mining-019-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
       "clauseId": "grasseye-amazon-product-mining-020-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
       "clauseId": "grasseye-amazon-product-mining-021-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
       "clauseId": "grasseye-amazon-product-mining-022-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
       "clauseId": "grasseye-amazon-product-mining-023-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V1",
-      "clauseId": "grasseye-amazon-product-mining-024-requirement",
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
+      "clauseId": "grasseye-amazon-product-mining-024-v2-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
       "clauseId": "grasseye-amazon-product-mining-025-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
       "clauseId": "grasseye-amazon-product-mining-maximum-visible-extraction-requirement",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:bf5391c7-8020-45fa-b594-2a49fb84388f:check:3e4c837c-11ec-4230-9bc7-2614edf4c046"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
+      "clauseId": "grasseye-amazon-product-mining-027-requirement",
+      "checkId": "amazon-product-mining/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:6b329fa6-ca45-49eb-9659-4785b2338b45"
     }
   ],
   "inspectedFiles": [

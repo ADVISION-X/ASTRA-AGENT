@@ -1,5 +1,3 @@
-import { APP_SHELL_PICK3_TREND_STYLES } from "./app-shell-pick3-trend-styles.js";
-
 export const APP_SHELL_WORKSPACE_STYLES = `
 .workspace {
   min-width: 0;
@@ -418,5 +416,4 @@ input:focus, select:focus, button:focus-visible {
   border-radius: 7px;
   padding: 9px 10px;
 }
-${APP_SHELL_PICK3_TREND_STYLES}
 `;

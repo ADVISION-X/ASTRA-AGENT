@@ -11,6 +11,7 @@ import {
 } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectExternalIngressIdentity } from "./external-ingress-identity-inspector.js";
@@ -96,7 +97,7 @@ const propertyName = (property: Node): string | null => {
     return nameNode.getLiteralText();
   }
   if (Node.isIdentifier(nameNode)) {
-    return nameNode.getText();
+    return astIdentifierName(nameNode) ?? null;
   }
   return property.getName();
 };
@@ -182,7 +183,7 @@ const statementIndexContainingCall = (file: SourceFile, functionName: string): n
   const index = statements.findIndex((statement) =>
     statement.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
       const expression = call.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === functionName;
+      return Node.isIdentifier(expression) && astIdentifierName(expression) === functionName;
     }));
   return index >= 0 ? index : null;
 };
@@ -266,12 +267,13 @@ const importNamesFromHttp = (file: SourceFile): { createServerNames: Set<string>
     if (specifier !== "node:http" && specifier !== "http") continue;
     for (const named of item.getNamedImports()) {
       if (named.getName() === "createServer") {
-        createServerNames.add(named.getAliasNode()?.getText() ?? named.getName());
+        createServerNames.add(astIdentifierName(named.getAliasNode()) ?? named.getName());
       }
     }
     const namespaceImport = item.getNamespaceImport();
     if (namespaceImport) {
-      namespaceNames.add(namespaceImport.getText());
+      const namespaceName = astIdentifierName(namespaceImport);
+      if (namespaceName) namespaceNames.add(namespaceName);
     }
   }
   return { createServerNames, namespaceNames };
@@ -279,12 +281,12 @@ const importNamesFromHttp = (file: SourceFile): { createServerNames: Set<string>
 
 const isHttpCreateServerCall = (call: CallExpression, names: { createServerNames: Set<string>; namespaceNames: Set<string> }): boolean => {
   const expression = call.getExpression();
-  if (Node.isIdentifier(expression) && names.createServerNames.has(expression.getText())) {
+  if (Node.isIdentifier(expression) && names.createServerNames.has(astIdentifierName(expression) ?? "")) {
     return true;
   }
   if (Node.isPropertyAccessExpression(expression) && expression.getName() === "createServer") {
     const left = expression.getExpression();
-    return Node.isIdentifier(left) && names.namespaceNames.has(left.getText());
+    return Node.isIdentifier(left) && names.namespaceNames.has(astIdentifierName(left) ?? "");
   }
   return false;
 };
@@ -316,7 +318,7 @@ const inspectSecondServers = (
 const firstArgumentIsCallbackUrl = (call: CallExpression): boolean => {
   const first = call.getArguments()[0];
   if (!first) return false;
-  if (Node.isIdentifier(first)) return first.getText() === "callbackUrl";
+  if (Node.isIdentifier(first)) return astIdentifierName(first) === "callbackUrl";
   return Node.isPropertyAccessExpression(first) && first.getName() === "callbackUrl";
 };
 
@@ -331,7 +333,7 @@ const inspectCallbackEscapes = (
     if (!repoPath.startsWith("src/plugins/")) continue;
     for (const call of file.getDescendantsOfKind(SyntaxKind.CallExpression)) {
       const expression = call.getExpression();
-      if (Node.isIdentifier(expression) && expression.getText() === "fetch" && firstArgumentIsCallbackUrl(call)) {
+      if (Node.isIdentifier(expression) && astIdentifierName(expression) === "fetch" && firstArgumentIsCallbackUrl(call)) {
         summary.callbackEscapeViolations += 1;
         addFinding(findings, {
           checkId: "workbench-api-boundary/no-plugin-callback-fetch",
@@ -375,7 +377,7 @@ const inspectNoRegex = (
   const regexConstructors = file.getDescendantsOfKind(SyntaxKind.NewExpression)
     .filter((item) => {
       const expression = item.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === "RegExp";
+      return Node.isIdentifier(expression) && astIdentifierName(expression) === "RegExp";
     });
   const forbiddenCalls = file.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => {

@@ -13,6 +13,7 @@ import {
   buildVideoDownloadFailure,
   buildVideoDownloadSuccess,
 } from "../runtime/result.js";
+import { createVideoDownloadAbortHandle } from "../runtime/abort-handle.js";
 import { buildTelegramWebCacheProbeScript } from "../runtime/telegram-web-cache-probe-script.js";
 
 type ParsedDownloadTelegramWebVideoInput = Extract<
@@ -120,7 +121,7 @@ const evaluateTelegramProbe = async (
       script: string;
       description: string;
       abortSignal?: AbortSignal;
-    }) => context.browserMediaSourcePort.evaluateActiveTab<TelegramProbeResult>(request));
+    }) => context.browserMediaSourcePort.evaluate<TelegramProbeResult>(request));
   return evaluateTelegramPage<TelegramProbeResult>({
     sourcePageUrl: input.sourcePageUrl,
     script: buildTelegramWebCacheProbeScript(input.maxBytes, input.telegramDocumentIdHash),
@@ -200,13 +201,12 @@ const executeDownloadTelegramWebVideoOnce = async (
     );
   }
 
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), input.timeoutMs);
+  const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
     const probe = await evaluateTelegramProbe(
       input,
       context,
-      abortController.signal,
+      abortHandle.signal,
     );
     if (!probe.ok) {
       return buildVideoDownloadFailure(base, probe.failureReason, probe.reason, probe.status);
@@ -215,7 +215,7 @@ const executeDownloadTelegramWebVideoOnce = async (
   } catch (error) {
     return buildVideoDownloadFailure(base, "network_failed", asFailureMessage(error), "review_required");
   } finally {
-    clearTimeout(timeout);
+    abortHandle.dispose();
   }
 };
 

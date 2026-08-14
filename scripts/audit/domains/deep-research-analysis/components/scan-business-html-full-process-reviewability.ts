@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type CallExpression, type Expression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -82,7 +83,7 @@ const readNumericLiteralValue = (initializer: Expression | undefined): number | 
 const getCallExpressionName = (callExpression: CallExpression): string | null => {
   const expression = callExpression.getExpression();
   if (Node.isIdentifier(expression)) {
-    return expression.getText();
+    return astIdentifierName(expression) ?? null;
   }
   if (Node.isPropertyAccessExpression(expression)) {
     return expression.getName();
@@ -97,7 +98,7 @@ const hasDirectCall = (node: Node | undefined, functionName: string): boolean =>
 
 const hasIdentifier = (node: Node | undefined, identifierName: string): boolean =>
   Boolean(node?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => {
-    if (identifier.getText() === identifierName) {
+    if (astIdentifierName(identifier) === identifierName) {
       return true;
     }
     const symbol = identifier.getSymbol();

@@ -1,11 +1,12 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const hasIdentifier = (sourceFile: SourceFile | undefined, name: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === name);
+  !!sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => astIdentifierName(identifier) === name);
 
 const oldFinalSchemaName = "DeepResearch" + "FinalReportSchema";
 

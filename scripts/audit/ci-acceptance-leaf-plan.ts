@@ -15,7 +15,7 @@ type GeneratedPlanLawIndex = {
 type PackageScripts = Readonly<Record<string, string>>;
 
 export type AcceptanceLeafSkeleton = Readonly<{
-  command: readonly ["node", "--import", "tsx", string];
+  command: readonly ["node", "--import", "tsx", string, ...string[]];
   filePath: string;
   minimalFixHint: string;
   name: string;
@@ -47,22 +47,28 @@ const scriptNameIsValid = (value: string): boolean => value.length > 0
     || (character >= "0" && character <= "9")
     || [":", "_", "-"].includes(character));
 
-const directFilePath = (command: string): string | null => {
-  const prefix = "node --import tsx ";
-  if (!command.startsWith(prefix)) return null;
-  const filePath = command.slice(prefix.length);
-  return filePath.length > 0
-    && [...filePath].every((character) => character.charCodeAt(0) > 32)
-    && filePath.endsWith(".ts")
-    ? filePath
-    : null;
+type AcceptanceLeafInvocation = Readonly<{
+  command: readonly ["node", "--import", "tsx", string, ...string[]];
+  filePath: string;
+}>;
+
+const directLeafInvocation = (command: string): AcceptanceLeafInvocation | null => {
+  const tokens = command.split(" ").filter((token) => token.length > 0);
+  if (tokens[0] !== "node" || tokens[1] !== "--import" || tokens[2] !== "tsx") return null;
+  const filePath = tokens[3];
+  if (!filePath || !filePath.endsWith(".ts")) return null;
+  if (tokens.some((token) => [...token].some((character) => character.charCodeAt(0) <= 32))) return null;
+  return Object.freeze({
+    command: Object.freeze(tokens) as AcceptanceLeafInvocation["command"],
+    filePath,
+  });
 };
 
 const expandNpmScript = (
   scriptName: string,
   packageScripts: PackageScripts,
   visiting: Set<string>,
-  discovered: Set<string>,
+  discovered: Map<string, AcceptanceLeafInvocation>,
 ): void => {
   if (visiting.has(scriptName)) throw new Error(`Acceptance package script cycle detected at ${scriptName}.`);
   const command = packageScripts[scriptName];
@@ -80,29 +86,30 @@ const expandNpmScript = (
         expandNpmScript(nestedName, packageScripts, visiting, discovered);
         continue;
       }
-      const filePath = directFilePath(segment);
-      if (!filePath) {
+      const invocation = directLeafInvocation(segment);
+      if (!invocation) {
         throw new Error(`Acceptance package script ${scriptName} contains unsupported command ${segment}.`);
       }
-      discovered.add(filePath);
+      discovered.set(invocation.command.join("\u0000"), invocation);
     }
   } finally {
     visiting.delete(scriptName);
   }
 };
 
-const discoverAcceptanceLeafPaths = (packageScripts: PackageScripts): readonly string[] => {
-  const discovered = new Set<string>();
+const discoverAcceptanceLeafInvocations = (packageScripts: PackageScripts): readonly AcceptanceLeafInvocation[] => {
+  const discovered = new Map<string, AcceptanceLeafInvocation>();
   for (const scriptName of Object.keys(packageScripts).sort()) {
     if (!scriptName.startsWith("acceptance:")) continue;
     expandNpmScript(scriptName, packageScripts, new Set<string>(), discovered);
   }
-  return Object.freeze([...discovered].sort());
+  return Object.freeze([...discovered.values()].sort((left, right) =>
+    left.command.join(" ").localeCompare(right.command.join(" "))));
 };
 
-const assertAcceptanceBindingClosure = (filePaths: readonly string[]): void => {
-  const discovered = new Set(filePaths);
-  const missingBindings = filePaths.filter((filePath) => !acceptanceLawBindings.has(filePath));
+const assertAcceptanceBindingClosure = (invocations: readonly AcceptanceLeafInvocation[]): void => {
+  const discovered = new Set(invocations.map((invocation) => invocation.filePath));
+  const missingBindings = [...discovered].filter((filePath) => !acceptanceLawBindings.has(filePath));
   const orphanBindings = [...acceptanceLawBindings.keys()].filter((filePath) => !discovered.has(filePath));
   if (missingBindings.length > 0 || orphanBindings.length > 0) {
     throw new Error(
@@ -122,17 +129,18 @@ const acceptanceName = (filePath: string): string => {
 export const buildAcceptanceLeafSkeletons = (
   packageScripts: PackageScripts = loadPackageScripts(),
 ): readonly AcceptanceLeafSkeleton[] => {
-  const filePaths = discoverAcceptanceLeafPaths(packageScripts);
-  assertAcceptanceBindingClosure(filePaths);
+  const invocations = discoverAcceptanceLeafInvocations(packageScripts);
+  assertAcceptanceBindingClosure(invocations);
   const generatedPlan = loadGeneratedPlan();
-  return Object.freeze(filePaths.map<AcceptanceLeafSkeleton | null>((filePath) => {
+  return Object.freeze(invocations.map<AcceptanceLeafSkeleton | null>((invocation) => {
+    const { command, filePath } = invocation;
     const authority = acceptanceAuthority(filePath, generatedPlan);
     if (authority.evidenceMode === "real-chrome") return null;
     return Object.freeze({
-      command: ["node", "--import", "tsx", filePath] as const,
+      command,
       filePath,
       minimalFixHint: `Run ${filePath} directly and repair its first failing assertion.`,
-      name: acceptanceName(filePath),
+      name: [acceptanceName(filePath), ...command.slice(4)].join(":"),
       timeoutMs: ACCEPTANCE_TIMEOUT_MS,
     });
   }).filter((skeleton): skeleton is AcceptanceLeafSkeleton => skeleton !== null));

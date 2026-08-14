@@ -1,5 +1,6 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type {
   InspectorContext,
@@ -28,11 +29,10 @@ const paths = {
   titleHousekeeping: "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
   titleHousekeepingWorker: "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
   abilityGroup: "src/capabilities/ai-input-gateway/ability-group.ts",
-  windowControl: "src/lib/browser/current-chrome-window-control.ts",
-  accessibilityWindow:
-    "src/lib/browser/current-chrome-accessibility-window.ts",
-  browserPrimitives: "src/lib/browser/current-chrome-browser-controller-primitives.ts",
-  providerTab: "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
+  exactTargetRef: "src/lib/browser/exact-target/browser-target-ref.ts",
+  exactTargetRuntime: "src/lib/browser/exact-target/browser-command-runtime.ts",
+  browserContract: "src/lib/browser/browser-controller.ts",
+  singleTabBrowser: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
   routing: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
   responseCapture: "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
 } as const;
@@ -103,8 +103,8 @@ const hasCheckpointPatrolShutdownFinally = (source: SourceFile): boolean =>
       ?.getDescendantsOfKind(SyntaxKind.BinaryExpression)
       .some((assignment) =>
         assignment.getOperatorToken().isKind(SyntaxKind.EqualsToken)
-        && assignment.getLeft().isKind(SyntaxKind.Identifier)
-        && assignment.getLeft().getText() === "checkpointPatrolActive"
+        && Node.isIdentifier(assignment.getLeft())
+        && astIdentifierName(assignment.getLeft()) === "checkpointPatrolActive"
         && assignment.getRight().isKind(SyntaxKind.FalseKeyword)) === true);
 
 const inspectCheckpointRecovery = (
@@ -321,9 +321,9 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
     {
       checkId: "ai-input-gateway/offscreen-sidebar-recovery",
       filePath: paths.routing,
-      sourceKeys: ["providerTab", "routing"],
-      required: ["focusSingleProviderTab", "scroll_title", "scrollDeltaY"],
-      message: "Exact sidebar routing is missing",
+      sourceKeys: ["singleTabBrowser", "routing"],
+      required: ["createSingleTabWebChatBrowser", "scroll_title", "scrollDeltaY"],
+      message: "Exact-target sidebar routing is missing",
     },
     {
       checkId: "ai-input-gateway/bounded-patrol-cadence",
@@ -422,22 +422,22 @@ const RECOVERY_SURFACE_CHECKS: ReadonlyArray<{
       message: "Continuation parent-title inheritance is missing",
     },
     {
-      checkId: "ai-input-gateway/controlled-chrome-window-identity",
-      filePath: paths.windowControl,
+      checkId: "ai-input-gateway/exact-target-identity",
+      filePath: paths.exactTargetRef,
       sourceKeys: [
-        "windowControl",
-        "accessibilityWindow",
-        "browserPrimitives",
-        "providerTab",
+        "exactTargetRef",
+        "exactTargetRuntime",
+        "browserContract",
+        "singleTabBrowser",
       ],
       required: [
-        "runJxa",
-        "activateChrome",
-        "focusSingleProviderTab",
-        "buildExactChromeAccessibilityWindowRaiseScript",
-        "EXACT_ACCESSIBILITY_WINDOW_STABILIZATION_ATTEMPTS",
+        "BrowserTargetRef",
+        "BrowserDocumentRef",
+        "BrowserTargetSession",
+        "createTargetSession",
+        "createSingleTabWebChatBrowser",
       ],
-      message: "Exact controlled Chrome window binding is missing",
+      message: "Exact provider target binding is missing",
     },
 ];
 

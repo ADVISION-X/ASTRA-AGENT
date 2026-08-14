@@ -1,5 +1,6 @@
 import { Node, SyntaxKind } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
@@ -16,11 +17,12 @@ const typeNodeHasRuntimeLogEventType = (node: import("ts-morph").Node | null | u
   if (!node) {
     return false;
   }
-  if (Node.isTypeReference(node) && node.getTypeName().getText() === "RuntimeLogEventType") {
+  if (Node.isTypeReference(node) && Node.isIdentifier(node.getTypeName())
+    && astIdentifierName(node.getTypeName()) === "RuntimeLogEventType") {
     return true;
   }
   return node.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => identifier.getText() === "RuntimeLogEventType");
+    .some((identifier) => astIdentifierName(identifier) === "RuntimeLogEventType");
 };
 
 const hasRuntimeLogEventTypeDeclaration = (node: import("ts-morph").Node): boolean =>
@@ -34,7 +36,9 @@ const isProvenRegistryEventType = (objectLiteral: import("ts-morph").ObjectLiter
   const isLiteral = Boolean(initializer && Node.isStringLiteral(initializer));
   const isRegistry = isEventTypeFromRegistry(objectLiteral);
   const traced = initializer && Node.isIdentifier(initializer) ? traceVariableInitializer(initializer) : null;
-  const tracedRegistry = Boolean(traced && Node.isPropertyAccessExpression(traced) && traced.getExpression().getText() === "RuntimeLogEventType");
+  const tracedRegistry = Boolean(traced && Node.isPropertyAccessExpression(traced)
+    && Node.isIdentifier(traced.getExpression())
+    && astIdentifierName(traced.getExpression()) === "RuntimeLogEventType");
   const declarationRegistry = Boolean(initializer && hasRuntimeLogEventTypeDeclaration(initializer));
   return !isLiteral && (isRegistry || tracedRegistry || declarationRegistry);
 };

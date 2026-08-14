@@ -1,25 +1,17 @@
 import type {
-  BrowserController,
+  BrowserTargetSession,
 } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { waitForStableAnswer } from "./web-chat-answer.js";
-import { isPick3WebChatRequest } from "./web-chat-open.js";
 import {
   acknowledgeWebChatRateLimitIfVisible,
-  emitWebChatStage,
 } from "./web-chat-response-capture.js";
 import {
   assertActiveProviderPage,
 } from "./web-chat-shared-support.js";
-
-const shouldSkipPreSubmitConversationState = (
-  request: AiFeedInput,
-): boolean =>
-  request.providerKind === "gemini-web-chat"
-  && isPick3WebChatRequest({ request });
 
 export interface PreSubmitConversationState {
   previousAssistantCount: number;
@@ -47,54 +39,14 @@ const assertStableContinuationHistory = (
   );
 };
 
-const emitCompletedPreSubmitSnapshot = (input: {
-  request: AiFeedInput;
-  snapshot: Awaited<ReturnType<typeof waitForStableAnswer>>;
-  startedAtMs: number;
-}): void => emitWebChatStage({
-  request: input.request,
-  stage: "pre_submit_snapshot",
-  status: "success",
-  startedAtMs: input.startedAtMs,
-  refs: {
-    assistantCount: input.snapshot.assistantCount ?? 0,
-    userMessageCount: input.snapshot.userMessageCount ?? 0,
-    continuationHistoryStable:
-      input.request.providerContinuationRef || input.request.providerForkRef
-        ? true
-        : null,
-  },
-});
-
 export const readPreSubmitConversationState = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
 }): Promise<PreSubmitConversationState> => {
-  if (shouldSkipPreSubmitConversationState(input.request)) {
-    emitWebChatStage({
-      request: input.request,
-      stage: "pre_submit_snapshot",
-      status: "skipped",
-      startedAtMs: null,
-      refs: { reason: "fresh_gemini_pick3_conversation" },
-    });
-    return {
-      previousAssistantCount: 0,
-      previousUserMessageCount: 0,
-      previousAnswerText: null,
-    };
-  }
-  const startedAtMs = Date.now();
   const preSubmitContext = { ...input.context };
   delete preSubmitContext.webChatExecution;
-  emitWebChatStage({
-    request: input.request,
-    stage: "pre_submit_snapshot",
-    status: "start",
-    startedAtMs: null,
-  });
   await assertActiveProviderPage({
     browser: input.browser,
     providerUrl: input.providerUrl,
@@ -113,11 +65,6 @@ export const readPreSubmitConversationState = async (input: {
     beforePoll: () => acknowledgeWebChatRateLimitIfVisible(input),
   });
   assertStableContinuationHistory(input.request, beforeSubmit);
-  emitCompletedPreSubmitSnapshot({
-    request: input.request,
-    snapshot: beforeSubmit,
-    startedAtMs,
-  });
   return {
     previousAssistantCount: beforeSubmit.assistantCount ?? 0,
     previousUserMessageCount: beforeSubmit.userMessageCount ?? 0,

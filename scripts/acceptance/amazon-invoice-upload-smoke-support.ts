@@ -6,10 +6,15 @@ import type { Page } from "playwright";
 import type {
   BrowserActionResult,
   BrowserCaptureResult,
-  BrowserController,
+  BrowserTargetSession,
   BrowserGeometrySnapshot,
   BrowserStateSnapshot,
 } from "../../src/lib/browser/browser-controller.js";
+import type {
+  BrowserDocumentRef,
+  BrowserTargetRef,
+  ControlledBrowserTarget,
+} from "../../src/lib/browser/exact-target/browser-target-ref.js";
 
 export const ORDER_DETAIL_EIGHTH_WINDOW_SIGNAL_DELAY_MS = 15_000;
 
@@ -225,8 +230,8 @@ const buildGeometrySnapshot = async (page: Page): Promise<BrowserGeometrySnapsho
   };
 };
 
-export class AmazonSmokeBrowserAdapter implements BrowserController {
-  closeActiveTabCalls = 0;
+export class AmazonSmokeBrowserAdapter implements BrowserTargetSession {
+  closeTargetCalls = 0;
   fileInputSetCalls = 0;
   noActionsDialogDismissClicks = 0;
   domSnapshotTimeouts: number[] = [];
@@ -236,6 +241,18 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
 
   constructor(private readonly page: Page, private readonly screenshotDir: string) {}
 
+  getTarget(): ControlledBrowserTarget {
+    const url = this.page.url();
+    return {
+      targetRef: "fixture:amazon-smoke" as BrowserTargetRef,
+      documentRef: `fixture:amazon-smoke:${url}` as BrowserDocumentRef,
+      url,
+      title: "Amazon Invoice Upload Smoke",
+      origin: url.startsWith("file:") ? "file://" : new URL(url).origin,
+      lifecycle: "attached",
+      acquiredAt: now(),
+    };
+  }
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "playwright Amazon upload smoke adapter" }; }
   getSessionState(): BrowserStateSnapshot { return buildBrowserState(this.page); }
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> { return buildGeometrySnapshot(this.page); }
@@ -254,7 +271,7 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
       actionKind: "open",
       requestedHost: new URL(input.url).host || "local-file",
       reusePolicy: (input.reusePolicy ?? "reuse-exact-url") as "reuse-exact-url",
-      navigationMode: input.reusePolicy === "reuse-host-tab" ? "reused_host_tab" : "opened_new_tab",
+      navigationMode: "navigated_exact_target",
       observedUrl: this.page.url(),
       observedUrlMatchesRequest: new URL(this.page.url()).pathname === new URL(input.url).pathname,
       startedAt,
@@ -301,9 +318,9 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
       createdAt: now(),
     };
   }
-  async evaluateActiveTab<T>(input: { script: string; description: string; timeoutMs?: number; abortSignal?: AbortSignal }): Promise<T> {
+  async evaluate<T>(input: { script: string; description: string; timeoutMs?: number; abortSignal?: AbortSignal }): Promise<T> {
     input.abortSignal?.throwIfAborted();
-    if (input.description === "read governed DOM structural summary from active tab") {
+    if (input.description === "read governed DOM structural summary from exact target") {
       this.domSnapshotTimeouts.push(input.timeoutMs ?? 0);
     }
     if (input.description === "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog") {
@@ -325,11 +342,11 @@ export class AmazonSmokeBrowserAdapter implements BrowserController {
     abortSignal?.throwIfAborted();
     return action(`waited ${durationMs}`);
   }
-  async closeActiveTab(): Promise<BrowserActionResult> { this.closeActiveTabCalls += 1; return action("active tab closed"); }
+  async closeTarget(): Promise<BrowserActionResult> { this.closeTargetCalls += 1; return action("active tab closed"); }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }
 }
 
-export class AmazonHangingOpenBrowserAdapter implements BrowserController {
+export class AmazonHangingOpenBrowserAdapter implements BrowserTargetSession {
   openCalls = 0;
   abortCount = 0;
   private executionAbortSignal: AbortSignal | null = null;
@@ -352,7 +369,7 @@ export class AmazonHangingOpenBrowserAdapter implements BrowserController {
       visibleContentBounds: { x: 0, y: 0, width: 900, height: 700 }, capturedAt: now(),
     };
   }
-  async open(input: Parameters<BrowserController["open"]>[0]): Promise<BrowserActionResult> {
+  async open(input: Parameters<BrowserTargetSession["open"]>[0]): Promise<BrowserActionResult> {
     this.openCalls += 1;
     return new Promise<BrowserActionResult>((_resolve, reject) => {
       const signal = input.abortSignal ?? this.executionAbortSignal ?? undefined;
@@ -374,9 +391,9 @@ export class AmazonHangingOpenBrowserAdapter implements BrowserController {
       sourceFilePath: "/tmp/amazon-invoice-upload-timeout-fixture.png", createdAt: now(),
     };
   }
-  async evaluateActiveTab<T>(): Promise<T> { throw new Error("timeout fixture should not evaluate active tab"); }
+  async evaluate<T>(): Promise<T> { throw new Error("timeout fixture should not evaluate active tab"); }
   async setFileInputFiles(): Promise<BrowserActionResult> { return action("set file not reached"); }
   async wait(durationMs: number): Promise<BrowserActionResult> { return action(`waited ${durationMs}`); }
-  async closeActiveTab(): Promise<BrowserActionResult> { return action("active tab close not reached"); }
+  async closeTarget(): Promise<BrowserActionResult> { return action("active tab close not reached"); }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }
 }

@@ -104,3 +104,7 @@ src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
 - 基础设施只留在 `src/lib/**`
 - 共享 type 与声明式 schema contract 只留在 `src/types/**`；这里只允许追溯到 `zod` 或本目录 schema 的声明调用，函数值、类/enum、控制流、非 zod 运行时 import、I/O、new/await、赋值/更新副作用和业务步骤必须在变量 initializer 深度直接 FAIL
 - 文档只保留现役蓝图，不保留旧宇宙旁支
+
+## 7. Topology And Type Governance
+
+`GRASSEYE-CODE-TOPOLOGY-001-V1` 与 `GRASSEYE-TYPE-SAFETY-001-V1` 归 `architecture-boundary` 唯一 owner。它们复用同一 AST/symbol assertion set，分别证明 canonical root/mediator 拓扑与 schema-validated owner boundary；不得另建 topology runner 或 type-safety runner。

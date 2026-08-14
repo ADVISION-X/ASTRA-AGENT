@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
 import {
@@ -29,7 +29,7 @@ const stepFailure = <T>(failure: AmazonInvoiceUploadTaskResult): StepResult<T> =
 });
 
 export async function openOrderDetail(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
@@ -39,7 +39,7 @@ export async function openOrderDetail(
 }
 
 export async function openUploadInvoiceEntry(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
@@ -104,7 +104,7 @@ function traceUploadInvoiceEntryLocated(
 }
 
 async function clickUploadInvoiceEntry(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   element: DomElementRef,
@@ -165,7 +165,7 @@ function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readSnaps
 }
 
 async function waitForUploadDialog(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<boolean> {

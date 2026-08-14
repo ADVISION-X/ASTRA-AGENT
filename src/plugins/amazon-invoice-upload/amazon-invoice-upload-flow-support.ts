@@ -8,7 +8,7 @@ import {
   waitForDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
@@ -19,7 +19,7 @@ const DOM_CLICK_SETTLE_MS = 50;
 const AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS = 1_800;
 
 export const readSnapshot = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   input?: Parameters<typeof readDomSnapshotOnce>[1],
   abortSignal?: AbortSignal,
 ) => {
@@ -39,22 +39,22 @@ export const locateElement = (
 ) => locateDomElementOnce(input);
 
 export const clickElement = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   input: Parameters<typeof clickDomElementOnce>[1],
 ) => clickDomElementOnce(browser, input);
 
 export const fillElement = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   input: Parameters<typeof fillDomElementOnce>[1],
 ) => fillDomElementOnce(browser, input);
 
 export const uploadFile = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   input: Parameters<typeof uploadApprovedFileOnce>[1],
 ) => uploadApprovedFileOnce(browser, input);
 
 export const waitForState = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   input: Parameters<typeof waitForDomStateOnce>[1],
 ) => waitForDomStateOnce(browser, input);
 
@@ -130,7 +130,7 @@ export function locateOrStatus(input: {
 }
 
 export async function clickLocated(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   element: DomElementRef;
   expectedKind: string;

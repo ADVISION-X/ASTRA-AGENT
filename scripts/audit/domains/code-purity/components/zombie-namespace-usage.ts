@@ -1,5 +1,6 @@
 import { Node } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import type { ZombieModuleGraph } from "./zombie-module-graph.js";
 import {
   isLawfulDynamicNamespaceConsumer,
@@ -38,7 +39,7 @@ const findNamespaceImportNode = (
 
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
     const namespaceImport = importDeclaration.getNamespaceImport();
-    if (!namespaceImport || namespaceImport.getText() !== localName) {
+    if (!namespaceImport || astIdentifierName(namespaceImport) !== localName) {
       continue;
     }
     const targetFile = importDeclaration.getModuleSpecifierSourceFile();

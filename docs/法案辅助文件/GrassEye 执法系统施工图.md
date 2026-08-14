@@ -31,10 +31,16 @@ package.json ci:full
 
 CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证明自己聪明，只输出 PASS / FAIL / 问题清单。
 
+当前唯一入口只存在于本地 `package.json`。`.github/workflows` 必须保持无 workflow 文件；在未来 active 法案和本施工图明确接纳 GitHub Actions 之前，任何 workflow 都按第二完整入口风险 FAIL。质检只核对该目录的文件系统事实，不解析 YAML 文本，不建立 workflow allowlist 或第二 registry。
+
 二元裁决补充：运行态没有第三种颜色，不存在 warning pass、advisory pass、partial pass。
 任一 owner report 只要发出 finding，执行态就是 FAIL。
 
 ## 主矩阵
+
+`hybrid` 法条的 manifest binding 通过
+`primaryEvidence: { engine, sourceEvidenceIndex }` 把唯一主裁引擎和实际可达的
+`sourceEvidence` 绑定在一起；builder、generated plan 与 audit-system 元质检共同拒绝缺失或越界声明。
 
 | 对象 | 当前路径 | 维护方式 |
 | --- | --- | --- |
@@ -78,8 +84,19 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 - 为 K 个 check 重复执行 K 次整域 evaluation。
 - 制造平行 audit 结论。
 - 恢复第二完整质检入口。
+- 在没有 active 权威接纳的情况下新增 `.github/workflows` workflow。
 
 ## OWNER 边界
+
+### local-browser-session owner
+
+```txt
+scripts/audit/domains/local-browser-session/manifest.json
+scripts/audit/domains/local-browser-session/inspector.ts
+scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts
+```
+
+该 owner 使用 ts-morph AST/symbol 执法三个 active Browser law：唯一 Controller、opaque target/document、四跳私有 transport、PhysicalFocusLease 限界、Startup no-change，以及 active-tab/URL-first/first-page/AppleScript-JXA 页面旁路的物理归零。真实 Chrome 条款在 generated truth 中明确标记 deferred，不得用静态 PASS 冒充。
 
 每个 OWNER 只允许：
 
@@ -124,6 +141,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - zombie 检测必须 machine-blocking，至少覆盖 zombie-file、zombie-export、orphan top-level declaration、literal-dead branch。
 - 活性必须从 lawful roots reachability 判定，不得把 zombie 文件的入边当作活性证明。
 - 合法豁免只允许来自 `package.json` 脚本入口、generated-plan owner inspector 动态装载、或现役 law 明确授权的外部入口。
+- 现役 law 授权的活性面只能由 apex-law `codePurityLiveness` 结构字段进入 generated law registry，再由 Code Purity 读取；inspector 源码不得保存第二份手工豁免表。
 - 不允许按 `index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别整类豁免。
 - owner-boundary 检查必须覆盖 import、re-export、dynamic import、side-effect import；barrel laundering 视为同级违法。
 - Code Purity 当前运行态只有 PASS / FAIL；不存在 warning inventory 作为第三态。
@@ -154,7 +172,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - namespace import 只能证明被访问 property 对应的 export 活；整文件豁免无效。
 - re-export 或 barrel forwarding 本身不构成最终消费证明。
 - dynamic import、side-effect import、manifest load、generated-plan owner load 只允许走显式 lawful entry manifest 或 owner contract。
-- non-literal dynamic import 不是可接受柔性写法；在 governed source 中必须直接 FAIL。
+- non-literal dynamic import 不是可接受柔性写法；在 governed source 中必须直接 FAIL。唯一例外是 generated-plan runner 中由 `planEntry.ownerInspectorPath` 经 `resolveFromRepo` 与 `pathToFileURL` 形成的 owner contract，且必须逐节点通过 AST 与 symbol 证明，不能按变量名或源码文字放行。
 - side-effect import 不得作为隐形 keepalive 或 owner-boundary 逃逸边。
 - commented-out old implementation 不是可接受备份；一旦能从 comment trivia 解析出可执行或声明结构，就必须 FAIL。
 
@@ -189,8 +207,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 
 1. completed 结果必须由 runtime contract 本身携带证据字段，而不是依赖调用者脑补。
 2. Deep Research completed 至少要绑定最终报告证据与 record hash 证据。
-3. Facebook completed 至少要绑定视频证据字段或等价证据汇总字段。
-4. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。
+3. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。
 
 ## Code Purity 生产级终局肃清链路
 
@@ -227,7 +244,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 2. `InspectorContext.checks` 是强制依赖，不存在 optional、legacy output 或普通 `executedChecks` fallback。
 3. manifest 是唯一物理 check binding 真相；每个 owner 只能登记 `<capabilityDomain>/owner-assertion-set`，不得再维护 `owned-check-ids` 第二列表，也不得把失败诊断类别复制为物理 check。
 4. 每个当前 run 必须有唯一 `runId`；每个物理 check 必须有唯一 `checkRunId`、terminal status、duration、evidence refs 和 finding count。
-5. 28 个 owner 可以复用同一冻结候选的只读 AST/文件快照；每个 owner 只能在自己的 `checks.runAll()` 签名窗口内执行一次完整 assertion set，并且只获得一个独立 checkRunId。不得为诊断类别签发回执或重复执行整域 evaluation。
+5. 所有现役 owner 复用同一冻结候选的只读 AST/文件快照；每个 owner 只能在自己的 `checks.runAll()` 签名窗口内执行一次完整 assertion set，并且只获得一个独立 checkRunId。不得硬编码 owner 数量，不得为已删除栏目保留占位 owner，也不得为诊断类别签发回执或重复执行整域 evaluation。
 6. `checks.run()` 循环、窗口外预计算后过滤、plan-derived receipt、缓存 verdict 再抄账、诊断类别冒充物理检查和空心 assertion set 必须物理删除；不得以兼容 API 保留。
 7. 任何漏跑、重复跑、未声明 check、空心回调、跨 run 回执、复制/spread 输出、空 evidence、回执与 finding 不一致，均由 runner fail closed。
 8. `audit-system` 使用 ts-morph AST/symbol 核对唯一 owner-assertion-set 身份、唯一 runAll 窗口、session output、唯一入口和旧 helper/API 复活；攻击样例由现有 `audit-truth-coverage` acceptance 执法。

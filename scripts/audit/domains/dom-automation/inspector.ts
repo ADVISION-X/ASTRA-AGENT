@@ -4,6 +4,38 @@ import { inspectDomContracts } from "./components/inspect-dom-contracts.js";
 import { inspectDomFoundationGates } from "./components/inspect-dom-foundation-gates.js";
 import { inspectDomRuntimeGuards } from "./components/inspect-dom-runtime-guards.js";
 import { createDomFindingCollector } from "./components/dom-inspector-support.js";
+import { createFinding } from "../../shared/finding-utils.js";
+import { SyntaxKind } from "ts-morph";
+import { resolveFromRepo } from "../../shared/paths.js";
+
+const inspectExactTargetBinding = (context: InspectorContext) => {
+  const findings = [];
+  const lawId = "APEX-DOM-020-V1";
+  const clauseId = "apex-dom-020-requirement";
+  const paths = [
+    "src/capabilities/dom-automation/schema.ts",
+    "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
+    "src/capabilities/dom-automation/runtime/dom-target-binding.ts",
+  ];
+  const identifiers = new Set(paths.flatMap((filePath) => context.project
+    .getSourceFile(resolveFromRepo(filePath))
+    ?.getDescendantsOfKind(SyntaxKind.Identifier)
+    .map((node) => node.getText()) ?? []));
+  const stringLiterals = new Set(paths.flatMap((filePath) => context.project
+    .getSourceFile(resolveFromRepo(filePath))
+    ?.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .map((node) => node.getLiteralText()) ?? []));
+  for (const required of ["targetRef", "documentRef", "assertDomTargetBinding", "DOCUMENT_STALE", "TARGET_FOREIGN_SESSION"]) {
+    if (!identifiers.has(required) && !stringLiterals.has(required)) findings.push(createFinding({
+      checkId: "dom-automation/owner-assertion-set",
+      lawId,
+      clauseId,
+      filePath: paths[0],
+      message: `document-bound DOM contract is missing ${required}`,
+    }));
+  }
+  return findings;
+};
 
 
 
@@ -16,6 +48,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectDomRuntimeGuards(scopedContext, collector);
   const inspectedFiles = inspectDomBoundaries(scopedContext, collector);
   inspectDomFoundationGates(scopedContext, collector);
+  collector.findings.push(...inspectExactTargetBinding(context));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

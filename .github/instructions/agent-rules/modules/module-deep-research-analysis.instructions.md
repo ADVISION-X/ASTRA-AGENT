@@ -821,3 +821,18 @@ raw response text when structured answer is missing but raw exists
 This 80 percent rule is a retention floor, not a business conclusion schema. It does not authorize runtime-owned conclusions, rankings, or confidence fields.
 
 If the HTML belongs to a different job, lacks N-stage citations, hides a persisted sub-question, or compresses N-stage material below the retention floor, the HTML report parse must fail and the job must not be marked production-complete.
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+acceptance+real-provider",
+  "summary": "Deep Research owns revisioned execution intervention at every prompt exchange and artifact commit boundary.",
+  "required": ["Execution records persist revision, intervention state, reason, phase, exchange identity and last persisted raw hash.", "Named pause, cancel, takeover and resume use expectedRevision CAS.", "An exchange already submitted waits only for provider timeout and raw-response persistence; uncertain outcome becomes review_required without resend.", "Full case file and HTML commits stop at plugin-owned safe points without deleting raw material."],
+  "forbidden": ["compact or fallback research chain", "generic intervention dispatcher", "duplicate prompt send", "route-owned execution state"],
+  "clauses": [{"clauseId": "grasseye-deep-research-061-requirement", "statement": "Deep Research owns revisioned execution intervention at every prompt exchange and artifact commit boundary.", "evidenceMode": "acceptance", "ownerDomain": "deep-research-analysis"}]
+}
+```

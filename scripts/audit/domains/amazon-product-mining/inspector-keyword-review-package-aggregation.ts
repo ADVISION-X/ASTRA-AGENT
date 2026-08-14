@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
@@ -32,7 +33,7 @@ const hasCallWithObjectProperty = (
 ): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== calleeName) {
+    if (!Node.isIdentifier(expression) || astIdentifierName(expression) !== calleeName) {
       return false;
     }
     return callExpression.getArguments().some((argument) =>
@@ -52,7 +53,8 @@ const variableInitializerHasIdentifier = (
   const initializer = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === variableName)
     ?.getInitializer();
-  return Boolean(initializer?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === identifierName));
+  return Boolean(initializer?.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => astIdentifierName(identifier) === identifierName));
 };
 
 const collectPackageAggregationFiles = (context: InspectorContext): PackageAggregationFiles => ({

@@ -1,7 +1,7 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 
 export async function captureDomEvidenceRef(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   regionLabel: string,
 ): Promise<string | null> {
   try {

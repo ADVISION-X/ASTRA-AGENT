@@ -9,7 +9,6 @@ import type { AmazonInvoiceUploadPdfFile } from "./amazon-invoice-upload-storage
 
 export const AmazonInvoiceUploadAdminOpenInputSchema = z.object({
   adminUrl: z.string().url(),
-  focusOnlyExistingTab: z.boolean().optional(),
 }).strict();
 
 export type AmazonInvoiceUploadAdminOpenInput = z.infer<typeof AmazonInvoiceUploadAdminOpenInputSchema>;

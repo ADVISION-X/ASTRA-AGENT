@@ -25,14 +25,10 @@ export const attachment = {
   browserContractPath: "src/lib/browser/browser-controller.ts",
   nativePrimitivePath:
     "src/lib/browser/current-chrome-native-multi-file-picker.ts",
-  chromeWindowControlPath:
-    "src/lib/browser/current-chrome-window-control.ts",
-  chromeAccessibilityWindowPath:
-    "src/lib/browser/current-chrome-accessibility-window.ts",
-  chromeBrowserPrimitivesPath:
-    "src/lib/browser/current-chrome-browser-controller-primitives.ts",
-  chromeBrowserExecutionPath:
-    "src/lib/browser/current-chrome-browser-controller-execution.ts",
+  exactTargetRefPath:
+    "src/lib/browser/exact-target/browser-target-ref.ts",
+  exactTargetRuntimePath:
+    "src/lib/browser/exact-target/browser-command-runtime.ts",
   acceptancePath:
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
   attachmentNativePickerAcceptancePath:
@@ -50,8 +46,6 @@ const runtimeCoordination = {
     "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
   singleTabBrowserPath:
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
-  singleProviderTabPath:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts",
   feedProviderPath:
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
   failureClassificationPath:
@@ -94,8 +88,6 @@ const runtimeConversation = {
 } as const;
 
 const runtimeInteraction = {
-  historyCleanupPath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-pick3-history-cleanup.ts",
   singleTabRoutingPath:
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
   namedConversationSearchPath:

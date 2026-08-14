@@ -11,11 +11,12 @@ import {
 } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
 
 export const hasIdentifier = (sourceFile: SourceFile, identifierName: string): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((id) => id.getText() === identifierName);
+  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((id) => astIdentifierName(id) === identifierName);
 
 export const hasStringLiteral = (sourceFile: SourceFile, literalValue: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((lit) => lit.getLiteralValue() === literalValue);
@@ -28,11 +29,9 @@ export const literalText = (sourceFile: SourceFile): string => [
   ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
 ].join("\n");
 
-export const identifierText = (sourceFile: SourceFile): string =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()).join("\n");
-
 export const fileIncludesText = (sourceFile: SourceFile, text: string): boolean =>
-  literalText(sourceFile).includes(text) || identifierText(sourceFile).includes(text);
+  literalText(sourceFile).includes(text)
+  || sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((node) => astIdentifierName(node) === text);
 
 export const getRequiredSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
@@ -64,7 +63,7 @@ export const findNamedImportContract = (
       }
       const aliasNode = namedImport.getAliasNode();
       return {
-        localName: aliasNode?.getText() ?? namedImport.getName(),
+        localName: astIdentifierName(aliasNode) ?? namedImport.getName(),
         specifier: namedImport,
         symbol: aliasNode?.getSymbol() ?? namedImport.getNameNode().getSymbol(),
       };
@@ -74,7 +73,7 @@ export const findNamedImportContract = (
 };
 
 const identifierMatchesImportContract = (identifier: Node, contract: NamedImportContract): boolean => {
-  if (!Node.isIdentifier(identifier) || identifier.getText() !== contract.localName) {
+  if (!Node.isIdentifier(identifier) || astIdentifierName(identifier) !== contract.localName) {
     return false;
   }
   const symbol = identifier.getSymbol();
@@ -99,7 +98,8 @@ export const hasPropertyAccessNamed = (sourceFile: SourceFile, propertyName: str
 
 export const hasCallToLocalIdentifier = (sourceFile: SourceFile, identifierName: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) =>
-    Node.isIdentifier(callExpression.getExpression()) && callExpression.getExpression().getText() === identifierName,
+    Node.isIdentifier(callExpression.getExpression())
+    && astIdentifierName(callExpression.getExpression()) === identifierName,
   );
 
 export const hasStringRawTemplateInitializer = (sourceFile: SourceFile, variableName: string): boolean => {
@@ -111,7 +111,7 @@ export const hasStringRawTemplateInitializer = (sourceFile: SourceFile, variable
   const tag = initializer.getTag();
   return Node.isPropertyAccessExpression(tag)
     && Node.isIdentifier(tag.getExpression())
-    && tag.getExpression().getText() === "String"
+    && astIdentifierName(tag.getExpression()) === "String"
     && tag.getName() === "raw";
 };
 
@@ -133,7 +133,7 @@ const hasTenItemIncrement = (incrementor: Expression | undefined): boolean => {
   const incrementRight = incrementor.getRight();
   return incrementor.getOperatorToken().getKind() === SyntaxKind.PlusEqualsToken
     && Node.isIdentifier(incrementLeft)
-    && incrementLeft.getText() === "startIndex"
+    && astIdentifierName(incrementLeft) === "startIndex"
     && Node.isNumericLiteral(incrementRight)
     && incrementRight.getLiteralValue() === 10;
 };
@@ -145,7 +145,8 @@ const objectLiteralPassesStartIndex = (argument: Node): boolean =>
   Node.isObjectLiteralExpression(argument) && argument.getProperties().some(isStartIndexProperty);
 
 const isEvaluateSearchResultSliceCall = (callExpression: CallExpression): boolean => {
-  if (!Node.isIdentifier(callExpression.getExpression()) || callExpression.getExpression().getText() !== "evaluateSearchResultSlice") {
+  if (!Node.isIdentifier(callExpression.getExpression())
+    || astIdentifierName(callExpression.getExpression()) !== "evaluateSearchResultSlice") {
     return false;
   }
   return callExpression.getArguments().some(objectLiteralPassesStartIndex);

@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { extname, resolve } from "node:path";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { DOM_SCHEMAS } from "../schema.js";
 import type { DomActionResult } from "../../../types/dom-automation.js";
 import type { UploadApprovedFileInput } from "../../../types/dom-automation-inputs.js";
@@ -12,6 +12,7 @@ import {
   buildDomReviewRequiredResult,
 } from "./dom-action-result.js";
 import { captureDomEvidenceRef } from "./dom-evidence.js";
+import { assertDomTargetBinding } from "./dom-target-binding.js";
 
 function validateApprovedUploadRequest(input: UploadApprovedFileInput): DomActionResult | { approvedPath: string } {
   const approvedPath = resolve(input.approvedFilePath);
@@ -42,7 +43,7 @@ function validateApprovedUploadRequest(input: UploadApprovedFileInput): DomActio
 }
 
 function buildDomUploadOutcome(
-  uploadResult: Awaited<ReturnType<BrowserController["setFileInputFiles"]>>,
+  uploadResult: Awaited<ReturnType<BrowserTargetSession["setFileInputFiles"]>>,
   beforeEvidenceRef: string,
   afterEvidenceRef: string,
 ): DomActionResult {
@@ -57,10 +58,11 @@ function buildDomUploadOutcome(
 }
 
 export async function uploadApprovedFileOnce(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   rawInput: UploadApprovedFileInput,
 ): Promise<DomActionResult> {
   const input = DOM_SCHEMAS.UploadApprovedFileInput.parse(rawInput) as UploadApprovedFileInput;
+  assertDomTargetBinding(browser, input.elementRef);
   const validated = validateApprovedUploadRequest(input);
   if ("ok" in validated) {
     return validated;

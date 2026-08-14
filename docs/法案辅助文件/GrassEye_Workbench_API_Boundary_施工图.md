@@ -45,7 +45,6 @@ src/app/create-workbench-server.ts
 ```txt
 handleDeepResearchRequest
 handleAmazonRequest
-handleFacebookRequest
 handleAmazonProductMiningRequest
 handleVideoDownloadRequest
 ```

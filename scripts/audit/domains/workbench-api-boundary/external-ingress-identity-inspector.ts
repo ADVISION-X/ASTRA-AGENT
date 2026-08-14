@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 
@@ -11,10 +12,10 @@ const hasCallWithStringArgument = (file: SourceFile, callName: string, value: st
   file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
     const expression = call.getExpression();
     const calledName = Node.isIdentifier(expression)
-      ? expression.getText()
+      ? astIdentifierName(expression)
       : Node.isPropertyAccessExpression(expression)
         ? expression.getName()
-        : null;
+        : undefined;
     return calledName === callName
       && call.getArguments().some((argument) =>
         (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))

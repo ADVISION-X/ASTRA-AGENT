@@ -22,11 +22,9 @@ const appShellSidebarPath = "src/app/app-shell/sidebar.ts";
 const appShellCommandBarPath = "src/app/app-shell/command-bar.ts";
 const appShellInspectorPath = "src/app/app-shell/inspector.ts";
 const appShellRuntimeConsolePath = "src/app/app-shell/runtime-console.ts";
-const videoDownloadClientPath = "src/app/workbench-video-download-client.ts";
 const deepResearchPanelPath = "src/app/workbench-deep-research-panel.ts";
 const deepResearchClientPath = "src/app/workbench-deep-research-client.ts";
 const deepResearchRoutePath = "src/app/workbench-deep-research-routes.ts";
-const videoDownloadRoutePath = "src/app/workbench-video-download-routes.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
@@ -156,8 +154,6 @@ const inspectRootSurface = (context: InspectorContext, findings: Finding[], lawI
 
 const inspectJobInputs = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const pageText = semanticSurface(context, appShellSurfacePaths);
-  const videoClientText = semanticSurface(context, [videoDownloadClientPath]);
-  const videoRouteText = semanticSurface(context, [videoDownloadRoutePath]);
   const requiredAmazonFields = [
     "marketplace",
     "sellerCentralEntryUrl",
@@ -167,34 +163,6 @@ const inspectJobInputs = (context: InspectorContext, findings: Finding[], lawId:
   ];
   for (const fieldName of requiredAmazonFields) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: fieldName, checkId: "local-app-shell/amazon-input" });
-  }
-  requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-facebook-form", checkId: "local-app-shell/facebook-input" });
-  for (const marker of ["data-video-download-form", "sourcePageUrl", "platform", "preferredQuality", "maxMegabytes", "downloadSubtitles", "telegram-web", "data-video-platform-tabs", "data-video-detect-source", "data-video-download-telegram-boundary"]) {
-    requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/video-download-input" });
-  }
-  requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: videoClientText, marker: "/api/video-download/start", checkId: "local-app-shell/video-download-client" });
-  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "routeVideoDownloadArtifactJob", checkId: "local-app-shell/video-download-route" });
-  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "/api/video-download/source-page", checkId: "local-app-shell/video-download-source-page" });
-  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "missing_source_page_url", checkId: "local-app-shell/video-download-route" });
-  const hasDirectAbilityCall = getSourceFile(context, videoDownloadRoutePath)
-    ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => {
-      const expression = call.getExpression();
-      if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "execute") {
-        return false;
-      }
-      const owner = expression.getExpression();
-      return Node.isCallExpression(owner)
-        && Node.isIdentifier(owner.getExpression())
-        && owner.getExpression().getSymbol()?.getEscapedName().toString() === "getVideoDownloadAbilityGroup";
-    }) ?? false;
-  if (hasDirectAbilityCall) {
-    pushFinding(findings, {
-      checkId: "local-app-shell/video-download-direct-ability-call",
-      lawId,
-      filePath: videoDownloadRoutePath,
-      message: "Video Download app route must enter mediator and job flow before calling the ability group.",
-    });
   }
 };
 
@@ -280,15 +248,14 @@ const inspectDeepResearchAppBoundary = (
 };
 
 const inspectStatusWindow = (context: InspectorContext, findings: Finding[], lawId: string): void => {
-  const pageText = semanticSurface(context, [...appShellSurfacePaths, videoDownloadClientPath]);
+  const pageText = semanticSurface(context, appShellSurfacePaths);
   for (const marker of ["data-task-status-panel", "data-task-reason", "data-evidence-ref", "data-raw-result"]) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/status-window" });
   }
-  requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: pageText, marker: "reviewRequiredReason", checkId: "local-app-shell/video-download-status" });
 };
 
 const inspectForbiddenPageTerms = (context: InspectorContext, findings: Finding[], lawId: string): void => {
-  const pageText = semanticSurface(context, [...appShellSurfacePaths, clientPath, videoDownloadClientPath, stylesPath]);
+  const pageText = semanticSurface(context, [...appShellSurfacePaths, clientPath, stylesPath]);
   const forbiddenMarkers = [
     "universal mission dashboard",
     "commander console",
@@ -403,8 +370,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     appShellCommandBarPath,
     appShellInspectorPath,
     appShellRuntimeConsolePath,
-    videoDownloadClientPath,
-    videoDownloadRoutePath,
     deepResearchPanelPath,
     deepResearchClientPath,
     deepResearchRoutePath,

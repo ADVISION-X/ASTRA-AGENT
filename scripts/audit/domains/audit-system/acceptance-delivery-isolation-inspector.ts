@@ -17,7 +17,6 @@ type DeliveryCase = {
 };
 
 const deliveryCases: readonly DeliveryCase[] = [
-  { filePath: "scripts/acceptance/video-download-youtube-production.acceptance.ts", functionName: "copyResultToDownloads", modulePath: "src/app/workbench-video-download-routes.ts", deliveryArgumentIndex: 2, rootVariable: "deliveryFixtureDir", deliveryVariable: "deliveryRoot" },
   { filePath: "scripts/acceptance/media-processing-async-route.acceptance.ts", functionName: "handleMediaProcessingRequest", modulePath: "src/app/workbench-media-processing-routes.ts", deliveryArgumentIndex: 3, rootVariable: "dataDir", deliveryVariable: "deliveryDirectory", serverVariable: "server" },
   { filePath: "scripts/acceptance/media-optimizer-app-ui.acceptance.ts", functionName: "handleMediaProcessingRequest", modulePath: "src/app/workbench-media-processing-routes.ts", deliveryArgumentIndex: 3, rootVariable: "dataDir", deliveryVariable: "deliveryDirectory", serverVariable: "server" },
 ];

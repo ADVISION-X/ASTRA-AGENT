@@ -25,14 +25,6 @@ export const createMissionTrace = (input: {
   owner: input.owner,
 });
 
-export const withRoundTrace = (input: {
-  context: RuntimeTraceContext;
-  roundId: string;
-}): RuntimeTraceContext => ({
-  ...input.context,
-  roundId: input.roundId,
-});
-
 export const createChildTrace = (input: {
   context: RuntimeTraceContext;
   stepId?: string;

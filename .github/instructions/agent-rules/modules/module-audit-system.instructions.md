@@ -80,11 +80,14 @@ APEX 质检系统的唯一主链是：
 4. `generated artifacts` 是唯一运行计划源。
 5. `runner` 只执行，不裁定规则，不手工绑定 law；它必须核对 owner 返回的单一 assertion-set 物理执行回执。失败诊断类别不得冒充额外物理检查。
 
+当前仓库不设 GitHub Actions 质检入口，`.github/workflows` 必须保持无 workflow 文件。任何未来 workflow 若要运行质检，必须先取得 active 法案与施工图授权，并且只能调用唯一 `npm run ci:full`；在该授权出现前，workflow 文件本身就是第二入口风险，audit-system 必须按文件系统事实直接 FAIL，不得用 YAML 文本扫描、隐藏 allowlist 或第二 workflow registry 放行。
+
 ### 禁止
 禁止以下形态成为质检系统真相源：
 
 - 手工维护的 enforcement matrix
 - `ci:full` 绕过 `codex:entry-gate`
+- 未获 active 权威授权即新增 `.github/workflows` 质检或自动化入口
 - runner 内置 lawId 列表
 - runner 内置脚本顺序真相
 - runner 内置 capability owner 绑定
@@ -279,6 +282,17 @@ clause coverage 必须区分证据层：所有 active clause 都必须被 manife
   "enforcementMode": "meta",
   "evidenceMode": "hybrid",
   "summary": "The runner is an executor only and must not own law truth, ordering truth, or binding truth.",
+  "codePurityLiveness": {
+    "externalEntryFiles": [
+      "scripts/audit/core/run-generated-plan-worker.mjs"
+    ],
+    "lawfulDynamicImports": [
+      {
+        "consumerFilePath": "scripts/audit/core/run-generated-plan-worker.mjs",
+        "targetFilePath": "scripts/audit/core/run-generated-plan-worker.ts"
+      }
+    ]
+  },
   "appliesTo": [
     "scripts/audit/**/*.{ts,js,mjs,json}"
   ],
@@ -374,11 +388,16 @@ runner 不拥有法条定义权、绑定权、顺序主权。
 - `config`：以可解析配置对象为主裁
 - `hybrid`：多证据源协同，但必须声明并执行一个主裁路径
 
+`hybrid` 法条的 owner manifest binding 必须使用唯一结构字段
+`primaryEvidence: { engine, sourceEvidenceIndex }` 明示主裁引擎，并精确指向同一 binding 的
+`sourceEvidence`；生成链必须投影该声明，audit-system 元质检必须对缺失或越界索引 fail closed。
+
 凡涉及 TS / TSX 语义判断，主裁证据必须来自 AST / symbol / type checker。
 若 `engine=ast` 或 TS-facing `hybrid`，则字符串搜索、`getFullText`、`includes`、纯 grep 只能作为辅助证据，不能冒充主裁。
 若 `engine=fs`，则审计对象必须天然属于文件系统拓扑、目录落位、锚点存在性这一类结构问题。
 凡涉及 owner-boundary、import-graph、zombie reachability，`import` 与 `re-export` 都必须进入主裁图；只查 import 放过 barrel laundering 视为伪执法。
 凡涉及 entry / liveness exemption，豁免必须来自 `package.json`、generated plan、或 active law 的结构性真相；`index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别不得整类放行。
+active law 若授权 Code Purity 活性面，只能在所属法条的 `codePurityLiveness` 结构字段中精确声明 file / export / edge 三元组，并由 generated law registry 唯一投影给 inspector；禁止在 inspector 源码中再维护一份豁免数组。
 
 ### 禁止
 禁止以下形态：

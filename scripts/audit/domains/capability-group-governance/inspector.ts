@@ -133,7 +133,7 @@ const pushFacadeSymbolEscapeImportFindings = (
   const exportSymbols = targetSourceFile.getExportSymbols();
 
   for (const namedImport of importDeclaration.getNamedImports()) {
-    const importedName = namedImport.getNameNode().getText();
+    const importedName = namedImport.getName();
     if (policy.mode === "public-child-functions" && (policy.allowedPublicChildFunctionExports?.has(importedName) ?? false)) {
       continue;
     }

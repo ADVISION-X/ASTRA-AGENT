@@ -159,7 +159,7 @@ Required:
 Forbidden:
 
 - Treating root HTML as the readiness source.
-- Treating Amazon or Facebook mission readiness as startup readiness.
+- Treating any job mission readiness as startup readiness.
 
 ## [APEX-STARTUP-004-V1] Structured Startup Report
 

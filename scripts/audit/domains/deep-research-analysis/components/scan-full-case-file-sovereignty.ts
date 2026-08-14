@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
@@ -10,7 +11,8 @@ import { hasLiteralFragment } from "./deep-research-ast-facts.js";
 
 const fileExists = (repoPath: string): boolean => existsSync(resolveFromRepo(repoPath));
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
-  Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value));
+  Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => astIdentifierName(identifier) === value));
 const repoSource = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
 

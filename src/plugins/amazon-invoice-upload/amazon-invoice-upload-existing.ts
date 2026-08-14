@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import {
@@ -40,7 +40,7 @@ type AlreadyUploadedRetainedTabInput = {
 };
 
 export async function verifyAlreadyUploadedInvoice(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
@@ -74,7 +74,7 @@ export async function verifyAlreadyUploadedInvoice(
 }
 
 async function recoverInvoiceReadFailure(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
@@ -132,7 +132,7 @@ function traceAlreadyUploaded(
 }
 
 async function openManageInvoiceList(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   snapshot: Awaited<ReturnType<typeof readSnapshot>>,
@@ -185,7 +185,7 @@ function traceManageInvoiceClick(
 }
 
 async function dismissInvoiceReadFailureDialog(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   snapshot: Awaited<ReturnType<typeof readSnapshot>>,
@@ -225,14 +225,14 @@ async function dismissInvoiceReadFailureDialog(
 }
 
 async function clickSafeOutsideDialogPoint(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   mission: AmazonInvoiceUploadMissionInput,
   failureText: string,
   abortSignal: AbortSignal,
 ): Promise<OutsideDialogClickResult> {
   const orderId = JSON.stringify(mission.amazonOrderId);
   const blockerText = JSON.stringify(failureText);
-  return browser.evaluateActiveTab<OutsideDialogClickResult>({
+  return browser.evaluate<OutsideDialogClickResult>({
     description: "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog",
     abortSignal,
     script: `
@@ -279,7 +279,7 @@ async function clickSafeOutsideDialogPoint(
 }
 
 async function waitForInvoiceReadFailureDialogDismissal(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   mission: AmazonInvoiceUploadMissionInput,
   failureText: string,
   abortSignal: AbortSignal,
@@ -319,7 +319,7 @@ function existingInvoiceNeedsReview(
 }
 
 async function waitForExistingInvoiceEvidence(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
@@ -365,7 +365,7 @@ async function waitForExistingInvoiceEvidence(
   }
 }
 
-const readExistingInvoiceSnapshot = (browser: BrowserController, abortSignal: AbortSignal) =>
+const readExistingInvoiceSnapshot = (browser: BrowserTargetSession, abortSignal: AbortSignal) =>
   readSnapshot(browser, { maxTextLengthPerNode: 240 }, abortSignal);
 
 function throwIfAborted(abortSignal: AbortSignal): void {

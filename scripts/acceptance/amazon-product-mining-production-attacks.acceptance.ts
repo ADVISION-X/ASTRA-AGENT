@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import { chromium, type Browser, type Page } from "playwright";
 
-import type { BrowserActionResult, BrowserController } from "../../src/lib/browser/browser-controller.js";
+import type { BrowserActionResult, BrowserTargetSession } from "../../src/lib/browser/browser-controller.js";
 import { runProductDetailExtraction } from "../../src/plugins/amazon-product-mining/amazon-product-mining.product-detail.js";
 import { runReviewPagination } from "../../src/plugins/amazon-product-mining/amazon-product-mining.reviews.js";
 import { runAmazonSearch } from "../../src/plugins/amazon-product-mining/amazon-product-mining.search.js";
@@ -16,7 +16,7 @@ const ok = (message: string): BrowserActionResult => ({
   createdAt: now(),
 });
 
-class AttackBrowser implements BrowserController {
+class AttackBrowser implements BrowserTargetSession {
   private constructor(private readonly browser: Browser, private readonly page: Page) {}
 
   static async create(): Promise<AttackBrowser> {
@@ -26,8 +26,8 @@ class AttackBrowser implements BrowserController {
   }
 
   getHealth() { return { ok: true, detail: "attack-browser" }; }
-  getSessionState() { return { currentUrl: this.page.url(), currentTitle: "attack-browser", open: true } as ReturnType<BrowserController["getSessionState"]>; }
-  async getGeometrySnapshot() { return { currentUrl: this.page.url(), pageTitle: "attack-browser" } as Awaited<ReturnType<BrowserController["getGeometrySnapshot"]>>; }
+  getSessionState() { return { currentUrl: this.page.url(), currentTitle: "attack-browser", open: true } as ReturnType<BrowserTargetSession["getSessionState"]>; }
+  async getGeometrySnapshot() { return { currentUrl: this.page.url(), pageTitle: "attack-browser" } as Awaited<ReturnType<BrowserTargetSession["getGeometrySnapshot"]>>; }
   async scroll() { return ok("scroll ignored in attack browser"); }
   async click() { return ok("click ignored in attack browser"); }
   async clickLocatedDomElement() { return ok("located click ignored in attack browser"); }
@@ -35,7 +35,7 @@ class AttackBrowser implements BrowserController {
   async screenshotRegion() { return { browserActionId: "attack", pageUrl: this.page.url(), pageTitle: "attack", regionLabel: "attack", regionType: "viewport", width: 1, height: 1, viewportWidth: 1, viewportHeight: 1, sourceFilePath: "/tmp/attack.png", createdAt: now() }; }
   async setFileInputFiles() { return ok("file input ignored in attack browser"); }
   async wait() { return ok("wait ignored in attack browser"); }
-  async closeActiveTab() { return ok("active tab close ignored in attack browser"); }
+  async closeTarget() { return ok("active tab close ignored in attack browser"); }
   async close() { await this.browser.close(); return ok("attack browser closed"); }
 
 	  async open(input: { url: string }): Promise<BrowserActionResult> {
@@ -63,7 +63,7 @@ class AttackBrowser implements BrowserController {
     return ok("opened empty attack fixture");
   }
 
-  async evaluateActiveTab<T>(input: { script: string }): Promise<T> {
+  async evaluate<T>(input: { script: string }): Promise<T> {
     return this.page.evaluate((script) => {
       const execute = new Function(script);
       return execute();

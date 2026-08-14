@@ -14,9 +14,13 @@
         "sourceEvidence": [
           {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "symbolName": "inspectCiEntryContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-002-V1",
@@ -27,9 +31,13 @@
         "sourceEvidence": [
           {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "symbolName": "inspectLawParserContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-003-V1",
@@ -39,10 +47,14 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+            "symbolName": "inspectPhysicalCheckReceiptContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-004-V1",
@@ -53,9 +65,13 @@
         "sourceEvidence": [
           {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "symbolName": "inspectGeneratedArtifactContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-005-V1",
@@ -65,10 +81,14 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+            "symbolName": "inspectPhysicalCheckReceiptContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-006-V1",
@@ -78,10 +98,14 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-system/primary-evidence-inspector.ts",
+            "symbolName": "inspectPrimaryEvidenceContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-007-V1",
@@ -92,9 +116,13 @@
         "sourceEvidence": [
           {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "symbolName": "inspectBlueprintContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-008-V1",
@@ -105,9 +133,13 @@
         "sourceEvidence": [
           {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "symbolName": "inspectMetaCoverageContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-009-V1",
@@ -117,10 +149,14 @@
         ],
         "sourceEvidence": [
           {
-            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "filePath": "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+            "symbolName": "inspectPhysicalCheckReceiptContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       },
       {
         "lawId": "APEX-AUDIT-010-V1",
@@ -131,9 +167,13 @@
         "sourceEvidence": [
           {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
-            "symbolName": "inspectDomain"
+            "symbolName": "inspectBinaryContract"
           }
-        ]
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       }
     ]
   },
@@ -143,6 +183,8 @@
       "requiredAnchors": [
         "## 唯一链路",
         "## 主矩阵",
+        "## CI-FULL 应该做",
+        "## READY 标准",
         "## audit-system 边界"
       ]
     }

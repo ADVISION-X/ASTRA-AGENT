@@ -1,5 +1,6 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astExpressionPath, astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -23,7 +24,8 @@ type InputAttachmentEveryAiFeedInspectionInput = {
 };
 
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
-  Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value));
+  Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => astIdentifierName(identifier) === value));
 
 const hasStringLiteral = (sourceFile: SourceFile | undefined, value: string): boolean =>
   Boolean(sourceFile?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === value));
@@ -41,7 +43,7 @@ const hasLiteralContaining = (sourceFile: SourceFile | undefined, value: string)
 
 const countCallExpressions = (sourceFile: SourceFile | undefined, callName: string): number =>
   sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => (
-    callExpression.getExpression().getText() === callName
+    astExpressionPath(callExpression.getExpression()) === callName
   )).length ?? 0;
 
 const markInspected = (

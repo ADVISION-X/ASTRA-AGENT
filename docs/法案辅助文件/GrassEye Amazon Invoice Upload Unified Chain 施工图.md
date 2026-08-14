@@ -591,7 +591,7 @@ waitForExistingInvoiceEvidence 必须接收 AbortSignal，只能由全局 task w
 精确受治理读取失败文案 = 很抱歉，目前没有可用的操作。 | 读取失败
 读取失败识别必须调用 findOrderBoundInvoiceDialogText，只能读取标题绑定当前完整订单号的唯一弹窗文本
 verifyAlreadyUploadedInvoice 只允许一次 dismissInvoiceReadFailureDialog -> openManageInvoiceList 恢复
-dismissInvoiceReadFailureDialog 必须使用 BrowserController.evaluateActiveTab 动态计算弹窗外点并验证关闭
+dismissInvoiceReadFailureDialog 必须使用 owner-bound BrowserTargetSession.evaluate 动态计算弹窗外点并验证关闭
 生产文件不得保留 recoverExistingInvoiceList、existingInvoiceEvidenceRecoveryAttempts、existingInvoiceEvidenceRecoverySettleMs 或 order-detail browser.open 恢复
 ```
 
@@ -782,27 +782,17 @@ API /api/plugins/amazon-invoice-upload/start
   -> startAmazonInvoiceUploadTask / resumeAmazonInvoiceUploadTask
   -> runAmazonInvoiceUpload 完成 Seller Central 上传判定
   -> saveTaskRecord 持久化原始 terminal result
-  -> IF mission.sourceSystem 或 mission.requestId 且 mission.adminOrderUrl 存在
-       -> 校验 adminOrderUrl host allowlist
-       -> openAmazonInvoiceAdminPage({ focusOnlyExistingTab: true })
-       -> BrowserController.open(reusePolicy: "focus-existing-same-path-url")
-       -> 先激活精确 URL 匹配的既有 Chrome 标签页；若真实网站页只有 query/hash 不一致，则激活同源同路径的既有 Chrome 标签页
-       -> 找不到则记录失败 trace，不新建、不刷新、不导航、不覆盖上传终态
-       -> 10 秒仍未完成时 abort 当前 focus 动作
-       -> await focus 完全停止并落 terminal trace
-       -> 然后才允许释放 single-flight lease 或开始下一张发票
+  -> 不对 adminOrderUrl 执行任何 Browser 动作
+  -> 保持操作者当前前台窗口和标签页不变
+  -> 释放 single-flight lease 或开始下一张发票
 ```
 
 禁止：
 
 ```txt
-用 open-new-tab / reuse-active-tab / reuse-host-tab 回到网站。
-找不到网站标签页时新开 adminOrderUrl。
-对网站页执行 set URL、reload、host fallback navigation。
-把 focus-only 作为普通 openAmazonInvoiceAdminPage 默认模式。
-在 Amazon 上传终态持久化之前切回网站。
-把网站回焦成功或失败当作 Amazon 上传成功证据。
-用 detached Promise.race 提前返回，让旧 focus 动作在 lease 释放后继续操作 Chrome。
+上传完成后打开、激活、聚焦、刷新或导航 adminOrderUrl。
+保留 focus-only、website-return 或前台恢复兼容模式。
+把网站前台状态当作 Amazon 上传成功证据。
 用历史上传成功日志、静态验收或字符串检查宣称新 IF 已完成生产实测。
 ```
 
@@ -821,8 +811,8 @@ API /api/plugins/amazon-invoice-upload/start
 
 ```txt
 batch start
-  -> refresh current Chrome navigation state
-  -> find existing Seller Central same-host worker tab, or open one if none exists
+  -> acquire one amazon-invoice-upload owner-bound exact target session
+  -> refresh that exact target identity from real Chrome; no active/current/front/first or same-host fallback
   -> item 1: navigate worker tab to /orders-v3/order/<orderId>
        -> observe order id + invoice action state in a 2s window
        -> if missing, log failure and start the next 2s observation on the unchanged page
@@ -833,7 +823,7 @@ batch start
        -> release the item execution lease
        -> local queue selects and visibly waits one random 2-15 second pacing interval
        -> perform zero Browser / DOM action during the interval
-  -> item 2: reuse same active worker tab and navigate URL
+  -> item 2: reuse the same exact worker target and navigate URL
   -> ...
   -> batch end: optional session cleanup outside per-item success judgment
 ```
@@ -841,23 +831,20 @@ batch start
 网站侧逐单 API 与本地批量读取必须共用同一单张上传入口。入口导航策略固定为：
 
 ```txt
-HTTP Seller Central URL:
-  reuse-host-tab
-    -> search all Chrome windows for same protocol + host
-    -> focus retained Seller Central tab and replace URL
-    -> if none exists, open one new Seller Central worker tab
-
-file/local smoke URL:
-  reuse-active-tab only after current state confirms same host
+All Seller Central URLs:
+  reuse-exact-url
+    -> retain the owner session's exact target identity
+    -> never select a target by active/current/front/first tab or same-host fallback
+    -> navigate that exact target in background
 ```
 
 强制规则：
 
 ```txt
-1. 如果 active tab 已经是同 Seller Central host，下一单必须使用 reuse-active-tab。
-2. upload_success 不得依赖 closeActiveTab。
-3. already_uploaded 不得依赖 closeActiveTab。
-4. close tab 失败不得把 Amazon 已验证成功变成 review_required。
+1. 下一单必须继续使用 amazon-invoice-upload owner session 的精确 target。
+2. upload_success 不得依赖 closeTarget。
+3. already_uploaded 不得依赖 closeTarget。
+4. target cleanup 失败不得把 Amazon 已验证成功变成 review_required。
 5. 每次复用 tab 后仍必须重新验证目标 orderId、invoice action state、loading 结束。
 ```
 

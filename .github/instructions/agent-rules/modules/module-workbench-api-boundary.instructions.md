@@ -77,9 +77,7 @@ src/app/create-workbench-server.ts
 src/app/workbench-http.ts
 src/app/workbench-amazon-routes.ts
 src/app/workbench-amazon-product-mining-routes.ts
-src/app/workbench-facebook-routes.ts
 src/app/workbench-deep-research-routes.ts
-src/app/workbench-video-download-routes.ts
 ```
 
 Required new guard file:

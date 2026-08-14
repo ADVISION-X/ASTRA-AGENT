@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { SyntaxKind, Node, type CallExpression, type Expression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
@@ -8,9 +9,7 @@ import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
 import { getPropertyInitializer, getStringLiteralProperty, hasProperty } from "./ast/ast-object-literal-reader.js";
 import { RuntimeLogSpineLaw, RUNTIME_LOG_REQUIRED_FILES, type RuntimeLogSpineFinding } from "./constants.js";
 import { isRuntimeLogLawSourcePath } from "./runtime-log-scope.js";
-import { findLine, readRepoFile } from "./source-read.js";
-
-const requiredStageMethods = ["start(", "complete(", "fail(", "skip(", "reviewRequired("] as const;
+const requiredStageMethods = ["start", "complete", "fail", "skip", "reviewRequired"] as const;
 const requiredTerminalTokens = ["durationMs", "status", "reason", "failureClass", "retryable", "terminal", "recoveryPolicy"] as const;
 
 const appendMissingRequiredRuntimeFileFindings = (findings: RuntimeLogSpineFinding[]): void => {
@@ -41,7 +40,7 @@ const resolveStageHandleName = (callNode: CallExpression): string | null => {
     return null;
   }
   const receiver = expression.getExpression();
-  return Node.isIdentifier(receiver) ? receiver.getText() : null;
+  return Node.isIdentifier(receiver) ? astIdentifierName(receiver) ?? null : null;
 };
 
 const resolveStageHandleBinding = (callNode: CallExpression): string | null => {
@@ -50,7 +49,7 @@ const resolveStageHandleBinding = (callNode: CallExpression): string | null => {
     return null;
   }
   const nameNode = variableDeclaration.getNameNode();
-  return Node.isIdentifier(nameNode) ? nameNode.getText() : null;
+  return Node.isIdentifier(nameNode) ? astIdentifierName(nameNode) ?? null : null;
 };
 
 const collectResolvedStageCalls = (sourceFile: SourceFile, repoPath: string): ResolvedStageCall[] => {
@@ -58,9 +57,7 @@ const collectResolvedStageCalls = (sourceFile: SourceFile, repoPath: string): Re
   return resolveCallsInSourceFile(sourceFile, repoPath)
     .filter((resolvedCall) => resolvedCall.kind === "stage-start" || resolvedCall.kind === "stage-terminal")
     .flatMap((resolvedCall) => {
-      const callIndex = callQueue.findIndex((callNode) =>
-        callNode.getStartLineNumber() === resolvedCall.line && callNode.getExpression().getText() === resolvedCall.calleeText,
-      );
+      const callIndex = callQueue.findIndex((callNode) => callNode.getStart() === resolvedCall.callStart);
       if (callIndex < 0) {
         return [];
       }
@@ -125,7 +122,8 @@ const appendTerminalContractFindings = (input: {
       return isRuntimeFailureClassExpression(expression.getExpression());
     }
     if (Node.isPropertyAccessExpression(expression)) {
-      return expression.getExpression().getText() === "RuntimeFailureClass";
+      return Node.isIdentifier(expression.getExpression())
+        && astIdentifierName(expression.getExpression()) === "RuntimeFailureClass";
     }
     return Node.isConditionalExpression(expression)
       && isRuntimeFailureClassExpression(expression.getWhenTrue())
@@ -170,31 +168,38 @@ const appendSourceFileStagePairFindings = (input: {
   appendTerminalContractFindings({ findings: input.findings, repoPath: input.repoPath, terminalCalls });
 };
 
-const appendStageLoggerContractFindings = (findings: RuntimeLogSpineFinding[]): void => {
-  const stageLogger = readRepoFile("src/lib/runtime-logs/stage-logger.ts");
+const appendStageLoggerContractFindings = (context: InspectorContext, findings: RuntimeLogSpineFinding[]): void => {
+  const stageLoggerPath = "src/lib/runtime-logs/stage-logger.ts";
+  const stageLogger = context.project.getSourceFile(resolveFromRepo(stageLoggerPath));
   if (!stageLogger) {
     return;
   }
-  const text = stageLogger.text;
+  const stageHandleMethods = new Set(stageLogger.getTypeAlias("RuntimeStageHandle")
+    ?.getTypeNode()?.getDescendantsOfKind(SyntaxKind.MethodSignature).map((method) => method.getName()) ?? []);
+  const stageLoggerMethods = new Set(stageLogger.getTypeAlias("RuntimeStageLogger")
+    ?.getTypeNode()?.getDescendantsOfKind(SyntaxKind.MethodSignature).map((method) => method.getName()) ?? []);
   for (const method of requiredStageMethods) {
-    if (text.includes(method)) continue;
+    if ((method === "start" ? stageLoggerMethods : stageHandleMethods).has(method)) continue;
     findings.push({
       checkId: "runtime-log-spine/stage-logger-method",
       lawId: RuntimeLogSpineLaw.STAGE_PAIR,
-      file: stageLogger.path,
+      file: stageLoggerPath,
       line: 1,
       severity: "fatal",
       message: "mandatory stage logging pair is missing",
       hint: "Stage logger must support start plus complete/fail/skip/reviewRequired terminal methods.",
     });
   }
+  const emitTerminal = stageLogger.getVariableDeclaration("emitTerminalStageEvent")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const terminalFields = new Set(emitTerminal?.getParameters()[0]?.getTypeNode()
+    ?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((property) => property.getName()) ?? []);
   for (const token of requiredTerminalTokens) {
-    if (text.includes(token)) continue;
+    if (terminalFields.has(token)) continue;
     findings.push({
       checkId: "runtime-log-spine/stage-terminal-contract",
       lawId: RuntimeLogSpineLaw.STAGE_PAIR,
-      file: stageLogger.path,
-      line: findLine(text, "emitTerminalStageEvent"),
+      file: stageLoggerPath,
+      line: emitTerminal?.getStartLineNumber() ?? 1,
       severity: "fatal",
       message: "mandatory stage logging pair is missing terminal metadata",
       hint: "Each terminal method must emit durationMs, status, reason where applicable, failureClass, retryable, terminal and recoveryPolicy.",
@@ -218,7 +223,7 @@ export const collectStagePairCoverageFindings = (context: InspectorContext): {
     appendSourceFileStagePairFindings({ findings, repoPath, sourceFile });
   }
 
-  appendStageLoggerContractFindings(findings);
+  appendStageLoggerContractFindings(context, findings);
 
   const totalChecks = RUNTIME_LOG_REQUIRED_FILES.length + requiredStageMethods.length + requiredTerminalTokens.length + 1;
   const stageCoveragePercent = Math.max(0, Math.round(((totalChecks - findings.length) / totalChecks) * 100));

@@ -220,7 +220,7 @@ Forbidden:
   ],
   "forbidden": [
     "Amazon-specific workflow inside an ability group.",
-    "Facebook-specific workflow inside an ability group.",
+    "Platform-specific workflow inside an ability group.",
     "Order upload process order inside an ability group.",
     "Product-video mining workflow inside an ability group.",
     "Business final status inside an ability group."

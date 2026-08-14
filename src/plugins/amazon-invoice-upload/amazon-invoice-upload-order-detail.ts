@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { BrowserOpenReusePolicy } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { gatedResult, readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
@@ -41,13 +41,13 @@ type NavigationOutcomeInput = {
 };
 
 export async function openApprovedOrderDetail(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
 ): Promise<{ ok: true; proof: AmazonOrderNavigationProof } | { ok: false; failure: AmazonInvoiceUploadTaskResult }> {
   const detailUrl = buildApprovedOrderDetailUrl(mission);
-  const reusePolicy = await orderDetailReusePolicy(browser, detailUrl);
+  const reusePolicy = await orderDetailReusePolicy(browser);
   const browserActionId = `browser:${randomUUID()}`;
   const beforeHash = stateHash(browser.getSessionState().currentUrl);
   const proofResult = await openAndPersistOrderDetailNavigation({
@@ -82,7 +82,7 @@ export async function openApprovedOrderDetail(
 }
 
 async function openAndPersistOrderDetailNavigation(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeLogger: RuntimeLogger;
   mission: AmazonInvoiceUploadMissionInput;
   execution: AmazonInvoiceUploadExecutionContext;
@@ -102,7 +102,7 @@ async function openAndPersistOrderDetailNavigation(input: {
     amazonOrderId: input.mission.amazonOrderId,
     ...(input.execution.taskId ? { taskId: input.execution.taskId } : {}),
   });
-  let openResult: Awaited<ReturnType<BrowserController["open"]>>;
+  let openResult: Awaited<ReturnType<BrowserTargetSession["open"]>>;
   try {
     openResult = await input.browser.open({
       url: input.detailUrl,
@@ -134,13 +134,13 @@ async function openAndPersistOrderDetailNavigation(input: {
     afterHash: stateHash(openResult.observedUrl ?? input.browser.getSessionState().currentUrl),
     startedAt: openResult.startedAt ?? fallbackStartedAt,
     durationMs: openResult.durationMs ?? Math.max(0, Date.now() - fallbackStartedAtMs),
-    reason: structuredOpenResult ? openResult.message : "BrowserController.open did not return the required structured navigation receipt.",
+    reason: structuredOpenResult ? openResult.message : "BrowserTargetSession.open did not return the required structured navigation receipt.",
   } as const;
   return persistAndEmitNavigationOutcome(outcomeInput);
 }
 
 function hasStructuredNavigationReceipt(
-  result: Awaited<ReturnType<BrowserController["open"]>>,
+  result: Awaited<ReturnType<BrowserTargetSession["open"]>>,
 ): boolean {
   return result.actionKind === "open"
     && result.startedAt !== undefined
@@ -285,33 +285,13 @@ function hostFromUrl(value: string): string {
   }
 }
 
-async function orderDetailReusePolicy(browser: BrowserController, targetUrl: string): Promise<BrowserOpenReusePolicy> {
+async function orderDetailReusePolicy(browser: BrowserTargetSession): Promise<BrowserOpenReusePolicy> {
   await refreshCurrentBrowserState(browser);
-  if (isHttpSellerCentralUrl(targetUrl)) return "reuse-host-tab";
-  return isSameOrderWorkerHost(browser.getSessionState().currentUrl, targetUrl) ? "reuse-active-tab" : "open-new-tab";
+  return "reuse-exact-url";
 }
 
-async function refreshCurrentBrowserState(browser: BrowserController): Promise<void> {
+async function refreshCurrentBrowserState(browser: BrowserTargetSession): Promise<void> {
   await browser.getGeometrySnapshot().catch(() => null);
-}
-
-function isHttpSellerCentralUrl(targetUrl: string): boolean {
-  try {
-    const url = new URL(targetUrl);
-    return (url.protocol === "http:" || url.protocol === "https:") && url.hostname.includes("sellercentral.amazon.");
-  } catch {
-    return false;
-  }
-}
-
-function isSameOrderWorkerHost(currentUrl: string, targetUrl: string): boolean {
-  try {
-    const current = new URL(currentUrl);
-    const target = new URL(targetUrl);
-    return current.protocol === target.protocol && current.host === target.host;
-  } catch {
-    return false;
-  }
 }
 
 export function buildApprovedOrderDetailUrl(mission: AmazonInvoiceUploadMissionInput): string {
@@ -352,7 +332,7 @@ const snapshotIsLoading = (snapshot: DomSnapshot): boolean =>
     .some((value) => String(value ?? "").includes("正在加载"));
 
 const waitForApprovedOrderDetail = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,

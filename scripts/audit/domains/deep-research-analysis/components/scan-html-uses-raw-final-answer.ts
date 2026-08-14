@@ -1,12 +1,13 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astExpressionPath } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string): boolean =>
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === path);
+    .some((expression) => astExpressionPath(expression) === path);
 
 const forbiddenFinalReportDependencies = [
   "finalReport" + ".summary",

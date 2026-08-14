@@ -11,11 +11,13 @@ import {
   pluginPaths, profilePath, schedulerPath, schemaPath, storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
+import { collectXuanxueSourceValues, inspectXuanxueLocalIntervention } from "./components/local-intervention-inspector.js";
 
 type Laws = {
   boundary: string;
   durability: string;
   cloud: string;
+  intervention: string;
 };
 
 const finding = (
@@ -40,45 +42,6 @@ const source = (
     `${filePath} must exist in the audit project.`,
   ));
   return null;
-};
-
-const sourceValues = (sources: readonly SourceFile[]): Set<string> => new Set(
-  sources.flatMap((file) => {
-    const literals = [
-      ...file.getDescendantsOfKind(SyntaxKind.StringLiteral)
-        .map((node) => node.getLiteralText()),
-      ...file.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
-        .map((node) => node.getLiteralText()),
-      ...file.getDescendantsOfKind(SyntaxKind.RegularExpressionLiteral)
-        .map((node) => node.getText()),
-    ];
-    return [
-      ...file.getDescendantsOfKind(SyntaxKind.Identifier)
-        .map((node) => node.getText()),
-      ...file.getDescendantsOfKind(SyntaxKind.NumericLiteral)
-        .map((node) => node.getText()),
-      ...literals,
-      ...literals.flatMap((literal) => semanticTokens(literal)),
-    ];
-  }),
-);
-
-const semanticTokens = (value: string): string[] => {
-  const separators = new Set([
-    " ", "\n", "\r", "\t", "(", ")", ",", ";", "'", '"', "`", ".", "=", "/",
-  ]);
-  const tokens: string[] = [];
-  let current = "";
-  for (const character of value) {
-    if (!separators.has(character)) {
-      current += character;
-      continue;
-    }
-    if (current) tokens.push(current);
-    current = "";
-  }
-  if (current) tokens.push(current);
-  return tokens;
 };
 
 const requireValues = (
@@ -392,7 +355,7 @@ const inspectAcceptance = (
     checkId: "xuanxue-ai-production/acceptance",
     filePath: acceptancePath,
     messagePrefix: "Production acceptance must prove",
-    values: sourceValues(acceptance),
+    values: collectXuanxueSourceValues(acceptance),
     required: [
       "maxActive",
       "the eleventh order must remain outside the ten-order production window",
@@ -452,6 +415,10 @@ const inspectDomainEvaluation = async (
       context.planEntry.lawIds,
       "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
     ),
+    intervention: selectLawId(
+      context.planEntry.lawIds,
+      "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
+    ),
   };
   const findings: InspectorFinding[] = [];
   inspectAuthority(findings, laws.boundary);
@@ -459,7 +426,7 @@ const inspectDomainEvaluation = async (
     const result = source(context, findings, laws.boundary, filePath);
     return result ? [result] : [];
   });
-  const values = sourceValues(sources);
+  const values = collectXuanxueSourceValues(sources);
   inspectContracts(findings, laws, values);
   inspectXuanxueRecoveryDurability(
     context, findings, laws.durability, values,
@@ -468,6 +435,7 @@ const inspectDomainEvaluation = async (
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);
+  inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
   inspectAcceptance(context, findings, laws.durability);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

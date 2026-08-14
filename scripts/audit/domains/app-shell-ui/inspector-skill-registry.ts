@@ -40,7 +40,7 @@ export const inspectSkillRegistry = (
   }
   const objects = registryObjects(registryFile);
   const ids = new Set(objects.map((objectLiteral) => getStringProperty(objectLiteral, "id")).filter((id): id is string => Boolean(id)));
-  for (const requiredId of ["amazon-product-mining", "facebook-video-mining", "tiktok-product-mining", "deep-research-analysis", "video-downloader"]) {
+  for (const requiredId of ["amazon-product-mining", "deep-research-analysis"]) {
     if (ids.has(requiredId)) continue;
     findings.push(createFinding({
       checkId: "app-shell-ui/skill-registry-required-id",

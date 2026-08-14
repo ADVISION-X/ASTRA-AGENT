@@ -2,7 +2,13 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
-import { blockHasAuthorizedLogCall, isFailureReturn, isPotentialFailureThrow, nearestBlock } from "./ast/ast-control-flow-utils.js";
+import {
+  blockHasAuthorizedLogCall,
+  isFailureReturn,
+  isPotentialFailureThrow,
+  nearestBlock,
+  nodeHasAuthorizedLogProvenance,
+} from "./ast/ast-control-flow-utils.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { hasRuntimeLogSignal, isRuntimeLogLawSourcePath } from "./runtime-log-scope.js";
 
@@ -28,6 +34,7 @@ const appendFailureReturnFindings = (findings: RuntimeLogSpineFinding[], sourceF
     if (!isFailureReturn(returnStatement)) continue;
     const block = nearestBlock(returnStatement);
     if (block && blockHasAuthorizedLogCall(block, repoPath)) continue;
+    if (nodeHasAuthorizedLogProvenance(returnStatement.getExpression())) continue;
     findings.push({
       checkId: "runtime-log-spine/failure-return-log",
       lawId: RuntimeLogSpineLaw.NO_SILENT_BRANCH,
@@ -66,7 +73,7 @@ export const collectCatchBranchLogFindings = (context: InspectorContext): {
   for (const sourceFile of context.project.getSourceFiles()) {
     const repoPath = getRepoSourcePath(sourceFile);
     if (!isInspectableRepoPath(repoPath)) continue;
-    if (!hasRuntimeLogSignal(sourceFile.getText())) continue;
+    if (!hasRuntimeLogSignal(sourceFile, repoPath)) continue;
     inspectedFiles.push(repoPath);
     appendCatchClauseFindings(findings, sourceFile, repoPath);
     appendFailureReturnFindings(findings, sourceFile, repoPath);

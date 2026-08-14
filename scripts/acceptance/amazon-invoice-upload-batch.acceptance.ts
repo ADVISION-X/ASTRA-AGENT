@@ -19,7 +19,7 @@ const missionSchema = read("src/plugins/amazon-invoice-upload/mission.schema.ts"
 const pluginIndex = read("src/plugins/amazon-invoice-upload/index.ts");
 const taskService = read("src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts");
 const browserController = read("src/lib/browser/browser-controller.ts");
-const chromeWindowControl = read("src/lib/browser/current-chrome-window-control.ts");
+const exactTargetRuntime = read("src/lib/browser/exact-target/browser-command-runtime.ts");
 
 const obsoleteBackendBatchFiles = [
   "src/plugins/amazon-invoice-upload/amazon-invoice-upload-batch.types.ts",
@@ -180,31 +180,19 @@ assert(routes.includes("x-grasseye-source-system"), "Upload route must preserve 
 assert(routes.includes("x-grasseye-request-id"), "Upload route must preserve API request metadata from headers.");
 assert(missionSchema.includes("sourceSystem: z.string().min(1).optional()"), "Upload mission schema must accept sourceSystem metadata.");
 assert(missionSchema.includes("requestId: z.string().min(1).optional()"), "Upload mission schema must accept requestId metadata.");
-assert(taskService.includes("returnApiUploadFocusToAdmin"), "Task service must attempt API website tab return after terminal upload result.");
-assert(taskService.includes("focus-existing-same-path-url"), "Website return must use same-path focus-only existing-tab policy.");
-assert(taskService.includes("focusOnlyExistingTab"), "Focus-only tab switching must be an explicit API-return mode, not the default admin open mode.");
-assert(taskService.includes('focusOnlyExistingTab: true'), "API website return must pass the explicit focus-only flag.");
-assert(taskService.includes('input.focusOnlyExistingTab === true ? "focus-existing-same-path-url" : "reuse-exact-url"'), "Normal admin open must not inherit focus-only behavior.");
-assert(taskService.includes("return API upload focus to website"), "Website tab return must be recorded in runtime trace.");
+assert.equal(taskService.includes("returnApiUploadFocusToAdmin"), false, "Terminal upload must preserve operator focus and perform no website-return action.");
+assert.equal(taskService.includes("focus-existing-same-path-url"), false, "Same-path focus fallback must remain deleted.");
+assert.equal(taskService.includes("focusOnlyExistingTab"), false, "Focus-only compatibility mode must remain deleted.");
 assert(taskService.includes("withAmazonInvoiceExecutionLease"), "Direct, start, and resume upload entrypoints must share the plugin-owned execution lease.");
-assert(taskService.includes("setExecutionAbortSignal"), "The upload lease must propagate one AbortSignal into the BrowserController.");
+assert(taskService.includes("setExecutionAbortSignal"), "The upload lease must propagate one AbortSignal into the BrowserTargetSession.");
 const terminalGuardSource = taskService.slice(taskService.indexOf("async function runAmazonInvoiceUploadWithTerminalGuard"), taskService.indexOf("async function withAmazonInvoiceExecutionLease"));
 assert.equal(terminalGuardSource.includes("Promise.race"), false, "Upload terminal timeout must abort and await flow settlement instead of detaching Promise.race.");
 assert(terminalGuardSource.includes("abortController.abort") && terminalGuardSource.includes("await runAmazonInvoiceUpload"), "Upload timeout must abort and await the active flow before terminal persistence.");
 assert.equal(taskService.includes("Promise.race"), false, "No upload-task browser action may outlive the execution lease through detached Promise.race.");
-const boundedFocusSource = taskService.slice(taskService.indexOf("async function returnApiUploadFocusToAdminBounded"));
-assert(boundedFocusSource.includes("new AbortController()"), "Bounded website return must own a cancellable browser-action signal.");
-assert(boundedFocusSource.includes("abortController.abort") && boundedFocusSource.includes("await input.focus(abortController.signal)"), "Website return timeout must abort and await focus settlement before lease release.");
-assert(taskService.includes("options: { abortSignal?: AbortSignal }") && taskService.includes("{ abortSignal: input.abortSignal }"), "Website return AbortSignal must reach BrowserController.open.");
 assert.equal(taskService.includes('reusePolicy: "open-new-tab"'), false, "Website return must not open a new admin tab.");
-assert(browserController.includes("focus-existing-same-path-url"), "Browser controller must expose a same-path focus-only tab policy.");
-assert(chromeWindowControl.includes("focused_existing_same_path_tab"), "Chrome focus-only policy must focus an existing same-origin same-path tab before failing closed.");
-assert(chromeWindowControl.includes("no_existing_tab"), "Chrome focus-only policy must fail closed when the website tab is missing.");
-assert(chromeWindowControl.includes('const FOCUS_ONLY_MISSING_TAB_RESULT = "no_existing_tab"'), "Focus-only missing-tab path must define the closed failure sentinel.");
-const frontWindowReadSource = chromeWindowControl.slice(chromeWindowControl.indexOf("const readFrontChromeWindowState"), chromeWindowControl.indexOf("export { runSpawn"));
-assert.equal(frontWindowReadSource.includes("make new window"), false, "Reading current Chrome state must not create a window.");
-assert.equal(frontWindowReadSource.includes("set URL"), false, "Reading current Chrome state must not write or restore a URL.");
-assert(chromeWindowControl.includes("return `${FOCUS_ONLY_MISSING_TAB_RESULT}`") || chromeWindowControl.includes("FOCUS_ONLY_MISSING_TAB_RESULT"), "Focus-only missing-tab path must return the closed failure sentinel before navigation.");
+assert.equal(browserController.includes("focus-existing-same-path-url"), false, "Browser contract must not expose same-path focus fallback.");
+assert(exactTargetRuntime.includes("BrowserTargetRegistry"), "Invoice browser actions must use the exact-target runtime.");
+assert.equal(exactTargetRuntime.includes("activateChrome"), false, "Ordinary exact-target actions must not activate Chrome.");
 assert.equal(
   read("src/lib/browser/current-chrome-browser-controller-runtime.ts").includes("no existing Chrome tab matched ${input.url}"),
   false,

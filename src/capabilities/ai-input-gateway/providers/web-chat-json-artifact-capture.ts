@@ -3,7 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -167,10 +167,10 @@ const remainingMs = (deadlineMs: number, capMs: number): number =>
   Math.max(0, Math.min(capMs, deadlineMs - Date.now()));
 
 const locateChatGptJsonDownloadControl = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
-  browser.evaluateActiveTab<ClickEvaluation>({
+  browser.evaluate<ClickEvaluation>({
     description: "locate ChatGPT JSON artifact download control",
     script: `
 const clip = (value) => String(value || "").replace(/\\s+/g, " ").trim();
@@ -206,7 +206,7 @@ return {
   });
 
 const clickChatGptJsonDownloadControl = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
 }): Promise<ClickEvaluation> => {
   const located = await locateChatGptJsonDownloadControl(input.browser, input.context);
@@ -224,7 +224,7 @@ const clickChatGptJsonDownloadControl = async (input: {
 };
 
 export const captureChatGptJsonArtifact = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   conversationUrl: string | null;

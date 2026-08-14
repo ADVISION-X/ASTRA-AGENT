@@ -16,12 +16,13 @@ export type VideoDownloadExecutionContext = {
   browserMediaSourcePort: BrowserMediaSourcePort;
   artifactStoragePort: VideoArtifactStoragePort;
   runtimeLogger?: RuntimeLogger;
+  abortSignal?: AbortSignal;
 };
 
 export interface VideoDownloadAbilityGroup {
   readonly abilityGroupId: VideoDownloadAbilityGroupId;
   listChildCapabilityIds(): VideoDownloadChildCapabilityId[];
-  downloadVideo(input: VideoDownloadPublicRequest): Promise<VideoDownloadResult>;
+  downloadVideo(input: VideoDownloadPublicRequest, options?: { abortSignal?: AbortSignal }): Promise<VideoDownloadResult>;
   execute(input: VideoDownloadAbilityInput): Promise<VideoDownloadResult>;
   promoteArtifact(input: {
     artifact: VideoDownloadArtifact;

@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type CallExpression, type Expression, type Node as MorphNode, type ObjectLiteralExpression } from "ts-morph";
 
+import { astIdentifierName, astPropertyName } from "../../../shared/ast-node-identity.js";
 import {
   expressionResolvesToConsoleMethod,
   expressionResolvesToConsoleObject,
@@ -26,7 +27,7 @@ export type ResolvedCall = {
     | "ai-log"
     | "browser-action-log"
     | "unknown";
-  calleeText: string;
+  callStart: number;
   symbolName: string | null;
   objectLiteralArg: ObjectLiteralExpression | undefined;
 };
@@ -79,8 +80,9 @@ export const registerObjectBindingAliases = (index: AliasIndex, declarationName:
     return;
   }
   for (const element of declarationName.getElements()) {
-    const bindingName = element.getNameNode().getText();
-    const propertyName = element.getPropertyNameNode()?.getText() ?? bindingName;
+    const bindingName = astIdentifierName(element.getNameNode());
+    const propertyName = astPropertyName(element.getPropertyNameNode()) ?? bindingName;
+    if (!bindingName || !propertyName) continue;
     registerBindingAlias(index, bindingName, propertyName, initializer);
   }
 };
@@ -89,7 +91,7 @@ const createResolvedCall = (input: {
   filePath: string;
   line: number;
   kind: ResolvedCall["kind"];
-  calleeText: string;
+  callStart: number;
   symbolName: string | null;
   objectLiteralArg: ObjectLiteralExpression | undefined;
 }): ResolvedCall => input;
@@ -98,7 +100,7 @@ type ResolveCallInput = {
   filePath: string;
   line: number;
   expression: Expression;
-  calleeText: string;
+  callStart: number;
   objectLiteralArg: ObjectLiteralExpression | undefined;
   index?: AliasIndex;
 };
@@ -126,11 +128,13 @@ export const resolveEventFactoryCall = (input: ResolveCallInput): ResolvedCall |
   if (!target || !Node.isIdentifier(target)) {
     return null;
   }
-  if (target.getText() === "createRuntimeEvent" || isSymbolFromModule(target, "runtime-logs", "createRuntimeEvent") || isSymbolFromModule(target, "event-factory", "createRuntimeEvent")) {
+  if (astIdentifierName(target) === "createRuntimeEvent"
+    || isSymbolFromModule(target, "runtime-logs", "createRuntimeEvent")
+    || isSymbolFromModule(target, "event-factory", "createRuntimeEvent")) {
     return createResolvedCall({
       ...input,
       kind: "event-factory",
-      symbolName: target.getText(),
+      symbolName: astIdentifierName(target) ?? null,
     });
   }
   return null;
@@ -140,11 +144,12 @@ const resolveStageLifecycleIdentifierCall = (input: ResolveCallInput & { index: 
   if (!Node.isIdentifier(input.expression)) {
     return null;
   }
-  if (input.index.stageStartMethods.has(input.expression.getText())) {
-    return createResolvedCall({ ...input, kind: "stage-start", symbolName: input.expression.getText() });
+  const name = astIdentifierName(input.expression);
+  if (name && input.index.stageStartMethods.has(name)) {
+    return createResolvedCall({ ...input, kind: "stage-start", symbolName: name });
   }
-  if (input.index.stageTerminalMethods.has(input.expression.getText())) {
-    return createResolvedCall({ ...input, kind: "stage-terminal", symbolName: input.expression.getText() });
+  if (name && input.index.stageTerminalMethods.has(name)) {
+    return createResolvedCall({ ...input, kind: "stage-terminal", symbolName: name });
   }
   return null;
 };
@@ -180,4 +185,3 @@ export const resolveRecoveryCall = (input: ResolveCallInput): ResolvedCall | nul
   }
   return null;
 };
-

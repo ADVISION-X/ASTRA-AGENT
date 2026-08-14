@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type ArrayLiteralExpression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -7,7 +8,9 @@ import { getRepoSourcePath } from "../../../shared/source-files.js";
 const collectAstTexts = (sourceFile: SourceFile): string[] => [
   ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue()),
   ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()),
-  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateExpression).map((node) => node.getText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()),
 ];
 
 const getArrayInitializer = (
@@ -112,7 +115,7 @@ export const requireIdentifier = (input: {
 }): void => {
   addInspectedFile(input.inspectedFiles, input.sourceFile);
   const found = input.sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) =>
-    identifier.getText() === input.identifierName,
+    astIdentifierName(identifier) === input.identifierName,
   );
   if (found) {
     return;
@@ -160,7 +163,7 @@ export const requireArrayIdentifierElement = (input: {
   addInspectedFile(input.inspectedFiles, input.sourceFile);
   const initializer = getArrayInitializer(input.sourceFile, input.arrayName);
   const found = initializer?.getElements().some((element) =>
-    element.getKind() === SyntaxKind.Identifier && element.getText() === input.identifierName,
+    Node.isIdentifier(element) && astIdentifierName(element) === input.identifierName,
   );
   if (found) {
     return;
@@ -185,8 +188,9 @@ export const requireArraySpreadElement = (input: {
   addInspectedFile(input.inspectedFiles, input.sourceFile);
   const initializer = getArrayInitializer(input.sourceFile, input.arrayName);
   const found = initializer?.getElements().some((element) =>
-    element.getKind() === SyntaxKind.SpreadElement
-    && element.getText() === `...${input.spreadName}`,
+    Node.isSpreadElement(element)
+    && Node.isIdentifier(element.getExpression())
+    && astIdentifierName(element.getExpression()) === input.spreadName,
   );
   if (found) {
     return;

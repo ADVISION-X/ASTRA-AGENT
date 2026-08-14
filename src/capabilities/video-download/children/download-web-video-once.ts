@@ -18,6 +18,7 @@ import {
   buildVideoDownloadFailure,
   buildVideoDownloadSuccess,
 } from "../runtime/result.js";
+import { createVideoDownloadAbortHandle } from "../runtime/abort-handle.js";
 
 type ParsedDownloadWebVideoInput = Extract<
   ParsedVideoDownloadAbilityInput,
@@ -30,7 +31,7 @@ const asFailureMessage = (error: unknown): string =>
 const probeActivePage = async (
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
-) => parseUniversalProbeResult(await context.browserMediaSourcePort.evaluateActiveTab({
+) => parseUniversalProbeResult(await context.browserMediaSourcePort.evaluate({
   script: UNIVERSAL_PAGE_PROBE_SCRIPT,
   description: "collect universal video media candidates",
   abortSignal,
@@ -86,10 +87,9 @@ async function executeDownloadWebVideoOnce(
   context: VideoDownloadExecutionContext,
 ): Promise<VideoDownloadResult> {
   const base = { input, startedAt: new Date().toISOString() };
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), input.timeoutMs);
+  const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await probeActivePage(context, abortController.signal);
+    const probe = await probeActivePage(context, abortHandle.signal);
     if (!probe) {
       return buildVideoDownloadFailure(base, "candidate_not_found", "Universal page probe returned no structured result.");
     }
@@ -98,14 +98,14 @@ async function executeDownloadWebVideoOnce(
       return buildVideoDownloadFailure(base, "candidate_not_found", "No video media candidates found on this page.");
     }
     for (const candidate of candidates) {
-      const result = await tryCandidate(input, context, candidate, abortController.signal);
+      const result = await tryCandidate(input, context, candidate, abortHandle.signal);
       if (result) return result;
     }
     return buildVideoDownloadFailure(base, "candidate_not_video", "All video candidates failed validation or download.");
   } catch (error) {
     return buildVideoDownloadFailure(base, "network_failed", asFailureMessage(error));
   } finally {
-    clearTimeout(timeout);
+    abortHandle.dispose();
   }
 }
 

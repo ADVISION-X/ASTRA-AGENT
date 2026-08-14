@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type {
   AiInputGatewayAbilityGroup,
   AiInputGatewayExecuteOptions,
@@ -19,10 +19,7 @@ import {
   recoverCheckpointedWebChatProviderLease,
 } from "./providers/web-chat-checkpoint-response.js";
 import { classifyWebChatFailure } from "./failure-classification.js";
-import {
-  scheduleWebChatTitleHousekeeping,
-  stopWebChatTitleHousekeeping,
-} from "./runtime/web-chat-title-housekeeping-worker.js";
+import { createProviderOperatorControl } from "./runtime/provider-operator-control.js";
 
 const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
   "feed-gemini-api-once",
@@ -51,7 +48,7 @@ const executeGeminiApi = (
 
 interface WebChatExecutionInput {
   context: AiInputGatewayExecutionContext;
-  browser: BrowserController | undefined;
+  browser: BrowserTargetSession | undefined;
   request: AiFeedInput;
   options: AiInputGatewayExecuteOptions | undefined;
 }
@@ -129,17 +126,9 @@ const executeParsedRequest = (
 
 export const createAiInputGatewayAbilityGroup = (
   context: AiInputGatewayExecutionContext,
-  browser?: BrowserController,
+  browser?: BrowserTargetSession,
 ): AiInputGatewayAbilityGroup => {
-  if (browser) {
-    scheduleWebChatTitleHousekeeping({
-      dataDir: context.dataDir,
-      browser,
-      ...(context.runtimeLogger
-        ? { runtimeLogger: context.runtimeLogger }
-        : {}),
-    });
-  }
+  const operatorControl = createProviderOperatorControl(context, browser);
   return {
     abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
 
@@ -151,8 +140,16 @@ export const createAiInputGatewayAbilityGroup = (
       return resolveWebChatMaxInFlight();
     },
 
+    async releaseProviderTargetForOperator(ownerKey: string): Promise<boolean> {
+      return operatorControl.release(ownerKey);
+    },
+
+    resumeProviderTargetAfterOperator(ownerKey: string): void {
+      operatorControl.resume(ownerKey);
+    },
+
     close(): Promise<void> {
-      return stopWebChatTitleHousekeeping(context.dataDir);
+      return operatorControl.close();
     },
 
     classifyFailure(error, hasDurableSubmission) {
@@ -166,8 +163,12 @@ export const createAiInputGatewayAbilityGroup = (
       });
     },
 
-    execute(rawInput: unknown, options): Promise<AiFeedResult> {
+    async execute(rawInput: unknown, options): Promise<AiFeedResult> {
       const request = AiFeedInputSchema.parse(rawInput);
+      if (browser && request.providerKind !== "gemini-api") {
+        await operatorControl.waitForRelease(options?.signal);
+        operatorControl.ensureHousekeeping();
+      }
       return executeParsedRequest({
         context,
         browser,

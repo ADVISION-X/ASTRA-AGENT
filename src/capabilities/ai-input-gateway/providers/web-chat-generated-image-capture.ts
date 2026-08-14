@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -135,10 +135,10 @@ function inspectGeneratedImageAssistantTurn(marker: string): LocatedImageDownloa
 }
 
 async function locateDownload(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<LocatedImageDownload> {
-  return browser.evaluateActiveTab<LocatedImageDownload>({
+  return browser.evaluate<LocatedImageDownload>({
     description: "locate generated image download inside exact latest assistant turn",
     script: `${generatedImageTurnRole.toString()}
 ${findGeneratedImageAssistant.toString()}
@@ -171,7 +171,7 @@ async function waitForNewDownload(before: Set<string>, startedAt: number): Promi
 }
 
 async function captureChatGptGeneratedImageOnce(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 }): Promise<NonNullable<import("../contracts/ai-provider-adapter.contract.js").AiProviderRawResponse["outputArtifacts"]>[number] | null> {
@@ -224,7 +224,7 @@ async function captureChatGptGeneratedImageOnce(input: {
 }
 
 export async function captureChatGptGeneratedImage(input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 }): Promise<NonNullable<import("../contracts/ai-provider-adapter.contract.js").AiProviderRawResponse["outputArtifacts"]>[number] | null> {

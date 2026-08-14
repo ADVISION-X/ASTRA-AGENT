@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Node, SyntaxKind } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import type { InspectorContext } from "../../../shared/inspector-contracts.js";
 import { collectDynamicImportProblems } from "../../../shared/source-module-targets.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
@@ -23,6 +24,66 @@ const resolvesTo = (node: import("ts-morph").Node | undefined, declaration: impo
   const symbol = node?.getSymbol();
   return (symbol?.getDeclarations().includes(declaration) ?? false)
     || (symbol?.getAliasedSymbol()?.getDeclarations().includes(declaration) ?? false);
+};
+
+const resolvesToImport = (
+  node: import("ts-morph").Node,
+  importedName: string,
+  moduleSpecifier: string,
+): boolean => {
+  const declarations = [
+    ...(node.getSymbol()?.getDeclarations() ?? []),
+    ...(node.getSymbol()?.getAliasedSymbol()?.getDeclarations() ?? []),
+  ];
+  return declarations.some((declaration) => Node.isImportSpecifier(declaration)
+    && declaration.getName() === importedName
+    && declaration.getImportDeclaration().getModuleSpecifierValue() === moduleSpecifier);
+};
+
+const findGeneratedPlanModuleUrlDeclaration = (
+  governedFile: GovernedFile,
+  argumentStart: number,
+): import("ts-morph").VariableDeclaration | undefined => {
+  if (governedFile.repoPath !== "scripts/audit/core/run-generated-plan.ts") return undefined;
+  const importCall = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => call.getExpression().getKind() === SyntaxKind.ImportKeyword
+      && call.getArguments()[0]?.getStart() === argumentStart);
+  const moduleUrlIdentifier = importCall?.getArguments()[0];
+  return moduleUrlIdentifier && Node.isIdentifier(moduleUrlIdentifier)
+    ? moduleUrlIdentifier.getSymbol()?.getDeclarations().find(Node.isVariableDeclaration)
+    : undefined;
+};
+
+const resolveOwnerPathAccess = (
+  moduleUrlDeclaration: import("ts-morph").VariableDeclaration,
+): import("ts-morph").PropertyAccessExpression | undefined => {
+  const hrefAccess = moduleUrlDeclaration.getInitializer();
+  if (!hrefAccess || !Node.isPropertyAccessExpression(hrefAccess) || hrefAccess.getName() !== "href") return undefined;
+  const pathToFileUrlCall = hrefAccess.getExpression();
+  if (!Node.isCallExpression(pathToFileUrlCall)
+    || !resolvesToImport(pathToFileUrlCall.getExpression(), "pathToFileURL", "node:url")) return undefined;
+  const resolveCall = pathToFileUrlCall.getArguments()[0];
+  if (!resolveCall || !Node.isCallExpression(resolveCall)
+    || !resolvesToImport(resolveCall.getExpression(), "resolveFromRepo", "../shared/paths.js")) return undefined;
+  const ownerPath = resolveCall.getArguments()[0];
+  return ownerPath && Node.isPropertyAccessExpression(ownerPath)
+    && ownerPath.getName() === "ownerInspectorPath" ? ownerPath : undefined;
+};
+
+const isGeneratedPlanOwnerImportContract = (
+  governedFile: GovernedFile,
+  argumentStart: number,
+): boolean => {
+  const moduleUrlDeclaration = findGeneratedPlanModuleUrlDeclaration(governedFile, argumentStart);
+  if (!moduleUrlDeclaration) return false;
+  const ownerPath = resolveOwnerPathAccess(moduleUrlDeclaration);
+  if (!ownerPath) return false;
+  const planEntry = ownerPath.getExpression();
+  if (!Node.isIdentifier(planEntry) || astIdentifierName(planEntry) !== "planEntry") return false;
+  return planEntry.getSymbol()?.getDeclarations().some((declaration) =>
+    Node.isParameterDeclaration(declaration)
+    && declaration.getFirstAncestor(Node.isFunctionLikeDeclaration) === moduleUrlDeclaration.getFirstAncestor(Node.isFunctionLikeDeclaration))
+    ?? false;
 };
 
 const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolean => {
@@ -168,19 +229,17 @@ const pushDynamicImportProblemFindings = (input: {
       continue;
     }
     for (const problem of collectDynamicImportProblems(governedFile.sourceFile)) {
-      if (
-        governedFile.repoPath === "scripts/audit/core/run-generated-plan.ts"
-        && problem.argumentText === "moduleUrl"
-      ) {
+      if (isGeneratedPlanOwnerImportContract(governedFile, problem.argumentStart)) {
         continue;
       }
+      const argumentKind = SyntaxKind[problem.argumentKind];
       pushZombieFinding(input.collector, {
         checkId: "code-purity/dynamic-import-nonliteral",
         governedFile,
         lawId: input.dynamicImportLawId,
-        reason: `Dynamic import uses non-literal specifier ${problem.argumentText}; owner and liveness truth cannot be proven from runtime-computed targets.`,
+        reason: `Dynamic import uses non-literal ${argumentKind} specifier; owner and liveness truth cannot be proven from runtime-computed targets.`,
         remediation: "Replace the computed dynamic import with a literal import target or an explicit owner-local loader map.",
-        message: `${governedFile.repoPath} uses non-literal dynamic import ${problem.argumentText}.`,
+        message: `${governedFile.repoPath} uses non-literal dynamic import at ${problem.line}:${problem.column}.`,
       });
       findingCount += 1;
     }

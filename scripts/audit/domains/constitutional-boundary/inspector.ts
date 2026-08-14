@@ -46,6 +46,7 @@ const protocolContextKeys = new Set([
 
 const allowedDomBridgeFiles = new Set([
   "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+  "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
 ]);
 
 const createDedupedFindingPusher = (findings: Finding[]) => {

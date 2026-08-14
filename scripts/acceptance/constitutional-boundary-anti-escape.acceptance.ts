@@ -44,7 +44,7 @@ const getFixtureFindings = async () => {
   const project = createAuditProject();
   const planEntry = loadGeneratedAuditPlan().find((entry) => entry.capabilityDomain === "constitutional-boundary");
   if (!planEntry) throw new Error("constitutional-boundary plan entry is missing.");
-  const controller = createInspectorCheckSession(planEntry);
+  const controller = createInspectorCheckSession(planEntry, "acceptance-run:constitutional-boundary");
   const result = await inspectDomain({
     checks: controller.checks,
     completedReports: {},

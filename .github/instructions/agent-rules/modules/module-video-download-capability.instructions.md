@@ -37,6 +37,20 @@ All security redlines from Law 002 remain fully active. No law upgrade changes t
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection",
   "summary": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
+  "codePurityLiveness": {
+    "lawfulDynamicRegistryConsumers": [
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-web-video-once.ts", "registryExportName": "downloadWebVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-facebook-video-once.ts", "registryExportName": "downloadFacebookVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-tiktok-video-once.ts", "registryExportName": "downloadTikTokVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-instagram-video-once.ts", "registryExportName": "downloadInstagramVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-bilibili-video-once.ts", "registryExportName": "downloadBilibiliVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-douyin-video-once.ts", "registryExportName": "downloadDouyinVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-x-video-once.ts", "registryExportName": "downloadXVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts", "registryExportName": "downloadXiaohongshuVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-youtube-video-once.ts", "registryExportName": "downloadYoutubeVideoOnce" },
+      { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-telegram-web-video-once.ts", "registryExportName": "downloadTelegramWebVideoOnce" }
+    ]
+  },
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-001-requirement",
@@ -623,11 +637,11 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+real-code-inspection+acceptance",
-  "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+  "summary": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, and startup dependency resilient.",
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-011-requirement",
-      "statement": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.",
+      "statement": "YouTube production downloads must be stream/file based, size-gated during download, media-probed, and startup dependency resilient.",
       "evidenceMode": "acceptance",
       "ownerDomain": "video-download-capability"
     }
@@ -641,7 +655,7 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection+acceptance
 
-summary: YouTube production downloads must be stream/file based, size-gated during download, media-probed, startup dependency resilient, and user-observable through one governed Workbench status path.
+summary: YouTube production downloads must be stream/file based, size-gated during download, media-probed, and startup dependency resilient.
 
 ### 主题
 
@@ -660,9 +674,7 @@ Required behavior:
 - Workbench startup must verify both managed `yt-dlp` and `ffprobe`; missing `ffprobe` is a dependency failure, not a fake media failure after download.
 - Workbench startup dependency refresh must prefer managed latest `yt-dlp`, but if refresh fails and an already verified managed local binary exists, startup may continue with that managed binary and expose the condition through logs/status.
 - Download execution must not refresh dependencies.
-- The local UI must use a governed Workbench status path for long-running YouTube jobs; task state must be bounded, persisted under the existing Workbench data dir, and guarded by a concurrency limit.
-- Copying the final artifact to the user Downloads directory is part of delivery; copy failure must be surfaced as a failure instead of silently swallowed.
-- Production acceptance and owner inspector must block regressions for in-memory video reads, missing download-time size gate, missing media probe, fake selectedQuality, missing subtitle availability proof, missing status route, missing dependency gate, unbounded async tasks, and silent Downloads copy failure.
+- Production acceptance and owner inspector must block regressions for in-memory video reads, missing download-time size gate, missing media probe, fake selectedQuality, missing subtitle availability proof, and missing dependency gate.
 
 ### 禁止
 
@@ -673,11 +685,8 @@ FORBIDDEN:
 - reporting requested quality as selected quality without verified media-height proof;
 - claiming subtitle request success when requested subtitles are reported available but no subtitle artifact exists;
 - relying on implicit system `ffprobe` without a startup dependency gate;
-- killing YouTube production downloads through a short Workbench request timeout while the governed async task is still running;
 - relying only on file extension or `ftyp`/magic bytes as the success proof;
-- hiding copy-to-Downloads failure while reporting final delivery success;
 - a second downloader, second status server, second runtime log chain, or second evidence chain;
-- UI-only timers that pretend to be task status without reading the governed Workbench status path.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1
 
@@ -719,7 +728,7 @@ The `video-download-capability` owner inspector and production acceptance must p
 
 Required behavior:
 - Inspector must use `InspectorContext.project` and `SourceFile` structure as the execution evidence source.
-- Inspector must verify schemas, child registry, runtime calls, object literal contracts, import boundaries, forbidden credential surfaces, Workbench route admission, job-flow pass-through, and YouTube production hardening by AST structure.
+- Inspector must verify schemas, child registry, runtime calls, object literal contracts, import boundaries, forbidden credential surfaces, and YouTube production hardening by AST structure.
 - Inspector must include anti-evasion checks that fail if the video-download inspector itself imports `readFileSync`, uses regular expression literals, `new RegExp`, raw source `includes`, raw `match`/`test`, `getFullText`, shell grep, or marker-only source scans as law enforcement.
 - Production acceptance for YouTube hardening must also use ts-morph structural assertions, not raw text or regex assertions.
 
@@ -742,11 +751,11 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-  "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+  "summary": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, and file-based subtitle artifacts.",
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-013-requirement",
-      "statement": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.",
+      "statement": "YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, and file-based subtitle artifacts.",
       "evidenceMode": "acceptance",
       "ownerDomain": "video-download-capability"
     }
@@ -760,7 +769,7 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: ts-morph+symbol+anti-evasion+acceptance
 
-summary: YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, file-based subtitle artifacts, and atomic task state persistence.
+summary: YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, and file-based subtitle artifacts.
 
 ### 主题
 
@@ -775,10 +784,8 @@ Required behavior:
 - Download execution must obtain the binary path only from the prepared runtime accessor.
 - Non-override production resolution must never fall back to PATH `yt-dlp`; `GRASSEYE_YT_DLP_BINARY` remains the only explicit operator override.
 - Every YouTube format selector branch, including fallback branches, must be height-bounded for its quality class; `best_available` must still have an explicit maximum production height.
-- Workbench YouTube requests must use a finite governed `maxBytes` value, never `Number.MAX_SAFE_INTEGER`.
 - The child must enforce a real total timeout by aborting the running yt-dlp process when `timeoutMs` expires.
 - Subtitle artifacts must be imported from subtitle file paths or otherwise streamed through the governed artifact port; subtitle persistence must not depend on in-memory `bytes` payloads.
-- Async task snapshots must be persisted atomically under the existing Workbench data dir, and terminal persistence failure must fail the async task rather than silently diverging memory state from disk state.
 - Owner inspector and production acceptance must prove these requirements through ts-morph AST and symbol-level checks, including anti-evasion checks against raw string, regex, and marker-only enforcement.
 
 ### 禁止
@@ -786,12 +793,10 @@ Required behavior:
 FORBIDDEN:
 - fallback to PATH `yt-dlp` from the normal managed runtime path;
 - resolving or refreshing `yt-dlp` during download execution;
-- using `Number.MAX_SAFE_INTEGER` or equivalent unbounded value for YouTube `maxBytes`;
 - naked `best` or format-id fallback branches that can exceed the requested height;
 - selected quality derived by echoing `hd`, `sd`, or `best_available` instead of the verified media height;
 - timeout fields that do not abort the active yt-dlp process;
 - `readFile()`/full-buffer subtitle artifact persistence;
-- non-atomic async task snapshot writes or swallowed terminal snapshot persistence failures;
 - grep, raw source text scans, regex, or marker strings as the enforcement basis for this law.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1
@@ -804,11 +809,11 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+anti-evasion+acceptance",
-  "summary": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+  "summary": "YouTube production readiness must be proven by semantic AST checks and executable runtime fixtures, not marker strings, regex scans, or shape-only tests.",
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-014-requirement",
-      "statement": "YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.",
+      "statement": "YouTube production readiness must be proven by semantic AST checks and executable runtime fixtures, not marker strings, regex scans, or shape-only tests.",
       "evidenceMode": "acceptance",
       "ownerDomain": "video-download-capability"
     }
@@ -822,7 +827,7 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: ts-morph+symbol+anti-evasion+acceptance
 
-summary: YouTube production readiness must be proven by semantic AST checks and executable route/runtime fixtures, not marker strings, regex scans, or shape-only tests.
+summary: YouTube production readiness must be proven by semantic AST checks and executable runtime fixtures, not marker strings, regex scans, or shape-only tests.
 
 ### 主题
 
@@ -835,25 +840,17 @@ YouTube 生产验收真实性与防复发
 Required behavior:
 - Owner inspector and production acceptance must use ts-morph AST, symbols, declarations, import graph, object contracts, and executable fixtures as evidence.
 - Anti-evasion must fail any video-download audit or YouTube production acceptance file that uses regular expression literals, `new RegExp`, `String.prototype.includes`, `String.prototype.match`, `String.prototype.test`, `getText`, `getFullText`, `readFileSync` source scans, or marker-only source assertions as enforcement.
-- Production acceptance must execute deterministic fixtures for Workbench route defaults, async terminal persistence failure, Downloads copy failure, YouTube subtitle availability matching, selected-quality height bounds, and artifact-id collision resistance.
-- YouTube Workbench requests without explicit `preferredQuality` must default to `best_available`, not silently downgrade to `720p`.
-- Synchronous `/api/video-download/start` must not execute long-running YouTube downloads; YouTube must use the governed async status path.
-- Terminal async task snapshot persistence failure must make the task terminal failed and observable; memory success with disk failure is forbidden.
+- Production acceptance must execute deterministic fixtures for YouTube subtitle availability matching, selected-quality height bounds, and artifact-id collision resistance.
 - YouTube artifact ids must be collision-resistant and must not rely only on `Date.now()`.
 - YouTube subtitle availability matching must treat language variants such as `en-US` as satisfying a requested base language such as `en`, and must fail when a matching available subtitle is not persisted.
-- Source-page script safety checks must be structural and allowlisted; regex/text blacklists are not sufficient production enforcement.
 
 ### 禁止
 
 FORBIDDEN:
 - marker-only YouTube production acceptance;
 - regex or raw string source scans in video-download owner inspector or YouTube production acceptance;
-- YouTube route defaults that silently cap production requests at `720p`;
-- executing YouTube through synchronous long-request route;
-- terminal snapshot persistence errors that are swallowed or reported as success;
 - YouTube video or subtitle artifact ids based only on timestamp;
 - exact-only subtitle language checks that miss available platform language variants;
-- security gates based only on regex-blacklisting page-evaluation script text.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1
 
@@ -865,11 +862,11 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-  "summary": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+  "summary": "YouTube production runtime must close media-state gaps through variant subtitle matching, abortable metadata probes, temporary-file cleanup, bounded inputs, and real artifact evidence.",
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-015-requirement",
-      "statement": "YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.",
+      "statement": "YouTube production runtime must close media-state gaps through variant subtitle matching, abortable metadata probes, temporary-file cleanup, bounded inputs, and real artifact evidence.",
       "evidenceMode": "static",
       "ownerDomain": "video-download-capability"
     }
@@ -883,7 +880,7 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: ts-morph+symbol+executable-fixture+real-download
 
-summary: YouTube production delivery must close all runtime-state gaps: variant subtitle matching, abortable metadata probes, temp cleanup, bounded caller controls, observable persistence failure, collision-resistant Downloads delivery, and real URL delivery evidence.
+summary: YouTube production runtime must close media-state gaps through variant subtitle matching, abortable metadata probes, temporary-file cleanup, bounded inputs, and real artifact evidence.
 
 ### 主题
 
@@ -891,18 +888,15 @@ YouTube 真实交付与状态一致性防复发
 
 ### 法条
 
-`download-youtube-video-once` and the governed Workbench route must be production-delivery complete, not merely shape-compliant.
+`download-youtube-video-once` must be production-ready, not merely shape-compliant.
 
 Required behavior:
 - YouTube subtitle availability must be decided by a reusable variant-aware helper; requested `en` must match available `en-US` / `en-GB`, requested `zh` must match `zh-Hans` / `zh-Hant`, and missing matching subtitle artifacts must fail the result.
 - Metadata probing and media downloading must use the same prepared managed `yt-dlp` binary and the same abortable process runner class; timeout must be able to terminate the active metadata or download process.
 - YouTube temporary directories must be removed both when yt-dlp throws and when post-download validation returns failure.
-- Workbench YouTube requests must honor a caller-provided finite `maxBytes` when smaller than the governed maximum, and must cap larger values to the governed maximum.
-- Workbench YouTube requests must pass caller `subtitleLanguages` through the mediated job input; hard-coded English-only subtitle requests are forbidden except as the documented default when the caller omits languages.
-- Initial async task snapshot persistence failure must become an observable failed task response; it must not leave an unobservable thrown request or a stale in-memory running task.
-- Downloads delivery filenames must use collision-resistant ids and must surface copy failure as task failure.
-- Production acceptance must include executable fixtures for bounded caller maxBytes, subtitle language pass-through, variant subtitle availability, failed initial persistence, Downloads copy failure, collision-resistant delivery names, and synchronous YouTube rejection.
-- Final release evidence for a user-requested YouTube URL must include actual artifact proof, ffprobe-backed media metadata, governed Downloads delivery path, status route observation, and runtime logs.
+- Capability inputs must enforce finite `maxBytes` and pass caller subtitle-language choices into the child.
+- Production acceptance must include executable fixtures for bounded bytes, subtitle language pass-through, variant subtitle availability, and collision-resistant artifact ids.
+- Final release evidence for a user-requested YouTube URL must include actual artifact proof, ffprobe-backed media metadata, and runtime logs.
 
 ### 禁止
 
@@ -912,9 +906,8 @@ FORBIDDEN:
 - temporary YouTube download directories left behind after validation failure;
 - ignoring caller `maxBytes` for YouTube requests;
 - hard-coding subtitle languages when the caller supplied a valid language list;
-- initial async persistence failure that throws without an observable failed task body;
-- timestamp-only Downloads delivery names;
-- reporting a user-requested YouTube delivery complete without real artifact, ffprobe metadata, status-path evidence, and delivery-path proof.
+- timestamp-only artifact ids;
+- reporting a user-requested YouTube delivery complete without real artifact and ffprobe metadata.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1
 
@@ -926,11 +919,11 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-  "summary": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+  "summary": "YouTube production evidence must be internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, and final release cannot ignore dependency audit risk.",
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-016-requirement",
-      "statement": "YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.",
+      "statement": "YouTube production evidence must be internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, and final release cannot ignore dependency audit risk.",
       "evidenceMode": "static",
       "ownerDomain": "video-download-capability"
     }
@@ -944,7 +937,7 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: ts-morph+symbol+executable-fixture+real-download
 
-summary: YouTube production evidence must be operator-readable and internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, UI must expose delivery proof, and final release cannot ignore dependency audit risk.
+summary: YouTube production evidence must be internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, and final release cannot ignore dependency audit risk.
 
 ### 主题
 
@@ -952,16 +945,14 @@ YouTube 生产交付证据一致性与人机交互防复发
 
 ### 法条
 
-YouTube success evidence, runtime logs, and Workbench presentation must be usable by a production operator without reading code or guessing hidden state.
+YouTube success evidence and runtime logs must be usable by a production operator without reading code or guessing hidden state.
 
 Required behavior:
 - On every successful YouTube result, `output.candidateKind` and `runtimeProof.candidateKind` must both be non-null and equal.
 - YouTube retry/error progress lines from yt-dlp must be logged as warning or failure events, never as `status: "success"`.
 - YouTube progress lines must not use `ARTIFACT_REF_RECORDED`; artifact-ref events are reserved for actual artifact/proof recording.
 - YouTube stage-completion logs must expose `selectedQuality`, content type, byte size, artifact ref, and candidate kind.
-- Workbench result UI must expose Downloads path or artifact path, selected quality, dimensions/duration, size, sha256, proof ref, and subtitle artifact count.
-- YouTube UI must expose subtitle request and caller language controls instead of hiding the subtitle chain.
-- Owner inspector and production acceptance must block proof/output candidate-kind divergence, artifact-ref progress misuse, success-logged retry/error events, missing UI proof fields, and hidden YouTube subtitle controls using ts-morph AST/symbol checks plus executable fixtures.
+- Owner inspector and production acceptance must block proof/output candidate-kind divergence, artifact-ref progress misuse, and success-logged retry/error events using ts-morph AST/symbol checks plus executable fixtures.
 - Final production release must treat `npm audit` moderate-or-higher vulnerabilities as unresolved risk unless explicitly fixed or documented by an active law exception.
 
 ### 禁止
@@ -971,8 +962,6 @@ FORBIDDEN:
 - `output.candidateKind` diverging from `runtimeProof.candidateKind`;
 - logging yt-dlp retry/error text as successful progress;
 - using `ARTIFACT_REF_RECORDED` for download percentages or metadata-progress chatter;
-- hiding selected quality, dimensions, sha256, proof ref, or subtitle artifact count from the final Workbench result;
-- hiding all YouTube subtitle controls while claiming subtitle production readiness;
 - final PASS while dependency audit reports unresolved moderate-or-higher vulnerabilities without an explicit active-law exception.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1
@@ -985,11 +974,11 @@ FORBIDDEN:
   "capabilityDomain": "video-download-capability",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ts-morph+symbol+executable-fixture+real-download",
-  "summary": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+  "summary": "YouTube production artifacts must preserve the platform source title as operator-facing metadata; random ids may prevent collision but must not replace the title.",
   "clauses": [
     {
       "clauseId": "grasseye-video-download-capability-017-requirement",
-      "statement": "YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.",
+      "statement": "YouTube production artifacts must preserve the platform source title as operator-facing metadata; random ids may prevent collision but must not replace the title.",
       "evidenceMode": "static",
       "ownerDomain": "video-download-capability"
     }
@@ -1003,7 +992,7 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: ts-morph+symbol+executable-fixture+real-download
 
-summary: YouTube production delivery must preserve the platform source title as operator-facing metadata and Downloads filename; random ids may prevent collision but must not replace the title.
+summary: YouTube production artifacts must preserve the platform source title as operator-facing metadata; random ids may prevent collision but must not replace the title.
 
 ### 主题
 
@@ -1011,23 +1000,21 @@ YouTube 原始标题保真与交付文件名防复发
 
 ### 法条
 
-YouTube success evidence, artifact storage, Workbench status, and Downloads delivery must preserve the YouTube metadata title as a first-class operator-readable field.
+YouTube success evidence and artifact storage must preserve the YouTube metadata title as a first-class operator-readable field.
 
 Required behavior:
 - Metadata probing must read the platform `title` from yt-dlp JSON and fail or review when a successful YouTube result cannot expose a non-empty `sourceTitle`.
 - YouTube success output and runtime proof must include `sourceTitle` and `displayTitle`.
 - `displayTitle` must be derived from `sourceTitle`; it may only be changed for filesystem safety, length bounds, or collision-resistant suffixes.
-- Artifact ids and Downloads filenames may include `randomUUID()` or other collision-resistant suffixes, but the visible basename must begin with or otherwise prominently preserve the sanitized source title.
-- Workbench UI must show the title as the primary success label, above or alongside delivery path, quality, dimensions, size, sha256, proof, and subtitle count.
-- Production acceptance must execute fixtures proving title extraction, title propagation into proof/output, sanitized title delivery names, and that pure UUID/random-only YouTube delivery names are rejected.
-- Owner inspector must block regressions through ts-morph AST/symbol checks, including schema fields, runtime metadata title extraction, child propagation, Downloads filename construction, UI title rendering, and acceptance fixture coverage.
+- Artifact ids may include `randomUUID()` or other collision-resistant suffixes, but their visible title segment must preserve the sanitized source title.
+- Production acceptance must execute fixtures proving title extraction, title propagation into proof/output, sanitized artifact names, and that pure UUID/random-only artifact names are rejected.
+- Owner inspector must block regressions through ts-morph AST/symbol checks, including schema fields, runtime metadata title extraction, child propagation, artifact-name construction, and acceptance fixture coverage.
 
 ### 禁止
 
 FORBIDDEN:
 - fixed yt-dlp output templates such as `youtube_video.%(ext)s` as the final human-facing identity;
 - success output or runtime proof that omits `sourceTitle` or `displayTitle`;
-- Downloads delivery filenames that are only UUID/timestamp/hash plus extension or only UUID/timestamp/hash plus an internal artifact id;
+- artifact names that are only UUID/timestamp/hash plus extension or an internal artifact id;
 - using random ids as a substitute for the YouTube title;
-- UI success states that require the operator to infer the video identity from a path, artifact id, video id, sha256, or proof id;
 - acceptance or inspector coverage that passes without a title-preservation fixture.

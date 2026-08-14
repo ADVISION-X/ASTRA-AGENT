@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
@@ -21,7 +21,7 @@ const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });
 const stepFailure = <T>(failure: AmazonInvoiceUploadTaskResult): StepResult<T> => ({ ok: false, failure });
 
 export async function fillInvoiceNumber(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
@@ -43,7 +43,7 @@ export async function fillInvoiceNumber(
 }
 
 async function readAndTraceInvoiceNumberSnapshot(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<Awaited<ReturnType<typeof readSnapshot>>> {

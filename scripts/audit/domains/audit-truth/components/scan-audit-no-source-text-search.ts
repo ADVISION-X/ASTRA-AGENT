@@ -12,12 +12,58 @@ import {
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
-import { isAuditTruthScanScopeFile, isOwnerInspectorRepoPath, normalizeAuditTruthPath } from "./audit-truth-scope.js";
+import { isAuditTruthScanScopeFile, isOwnerInspectorRepoPath } from "./audit-truth-scope.js";
 
 const isOwnerInspectorFile = (sourceFile: SourceFile): boolean => isOwnerInspectorRepoPath(getRepoSourcePath(sourceFile));
 
 const isTrackedSourceTextAccess = (expression: PropertyAccessExpression): boolean => {
   return expression.getName() === "getText" || expression.getName() === "getFullText";
+};
+
+const usageFlowsThroughParent = (parent: MorphNode): boolean =>
+  Node.isParenthesizedExpression(parent) || Node.isAwaitExpression(parent)
+  || Node.isAsExpression(parent) || Node.isTypeAssertion(parent)
+  || Node.isNonNullExpression(parent) || Node.isPropertyAccessExpression(parent)
+  || Node.isElementAccessExpression(parent) || Node.isSpreadElement(parent);
+
+const usageTerminatesAtParent = (parent: MorphNode): boolean =>
+  Node.isReturnStatement(parent) || Node.isIfStatement(parent)
+  || Node.isConditionalExpression(parent) || Node.isForOfStatement(parent)
+  || Node.isForInStatement(parent) || Node.isForStatement(parent)
+  || Node.isWhileStatement(parent) || Node.isDoStatement(parent)
+  || Node.isSwitchStatement(parent) || Node.isBinaryExpression(parent);
+
+const identifierReferencesVariable = (
+  identifier: import("ts-morph").Identifier,
+  declaration: import("ts-morph").VariableDeclaration,
+): boolean => {
+  if (identifier.getSymbol()?.getDeclarations().includes(declaration)) return true;
+  const parent = identifier.getParent();
+  return Node.isShorthandPropertyAssignment(parent)
+    && (parent.getValueSymbol()?.getDeclarations().includes(declaration) ?? false);
+};
+
+const usageIsConsumed = (node: MorphNode, visited = new Set<string>()): boolean => {
+  const key = `${node.getSourceFile().getFilePath()}:${node.getKind()}:${node.getStart()}:${node.getEnd()}`;
+  if (visited.has(key)) return false;
+  const nextVisited = new Set(visited).add(key);
+  const parent = node.getParent();
+  if (!parent || Node.isVoidExpression(parent) || Node.isExpressionStatement(parent)) return false;
+  if (usageFlowsThroughParent(parent)) {
+    return usageIsConsumed(parent, nextVisited);
+  }
+  if (Node.isVariableDeclaration(parent) && parent.getInitializer() === node) {
+    const name = parent.getNameNode();
+    if (!Node.isIdentifier(name)) return true;
+    return parent.getSourceFile().getDescendantsOfKind(SyntaxKind.Identifier)
+      .filter((identifier) => identifier !== name && identifierReferencesVariable(identifier, parent))
+      .some((identifier) => usageIsConsumed(identifier, nextVisited));
+  }
+  if (Node.isCallExpression(parent)) {
+    return parent.getArguments().some((argument) => argument === node) || usageIsConsumed(parent, nextVisited);
+  }
+  if (usageTerminatesAtParent(parent)) return true;
+  return usageIsConsumed(parent, nextVisited);
 };
 
 const hasProjectUsage = (sourceFile: SourceFile): boolean =>
@@ -26,13 +72,18 @@ const hasProjectUsage = (sourceFile: SourceFile): boolean =>
     .some((expression) => expression.getName() === "project"
       && Node.isIdentifier(expression.getExpression())
       && (expression.getExpression().getSymbol()?.getDeclarations().some((declaration) =>
-        Node.isParameterDeclaration(declaration) && declaration.getName() === "context") ?? false));
+        Node.isParameterDeclaration(declaration) && declaration.getName() === "context") ?? false)
+      && usageIsConsumed(expression));
 
 const textSearchMethods = new Set([
   "endsWith", "includes", "indexOf", "lastIndexOf", "match", "matchAll",
   "replace", "replaceAll", "search", "split", "startsWith",
 ]);
 const regexArgumentMethods = new Set(["exec", "test"]);
+const sourceTextTransformMethods = new Set([
+  "normalize", "slice", "substring", "substr", "toLocaleLowerCase", "toLocaleUpperCase",
+  "toLowerCase", "toUpperCase", "trim", "trimEnd", "trimStart",
+]);
 const equalityOperators = new Set([
   SyntaxKind.EqualsEqualsToken,
   SyntaxKind.EqualsEqualsEqualsToken,
@@ -122,19 +173,45 @@ function callUsesRawSource(
   return Boolean(calledFunction && rawFunctionKeys.has(functionKey(calledFunction)));
 }
 
+const collectionMutationValues = (declaration: MorphNode): MorphNode[] => declaration.getSourceFile()
+  .getDescendantsOfKind(SyntaxKind.CallExpression)
+  .flatMap((call) => {
+    const expression = call.getExpression();
+    if (!Node.isPropertyAccessExpression(expression)) return [];
+    const mutationMethod = expression.getName();
+    if (mutationMethod !== "add" && mutationMethod !== "push"
+      && mutationMethod !== "set" && mutationMethod !== "unshift") return [];
+    const collection = expression.getExpression();
+    const declarations = symbolDeclarations(collection.getSymbol());
+    return declarations.includes(declaration) ? call.getArguments() : [];
+  });
+
 function identifierUsesRawSource(
   node: import("ts-morph").Identifier,
   rawFunctionKeys: ReadonlySet<string>,
   seenDeclarations: Set<string>,
 ): boolean {
   for (const declaration of symbolDeclarations(node.getSymbol())) {
-    if (!Node.isVariableDeclaration(declaration) && !Node.isParameterDeclaration(declaration)) continue;
+    if (!Node.isVariableDeclaration(declaration)
+      && !Node.isParameterDeclaration(declaration)
+      && !Node.isBindingElement(declaration)) continue;
     const declarationKey = `${declaration.getSourceFile().getFilePath()}:${declaration.getStart()}`;
     if (seenDeclarations.has(declarationKey)) continue;
     seenDeclarations.add(declarationKey);
     if (Node.isVariableDeclaration(declaration)
       && nodeUsesRawSource(declaration.getInitializer(), rawFunctionKeys, seenDeclarations)) {
       return true;
+    }
+    if (Node.isVariableDeclaration(declaration)
+      && collectionMutationValues(declaration).some((value) =>
+        nodeUsesRawSource(value, rawFunctionKeys, seenDeclarations))) {
+      return true;
+    }
+    if (Node.isBindingElement(declaration)) {
+      const variable = declaration.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+      if (nodeUsesRawSource(variable?.getInitializer(), rawFunctionKeys, seenDeclarations)) {
+        return true;
+      }
     }
   }
   return false;
@@ -146,7 +223,13 @@ function nodeUsesRawSource(
   seenDeclarations: Set<string> = new Set<string>(),
 ): boolean {
   if (!node) return false;
-  if (Node.isCallExpression(node)) return callUsesRawSource(node, rawFunctionKeys);
+  if (Node.isCallExpression(node)) {
+    if (callUsesRawSource(node, rawFunctionKeys)) return true;
+    const expression = node.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && sourceTextTransformMethods.has(expression.getName())
+      && nodeUsesRawSource(expression.getExpression(), rawFunctionKeys, seenDeclarations);
+  }
   if (Node.isPropertyAccessExpression(node) && isTrackedSourceTextAccess(node)) {
     return true;
   }
@@ -170,12 +253,8 @@ const collectRawSourceFunctions = (scopeFiles: readonly SourceFile[]): Set<strin
       if (rawFunctionKeys.has(key)) {
         continue;
       }
-      if (!returnedExpressions(declaration).some((expression) => {
-        if (Node.isObjectLiteralExpression(expression) || Node.isArrayLiteralExpression(expression)) {
-          return false;
-        }
-        return nodeUsesRawSource(expression, rawFunctionKeys);
-      })) {
+      if (!returnedExpressions(declaration).some((expression) =>
+        nodeUsesRawSource(expression, rawFunctionKeys))) {
         continue;
       }
       rawFunctionKeys.add(key);
@@ -183,11 +262,6 @@ const collectRawSourceFunctions = (scopeFiles: readonly SourceFile[]): Set<strin
     }
   }
   return rawFunctionKeys;
-};
-
-type SinkParameter = {
-  functionKey: string;
-  parameterIndex: number;
 };
 
 const assignedValues = (declaration: MorphNode): MorphNode[] => declaration.getSourceFile()
@@ -224,39 +298,46 @@ const nodeFlowsFromParameter = (
   }));
 };
 
-const collectSinkParameters = (scopeFiles: readonly SourceFile[]): SinkParameter[] => {
-  const sinkParameters: SinkParameter[] = [];
-  for (const sourceFile of scopeFiles) {
-    for (const declaration of sourceFile.getDescendants().filter(Node.isFunctionLikeDeclaration)) {
-      const parameters = declaration.getParameters();
-      for (const callExpression of declaration.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-        const expression = callExpression.getExpression();
-        if (!Node.isPropertyAccessExpression(expression) || !textSearchMethods.has(expression.getName())) {
-          continue;
-        }
-        const parameterIndex = parameters.findIndex((parameter) =>
-          nodeFlowsFromParameter(expression.getExpression(), parameter),
-        );
-        if (parameterIndex >= 0) {
-          sinkParameters.push({
-            functionKey: functionKey(declaration),
-            parameterIndex,
-          });
-        }
+const parameterFeedsTextSearch = (
+  declaration: FunctionLikeNode,
+  parameterIndex: number,
+  memo: Map<string, boolean>,
+  visiting: Set<string> = new Set(),
+): boolean => {
+  const key = `${functionKey(declaration)}:${parameterIndex}`;
+  const cached = memo.get(key);
+  if (cached !== undefined) return cached;
+  if (visiting.has(key)) return false;
+  const parameter = declaration.getParameters()[parameterIndex];
+  if (!parameter) return false;
+  const parameterType = parameter.getType();
+  const stringLikeParameter = parameterType.isString() || parameterType.isStringLiteral()
+    || parameterType.getUnionTypes().some((member) => member.isString() || member.isStringLiteral());
+  if (!stringLikeParameter) {
+    memo.set(key, false);
+    return false;
+  }
+  const nextVisiting = new Set(visiting).add(key);
+  for (const call of declaration.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const expression = call.getExpression();
+    if (Node.isPropertyAccessExpression(expression)
+      && textSearchMethods.has(expression.getName())
+      && nodeFlowsFromParameter(expression.getExpression(), parameter)) {
+      memo.set(key, true);
+      return true;
+    }
+    const nested = resolveCalledFunction(call);
+    if (!nested) continue;
+    for (const [nestedIndex, argument] of call.getArguments().entries()) {
+      if (!nodeFlowsFromParameter(argument, parameter)) continue;
+      if (parameterFeedsTextSearch(nested, nestedIndex, memo, nextVisiting)) {
+        memo.set(key, true);
+        return true;
       }
     }
   }
-  return sinkParameters;
-};
-
-const indexSinkParameters = (sinks: readonly SinkParameter[]): Map<string, Set<number>> => {
-  const indexed = new Map<string, Set<number>>();
-  for (const sink of sinks) {
-    const parameters = indexed.get(sink.functionKey) ?? new Set<number>();
-    parameters.add(sink.parameterIndex);
-    indexed.set(sink.functionKey, parameters);
-  }
-  return indexed;
+  memo.set(key, false);
+  return false;
 };
 
 const findRawEquality = (sourceFile: SourceFile, rawFunctionKeys: ReadonlySet<string>): string | undefined => {
@@ -271,10 +352,8 @@ const findRawEquality = (sourceFile: SourceFile, rawFunctionKeys: ReadonlySet<st
 const findSourceTextJudgment = (
   sourceFile: SourceFile,
   rawFunctionKeys: ReadonlySet<string>,
-  sinkParameters: readonly SinkParameter[],
-  enforceControlPlaneEquality: boolean,
+  sinkMemo: Map<string, boolean>,
 ): string | undefined => {
-  const sinkByFunction = indexSinkParameters(sinkParameters);
   for (const callExpression of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     const expression = callExpression.getExpression();
     if (Node.isPropertyAccessExpression(expression)) {
@@ -292,21 +371,17 @@ const findSourceTextJudgment = (
         return callExpression.getText();
       }
     }
+    const rawArgumentIndexes = callExpression.getArguments().flatMap((argument, index) =>
+      nodeUsesRawSource(argument, rawFunctionKeys) ? [index] : []);
+    if (rawArgumentIndexes.length === 0) continue;
     const calledFunction = resolveCalledFunction(callExpression);
-    if (!calledFunction) {
-      continue;
-    }
-    const sinkIndexes = sinkByFunction.get(functionKey(calledFunction));
-    if (!sinkIndexes) {
-      continue;
-    }
-    for (const parameterIndex of sinkIndexes) {
-      if (nodeUsesRawSource(callExpression.getArguments()[parameterIndex], rawFunctionKeys)) {
-        return callExpression.getText();
-      }
+    if (!calledFunction) continue;
+    if (rawArgumentIndexes.some((parameterIndex) =>
+      parameterFeedsTextSearch(calledFunction, parameterIndex, sinkMemo))) {
+      return callExpression.getText();
     }
   }
-  return enforceControlPlaneEquality ? findRawEquality(sourceFile, rawFunctionKeys) : undefined;
+  return findRawEquality(sourceFile, rawFunctionKeys);
 };
 
 export const scanAuditNoSourceTextSearch = (input: {
@@ -320,7 +395,7 @@ export const scanAuditNoSourceTextSearch = (input: {
     .filter((sourceFile) => !sourceFile.isDeclarationFile() && isAuditTruthScanScopeFile(sourceFile));
   const inspectorFiles = scopeFiles.filter((sourceFile) => isOwnerInspectorFile(sourceFile));
   const rawFunctionKeys = collectRawSourceFunctions(scopeFiles);
-  const sinkParameters = collectSinkParameters(scopeFiles);
+  const sinkMemo = new Map<string, boolean>();
 
   for (const sourceFile of scopeFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
@@ -336,14 +411,10 @@ export const scanAuditNoSourceTextSearch = (input: {
       );
     }
 
-    const normalizedPath = normalizeAuditTruthPath(repoPath);
-    const enforceControlPlaneEquality = normalizedPath.startsWith("scripts/audit/domains/audit-system/")
-      || normalizedPath.startsWith("scripts/audit/domains/audit-truth/");
     const sourceTextJudgment = findSourceTextJudgment(
       sourceFile,
       rawFunctionKeys,
-      sinkParameters,
-      enforceControlPlaneEquality,
+      sinkMemo,
     );
     if (!sourceTextJudgment) {
       continue;

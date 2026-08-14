@@ -62,7 +62,7 @@ const isBrowserControllerOpenCall = (propertyAccess: PropertyAccessExpression): 
   const propertyDeclarationMatch = propertySymbol?.getDeclarations().some((declaration) => {
     const declarationSourcePath = getRepoSourcePath(declaration.getSourceFile());
     return declarationSourcePath === "src/lib/browser/browser-controller.ts"
-      && declaration.getFirstAncestorByKind(SyntaxKind.InterfaceDeclaration)?.getName() === "BrowserController";
+      && declaration.getFirstAncestorByKind(SyntaxKind.InterfaceDeclaration)?.getName() === "BrowserTargetSession";
   });
 
   if (propertyDeclarationMatch) {
@@ -74,7 +74,7 @@ const isBrowserControllerOpenCall = (propertyAccess: PropertyAccessExpression): 
     const declarationSourcePath = getRepoSourcePath(declaration.getSourceFile());
     return declarationSourcePath === "src/lib/browser/browser-controller.ts"
       && declaration.getKind() === SyntaxKind.InterfaceDeclaration
-      && declaration.getSymbol()?.getName() === "BrowserController";
+      && declaration.getSymbol()?.getName() === "BrowserTargetSession";
   }) ?? false;
 };
 
@@ -122,14 +122,14 @@ export const inspectBrowserTabLifecycle = (
       return [];
     }
 
-    const invalidCalls = calls.filter((call) => call.reusePolicy !== "reuse-active-tab");
+    const invalidCalls = calls.filter((call) => call.reusePolicy !== "reuse-exact-url");
     for (const call of invalidCalls) {
       findings.push(createFinding({
-        checkId: "amazon-mining/page-navigation-must-reuse-active-tab",
+        checkId: "amazon-mining/page-navigation-must-reuse-exact-target",
         lawId,
         filePath: call.filePath,
         line: call.line,
-        message: "Amazon mining page navigation must set reusePolicy to reuse-active-tab to prevent Chrome tab explosion.",
+        message: "Amazon mining page navigation must retain its owner-bound exact target.",
         evidence: `reusePolicy=${call.reusePolicy ?? "<missing>"}`,
       }));
     }

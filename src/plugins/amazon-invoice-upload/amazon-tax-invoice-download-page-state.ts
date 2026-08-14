@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { locateElement } from "./amazon-invoice-upload-flow-support.js";
 
@@ -67,6 +67,8 @@ export const locateGlobalMenu = (snapshot: DomSnapshot): LocateResult => {
   return {
     ok: true,
     element: {
+      targetRef: snapshot.targetRef,
+      documentRef: snapshot.documentRef,
       elementRef: "dom:amazon-tax-invoice-global-menu",
       selector: SELLER_CENTRAL_GLOBAL_MENU_SELECTOR,
       targetKind: "clickable",
@@ -87,6 +89,8 @@ export const locateReportsMenu = (snapshot: DomSnapshot): LocateResult => {
   return {
     ok: true,
     element: {
+      targetRef: snapshot.targetRef,
+      documentRef: snapshot.documentRef,
       elementRef: "dom:amazon-tax-invoice-reports-menu",
       selector: SELLER_CENTRAL_REPORTS_MENU_SELECTOR,
       targetKind: "clickable",
@@ -107,6 +111,8 @@ export const locateFulfillmentReports = (snapshot: DomSnapshot): LocateResult =>
   return {
     ok: true,
     element: {
+      targetRef: snapshot.targetRef,
+      documentRef: snapshot.documentRef,
       elementRef: "dom:amazon-tax-invoice-fulfillment-reports",
       selector: SELLER_CENTRAL_FULFILLMENT_REPORTS_SELECTOR,
       targetKind: "link",
@@ -121,13 +127,13 @@ export const locateFulfillmentReports = (snapshot: DomSnapshot): LocateResult =>
 };
 
 export const isSellerCentralHamburgerMenuOpen = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
     return snapshotHasAnyText(snapshot, ["目录", "库存", "订单", "报告"]);
   }
-  return browser.evaluateActiveTab<boolean>({
+  return browser.evaluate<boolean>({
     description: "verify Seller Central hamburger menu open state",
     script: `
 const host = document.querySelector(${JSON.stringify(SELLER_CENTRAL_GLOBAL_MENU_SELECTOR)});
@@ -138,13 +144,13 @@ return Boolean(sidebar && sidebar.classList.contains('menu__sidebar--open'));
 };
 
 export const isSellerCentralReportsMenuExpanded = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
     return snapshotHasAnyText(snapshot, ["业务报告", "配送", "Tax Document Library", "管理税费"]);
   }
-  return browser.evaluateActiveTab<boolean>({
+  return browser.evaluate<boolean>({
     description: "verify Seller Central reports menu expanded state",
     script: `
 const host = document.querySelector(${JSON.stringify(SELLER_CENTRAL_GLOBAL_MENU_SELECTOR)});
@@ -173,11 +179,11 @@ export const isFulfillmentReportsPage = (snapshot: DomSnapshot): boolean =>
   || snapshotHasAnyText(snapshot, ["配送报告", "亚马逊配送报告", "欢迎使用“报告”", "亚马逊配送货件"]);
 
 export const isSellerCentralTaxInvoiceReportLinkPresent = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) return false;
-  return browser.evaluateActiveTab<boolean>({
+  return browser.evaluate<boolean>({
     description: "verify Seller Central tax invoice report link present",
     script: `
 const links = Array.from(document.querySelectorAll('a[href="${TAX_REPORT_URL_PATH}"]'));
@@ -187,9 +193,9 @@ return links.some((link) => String(link.innerText || link.textContent || "").inc
 };
 
 export const selectSellerCentralLast30Days = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
 ): Promise<{ ok: true } | { ok: false; reason: string }> =>
-  browser.evaluateActiveTab<{ ok: true } | { ok: false; reason: string }>({
+  browser.evaluate<{ ok: true } | { ok: false; reason: string }>({
     description: "select Seller Central event date last 30 days",
     script: `
 const dropdown = document.querySelector('kat-dropdown[label="事件日期"]');
@@ -216,13 +222,13 @@ return String(dropdown.value || dropdown.getAttribute("value")) === "30"
   });
 
 export const isSellerCentralLast30DaysSelected = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
     return snapshotHasAnyText(snapshot, ["最近 30 天", "value=\"30\""]);
   }
-  return browser.evaluateActiveTab<boolean>({
+  return browser.evaluate<boolean>({
     description: "verify Seller Central event date last 30 days selected",
     script: `
 const dropdown = document.querySelector('kat-dropdown[label="事件日期"]');
@@ -245,7 +251,7 @@ export const isDownloadableCsvRow = (rowText: string): boolean => {
 };
 
 export const isSellerCentralLatestReportDownloadable = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) return false;
@@ -254,9 +260,9 @@ export const isSellerCentralLatestReportDownloadable = async (
 };
 
 export const findSellerCentralLatestReportDownloadPoint = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
 ): Promise<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }> =>
-  browser.evaluateActiveTab<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }>({
+  browser.evaluate<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }>({
     description: "locate Seller Central latest tax invoice report download button",
     script: `
 const rows = Array.from(document.querySelectorAll('kat-table-row'));
@@ -277,9 +283,9 @@ return {ok: true, point: {x: Math.round(rect.x + rect.width / 2), y: Math.round(
   });
 
 export const readSellerCentralLatestTaxInvoiceRowState = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
 ): Promise<{ state: "downloadable" | "pending" | "missing"; reason: string }> =>
-  browser.evaluateActiveTab<{ state: "downloadable" | "pending" | "missing"; reason: string }>({
+  browser.evaluate<{ state: "downloadable" | "pending" | "missing"; reason: string }>({
     description: "read Seller Central latest tax invoice row state",
     script: `
 const rows = Array.from(document.querySelectorAll('kat-table-row'));

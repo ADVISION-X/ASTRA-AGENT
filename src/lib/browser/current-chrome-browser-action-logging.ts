@@ -12,12 +12,6 @@ type LoggedBrowserActionInput<T> = {
   failureReason?: (result: T) => string;
 };
 
-export async function runLoggedBrowserResultAction<T extends { browserActionId: string }>(input: LoggedBrowserActionInput<T>): Promise<T> {
-  const browserActionId = `browser:${randomUUID()}`;
-  const result = await runLoggedBrowserAction({ ...input, browserActionId });
-  return { ...result, browserActionId };
-}
-
 export function runLoggedBrowserValueAction<T>(input: LoggedBrowserActionInput<T>): Promise<T> {
   return runLoggedBrowserAction({ ...input, browserActionId: `browser:${randomUUID()}` });
 }

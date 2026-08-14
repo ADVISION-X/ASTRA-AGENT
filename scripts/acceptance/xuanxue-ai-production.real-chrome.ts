@@ -26,15 +26,17 @@ const runRoot = await mkdtemp(
 const browser = new CurrentChromeBrowserController({
   sessionConfig: createLocalBrowserSessionConfig({ platform: "darwin" }),
   screenshotDir: path.join(runRoot, "browser-captures"),
+  dataDir: runRoot,
 });
-const prepared = await browser.open({
+const browserTarget = browser.createTargetSession("xuanxue-ai-production:real-chrome");
+const prepared = await browserTarget.open({
   url: "https://chatgpt.com/",
   title: "prepare ChatGPT for xuanxue production graph acceptance",
-  reusePolicy: "reuse-host-tab",
+  reusePolicy: "reuse-exact-url",
 });
 assert.equal(prepared.ok, true, prepared.message);
 
-const provider = createAiInputGatewayAbilityGroup({ dataDir: runRoot }, browser);
+const provider = createAiInputGatewayAbilityGroup({ dataDir: runRoot }, browserTarget);
 
 class RecordingRealGateway implements AiInputGatewayAbilityGroup {
   readonly abilityGroupId = "ai-input-gateway" as const;

@@ -10,7 +10,9 @@ import {
 } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { inspectPluginInterventionContract } from "../../shared/plugin-intervention-contract-inspector.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectAmazonInvoiceAmountGate } from "./inspector-amount-gate.js";
 import { inspectAmazonInvoiceBatchGuard } from "./inspector-batch.js";
@@ -45,9 +47,9 @@ const evidencePath = `${ownerRoot}/amazon-tax-invoice-download-evidence.ts`;
 const routesPath = "src/app/workbench-amazon-routes.ts";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
-const chromeWindowControlPath = "src/lib/browser/current-chrome-window-control.ts";
-const chromeExecutionPath = "src/lib/browser/current-chrome-browser-controller-execution.ts";
-const chromeScreenshotPath = "src/lib/browser/current-chrome-browser-screenshot.ts";
+const chromeWindowControlPath = "src/lib/browser/exact-target/browser-command-runtime.ts";
+const chromeExecutionPath = "src/lib/browser/exact-target/browser-command-runtime.ts";
+const chromeScreenshotPath = "src/lib/browser/exact-target/browser-command-runtime.ts";
 const appShellLayoutPath = "src/app/app-shell/app-shell-layout.ts";
 const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-workspace.ts";
 const appShellClientPath = "src/app/workbench-home-client.ts";
@@ -164,7 +166,7 @@ const propertyName = (property: Node): string | null => {
   if (!Node.isPropertyAssignment(property)) return null;
   const nameNode = property.getNameNode();
   if (Node.isStringLiteral(nameNode)) return nameNode.getLiteralText();
-  if (Node.isIdentifier(nameNode)) return nameNode.getText();
+  if (Node.isIdentifier(nameNode)) return astIdentifierName(nameNode) ?? null;
   return property.getName();
 };
 
@@ -456,6 +458,14 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const findings: InspectorFinding[] = [];
   inspectAmazonInvoiceStaticContracts(context, findings, lawIds);
   inspectAmazonInvoiceRuntimeContracts(context, findings, lawIds);
+  findings.push(...inspectPluginInterventionContract(context, {
+    lawId: "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1", domain,
+    ownerFilePaths: ["src/plugins/amazon-invoice-upload/amazon-invoice-upload-intervention.ts"],
+    routeFilePath: "src/app/workbench-amazon-routes.ts", routePrefix: "/api/amazon-invoice-upload/intervention/",
+    handleMethods: ["pauseAmazonInvoiceUpload", "cancelAmazonInvoiceUpload", "takeoverAmazonInvoiceUpload", "resumeAmazonInvoiceUpload"], safePointSymbol: "awaitAmazonInvoiceUploadSafePoint",
+    interventionSymbol: "requestAmazonInvoiceUploadIntervention",
+    acceptancePath: "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
+  }));
 
   return {
     capabilityDomain: domain,

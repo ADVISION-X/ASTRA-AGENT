@@ -6,6 +6,9 @@ export {
 export {
   XUANXUE_AI_PRODUCTION_JOB_ID,
   XuanxueAiProductionOrderSchema,
+  XuanxueAiInterventionRequestSchema,
+  type XuanxueAiInterventionRecord,
+  type XuanxueAiInterventionRequest,
   type XuanxueAiOrderRecord,
   type XuanxueAiProductionOrder,
   type XuanxueAiProductionResult,

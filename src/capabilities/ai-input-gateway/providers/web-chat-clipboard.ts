@@ -1,76 +1,7 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
-const execFileAsync = promisify(execFile);
-const APPLESCRIPT_TIMEOUT_MS = 10_000;
 const PROVIDER_HOSTS = new Set(["chatgpt.com", "gemini.google.com"]);
-
-const escapeAppleScriptText = (value: string): string =>
-  value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-
-export const copyTextToMacClipboard = async (
-  text: string,
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = `set the clipboard to "${escapeAppleScriptText(text)}"`;
-  await execFileAsync("osascript", ["-e", script], {
-    signal: abortSignal,
-    timeout: APPLESCRIPT_TIMEOUT_MS,
-  });
-};
-
-export const copyFileObjectToMacClipboard = async (
-  filePath: string,
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = [
-    `set targetFile to POSIX file "${escapeAppleScriptText(filePath)}" as alias`,
-    'tell application "Finder"',
-    "  activate",
-    "  reveal targetFile",
-    "  select targetFile",
-    "end tell",
-    'tell application "System Events"',
-    '  tell process "Finder"',
-    "    set frontmost to true",
-    '    keystroke "c" using command down',
-    "  end tell",
-    "end tell",
-    "delay 0.2",
-  ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
-};
-
-export const pasteMacClipboardIntoChrome = async (
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = [
-    'tell application "System Events"',
-    '  tell process "Google Chrome"',
-    "    set frontmost to true",
-    '    keystroke "v" using command down',
-    "  end tell",
-    "end tell",
-  ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
-};
-
-export const activateChromeForClipboardPaste = async (
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = [
-    'tell application "Google Chrome" to activate',
-    'tell application "System Events"',
-    '  tell process "Google Chrome"',
-    "    set frontmost to true",
-    "  end tell",
-    "end tell",
-    "delay 0.2",
-  ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
-};
 
 type ComposerInsertResult = {
   host?: string;
@@ -79,7 +10,7 @@ type ComposerInsertResult = {
 };
 
 const insertPromptInActiveProviderTab = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   prompt: string,
   replace: boolean,
   abortSignal?: AbortSignal,
@@ -123,7 +54,7 @@ const insertPromptInActiveProviderTab = async (
     const length = 'value' in composer ? String(composer.value ?? '').length : String(composer.innerText ?? composer.textContent ?? '').length;
     return JSON.stringify({ status: "inserted", host: location.host, length });
   })()`;
-  const raw = await browser.evaluateActiveTab<string>({
+  const raw = await browser.evaluate<string>({
     description: "insert governed prompt into the controlled provider composer",
     script: `return ${pageScript};`,
     ...(abortSignal ? { abortSignal } : {}),
@@ -138,13 +69,13 @@ const insertPromptInActiveProviderTab = async (
 };
 
 export const pasteTextAndSubmitInChrome = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   prompt: string,
   abortSignal?: AbortSignal,
 ): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, false, abortSignal);
 
 export const pasteTextReplacingInChrome = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   prompt: string,
   abortSignal?: AbortSignal,
 ): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, true, abortSignal);

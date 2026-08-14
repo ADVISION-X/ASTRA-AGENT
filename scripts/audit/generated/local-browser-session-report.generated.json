@@ -1,0 +1,68 @@
+{
+  "status": "PASS",
+  "findings": [],
+  "generatedAt": "2026-08-14T23:38:30.297Z",
+  "capabilityDomain": "local-browser-session",
+  "executionGroup": "foundation",
+  "lawIds": [
+    "APEX-LOCAL-BROWSER-001-V1",
+    "APEX-LOCAL-BROWSER-002-V1",
+    "APEX-LOCAL-BROWSER-003-V1",
+    "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
+  ],
+  "checkRuns": [
+    {
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:be8b5eb1-d0d6-40d2-84ae-31137eb6b3e6",
+      "capabilityDomain": "local-browser-session",
+      "checkId": "local-browser-session/owner-assertion-set",
+      "status": "PASS",
+      "startedAt": "2026-08-14T23:38:29.044Z",
+      "endedAt": "2026-08-14T23:38:30.296Z",
+      "durationMs": 1252,
+      "evidenceRefs": [
+        "scripts/audit/domains/local-browser-session/inspector.ts",
+        "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/chrome-extension/manifest.json",
+        "src/lib/browser/chrome-extension/protocol.ts",
+        "src/lib/browser/chrome-extension/service-worker.ts",
+        "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+        "src/lib/browser/current-chrome-browser-controller.ts",
+        "src/lib/browser/exact-target/browser-command-runtime.ts",
+        "src/lib/browser/exact-target/browser-native-transport-server.ts",
+        "src/lib/browser/exact-target/browser-target-ref.ts",
+        "src/lib/browser/exact-target/browser-target-registry.ts",
+        "src/lib/browser/exact-target/physical-focus-lease.ts"
+      ],
+      "findingCount": 0
+    }
+  ],
+  "executedChecks": [
+    {
+      "lawId": "APEX-LOCAL-BROWSER-002-V1",
+      "clauseId": "apex-local-browser-002-requirement",
+      "checkId": "local-browser-session/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:be8b5eb1-d0d6-40d2-84ae-31137eb6b3e6"
+    },
+    {
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
+      "clauseId": "grasseye-security-privacy-browser-001-requirement",
+      "checkId": "local-browser-session/owner-assertion-set",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:be8b5eb1-d0d6-40d2-84ae-31137eb6b3e6"
+    }
+  ],
+  "inspectedFiles": [
+    "scripts/audit/domains/local-browser-session/inspector.ts",
+    "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/chrome-extension/manifest.json",
+    "src/lib/browser/chrome-extension/protocol.ts",
+    "src/lib/browser/chrome-extension/service-worker.ts",
+    "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+    "src/lib/browser/current-chrome-browser-controller.ts",
+    "src/lib/browser/exact-target/browser-command-runtime.ts",
+    "src/lib/browser/exact-target/browser-native-transport-server.ts",
+    "src/lib/browser/exact-target/browser-target-ref.ts",
+    "src/lib/browser/exact-target/browser-target-registry.ts",
+    "src/lib/browser/exact-target/physical-focus-lease.ts"
+  ]
+}

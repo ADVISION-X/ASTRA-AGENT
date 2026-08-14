@@ -11,8 +11,6 @@ const SYSTEM_CHAT_TITLE_LABELS: Record<AiTaskLabelKey, string> = {
   naming_analysis: "起名分析",
   deep_research: "深度研究",
   amazon_product_mining: "亚马逊选品",
-  facebook_video_mining: "视频选品",
-  pick3_analysis: "Pick3分析",
   full_corpus_analysis: "全书分析",
   system_acceptance: "系统验收",
   generic_ai: "AI任务",

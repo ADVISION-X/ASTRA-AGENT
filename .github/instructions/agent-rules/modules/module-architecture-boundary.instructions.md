@@ -227,7 +227,7 @@ GrassEye 只允许一条架构主链：
   ],
   "forbidden": [
     "Mediator directly calling browser click/fill/upload primitives.",
-    "Mediator containing Amazon-specific or Facebook-specific step logic.",
+    "Mediator containing job-specific step logic.",
     "Mediator becoming a workflow engine.",
     "Mediator storing business process state."
   ],
@@ -260,7 +260,7 @@ GrassEye 只允许一条架构主链：
 * 直接点击页面
 * 直接上传文件
 * 直接读 DOM
-* 直接判断 Amazon / Facebook 业务步骤
+* 直接判断平台业务步骤
 * 保存业务状态
 * 通过 re-export / barrel 转运 runtime action surface
 * 变成通用工作流引擎
@@ -393,7 +393,6 @@ src/plugins/<job-id>/
 
 ```txt
 src/plugins/amazon-invoice-upload/**
-src/plugins/facebook-product-video-mining/**
 ```
 
 ### Flow 允许
@@ -446,7 +445,7 @@ Flow 禁止：
   ],
   "forbidden": [
     "Amazon-specific workflow inside an ability group.",
-    "Facebook-specific workflow inside an ability group.",
+    "Platform-specific workflow inside an ability group.",
     "Ability group importing job flow files.",
     "Ability group importing unrelated capability owner files.",
     "Ability group deciding business success.",
@@ -495,7 +494,7 @@ visual-observation
 能力组禁止：
 
 * 判断 Amazon 订单上传成功
-* 判断 Facebook 视频是否值得采购
+* 判断平台内容是否值得采购
 * 写业务流程顺序
 * 直接依赖某个 job
 * import 其他能力组 owner 的实现代码
@@ -564,7 +563,7 @@ verify-dom-state-once
 子能力禁止：
 
 * 完成整个 Amazon 上传流程
-* 完成整个 Facebook 视频挖掘流程
+* 完成整个内容挖掘流程
 * 自己决定下一步做什么
 * 调用多个业务步骤
 * import 其他能力组 owner 的代码
@@ -712,7 +711,7 @@ src/adapters
 `src/lib/**` 禁止出现：
 
 * Amazon 上传业务步骤
-* Facebook 挖掘业务步骤
+* 平台挖掘业务步骤
 * 通用 agent engine
 * workflow service
 * business service
@@ -775,19 +774,6 @@ src/adapters
 `scripts/audit/config/plugin-status.json` 中的每个 `active` plugin 必须登记唯一 `mediatorRoute`，固定为 `src/mediator/<job-id>-route.ts`，并用 `mediatorBindings` 精确登记每个 `routeExport + schemaExport + taskExport`。route exports 与 bindings 必须全集相等；每个 route 只能调用一次自己的 schema parse 和一次自己的 task，并把解析结果真实传入 task。额外 mediator 文件、额外 action/state call、模块状态、App 或 Local Runtime 对同一 task 的直连一律 FAIL。
 
 App / Local Runtime 中以 `start / resume / retry / recover / continue / run / enqueue / generate / create / execute` 开头的生命周期方法，只要调用同样属于该生命周期集合的 plugin public export，就属于 job task intake；即使该 export 未写入 `mediatorBindings`，Inspector 也必须通过 AST symbol 反向发现并 FAIL。不得用“未登记所以不扫描”把第二个任务入口洗成普通 helper。
-
-例如新增 Facebook 种草视频挖掘：
-
-```txt
-src/plugins/facebook-product-video-mining/
-  facebook-product-video-mining.schema.ts
-  facebook-product-video-mining.flow.ts
-  facebook-product-video-mining.result.ts
-  facebook-product-video-mining.hints.ts
-  index.ts
-
-scripts/acceptance/facebook-product-video-mining-smoke.ts
-```
 
 ### 禁止
 
@@ -966,7 +952,7 @@ Inspector 最少检查这些：
 4. 每个 active plugin 是否有唯一 canonical mediator route、schema parse、plugin flow call，且 App / Local Runtime 无直连绕过
 5. src/capabilities/<ability-id> 是否没有 import src/plugins
 6. src/mediator 是否没有直接 import browser primitive / DOM runtime private file
-7. src/lib 是否没有出现 Amazon/Facebook 业务关键词
+7. src/lib 是否没有出现平台业务关键词
 8. 是否出现 nextAction / actionPlan / universal-agent 等 forbidden vocabulary
 9. 新 job 是否有 acceptance smoke
 10. package.json 是否没有暴露 retired script
@@ -1018,7 +1004,7 @@ src/mediator/** 禁止 import:
 ## E. lib 不能业务化
 
 ```txt
-src/lib/** 出现 amazon / facebook / invoice / product-video 这类业务词，要么白名单，要么 FAIL。
+src/lib/** 出现平台、invoice、product-video 这类业务词，要么白名单，要么 FAIL。
 ```
 
 ## F. 禁止第二大脑关键词
@@ -1053,7 +1039,6 @@ src/
   mediator/             # 很薄，只做需求分发
   plugins/              # 业务需求库，未来主要增长区
     amazon-invoice-upload/
-    facebook-product-video-mining/
     ...
   capabilities/         # 稳定能力组，缓慢增长
     dom-automation/

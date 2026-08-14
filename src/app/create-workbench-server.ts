@@ -2,22 +2,15 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
-import { handleAmazonListingEditReadSyncRequest } from "./workbench-amazon-listing-edit-read-sync-routes.js";
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
 import { handleAmazonProductMiningRequest } from "./workbench-amazon-product-mining-routes.js";
-import { handleAmazonProductFeeSyncRequest } from "./workbench-amazon-product-fee-sync-routes.js";
-import { handleAmazonProductSyncRequest } from "./workbench-amazon-product-sync-routes.js";
 import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from "./workbench-api-boundary.js";
 import { handleDeepResearchRequest } from "./workbench-deep-research-routes.js";
-import { handleFacebookRequest } from "./workbench-facebook-routes.js";
-import { handleLotteryTicketPlanRequest } from "./workbench-lottery-ticket-plan-routes.js";
 import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
-import { handlePick3Request } from "./workbench-pick3-routes.js";
-import { handleVideoDownloadRequest } from "./workbench-video-download-routes.js";
-import { handleXuanyuanRequest } from "./workbench-xuanyuan-routes.js";
+import { handleXuanxueAiProductionRequest } from "./workbench-xuanxue-ai-production-routes.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
 
@@ -154,22 +147,10 @@ const handleInventoryWorkbenchApiRequest = async (input: {
   if (await handleAmazonProductMiningRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
-  if (await handleAmazonProductSyncRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleAmazonProductFeeSyncRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleAmazonListingEditReadSyncRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
   if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {
     return true;
   }
-  if (await handlePick3Request(input.request, input.response, input.workbench)) {
-    return true;
-  }
-  return handleVideoDownloadRequest(input.request, input.response, input.workbench);
+  return false;
 };
 
 const handleKnownWorkbenchApiRequest = async (input: {
@@ -187,13 +168,12 @@ const handleKnownWorkbenchApiRequest = async (input: {
   if (await handleAmazonRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
-  if (await handleFacebookRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleLotteryTicketPlanRequest(input.request, input.response, input.workbench)) {
-    return true;
-  }
-  if (await handleXuanyuanRequest(input.request, input.response, input.workbench, input.url)) {
+  if (await handleXuanxueAiProductionRequest(
+    input.request,
+    input.response,
+    input.workbench,
+    input.url,
+  )) {
     return true;
   }
   return handleInventoryWorkbenchApiRequest(input);

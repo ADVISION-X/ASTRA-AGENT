@@ -1,6 +1,6 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
-import { Node, SyntaxKind, type Project } from "ts-morph";
+import type { Project } from "ts-morph";
 
 import type {
   AuditConflict,
@@ -10,7 +10,9 @@ import type {
 } from "../shared/generated-contracts.js";
 import type { LawSource } from "../shared/law-contracts.js";
 import type { ManifestSource } from "../shared/manifest-contracts.js";
+import { extractMarkdownHeadings, normalizeMarkdownHeading } from "../shared/no-regex.js";
 import { resolveFromRepo } from "../shared/paths.js";
+import { ownerAssertionRoots, sourceEvidenceIsReachable } from "./source-evidence-reachability.js";
 
 const uniqueSorted = (values: readonly string[]): string[] => [...new Set(values)].sort();
 const clauseKey = (lawId: string, clauseId: string): string => `${lawId}::${clauseId}`;
@@ -42,6 +44,34 @@ const pushMissingInspectorConflict = (
   });
 };
 
+export const validateBlueprintClosure = (
+  conflicts: AuditConflict[],
+  manifest: ManifestSource,
+): void => {
+  for (const blueprintRef of manifest.blueprintRefs ?? []) {
+    const absolutePath = resolveFromRepo(blueprintRef.filePath);
+    if (!existsSync(absolutePath)) {
+      conflicts.push({
+        kind: "missing-blueprint-anchor",
+        capabilityDomain: manifest.capabilityDomain,
+        filePath: blueprintRef.filePath,
+        message: `Blueprint ${blueprintRef.filePath} does not exist.`,
+      });
+      continue;
+    }
+    const headings = extractMarkdownHeadings(readFileSync(absolutePath, "utf8"));
+    for (const anchor of blueprintRef.requiredAnchors) {
+      if (headings.has(normalizeMarkdownHeading(anchor))) continue;
+      conflicts.push({
+        kind: "missing-blueprint-anchor",
+        capabilityDomain: manifest.capabilityDomain,
+        filePath: blueprintRef.filePath,
+        message: `Blueprint ${blueprintRef.filePath} is missing required anchor ${anchor}.`,
+      });
+    }
+  }
+};
+
 const validateSourceEvidence = (
   conflicts: AuditConflict[],
   manifest: ManifestSource,
@@ -68,7 +98,16 @@ const validateSourceEvidence = (
           lawId: binding.lawId,
           message: `Clause ${binding.lawId}/${binding.clauseId} source evidence symbol ${evidence.symbolName} is not exported.`,
         });
+        continue;
       }
+      if (sourceEvidenceIsReachable(project, manifest, evidence.filePath, evidence.symbolName)) continue;
+      conflicts.push({
+        kind: "unreachable-source-evidence",
+        capabilityDomain: manifest.capabilityDomain,
+        filePath: evidence.filePath,
+        lawId: binding.lawId,
+        message: `Clause ${binding.lawId}/${binding.clauseId} source evidence symbol ${evidence.symbolName} is not reachable from the owning inspector assertion set.`,
+      });
     }
   }
 };
@@ -80,23 +119,8 @@ const validateCheckEvidence = (
 ): void => {
   const expectedCheckId = `${manifest.capabilityDomain}/owner-assertion-set`;
   const declaredCheckIds = uniqueSorted(manifest.coverage.bindings.flatMap((binding) => binding.checkIds));
-  const inspector = project.getSourceFile(resolveFromRepo(manifest.ownerInspectorPath));
-  const inspectDomain = inspector?.getFunction("inspectDomain")
-    ?? inspector?.getVariableDeclaration("inspectDomain")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
-  const contextParameter = inspectDomain?.getParameters()[0];
-  const signedOwnerEvaluations = contextParameter ? inspectDomain?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
-    const callee = call.getExpression();
-    if (!Node.isPropertyAccessExpression(callee) || callee.getName() !== "runAll") return false;
-    const checks = callee.getExpression();
-    const receiver = Node.isPropertyAccessExpression(checks) && checks.getName() === "checks"
-      ? checks.getExpression()
-      : undefined;
-    return (receiver?.getSymbol()?.getDeclarations().includes(contextParameter) ?? false)
-      && call.getFirstAncestor(Node.isFunctionLikeDeclaration) === inspectDomain
-      && Node.isAwaitExpression(call.getParent());
-  }) ?? [] : [];
   if (declaredCheckIds.length === 1 && declaredCheckIds[0] === expectedCheckId
-    && signedOwnerEvaluations.length === 1) return;
+    && ownerAssertionRoots(project, manifest).length === 2) return;
   conflicts.push({
     kind: "missing-check-evidence",
     capabilityDomain: manifest.capabilityDomain,
@@ -166,6 +190,35 @@ const claimClauseBinding = (
   return false;
 };
 
+const primaryEvidenceIsValid = (
+  outputs: ArtifactOutputs,
+  manifest: ManifestSource,
+  law: LawSource,
+  binding: ManifestSource["coverage"]["bindings"][number],
+): boolean => {
+  if (law.evidenceMode !== "hybrid") return true;
+  const primaryEvidence = binding.primaryEvidence;
+  if (!primaryEvidence) {
+    outputs.conflicts.push({
+      kind: "missing-primary-evidence",
+      capabilityDomain: manifest.capabilityDomain,
+      filePath: manifest.manifestPath,
+      lawId: binding.lawId,
+      message: `Hybrid clause ${binding.lawId}/${binding.clauseId} must declare one primary evidence engine and sourceEvidence index.`,
+    });
+    return false;
+  }
+  if (binding.sourceEvidence[primaryEvidence.sourceEvidenceIndex]) return true;
+  outputs.conflicts.push({
+    kind: "invalid-primary-evidence",
+    capabilityDomain: manifest.capabilityDomain,
+    filePath: manifest.manifestPath,
+    lawId: binding.lawId,
+    message: `Hybrid clause ${binding.lawId}/${binding.clauseId} primary sourceEvidence index ${primaryEvidence.sourceEvidenceIndex} does not exist.`,
+  });
+  return false;
+};
+
 const appendManifestArtifacts = (
   outputs: ArtifactOutputs,
   manifest: ManifestSource,
@@ -174,8 +227,10 @@ const appendManifestArtifacts = (
 ): void => {
   const generatedBindings: AuditPlanEntry["bindings"] = [];
   for (const binding of manifest.coverage.bindings) {
+    const law = indexes.lawsById.get(binding.lawId)?.[0];
     const clause = resolveOwnedClause(outputs, manifest, indexes, binding);
-    if (!clause || !claimClauseBinding(outputs, manifest, binding, boundClauseKeys)) continue;
+    if (!law || !clause || !primaryEvidenceIsValid(outputs, manifest, law, binding)
+      || !claimClauseBinding(outputs, manifest, binding, boundClauseKeys)) continue;
     generatedBindings.push({
       ...binding,
       evidenceMode: clause.evidenceMode,
@@ -188,6 +243,7 @@ const appendManifestArtifacts = (
       ownerInspectorPath: manifest.ownerInspectorPath,
       checkIds: binding.checkIds,
       sourceEvidence: binding.sourceEvidence,
+      ...(binding.primaryEvidence ? { primaryEvidence: binding.primaryEvidence } : {}),
       manifestPath: manifest.manifestPath,
     });
   }
@@ -226,6 +282,7 @@ export const appendDomainArtifactsFromIndexes = (
       continue;
     }
     pushMissingInspectorConflict(outputs.conflicts, manifest);
+    validateBlueprintClosure(outputs.conflicts, manifest);
     validateSourceEvidence(outputs.conflicts, manifest, project);
     validateCheckEvidence(outputs.conflicts, manifest, project);
     appendManifestArtifacts(outputs, manifest, indexes, boundClauseKeys);

@@ -51,7 +51,6 @@ Rule: every touched existing file in this migration is classified as `DELETE` or
 | docs/法案辅助文件/GrassEye AI 大脑能力组施工图.md | DELETE | AI brain ownership is retired. | none |
 | docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md | DELETE | Old sub-capability strength doctrine is not part of the reduced architecture. | none |
 | docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md | DELETE | Commander Console is not an active product surface in the Amazon-first cut. | none |
-| docs/法案辅助文件/GrassEye DOM种草视频模式施工图.md | DELETE | Product-video DOM mode is retired. | none |
 | docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md | DELETE | Geometry Guard is retired with the coordinate-driven path. | none |
 | docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md | DELETE | Standalone mouse-click ownership is retired. | none |
 | docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md | DELETE | Standalone mouse-scroll ownership is retired. | none |

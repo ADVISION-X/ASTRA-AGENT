@@ -121,6 +121,15 @@ const DEEP_RESEARCH_ANALYSIS_SCHEMA_SQL = [
     payload_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS research_interventions (
+    job_id TEXT PRIMARY KEY,
+    revision INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    reason TEXT,
+    checkpoint TEXT NOT NULL,
+    pending_json TEXT,
+    updated_at TEXT NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_research_sub_questions_job ON research_sub_questions(job_id, ordinal)`,
   `CREATE INDEX IF NOT EXISTS idx_research_interactions_job ON research_interactions(job_id, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_research_answers_job ON research_answers(job_id, answer_kind, created_at)`,

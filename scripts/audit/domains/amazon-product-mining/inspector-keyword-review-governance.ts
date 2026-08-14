@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
@@ -43,7 +44,7 @@ const hasKeywordReviewInputRefsCall = (sourceFile: SourceFile): boolean =>
     const initializer = inputRefsProperty.getInitializer();
     return Node.isCallExpression(initializer)
       && Node.isIdentifier(initializer.getExpression())
-      && initializer.getExpression().getText() === "buildKeywordOpportunityReviewInputRefs";
+      && astIdentifierName(initializer.getExpression()) === "buildKeywordOpportunityReviewInputRefs";
   });
 
 const numericConstantAtLeast = (sourceFile: SourceFile, variableName: string, minimum: number): boolean => {

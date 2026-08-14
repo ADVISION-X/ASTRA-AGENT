@@ -59,6 +59,7 @@ export function buildReceivedTaskRecord(input: {
     reachedStep: "received",
     amazonOrderId: input.mission.amazonOrderId,
     invoiceNo: input.mission.invoiceNo,
+    intervention: { revision: 0, state: "running", reason: null, checkpoint: "received", pending: null, updatedAt: now },
     createdAt: now,
     updatedAt: now,
   };
@@ -83,10 +84,14 @@ export function updateTaskRecord(
   };
 }
 
-export function saveTaskRecord(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
+export function saveTaskStateOnly(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
   const taskDir = path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", safeSegment(record.taskId));
   mkdirSync(taskDir, { recursive: true });
   writeFileSync(path.join(taskDir, "task.json"), JSON.stringify(record, null, 2));
+}
+
+export function saveTaskRecord(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
+  saveTaskStateOnly(dataDir, record);
   upsertAmazonInvoiceUploadLedgerRecord(dataDir, record);
 }
 
@@ -95,7 +100,8 @@ export function loadTaskRecord(dataDir: string, taskId: string): AmazonInvoiceUp
   if (!existsSync(recordPath)) {
     return null;
   }
-  return JSON.parse(readFileSync(recordPath, "utf8")) as AmazonInvoiceUploadTaskRecord;
+  const record = JSON.parse(readFileSync(recordPath, "utf8")) as AmazonInvoiceUploadTaskRecord;
+  return record.intervention ? record : { ...record, intervention: { revision: 0, state: "running", reason: null, checkpoint: record.reachedStep, pending: null, updatedAt: record.updatedAt } };
 }
 
 export function findLatestTaskRecordForInvoice(input: {

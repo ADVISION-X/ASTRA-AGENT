@@ -11,6 +11,7 @@ import type {
 import type { RuntimeLogMode } from "../../../lib/runtime-logs/schema.js";
 import type { VideoDownloadSubtitleArtifact } from "../type-contracts.js";
 import { buildVideoDownloadFailure, buildVideoDownloadSuccess } from "../runtime/result.js";
+import { createVideoDownloadAbortHandle } from "../runtime/abort-handle.js";
 import { isYoutubePageUrl } from "../runtime/youtube-url.js";
 import { downloadYoutubeVideoWithYtDlp } from "../runtime/youtube-dlp-download.js";
 import { createRuntimeEvent, createRuntimeLogger, createStageLogger, RuntimeFailureClass, RuntimeLogEventType } from "../../../lib/runtime-logs/index.js";
@@ -111,25 +112,6 @@ const validateYoutubeSource = (
     "YouTube download child requires a YouTube source page URL.",
     "invalid_input",
   );
-};
-
-const createYoutubeAbortHandle = () => {
-  const abortController = new AbortController();
-  let timeout: NodeJS.Timeout | null = null;
-  return {
-    abortController,
-    start(timeoutMs: number): void {
-      timeout = setTimeout(() => {
-        abortController.abort();
-      }, timeoutMs);
-      timeout.unref();
-    },
-    dispose(): void {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    },
-  };
 };
 
 const persistYoutubeArtifacts = async (input: {
@@ -296,10 +278,9 @@ async function executeDownloadYoutubeVideoOnce(
     failYoutubeStageForSource(youtubeStage, sourceFailure);
     return sourceFailure;
   }
-  const abortHandle = createYoutubeAbortHandle();
-  abortHandle.start(input.timeoutMs);
+  const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const downloaded = await downloadYoutubeVideoWithYtDlp(input, abortHandle.abortController.signal, (message) => {
+    const downloaded = await downloadYoutubeVideoWithYtDlp(input, abortHandle.signal, (message) => {
       emitYoutubeProgress({ request: input, context, startedAt: youtubeStage.startedAt, message });
     });
     if (!downloaded.ok) {

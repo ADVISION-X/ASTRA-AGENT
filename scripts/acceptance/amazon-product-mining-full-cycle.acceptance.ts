@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { AiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
-import type { BrowserActionResult, BrowserController } from "../../src/lib/browser/browser-controller.js";
+import type { BrowserActionResult, BrowserTargetSession } from "../../src/lib/browser/browser-controller.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runAmazonProductMiningFlow } from "../../src/plugins/amazon-product-mining/amazon-product-mining.flow.js";
 
@@ -72,7 +72,7 @@ const browser = {
     viewportHeight: 900,
     sourceFilePath: "/tmp/acceptance.png",
   }),
-  evaluateActiveTab: async <T,>({ description }: Parameters<BrowserController["evaluateActiveTab"]>[0]): Promise<T> => {
+  evaluate: async <T,>({ description }: Parameters<BrowserTargetSession["evaluate"]>[0]): Promise<T> => {
     let result: unknown;
     if (description.includes("search results")) {
       result = {
@@ -134,9 +134,9 @@ const browser = {
   },
   setFileInputFiles: async () => actionResult("files-set"),
   wait: async () => actionResult("waited"),
-  closeActiveTab: async () => actionResult("closed-tab"),
+  closeTarget: async () => actionResult("closed-tab"),
   close: async () => actionResult("closed"),
-} satisfies BrowserController;
+} satisfies BrowserTargetSession;
 
 const aiInputGateway: AiInputGatewayAbilityGroup = {
   abilityGroupId: "ai-input-gateway",
@@ -265,11 +265,11 @@ try {
   const failureRuntimeLogPath = path.join(failureDataDir, "runtime-log.jsonl");
   const searchFailureBrowser = {
     ...browser,
-    evaluateActiveTab: async <T,>({ description }: Parameters<BrowserController["evaluateActiveTab"]>[0]): Promise<T> => {
+    evaluate: async <T,>({ description }: Parameters<BrowserTargetSession["evaluate"]>[0]): Promise<T> => {
       if (description.includes("search results")) return null as T;
-      return browser.evaluateActiveTab<T>({ script: "", description });
+      return browser.evaluate<T>({ script: "", description });
     },
-  } satisfies BrowserController;
+  } satisfies BrowserTargetSession;
   try {
     const failureResult = await runAmazonProductMiningFlow({
       taskId: "amazon-all-keywords-failed-acceptance",

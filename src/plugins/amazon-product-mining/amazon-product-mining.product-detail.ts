@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -73,7 +73,7 @@ const ensureDetailScriptSupportsTwisterState = (script: string): string => {
 const AMAZON_DETAIL_EXTRACT_SCRIPT = ensureDetailScriptSupportsTwisterState(AMAZON_DETAIL_EXTRACT_SCRIPT_SOURCE);
 
 const extractActiveTabJson = async <T>(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   script: string,
   description: string,
   errorCode: string,
@@ -81,7 +81,7 @@ const extractActiveTabJson = async <T>(
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 8; attempt++) {
     try {
-      return await browser.evaluateActiveTab<T>({ script, description });
+      return await browser.evaluate<T>({ script, description });
     } catch (error) {
       lastError = error;
       await browser.wait(750);
@@ -212,12 +212,12 @@ const buildProductDetailRecord = (input: {
   ...buildProductStatus({ raw: input.raw, asin: input.asin, createdAt: input.createdAt }),
 });
 
-const buildBrowserDetailAdapter = (browser: BrowserController): DetailPageAdapter => ({
+const buildBrowserDetailAdapter = (browser: BrowserTargetSession): DetailPageAdapter => ({
   async extractProductDetail({ productUrl, asin, taskId }) {
     await browser.open({
       url: productUrl,
       title: `Amazon product: ${asin}`,
-      reusePolicy: "reuse-active-tab",
+      reusePolicy: "reuse-exact-url",
     });
     await browser.wait(1500);
 
@@ -239,7 +239,7 @@ const buildBrowserDetailAdapter = (browser: BrowserController): DetailPageAdapte
 });
 
 export const runProductDetailExtraction = async (input: {
-  browser?: BrowserController;
+  browser?: BrowserTargetSession;
   productUrl: string;
   asin: string;
   taskId: string;

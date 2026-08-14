@@ -16,6 +16,7 @@ import {
 import {
     logDeepResearchDomCaptureCompleted,
     logDeepResearchDomCaptureStarted,
+    logDeepResearchJobFailed,
 } from "./deep-research-analysis.logging.js";
 import type { DeepResearchParserResult } from "./deep-research-analysis.parser.js";
 import type { DeepResearchPrompt } from "./deep-research-analysis.prompt-bundle-shell.js";
@@ -62,6 +63,21 @@ export type CapturePromptOutputInput = {
   preview: PromptPreview;
   stage: DeepResearchPhase;
   subQuestionId?: string;
+};
+
+export const throwUnsupportedPromptExchangeStage = (input: Pick<
+  CapturePromptOutputInput,
+  "runtimeLogger" | "stage" | "traceContext"
+>, operation: "capture" | "parse" | "persist" | "send"): never => {
+  const reason = `Unsupported Deep Research ${operation} stage ${input.stage}.`;
+  logDeepResearchJobFailed({
+    logger: input.runtimeLogger,
+    traceContext: input.traceContext,
+    phase: input.stage,
+    reason,
+    failureClass: RuntimeFailureClass.INTERNAL_BUG,
+  });
+  throw new Error(reason);
 };
 
 export type ParseSuccess<TParsed> = {
@@ -368,5 +384,5 @@ export const capturePromptOutput = async (
   if (extendedResult) {
     return extendedResult;
   }
-  throw new Error(`Unsupported Deep Research capture stage ${input.stage}.`);
+  return throwUnsupportedPromptExchangeStage(input, "capture");
 };

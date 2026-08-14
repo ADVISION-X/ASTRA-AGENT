@@ -394,31 +394,6 @@ VIDEO_IDENTITY_RESOLVED
 ARTIFACT_REF_RECORDED
 ```
 
-业务专项可增加：
-
-```ts
-FACEBOOK_MINING_MISSION_STARTED
-FACEBOOK_MINING_MISSION_COMPLETED
-FACEBOOK_MINING_ROUND_STARTED
-FACEBOOK_MINING_ROUND_COMPLETED
-FACEBOOK_VIDEO_STABLE_WAIT_STARTED
-FACEBOOK_VIDEO_STABLE_WAIT_COMPLETED
-FACEBOOK_DOM_PROBE_STARTED
-FACEBOOK_DOM_PROBE_COMPLETED
-FACEBOOK_COMMENTS_COLLECTION_STARTED
-FACEBOOK_COMMENTS_COLLECTION_COMPLETED
-FACEBOOK_VIDEO_DOWNLOAD_STARTED
-FACEBOOK_VIDEO_DOWNLOAD_COMPLETED
-FACEBOOK_AI_JUDGMENT_STARTED
-FACEBOOK_AI_JUDGMENT_COMPLETED
-FACEBOOK_DECISION_APPLIED
-FACEBOOK_NOT_INTERESTED_STARTED
-FACEBOOK_NOT_INTERESTED_COMPLETED
-FACEBOOK_NAVIGATION_STARTED
-FACEBOOK_NAVIGATION_COMPLETED
-FACEBOOK_NAVIGATION_FAILED
-```
-
 ---
 
 ## 8. Inspector 施工
@@ -505,14 +480,6 @@ TRACE 输出全部
 
 模拟 stage start/complete/fail，验证 durationMs 和 pair。
 
-### 9.4 facebook-mining-log-coverage.acceptance.ts
-
-模拟一轮 Facebook mining，验证必打阶段日志全部存在。
-
-### 9.5 facebook-mining-failure-diagnosis.acceptance.ts
-
-制造失败：AI parse failure、download failure、navigation unchanged、DOM probe failure，验证可生成 diagnosis。
-
 ---
 
 ## 10. 诊断报告格式
@@ -551,7 +518,7 @@ src/lib/runtime-logs/diagnosis.ts
 ## Recovery trail
 
 1. close_comment_surface: success
-2. focus_facebook_tab: success
+2. focus_provider_tab: success
 3. arrow_down_fallback: failed
 
 ## Suggested next action
@@ -572,13 +539,6 @@ src/lib/runtime-logs/diagnosis.ts
 - 新增 trace-context.ts
 - 新增 event-factory.ts
 - 新增 inspector skeleton
-
-### Phase 2：Facebook mining 日志矩阵
-
-- 新增 Facebook 日志矩阵施工图
-- 新增 Facebook stage logger
-- 改造 flow / round / navigation / ai / video / comments
-- 生成 coverage report
 
 ### Phase 3：Debug bundle
 
@@ -613,3 +573,7 @@ src/lib/runtime-logs/diagnosis.ts
 9. CI 能阻断日志黑洞。
 10. secret 不进入任何 sink。
 ```
+
+## 13. Structured Logging And Privacy Ownership
+
+`GRASSEYE-STRUCTURED-LOGGING-001-V1` 与 `GRASSEYE-SECURITY-PRIVACY-LOG-001-V1` 都归 `runtime-log-spine` 唯一 owner。结构化日志只能进入现役 Spine，隐私条款由同一 redaction/AST/acceptance 链阻断；不得新增 logger wrapper、兼容 sink 或第二日志法案链。

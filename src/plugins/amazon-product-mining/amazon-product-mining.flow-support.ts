@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 
 export type AmazonMiningPacingDelayRange = {
   min: number;
@@ -12,7 +12,7 @@ export const selectAmazonMiningPacingDelayMs = (
 ): number => Math.floor(randomValue * (range.max - range.min + 1)) + range.min;
 
 export const waitForAmazonMiningPacingDelay = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   range: AmazonMiningPacingDelayRange,
 ): Promise<void> => {
   await browser.wait(selectAmazonMiningPacingDelayMs(range));
@@ -29,7 +29,7 @@ export const selectSearchItemsForDetailMining = <T extends { rankPosition: numbe
   .filter((item) => item.rankPosition <= detailRankLimit);
 
 export const openDedicatedAmazonMiningTab = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   taskId: string,
 ): Promise<void> => {
   await browser.open({

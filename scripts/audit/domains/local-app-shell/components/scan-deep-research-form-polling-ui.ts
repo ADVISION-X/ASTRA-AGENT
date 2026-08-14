@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type CallExpression, type FunctionDeclaration, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -31,7 +32,7 @@ const getFunction = (
 const isNamedCall = (call: CallExpression, name: string): boolean => {
   const expression = call.getExpression();
   if (Node.isIdentifier(expression)) {
-    return expression.getText() === name;
+    return astIdentifierName(expression) === name;
   }
   return Node.isPropertyAccessExpression(expression) && expression.getName() === name;
 };
@@ -45,7 +46,7 @@ const objectLiteralHasTrueProperty = (call: CallExpression, propertyName: string
     const nameNode = property.getNameNode();
     const initializer = property.getInitializer();
     return Node.isIdentifier(nameNode)
-      && nameNode.getText() === propertyName
+      && astIdentifierName(nameNode) === propertyName
       && initializer?.getKind() === SyntaxKind.TrueKeyword;
   }));
 };
@@ -59,7 +60,7 @@ const hasStateFormCloseAssignment = (declaration: FunctionDeclaration | undefine
     const right = expression.getRight();
     return Node.isPropertyAccessExpression(left)
       && Node.isIdentifier(left.getExpression())
-      && left.getExpression().getText() === "state"
+      && astIdentifierName(left.getExpression()) === "state"
       && left.getName() === "formOpen"
       && right.getKind() === SyntaxKind.FalseKeyword;
   }));
@@ -88,7 +89,7 @@ const hasFormActivitySignals = (declaration: FunctionDeclaration | undefined): b
   const hasActiveElement = propertyAccesses.some((access) =>
     access.getName() === "activeElement"
     && Node.isIdentifier(access.getExpression())
-    && access.getExpression().getText() === "document",
+    && astIdentifierName(access.getExpression()) === "document",
   );
   const hasContainsCheck = propertyAccesses.some((access) => access.getName() === "contains");
   const namedItemArguments = (declaration?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])

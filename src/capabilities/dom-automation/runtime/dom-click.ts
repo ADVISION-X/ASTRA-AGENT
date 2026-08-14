@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import { DOM_SCHEMAS } from "../schema.js";
 import type { DomActionResult } from "../../../types/dom-automation.js";
 import type { ClickDomElementInput } from "../../../types/dom-automation-inputs.js";
@@ -8,6 +8,7 @@ import {
   buildDomReviewRequiredResult,
 } from "./dom-action-result.js";
 import { captureDomEvidenceRef } from "./dom-evidence.js";
+import { assertDomTargetBinding } from "./dom-target-binding.js";
 
 const DANGEROUS_TEXT = /delete|refund|cancel|pay now|submit payment|remove/i;
 
@@ -42,11 +43,12 @@ return {status: "success", message: "clicked revalidated DOM element"};
 }
 
 export async function clickDomElementOnce(
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   rawInput: ClickDomElementInput,
 ): Promise<DomActionResult> {
   const input = DOM_SCHEMAS.ClickDomElementInput.parse(rawInput) as ClickDomElementInput;
   const elementRef = DOM_SCHEMAS.DomElementRef.parse(input.elementRef) as ClickDomElementInput["elementRef"];
+  assertDomTargetBinding(browser, elementRef);
   if (DANGEROUS_TEXT.test(input.expectedText ?? input.expectedKind)) {
     return buildDomReviewRequiredResult(
       "dangerous DOM click requires human review",
@@ -54,7 +56,7 @@ export async function clickDomElementOnce(
     );
   }
 
-  const result = await browser.evaluateActiveTab<ClickScriptResult>({
+  const result = await browser.evaluate<ClickScriptResult>({
     description: "revalidate and click located visible enabled DOM element",
     script: buildClickScript(elementRef.selector, input.expectedText),
   });

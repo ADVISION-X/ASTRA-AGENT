@@ -71,18 +71,15 @@ try {
   assert.equal(updated?.providerKind, "gpt-web-chat");
   assert.equal(updated?.keywordHistoryPolicy, "new_keywords_only");
   assert.equal(storage.listTasksByStatuses(["keyword_generating"]).some((record) => record.taskId === taskId), true);
-  storage.updateTaskStatus({ taskId, status: "paused" });
+  const pause = storage.requestIntervention("pause", { taskId, expectedRevision: 0, reason: "acceptance pause", requestId: "pause-1" });
+  assert.equal(pause.state, "pause_requested");
+  const paused = storage.acknowledgeIntervention(taskId, "keyword_boundary");
+  assert.equal(paused.state, "paused");
   assert.equal(storage.getTask(taskId)?.status, "paused");
-  storage.updateTaskStatus({ taskId, status: "mining" });
-  assert.equal(storage.getTask(taskId)?.status, "paused");
-  storage.updateTaskStatus({ taskId, status: "mining", operatorOverride: true });
+  assert.throws(() => storage.requestIntervention("resume", { taskId, expectedRevision: 0, reason: "stale", requestId: "resume-stale" }), /STALE_INTERVENTION_REVISION/u);
+  const resumed = storage.requestIntervention("resume", { taskId, expectedRevision: 1, reason: "acceptance resume", requestId: "resume-1" });
+  assert.equal(resumed.state, "running");
   assert.equal(storage.getTask(taskId)?.status, "mining");
-  storage.updateTaskStatus({ taskId, status: "terminated" });
-  assert.equal(storage.getTask(taskId)?.status, "terminated");
-  storage.updateTaskStatus({ taskId, status: "mining" });
-  assert.equal(storage.getTask(taskId)?.status, "terminated");
-  storage.updateTaskStatus({ taskId, status: "keyword_generating", operatorOverride: true });
-  assert.equal(storage.getTask(taskId)?.status, "terminated");
   storage.updateTaskStatus({ taskId, status: "keyword_generating" });
 
   // --- Storage: save keywords ---

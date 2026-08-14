@@ -186,7 +186,7 @@ scripts/startup/launch-grasseye.mjs
 
 启动层禁止：
 
-- 启动 Amazon、Facebook、Deep Research、Xuanyuan 或任何 job。
+- 启动任何业务 job。
 - 调 DOM、Browser、AI、上传、下载或 evidence 动作。
 - 把“进得了门”说成“业务能完成”。
 - 运行 typecheck、acceptance、audit 或 `ci:full`。
@@ -347,7 +347,7 @@ Mediator 不得：
 - import BrowserController 或 capability private runtime。
 - 点击、填写、上传、截图、下载或读取 DOM。
 - 保存业务状态。
-- 决定 Amazon/Facebook/研究等业务步骤。
+- 决定平台或研究等业务步骤。
 - 通过 re-export 偷运 runtime action。
 - 变成中央调度器。
 
@@ -389,22 +389,14 @@ Plugin 禁止：
 
 每个 plugin root 必须在 `scripts/audit/config/plugin-status.json` 恰好登记一次。只有 `active` plugin 可以进入默认 runtime/UI 和 `ci:full` acceptance。
 
-当前登记的 13 个 active plugin：
+当前登记的 5 个 active plugin：
 
 | Plugin | 功能 | 绝对边界 |
 | --- | --- | --- |
 | `amazon-invoice-upload` | Seller Central 税务发票 CSV 下载、获准 PDF 上传、金额核对、提交/复核和 ledger | 只能上传 caller-approved PDF；不得把 CSV 当发票；敏感最终提交默认保留人工门 |
 | `amazon-product-mining` | 关键词生成与去重、搜索页/详情页/评论取证、资料包/PDF/AI handoff | 只产证据包，不做最终选品、采购、利润或投资裁决 |
-| `amazon-product-sync` | 按网站请求只读同步 Seller Central 产品/库存字段 | 只返回已取证字段；不得写价格、库存或 listing |
-| `amazon-product-fee-sync` | 只读同步 Seller Central 费用证据 | 不得变成产品同步的隐藏分支，不得执行写操作 |
-| `amazon-listing-edit-read-sync` | 只读读取 parent/child/SKU Central/listing edit tabs | 只能导航、展开和读取；禁止 save、submit、publish、upload、delete |
 | `deep-research-analysis` | 唯一 `1+N+1+1` 研究链：拆题、N 路分析、full case file、最终裁决、业务 HTML | 不得有 legacy/fallback/compact/双链；原始 AI 回答和完整 case file 不得被摘要替代 |
-| `facebook-product-video-mining` | Facebook 候选探测、评论、视频下载、有限 AI 判断、保存/拒绝和导出 | 不得伪造候选或绕过登录/CAPTCHA；失败和不确定不得显示为成功 |
-| `pick3-is-blind-eval` | 官方数据同步、L80 隔离盲图、封存预测、揭晓评分和复盘 | 不得泄露未来答案、伪造官方数据或自动下注 |
-| `lottery-ticket-plan` | 本地生成供人工查看的 Pick3 票面组合 | 不购买、不付款、不写入投注平台、不宣称提高中奖概率 |
 | `media-processing-artifact` | 把单次媒体处理能力包装成有 schema/result/evidence 的 job | 不在 job 内复制 ffmpeg/sharp 算法，不建第二媒体处理链 |
-| `video-download-artifact` | 把单次受治理视频下载能力包装成 job | 不绕过 DRM/CAPTCHA/登录，不用截图冒充视频文件 |
-| `xuanyuan` | 通用的一次提示词包本地 GPT 验收、状态与历史 | 不接网站生产云任务，不拥有产品动作图或 provider transport |
 | `xuanxue-ai-production` | 玄学网站九个 AI 产品整单领取、固定动作图、真实 checkpoint 分叉、持久化生产窗口与整单回传 | 网站只发整单和收结果；工厂只走 AI Input Gateway；禁止通用 planner、影子队列和逐阶段网站遥控 |
 
 ### 0.1.10 Capability Group：公共工具房
@@ -413,7 +405,7 @@ Plugin 禁止：
 
 | Capability | 功能 | 强制边界 |
 | --- | --- | --- |
-| `dom-automation` | snapshot、locate、fill、click、upload、wait、verify | 只做 DOM 原子动作；不懂 Amazon/Facebook；不得返回业务成功；敏感点击/上传必须受调用方批准 |
+| `dom-automation` | snapshot、locate、fill、click、upload、wait、verify | 只做 DOM 原子动作；不懂平台业务；不得返回业务成功；敏感点击/上传必须受调用方批准 |
 | `ai-input-gateway` | 把已治理 prompt 和获准附件送给外部 AI，取回 raw response 和 provider proof | 只管运输，不做领域判断，不生成流程/selector/坐标/浏览器命令；不得出现第二 provider transport |
 | `forensics-persistence` | append record、artifact、ref、hash、failure reason | 只记发生过什么，不决定下一步，不代替业务 task state 或 audit truth |
 | `media-processing` | 单次图片/视频处理、依赖检查、产物和 proof | 只处理媒体，不决定业务价值，不在 job 里另造处理实现 |

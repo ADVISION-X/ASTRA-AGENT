@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 
 type SearchDialogContext = Pick<AiProviderAdapterContext, "abortSignal">;
@@ -85,18 +85,18 @@ return {
 `;
 
 const observeSearchDialog = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: SearchDialogContext,
   description: string,
 ): Promise<SearchDialogTarget> =>
-  browser.evaluateActiveTab<SearchDialogTarget>({
+  browser.evaluate<SearchDialogTarget>({
     description,
     script: SEARCH_DIALOG_CLOSE_TARGET_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
 export const dismissChatGptSearchDialogIfVisible = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: SearchDialogContext,
 ): Promise<"not_found" | "closed"> => {
   const target = await observeSearchDialog(

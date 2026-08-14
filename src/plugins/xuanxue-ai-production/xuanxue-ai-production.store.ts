@@ -1,11 +1,19 @@
 import type Database from "better-sqlite3";
 
 import type {
+  XuanxueAiInterventionRecord,
+  XuanxueAiInterventionRequest,
   XuanxueAiOrderRecord,
   XuanxueAiOrderStatus,
   XuanxueAiProductionOrder,
   XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
+import {
+  acknowledgeXuanxueAiIntervention,
+  readXuanxueAiIntervention,
+  requestXuanxueAiIntervention,
+  resumeXuanxueAiIntervention,
+} from "./xuanxue-ai-production-store-intervention.js";
 import {
   cancelCloudRecoveryOrderInStore,
   quarantineForeignCloudRecoveryOrderInStore,
@@ -86,6 +94,48 @@ export class XuanxueAiProductionStore {
 
   readOrder(orderId: string): XuanxueAiOrderRecord | null {
     return readXuanxueAiProductionOrder(this.database, orderId);
+  }
+
+  readIntervention(orderId: string): XuanxueAiInterventionRecord {
+    return readXuanxueAiIntervention(
+      this.database,
+      (candidateId) => this.readOrder(candidateId),
+      orderId,
+    );
+  }
+
+  requestIntervention(
+    action: "pause" | "cancel" | "takeover",
+    input: XuanxueAiInterventionRequest,
+  ): XuanxueAiInterventionRecord {
+    return requestXuanxueAiIntervention(
+      this.database,
+      (candidateId) => this.readOrder(candidateId),
+      action,
+      input,
+    );
+  }
+
+  resumeIntervention(
+    input: XuanxueAiInterventionRequest,
+  ): XuanxueAiInterventionRecord {
+    return resumeXuanxueAiIntervention(
+      this.database,
+      (candidateId) => this.readOrder(candidateId),
+      input,
+    );
+  }
+
+  acknowledgeInterventionAtSafePoint(
+    orderId: string,
+    checkpoint: string,
+  ): XuanxueAiInterventionRecord | null {
+    return acknowledgeXuanxueAiIntervention(
+      this.database,
+      (candidateId) => this.readOrder(candidateId),
+      orderId,
+      checkpoint,
+    );
   }
 
   listRecoverableOrders(): XuanxueAiOrderRecord[] {

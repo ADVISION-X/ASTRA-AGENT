@@ -13,6 +13,26 @@ Authority: this file is authoritative only for the forensics-persistence-capabil
 
 ## Law GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "forensics-persistence-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "Local persistence schema is a Forensics support contract for structured records, governed artifact storage, and browser-profile separation, not a second write owner.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-local-persistence-schema-001-requirement",
+      "statement": "Structured records and large artifacts must use the Forensics-owned schema and storage boundary while browser profiles, secrets, and business workflow truth remain outside it.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "forensics-persistence-capability"
+    }
+  ]
+}
+```
+
 status: active
 tier: P0
 capabilityDomain: forensics-persistence-capability
@@ -48,6 +68,26 @@ FORBIDDEN:
 ---
 
 ## Law GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2
+
+```apex-law
+{
+  "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "forensics-persistence-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "Forensics schema vocabulary must use record envelopes, refs, integrity metadata, export metadata, and deletion relations instead of retired business-domain objects.",
+  "clauses": [
+    {
+      "clauseId": "grasseye-local-persistence-schema-002-v2-requirement",
+      "statement": "Local persistence types must be expressed in Forensics-native envelope and reference terms and must not restore retired product, agent-round, action-log, or runtime-delivery schema sovereignty.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "forensics-persistence-capability"
+    }
+  ]
+}
+```
 
 status: active
 tier: P0

@@ -1,5 +1,5 @@
 export interface BrowserMediaSourcePort {
-  evaluateActiveTab<T>(input: {
+  evaluate<T>(input: {
     script: string;
     description: string;
     abortSignal?: AbortSignal;

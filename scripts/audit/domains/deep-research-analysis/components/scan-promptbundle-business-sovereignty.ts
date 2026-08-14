@@ -1,15 +1,16 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astExpressionPath, astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
 
 const hasIdentifier = (sourceFile: SourceFile | undefined, value: string): boolean =>
-  !!sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value);
+  !!sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => astIdentifierName(identifier) === value);
 
 const hasPropertyAccessPath = (sourceFile: SourceFile | undefined, path: string): boolean =>
   !!sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((expression) => expression.getText() === path);
+    .some((expression) => astExpressionPath(expression) === path);
 
 export const inspectPromptBundleBusinessSovereignty = (input: {
   promptBundleRenderFile: SourceFile | undefined;

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 
 import {
   Node,
@@ -16,6 +17,7 @@ import { inspectAcceptanceDeliveryIsolation } from "./acceptance-delivery-isolat
 import { inspectCiControlIntegrity } from "./ci-control-integrity-inspector.js";
 import { isDefinitelyUnreachable } from "./control-flow-reachability.js";
 import { inspectOwnerRegistrations } from "./owner-registration-inspector.js";
+import { inspectOwnerFilesystemWriters } from "./owner-filesystem-mutation-inspector.js";
 
 const runnerPath = "scripts/audit/core/run-generated-plan.ts";
 const sessionPath = "scripts/audit/shared/inspector-check-session.ts";
@@ -23,6 +25,39 @@ const contractsPath = "scripts/audit/shared/inspector-contracts.ts";
 const packagePath = "package.json";
 const ciFullPath = "scripts/audit/ci-full.ts";
 const failFastPath = "scripts/audit/ci-fail-fast.ts";
+const workflowsPath = ".github/workflows";
+
+const listWorkflowFiles = (absoluteDirectory: string): string[] => {
+  const files: string[] = [];
+  for (const entry of readdirSync(absoluteDirectory, { withFileTypes: true })) {
+    const absolutePath = join(absoluteDirectory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listWorkflowFiles(absolutePath));
+      continue;
+    }
+    if (entry.isFile() && (entry.name.endsWith(".yml") || entry.name.endsWith(".yaml"))) {
+      files.push(absolutePath);
+    }
+  }
+  return files;
+};
+
+export const inspectWorkflowEntrySurface = (
+  lawId: string,
+): { findings: InspectorFinding[]; inspectedFiles: string[] } => {
+  const absoluteDirectory = resolveFromRepo(workflowsPath);
+  if (!existsSync(absoluteDirectory)) return { findings: [], inspectedFiles: [workflowsPath] };
+  const workflowFiles = listWorkflowFiles(absoluteDirectory);
+  return {
+    inspectedFiles: [workflowsPath, ...workflowFiles.map((filePath) => relative(resolveFromRepo("."), filePath))],
+    findings: workflowFiles.map((filePath) => createFinding({
+      checkId: "audit-system/runner-order-truth",
+      lawId,
+      filePath: relative(resolveFromRepo("."), filePath),
+      message: "GitHub workflow entry is not authorized by the active local-only CI-FULL authority.",
+    })),
+  };
+};
 
 const inspectLegacyReceiptEscape = (
   context: InspectorContext,
@@ -42,16 +77,6 @@ const inspectLegacyReceiptEscape = (
       message: "Legacy plan-derived executedChecks helper must not exist.",
     }));
   }
-};
-
-export const inspectLegacyReceiptContract = (
-  context: InspectorContext,
-  lawId: string,
-): { findings: InspectorFinding[]; inspectedFiles: string[] } => {
-  const findings: InspectorFinding[] = [];
-  const inspectedFiles = new Set<string>();
-  inspectLegacyReceiptEscape(context, findings, inspectedFiles, lawId);
-  return { findings, inspectedFiles: [...inspectedFiles].sort() };
 };
 
 const realChromeConditionIsExact = (condition: MorphNode, parameter: MorphNode): boolean => {
@@ -104,6 +129,74 @@ const sourceMappingExcludesRealChrome = (source: SourceFile | undefined, name: s
   return valueChainExcludesRealChrome(initializer);
 };
 
+const propertyValueResolvesTo = (property: MorphNode | undefined, declaration: MorphNode): boolean => {
+  if (Node.isShorthandPropertyAssignment(property)) return resolvesTo(property.getNameNode(), declaration);
+  return Node.isPropertyAssignment(property) && resolvesTo(property.getInitializer(), declaration);
+};
+
+const sessionFactoryRunIdentityIsBound = (session: SourceFile | undefined): boolean => {
+  const factory = session?.getVariableDeclaration("createInspectorCheckSession")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const runIdParameter = factory?.getParameters()[1];
+  const stateObject = factory?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "state")
+    ?.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
+  return runIdParameter !== undefined
+    && propertyValueResolvesTo(stateObject?.getProperty("runId"), runIdParameter);
+};
+
+const runnerRunIdentityDeclarations = (runner: SourceFile | undefined) => {
+  const runPlan = runner?.getVariableDeclaration("runGeneratedPlanInternal")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const executeEntryDeclaration = runner?.getVariableDeclaration("executePlanEntry");
+  const executeEntry = executeEntryDeclaration?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const runIdParameter = executeEntry?.getParameters().find((parameter) => parameter.getName() === "runId");
+  const runIdDeclaration = runPlan?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "runId"
+      && declaration.getFirstAncestor(Node.isFunctionLikeDeclaration) === runPlan);
+  return { executeEntry, executeEntryDeclaration, runIdDeclaration, runIdParameter, runPlan };
+};
+
+const runnerCreatesOneRunIdentity = (
+  runner: SourceFile | undefined,
+  runIdDeclaration: MorphNode | undefined,
+): boolean => {
+  if (!Node.isVariableDeclaration(runIdDeclaration)) return false;
+  const randomUuidImport = runner?.getImportDeclarations()
+    .find((declaration) => declaration.getModuleSpecifierValue() === "node:crypto")
+    ?.getNamedImports().find((specifier) => specifier.getName() === "randomUUID");
+  return Boolean(runIdDeclaration.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => randomUuidImport && resolvesTo(call.getExpression(), randomUuidImport)));
+};
+
+const runnerUsesOneSharedRunIdentity = (
+  runner: SourceFile | undefined,
+  session: SourceFile | undefined,
+  sessionFactoryImport: MorphNode | undefined,
+): boolean => {
+  const { executeEntry, executeEntryDeclaration, runIdDeclaration, runIdParameter, runPlan } =
+    runnerRunIdentityDeclarations(runner);
+  const runIdParameterIndex = runIdParameter ? executeEntry?.getParameters().indexOf(runIdParameter) ?? -1 : -1;
+  const sessionFactoryCall = executeEntry && sessionFactoryImport
+    ? directCalls(executeEntry).find((call) => resolvesTo(call.getExpression(), sessionFactoryImport))
+    : undefined;
+  const executeEntryCall = runPlan && executeEntryDeclaration
+    ? directCalls(runPlan).find((call) => resolvesTo(call.getExpression(), executeEntryDeclaration))
+    : undefined;
+  const validation = runner?.getVariableDeclaration("validateSessionInspectorOutput");
+  const validationCall = executeEntry && validation
+    ? directCalls(executeEntry).find((call) => resolvesTo(call.getExpression(), validation))
+    : undefined;
+  return runnerCreatesOneRunIdentity(runner, runIdDeclaration)
+    && runIdParameter !== undefined
+    && runIdDeclaration !== undefined
+    && runIdParameterIndex >= 0
+    && resolvesTo(sessionFactoryCall?.getArguments()[1], runIdParameter)
+    && resolvesTo(executeEntryCall?.getArguments()[runIdParameterIndex], runIdDeclaration)
+    && resolvesTo(validationCall?.getArguments()[2], runIdParameter)
+    && sessionFactoryRunIdentityIsBound(session);
+};
+
 const inspectRunnerSession = (
   context: InspectorContext, findings: InspectorFinding[], inspectedFiles: Set<string>, lawId: string,
 ): void => {
@@ -119,6 +212,14 @@ const inspectRunnerSession = (
       .some((call) => resolvesTo(call.getExpression(), declaration));
     if (!called) findings.push(createFinding({ checkId: "audit-system/runner-law-truth", lawId,
       filePath: runnerPath, message: `Unique generated-plan runner is missing current-run receipt control ${name}.` }));
+  }
+  if (!runnerUsesOneSharedRunIdentity(runner, session, sessionFactory)) {
+    findings.push(createFinding({
+      checkId: "audit-system/runner-law-truth",
+      lawId,
+      filePath: runnerPath,
+      message: "Generated-plan runner must create one runId and inject that same identity into every owner session and receipt validator.",
+    }));
   }
   if (sourceMappingExcludesRealChrome(session, "executedChecks")
     && sourceMappingExcludesRealChrome(runner, "expectedChecks")) return;
@@ -143,29 +244,41 @@ const inspectAuditScriptEntrypoints = (
 ): void => {
   inspectedFiles.add(packagePath);
   const parsed = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
+  const allowedAuditCommands = new Map([
+    ["ci:full", "node --import tsx scripts/audit/ci-full.ts"],
+    ["codex:entry-gate", "node --import tsx scripts/audit/codex-entry-gate.ts"],
+  ]);
   for (const [name, command] of Object.entries(parsed.scripts ?? {})) {
-    if (!name.startsWith("audit:")) continue;
-    if (!command.includes("scripts/audit/domains/") && !command.includes("run-inspector.ts")) continue;
+    if (!command.includes("scripts/audit/")) continue;
+    if (allowedAuditCommands.get(name) === command) continue;
     findings.push(createFinding({
       checkId: "audit-system/runner-order-truth",
       lawId,
       filePath: packagePath,
-      message: `${name} bypasses the unique generated-plan runner.`,
+      message: `${name} exposes an audit command outside the unique ci:full and entry-gate surface.`,
       evidence: command,
     }));
   }
-  for (const stalePath of [
-    "scripts/audit/domains/runtime-log-spine/run-inspector.ts",
-    "scripts/audit/domains/facebook-product-video-mining-log-coverage/run-inspector.ts",
-    "scripts/audit/domains/media-processing-capability/run-inspector.ts",
-  ]) {
-    inspectedFiles.add(stalePath);
-    if (!existsSync(resolveFromRepo(stalePath))) continue;
+};
+
+const inspectStandaloneAuditEntrypoints = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  for (const sourceFile of context.project.getSourceFiles()) {
+    const repoPath = relative(resolveFromRepo("."), sourceFile.getFilePath());
+    if (!repoPath.startsWith("scripts/audit/") || repoPath === ciFullPath) continue;
+    const entryDeclaration = sourceFile.getVariableDeclaration("isEntrypoint")
+      ?? sourceFile.getFunction("isEntrypoint");
+    if (!entryDeclaration) continue;
+    inspectedFiles.add(repoPath);
     findings.push(createFinding({
       checkId: "audit-system/runner-order-truth",
       lawId,
-      filePath: stalePath,
-      message: "Private owner runner must be deleted after current-run receipt migration.",
+      filePath: repoPath,
+      message: `${repoPath} retains a standalone audit entrypoint outside the unique ci:full surface.`,
     }));
   }
 };
@@ -173,46 +286,15 @@ const inspectAuditScriptEntrypoints = (
 const resolvesTo = (node: MorphNode | undefined, declaration: MorphNode): boolean => {
   const symbol = node?.getSymbol();
   return (symbol?.getDeclarations().includes(declaration) ?? false)
-    || (symbol?.getAliasedSymbol()?.getDeclarations().includes(declaration) ?? false);
+    || (symbol?.getAliasedSymbol()?.getDeclarations().includes(declaration) ?? false)
+    || (Node.isIdentifier(node)
+      && node.getDefinitions().some((definition) => definition.getDeclarationNode() === declaration));
 };
 
 const directCalls = (functionNode: ArrowFunction): CallExpression[] =>
   functionNode.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getFirstAncestor(Node.isFunctionLikeDeclaration) === functionNode
       && !isDefinitelyUnreachable(call, functionNode));
-
-
-const inspectOwnerFilesystemWriters = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-): void => {
-  const mutatingFsApis = new Set([
-    "appendFile", "appendFileSync", "mkdir", "mkdirSync", "rename", "renameSync",
-    "rm", "rmSync", "unlink", "unlinkSync", "writeFile", "writeFileSync",
-  ]);
-  for (const sourceFile of context.project.getSourceFiles()) {
-    const filePath = sourceFile.getFilePath();
-    if (!filePath.includes("/scripts/audit/domains/")) continue;
-    inspectedFiles.add(filePath);
-    const importsMutation = sourceFile.getImportDeclarations().some((declaration) => {
-      if (!["node:fs", "node:fs/promises"].includes(declaration.getModuleSpecifierValue())) return false;
-      return declaration.getNamedImports().some((namedImport) => mutatingFsApis.has(namedImport.getName()));
-    });
-    const namespaceMutation = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-      const callee = call.getExpression();
-      return Node.isPropertyAccessExpression(callee) && mutatingFsApis.has(callee.getName());
-    });
-    if (!importsMutation && !namespaceMutation) continue;
-    findings.push(createFinding({
-      checkId: "audit-system/runner-law-truth",
-      lawId,
-      filePath,
-      message: "Owner inspector source must be read-only and return its report payload to the unique generated-plan writer.",
-    }));
-  }
-};
 
 const failureReceiptPrecedesSummary = (context: InspectorContext): boolean => {
   const source = context.project.getSourceFile(resolveFromRepo(failFastPath));
@@ -242,7 +324,7 @@ const inspectRetiredWriters = (context: InspectorContext, findings: InspectorFin
   }
 };
 
-const inspectFailureReceiptAndRetiredWriters = (
+const inspectFailureReceipt = (
   context: InspectorContext, findings: InspectorFinding[], inspectedFiles: Set<string>, lawId: string,
 ): void => {
   inspectedFiles.add(ciFullPath); inspectedFiles.add(failFastPath);
@@ -250,23 +332,43 @@ const inspectFailureReceiptAndRetiredWriters = (
     checkId: "audit-system/ci-full-entry-gate", lawId, filePath: failFastPath,
     message: "CI fail-fast must persist the failing physical step receipt before writing the terminal summary.",
   }));
-  inspectRetiredWriters(context, findings, lawId);
 };
 
-export const inspectPhysicalCheckReceiptContract = (
+export const inspectRetiredEnforcementSurfaces = (
   context: InspectorContext,
   lawId: string,
 ): { findings: InspectorFinding[]; inspectedFiles: string[] } => {
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
-  inspectOwnerRegistrations(context, findings, inspectedFiles, lawId);
   inspectLegacyReceiptEscape(context, findings, inspectedFiles, lawId);
-  inspectRunnerSession(context, findings, inspectedFiles, lawId);
   inspectAuditScriptEntrypoints(findings, inspectedFiles, lawId);
-  inspectCiControlIntegrity(context, findings, inspectedFiles, lawId);
-  inspectFailureReceiptAndRetiredWriters(context, findings, inspectedFiles, lawId);
-  inspectOwnerFilesystemWriters(context, findings, inspectedFiles, lawId);
-  const deliveryIsolation = inspectAcceptanceDeliveryIsolation(context, lawId);
+  inspectStandaloneAuditEntrypoints(context, findings, inspectedFiles, lawId);
+  inspectRetiredWriters(context, findings, lawId);
+  return { findings, inspectedFiles: [...inspectedFiles].sort() };
+};
+
+export type PhysicalCheckContractLawIds = Readonly<{
+  binaryVerdict: string;
+  deletion: string;
+  enforcementTruth: string;
+  runner: string;
+}>;
+
+export const inspectPhysicalCheckReceiptContract = (
+  context: InspectorContext,
+  lawIds: PhysicalCheckContractLawIds,
+): { findings: InspectorFinding[]; inspectedFiles: string[] } => {
+  const findings: InspectorFinding[] = [];
+  const inspectedFiles = new Set<string>();
+  inspectOwnerRegistrations(context, findings, inspectedFiles, lawIds.enforcementTruth);
+  inspectRunnerSession(context, findings, inspectedFiles, lawIds.runner);
+  inspectCiControlIntegrity(context, findings, inspectedFiles, lawIds.runner);
+  inspectFailureReceipt(context, findings, inspectedFiles, lawIds.binaryVerdict);
+  inspectOwnerFilesystemWriters(context, findings, inspectedFiles, lawIds.enforcementTruth);
+  const retired = inspectRetiredEnforcementSurfaces(context, lawIds.deletion);
+  findings.push(...retired.findings);
+  retired.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
+  const deliveryIsolation = inspectAcceptanceDeliveryIsolation(context, lawIds.runner);
   findings.push(...deliveryIsolation.findings);
   deliveryIsolation.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
   return { findings, inspectedFiles: [...inspectedFiles].sort() };

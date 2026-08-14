@@ -112,11 +112,13 @@ export const runDecompositionPhase = async (
 ): Promise<DecompositionSuccess | AnalysisFailure> => {
   const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   const decomposition = await runPromptExchange<DeepResearchDecompositionResponse>({
+    dataDir: context.dataDir,
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
     stageLogger: context.stageLogger,
     sender: context.sender,
+    releaseForTakeover: context.releaseForTakeover,
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,
@@ -178,11 +180,13 @@ const runAnalysisPhase = async (
   const promptBundle = subQuestion.question.promptBundle ?? requireSubQuestionPromptBundle(subQuestion.question);
   const attachmentLimits = getDeepResearchInputAttachmentLimits(context.input.inputAttachments);
   return runPromptExchange<DeepResearchSubQuestionAnalysisAnswer>({
+    dataDir: context.dataDir,
     store: context.store,
     runtimeLogger: context.runtimeLogger,
     traceContext: context.traceContext,
     stageLogger: context.stageLogger,
     sender: context.sender,
+    releaseForTakeover: context.releaseForTakeover,
     recordHashes: context.recordHashes,
     jobId: context.jobId,
     providerKind: context.providerKind,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T00:03:56.617Z",
+  "generatedAt": "2026-08-14T23:38:43.240Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -25,19 +25,16 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742",
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4",
       "capabilityDomain": "video-download-capability",
       "checkId": "video-download-capability/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-13T00:03:56.459Z",
-      "endedAt": "2026-08-13T00:03:56.616Z",
-      "durationMs": 157,
+      "startedAt": "2026-08-14T23:38:43.154Z",
+      "endedAt": "2026-08-14T23:38:43.240Z",
+      "durationMs": 86,
       "evidenceRefs": [
         "scripts/audit/domains/video-download-capability/inspector.ts",
-        "src/app/workbench-api-boundary.ts",
-        "src/app/workbench-video-download-client.ts",
-        "src/app/workbench-video-download-routes.ts",
         "src/capabilities/video-download/ability-group.ts",
         "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
         "src/capabilities/video-download/children/download-youtube-video-once.ts",
@@ -52,11 +49,7 @@
         "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
         "src/capabilities/video-download/runtime/youtube-url.ts",
         "src/capabilities/video-download/schema.ts",
-        "src/lib/local-runtime/workbench-video-download-support.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/mediator/video-download-artifact-route.ts",
-        "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
-        "src/plugins/video-download-artifact/video-download-artifact.schema.ts"
+        "src/lib/local-runtime/workbench.ts"
       ],
       "findingCount": 0
     }
@@ -66,110 +59,107 @@
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
       "clauseId": "grasseye-video-download-capability-001-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
       "clauseId": "grasseye-video-download-capability-002-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
       "clauseId": "grasseye-video-download-capability-003-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
       "clauseId": "grasseye-video-download-capability-004-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
       "clauseId": "grasseye-video-download-capability-005-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
       "clauseId": "grasseye-video-download-capability-006-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
       "clauseId": "grasseye-video-download-capability-007-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
       "clauseId": "grasseye-video-download-capability-008-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
       "clauseId": "grasseye-video-download-capability-009-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
       "clauseId": "grasseye-video-download-capability-010-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
       "clauseId": "grasseye-video-download-capability-011-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
       "clauseId": "grasseye-video-download-capability-012-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
       "clauseId": "grasseye-video-download-capability-013-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
       "clauseId": "grasseye-video-download-capability-014-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
       "clauseId": "grasseye-video-download-capability-015-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
       "clauseId": "grasseye-video-download-capability-016-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
       "clauseId": "grasseye-video-download-capability-017-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:9106bf16-e53e-4257-94b1-6877a78f200d:check:4fa55151-e1b2-4d77-9b6b-b9d4e952a742"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:adbe2c9d-0e21-4b58-a49c-95632aad17c4"
     }
   ],
   "inspectedFiles": [
     "scripts/audit/domains/video-download-capability/inspector.ts",
-    "src/app/workbench-api-boundary.ts",
-    "src/app/workbench-video-download-client.ts",
-    "src/app/workbench-video-download-routes.ts",
     "src/capabilities/video-download/ability-group.ts",
     "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
     "src/capabilities/video-download/children/download-youtube-video-once.ts",
@@ -184,10 +174,6 @@
     "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/schema.ts",
-    "src/lib/local-runtime/workbench-video-download-support.ts",
-    "src/lib/local-runtime/workbench.ts",
-    "src/mediator/video-download-artifact-route.ts",
-    "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
-    "src/plugins/video-download-artifact/video-download-artifact.schema.ts"
+    "src/lib/local-runtime/workbench.ts"
   ]
 }

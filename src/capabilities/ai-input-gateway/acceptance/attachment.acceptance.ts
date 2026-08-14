@@ -7,9 +7,14 @@ import path from "node:path";
 import { attachApprovedWebChatFilesOnce } from "../children/attach-approved-web-chat-files-once.js";
 import { AiFeedInputSchema } from "../schema.js";
 import type {
-  BrowserController,
+  BrowserTargetSession,
   BrowserStateSnapshot,
 } from "../../../lib/browser/browser-controller.js";
+import {
+  actionResult,
+  readExpectedAttachmentNames,
+  readExpectedPageUrl,
+} from "./attachment-script-fixture-support.js";
 const ATTACHMENT_STABILITY_REQUIRED_DURATION_MS = 30_000;
 const sha256 = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -66,23 +71,6 @@ type FixtureBrowserInput = {
   staleSearchDialog?: boolean;
 };
 
-const actionResult = (browserActionId: string) => ({
-  browserActionId,
-  ok: true,
-  message: "ok",
-  createdAt: new Date().toISOString(),
-});
-
-const readExpectedAttachmentNames = (script: string): string[] => {
-  const match = script.match(/const expectedFileNames = (\[[^\n]+\]);/u);
-  return match ? JSON.parse(match[1]!) as string[] : [];
-};
-
-const readExpectedPageUrl = (script: string): string | null => {
-  const match = script.match(/const expectedPageUrl = (null|"[^"\n]*");/u);
-  return match ? JSON.parse(match[1]!) as string | null : null;
-};
-
 const buildFixtureExactAttachmentEvaluation = (input: {
   fixture: FixtureBrowserInput;
   script: string;
@@ -128,7 +116,7 @@ const buildFixtureExactAttachmentEvaluation = (input: {
   };
 };
 
-class FixtureBrowserController implements BrowserController {
+class FixtureBrowserController implements BrowserTargetSession {
   private currentNames: string[] = [];
   private currentUrl = "https://chatgpt.com/";
   private exactReadCount = 0;
@@ -178,7 +166,7 @@ class FixtureBrowserController implements BrowserController {
     return actionResult("scroll");
   }
 
-  async click(input: Parameters<BrowserController["click"]>[0]) {
+  async click(input: Parameters<BrowserTargetSession["click"]>[0]) {
     this.actionLabels.push(input.targetLabel);
     if (
       input.targetLabel
@@ -201,7 +189,7 @@ class FixtureBrowserController implements BrowserController {
     throw new Error("not used");
   }
 
-  async evaluateActiveTab<T>(evaluation: { script: string; description: string }): Promise<T> {
+  async evaluate<T>(evaluation: { script: string; description: string }): Promise<T> {
     if (
       evaluation.description === "locate visible ChatGPT chat-search close action"
       || evaluation.description === "verify ChatGPT chat-search dialog closed"
@@ -262,14 +250,15 @@ class FixtureBrowserController implements BrowserController {
     } as T;
   }
 
-  async setFileInputFiles() {
-    return actionResult("file-input");
+  async setFileInputFiles() { return actionResult("file-input"); }
+  async pasteFileFromSystemClipboard({ filePath }: Parameters<NonNullable<BrowserTargetSession["pasteFileFromSystemClipboard"]>>[0]) {
+    const fileName = path.basename(filePath);
+    this.actionLabels.push(`focus-lease clipboard ${fileName}`); this.currentNames = [...this.currentNames, fileName];
+    return { ...actionResult("system-clipboard"), focusLeaseId: "fixture-focus-lease" };
   }
 
-  async selectFilesInNativePicker({
-      stagingDirectoryPath,
-      expectedFileNames,
-    }: Parameters<NonNullable<BrowserController["selectFilesInNativePicker"]>>[0]) {
+  async selectFilesInNativePicker({ stagingDirectoryPath, expectedFileNames }:
+    Parameters<NonNullable<BrowserTargetSession["selectFilesInNativePicker"]>>[0]) {
     this.actionLabels.push("select the exact approved staged file set");
     await this.input.onNativePicker?.(stagingDirectoryPath, expectedFileNames);
     if (this.input.nativeSelectionOk === false) {
@@ -302,7 +291,7 @@ class FixtureBrowserController implements BrowserController {
     return actionResult("wait");
   }
 
-  async closeActiveTab() {
+  async closeTarget() {
     return actionResult("close-tab");
   }
 
@@ -311,8 +300,7 @@ class FixtureBrowserController implements BrowserController {
   }
 }
 
-const buildBrowser = (input: FixtureBrowserInput = {}): BrowserController =>
-  new FixtureBrowserController(input);
+const buildBrowser = (input: FixtureBrowserInput = {}): BrowserTargetSession => new FixtureBrowserController(input);
 
 const dataDir = await mkdtemp(path.join(tmpdir(), "attachment-child-"));
 try {
@@ -329,6 +317,12 @@ try {
   });
   assert.equal(zero.attachmentUploadProof.status, "skipped");
   assert.equal(zeroProofs.length, 1);
+
+  const single = await attachApprovedWebChatFilesOnce({ browser: buildBrowser(), request: await buildRequest(dataDir, 1), context: { dataDir } });
+  assert.deepEqual(
+    [single.attachmentUploadProof.transportKind, single.attachmentUploadProof.status, single.attachmentUploadProof.detectedFileCount],
+    ["ordered_clipboard", "attachments_stable", 1],
+  );
 
   for (const fileCount of [2, 17]) {
     let observedStagingDirectory: string | null = null;

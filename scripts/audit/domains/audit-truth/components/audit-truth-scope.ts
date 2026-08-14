@@ -39,15 +39,13 @@ export const isAuditTruthAuditScopeRepoPath = (repoPath: string): boolean => {
   return normalizedPath.startsWith("scripts/audit/domains/") || normalizedPath.startsWith("scripts/audit/shared/");
 };
 
-const hasAuditImport = (sourceFile: SourceFile): boolean =>
-  sourceFile.getImportDeclarations().some((declaration) => {
-    const moduleSpecifier = declaration.getModuleSpecifierValue();
-    return moduleSpecifier === "../audit" || moduleSpecifier.startsWith("../audit/");
-  });
+const governedAcceptanceProofPaths = new Set([
+  "scripts/acceptance/audit-truth-coverage.acceptance.ts",
+]);
 
 export const isAuditTruthAcceptanceProofFile = (sourceFile: SourceFile): boolean => {
   const repoPath = normalizeAuditTruthPath(getRepoSourcePath(sourceFile));
-  return repoPath.startsWith("scripts/acceptance/") && hasAuditImport(sourceFile);
+  return governedAcceptanceProofPaths.has(repoPath);
 };
 
 export const isAuditTruthScanScopeFile = (sourceFile: SourceFile): boolean => {

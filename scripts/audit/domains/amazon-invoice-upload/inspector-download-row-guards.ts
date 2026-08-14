@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../shared/inspector-contracts.js";
 
@@ -15,7 +16,7 @@ const literalValues = (node: Node): Set<string> =>
 const hasCallNamed = (node: Node, name: string): boolean =>
   node.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
     const expression = call.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === name;
+    return Node.isIdentifier(expression) && astIdentifierName(expression) === name;
   });
 
 const ifConditionHasCallNamed = (node: Node, name: string): boolean =>

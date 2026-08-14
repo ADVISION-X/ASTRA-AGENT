@@ -15,7 +15,10 @@ import {
     inspectWebChatPromptSubmitVerification,
 } from "./components/html-owner-inspectors.js";
 import { inspectAnalysisOutputCleanliness } from "./components/scan-analysis-output-cleanliness.js";
-import { inspectDeletedNonPrimaryPaths } from "./components/scan-deleted-non-primary-paths.js";
+import {
+  inspectDeepResearchInterventionContract,
+  inspectDeletedNonPrimaryPaths,
+} from "./components/deep-research-boundary-inspectors.js";
 import { inspectFinalAdjudicationPromptBundleInput } from "./components/scan-final-adjudication-promptbundle-input.js";
 import { inspectFinalAdjudicationRawSovereignty } from "./components/scan-final-adjudication-raw-sovereignty.js";
 import { inspectFormatShellBoundary } from "./components/scan-format-shell-boundary.js";
@@ -367,6 +370,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const state = createInspectionState(context);
   inspectFlowStructure(state);
   inspectPromptAndInputBoundaries(state);
+  state.findings.push(...inspectDeepResearchInterventionContract(context));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

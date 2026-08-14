@@ -42,9 +42,11 @@ WEB_CHAT_MAX_IN_FLIGHT
 作废，保留失败证据并由工厂换新 execution 重跑。只有携带精确 `providerContinuationRef`
 的后续阶段或付费追问可以复用父正式 URL，而且实际 URL 必须与父 URL 完全一致。
 
-一个 BrowserController 只控制一个物理 ChatGPT 标签页。独立 feed 各自在这个标签页中
+一个 BrowserController 只控制一个物理 ChatGPT exact target。独立 feed 各自在这个 target 中
 创建一个全新聊天；附件、提示词填写、发送、提交证据、完成后点击该聊天行的选项、重命名、
-切换聊天、DOM 抓取与清理共享容量为一的短时 browser-mutation lease。提交后先记录正式会话
+切换聊天、DOM 抓取与清理共享容量为一的短时 browser-mutation lease。所有普通页面动作携带
+同一个 opaque targetRef 与当前 documentRef，通过 CDP 对目标执行，不激活 Chrome、不依赖前台标签。
+提交后先记录正式会话
 URL 与提示词 marker 并立即释放发送短锁，服务端生成等待不持锁；回答完成后才允许锁定非
 `/c/WEB:` 的正式侧栏行，点击该行自己的选项并完成系统重命名。顶部“对话选项”不得作为
 重命名入口。文章进入发布链前必须证明“系统聊天名＋提示词 marker”。
@@ -55,7 +57,7 @@ URL 与提示词 marker 并立即释放发送短锁，服务端生成等待不�
 生成时只进入内部恢复，禁止先把附件放进编辑器。父 URL、父任务、父回答 hash 或 marker
 任一不符都 fail closed；不得调用“创建全新聊天”路径，也不得用重新上传父附件冒充续接。
 
-回答生成期间的巡查也不得用浏览器 URL open 直达历史会话。系统必须在同一标签页内查找
+回答生成期间的巡查也不得用浏览器 URL open 直达历史会话。系统必须在同一 exact target 内查找
 正式侧栏行：重命名前按已记录的 canonical pathname 唯一锁定该行，点击后核验 marker；
 重命名后按系统聊天名唯一锁定该行，点击后再次核验 marker。两种阶段都属于 DOM 聊天切换，
 不是刷新或重新打开页面。
@@ -67,29 +69,28 @@ URL 与提示词 marker 并立即释放发送短锁，服务端生成等待不�
 退出时，都必须通过这个精确按钮收尾并验证 dialog 已消失，之后才释放浏览器短锁。禁止
 用 Escape 清理所有 menu、listbox 或 dialog，也禁止在搜索弹窗后方尝试打开原生附件选择器。
 
-每次短时浏览器操作取得锁后，必须先枚举 provider host 标签：
+首次 acquire 必须枚举 provider host 标签并得到精确一个内部 target；后续短时浏览器操作只解析
+同一个 opaque targetRef，不得按 URL 重选、取第一个 page 或读取 active tab：
 
 ```txt
-精确 1 个 → 聚焦该标签，再执行聊天内动作
+精确 1 个 → mint targetRef/documentRef，再执行聊天内动作
 0 个       → 只有首次打开允许创建 1 个
 多于 1 个 → review_required，禁止选择“第一个”继续
 ```
 
-首次打开使用 `reuse-host-tab`，禁止把当前 active 的网站、Amazon 或其他普通标签改写成
-ChatGPT。聊天轮询、限流恢复、重命名和回答读取都必须先重新聚焦这一个 provider 标签，
-不得假设当前前台标签仍是 ChatGPT。
+首次打开使用固定根 URL 的 `reuse-exact-url`，禁止按同 host、active、current、front 或 first
+标签猜测 ChatGPT。聊天轮询、限流恢复、重命名和回答读取都必须先解析这个 exact target，并核验
+origin/document generation；不得切换或假设当前前台标签。target 消失时进入 recovery_pending，
+禁止 URL-first fallback。
 
-Chrome 的“自动化窗口”和物理鼠标实际点击的“辅助功能窗口”必须是同一个窗口。每次物理
-点击、悬停、按键或截图前，先按完整窗口坐标和尺寸做唯一匹配，再对该精确窗口执行
-`AXRaise`。只调用 Chrome `activate`、只取辅助功能 `window 1`，或者让前台的登录选择器、
-未登录窗口承接已登录窗口的 DOM 坐标，全部禁止。匹配为 0 或大于 1 时 fail closed。
-Chrome 把窗口切到前台后，自动化 bounds 与辅助功能窗口可能存在一个瞬时同步差。匹配为
-0 时只允许在同一完整 bounds 上执行一次不超过 750ms 的短稳定循环；一旦精确命中立即
-`AXRaise`。出现大于 1 个匹配时仍立即失败，禁止猜窗口。这个同步片区不得升级成数分钟的
-页面盲轮询，更不得在 GPT 已出现完成操作后阻止回答 checkpoint。
+普通 DOM evaluate/click/fill/scroll/screenshot 全部通过 exact-target CDP，不使用辅助功能窗口、
+Chrome activate、系统鼠标或键盘。只有 native file picker 或明确无法由 CDP 完成的 OS 动作
+才申请 Browser-owned `PhysicalFocusLease`：reason code 必须获准，绑定同一 target/window/document，
+最多 15 秒。用户主动切走或身份变化后立即取消且不重抢。该租约不得覆盖 provider 生成等待，
+不得把已完成回答变成盲轮询。
 
-侧栏行即使存在 DOM，只要中心点落在浏览器可视区之外，就不允许点击该坐标。系统必须把
-真实滚轮锚定在侧栏，把精确 canonical URL 或系统名称对应的行滚进可视区，重新定位后再
+侧栏行即使存在 DOM，只要中心点落在浏览器可视区之外，就不允许点击该坐标。系统必须在
+exact target 内发送 CDP scroll，把精确 canonical URL 或系统名称对应的行滚进可视区，重新定位后再
 点击并核对 marker。这样历史任务被新聊天挤到侧栏下方后仍能在第二天恢复。
 
 ```txt
@@ -137,8 +138,7 @@ attempt id、失败前 phase、分类、是否可恢复和受限长度 reason；
 真实根因分类，禁止只看终态包装。旧分类器留下但没有根因的终态回声只保留证据，并只获得
 一次有界恢复机会；它既不能直接生成新的阻断，也不能成为无限重启的理由。失败条数从来
 不是终态依据。
-外部请求和
-Xuanyuan 公共结果不接受这些运输控制字段。
+外部请求和调用方公共结果不接受这些运输控制字段。
 
 系统聊天名必须同时服务人类巡查与机器精确定位，唯一格式是：
 
@@ -471,6 +471,10 @@ forked_from_checkpoint
 不得改走空白聊天、附件 base、摘要重放或第二 provider。
 
 逐文件信息用于成员身份证明，不得把原生批量选择伪装成逐文件进度。
+
+## Choice And Security Boundary
+
+`GRASSEYE-AI-CHOICE-001-V1` 与 `GRASSEYE-SECURITY-PRIVACY-AI-001-V1` 归 `ai-input-gateway` 唯一 owner。默认 AI 输出只允许受控选择结果；Gateway 只运输 caller-approved refs，不得选择任意文件、输出 browser control 或控制付款、退款、删除、敏感提交。不得增加第二 provider transport 或 business-decision bridge。
 
 ## File Plan
 

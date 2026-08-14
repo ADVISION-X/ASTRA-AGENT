@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import { searchAndOpenNamedConversation } from "./web-chat-named-conversation-search.js";
 
@@ -141,7 +141,7 @@ const markerCount = nodes.filter((node) => (node.textContent || "").includes(mar
 return {pageUrl: location.href, markerCount};
 `;
 
-const clickTarget = async (input: { base: BrowserController; description: string; targetPoint: { x: number; y: number } | undefined }): Promise<void> => {
+const clickTarget = async (input: { base: BrowserTargetSession; description: string; targetPoint: { x: number; y: number } | undefined }): Promise<void> => {
   if (!input.targetPoint) throw new Error(`review_required: ${input.description} point missing.`);
   const clicked = await input.base.click({
     targetLabel: input.description,
@@ -155,7 +155,7 @@ const clickTarget = async (input: { base: BrowserController; description: string
 
 const handleNamedConversationTarget = async (input: {
   request: {
-    base: BrowserController;
+    base: BrowserTargetSession;
     systemChatTitle: string;
     signal?: AbortSignal;
   };
@@ -203,12 +203,12 @@ const handleNamedConversationTarget = async (input: {
   return input.searched;
 };
 
-const focusNamedChatGptConversation = async (input: { base: BrowserController; systemChatTitle: string; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
+const focusNamedChatGptConversation = async (input: { base: BrowserTargetSession; systemChatTitle: string; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
   const deadline = Date.now() + 30_000;
   let searched = false;
   let last: ConversationTarget | null = null;
   while (Date.now() < deadline) {
-    last = await input.base.evaluateActiveTab<ConversationTarget>({
+    last = await input.base.evaluate<ConversationTarget>({
       description: "locate exact system-renamed ChatGPT conversation in the single controlled tab",
       script: buildConversationTargetScript(input),
       ...(input.signal ? { abortSignal: input.signal } : {}),
@@ -227,15 +227,15 @@ const focusNamedChatGptConversation = async (input: { base: BrowserController; s
   throw new Error(`review_required: exact named ChatGPT conversation did not expose exactly one matching marker; title=${input.systemChatTitle}; last=${last?.message ?? "none"}`);
 };
 
-const focusGeminiConversation = async (input: { base: BrowserController; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
+const focusGeminiConversation = async (input: { base: BrowserTargetSession; submission: WebChatSubmissionProof; turnMarker: string; signal?: AbortSignal }): Promise<void> => {
   const targetUrl = input.submission.canonicalConversationUrl ?? input.submission.transientConversationUrl;
   const opened = await input.base.open({
     url: targetUrl,
     title: "resume exact Gemini conversation in single controlled tab",
-    reusePolicy: "reuse-active-tab",
+    reusePolicy: "reuse-exact-url",
   });
   if (!opened.ok) throw new Error(`review_required: exact Gemini conversation could not be opened; ${opened.message}`);
-  const observed = await input.base.evaluateActiveTab<{
+  const observed = await input.base.evaluate<{
     pageUrl: string;
     markerCount: number;
   }>({
@@ -373,7 +373,7 @@ type UnrenamedConversationTarget = {
 };
 
 const advanceUnrenamedTarget = async (input: {
-  base: BrowserController;
+  base: BrowserTargetSession;
   target: UnrenamedConversationTarget;
   signal?: AbortSignal;
 }): Promise<void> => {
@@ -396,7 +396,7 @@ const advanceUnrenamedTarget = async (input: {
   }
 };
 
-const focusUnrenamedChatGptConversation = async (input: { base: BrowserController; targetUrl: string; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
+const focusUnrenamedChatGptConversation = async (input: { base: BrowserTargetSession; targetUrl: string; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
   const targetUrl = input.targetUrl;
   const targetPath = new URL(targetUrl).pathname;
   const transientTarget = targetPath.startsWith("/c/WEB:");
@@ -407,7 +407,7 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
       const opened = await input.base.open({
         url: targetUrl,
         title: "resume exact submitted ChatGPT conversation by canonical URL",
-        reusePolicy: "reuse-active-tab",
+        reusePolicy: "reuse-exact-url",
       });
       if (!opened.ok) {
         throw new Error(
@@ -417,7 +417,7 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
     }
   }
   const inspectAndLocate = () =>
-    input.base.evaluateActiveTab<UnrenamedConversationTarget>({
+    input.base.evaluate<UnrenamedConversationTarget>({
       description: "locate exact submitted ChatGPT conversation row before completing system rename",
       script: buildUnrenamedChatGptIdentityScript({ turnMarker: input.turnMarker, targetPath }),
       ...(input.signal ? { abortSignal: input.signal } : {}),
@@ -444,7 +444,7 @@ const focusUnrenamedChatGptConversation = async (input: { base: BrowserControlle
 };
 
 export const focusChatGptConversationByCanonicalPath = async (input: {
-  base: BrowserController;
+  base: BrowserTargetSession;
   conversationUrl: string;
   turnMarker: string;
   timeoutMs?: number;
@@ -459,7 +459,7 @@ export const focusChatGptConversationByCanonicalPath = async (input: {
   });
 };
 
-export const focusBoundWebChatConversation = async (input: { base: BrowserController; providerKind: "gpt-web-chat" | "gemini-web-chat"; systemChatTitle: string | null; submission: WebChatSubmissionProof; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
+export const focusBoundWebChatConversation = async (input: { base: BrowserTargetSession; providerKind: "gpt-web-chat" | "gemini-web-chat"; systemChatTitle: string | null; submission: WebChatSubmissionProof; turnMarker: string; timeoutMs?: number; signal?: AbortSignal }): Promise<void> => {
   if (input.providerKind === "gpt-web-chat") {
     if (input.submission.systemChatTitle !== input.systemChatTitle || !input.submission.chatTitleVerifiedAt) {
       await focusUnrenamedChatGptConversation({

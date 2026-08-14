@@ -92,7 +92,7 @@ export const collectRuntimeLogSemanticMetrics = (context: InspectorContext): {
   for (const sourceFile of context.project.getSourceFiles()) {
     const repoPath = getRepoSourcePath(sourceFile);
     if (!isRuntimeLogLawSourcePath(repoPath)) continue;
-    if (!hasRuntimeLogSignal(sourceFile.getText())) continue;
+    if (!hasRuntimeLogSignal(sourceFile, repoPath)) continue;
     inspectedFiles.push(repoPath);
     metrics.scannedFiles += 1;
     collectCallMetrics(sourceFile, repoPath, metrics);

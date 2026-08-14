@@ -7,7 +7,6 @@ import type { RuntimeLogSemanticMetrics } from "./semantic-metrics-inspector.js"
 
 const governedInspectorPaths = new Set([
   "scripts/audit/domains/runtime-log-spine/inspector.ts",
-  "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
 ]);
 
 type AntiFakeSnapshot = {

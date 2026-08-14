@@ -58,7 +58,6 @@ Completed is a proof-bearing terminal state, not a loose UI label.
 Required:
 
 - a completed Deep Research result contract must not allow completed output with null final report evidence or empty record-hash proof by default
-- a completed Facebook mining run contract must carry video-evidence-bearing fields, or an explicit evidence summary contract, instead of only counters and status
 - runtime-truth inspection must block completed contracts that can represent success without evidence
 
 Forbidden:
@@ -198,12 +197,6 @@ Forbidden:
       "statement": "Large artifacts, DOM, AI raw output, and binary content must be referenced by refs and hashes instead of embedded inline.",
       "evidenceMode": "acceptance",
       "ownerDomain": "runtime-log-spine"
-    },
-    {
-      "clauseId": "runtime-log-spine-006-facebook-product-video-mining-artifact-refs",
-      "statement": "Facebook product video mining artifact operations must emit governed references and hashes.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "facebook-product-video-mining-log-coverage"
     }
   ]
 }
@@ -284,12 +277,6 @@ Forbidden:
       "statement": "Failed, skipped, and review-required events must carry classified failure metadata instead of free text alone.",
       "evidenceMode": "acceptance",
       "ownerDomain": "runtime-log-spine"
-    },
-    {
-      "clauseId": "runtime-log-spine-010-facebook-product-video-mining-failure-contract",
-      "statement": "Facebook product video mining failure paths must emit the governed failure contract.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "facebook-product-video-mining-log-coverage"
     }
   ]
 }
@@ -350,12 +337,6 @@ Forbidden:
       "statement": "AI request, upload, response, parse, and validation paths must emit provider proof, refs, hashes, and statuses.",
       "evidenceMode": "acceptance",
       "ownerDomain": "runtime-log-spine"
-    },
-    {
-      "clauseId": "runtime-log-spine-013-facebook-product-video-mining-ai-contract",
-      "statement": "Facebook product video mining AI stages must emit governed upload response and parse evidence.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "facebook-product-video-mining-log-coverage"
     }
   ]
 }
@@ -376,12 +357,6 @@ Forbidden:
       "statement": "Browser and DOM actions must log before state, attempted action, after state, duration, and failure class.",
       "evidenceMode": "acceptance",
       "ownerDomain": "runtime-log-spine"
-    },
-    {
-      "clauseId": "runtime-log-spine-014-facebook-product-video-mining-navigation-contract",
-      "statement": "Facebook product video mining navigation must emit before action after and stable-verification evidence.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "facebook-product-video-mining-log-coverage"
     }
   ]
 }
@@ -402,12 +377,6 @@ Forbidden:
       "statement": "Every recovery and fallback path must emit a linked recovery trail tied to the originating failure.",
       "evidenceMode": "acceptance",
       "ownerDomain": "runtime-log-spine"
-    },
-    {
-      "clauseId": "runtime-log-spine-015-facebook-product-video-mining-recovery-trail",
-      "statement": "Facebook product video mining recovery must emit a trail linked to the original failure.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "facebook-product-video-mining-log-coverage"
     }
   ]
 }
@@ -428,18 +397,6 @@ Forbidden:
       "statement": "Each plugin and capability must maintain a machine-enforced logging matrix for mandatory stages and contracts.",
       "evidenceMode": "acceptance",
       "ownerDomain": "runtime-log-spine"
-    },
-    {
-      "clauseId": "runtime-log-spine-016-amazon-product-sync-log-matrix",
-      "statement": "Amazon product sync must maintain its machine-enforced mandatory-stage logging matrix.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "amazon-product-sync"
-    },
-    {
-      "clauseId": "runtime-log-spine-016-facebook-product-video-mining-log-matrix",
-      "statement": "Facebook product video mining must maintain its machine-enforced mandatory-stage logging matrix.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "facebook-product-video-mining-log-coverage"
     }
   ]
 }

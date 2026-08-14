@@ -1,5 +1,6 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -9,7 +10,7 @@ const decode = (value: string): string => Buffer.from(value, "base64").toString(
 const retiredSupplementAlias = decode("b3B0aW9uYWxDb250ZW50");
 
 const hasIdentifier = (sourceFile: SourceFile, value: string): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === value);
+  sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => astIdentifierName(identifier) === value);
 
 const hasStringLiteral = (sourceFile: SourceFile, value: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === value);

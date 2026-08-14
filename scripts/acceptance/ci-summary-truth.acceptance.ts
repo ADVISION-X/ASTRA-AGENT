@@ -14,11 +14,16 @@ import { acceptanceLawBindings } from "../audit/ci-acceptance-law-bindings.js";
 import { buildAcceptanceLeafSkeletons } from "../audit/ci-acceptance-leaf-plan.js";
 import { validateGeneratedPlanWorkerResult } from "../audit/ci-audit-plan-runner.js";
 import { buildCiPhasePlan, buildCiPlanSkeleton, typecheckStep } from "../audit/ci-full-phase-plan.js";
+import { runBinaryVerdictAttacks } from "./audit-binary-verdict.attacks.js";
 import { runControlFlowReachabilityAttacks } from "./audit-control-flow-reachability.attacks.js";
 import { runDeliveryIsolationAttacks } from "./audit-delivery-isolation.attacks.js";
+import { runGeneratedArtifactTruthAttacks } from "./audit-generated-artifact-truth.attacks.js";
+import { runManualMatrixAttacks } from "./audit-manual-matrix.attacks.js";
+import { runOwnerFilesystemMutationAttacks } from "./audit-owner-filesystem-mutation.attacks.js";
 import { runPhysicalCheckReceiptAttacks } from "./audit-physical-check-receipts.attacks.js";
 import { runPhasePlanAttacks } from "./audit-phase-plan.attacks.js";
 import { runRound8PhysicalReceiptAttacks } from "./audit-physical-check-receipts-round8.attacks.js";
+import { runAuditRunIdentityAttacks } from "./audit-run-identity.attacks.js";
 import { runWorkerLifecycleAttacks } from "./audit-worker-lifecycle.attacks.js";
 
 const { acceptanceSteps, plannedSteps } = buildCiPhasePlan();
@@ -79,6 +84,15 @@ assert.throws(
   errorMessageIncludes("unsupported command"),
   "package acceptance discovery must reject commands outside the direct governed grammar",
 );
+const argumentBearingLeaf = buildAcceptanceLeafSkeletons({
+  ...packageScripts,
+  "acceptance:audit-truth-argument-probe": "node --import tsx scripts/acceptance/audit-truth-coverage.acceptance.ts --fixture bounded",
+}).find((leaf) => leaf.command.at(-2) === "--fixture");
+assert.deepEqual(
+  argumentBearingLeaf?.command,
+  ["node", "--import", "tsx", "scripts/acceptance/audit-truth-coverage.acceptance.ts", "--fixture", "bounded"],
+  "direct governed acceptance arguments must survive discovery and sealing without a wrapper or second runner",
+);
 assert.equal(new Set(acceptanceSteps.map((step) => step[2])).size, acceptanceSteps.length, "each physical acceptance path must receive exactly one CI step receipt.");
 assert.equal(acceptanceSteps.every((step) => step[1][0] === "node"), true, "CI must execute direct acceptance leaves instead of npm groups containing && chains.");
 assert.equal(acceptanceSteps.every((step) => step[3] !== null && step[5] !== "acceptance-group"), true, "every acceptance receipt must retain a concrete law and owner.");
@@ -91,18 +105,21 @@ assert.equal(unsealedPlan.slice(5, -1).every((step) => step[3] === null && step[
 const lawForLeaf = (filePath: string): string | null => acceptanceSteps.find((step) => step[2] === filePath)?.[3] ?? null;
 assert.equal(lawForLeaf("scripts/acceptance/app-shell-localization.acceptance.ts"), "GRASSEYE-APP-SHELL-UI-002-V1", "localization must bind its own law instead of the owner's first law.");
 assert.equal(lawForLeaf("scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts"), "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1", "Amazon batch acceptance must bind the batch law.");
-assert.equal(lawForLeaf("scripts/acceptance/pick3-is-blind-eval-playbook-lessons.acceptance.ts"), "GRASSEYE-PICK3-PLAYBOOK-LESSON-STORE-011-V1", "Pick3 lesson acceptance must bind the lesson-store law.");
 assert.equal(lawForLeaf("scripts/acceptance/amazon-invoice-upload-smoke.ts"), "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1", "Amazon fixture smoke must bind machine acceptance authority, not deferred Chrome proof.");
 assert.equal(lawForLeaf("src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts"), "APEX-AI-INPUT-GATEWAY-002-V1", "Provider boundary acceptance must bind the governed browser and raw-response contract.");
 assert.equal(lawForLeaf("src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts"), "APEX-AI-INPUT-GATEWAY-003-V1", "Attachment routing acceptance must bind the fixed transport-routing contract.");
 assert.equal(lawForLeaf("src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts"), "APEX-AI-INPUT-GATEWAY-004-V1", "Attachment proof acceptance must bind the aggregate stability and identity contract.");
-assert.equal(lawForLeaf("scripts/acceptance/pick3-is-blind-eval-full-history.acceptance.ts"), "GRASSEYE-PICK3-IS-BLIND-EVAL-001-V1", "Pick3 storage history fixture must not execute its deferred Chrome UI law.");
 
-runPhysicalCheckReceiptAttacks();
+await runPhysicalCheckReceiptAttacks();
+runBinaryVerdictAttacks();
+runAuditRunIdentityAttacks();
+runManualMatrixAttacks();
+runOwnerFilesystemMutationAttacks();
 runPhasePlanAttacks();
 runRound8PhysicalReceiptAttacks();
 runControlFlowReachabilityAttacks();
 runDeliveryIsolationAttacks();
+runGeneratedArtifactTruthAttacks();
 runWorkerLifecycleAttacks();
 
 const sampleSteps: StepResult[] = [

@@ -19,7 +19,7 @@ import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-ti
 const assertHumanReadableTitles = (): void => {
   const seoTitle = buildHumanReadableSystemChatTitle({
     labelKey: "seo_research",
-    executionId: "xuanyuan_example-seo-task",
+    executionId: "generic_example-seo-task",
     turnMarker: "GRASSEYE_TURN_1234567890abcdef",
     createdAt: "2026-07-26T04:40:00.000Z",
   });
@@ -30,13 +30,13 @@ const assertHumanReadableTitles = (): void => {
   );
   assert.doesNotMatch(
     seoTitle,
-    /public-knowledge|xuanyuan|GRASSEYE_TURN/u,
+    /public-knowledge|generic_example|GRASSEYE_TURN/u,
     "readable titles must not expose transport ids or raw contract vocabulary",
   );
   assert.match(
     buildHumanReadableSystemChatTitle({
       labelKey: "bazi_analysis",
-      executionId: "xuanyuan_example-bazi-task",
+      executionId: "generic_example-bazi-task",
       turnMarker: "GRASSEYE_TURN_abcdef1234567890",
       createdAt: "2026-07-26T04:41:00.000Z",
     }),
@@ -46,7 +46,7 @@ const assertHumanReadableTitles = (): void => {
   assert.match(
     buildHumanReadableSystemChatTitle({
       labelKey: "generic_ai",
-      executionId: "xuanyuan_example-generic-task",
+      executionId: "generic_example-task",
       turnMarker: "GRASSEYE_TURN_1234567890abcdef",
       createdAt: "2026-07-26T04:42:00.000Z",
     }),

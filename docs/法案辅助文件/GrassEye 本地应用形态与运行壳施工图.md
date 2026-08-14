@@ -36,7 +36,6 @@ health / mode
 当前页面可暴露：
 
 - Amazon invoice upload：第一成熟 job flow。
-- Facebook product video mining：独立 job flow，不得塞进 Amazon 表单。
 - Video download skill：受治理的视频下载能力入口；它不是独立 job-flow 主权，也不是第二运行时。
 
 ## Deep Research Analysis 交付面
@@ -91,99 +90,6 @@ Amazon invoice upload 必须收集：
 提交通过本地 HTTP API 进入 workbench handle，再进入 Amazon job flow。页面不拥有流程顺序。
 `src/lib/local-runtime/**` 若需要消费 Amazon 能力，只能通过 `src/plugins/amazon-invoice-upload/index.ts`。
 
-## Facebook 输入面
-
-Facebook product video mining 必须作为单独法门输入面。页面只允许操作者选择：
-
-- 目标种草视频数量
-- Start
-- Latest
-
-其余 mission 参数由程序自动完成：
-
-- Facebook feed entry 使用治理默认值或已有授权 Facebook 视频 tab。
-- provider kind 使用治理默认值。
-- modelName 默认为空。
-- max rounds、max minutes、评论加载、视频质量、视频大小、rejected trace 使用 schema 默认策略。
-- Not Interested 默认关闭，避免本地 Workbench 启动后对操作者 Facebook 推荐流做负反馈污染。
-- AI web-chat 判断必须有硬超时；超时后 run 进入复核终态，不能无限显示 running。
-- AI web-chat 上传完成等待必须短上限；AI judgment failure 保存候选后必须终止本次 mission 为复核态。
-- AI web-chat 上传/提交/读回答前必须重新聚焦 provider workspace tab，防止 Chrome active tab drift。
-- 首次没有保存 workspace URL 时必须打开 provider 入口并保存实际 workspace URL，不得复用任意旧 ChatGPT 会话或按标题匹配旧会话。
-- 文件上传必须优先使用已定位 provider file input，剪贴板文件粘贴只能作为后备，禁止把本地文件路径打进错误页面或 Chrome 查找栏。
-- Start 后页面自动轮询当前 run，展示 saved product count / target count。
-- 页面展示 saved `PRODUCT_SEEDING` records，并提供 Export JSON 给高级 AI 选品。
-
-`src/lib/local-runtime/**` 若需要消费 Facebook product video mining，只能通过 `src/plugins/facebook-product-video-mining/index.ts`。
-
-是否产品视频、是否保存线索、是否继续下一轮，仍归对应 job flow 和能力组。
-
-禁止在页面重新暴露：
-
-- Facebook feed URL
-- Provider selector
-- Model
-- Max rounds
-- Max minutes
-- advanced options / hidden second configuration panel
-- 把 rejected、uncertain、review_required 或 failed 候选显示为成功记录
-- 导出 cookies、tokens、localStorage、sessionStorage 或完整 HTML
-
-## Video Download 输入面
-
-Video download skill 必须作为独立受治理 job flow 入口展示。页面只允许操作者提供：
-
-- Source page URL
-- Capability child id
-- Preferred quality
-- Max MB（YouTube 禁止显示；缓存型/直链型平台按其 active law 使用）
-- Download subtitles
-- Start
-
-YouTube 和长下载必须通过 Workbench 受治理任务状态路径呈现：
-
-- 页面提交长下载使用 `/api/video-download/start-async` 获取 `taskId`。
-- 页面用 `/api/video-download/status?taskId=...` 轮询真实任务状态。
-- 本地 timer 只显示耗时，不能替代 status route，也不能让用户误以为无日志卡死。
-- 同步 `/api/video-download/start` 仅可作为 API 兼容入口，不作为 UI 长等待路径。
-- 完成时必须展示最终 `success` / `failed` / `review_required` / `invalid_input`、保存路径、artifactRef、sha256、failureReason。
-
-Telegram Web 接入形态：
-
-- Video Download 面板内部必须用平台顶部导航选择平台，不得把所有平台压进一个普通 capability 下拉框。
-- 页面可以在 child capability 下拉中暴露 `download-telegram-web-video-once`。
-- 页面必须提示操作者先在本地 Chrome 打开并授权目标 Telegram Web 页面。
-- 页面可以提供“读取已打开 Telegram Web 标签页 URL”的按钮；该按钮只读取 URL/title 用于填表，不读取 cookie、storage、消息正文或群组内容。
-- 页面不得自动批量列出群组所有视频；允许后续建设“探测当前授权页面的单视频候选/缓存覆盖状态”，但探测结果只能作为 review / start 前提示，不能冒充下载成功。
-- Telegram Web 下载仍必须提交一个明确 `sourcePageUrl`，进入 mediator + `video-download-artifact` job flow，由 video-download child 在授权 Chrome 标签页中执行 Service Worker / CacheStorage 探针。
-- APP 只展示 `success` / `review_required` / `failed` / `invalid_input`、artifactRef、filePath、sha256、failureReason，不展示群组名称、消息正文、账号身份或 raw progressive URL。
-
-提交通过本地 HTTP API 进入 `src/mediator/**`，再进入 `src/plugins/video-download-artifact/**` job flow，由该 flow 调用 `video-download` public facade。
-页面不拥有下载算法、平台探针、业务价值判断、能力组调用或批量编排。
-
-下载结果必须进入右侧账本窗展示真实状态：
-
-- `success`
-- `failed`
-- `review_required`
-- `invalid_input`
-
-失败或复核态必须展示 `failureReason`、`reviewRequiredReason` 或 result reason，
-不得把候选缺失、登录墙、DRM、CAPTCHA、私密视频、下载过期、文件无效显示成成功。
-
-`src/lib/local-runtime/**` 若需要消费 Video Download 能力，只能通过
-`src/capabilities/video-download/index.ts`。
-
-禁止在页面重新暴露：
-
-- 外部 downloader 站点
-- 去水印 API
-- CAPTCHA / DRM / 登录绕过开关
-- cookie、token、localStorage、sessionStorage 导出
-- 批量下载编排面板
-- 自动抓取整个 Telegram 群组视频列表
-- 截图或封面图冒充完整视频 artifact
-
 ## 禁止项
 
 - 端点说明页冒充 workbench。
@@ -206,9 +112,6 @@ local-app-shell owner inspector 检查：
 - root page 是否暴露 health / mode 区域。
 - root page 是否暴露 job flow list。
 - Amazon 输入面是否包含必要字段。
-- Facebook 输入面是否只暴露目标数量、Start、Latest。
-- Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start，以及 Telegram Web 授权页边界提示。
-- Video Download route 是否存在 `/api/video-download/start`，且 route 必须经 mediator + job flow 后再调用能力组，页面只展示真实 result 状态。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
 - Deep Research New Research 输入面是否在轮询刷新中保留打开状态，并在收起前检查焦点和草稿内容。
 - Deep Research completed delivery surface 是否展示 final report、真实 persisted counts、export refs、evidence hashes，且 raw JSON 只作为折叠审计视图。

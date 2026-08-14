@@ -1,9 +1,8 @@
 {
-  "generatedAt": "2026-08-13T00:04:02.381Z",
+  "generatedAt": "2026-08-14T23:39:04.147Z",
   "status": "PASS",
   "inspectedFiles": [
-    "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts"
+    "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"
   ],
   "findings": [],
   "capabilityDomain": "runtime-truth",
@@ -13,17 +12,16 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:0b72ed02-218a-4d53-aeab-c9bed890aaee",
-      "checkRunId": "audit-run:0b72ed02-218a-4d53-aeab-c9bed890aaee:check:48cf01d8-1f6b-4de8-95af-dc3a3f935d6e",
+      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:2e99fc9a-0409-43ff-b4f5-7c69f2c4dcab",
       "capabilityDomain": "runtime-truth",
       "checkId": "runtime-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-13T00:04:02.380Z",
-      "endedAt": "2026-08-13T00:04:02.381Z",
+      "startedAt": "2026-08-14T23:39:04.146Z",
+      "endedAt": "2026-08-14T23:39:04.147Z",
       "durationMs": 1,
       "evidenceRefs": [
-        "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts"
+        "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"
       ],
       "findingCount": 0
     }
@@ -33,7 +31,7 @@
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",
       "clauseId": "apex-runtime-truth-001-requirement",
       "checkId": "runtime-truth/owner-assertion-set",
-      "checkRunId": "audit-run:0b72ed02-218a-4d53-aeab-c9bed890aaee:check:48cf01d8-1f6b-4de8-95af-dc3a3f935d6e"
+      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:2e99fc9a-0409-43ff-b4f5-7c69f2c4dcab"
     }
   ]
 }

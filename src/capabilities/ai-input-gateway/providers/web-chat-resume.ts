@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
@@ -18,7 +18,7 @@ import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
 import { readWebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
 
 const finalizeCompletedChatGptTitle = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   submission: WebChatSubmissionProof;
@@ -48,7 +48,7 @@ const finalizeCompletedChatGptTitle = async (input: {
 };
 
 const verifyResumableTurn = async (input: {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
 }): Promise<void> => {
   const execution = input.context.webChatExecution;
@@ -57,7 +57,7 @@ const verifyResumableTurn = async (input: {
       "review_required: durable web-chat submission proof is unavailable for resume.",
     );
   }
-  const identity = await input.browser.evaluateActiveTab<{
+  const identity = await input.browser.evaluate<{
     pageUrl: string;
     markerCount: number;
   }>({
@@ -81,7 +81,7 @@ return { pageUrl: location.href, markerCount };
 };
 
 type ResumeConversationInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;

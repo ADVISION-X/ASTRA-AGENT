@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import { PluginInterventionRequestSchema, type PluginInterventionAction, type PluginInterventionRequest } from "../../types/plugin-intervention.js";
 import { runAmazonProductMiningFlow } from "./amazon-product-mining.flow.js";
 import type { AmazonFlowResult } from "./amazon-product-mining.flow.js";
 import { createKeywordProgress, taskRecordToResult } from "./amazon-product-mining.result.js";
@@ -31,7 +32,7 @@ const ACTIVE_AMAZON_MINING_TASKS = new Map<string, Promise<AmazonFlowResult>>();
 
 type AmazonProductMiningRuntimeInput = {
   dataDir: string;
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   aiInputGateway: AiInputGatewayAbilityGroup;
   runtimeLogger: RuntimeLogger;
 };
@@ -146,6 +147,34 @@ export const getAmazonProductMiningTaskStatus = (input: {
     storage.close();
   }
 };
+
+const requestAmazonProductMiningIntervention = (input: {
+  dataDir: string;
+  action: PluginInterventionAction;
+  request: PluginInterventionRequest;
+}): ReturnType<AmazonMiningStorage["requestIntervention"]> => {
+  const storage = createAmazonMiningStorage(input.dataDir);
+  try {
+    return storage.requestIntervention(input.action, PluginInterventionRequestSchema.parse(input.request));
+  } finally {
+    storage.close();
+  }
+};
+
+export const AmazonProductMiningInterventionRequestSchema = PluginInterventionRequestSchema;
+
+export const readAmazonProductMiningIntervention = (dataDir: string, taskId: string) => {
+  const storage = createAmazonMiningStorage(dataDir);
+  try { return storage.getIntervention(taskId); } finally { storage.close(); }
+};
+export const pauseAmazonProductMining = (dataDir: string, request: PluginInterventionRequest) =>
+  requestAmazonProductMiningIntervention({ dataDir, action: "pause", request });
+export const cancelAmazonProductMining = (dataDir: string, request: PluginInterventionRequest) =>
+  requestAmazonProductMiningIntervention({ dataDir, action: "cancel", request });
+export const takeoverAmazonProductMining = (dataDir: string, request: PluginInterventionRequest) =>
+  requestAmazonProductMiningIntervention({ dataDir, action: "takeover", request });
+export const resumeAmazonProductMining = (dataDir: string, request: PluginInterventionRequest) =>
+  requestAmazonProductMiningIntervention({ dataDir, action: "resume", request });
 
 export const getLatestAmazonProductMiningTask = (input: {
   dataDir: string;

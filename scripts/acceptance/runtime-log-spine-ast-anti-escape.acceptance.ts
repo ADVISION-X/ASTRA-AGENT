@@ -43,7 +43,7 @@ project.createSourceFile(
       traceId: "x",
       level: "info",
       eventType: FakeRuntimeLogEventType.MISSION_STOPPED,
-      owner: "facebook-product-video-mining"
+      owner: "deep-research-analysis"
     });
 
     logger.emit({
@@ -51,7 +51,7 @@ project.createSourceFile(
       level: "error",
       modeVisibility: ["DEBUG"],
       eventType: RuntimeLogEventType.MISSION_STOPPED,
-      owner: "facebook-product-video-mining",
+      owner: "deep-research-analysis",
       status: "failed",
       reason: "x"
     });
@@ -87,14 +87,14 @@ project.createSourceFile(
 project.createSourceFile(
   resolveFromRepo("src/plugins/runtime-log-browser-action-unbound.fixture.ts"),
   `
-    import type { BrowserController } from "../lib/browser/browser-controller.js";
+    import type { BrowserTargetSession } from "../lib/browser/browser-controller.js";
     import type { RuntimeLogger } from "../lib/runtime-logs/index.js";
     import {
       emitAmazonOrderDetailNavigationStarted,
       emitAmazonOrderDetailNavigationTerminal,
     } from "./amazon-invoice-upload/amazon-dom-step-trace.js";
 
-    declare const browser: BrowserController;
+    declare const browser: BrowserTargetSession;
     declare const logger: RuntimeLogger;
 
     export async function runUnboundBrowserAction(): Promise<void> {
@@ -150,7 +150,7 @@ const planEntry: InspectorContext["planEntry"] = {
     lawIds: Object.values(RuntimeLogSpineLaw),
 };
 const context: InspectorContext = {
-  checks: createInspectorCheckSession(planEntry).checks,
+  checks: createInspectorCheckSession(planEntry, "acceptance-run:runtime-log-spine-ast").checks,
   project,
   planEntry,
   generatedPlan: [],

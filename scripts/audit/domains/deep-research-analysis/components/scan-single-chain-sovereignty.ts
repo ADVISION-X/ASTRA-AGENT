@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
@@ -69,7 +70,8 @@ const recordSingleChainInspectedFiles = (input: SingleChainSovereigntyInput): vo
 const inspectRequiredSingleChainIdentifiers = (input: SingleChainSovereigntyInput): void => {
   const runnerRepoPath = getRunnerRepoPath(input);
   for (const identifier of requiredRunnerIdentifiers) {
-    const hasIdentifier = Boolean(input.analysisRunnerFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((node) => node.getText() === identifier));
+    const hasIdentifier = Boolean(input.analysisRunnerFile?.getDescendantsOfKind(SyntaxKind.Identifier)
+      .some((node) => astIdentifierName(node) === identifier));
     if (hasIdentifier) continue;
     input.findings.push(createFinding({
       checkId: "deep-research/single-chain-sovereignty-required-identifier",
@@ -84,17 +86,19 @@ const inspectForbiddenSingleChainSourceTerms = (input: SingleChainSovereigntyInp
   for (const sourceFile of input.sourceFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
     sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).forEach((identifier) => {
-      if (!forbiddenIdentifiers.has(identifier.getText())) return;
+      const name = astIdentifierName(identifier);
+      if (!name || !forbiddenIdentifiers.has(name)) return;
       input.findings.push(createFinding({
         checkId: "deep-research/single-chain-sovereignty-forbidden-identifier",
         lawId: input.lawId,
         filePath: repoPath,
-        message: `Forbidden Deep Research phase identifier remains: ${identifier.getText()}.`,
+        message: `Forbidden Deep Research phase identifier remains: ${name}.`,
       }));
     });
 
     const stringValues = sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue().toLowerCase());
-    const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => identifier.getText());
+    const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
+      .flatMap((identifier) => astIdentifierName(identifier) ?? []);
     const foundRetiredTerms = retiredTerms.filter((term) =>
       stringValues.some((value) => value.includes(term.toLowerCase()))
       || identifiers.some((value) => value === term),

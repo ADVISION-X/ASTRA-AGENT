@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../../shared/source-files.js";
@@ -127,7 +128,8 @@ const collectSourceTokens = (sourceFile: SourceFile | undefined): Set<string> =>
     }
   }
   for (const identifier of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
-    tokens.add(identifier.getText());
+    const name = astIdentifierName(identifier);
+    if (name) tokens.add(name);
   }
   return tokens;
 };
@@ -172,7 +174,7 @@ const inspectSubmissionOrdering = (input: WebChatPromptSubmitVerificationInput):
   const callPosition = (name: string): number | null =>
     calls.find((callExpression) => {
       const expression = callExpression.getExpression();
-      return (Node.isIdentifier(expression) && expression.getText() === name)
+      return (Node.isIdentifier(expression) && astIdentifierName(expression) === name)
         || (Node.isPropertyAccessExpression(expression) && expression.getName() === name);
     })?.getStart() ?? null;
   const preparePosition = callPosition("preparePromptComposer");
@@ -194,7 +196,7 @@ const inspectUnsafeComposerSuccess = (input: WebChatPromptSubmitVerificationInpu
     .some((expression) =>
       expression.getOperatorToken() === SyntaxKind.ExclamationToken
       && Node.isIdentifier(expression.getOperand())
-      && expression.getOperand().getText() === "promptStillInComposer"
+      && astIdentifierName(expression.getOperand()) === "promptStillInComposer"
       && expression.getFirstAncestorByKind(SyntaxKind.BinaryExpression)?.getOperatorToken().getKind() === SyntaxKind.BarBarToken) ?? false;
   if (hasUnsafeNegation) {
     pushFinding({
@@ -231,7 +233,7 @@ const inspectPromptSubmitProtection = (input: WebChatPromptSubmitVerificationInp
     Node.isForStatement(node)
     || Node.isForInStatement(node)
     || Node.isForOfStatement(node)
-    || (Node.isIdentifier(node) && node.getText() === "probePromptRetryStateBeforeClear")));
+    || (Node.isIdentifier(node) && astIdentifierName(node) === "probePromptRetryStateBeforeClear")));
   if (hasRetryLoop) {
     pushFinding({
       findings: input.findings,

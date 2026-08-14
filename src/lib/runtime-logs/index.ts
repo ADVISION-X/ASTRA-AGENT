@@ -9,7 +9,6 @@ export type { RuntimeLogger } from "./logger.js";
 export { RuntimeFailureClass } from "./failure-classes.js";
 export {
 	createMissionTrace,
-	withRoundTrace,
 } from "./trace-context.js";
 export type { RuntimeTraceContext } from "./trace-context.js";
 export { createStageLogger } from "./stage-logger.js";

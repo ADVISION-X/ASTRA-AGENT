@@ -50,6 +50,17 @@ const initializeProductionTables = (database: Database.Database): void => {
       detail_json text not null,
       created_at text not null
     );
+    create table if not exists production_interventions (
+      order_id text primary key references production_orders(order_id),
+      revision integer not null default 0,
+      state text not null,
+      reason text,
+      request_id text,
+      pending_request text,
+      last_safe_checkpoint text,
+      requested_at text,
+      updated_at text not null
+    );
     create table if not exists production_parent_conversation_rebuilds (
       parent_job_id text not null,
       parent_stage_id text not null,

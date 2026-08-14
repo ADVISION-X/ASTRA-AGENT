@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import { buildWaitForExactAttachmentCountScript } from "./web-chat-composer-scripts.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
@@ -17,23 +17,23 @@ type ExactAttachmentStateOptions = {
 };
 
 export const readExactAttachmentState = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],
   options: ExactAttachmentStateOptions = {},
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "read exact fresh web chat composer attachment state",
     script: buildWaitForExactAttachmentCountScript(expectedCount, expectedFileNames, options),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
 export const clearComposer = (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
+  browser.evaluate<WebChatEvaluation>({
     description: "clear stale AI web chat draft and attachments",
     script: CLEAR_COMPOSER_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
@@ -74,7 +74,7 @@ const buildAttachmentTimeoutError = (input: {
 );
 
 export const waitForExactAttachmentCount = async (
-  browser: BrowserController,
+  browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],

@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { selectLawId } from "../../shared/finding-utils.js";
+import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
@@ -84,8 +85,7 @@ const inspectAttachmentChild = (context: InspectorContext, findings: Finding[], 
 const inspectNativePrimitive = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const primitive = requireSourceFile(context, findings, lawId, P.attachment.nativePrimitivePath);
   const browserContract = requireSourceFile(context, findings, lawId, P.attachment.browserContractPath);
-  const browserExecution = requireSourceFile(context, findings, lawId, P.attachment.chromeBrowserExecutionPath);
-  if (!primitive || !browserContract || !browserExecution) return;
+  if (!primitive || !browserContract) return;
   if (!identifiers(browserContract).has("selectFilesInNativePicker")) {
     pushFinding(findings, lawId, P.attachment.browserContractPath, "ai-input-gateway/browser-native-picker-contract", "BrowserController must expose the generic native multi-file picker primitive.");
   }
@@ -95,17 +95,14 @@ const inspectNativePrimitive = (context: InspectorContext, findings: Finding[], 
       pushFinding(findings, lawId, P.attachment.nativePrimitivePath, "ai-input-gateway/generic-browser-primitive", `Generic native picker primitive must not contain ${forbiddenWord}.`);
     }
   }
-  const nativeIdentifiers = new Set([
-    ...identifiers(primitive),
-    ...identifiers(browserExecution),
-  ]);
+  const nativeIdentifiers = identifiers(primitive);
   for (const requiredIdentifier of [
     "expectedFileNames",
     "stagingDirectoryPath",
     "observedFileNames",
     "NativePickerWindowIdentity",
     "NATIVE_PICKER_FOLDER_NAVIGATION_ATTEMPTS",
-    "controlledWindow",
+    "windowIdentity",
   ]) {
     if (!nativeIdentifiers.has(requiredIdentifier)) {
       pushFinding(findings, lawId, P.attachment.nativePrimitivePath, "ai-input-gateway/native-picker-proof", `Native picker primitive must contain ${requiredIdentifier}.`);
@@ -122,13 +119,13 @@ const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
 };
 
 const requireParallelSources = (context: InspectorContext, findings: Finding[], lawId: string): SourceFile[] | null => {
-  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.runtime.singleProviderTabPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.chatTitlePath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.attachment.exactTargetRefPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.chatTitlePath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
   return sources.every((source): source is SourceFile => source !== null) ? sources : null;
 };
 
 const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Finding[], lawId: string): void => {
   const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
-  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "focusSingleProviderTab", "renameSubmittedChatGptConversation", "captureWebChatSubmissionProof", "turnMarker", "systemChatTitle", "executionId", "capacitySlot"]) {
+  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "BrowserTargetRef", "renameSubmittedChatGptConversation", "captureWebChatSubmissionProof", "turnMarker", "systemChatTitle", "executionId", "capacitySlot"]) {
     if (!allIdentifiers.has(required)) {
       pushFinding(findings, lawId, P.runtime.concurrencyLeasePath, "ai-input-gateway/bounded-parallel-runtime", `Bounded parallel web-chat runtime must contain ${required}.`);
     }
@@ -173,14 +170,6 @@ const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Findin
     {
       repoPath: P.runtime.rateLimitDialogPath,
       symbolName: "acknowledgeChatGptRateLimitDialogIfVisible",
-    },
-    {
-      repoPath: P.runtime.recoveryPath,
-      symbolName: "recoverPick3NoResultConversation",
-    },
-    {
-      repoPath: P.runtime.historyCleanupPath,
-      symbolName: "verifyHistoryDeleted",
     },
     {
       repoPath: P.runtime.singleTabRoutingPath,
@@ -251,7 +240,8 @@ const inspectCompletedConversationRename = (
   if (!shared || !chatTitle || !scripts || !adapter || !browser || !managed) return;
   const submitFlow = shared.getVariableDeclaration("executeWebChatConversation")?.getInitializer();
   const completedFlow = shared.getVariableDeclaration("buildCompletedWebChatResponse")?.getInitializer();
-  const hasRenameCall = (node: Node | undefined): boolean => Boolean(node?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === "renameSubmittedChatGptConversation"));
+  const hasRenameCall = (node: Node | undefined): boolean => Boolean(node?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => astExpressionPath(call.getExpression()) === "renameSubmittedChatGptConversation"));
   if (hasRenameCall(submitFlow)) {
     pushFinding(findings, lawId, P.attachment.sharedPath, "ai-input-gateway/deferred-completed-chat-rename", "Submission must release the browser mutation lane before the provider answer exposes its rename menu.");
   }
@@ -359,7 +349,7 @@ const inspectTransientOverlayHygiene = (
   const searchCleanupCalls = search
     .getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) =>
-      call.getExpression().getText() === "dismissChatGptSearchDialogIfVisible")
+      astExpressionPath(call.getExpression()) === "dismissChatGptSearchDialogIfVisible")
     .length;
   if (
     !combinedIdentifiers.has("dismissChatGptSearchDialogIfVisible")

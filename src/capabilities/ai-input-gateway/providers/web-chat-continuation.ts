@@ -1,4 +1,4 @@
-import type { BrowserController } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import {
@@ -8,7 +8,7 @@ import {
 const CURRENT_URL_SCRIPT = "return {status: 'success', message: 'read current provider URL', pageUrl: location.href};";
 
 type ContinuationInput = {
-  browser: BrowserController;
+  browser: BrowserTargetSession;
   runtimeName: string;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
@@ -45,7 +45,7 @@ export const openGovernedContinuation = async (input: ContinuationInput): Promis
       : {}),
   });
   await input.waitForComposer();
-  const state = await input.browser.evaluateActiveTab<{ pageUrl?: string }>({
+  const state = await input.browser.evaluate<{ pageUrl?: string }>({
     description: "read active provider URL after governed continuation open",
     script: CURRENT_URL_SCRIPT,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
