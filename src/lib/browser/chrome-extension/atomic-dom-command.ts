@@ -68,7 +68,7 @@ if (commandKind === "click_dom_target") {
 }
 `;
 
-const exactFillMutation = `
+const exactFillReceiver = `
 const editors = host.shadowRoot
   ? Array.from(host.shadowRoot.querySelectorAll("input, textarea, [contenteditable='true']")).filter(visibleEnabled)
   : [host].filter(visibleEnabled);
@@ -77,22 +77,13 @@ const editor = editors[0];
 const password = (editor.getAttribute("type") || "").toLowerCase() === "password";
 const editable = editor instanceof HTMLInputElement || editor instanceof HTMLTextAreaElement || editor.isContentEditable;
 if (password || !editable) throw new Error("TARGET_NOT_INTERACTABLE:atomic DOM fill receiver is forbidden or not editable");
-editor.focus();
-if (editor.isContentEditable) {
-  if (clearBeforeType) editor.textContent = "";
-  editor.textContent = clearBeforeType ? approvedText : String(editor.textContent || "") + approvedText;
-} else {
-  const prototype = editor instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-  const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
-  if (!setter) throw new Error("BROWSER_COMMAND_FAILED:atomic DOM fill setter is unavailable");
-  setter.call(editor, clearBeforeType ? approvedText : String(editor.value || "") + approvedText);
-}
-editor.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: approvedText }));
-editor.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
-editor.blur();
-const actual = editor.isContentEditable ? String(editor.textContent || "") : String(editor.value || "");
-if (actual !== approvedText) throw new Error("TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text");
-return { ok: true, action: "fill", valueLength: actual.length };
+`;
+
+const fillValue = `const valueOf = (node) => node.isContentEditable ? String(node.textContent || "") : String(node.value || "");`;
+
+const fillFocusCheck = `
+const activeEditor = host.shadowRoot ? host.shadowRoot.activeElement : document.activeElement;
+if (activeEditor !== editor) throw new Error("TARGET_IDENTITY_CHANGED:atomic DOM fill receiver lost focus");
 `;
 
 export const atomicDomExpression = (command: AtomicDomCommand): string => `(() => {
@@ -100,5 +91,95 @@ ${commandBindings(command)}
 ${identityPrimitives}
 ${exactTargetResolution}
 ${exactClickMutation}
-${exactFillMutation}
+throw new Error("BROWSER_COMMAND_FAILED:fill_dom_target requires the governed keyboard lifecycle");
 })()`;
+
+export const atomicDomFillPreparationExpression = (
+  command: Extract<AtomicDomCommand, { kind: "fill_dom_target" }>,
+  marker: string,
+): string => `(() => {
+${commandBindings(command)}
+${identityPrimitives}
+${exactTargetResolution}
+${exactFillReceiver}
+${fillValue}
+editor.focus();
+if (editor.isContentEditable) {
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(!clearBeforeType);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+} else if (clearBeforeType) {
+  editor.select();
+} else {
+  editor.setSelectionRange(editor.value.length, editor.value.length);
+}
+Object.defineProperty(editor, "__grasseyeAtomicFillMarker__", {
+  value: ${JSON.stringify(marker)}, configurable: true, enumerable: false, writable: false,
+});
+${fillFocusCheck}
+return { ok: true, initialValue: valueOf(editor) };
+})()`;
+
+export const atomicDomFillVerificationExpression = (
+  command: Extract<AtomicDomCommand, { kind: "fill_dom_target" }>,
+  marker: string,
+  expectedValue: string,
+  requireAcceptedState: boolean,
+): string => `(() => {
+${commandBindings(command)}
+${identityPrimitives}
+${exactTargetResolution}
+${exactFillReceiver}
+${fillValue}
+if (editor.__grasseyeAtomicFillMarker__ !== ${JSON.stringify(marker)}) {
+  throw new Error("TARGET_IDENTITY_CHANGED:atomic DOM fill receiver object changed");
+}
+${fillFocusCheck}
+const actual = valueOf(editor);
+if (actual !== ${JSON.stringify(expectedValue)}) {
+  throw new Error("TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text");
+}
+if (${JSON.stringify(requireAcceptedState)}) {
+  const rejected = [host, editor].some((node) => {
+    const state = String(node.getAttribute("state") || "").toLowerCase();
+    const invalid = node.getAttribute("aria-invalid") === "true";
+    const errorClass = Array.from(node.classList).some((name) => name.toLowerCase() === "error");
+    return state === "error" || invalid || errorClass;
+  });
+  if (rejected) throw new Error("TARGET_COMPONENT_REJECTED:atomic DOM fill was not accepted by the component");
+  delete editor.__grasseyeAtomicFillMarker__;
+}
+return { ok: true, action: "fill", valueLength: actual.length };
+})()`;
+
+type AtomicDomFillKeyboardDriver = {
+  evaluate<T>(expression: string): Promise<T>;
+  pressBackspace(): Promise<void>;
+  typeCharacter(character: string): Promise<void>;
+};
+
+export const runAtomicDomFillKeyboardCommand = async (
+  command: Extract<AtomicDomCommand, { kind: "fill_dom_target" }>,
+  marker: string,
+  driver: AtomicDomFillKeyboardDriver,
+): Promise<void> => {
+  const prepared = await driver.evaluate<{ initialValue: string }>(
+    atomicDomFillPreparationExpression(command, marker),
+  );
+  let expectedValue = prepared.initialValue;
+  if (command.clearBeforeType) {
+    await driver.pressBackspace();
+    expectedValue = "";
+    await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+  }
+  for (const character of command.approvedText) {
+    await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+    await driver.typeCharacter(character);
+    expectedValue += character;
+    await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+  }
+  await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, true));
+};

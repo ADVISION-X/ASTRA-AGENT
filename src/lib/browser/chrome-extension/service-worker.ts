@@ -7,8 +7,7 @@ import {
   type BrowserWireTargetDescriptor,
 } from "./protocol.js";
 import { commandFingerprint, executeCommand } from "./service-worker-command-execution.js";
-import { atomicDomExpression } from "./atomic-dom-command.js";
-
+import { atomicDomExpression, runAtomicDomFillKeyboardCommand } from "./atomic-dom-command.js";
 declare const chrome: {
   alarms: {
     create(name: string, info: { periodInMinutes: number }): void;
@@ -266,10 +265,20 @@ const runClickPageCommand = async (
   return readDescriptor(command.tabId);
 };
 
-const runAtomicDomPageCommand = async (
-  command: Extract<PageCommand, { kind: "click_dom_target" | "fill_dom_target" }>,
-): Promise<unknown> => {
-  await evaluate(command.tabId, atomicDomExpression(command));
+const runAtomicDomPageCommand = async (command: Extract<PageCommand, { kind: "click_dom_target" | "fill_dom_target" }>): Promise<unknown> => {
+  if (command.kind === "click_dom_target") {
+    await evaluate(command.tabId, atomicDomExpression(command));
+    return readDescriptor(command.tabId);
+  }
+  await runAtomicDomFillKeyboardCommand(command, crypto.randomUUID(), {
+    evaluate: <T>(expression: string) => evaluate<T>(command.tabId, expression),
+    pressBackspace: async () => {
+      const key = keyCode("Backspace");
+      await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchKeyEvent", { type: "keyDown", ...key });
+      await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchKeyEvent", { type: "keyUp", ...key });
+    },
+    typeCharacter: (character: string) => dispatchTypedCharacter(command.tabId, character),
+  });
   return readDescriptor(command.tabId);
 };
 

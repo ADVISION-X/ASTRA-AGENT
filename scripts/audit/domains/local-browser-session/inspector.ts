@@ -177,6 +177,41 @@ const inspectWorkerCommandSurface = (
   }
 };
 
+const inspectTrustedAtomicFillLifecycle = (
+  worker: SourceFile | undefined,
+  atomicDom: SourceFile | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+  clauseId: string,
+  workerPath: string,
+): void => {
+  const atomicPath = "src/lib/browser/chrome-extension/atomic-dom-command.ts";
+  const atomicCalls = new Set(atomicDom?.getVariableDeclaration("runAtomicDomFillKeyboardCommand")
+    ?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+      const expression = call.getExpression();
+      if (Node.isIdentifier(expression)) return [astIdentifierName(expression) ?? ""];
+      return Node.isPropertyAccessExpression(expression) ? [expression.getName()] : [];
+    }) ?? []);
+  for (const required of ["atomicDomFillPreparationExpression", "pressBackspace", "typeCharacter", "atomicDomFillVerificationExpression"]) {
+    if (!atomicCalls.has(required)) add(findings, lawId, clauseId, atomicPath, `trusted atomic fill lifecycle is missing ${required}`);
+  }
+  const forbiddenCalls = new Set(atomicDom?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) ? [expression.getName()] : [];
+  }) ?? []);
+  for (const forbidden of ["dispatchEvent", "call"]) {
+    if (forbiddenCalls.has(forbidden)) add(findings, lawId, clauseId, atomicPath, `atomic DOM fill retains synthetic mutation via ${forbidden}`);
+  }
+  const runAtomic = worker?.getVariableDeclaration("runAtomicDomPageCommand")?.getInitializer();
+  const workerCalls = new Set(runAtomic?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+    const expression = call.getExpression();
+    return Node.isIdentifier(expression) ? [astIdentifierName(expression) ?? ""] : [];
+  }) ?? []);
+  if (!workerCalls.has("runAtomicDomFillKeyboardCommand")) {
+    add(findings, lawId, clauseId, workerPath, "fill_dom_target must invoke the one trusted atomic keyboard owner");
+  }
+};
+
 const inspectAtomicDomCommandSurface = (
   worker: SourceFile | undefined,
   atomicDom: SourceFile | undefined,
@@ -192,9 +227,14 @@ const inspectAtomicDomCommandSurface = (
     ...(atomicDom?.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()) ?? []),
     ...(atomicDom?.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()) ?? []),
   ];
-  for (const atomicSignal of ["TARGET_IDENTITY_CHANGED:atomic DOM identity no longer matches", "TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text"]) {
+  for (const atomicSignal of [
+    "TARGET_IDENTITY_CHANGED:atomic DOM identity no longer matches",
+    "TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text",
+    "TARGET_COMPONENT_REJECTED:atomic DOM fill was not accepted by the component",
+  ]) {
     if (!atomicLiterals.some((literal) => literal.includes(atomicSignal))) add(findings, lawId, clauseId, "src/lib/browser/chrome-extension/atomic-dom-command.ts", `atomic DOM command is missing ${atomicSignal}`);
   }
+  inspectTrustedAtomicFillLifecycle(worker, atomicDom, findings, lawId, clauseId, workerPath);
   if (!worker?.getImportDeclaration((declaration) => declaration.getModuleSpecifierValue() === "./atomic-dom-command.js")) {
     add(findings, lawId, clauseId, workerPath, "MV3 worker must import the one atomic DOM command builder");
   }

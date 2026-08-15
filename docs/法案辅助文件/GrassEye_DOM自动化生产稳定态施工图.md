@@ -144,8 +144,10 @@ file assignment
 
 ```txt
 click  -> clickLocatedDomElement -> click_target
-fill   -> clickLocatedDomElement -> click_target
-          textInput              -> text_target
+fill   -> fillLocatedDomElement -> fill_dom_target
+          -> revalidate the same host and editable receiver object
+          -> dispatch ordered trusted CDP keyboard events inside that command
+          -> verify exact retained value and non-error component state
 upload -> setFileInputFiles      -> set_file_input_files
 ```
 
@@ -154,14 +156,16 @@ upload -> setFileInputFiles      -> set_file_input_files
 ## 8. Fill 图纸
 
 ```txt
-revalidate editable element and visible viewport point (observation)
-  -> click_target at the point
-      -> text_target clear when required
-          -> text_target approved text
-              -> evaluate current value (observation)
+one fill_dom_target command
+  -> revalidate captured host identity and unique editable receiver
+      -> bind one receiver-object marker and focus that exact receiver
+          -> clear through trusted key events when required
+              -> type approved text through ordered trusted CDP key events
+                  -> after every mutation revalidate the same receiver object and exact prefix
+                      -> verify exact final value and absence of component rejection
 ```
 
-元素不可编辑、不可见、点位超出 viewport 或 stale 时不输入。rich editor/closed shadow/frame 无现役专用命令时返回 `review_required`。不得恢复 JS value setter、execCommand、synthetic event 或 foreground typing。
+元素不可编辑、不可见、receiver object 改变、组件保留 error/invalid 状态或 stale 时立即失败关闭。rich editor/closed shadow/frame 无现役专用命令时返回 `review_required`。不得恢复 JS value setter、execCommand、synthetic event、`click_target + text_target` 或 foreground typing。视觉 value 与精确文本相同但组件未接收，不能返回成功。
 
 ## 9. Click 图纸
 

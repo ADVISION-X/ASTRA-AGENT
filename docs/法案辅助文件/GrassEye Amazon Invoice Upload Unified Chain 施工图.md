@@ -869,7 +869,9 @@ Seller Central 当前 `kat-file-upload` 文件合同：
 禁止用弹窗存在、订单号、文件编号、整页文本、隐藏代理 input、`input.files` 或单纯的 CDP
 命令返回作为 `verify file attached` 成功。Amazon 组件会在消费文件后清空 native receiver；
 唯一合法附件 postcondition 是“唯一 host + 唯一同名 ready item + 零重复/异名/失败 item”。编号可见值也不等于
-组件提交值，必须由同一个 Chrome 原子命令对捕获 identity 复核、解析唯一 editable receiver、提交组件事件并核对精确值，随后才允许点击最终上传。
+组件提交值。真实 Seller Central 已证明：JS setter 加 synthetic `input/change` 可以显示正确编号，却在最终提交时报“文件编号编号无效”；人工粘贴同一编号后错误立即消失。因此必须由同一个 Chrome
+`fill_dom_target` 命令对捕获 identity 和同一 receiver object 复核，使用受信任 CDP 键盘事件清空并逐字输入，
+逐步核对精确前缀，最后同时确认精确值与组件非 error/invalid 状态，随后才允许点击最终上传。
 
 最终提交成功回执固定为：四十次有界观察内恰好一个可见的当前订单“管理发票”弹窗；只读取该
 弹窗自己的 descendant rows，并要求恰好一行包含精确获准 invoiceNo 以及明确成功状态

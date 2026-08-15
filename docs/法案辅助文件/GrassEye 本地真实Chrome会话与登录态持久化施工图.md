@@ -289,8 +289,10 @@ local-browser-atomic-cutover.acceptance.ts
 10. 前台非目标 tab 在全部场景中保持 URL、title、scroll 和 input marker 不变。
 
 `text_target` 只保留为通用 Browser 文本命令，不得与先前坐标 click 拼装成 DOM fill。
-DOM fill 由单个 `fill_dom_target` 对同一已复核 receiver 完成精确值写入、组件事件提交和值核对；
-不得回退到 `click_target + text_target`、`Input.insertText` 或第二输入链。
+DOM fill 由单个 `fill_dom_target` 对同一已复核 receiver object 完成聚焦、受信任 CDP 键盘清空与逐字输入、
+每步 identity/value 复核以及最终组件非 error/invalid 状态核对；不得用 JS value setter 或 synthetic
+`input/change` 把“看起来有值”冒充组件提交，也不得回退到 `click_target + text_target`、
+`Input.insertText`、前台系统键盘或第二输入链。
 
 真实 Amazon `kat-file-upload` 的唯一文件接收顺序：
 

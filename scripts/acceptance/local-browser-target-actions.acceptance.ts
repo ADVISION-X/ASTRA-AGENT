@@ -3,7 +3,11 @@ import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import { chromium } from "playwright";
 
-import { atomicDomExpression } from "../../src/lib/browser/chrome-extension/atomic-dom-command.js";
+import {
+  atomicDomExpression,
+  atomicDomFillPreparationExpression,
+  atomicDomFillVerificationExpression,
+} from "../../src/lib/browser/chrome-extension/atomic-dom-command.js";
 import { toBrowserEvaluationExpression } from "../../src/lib/browser/exact-target/browser-evaluation-contract.js";
 
 const functionBody = `
@@ -27,7 +31,7 @@ assert.equal(worker.includes("eval("), false, "MV3 worker must execute the norma
 for (const command of ["evaluate_target", "click_target", "click_dom_target", "fill_dom_target", "scroll_target", "text_target", "set_file_input_files"]) {
   assert.equal(worker.includes(command), true, command);
 }
-for (const atomicSignal of ["TARGET_IDENTITY_CHANGED", "TARGET_VALUE_MISMATCH", "atomicDomExpression"]) {
+for (const atomicSignal of ["TARGET_IDENTITY_CHANGED", "TARGET_VALUE_MISMATCH", "TARGET_COMPONENT_REJECTED", "atomicDomExpression", "atomicDomFillPreparationExpression", "atomicDomFillVerificationExpression"]) {
   assert.equal(`${worker}\n${atomicDom}`.includes(atomicSignal), true, `atomic DOM guard missing: ${atomicSignal}`);
 }
 assert.equal(worker.includes("Input.insertText"), false, "component text entry must not bypass ordered keyboard events");
@@ -40,7 +44,24 @@ assert.equal(worker.includes("active: false"), true, "background target acquisit
 const launched = await chromium.launch({ headless: true });
 try {
   const page = await launched.newPage();
-  await page.setContent(`<button id="action" onclick="this.dataset.clicked='yes'">action</button><input id="field"><script>document.querySelector('#field').addEventListener('change',event=>event.target.dataset.committed=event.target.value)</script>`);
+  await page.setContent(`<button id="action" onclick="this.dataset.clicked='yes'">action</button>
+    <kat-input id="field" type="text" state="error"></kat-input>
+    <script>
+      customElements.define("kat-input", class extends HTMLElement {
+        connectedCallback() {
+          const root = this.attachShadow({ mode: "open" });
+          root.innerHTML = '<input id="editor" type="text">';
+          root.querySelector("input").addEventListener("input", (event) => {
+            if (!event.isTrusted) {
+              this.setAttribute("state", "error");
+              return;
+            }
+            this.removeAttribute("state");
+            this.dataset.committed = event.target.value;
+          });
+        }
+      });
+    </script>`);
   await assert.rejects(
     page.evaluate(atomicDomExpression({
       kind: "click_dom_target", tabId: 1, selector: "#action",
@@ -54,12 +75,41 @@ try {
     identity: { tagName: "button", type: "button", id: "action", visibleText: "action" }, expectedText: "action",
   }));
   assert.equal(await page.locator("#action").getAttribute("data-clicked"), "yes");
-  await page.evaluate(atomicDomExpression({
+  const fillCommand = {
     kind: "fill_dom_target", tabId: 1, selector: "#field",
-    identity: { tagName: "input", type: "input", id: "field" }, approvedText: "ATOMIC_VALUE", clearBeforeType: true,
-  }));
+    identity: { tagName: "kat-input", type: "text", id: "field" },
+    approvedText: "ATOMIC_VALUE", clearBeforeType: true,
+  } as const;
+  await assert.rejects(page.evaluate(atomicDomExpression(fillCommand)), /governed keyboard lifecycle/u);
+
+  const syntheticMarker = "synthetic-rejection";
+  await page.evaluate(atomicDomFillPreparationExpression(fillCommand, syntheticMarker));
+  await page.locator("#field").evaluate((host) => {
+    const editor = host.shadowRoot?.querySelector<HTMLInputElement>("input");
+    if (!editor) throw new Error("fixture editor missing");
+    editor.value = "ATOMIC_VALUE";
+    editor.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, data: "ATOMIC_VALUE" }));
+  });
+  await assert.rejects(
+    page.evaluate(atomicDomFillVerificationExpression(fillCommand, syntheticMarker, "ATOMIC_VALUE", true)),
+    /TARGET_COMPONENT_REJECTED/u,
+  );
+
+  const marker = "trusted-keyboard-acceptance";
+  await page.evaluate(atomicDomFillPreparationExpression(fillCommand, marker));
+  await page.keyboard.press("Backspace");
+  await page.evaluate(atomicDomFillVerificationExpression(fillCommand, marker, "", false));
+  let expectedValue = "";
+  for (const character of fillCommand.approvedText) {
+    await page.evaluate(atomicDomFillVerificationExpression(fillCommand, marker, expectedValue, false));
+    await page.keyboard.type(character);
+    expectedValue += character;
+    await page.evaluate(atomicDomFillVerificationExpression(fillCommand, marker, expectedValue, false));
+  }
+  await page.evaluate(atomicDomFillVerificationExpression(fillCommand, marker, expectedValue, true));
   assert.equal(await page.locator("#field").getAttribute("data-committed"), "ATOMIC_VALUE");
-  assert.equal(await page.locator("#field").inputValue(), "ATOMIC_VALUE");
+  assert.equal(await page.locator("#field").getAttribute("state"), null);
+  assert.equal(await page.locator("#field").evaluate((host) => host.shadowRoot?.querySelector<HTMLInputElement>("input")?.value), "ATOMIC_VALUE");
 } finally {
   await launched.close();
 }

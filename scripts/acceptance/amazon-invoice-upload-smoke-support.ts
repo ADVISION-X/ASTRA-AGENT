@@ -15,6 +15,10 @@ import type {
   BrowserTargetRef,
   ControlledBrowserTarget,
 } from "../../src/lib/browser/exact-target/browser-target-ref.js";
+import {
+  atomicDomFillPreparationExpression,
+  atomicDomFillVerificationExpression,
+} from "../../src/lib/browser/chrome-extension/atomic-dom-command.js";
 import { toBrowserEvaluationExpression } from "../../src/lib/browser/exact-target/browser-evaluation-contract.js";
 
 export const ORDER_DETAIL_EIGHTH_WINDOW_SIGNAL_DELAY_MS = 15_000;
@@ -74,9 +78,17 @@ const smokeFixtureHtml = `
           hidden.name = "documentNumber";
           hidden.type = "text";
           this.appendChild(hidden);
-          root.querySelector("input").addEventListener("change", (event) => {
-            hidden.value = event.target.value;
-            this.setAttribute("value", event.target.value);
+          root.querySelector("input").addEventListener("input", (event) => {
+            const editor = event.target;
+            if (!event.isTrusted) {
+              this.setAttribute("state", "error");
+              editor.classList.add("error");
+              return;
+            }
+            hidden.value = editor.value;
+            this.removeAttribute("state");
+            editor.classList.remove("error");
+            this.classList.add("touched");
           });
         }
       }
@@ -98,6 +110,9 @@ const smokeFixtureHtml = `
       const invoiceNumber = document.querySelector('kat-input[name="documentNumber"] input[name="documentNumber"]').value;
       if (invoiceNumber !== "INV-1") {
         document.querySelector("#status").textContent = "Invoice number missing";
+        const host = document.querySelector('kat-input[name="documentNumber"]');
+        host.setAttribute("state", "error");
+        host.shadowRoot.querySelector("input").classList.add("error");
         return;
       }
       document.querySelector("#upload-panel").innerHTML = '<h3>订单123-1234567-1234567的发票</h3>'
@@ -330,22 +345,31 @@ export class AmazonSmokeBrowserAdapter implements BrowserTargetSession {
     return action(`clicked located DOM element ${input.targetLabel}`);
   }
   async fillLocatedDomElement(input: Parameters<NonNullable<BrowserTargetSession["fillLocatedDomElement"]>>[0]): Promise<BrowserActionResult> {
-    const locator = this.page.locator(input.element.selector);
-    if (await locator.count() !== 1) throw new Error("TARGET_AMBIGUOUS:smoke atomic fill selector");
-    await locator.evaluate((host, payload) => {
-      if (host.tagName.toLowerCase() !== payload.identity.tagName
-        || (payload.identity.id && host.id !== payload.identity.id)
-        || (payload.identity.name && host.getAttribute("name") !== payload.identity.name)) {
-        throw new Error("TARGET_IDENTITY_CHANGED:smoke atomic fill identity");
-      }
-      const editor = host.shadowRoot?.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")
-        ?? host as HTMLInputElement | HTMLTextAreaElement;
-      editor.value = payload.clearBeforeType ? payload.approvedText : editor.value + payload.approvedText;
-      editor.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, data: payload.approvedText }));
-      editor.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
-      editor.blur();
-      if (editor.value !== payload.approvedText) throw new Error("TARGET_VALUE_MISMATCH:smoke atomic fill value");
-    }, { identity: input.element.identity, approvedText: input.approvedText, clearBeforeType: input.clearBeforeType });
+    const command = {
+      kind: "fill_dom_target" as const,
+      tabId: 1,
+      selector: input.element.selector,
+      identity: input.element.identity,
+      approvedText: input.approvedText,
+      clearBeforeType: input.clearBeforeType,
+    };
+    const marker = `amazon-smoke-trusted-fill-${Date.now()}`;
+    const prepared = await this.page.evaluate<{ initialValue: string }>(
+      atomicDomFillPreparationExpression(command, marker),
+    );
+    let expectedValue = prepared.initialValue;
+    if (input.clearBeforeType) {
+      await this.page.keyboard.press("Backspace");
+      expectedValue = "";
+      await this.page.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+    }
+    for (const character of input.approvedText) {
+      await this.page.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+      await this.page.keyboard.type(character);
+      expectedValue += character;
+      await this.page.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+    }
+    await this.page.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, true));
     return action(`filled located DOM element ${input.targetLabel}`);
   }
   async textInput(input: { targetLabel: string; action: "type-text" | "clear-input" | "press-key"; text?: string | null; key?: "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" | null }): Promise<BrowserActionResult> {

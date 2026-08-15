@@ -111,6 +111,32 @@ const inspectFileAttachment = (
   if (!gated) add(paths.attachment, "invoice-number fill must be gated by the Amazon same-name ready file item and its after evidence");
 };
 
+const inspectInvoiceNumberComponentCommit = (
+  files: TechnicalFiles,
+  add: (filePath: string, message: string) => void,
+): void => {
+  const adapter = files.smokeSupport.getClass("AmazonSmokeBrowserAdapter");
+  const fill = adapter?.getMethod("fillLocatedDomElement");
+  const fillIdentifiers = new Set(fill?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []);
+  for (const required of [
+    "atomicDomFillPreparationExpression",
+    "atomicDomFillVerificationExpression",
+    "keyboard",
+    "expectedValue",
+  ]) {
+    if (!fillIdentifiers.has(required)) {
+      add(paths.smokeSupport, `Amazon smoke invoice-number fill must execute the production trusted-keyboard boundary ${required}`);
+    }
+  }
+  const fillCalls = fill?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  if (fillCalls.some((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === "dispatchEvent";
+  })) {
+    add(paths.smokeSupport, "Amazon smoke invoice-number fill must not retain synthetic component events");
+  }
+};
+
 const inspectFinalConfirmation = (
   files: TechnicalFiles,
   add: (filePath: string, message: string) => void,
@@ -162,5 +188,6 @@ export const inspectExactTargetTechnicalIntegrity = (
   inspectOrderObservation(files, add);
   inspectUploadEntry(files, add);
   inspectFileAttachment(files, add);
+  inspectInvoiceNumberComponentCommit(files, add);
   inspectFinalConfirmation(files, add);
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T23:03:03.871Z",
+  "generatedAt": "2026-08-15T23:34:26.521Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -15,14 +15,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50",
+      "runId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9",
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5",
       "capabilityDomain": "startup-entrypoint",
       "checkId": "startup-entrypoint/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T23:03:03.834Z",
-      "endedAt": "2026-08-15T23:03:03.870Z",
-      "durationMs": 36,
+      "startedAt": "2026-08-15T23:34:26.480Z",
+      "endedAt": "2026-08-15T23:34:26.521Z",
+      "durationMs": 41,
       "evidenceRefs": [
         "package.json",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
@@ -53,43 +53,43 @@
       "lawId": "APEX-STARTUP-001-V1",
       "clauseId": "apex-startup-001-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     },
     {
       "lawId": "APEX-STARTUP-002-V1",
       "clauseId": "apex-startup-002-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     },
     {
       "lawId": "APEX-STARTUP-003-V1",
       "clauseId": "apex-startup-003-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     },
     {
       "lawId": "APEX-STARTUP-004-V1",
       "clauseId": "apex-startup-004-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     },
     {
       "lawId": "APEX-STARTUP-005-V1",
       "clauseId": "apex-startup-005-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     },
     {
       "lawId": "APEX-STARTUP-006-V1",
       "clauseId": "apex-startup-006-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     },
     {
       "lawId": "APEX-STARTUP-007-V1",
       "clauseId": "apex-startup-007-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:fc42cc83-63ac-4ea1-ab8c-3134f0aa5f50"
+      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
     }
   ],
   "inspectedFiles": [
