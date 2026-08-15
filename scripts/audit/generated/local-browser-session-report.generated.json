@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-15T01:32:58.528Z",
+  "generatedAt": "2026-08-15T04:41:26.698Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -12,14 +12,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:93e186cc-b98d-4751-b0e3-6a6533257aea",
+      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6043b148-d853-40f3-ac07-7e27c84b7873",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T01:32:57.388Z",
-      "endedAt": "2026-08-15T01:32:58.528Z",
-      "durationMs": 1140,
+      "startedAt": "2026-08-15T04:41:25.529Z",
+      "endedAt": "2026-08-15T04:41:26.698Z",
+      "durationMs": 1169,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/lib/browser/browser-controller.ts",
@@ -42,13 +42,13 @@
       "lawId": "APEX-LOCAL-BROWSER-002-V1",
       "clauseId": "apex-local-browser-002-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:93e186cc-b98d-4751-b0e3-6a6533257aea"
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6043b148-d853-40f3-ac07-7e27c84b7873"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:93e186cc-b98d-4751-b0e3-6a6533257aea"
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6043b148-d853-40f3-ac07-7e27c84b7873"
     }
   ],
   "inspectedFiles": [

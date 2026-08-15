@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T01:33:10.703Z",
+  "generatedAt": "2026-08-15T04:41:39.573Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -12,14 +12,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:b03cbdde-4cbd-4a9e-80f8-06a3ba563c2e",
+      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:d0817071-b8c7-4510-b2c9-86466ee7a1e3",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T01:33:10.277Z",
-      "endedAt": "2026-08-15T01:33:10.702Z",
-      "durationMs": 425,
+      "startedAt": "2026-08-15T04:41:39.144Z",
+      "endedAt": "2026-08-15T04:41:39.572Z",
+      "durationMs": 428,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
@@ -89,25 +89,25 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:b03cbdde-4cbd-4a9e-80f8-06a3ba563c2e"
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:d0817071-b8c7-4510-b2c9-86466ee7a1e3"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:b03cbdde-4cbd-4a9e-80f8-06a3ba563c2e"
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:d0817071-b8c7-4510-b2c9-86466ee7a1e3"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:b03cbdde-4cbd-4a9e-80f8-06a3ba563c2e"
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:d0817071-b8c7-4510-b2c9-86466ee7a1e3"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
       "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:b03cbdde-4cbd-4a9e-80f8-06a3ba563c2e"
+      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:d0817071-b8c7-4510-b2c9-86466ee7a1e3"
     }
   ],
   "inspectedFiles": [
