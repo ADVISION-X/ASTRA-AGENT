@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-14T23:37:44.239Z",
+  "generatedAt": "2026-08-14T23:56:24.165Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -15,14 +15,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa",
+      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02",
       "capabilityDomain": "ai-input-gateway",
       "checkId": "ai-input-gateway/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:37:43.589Z",
-      "endedAt": "2026-08-14T23:37:44.238Z",
-      "durationMs": 649,
+      "startedAt": "2026-08-14T23:56:23.541Z",
+      "endedAt": "2026-08-14T23:56:24.164Z",
+      "durationMs": 623,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
         "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
@@ -89,43 +89,43 @@
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
       "clauseId": "apex-ai-input-gateway-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
       "clauseId": "apex-ai-input-gateway-002-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
       "clauseId": "apex-ai-input-gateway-003-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
       "clauseId": "apex-ai-input-gateway-004-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
       "clauseId": "apex-ai-input-gateway-005-v3-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     },
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
       "clauseId": "grasseye-ai-choice-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-AI-001-V1",
       "clauseId": "grasseye-security-privacy-ai-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:c620ab76-524a-4b30-b06a-cd382025edfa"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:ba2ad632-752b-4f35-bc81-979398d73e02"
     }
   ],
   "inspectedFiles": [

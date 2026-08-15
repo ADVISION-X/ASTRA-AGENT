@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:38:29.034Z",
+  "generatedAt": "2026-08-14T23:57:05.068Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -843,14 +843,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:7ec89d1b-d830-4f0e-a174-f359fdcaf1bd",
+      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:38:28.893Z",
-      "endedAt": "2026-08-14T23:38:29.033Z",
-      "durationMs": 140,
+      "startedAt": "2026-08-14T23:57:04.944Z",
+      "endedAt": "2026-08-14T23:57:05.068Z",
+      "durationMs": 124,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1680,25 +1680,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:7ec89d1b-d830-4f0e-a174-f359fdcaf1bd"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:7ec89d1b-d830-4f0e-a174-f359fdcaf1bd"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:7ec89d1b-d830-4f0e-a174-f359fdcaf1bd"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:7ec89d1b-d830-4f0e-a174-f359fdcaf1bd"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
     }
   ]
 }

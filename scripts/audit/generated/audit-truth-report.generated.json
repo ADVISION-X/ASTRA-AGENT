@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:39:04.143Z",
+  "generatedAt": "2026-08-14T23:57:35.386Z",
   "status": "PASS",
   "inspectorFileCount": 22,
   "generatedPlanEntryCount": 22,
@@ -268,14 +268,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:1b00bfa9-99e4-4992-b935-3b08e623cf0b",
+      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:38:55.260Z",
-      "endedAt": "2026-08-14T23:39:04.140Z",
-      "durationMs": 8880,
+      "startedAt": "2026-08-14T23:57:28.018Z",
+      "endedAt": "2026-08-14T23:57:35.386Z",
+      "durationMs": 7368,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -539,19 +539,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:1b00bfa9-99e4-4992-b935-3b08e623cf0b"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:1b00bfa9-99e4-4992-b935-3b08e623cf0b"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:3ffe5078-9962-4778-8f0b-a6a77f0ae243:check:1b00bfa9-99e4-4992-b935-3b08e623cf0b"
+      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c"
     }
   ]
 }
