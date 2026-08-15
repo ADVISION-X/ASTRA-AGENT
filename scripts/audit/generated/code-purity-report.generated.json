@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-08-14T23:57:04.939Z",
+  "generatedAt": "2026-08-15T01:32:57.241Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -44,6 +44,7 @@
     "scripts/acceptance/audit-manual-matrix.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+    "scripts/acceptance/audit-persistence-isolation.attacks.ts",
     "scripts/acceptance/audit-phase-plan.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -214,6 +215,7 @@
     "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -1618,9 +1620,9 @@
       "scriptName": "browser:install"
     }
   ],
-  "liveExportCount": 2288,
+  "liveExportCount": 2290,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 819,
+  "reachableFileCount": 821,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1632,23 +1634,23 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2288,
+    "liveExportCount": 2290,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 819,
+    "reachableFileCount": 821,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0
   },
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:56:26.725Z",
-      "endedAt": "2026-08-14T23:57:04.938Z",
-      "durationMs": 38213,
+      "startedAt": "2026-08-15T01:32:18.670Z",
+      "endedAt": "2026-08-15T01:32:57.237Z",
+      "durationMs": 38567,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1687,6 +1689,7 @@
         "scripts/acceptance/audit-manual-matrix.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+        "scripts/acceptance/audit-persistence-isolation.attacks.ts",
         "scripts/acceptance/audit-phase-plan.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -1857,6 +1860,7 @@
         "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
         "scripts/audit/domains/audit-system/inspector.ts",
         "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -2478,145 +2482,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4e3ba99-0092-4544-901e-a6145b9550a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:02e01e37-7062-44ff-9831-6fd6d4dab618"
     }
   ]
 }

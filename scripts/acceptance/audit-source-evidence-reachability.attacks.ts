@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { Project } from "ts-morph";
+import { Project, SyntaxKind } from "ts-morph";
 
 import { appendDomainArtifactsFromIndexes } from "../audit/build/compose-artifact-domain-artifacts.js";
 import { loadGeneratedAuditPlan } from "../audit/core/load-audit-plan.js";
 import { inspectPhysicalCheckReceiptContract } from "../audit/domains/audit-system/physical-check-receipt-inspector.js";
+import { inspectPrimaryEvidenceContract } from "../audit/domains/audit-system/primary-evidence-inspector.js";
 import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
 import type { LawSource } from "../audit/shared/law-contracts.js";
@@ -12,12 +13,12 @@ import { resolveFromRepo } from "../audit/shared/paths.js";
 
 const attackProject = new Project({ tsConfigFilePath: resolveFromRepo("tsconfig.json") });
 
-const buildContext = (): InspectorContext => {
+const buildContext = (project: Project = attackProject): InspectorContext => {
   const generatedPlan = loadGeneratedAuditPlan();
   const planEntry = generatedPlan.find((entry) => entry.capabilityDomain === "audit-system");
   if (!planEntry) throw new Error("audit-system plan entry is missing.");
   return {
-    project: attackProject,
+    project,
     planEntry,
     generatedPlan,
     completedReports: {},
@@ -167,6 +168,26 @@ export const runPrimaryEvidenceDeclarationAttacks = (): void => {
   assert.equal(composePrimaryEvidenceAttack({ engine: "ast", sourceEvidenceIndex: 1 })
     .some((conflict) => conflict.kind === "invalid-primary-evidence"), true,
   "hybrid enforcement with an out-of-range primary evidence path must fail closed.");
+
+  const baseline = inspectPrimaryEvidenceContract(buildContext(), "APEX-AUDIT-006-V1", new Set());
+  assert.equal(baseline.length, 0, "current hybrid bindings must execute their declared primary engines.");
+
+  for (const attack of [
+    ["scripts/audit/domains/audit-system/primary-evidence-inspector.ts", "inspectPrimaryEvidenceContract", "APEX-AUDIT-006-V1"],
+    ["scripts/audit/domains/audit-system/inspector.ts", "inspectLawParserContract", "APEX-AUDIT-002-V1"],
+    ["scripts/audit/domains/audit-system/inspector.ts", "inspectBlueprintContract", "APEX-AUDIT-007-V1"],
+  ] as const) {
+    const [filePath, symbolName, lawId] = attack;
+    const project = new Project({ tsConfigFilePath: resolveFromRepo("tsconfig.json") });
+    project.getSourceFileOrThrow(resolveFromRepo(filePath))
+      .getVariableDeclarationOrThrow(symbolName)
+      .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction)
+      .setBodyText(`return [createFinding({ checkId: "fixture/engine", lawId: "${lawId}", message: "fixture" })];`);
+    const findings = inspectPrimaryEvidenceContract(buildContext(project), "APEX-AUDIT-006-V1", new Set());
+    assert.equal(findings.some((finding) => finding.message.includes(`${lawId}/`)
+      && finding.message.includes("does not execute that engine")), true,
+    `${lawId} must reject source evidence that does not execute its declared primary engine.`);
+  }
 };
 
 export const runOwnerFilesystemWriterEscapeAttacks = (): void => {

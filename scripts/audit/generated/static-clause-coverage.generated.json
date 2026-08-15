@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:57:35.391Z",
+  "generatedAt": "2026-08-15T01:33:29.458Z",
   "summary": {
     "activeLawCount": 234,
     "activeClauseCount": 235,
@@ -1168,7 +1168,7 @@
         }
       ],
       "primaryEvidence": {
-        "engine": "ast",
+        "engine": "config",
         "sourceEvidenceIndex": 0
       },
       "manifestPath": "scripts/audit/domains/audit-system/manifest.json"
@@ -1273,7 +1273,7 @@
         }
       ],
       "primaryEvidence": {
-        "engine": "ast",
+        "engine": "fs",
         "sourceEvidenceIndex": 0
       },
       "manifestPath": "scripts/audit/domains/audit-system/manifest.json"
@@ -1289,8 +1289,16 @@
       ],
       "sourceEvidence": [
         {
+          "filePath": "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+          "symbolName": "inspectPhysicalCheckReceiptContract"
+        },
+        {
           "filePath": "scripts/audit/domains/audit-system/inspector.ts",
           "symbolName": "inspectMetaCoverageContract"
+        },
+        {
+          "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+          "symbolName": "inspectGeneratedArtifactContract"
         }
       ],
       "primaryEvidence": {

@@ -363,11 +363,18 @@ export const inspectLawParserContract = (
 };
 
 export const inspectGeneratedArtifactContract = (
+  context: InspectorContext,
   lawId: string,
   inspectedFiles: Set<string>,
 ): AuditSystemFinding[] => {
   const findings: AuditSystemFinding[] = [];
   pushRequiredArtifactFindings(findings, inspectedFiles, lawId);
+  const generatedTruth = inspectGeneratedArtifactTruthContract(context, lawId);
+  findings.push(...generatedTruth.findings);
+  generatedTruth.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
+  const matrixConsumption = inspectManualMatrixConsumption(context, lawId);
+  findings.push(...matrixConsumption.findings);
+  matrixConsumption.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
   return findings;
 };
 
@@ -389,12 +396,6 @@ export const inspectMetaCoverageContract = (
   const findings: AuditSystemFinding[] = [];
   pushCodePurityPrerequisiteFinding(findings, lawId, context.completedReports);
   pushStaticCoverageFindings(findings, inspectedFiles, lawId);
-  const generatedTruth = inspectGeneratedArtifactTruthContract(context, lawId);
-  findings.push(...generatedTruth.findings);
-  generatedTruth.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
-  const matrixConsumption = inspectManualMatrixConsumption(context, lawId);
-  findings.push(...matrixConsumption.findings);
-  matrixConsumption.inspectedFiles.forEach((filePath) => inspectedFiles.add(filePath));
   return findings;
 };
 
@@ -426,7 +427,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
 
   findings.push(...inspectCiEntryContract(context, chainLawId, inspectedFiles));
   findings.push(...inspectLawParserContract(lawParserLawId, inspectedFiles));
-  findings.push(...inspectGeneratedArtifactContract(artifactLawId, inspectedFiles));
+  findings.push(...inspectGeneratedArtifactContract(context, artifactLawId, inspectedFiles));
   pushGeneratedPlanUniquenessFindings(findings, manifestLawId, context.generatedPlan);
   findings.push(...inspectBlueprintContract(blueprintLawId, inspectedFiles, context.planEntry.blueprintRefs ?? []));
   findings.push(...inspectMetaCoverageContract(context, metaLawId, inspectedFiles));

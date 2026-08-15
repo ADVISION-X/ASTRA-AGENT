@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:57:35.386Z",
+  "generatedAt": "2026-08-15T01:33:29.449Z",
   "status": "PASS",
   "inspectorFileCount": 22,
   "generatedPlanEntryCount": 22,
@@ -93,6 +93,7 @@
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/manifest.json",
     "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -268,14 +269,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:af939a15-50c6-4609-92df-60d5e365098e",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:57:28.018Z",
-      "endedAt": "2026-08-14T23:57:35.386Z",
-      "durationMs": 7368,
+      "startedAt": "2026-08-15T01:33:21.597Z",
+      "endedAt": "2026-08-15T01:33:29.449Z",
+      "durationMs": 7852,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -366,6 +367,7 @@
         "scripts/audit/domains/audit-system/inspector.ts",
         "scripts/audit/domains/audit-system/manifest.json",
         "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -539,19 +541,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:af939a15-50c6-4609-92df-60d5e365098e"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:af939a15-50c6-4609-92df-60d5e365098e"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:3753e692-c6fa-4f6e-97d4-97528375ae2c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:af939a15-50c6-4609-92df-60d5e365098e"
     }
   ]
 }

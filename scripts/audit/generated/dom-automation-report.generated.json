@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:57:16.874Z",
+  "generatedAt": "2026-08-15T01:33:09.318Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -22,14 +22,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:57:16.817Z",
-      "endedAt": "2026-08-14T23:57:16.874Z",
-      "durationMs": 57,
+      "startedAt": "2026-08-15T01:33:09.262Z",
+      "endedAt": "2026-08-15T01:33:09.317Z",
+      "durationMs": 55,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -68,6 +68,7 @@
         "scripts/acceptance/audit-manual-matrix.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+        "scripts/acceptance/audit-persistence-isolation.attacks.ts",
         "scripts/acceptance/audit-phase-plan.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -238,6 +239,7 @@
         "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
         "scripts/audit/domains/audit-system/inspector.ts",
         "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -859,79 +861,79 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:6708484d-d60b-4da3-8293-a55fcc1dfbbb"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:6d21a451-6d21-4aa3-85fd-af96655fda94"
     }
   ],
   "inspectedFiles": [
@@ -972,6 +974,7 @@
     "scripts/acceptance/audit-manual-matrix.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+    "scripts/acceptance/audit-persistence-isolation.attacks.ts",
     "scripts/acceptance/audit-phase-plan.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -1142,6 +1145,7 @@
     "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "scripts/audit/domains/audit-system/owner-registration-inspector.ts",

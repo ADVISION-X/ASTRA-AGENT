@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:56:26.662Z",
+  "generatedAt": "2026-08-15T01:32:18.605Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -418,6 +418,7 @@
     "scripts/acceptance/audit-manual-matrix.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+    "scripts/acceptance/audit-persistence-isolation.attacks.ts",
     "scripts/acceptance/audit-phase-plan.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -589,6 +590,7 @@
     "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -1205,14 +1207,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:56:24.175Z",
-      "endedAt": "2026-08-14T23:56:26.661Z",
-      "durationMs": 2486,
+      "startedAt": "2026-08-15T01:32:16.024Z",
+      "endedAt": "2026-08-15T01:32:18.604Z",
+      "durationMs": 2580,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -1256,6 +1258,7 @@
         "scripts/acceptance/audit-manual-matrix.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+        "scripts/acceptance/audit-persistence-isolation.attacks.ts",
         "scripts/acceptance/audit-phase-plan.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -1427,6 +1430,7 @@
         "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
         "scripts/audit/domains/audit-system/inspector.ts",
         "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -2048,79 +2052,79 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:219d6a36-8dc0-4ca9-967d-4acce7f71b1b"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:72fe4472-0d7f-4939-a4d4-2e05dc2f4c7a"
     }
   ]
 }

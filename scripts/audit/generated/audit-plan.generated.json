@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:56:22.109Z",
+  "generatedAt": "2026-08-15T01:32:13.932Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -1141,7 +1141,7 @@
             }
           ],
           "primaryEvidence": {
-            "engine": "ast",
+            "engine": "config",
             "sourceEvidenceIndex": 0
           },
           "evidenceMode": "static"
@@ -1231,7 +1231,7 @@
             }
           ],
           "primaryEvidence": {
-            "engine": "ast",
+            "engine": "fs",
             "sourceEvidenceIndex": 0
           },
           "evidenceMode": "static"
@@ -1244,8 +1244,16 @@
           ],
           "sourceEvidence": [
             {
+              "filePath": "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+              "symbolName": "inspectPhysicalCheckReceiptContract"
+            },
+            {
               "filePath": "scripts/audit/domains/audit-system/inspector.ts",
               "symbolName": "inspectMetaCoverageContract"
+            },
+            {
+              "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+              "symbolName": "inspectGeneratedArtifactContract"
             }
           ],
           "primaryEvidence": {

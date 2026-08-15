@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:56:26.703Z",
+  "generatedAt": "2026-08-15T01:32:18.646Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -83,6 +83,7 @@
     "scripts/acceptance/audit-manual-matrix.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+    "scripts/acceptance/audit-persistence-isolation.attacks.ts",
     "scripts/acceptance/audit-phase-plan.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -253,6 +254,7 @@
     "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -869,14 +871,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a",
       "capabilityDomain": "capability-group-governance",
       "checkId": "capability-group-governance/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:56:26.669Z",
-      "endedAt": "2026-08-14T23:56:26.702Z",
-      "durationMs": 33,
+      "startedAt": "2026-08-15T01:32:18.611Z",
+      "endedAt": "2026-08-15T01:32:18.645Z",
+      "durationMs": 34,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -915,6 +917,7 @@
         "scripts/acceptance/audit-manual-matrix.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+        "scripts/acceptance/audit-persistence-isolation.attacks.ts",
         "scripts/acceptance/audit-phase-plan.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -1085,6 +1088,7 @@
         "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
         "scripts/audit/domains/audit-system/inspector.ts",
         "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -1706,49 +1710,49 @@
       "lawId": "APEX-CAPABILITY-GROUP-001-V1",
       "clauseId": "apex-capability-group-001-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-002-V1",
       "clauseId": "apex-capability-group-002-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-003-V1",
       "clauseId": "apex-capability-group-003-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-004-V1",
       "clauseId": "apex-capability-group-004-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-005-V1",
       "clauseId": "apex-capability-group-005-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-006-V1",
       "clauseId": "apex-capability-group-006-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-007-V1",
       "clauseId": "apex-capability-group-007-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-008-V1",
       "clauseId": "apex-capability-group-008-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:313986c0-ebc8-4d98-9fc4-b07c192b71a9"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3dab2617-8eb0-4460-9c4e-9f5808d9ce1a"
     }
   ]
 }

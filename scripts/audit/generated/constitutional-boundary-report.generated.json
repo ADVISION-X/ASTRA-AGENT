@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:57:05.068Z",
+  "generatedAt": "2026-08-15T01:32:57.377Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -39,6 +39,7 @@
     "scripts/acceptance/audit-manual-matrix.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
     "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+    "scripts/acceptance/audit-persistence-isolation.attacks.ts",
     "scripts/acceptance/audit-phase-plan.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
     "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -209,6 +210,7 @@
     "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -843,14 +845,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:4cc405a5-f218-4c48-a939-d89748350cb0",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:57:04.944Z",
-      "endedAt": "2026-08-14T23:57:05.068Z",
-      "durationMs": 124,
+      "startedAt": "2026-08-15T01:32:57.246Z",
+      "endedAt": "2026-08-15T01:32:57.376Z",
+      "durationMs": 130,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -889,6 +891,7 @@
         "scripts/acceptance/audit-manual-matrix.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-mutation.attacks.ts",
         "scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts",
+        "scripts/acceptance/audit-persistence-isolation.attacks.ts",
         "scripts/acceptance/audit-phase-plan.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts-round8.attacks.ts",
         "scripts/acceptance/audit-physical-check-receipts.attacks.ts",
@@ -1059,6 +1062,7 @@
         "scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
         "scripts/audit/domains/audit-system/inspector.ts",
         "scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -1680,25 +1684,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:4cc405a5-f218-4c48-a939-d89748350cb0"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:4cc405a5-f218-4c48-a939-d89748350cb0"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:4cc405a5-f218-4c48-a939-d89748350cb0"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:a4783ec5-8b54-465f-b458-a2fdf237202e"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:4cc405a5-f218-4c48-a939-d89748350cb0"
     }
   ]
 }

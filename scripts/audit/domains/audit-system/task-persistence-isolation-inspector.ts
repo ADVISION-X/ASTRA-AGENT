@@ -16,6 +16,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { isDefinitelyUnreachable } from "./control-flow-reachability.js";
+import { uniqueNodeHttpServerDeclaration } from "./node-http-server-inspector.js";
 
 const acceptancePath = "scripts/acceptance/media-processing-task-persistence.acceptance.ts";
 const routePath = "src/app/workbench-media-processing-routes.ts";
@@ -310,12 +311,10 @@ const withServerFunction = (source: SourceFile): {
 };
 
 const governedServer = (source: SourceFile, functionNode: ArrowFunction): VariableDeclaration | null => {
-  const serverDeclarations = functionNode.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .filter((declaration) => declaration.getName() === "server");
-  const server = serverDeclarations.length === 1 ? serverDeclarations[0] : undefined;
-  const createServerImport = directImport(source, "createServer", "node:http");
-  const initializer = server?.getInitializerIfKind(SyntaxKind.CallExpression);
-  return server && isConst(server) && initializer && createServerImport && directCall(initializer, createServerImport)
+  const server = uniqueNodeHttpServerDeclaration(source);
+  return server !== null
+    && server.getName() === "server"
+    && server.getFirstAncestor((ancestor) => ancestor === functionNode) === functionNode
     ? server
     : null;
 };

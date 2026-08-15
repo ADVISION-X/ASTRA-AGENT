@@ -5,6 +5,7 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectTaskPersistenceIsolation } from "./task-persistence-isolation-inspector.js";
 import { isDefinitelyUnreachable } from "./control-flow-reachability.js";
+import { uniqueNodeHttpServerDeclaration } from "./node-http-server-inspector.js";
 
 type DeliveryCase = {
   deliveryArgumentIndex: number;
@@ -252,15 +253,9 @@ const serverDeclarationInsideBoundary = (
   serverVariable: string,
   boundary: NonNullable<ReturnType<typeof immediateCleanupBoundary>>,
 ): VariableDeclaration | null => {
-  const declarations = source.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .filter((declaration) => declaration.getName() === serverVariable);
-  const [server] = declarations;
-  const initializer = server?.getInitializer();
-  return declarations.length === 1
-    && server !== undefined
-    && isConstDeclaration(server)
-    && Node.isCallExpression(initializer)
-    && isNodeImportCall(initializer, "createServer", "node:http")
+  const server = uniqueNodeHttpServerDeclaration(source);
+  return server !== null
+    && server.getName() === serverVariable
     && server.getFirstAncestor((ancestor) => ancestor === boundary.getTryBlock()) === boundary.getTryBlock()
     ? server
     : null;

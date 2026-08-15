@@ -1,4 +1,12 @@
-import { Node, SyntaxKind } from "ts-morph";
+import {
+  Node,
+  SyntaxKind,
+  type ArrowFunction,
+  type FunctionDeclaration,
+  type FunctionExpression,
+  type MethodDeclaration,
+  type Node as MorphNode,
+} from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { discoverLawFiles } from "../../build/discover-law-files.js";
@@ -6,7 +14,7 @@ import { parseApexLaws } from "../../build/parse-apex-laws.js";
 import { sourceEvidenceIsReachable } from "../../build/source-evidence-reachability.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { ManifestSource } from "../../shared/manifest-contracts.js";
-import { resolveFromRepo } from "../../shared/paths.js";
+import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
 const toManifestSource = (entry: InspectorContext["generatedPlan"][number]): ManifestSource => ({
   capabilityDomain: entry.capabilityDomain,
@@ -20,17 +28,102 @@ const toManifestSource = (entry: InspectorContext["generatedPlan"][number]): Man
   manifestPath: entry.manifestPath,
 });
 
-const ownerUsesProjectAst = (
+type FunctionNode = FunctionDeclaration | MethodDeclaration | ArrowFunction | FunctionExpression;
+
+const functionNodeFor = (declaration: MorphNode): FunctionNode | null => {
+  if (Node.isFunctionDeclaration(declaration) || Node.isMethodDeclaration(declaration)
+    || Node.isArrowFunction(declaration) || Node.isFunctionExpression(declaration)) return declaration;
+  const initializer = Node.isVariableDeclaration(declaration) ? declaration.getInitializer() : undefined;
+  return initializer && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))
+    ? initializer
+    : null;
+};
+
+const functionKey = (node: FunctionNode): string =>
+  `${node.getSourceFile().getFilePath()}:${node.getStart()}`;
+
+const callTargets = (call: MorphNode): FunctionNode[] => {
+  if (!Node.isCallExpression(call)) return [];
+  const symbol = call.getExpression().getSymbol();
+  const resolved = symbol?.getAliasedSymbol() ?? symbol;
+  return (resolved?.getDeclarations() ?? []).flatMap((declaration) => {
+    if (declaration.getSourceFile().isDeclarationFile()
+      || !toRepoPath(declaration.getSourceFile().getFilePath()).startsWith("scripts/audit/")) return [];
+    const functionNode = functionNodeFor(declaration);
+    return functionNode ? [functionNode] : [];
+  });
+};
+
+const reachableFunctions = (
   context: InspectorContext,
-  ownerInspectorPath: string,
-): boolean => {
-  const sourceFile = context.project.getSourceFile(resolveFromRepo(ownerInspectorPath));
-  if (!sourceFile) return false;
-  return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((access) =>
+  filePath: string,
+  symbolName: string,
+): FunctionNode[] => {
+  const pending = (context.project.getSourceFile(resolveFromRepo(filePath))
+    ?.getExportedDeclarations().get(symbolName) ?? []).flatMap((declaration) => {
+    const functionNode = functionNodeFor(declaration);
+    return functionNode ? [functionNode] : [];
+  });
+  const visited = new Set<string>();
+  const functions: FunctionNode[] = [];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    const key = functionKey(current);
+    if (visited.has(key)) continue;
+    visited.add(key);
+    functions.push(current);
+    pending.push(...current.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap(callTargets));
+  }
+  return functions;
+};
+
+const usesProjectAst = (node: FunctionNode): boolean =>
+  node.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((access) =>
     access.getName() === "project"
     && Node.isIdentifier(access.getExpression())
     && (access.getExpression().getSymbol()?.getDeclarations().some((declaration) =>
       Node.isParameterDeclaration(declaration) && declaration.getName() === "context") ?? false));
+
+const isNodeFsCall = (call: MorphNode): boolean => {
+  if (!Node.isCallExpression(call)) return false;
+  const symbol = call.getExpression().getSymbol();
+  const declarations = [
+    ...(symbol?.getDeclarations() ?? []),
+    ...(symbol?.getAliasedSymbol()?.getDeclarations() ?? []),
+  ];
+  return declarations.some((declaration) => {
+    if (Node.isImportSpecifier(declaration)) {
+      return declaration.getImportDeclaration().getModuleSpecifierValue().startsWith("node:fs");
+    }
+    const sourcePath = declaration.getSourceFile().getFilePath();
+    return declaration.getSourceFile().isDeclarationFile()
+      && (sourcePath.endsWith("/node_modules/@types/node/fs.d.ts")
+        || sourcePath.endsWith("/node_modules/@types/node/fs/promises.d.ts"));
+  });
+};
+
+const isConfigParseCall = (call: MorphNode): boolean => {
+  if (!Node.isCallExpression(call)) return false;
+  const callee = call.getExpression();
+  if (!Node.isPropertyAccessExpression(callee)) return false;
+  if (callee.getName() === "safeParse") return true;
+  const receiver = callee.getExpression();
+  return callee.getName() === "parse"
+    && Node.isIdentifier(receiver)
+    && receiver.getSymbol()?.getEscapedName().toString() === "JSON"
+    && (receiver.getSymbol()?.getDeclarations().every((declaration) =>
+      declaration.getSourceFile().isDeclarationFile()) ?? false);
+};
+
+const sourceEvidenceUsesEngine = (
+  context: InspectorContext,
+  sourceEvidence: { filePath: string; symbolName: string },
+  engine: "ast" | "fs" | "config",
+): boolean => {
+  const functions = reachableFunctions(context, sourceEvidence.filePath, sourceEvidence.symbolName);
+  if (engine === "ast") return functions.some(usesProjectAst);
+  const calls = functions.flatMap((node) => node.getDescendantsOfKind(SyntaxKind.CallExpression));
+  return engine === "fs" ? calls.some(isNodeFsCall) : calls.some(isConfigParseCall);
 };
 
 export const inspectPrimaryEvidenceContract = (
@@ -88,12 +181,12 @@ export const inspectPrimaryEvidenceContract = (
         }));
         continue;
       }
-      if (primaryEvidence.engine === "ast" && !ownerUsesProjectAst(context, entry.ownerInspectorPath)) {
+      if (!sourceEvidenceUsesEngine(context, sourceEvidence, primaryEvidence.engine)) {
         findings.push(createFinding({
           checkId: "audit-system/primary-evidence",
           lawId,
-          filePath: entry.ownerInspectorPath,
-          message: `Hybrid clause ${binding.lawId}/${binding.clauseId} declares AST primary evidence but its owner does not consume context.project.`,
+          filePath: sourceEvidence.filePath,
+          message: `Hybrid clause ${binding.lawId}/${binding.clauseId} declares ${primaryEvidence.engine} primary evidence, but its selected sourceEvidence does not execute that engine.`,
         }));
       }
     }

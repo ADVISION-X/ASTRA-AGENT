@@ -35,7 +35,7 @@
           }
         ],
         "primaryEvidence": {
-          "engine": "ast",
+          "engine": "config",
           "sourceEvidenceIndex": 0
         }
       },
@@ -120,7 +120,7 @@
           }
         ],
         "primaryEvidence": {
-          "engine": "ast",
+          "engine": "fs",
           "sourceEvidenceIndex": 0
         }
       },
@@ -132,8 +132,16 @@
         ],
         "sourceEvidence": [
           {
+            "filePath": "scripts/audit/domains/audit-system/physical-check-receipt-inspector.ts",
+            "symbolName": "inspectPhysicalCheckReceiptContract"
+          },
+          {
             "filePath": "scripts/audit/domains/audit-system/inspector.ts",
             "symbolName": "inspectMetaCoverageContract"
+          },
+          {
+            "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+            "symbolName": "inspectGeneratedArtifactContract"
           }
         ],
         "primaryEvidence": {

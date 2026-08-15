@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T23:57:28.012Z",
+  "generatedAt": "2026-08-15T01:33:21.590Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -18,14 +18,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c",
+      "runId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3",
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-14T23:57:18.203Z",
-      "endedAt": "2026-08-14T23:57:28.012Z",
-      "durationMs": 9809,
+      "startedAt": "2026-08-15T01:33:10.720Z",
+      "endedAt": "2026-08-15T01:33:21.589Z",
+      "durationMs": 10869,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -118,6 +118,7 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/node-http-server-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/owner-registration-inspector.ts",
@@ -357,61 +358,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ebe39797-b1e2-4e63-82af-9eef1f9b6ec5:check:fdb670d3-8557-470a-8ccf-fe5d39c5684c"
+      "checkRunId": "audit-run:34cfbea0-afaa-48d0-9d84-680c6871bbd3:check:3ff61661-4a6f-41b0-b29b-730d47637a3b"
     }
   ],
   "inspectedFiles": [
@@ -506,6 +507,7 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/generated-artifact-truth-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/manual-matrix-consumption-inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/node-http-server-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/owner-evaluation-integrity-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/owner-filesystem-mutation-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/audit-system/owner-registration-inspector.ts",
