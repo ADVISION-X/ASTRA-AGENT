@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:40:40.272Z",
+  "generatedAt": "2026-08-15T21:52:10.829Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -246,6 +246,52 @@
       "blockIndex": 4
     },
     {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "amazon-invoice-upload",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance+runtime-log+real-chrome",
+      "summary": "The existing invoice upload flow must keep its business sequence unchanged while exact-target Browser or DOM execution failures remain technical failures and never masquerade as order_not_found.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
+          "statement": "Amazon invoice upload must preserve its existing business sequence and report exact-target execution failures as technical review-required results rather than false order_not_found results.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "amazon-invoice-upload"
+        }
+      ],
+      "appliesTo": [
+        "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/audit/domains/amazon-invoice-upload/**",
+        "scripts/acceptance/amazon-invoice-upload*.ts",
+        "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+      ],
+      "required": [
+        "The approved input, single order-detail navigation, eight bounded same-page readiness windows, already-uploaded check, amount hard gate, approved PDF attachment, final submit and success verification remain the only upload sequence.",
+        "A Browser or DOM execution exception is recorded as a structured technical execution failure and returns review_required before any later upload action.",
+        "order_not_found is permitted only when all eight observation windows executed successfully and observed that the requested order identity or invoice action state never became ready.",
+        "Amazon smoke acceptance uses the same production evaluation-expression contract as the unique Browser owner and must not implement a private evaluator.",
+        "Real Seller Central verification resolves the actual enabled input[type=file] inside the unique open kat-file-upload author shadow root when the light-DOM input is only a hidden proxy, dispatches the approved PDF once, then admits attachment only when that component exposes exactly one same-name kat-file-item with file-status ready and zero duplicate, foreign or terminal-failure items; the component may synchronously clear the native receiver.",
+        "Invoice-number fill is admitted only after the Amazon owner has observed that exact ready file item; whole-page order-id text, input.files and the visible pending copy 文件未上传 are never attachment verdicts.",
+        "Invoice-number text uses ordered real key events followed by Tab so the kat-input business model commits the approved value before final submit; direct text insertion or a visible shadow-input value alone is insufficient.",
+        "Final success is proved within forty bounded observations by exactly one current-order manage-invoice dialog containing exactly one approved invoice/order number row plus an Amazon accepted receipt or uploaded state, while duplicate dialogs, duplicate rows, foreign numbers and governed failure states are absent.",
+        "When a delayed current-order upload dialog becomes visible after the first click deadline, the retry path recognizes that exact visible dialog and its enabled file input as ready before locating or clicking the now-covered page entry again."
+      ],
+      "forbidden": [
+        "classifying Illegal return statement, transport failure, document-stale failure or DOM snapshot exception as order_not_found",
+        "new Function, eval or a caller-local evaluation wrapper in Amazon code or smoke support",
+        "changing mission input, business order, amount gate, final submit authorization or upload_success evidence to repair Browser transport",
+        "refresh, repeat navigation, compatibility bridge, fallback evaluator or second upload flow",
+        "retry-clicking the page upload entry after the current-order upload dialog is already open",
+        "treating a hidden light-DOM proxy, dialog visibility, order id, invoice number, input.files or generic page text as proof that Amazon accepted the PDF",
+        "using direct text insertion, a synthetic value setter or a visible inner-input value as proof that kat-input committed the invoice number",
+        "continuing to fill, submit, reopen, scroll or retry after duplicate, foreign, failure or bounded-exhaustion attachment/result evidence"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
+      "blockIndex": 0
+    },
+    {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
       "status": "active",
       "tier": "P0",
@@ -274,7 +320,7 @@
         "persisted raw Chrome target ids"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 0
+      "blockIndex": 1
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
@@ -306,7 +352,7 @@
         "Second Amazon invoice HTTP server, route bus, mission loop, browser controller, evidence chain, or runtime log chain."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
@@ -336,7 +382,7 @@
         "DOM automation step without evidenceStepId."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
@@ -364,7 +410,7 @@
         "API Boundary or App Shell owning Seller Central DOM sequence."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
@@ -391,7 +437,7 @@
         "Uploading a downloaded CSV to the invoice upload dialog."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
@@ -421,7 +467,7 @@
         "External input selector, actionPlan, browserCommand, flowStep, abilityGroupId, cookie, sellerCentralCookie, or browserProfileDirectory."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 6
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
@@ -451,7 +497,7 @@
         "UI implementing Seller Central download sequence."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 7
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
@@ -482,7 +528,7 @@
         "External artifact response returns raw CSV content."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 8
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
@@ -512,7 +558,7 @@
         "Manual generated artifact truth."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 9
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
@@ -557,7 +603,7 @@
         "A ledger domTraceRef or runtime-evidence path that has no active writer and cannot be resolved."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
@@ -598,7 +644,7 @@
         "Treating tab close failure as invoice upload failure after Amazon success or already-uploaded state is verified."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
@@ -665,7 +711,7 @@
         "Proceeding to upload before target order id, invoice action state, and amount equality are proven."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 11
+      "blockIndex": 12
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
@@ -734,7 +780,7 @@
         "Continuing after task watchdog timeout, execution busy, explicit review_required, blocked_auth, or an unknown single-upload transport outcome."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 12
+      "blockIndex": 13
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
@@ -780,7 +826,7 @@
         "Adding a second browser controller, second upload task chain, second route, or compatibility wrapper for tab return."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 13
+      "blockIndex": 14
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
@@ -824,7 +870,7 @@
         "Logging raw PDF text, full DOM HTML, cookies, browser storage, or local absolute invoicePdfPath as amount evidence."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-      "blockIndex": 14
+      "blockIndex": 15
     },
     {
       "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
@@ -1917,6 +1963,47 @@
       "blockIndex": 3
     },
     {
+      "lawId": "APEX-ARCH-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+dynamic",
+      "summary": "Every production stage must confirm the intended identity and state, exclude named adjacent false states, require uniqueness, and terminate at an explicit observation boundary.",
+      "clauses": [
+        {
+          "clauseId": "apex-arch-012-requirement",
+          "statement": "Every production stage must prove positive identity and state, named negative exclusions, uniqueness and a bounded terminal before later side effects.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "architecture-boundary"
+        }
+      ],
+      "appliesTo": [
+        "src/plugins/**/*.{ts,tsx}",
+        "src/capabilities/**/*.{ts,tsx}",
+        "src/lib/browser/**/*.{ts,tsx}",
+        "scripts/acceptance/**/*.{ts,tsx}"
+      ],
+      "required": [
+        "The owning flow defines positive identity and state facts before a later side effect.",
+        "The same boundary excludes named adjacent false targets, conflicting states, loading states, error states, stale states, foreign states and duplicate candidates.",
+        "A single-object action requires exactly one candidate.",
+        "Every observation, search, retry and scroll stage has an explicit maximum count or deadline.",
+        "Ambiguity, conflict or budget exhaustion fails closed without executing a later side effect.",
+        "Browser and external-platform construction first records a personally traversed real-path inclusion and exclusion contract, then proves the production code through the same ordered path."
+      ],
+      "forbidden": [
+        "Success inferred from one positive text while a conflicting state remains possible.",
+        "Selector or label match without owner-defined negative exclusions.",
+        "Zero or multiple candidates treated as one target.",
+        "Unconditional browser observation, search, retry or scroll loop.",
+        "Continuing to scroll, search, retry, guess or enter a fallback after the bounded terminal is exhausted.",
+        "Generic confirmation engine, compatibility bridge, shadow path or second chain."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 4
+    },
+    {
       "lawId": "APEX-ARCH-004-V1",
       "status": "active",
       "tier": "P0",
@@ -1944,7 +2031,7 @@
         "Ability group dispatching multiple unrelated action kinds."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 5
     },
     {
       "lawId": "APEX-ARCH-005-V1",
@@ -1974,7 +2061,7 @@
         "Child ability containing hidden orchestration."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 6
     },
     {
       "lawId": "APEX-ARCH-006-V1",
@@ -2003,7 +2090,7 @@
         "Temporary architecture roots."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 7
     },
     {
       "lawId": "APEX-ARCH-007-V1",
@@ -2031,7 +2118,7 @@
         "Shared helper created before two real call sites exist."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 8
     },
     {
       "lawId": "APEX-ARCH-008-V1",
@@ -2062,7 +2149,7 @@
         "New demand hidden inside existing unrelated flow."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 9
     },
     {
       "lawId": "APEX-ARCH-009-V1",
@@ -2094,7 +2181,7 @@
         "AI generating workflow steps at runtime."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 10
     },
     {
       "lawId": "APEX-ARCH-010-V1",
@@ -2124,7 +2211,7 @@
         "Silent architectural expansion."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 11
     },
     {
       "lawId": "APEX-AUDIT-001-V1",
@@ -4048,17 +4135,16 @@
       "capabilityDomain": "dom-automation",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast+runtime-evidence",
-      "summary": "DOM wait and verify must report observed page state, not business completion fiction.",
+      "summary": "DOM verification must report one observed page state; bounded repeated observation belongs to the owning business flow.",
       "clauses": [
         {
           "clauseId": "apex-dom-010-requirement",
-          "statement": "DOM wait and verify must report observed page state, not business completion fiction.",
+          "statement": "DOM verification must report one observed page state; bounded repeated observation belongs to the owning business flow.",
           "evidenceMode": "acceptance",
           "ownerDomain": "dom-automation"
         }
       ],
       "appliesTo": [
-        "src/capabilities/dom-automation/runtime/dom-wait.ts",
         "src/capabilities/dom-automation/runtime/dom-verify.ts",
         "src/capabilities/dom-automation/schema.ts"
       ],
@@ -4068,7 +4154,9 @@
         "Login or captcha state downgraded to not_found.",
         "Verification evidence ref that cannot be traced to an observed snapshot or action.",
         "Business success terms hardcoded in DOM core.",
-        "An underlying DOM snapshot evaluation that can outlive the caller's governed wait deadline."
+        "An underlying DOM snapshot evaluation that can outlive the caller's governed wait deadline.",
+        "A positive hint accepted while a negative, loading, stale, foreign or duplicate state remains unresolved.",
+        "An unconditional observe, locate, retry or scroll loop."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
       "blockIndex": 9
@@ -4289,6 +4377,44 @@
       "blockIndex": 16
     },
     {
+      "lawId": "APEX-DOM-021-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+acceptance+real-chrome",
+      "summary": "DOM Automation must use evaluate only for observation and revalidation; click, fill and upload mutations must use dedicated exact-target Browser commands.",
+      "clauses": [
+        {
+          "clauseId": "apex-dom-021-requirement",
+          "statement": "DOM Automation must separate observation from mutation and route click, fill and upload through dedicated exact-target Browser commands.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "dom-automation"
+        }
+      ],
+      "appliesTo": [
+        "src/capabilities/dom-automation/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/lib/browser/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/acceptance/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "required": [
+        "Click revalidates and derives one visible viewport point through observation, then invokes clickLocatedDomElement on the same exact target and current document.",
+        "Fill revalidates and derives one editable element point through observation, then invokes clickLocatedDomElement, clear-input, ordered keyboard textInput and a Tab commit; verification is a later observation.",
+        "Upload revalidates a supported light-DOM file input and invokes setFileInputFiles with only the caller-approved path.",
+        "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
+        "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
+      ],
+      "forbidden": [
+        "Element.click, scrollIntoView, focus, value setters, execCommand or synthetic input/change events inside BrowserTargetSession.evaluate scripts",
+        "page mutation through evaluate_target",
+        "a caller-local evaluator, coordinate fallback, foreground-focus fallback or compatibility bridge",
+        "claiming unsupported deep shadow or frame upload succeeded",
+        "Input.insertText, synthetic value assignment or later input.files retention used as component commit proof"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 17
+    },
+    {
       "lawId": "GRASSEYE-EVIDENCE-001-V2",
       "status": "active",
       "tier": "P0",
@@ -4490,6 +4616,42 @@
       "blockIndex": 0
     },
     {
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-browser-session",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "The unique Browser owner must convert the public function-body evaluation contract into one executable expression exactly once, while page mutations use dedicated exact-target commands.",
+      "clauses": [
+        {
+          "clauseId": "apex-local-browser-004-requirement",
+          "statement": "The unique Browser owner must normalize the function-body evaluation contract exactly once and keep page mutation on dedicated exact-target commands.",
+          "evidenceMode": "real-chrome",
+          "ownerDomain": "local-browser-session"
+        }
+      ],
+      "required": [
+        "BrowserTargetSession.evaluate accepts a governed JavaScript function body and the exact-target Browser runtime wraps that body into one executable expression exactly once before transport.",
+        "The MV3 service worker executes the already-normalized expression and does not add another function, eval, Function constructor or caller-specific wrapper.",
+        "evaluate_target remains an observation command; click, scroll, text input and file input mutations use click_target, scroll_target, text_target and set_file_input_files against the same exact target and current document generation.",
+        "set_file_input_files resolves the one real enabled file receiver inside an open author shadow root when the governed light-DOM input is only a hidden component proxy, dispatches the approved file selection once, and never treats a later input.files read as component attachment truth because a consuming component may clear the receiver synchronously.",
+        "text_target type-text dispatches one ordered real keyboard event sequence per approved character and fill commits with Tab; Input.insertText is not an admitted replacement for component-observed keyboard input.",
+        "Deterministic acceptance proves top-level return works through the production wrapper, and real-Chrome acceptance proves evaluation and dedicated mutations affect only the controlled background target."
+      ],
+      "forbidden": [
+        "passing a raw function body directly to Runtime.evaluate",
+        "caller-local wrapping, private evaluators, eval or Function constructors",
+        "wrapping the expression again in the Native host or MV3 service worker",
+        "DOM click, scroll, fill or upload mutation hidden inside evaluate_target",
+        "reporting business file attachment success from the Browser command, the hidden proxy, or a later input.files read instead of an owner-observed component postcondition",
+        "using Input.insertText for governed component text entry",
+        "compatibility bridges, fallback evaluation modes or dual evaluation contracts"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
+      "blockIndex": 1
+    },
+    {
       "lawId": "APEX-LOCAL-BROWSER-002-V1",
       "status": "active",
       "tier": "P0",
@@ -4527,7 +4689,7 @@
         "silent CDP or AppleScript/JXA fallback"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-003-V1",
@@ -4557,7 +4719,7 @@
         "holding physical focus while waiting for provider output"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",

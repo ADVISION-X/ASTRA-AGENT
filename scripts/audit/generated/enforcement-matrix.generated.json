@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:40:40.272Z",
+  "generatedAt": "2026-08-15T21:52:10.829Z",
   "rows": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -34,7 +34,8 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1"
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1"
       ]
     },
     {
@@ -97,6 +98,7 @@
         "APEX-ARCH-009-V1",
         "APEX-ARCH-010-V1",
         "APEX-ARCH-011-V1",
+        "APEX-ARCH-012-V1",
         "GRASSEYE-CODE-TOPOLOGY-001-V1",
         "GRASSEYE-TYPE-SAFETY-001-V1"
       ]
@@ -235,7 +237,8 @@
         "APEX-DOM-011-V1",
         "APEX-DOM-012-V1",
         "APEX-DOM-013-V1",
-        "APEX-DOM-020-V1"
+        "APEX-DOM-020-V1",
+        "APEX-DOM-021-V1"
       ]
     },
     {
@@ -268,6 +271,7 @@
         "APEX-LOCAL-BROWSER-001-V1",
         "APEX-LOCAL-BROWSER-002-V1",
         "APEX-LOCAL-BROWSER-003-V1",
+        "APEX-LOCAL-BROWSER-004-V1",
         "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
       ]
     },

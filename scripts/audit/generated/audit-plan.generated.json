@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:40:40.272Z",
+  "generatedAt": "2026-08-15T21:52:10.829Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -151,7 +151,8 @@
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
         "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1"
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
+        "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1"
       ],
       "bindings": [
         {
@@ -363,6 +364,20 @@
             }
           ],
           "evidenceMode": "acceptance"
+        },
+        {
+          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
+          "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
+          "checkIds": [
+            "amazon-invoice-upload/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "real-chrome"
         }
       ],
       "blueprintRefs": [
@@ -889,6 +904,7 @@
         "APEX-ARCH-009-V1",
         "APEX-ARCH-010-V1",
         "APEX-ARCH-011-V1",
+        "APEX-ARCH-012-V1",
         "GRASSEYE-CODE-TOPOLOGY-001-V1",
         "GRASSEYE-TYPE-SAFETY-001-V1"
       ],
@@ -1052,6 +1068,24 @@
           "evidenceMode": "static"
         },
         {
+          "lawId": "APEX-ARCH-012-V1",
+          "clauseId": "apex-arch-012-requirement",
+          "checkIds": [
+            "architecture-boundary/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "primaryEvidence": {
+            "engine": "ast",
+            "sourceEvidenceIndex": 0
+          },
+          "evidenceMode": "acceptance"
+        },
+        {
           "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
           "clauseId": "grasseye-code-topology-001-requirement",
           "checkIds": [
@@ -1087,7 +1121,8 @@
             "## 2. Owner 分工",
             "## 5. 禁止项",
             "## 6. 目录原则",
-            "## 7. Topology And Type Governance"
+            "## 7. Topology And Type Governance",
+            "## 8. Production Confirmation Boundary"
           ]
         }
       ]
@@ -2417,7 +2452,8 @@
         "APEX-DOM-011-V1",
         "APEX-DOM-012-V1",
         "APEX-DOM-013-V1",
-        "APEX-DOM-020-V1"
+        "APEX-DOM-020-V1",
+        "APEX-DOM-021-V1"
       ],
       "bindings": [
         {
@@ -2619,6 +2655,24 @@
             }
           ],
           "evidenceMode": "real-chrome"
+        },
+        {
+          "lawId": "APEX-DOM-021-V1",
+          "clauseId": "apex-dom-021-requirement",
+          "checkIds": [
+            "dom-automation/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "primaryEvidence": {
+            "engine": "ast",
+            "sourceEvidenceIndex": 0
+          },
+          "evidenceMode": "real-chrome"
         }
       ],
       "blueprintRefs": [
@@ -2810,6 +2864,7 @@
         "APEX-LOCAL-BROWSER-001-V1",
         "APEX-LOCAL-BROWSER-002-V1",
         "APEX-LOCAL-BROWSER-003-V1",
+        "APEX-LOCAL-BROWSER-004-V1",
         "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
       ],
       "bindings": [
@@ -2844,6 +2899,20 @@
         {
           "lawId": "APEX-LOCAL-BROWSER-003-V1",
           "clauseId": "apex-local-browser-003-requirement",
+          "checkIds": [
+            "local-browser-session/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "real-chrome"
+        },
+        {
+          "lawId": "APEX-LOCAL-BROWSER-004-V1",
+          "clauseId": "apex-local-browser-004-requirement",
           "checkIds": [
             "local-browser-session/owner-assertion-set"
           ],

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:41:50.542Z",
+  "generatedAt": "2026-08-15T21:53:22.781Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -18,14 +18,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40",
+      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T04:41:39.591Z",
-      "endedAt": "2026-08-15T04:41:50.542Z",
-      "durationMs": 10951,
+      "startedAt": "2026-08-15T21:53:11.592Z",
+      "endedAt": "2026-08-15T21:53:22.780Z",
+      "durationMs": 11188,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -69,6 +69,7 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
@@ -358,61 +359,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6d1ffa3f-7eb8-4141-a78d-38a2510a4d40"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:dee4afb9-d550-461b-bdc4-e4baa28acf16"
     }
   ],
   "inspectedFiles": [
@@ -458,6 +459,7 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",

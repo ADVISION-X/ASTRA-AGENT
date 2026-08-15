@@ -108,3 +108,57 @@ src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
 ## 7. Topology And Type Governance
 
 `GRASSEYE-CODE-TOPOLOGY-001-V1` 与 `GRASSEYE-TYPE-SAFETY-001-V1` 归 `architecture-boundary` 唯一 owner。它们复用同一 AST/symbol assertion set，分别证明 canonical root/mediator 拓扑与 schema-validated owner boundary；不得另建 topology runner 或 type-safety runner。
+
+## 8. Production Confirmation Boundary
+
+这是一条所有现役和未来 Flow 共用的施工准入，不是新的 runtime、能力组或通用状态机。
+
+每个会观察外部状态并决定是否继续的生产步骤，只能由 owning Flow 写出一个五门终态：
+
+| 门 | 必须回答 | 失败终态 |
+| --- | --- | --- |
+| 正向门 | 当前目标的身份和所需状态是否全部存在 | `failed` / `review_required` |
+| 反向门 | 已知相邻假目标、错误、加载、过期、外来、冲突状态是否全部为零 | `failed` / `review_required` |
+| 唯一门 | 单目标动作是否恰好只剩一个候选 | `failed` / `review_required` |
+| 预算门 | 固定观察次数或截止时间是否尚未耗尽 | 耗尽即停止 |
+| 终态门 | 是否已经形成 confirmed / failed / review_required，而非中间猜测 | 禁止后续副作用 |
+
+固定建设顺序：
+
+```txt
+真实路径亲自走通
+-> 记录正向命中与反向排除
+-> 生产代码按同一结构和顺序跑通
+-> owner inspector 锁死结构
+-> acceptance 至少攻击相邻假目标、重复候选和预算耗尽
+-> 真实路径复验终态
+```
+
+全系统机器执法的共同底线是：任何导入 `BrowserTargetSession` 的生产文件不得存在无条件
+`while (true)`、`for (;;)` 或 `do ... while (true)` 观察循环。服务生命周期循环只能服从自己的
+shutdown 合同，不能借服务寿命给业务步骤提供无限观察预算。
+
+具体业务证据仍归具体 Flow owner。架构 owner 不建立第二份业务 registry；各业务 owner 的
+inspector 与 acceptance 分别锁定本业务的正向事实、反向排除项、唯一候选和预算耗尽负例。
+
+Amazon 发票上传是第一份样板：
+
+```txt
+文件选择确认
+  = 唯一当前订单上传组件
+  + 唯一同名 ready 文件项
+  - 异名项
+  - 重复同名项
+  - error / loading / processing / rejected 状态
+
+上传成功确认
+  = 唯一当前订单发票弹窗
+  + 唯一当前 invoice/order 编号行
+  + 已上传终态
+  - 读取失败 / 无可用操作 / 上传失败 / invalid / error
+  - 重复当前订单弹窗
+  - 重复当前编号行
+```
+
+上述任一条件不满足或预算耗尽，后续填写、提交或下一单启动都不得发生。禁止为了多找一点
+而增加无限滚动、无限搜索、fallback、bridge、shadow path 或第二浏览器链。

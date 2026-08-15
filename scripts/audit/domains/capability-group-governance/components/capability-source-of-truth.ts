@@ -28,7 +28,6 @@ const domPublicChildFunctionExports = new Set([
   "fillDomElementOnce",
   "clickDomElementOnce",
   "uploadApprovedFileOnce",
-  "waitForDomStateOnce",
   "verifyDomStateOnce",
 ]);
 

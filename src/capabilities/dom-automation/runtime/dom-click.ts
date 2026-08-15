@@ -12,9 +12,11 @@ import { assertDomTargetBinding } from "./dom-target-binding.js";
 
 const DANGEROUS_TEXT = /delete|refund|cancel|pay now|submit payment|remove/i;
 
-type ClickScriptResult = Pick<DomActionResult, "status" | "message">;
+type ClickObservation = Pick<DomActionResult, "status" | "message"> & {
+  point?: { x: number; y: number };
+};
 
-function buildClickScript(selector: string, expectedText: string | undefined): string {
+function buildClickObservationScript(selector: string, expectedText: string | undefined): string {
   return `
 const selector = ${JSON.stringify(selector)};
 const expectedText = ${JSON.stringify(expectedText ?? "")};
@@ -36,9 +38,10 @@ const rect = el.getBoundingClientRect();
 if (style.display === "none" || style.visibility === "hidden" || rect.width === 0 || rect.height === 0) return {status: "review_required", message: "element is hidden"};
 if (el.disabled || el.getAttribute("aria-disabled") === "true") return {status: "review_required", message: "element is disabled"};
 if (expectedText && !text.toLowerCase().includes(expectedText.toLowerCase())) return {status: "review_required", message: "expected text did not match"};
-el.scrollIntoView({block: "center", inline: "center"});
-el.click();
-return {status: "success", message: "clicked revalidated DOM element"};
+const x = rect.left + rect.width / 2;
+const y = rect.top + rect.height / 2;
+if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return {status: "review_required", message: "element is outside the visible viewport"};
+return {status: "success", message: "revalidated visible enabled DOM element", point: {x, y}};
 `;
 }
 
@@ -56,16 +59,28 @@ export async function clickDomElementOnce(
     );
   }
 
-  const result = await browser.evaluate<ClickScriptResult>({
-    description: "revalidate and click located visible enabled DOM element",
-    script: buildClickScript(elementRef.selector, input.expectedText),
+  const observed = await browser.evaluate<ClickObservation>({
+    description: "revalidate located visible enabled DOM element for exact-target click",
+    script: buildClickObservationScript(elementRef.selector, input.expectedText),
+  });
+  if (observed.status !== "success" || !observed.point) {
+    const evidenceRef = await captureDomEvidenceRef(browser, "dom-click-not-executed");
+    return evidenceRef
+      ? buildDomActionOutcome(observed, undefined, evidenceRef)
+      : buildDomFailureResult("non-action evidence capture failed");
+  }
+
+  const clicked = await browser.clickLocatedDomElement({
+    targetLabel: input.expectedText ?? input.expectedKind,
+    point: observed.point,
   });
   if (input.waitAfterMs && input.waitAfterMs > 0) {
     await browser.wait(input.waitAfterMs);
   }
   const afterEvidenceRef = await captureDomEvidenceRef(browser, "dom-click-after");
-  if (!afterEvidenceRef) {
-    return buildDomFailureResult("after-action evidence capture failed");
-  }
-  return buildDomActionOutcome(result, undefined, afterEvidenceRef);
+  if (!afterEvidenceRef) return buildDomFailureResult("after-action evidence capture failed");
+  return buildDomActionOutcome({
+    status: clicked.ok ? "success" : "failed",
+    message: clicked.ok ? "clicked revalidated DOM element through exact-target command" : clicked.message,
+  }, undefined, afterEvidenceRef);
 }

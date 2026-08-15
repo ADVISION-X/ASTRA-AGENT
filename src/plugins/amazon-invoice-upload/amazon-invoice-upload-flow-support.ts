@@ -5,7 +5,6 @@ import {
   readDomSnapshotOnce,
   uploadApprovedFileOnce,
   verifyDomStateOnce,
-  waitForDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
@@ -52,11 +51,6 @@ export const uploadFile = (
   browser: BrowserTargetSession,
   input: Parameters<typeof uploadApprovedFileOnce>[1],
 ) => uploadApprovedFileOnce(browser, input);
-
-export const waitForState = (
-  browser: BrowserTargetSession,
-  input: Parameters<typeof waitForDomStateOnce>[1],
-) => waitForDomStateOnce(browser, input);
 
 export function evidenceField(evidenceRef: string | undefined): { evidenceRef: string } | Record<string, never> {
   return evidenceRef ? { evidenceRef } : {};

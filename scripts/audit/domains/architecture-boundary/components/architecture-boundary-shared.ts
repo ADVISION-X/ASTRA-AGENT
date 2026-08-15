@@ -21,6 +21,7 @@ export type ArchitectureLawIds = {
   sharedLawId: string;
   plannerLawId: string;
   pluginStageLawId: string;
+  productionBoundaryLawId: string;
   intakeLawId: string;
   lawFirstChangeLawId: string;
 };
@@ -67,6 +68,7 @@ export const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry
   sharedLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-007-V1"),
   plannerLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-009-V1"),
   pluginStageLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-011-V1"),
+  productionBoundaryLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-012-V1"),
   intakeLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-008-V1"),
   lawFirstChangeLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-010-V1"),
 });

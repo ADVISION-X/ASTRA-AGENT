@@ -7,7 +7,7 @@ applyTo: "src/lib/browser/**, src/lib/local-runtime/**"
 # GrassEye Local Browser Session
 
 status: active
-version: 2026-08-14
+version: 2026-08-16
 
 Browser owns:
 - one operator-authorized local Chrome profile and one BrowserController instance;
@@ -76,6 +76,43 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
     {
       "clauseId": "apex-local-browser-001-requirement",
       "statement": "The unique BrowserController must bind ordinary page actions to opaque exact target and document identities without foreground focus.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "local-browser-session"
+    }
+  ]
+}
+```
+
+```apex-law
+{
+  "lawId": "APEX-LOCAL-BROWSER-004-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "local-browser-session",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "summary": "The unique Browser owner must convert the public function-body evaluation contract into one executable expression exactly once, while page mutations use dedicated exact-target commands.",
+  "required": [
+    "BrowserTargetSession.evaluate accepts a governed JavaScript function body and the exact-target Browser runtime wraps that body into one executable expression exactly once before transport.",
+    "The MV3 service worker executes the already-normalized expression and does not add another function, eval, Function constructor or caller-specific wrapper.",
+    "evaluate_target remains an observation command; click, scroll, text input and file input mutations use click_target, scroll_target, text_target and set_file_input_files against the same exact target and current document generation.",
+    "set_file_input_files resolves the one real enabled file receiver inside an open author shadow root when the governed light-DOM input is only a hidden component proxy, dispatches the approved file selection once, and never treats a later input.files read as component attachment truth because a consuming component may clear the receiver synchronously.",
+    "text_target type-text dispatches one ordered real keyboard event sequence per approved character and fill commits with Tab; Input.insertText is not an admitted replacement for component-observed keyboard input.",
+    "Deterministic acceptance proves top-level return works through the production wrapper, and real-Chrome acceptance proves evaluation and dedicated mutations affect only the controlled background target."
+  ],
+  "forbidden": [
+    "passing a raw function body directly to Runtime.evaluate",
+    "caller-local wrapping, private evaluators, eval or Function constructors",
+    "wrapping the expression again in the Native host or MV3 service worker",
+    "DOM click, scroll, fill or upload mutation hidden inside evaluate_target",
+    "reporting business file attachment success from the Browser command, the hidden proxy, or a later input.files read instead of an owner-observed component postcondition",
+    "using Input.insertText for governed component text entry",
+    "compatibility bridges, fallback evaluation modes or dual evaluation contracts"
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-browser-004-requirement",
+      "statement": "The unique Browser owner must normalize the function-body evaluation contract exactly once and keep page mutation on dedicated exact-target commands.",
       "evidenceMode": "real-chrome",
       "ownerDomain": "local-browser-session"
     }

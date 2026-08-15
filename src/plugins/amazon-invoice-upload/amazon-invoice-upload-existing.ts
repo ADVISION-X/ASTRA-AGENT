@@ -19,6 +19,7 @@ import {
 
 const existingInvoiceEvidencePollMs = 250;
 const INVOICE_DIALOG_READY_CONFIRMATION_COUNT = 2;
+const INVOICE_DIALOG_OBSERVATION_LIMIT = 240;
 const noAvailableActionsDialogDismissTimeoutMs = 2_000;
 const noAvailableActionsDialogText = "很抱歉，目前没有可用的操作。";
 const invoiceReadFailureDialogText = "读取失败";
@@ -26,6 +27,7 @@ const invoiceReadFailureDialogText = "读取失败";
 type ExistingInvoiceEvidenceWaitResult =
   | { kind: "confirmed"; evidenceRef: string }
   | { kind: "ready_for_upload" }
+  | { kind: "not_confirmed"; reason: string }
   | { kind: "read_failure"; failureText: string; snapshot: Awaited<ReturnType<typeof readSnapshot>> };
 
 type OutsideDialogClickResult =
@@ -69,6 +71,9 @@ export async function verifyAlreadyUploadedInvoice(
     });
   }
   if (firstWait.kind === "ready_for_upload") return null;
+  if (firstWait.kind === "not_confirmed") {
+    return existingInvoiceNeedsReview(mission, firstWait.reason);
+  }
 
   return recoverInvoiceReadFailure(browser, runtimeLogger, mission, abortSignal, firstWait);
 }
@@ -109,6 +114,9 @@ async function recoverInvoiceReadFailure(
     });
   }
   if (secondWait.kind === "ready_for_upload") return null;
+  if (secondWait.kind === "not_confirmed") {
+    return existingInvoiceNeedsReview(mission, secondWait.reason);
+  }
 
   return existingInvoiceNeedsReview(
     mission,
@@ -325,7 +333,7 @@ async function waitForExistingInvoiceEvidence(
   abortSignal: AbortSignal,
 ): Promise<ExistingInvoiceEvidenceWaitResult> {
   let readyConfirmationCount = 0;
-  while (true) {
+  for (let observation = 1; observation <= INVOICE_DIALOG_OBSERVATION_LIMIT; observation += 1) {
     throwIfAborted(abortSignal);
     const snapshot = await readExistingInvoiceSnapshot(browser, abortSignal);
     if (hasExistingInvoiceEvidence(snapshot, mission)) {
@@ -363,6 +371,10 @@ async function waitForExistingInvoiceEvidence(
     }
     await browser.wait(existingInvoiceEvidencePollMs, abortSignal);
   }
+  return {
+    kind: "not_confirmed",
+    reason: `Amazon current-order invoice dialog did not reach one unique uploaded row or one stable upload-ready state within ${INVOICE_DIALOG_OBSERVATION_LIMIT} bounded observations.`,
+  };
 }
 
 const readExistingInvoiceSnapshot = (browser: BrowserTargetSession, abortSignal: AbortSignal) =>

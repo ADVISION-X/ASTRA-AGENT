@@ -190,6 +190,23 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "APEX-DOM-021-V1",
+        "clauseId": "apex-dom-021-requirement",
+        "checkIds": [
+          "dom-automation/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
       }
     ]
   },

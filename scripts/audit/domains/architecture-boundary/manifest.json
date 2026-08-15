@@ -153,6 +153,23 @@
         ]
       },
       {
+        "lawId": "APEX-ARCH-012-V1",
+        "clauseId": "apex-arch-012-requirement",
+        "checkIds": [
+          "architecture-boundary/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ],
+        "primaryEvidence": {
+          "engine": "ast",
+          "sourceEvidenceIndex": 0
+        }
+      },
+      {
         "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
         "clauseId": "grasseye-code-topology-001-requirement",
         "checkIds": [
@@ -187,7 +204,8 @@
         "## 2. Owner 分工",
         "## 5. 禁止项",
         "## 6. 目录原则",
-        "## 7. Topology And Type Governance"
+        "## 7. Topology And Type Governance",
+        "## 8. Production Confirmation Boundary"
       ]
     }
   ],

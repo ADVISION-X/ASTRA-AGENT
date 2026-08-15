@@ -1,5 +1,4 @@
 import { existsSync } from "node:fs";
-
 import {
   Node,
   Project,
@@ -8,7 +7,6 @@ import {
   type ObjectLiteralExpression,
   type SourceFile,
 } from "ts-morph";
-
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
@@ -17,12 +15,13 @@ import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectAmazonInvoiceAmountGate } from "./inspector-amount-gate.js";
 import { inspectAmazonInvoiceBatchGuard } from "./inspector-batch.js";
 import { inspectDownloadFlow } from "./inspector-download-flow.js";
+import { inspectExactTargetTechnicalIntegrity } from "./inspector-exact-target-technical.js";
 import { inspectAmazonInvoiceUploadLedgerGuard } from "./inspector-ledger.js";
 import { inspectUploadRouteSanitizer } from "./inspector-upload-route-sanitizer.js";
 import { inspectUploadStabilityGuard } from "./inspector-upload-stability.js";
 
-const domain = "amazon-invoice-upload";
 const lawPath = ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md";
+const domain = "amazon-invoice-upload";
 const blueprintPath = "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md";
 const processPath = "docs/法案辅助文件/amazon_invoice_upload_process.md";
 const ownerRoot = "src/plugins/amazon-invoice-upload";
@@ -55,6 +54,7 @@ const appShellAmazonInvoiceWorkspacePath = "src/app/app-shell/amazon-invoice-wor
 const appShellClientPath = "src/app/workbench-home-client.ts";
 const selfPath = "scripts/audit/domains/amazon-invoice-upload/inspector.ts";
 const smokeAcceptanceSupportPath = "scripts/acceptance/amazon-invoice-upload-smoke-support.ts";
+const smokeBoundaryAcceptancePath = "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts";
 
 const inspectedFiles = [
   lawPath,
@@ -87,6 +87,7 @@ const inspectedFiles = [
   appShellLayoutPath,
   appShellAmazonInvoiceWorkspacePath,
   smokeAcceptanceSupportPath,
+  smokeBoundaryAcceptancePath,
   appShellClientPath,
   "src/app/workbench-home-amazon-invoice-client.ts",
   "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -95,6 +96,7 @@ const inspectedFiles = [
   "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+  "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
   "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
@@ -141,7 +143,6 @@ const requiredDownloadRoutes = [
 ] as const;
 
 type PropertyValue = string | boolean | null;
-
 const source = (project: Project, repoPath: string): SourceFile | null =>
   project.getSourceFile(resolveFromRepo(repoPath)) ?? null;
 
@@ -383,6 +384,7 @@ const selectAmazonInvoiceLawIds = (context: InspectorContext) => ({
     batchLedgerPreflight: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1"),
     apiFocusReturn: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1"),
     amountGate: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1"),
+    technicalIntegrity: selectLawId(context.planEntry.lawIds, "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1"),
 });
 
 type AmazonInvoiceLawIds = ReturnType<typeof selectAmazonInvoiceLawIds>;
@@ -451,6 +453,7 @@ const inspectAmazonInvoiceRuntimeContracts = (
     findings,
     lawId: lawIds.amountGate,
   });
+  inspectExactTargetTechnicalIntegrity(context, findings, lawIds.technicalIntegrity);
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {

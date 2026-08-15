@@ -26,7 +26,6 @@ export const requiredChildAbilities = [
   "fill-dom-element-once",
   "click-dom-element-once",
   "upload-approved-file-once",
-  "wait-for-dom-state-once",
   "verify-dom-state-once",
 ] as const;
 
@@ -36,7 +35,6 @@ export const requiredChildFunctionExports = [
   "fillDomElementOnce",
   "clickDomElementOnce",
   "uploadApprovedFileOnce",
-  "waitForDomStateOnce",
   "verifyDomStateOnce",
 ] as const;
 
@@ -73,6 +71,5 @@ export const requiredRuntimeFiles = [
   "src/capabilities/dom-automation/runtime/dom-fill.ts",
   "src/capabilities/dom-automation/runtime/dom-click.ts",
   "src/capabilities/dom-automation/runtime/dom-upload.ts",
-  "src/capabilities/dom-automation/runtime/dom-wait.ts",
   "src/capabilities/dom-automation/runtime/dom-verify.ts",
 ] as const;

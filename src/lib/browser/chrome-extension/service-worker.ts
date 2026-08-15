@@ -6,6 +6,7 @@ import {
   type BrowserWireMessage,
   type BrowserWireTargetDescriptor,
 } from "./protocol.js";
+import { commandFingerprint, executeCommand } from "./service-worker-command-execution.js";
 
 declare const chrome: {
   alarms: {
@@ -196,10 +197,96 @@ const keyCode = (key: string): { code: string; key: string; windowsVirtualKeyCod
   return { code: key, key, windowsVirtualKeyCode: known[key] ?? key.toUpperCase().charCodeAt(0) };
 };
 
+const typedCharacterKey = (character: string): { code: string; key: string; windowsVirtualKeyCode: number } => {
+  if (/^[a-z]$/i.test(character)) {
+    return { code: `Key${character.toUpperCase()}`, key: character, windowsVirtualKeyCode: character.toUpperCase().charCodeAt(0) };
+  }
+  if (/^[0-9]$/.test(character)) {
+    return { code: `Digit${character}`, key: character, windowsVirtualKeyCode: character.charCodeAt(0) };
+  }
+  if (character === "-") return { code: "Minus", key: character, windowsVirtualKeyCode: 189 };
+  if (character === " ") return { code: "Space", key: character, windowsVirtualKeyCode: 32 };
+  return { code: "Unidentified", key: character, windowsVirtualKeyCode: 0 };
+};
+
+const dispatchTypedCharacter = async (tabId: number, character: string): Promise<void> => {
+  const key = typedCharacterKey(character);
+  await chrome.debugger.sendCommand({ tabId }, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
+  await chrome.debugger.sendCommand({ tabId }, "Input.dispatchKeyEvent", {
+    type: "char",
+    ...key,
+    text: character,
+    unmodifiedText: character,
+  });
+  await chrome.debugger.sendCommand({ tabId }, "Input.dispatchKeyEvent", { type: "keyUp", ...key });
+};
+
 type PageCommand = Extract<BrowserWireCommand, { kind:
   | "navigate_target" | "evaluate_target" | "click_target" | "move_target" | "scroll_target" }>;
 type InteractionCommand = Extract<BrowserWireCommand, { kind:
   | "text_target" | "screenshot_target" | "set_file_input_files" | "focus_target" | "release_target" | "close_target" }>;
+
+const runClickPageCommand = async (
+  command: Extract<PageCommand, { kind: "click_target" }>,
+): Promise<unknown> => {
+  await ensureAttached(command.tabId);
+  if (command.button !== "left" || command.clickCount !== 1) {
+    throw new Error("BROWSER_COMMAND_FAILED:node-bound click supports one approved left click only");
+  }
+  const point = { x: Math.round(command.x), y: Math.round(command.y) };
+  if (!Number.isSafeInteger(point.x) || !Number.isSafeInteger(point.y)) {
+    throw new Error("BROWSER_COMMAND_FAILED:click point must normalize to finite integer coordinates");
+  }
+  const located = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId },
+    "DOM.getNodeForLocation",
+    { ...point, includeUserAgentShadowDOM: false, ignorePointerEventsNone: false },
+  ));
+  if (!Number.isInteger(located.backendNodeId)) {
+    throw new Error("TARGET_NOT_FOUND:click point did not resolve to a DOM node");
+  }
+  const resolved = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId },
+    "DOM.resolveNode",
+    { backendNodeId: located.backendNodeId },
+  ));
+  const objectId = asRecord(resolved.object).objectId;
+  if (typeof objectId !== "string" || !objectId) {
+    throw new Error("TARGET_NOT_FOUND:click DOM node did not resolve to a runtime object");
+  }
+  const clickResponse = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "Runtime.callFunctionOn", {
+    objectId,
+    functionDeclaration: "function(){ const owner=this.closest(\"button,a[href],input[type='button'],input[type='submit'],input[type='text'],[role='button'],kat-button\"); if(!owner)return {ok:false}; owner.focus(); owner.click(); return {ok:true}; }",
+    userGesture: true, awaitPromise: true, returnByValue: true,
+  }));
+  if (asRecord(asRecord(clickResponse.result).value).ok !== true) {
+    throw new Error("TARGET_NOT_FOUND:click point did not resolve to an interactive DOM owner");
+  }
+  return readDescriptor(command.tabId);
+};
+
+const runScrollPageCommand = async (
+  command: Extract<PageCommand, { kind: "scroll_target" }>,
+): Promise<unknown> => {
+  await ensureAttached(command.tabId);
+  const root = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId }, "DOM.getDocument", { depth: 0 },
+  ));
+  const rootNode = asRecord(root.root);
+  if (!Number.isInteger(rootNode.nodeId)) throw new Error("TARGET_NOT_FOUND:scroll document root is unavailable");
+  const resolved = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId }, "DOM.resolveNode", { nodeId: rootNode.nodeId },
+  ));
+  const objectId = asRecord(resolved.object).objectId;
+  if (typeof objectId !== "string" || !objectId) throw new Error("TARGET_NOT_FOUND:scroll document did not resolve");
+  await chrome.debugger.sendCommand({ tabId: command.tabId }, "Runtime.callFunctionOn", {
+    objectId,
+    functionDeclaration: "function(deltaX,deltaY){ const view=this.defaultView; const target=this.scrollingElement||this.documentElement; target.scrollBy(deltaX,deltaY); return {scrollX:view.scrollX,scrollY:view.scrollY}; }",
+    arguments: [{ value: command.deltaX }, { value: command.deltaY }],
+    userGesture: true, awaitPromise: true, returnByValue: true,
+  });
+  return readDescriptor(command.tabId);
+};
 
 const runPageCommand = async (command: PageCommand): Promise<unknown> => {
   if (command.kind === "navigate_target") {
@@ -209,23 +296,13 @@ const runPageCommand = async (command: PageCommand): Promise<unknown> => {
     return readDescriptor(command.tabId);
   }
   if (command.kind === "evaluate_target") return evaluate(command.tabId, command.expression);
-  if (command.kind === "click_target") {
-    await ensureAttached(command.tabId);
-    const button = command.button;
-    await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", { type: "mousePressed", x: command.x, y: command.y, button, clickCount: command.clickCount });
-    await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", { type: "mouseReleased", x: command.x, y: command.y, button, clickCount: command.clickCount });
-    return readDescriptor(command.tabId);
-  }
+  if (command.kind === "click_target") return runClickPageCommand(command);
   if (command.kind === "move_target") {
     await ensureAttached(command.tabId);
     await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", { type: "mouseMoved", x: command.x, y: command.y });
     return readDescriptor(command.tabId);
   }
-  if (command.kind === "scroll_target") {
-    await ensureAttached(command.tabId);
-    await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", { type: "mouseWheel", x: command.x, y: command.y, deltaX: command.deltaX, deltaY: command.deltaY });
-    return readDescriptor(command.tabId);
-  }
+  if (command.kind === "scroll_target") return runScrollPageCommand(command);
   throw new Error("UNKNOWN_COMMAND:unsupported page command");
 };
 
@@ -234,7 +311,9 @@ const runTextCommand = async (
 ): Promise<unknown> => {
   await ensureAttached(command.tabId);
   if (command.action === "type-text") {
-    await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.insertText", { text: command.text ?? "" });
+    for (const character of command.text ?? "") {
+      await dispatchTypedCharacter(command.tabId, character);
+    }
   } else if (command.action === "clear-input") {
     await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchKeyEvent", { type: "keyDown", key: "a", code: "KeyA", modifiers: 4 });
     await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA", modifiers: 4 });
@@ -254,9 +333,23 @@ const runFileInputCommand = async (
   await ensureAttached(command.tabId);
   const root = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.getDocument", { depth: 0 }));
   const rootNode = asRecord(root.root);
-  const node = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.querySelector", { nodeId: rootNode.nodeId, selector: command.selector }));
-  if (!Number.isInteger(node.nodeId) || node.nodeId === 0) throw new Error("TARGET_NOT_FOUND:file input selector did not resolve");
-  await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.setFileInputFiles", { nodeId: node.nodeId, files: [command.filePath] });
+  const proxyNode = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.querySelector", { nodeId: rootNode.nodeId, selector: command.selector }));
+  if (!Number.isInteger(proxyNode.nodeId) || proxyNode.nodeId === 0) throw new Error("TARGET_NOT_FOUND:file input selector did not resolve");
+  const proxyResolved = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.resolveNode", { nodeId: proxyNode.nodeId }));
+  const proxyObjectId = asRecord(proxyResolved.object).objectId;
+  if (typeof proxyObjectId !== "string" || !proxyObjectId) throw new Error("TARGET_NOT_FOUND:file input proxy did not resolve to a runtime object");
+  const receiverResponse = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "Runtime.callFunctionOn", {
+    objectId: proxyObjectId,
+    functionDeclaration: "function(){ if(!(this instanceof HTMLInputElement)||this.type!=='file'||this.disabled)return null; let ancestor=this.parentElement; while(ancestor){ if(ancestor.shadowRoot){ const receivers=Array.from(ancestor.shadowRoot.querySelectorAll(\"input[type='file']\")).filter((input)=>!input.disabled); return receivers.length===1?receivers[0]:null; } ancestor=ancestor.parentElement; } return this; }",
+    returnByValue: false,
+  }));
+  const receiverObjectId = asRecord(receiverResponse.result).objectId;
+  if (typeof receiverObjectId !== "string" || !receiverObjectId) {
+    throw new Error("TARGET_NOT_FOUND:file input did not resolve to one enabled real receiver");
+  }
+  const receiverNode = asRecord(await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.requestNode", { objectId: receiverObjectId }));
+  if (!Number.isInteger(receiverNode.nodeId) || receiverNode.nodeId === 0) throw new Error("TARGET_NOT_FOUND:real file receiver did not resolve to a DOM node");
+  await chrome.debugger.sendCommand({ tabId: command.tabId }, "DOM.setFileInputFiles", { nodeId: receiverNode.nodeId, files: [command.filePath] });
   return readDescriptor(command.tabId);
 };
 
@@ -293,57 +386,6 @@ const runCommand = async (
     return runPageCommand(command as PageCommand);
   }
   return runInteractionCommand(command as InteractionCommand);
-};
-
-const errorCode = (error: unknown): string => {
-  const message = error instanceof Error ? error.message : String(error);
-  const prefix = message.split(":", 1)[0] ?? "BROWSER_COMMAND_FAILED";
-  return /^[A-Z][A-Z0-9_]+$/u.test(prefix) ? prefix : "BROWSER_COMMAND_FAILED";
-};
-
-const commandFingerprint = (
-  message: Extract<BrowserWireMessage, { type: "command" }>,
-): string => JSON.stringify({
-  command: message.command,
-  expectedLoaderId: message.expectedLoaderId ?? null,
-  mutationClass: message.mutationClass,
-});
-
-const executeCommand = async (
-  message: Extract<BrowserWireMessage, { type: "command" }>,
-): Promise<Extract<BrowserWireMessage, { type: "response" }>> => {
-  if (Date.now() > message.deadlineAt) {
-    return {
-      protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
-      type: "response",
-      commandId: message.commandId,
-      sequence: message.sequence,
-      ok: false,
-      errorCode: "COMMAND_TIMEOUT",
-      errorMessage: "command deadline elapsed before execution",
-    };
-  }
-  try {
-    const result = await runCommand(message.command, message.expectedLoaderId);
-    return {
-      protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
-      type: "response",
-      commandId: message.commandId,
-      sequence: message.sequence,
-      ok: true,
-      result,
-    };
-  } catch (error) {
-    return {
-      protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
-      type: "response",
-      commandId: message.commandId,
-      sequence: message.sequence,
-      ok: false,
-      errorCode: errorCode(error),
-      errorMessage: error instanceof Error ? error.message : String(error),
-    };
-  }
 };
 
 const trimCommandReceipts = (): void => {
@@ -402,7 +444,7 @@ const handleMessage = async (message: unknown): Promise<void> => {
   const receipt: CommandReceipt = {
     fingerprint,
     sequence: message.sequence,
-    completion: executeCommand(message),
+    completion: executeCommand(message, runCommand),
     response: null,
   };
   commandReceipts.set(message.commandId, receipt);

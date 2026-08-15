@@ -23,6 +23,7 @@ import {
   createSmokeFixturePaths,
 } from "./amazon-invoice-upload-smoke-support.js";
 import { verifyAlreadyUploadedInvoice } from "../../src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.js";
+import { assertPositiveAndNegativeConfirmationBoundary } from "./amazon-invoice-upload-smoke-boundary.js";
 
 const assertSmokeResult = (result: Awaited<ReturnType<typeof runAmazonInvoiceUpload>>): void => {
   if (result.status === "upload_success" && result.reachedStep === "upload success verified") {
@@ -41,7 +42,8 @@ async function main(): Promise<void> {
   const runtimeLogger = createRuntimeLogger({ terminalEnabled: false, fileSink: { bundlePath: runtimeLogPath } });
 
   try {
-    await runPrimaryUploadSmoke(browser, runtimeLogger, fixture, runtimeLogPath);
+    await runPrimaryUploadSmoke(browser, page, runtimeLogger, fixture, runtimeLogPath);
+    assertPositiveAndNegativeConfirmationBoundary();
     await runUploadRecoveryScenarios(runtimeLogger);
     process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success with retained tab lifecycle\n");
   } finally {
@@ -51,6 +53,7 @@ async function main(): Promise<void> {
 
 async function runPrimaryUploadSmoke(
   browser: AmazonSmokeBrowserAdapter,
+  page: import("playwright").Page,
   runtimeLogger: ReturnType<typeof createRuntimeLogger>,
   fixture: ReturnType<typeof createSmokeFixturePaths>,
   runtimeLogPath: string,
@@ -66,18 +69,22 @@ async function runPrimaryUploadSmoke(
   }, executionContext(fixture.tmp, runtimeLogger, "INV-1"));
   assertSmokeResult(result);
   assertNavigationProofAndLogs(result, fixture.tmp, runtimeLogPath, executionId);
-  assertPrimaryBrowserContract(browser);
+  await assertPrimaryBrowserContract(browser, page);
   assertBackendPdfTextAmountReadable();
   assertSplitSellerCentralOrderTotalReadable();
   assertLongSellerCentralOrderTotalReadable();
 }
 
-function assertPrimaryBrowserContract(browser: AmazonSmokeBrowserAdapter): void {
+async function assertPrimaryBrowserContract(browser: AmazonSmokeBrowserAdapter, page: import("playwright").Page): Promise<void> {
   if (browser.closeTargetCalls !== 0) {
     throw new Error(`Amazon invoice smoke must retain the order tab; closeTargetCalls=${browser.closeTargetCalls}`);
   }
   if (!browser.openReusePolicies.includes("reuse-exact-url")) {
     throw new Error("Amazon invoice smoke must bind the order-detail owner to the exact target URL.");
+  }
+  const uploadInvoiceClickCount = await page.evaluate(() => Number((window as typeof window & { uploadInvoiceClickCount?: number }).uploadInvoiceClickCount ?? 0));
+  if (uploadInvoiceClickCount !== 1) {
+    throw new Error(`A delayed current-order upload dialog must suppress retry clicks on the covered page entry; clicks=${uploadInvoiceClickCount}.`);
   }
   if (browser.duplicateOrderDetailOpenCount !== 0 || browser.fileUrlOpenCount !== 1) {
     throw new Error(`Amazon invoice smoke must open the order detail exactly once; opens=${browser.fileUrlOpenCount}, duplicates=${browser.duplicateOrderDetailOpenCount}`);

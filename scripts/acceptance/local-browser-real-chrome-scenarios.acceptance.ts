@@ -11,9 +11,13 @@ import { CurrentChromeBrowserController } from "../../src/lib/browser/current-ch
 import { createLocalBrowserSessionConfig } from "../../src/lib/browser/local-browser-session.js";
 
 const execFileAsync = promisify(execFile);
-const scenario = process.argv[process.argv.indexOf("--scenario") + 1] ?? null;
-const pluginWorkOrder = process.argv[process.argv.indexOf("--plugin-work-order") + 1] ?? null;
-const supported = new Set(["ACC-023B-01", "ACC-023B-02", "ACC-023B-03", "ACC-023B-04", "ACC-023B-05"]);
+const argumentValue = (name: string): string | null => {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] ?? null : null;
+};
+const scenario = argumentValue("--scenario");
+const pluginWorkOrder = argumentValue("--plugin-work-order");
+const supported = new Set(Array.from({ length: 10 }, (_, index) => `ACC-023B-${String(index + 1).padStart(2, "0")}`));
 
 if (pluginWorkOrder) {
   process.stderr.write(`${JSON.stringify({
@@ -35,9 +39,35 @@ if (!scenario || !supported.has(scenario)) {
 const runRoot = await mkdtemp(path.join(tmpdir(), "grasseye-exact-target-real-"));
 const marker = randomUUID();
 const page = (name: string) => `<!doctype html><meta charset="utf-8"><title>${name}</title>
-<style>body{min-height:2400px}#action{margin-top:700px}</style>
-<h1 id="marker">${name}:${marker}</h1><input id="field"><input id="file" type="file">
-<button id="action" onclick="this.dataset.clicked='yes'">action</button>`;
+<style>
+body{min-height:2400px}
+#action-owner{display:inline-block;height:32px;margin-top:700px;position:relative;width:120px}
+#action{height:32px;inset:0;opacity:.01;position:absolute;width:120px;z-index:20}
+</style>
+<h1 id="marker">${name}:${marker}</h1><input id="field">
+<kat-file-upload id="file-owner"><span><input id="file" type="file" hidden></span></kat-file-upload>
+<span id="action-owner"><input id="action" type="submit" value="action" onclick="this.dataset.clicked='yes'"><span>action</span></span>
+<script>
+customElements.define("kat-file-upload", class extends HTMLElement {
+  connectedCallback() {
+    if (this.shadowRoot) return;
+    const root = this.attachShadow({mode:"open"});
+    root.innerHTML = '<input id="kat-file-attachment" type="file">';
+    root.querySelector("input").addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      if (file?.name !== "approved-nine.txt") return;
+      const item = document.createElement("kat-file-item");
+      item.setAttribute("name", file.name);
+      item.setAttribute("file-status", "ready");
+      root.appendChild(item);
+      event.target.value = "";
+    });
+  }
+});
+document.querySelector("#field").addEventListener("change", (event) => {
+  event.target.dataset.committed = event.target.value;
+});
+</script>`;
 const server = createServer((request, response) => {
   response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
   response.end(page(request.url === "/b" ? "B" : "A"));
@@ -55,7 +85,7 @@ let a: ReturnType<typeof browser.createTargetSession> | null = null;
 let b: ReturnType<typeof browser.createTargetSession> | null = null;
 
 const waitForTransport = async (): Promise<void> => {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     if (browser.getHealth().ok) return;
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
@@ -73,6 +103,15 @@ const targetOf = (session: ReturnType<typeof browser.createTargetSession>) => {
   if (!target) throw new Error("NOT_PRODUCTION_VERIFIED: exact target identity is unavailable");
   return target;
 };
+const pointOf = (session: ReturnType<typeof browser.createTargetSession>, selector: string) =>
+  readState<{ x: number; y: number }>(session, `(() => { const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; })()`);
+const stage = async <T>(name: string, action: () => Promise<T>): Promise<T> => {
+  try {
+    return await action();
+  } catch (error) {
+    throw new Error(`${name}:${error instanceof Error ? error.message : String(error)}`);
+  }
+};
 
 try {
   await waitForTransport();
@@ -85,11 +124,11 @@ try {
 
   if (scenario === "ACC-023B-01") {
     const beforeB = await readState<string>(b, "JSON.stringify({value:document.querySelector('#field').value,scrollY,clicked:document.querySelector('#action').dataset.clicked||null})");
-    await a.evaluate({ description: "focus exact target fixture input", script: "document.querySelector('#field').focus(); return true;" });
+    await a.clickLocatedDomElement({ targetLabel: "fixture A field", point: await pointOf(a, "#field") });
     await a.textInput({ targetLabel: "fixture A field", action: "type-text", text: "A_ONLY" });
-    await a.scroll({ targetLabel: "fixture A", deltaX: 0, deltaY: 500 });
-    const point = await readState<{ x: number; y: number }>(a, "(() => { const r=document.querySelector('#action').getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; })() ");
-    await a.click({ targetLabel: "fixture A action", point });
+    await stage("scenario01-scroll", () => a!.scroll({ targetLabel: "fixture A", deltaX: 0, deltaY: 500 }));
+    const point = await pointOf(a, "#action");
+    await stage("scenario01-click", () => a!.click({ targetLabel: "fixture A action", point }));
     await a.screenshotRegion({ regionLabel: "exact-target-a" });
     assert.equal(await readState<string>(a, "document.querySelector('#field').value"), "A_ONLY");
     assert.equal(await readState<string>(a, "document.querySelector('#action').dataset.clicked"), "yes");
@@ -118,7 +157,52 @@ try {
   }
   if (scenario === "ACC-023B-05") {
     await browser.close();
-    await assert.rejects(() => a!.evaluate({ description: "closed controller must fail", script: "return true;" }), /DISCONNECTED|not connected|closed|ECONN/u);
+    await assert.rejects(() => a!.evaluate({ description: "closed controller must fail", script: "return true;" }), /DISCONNECTED|not connected|closed|ECONN|TARGET_CLOSED/u);
+  }
+  if (scenario === "ACC-023B-06") {
+    const beforeB = await readState<string>(b, "JSON.stringify({url:location.href,title:document.title,value:document.querySelector('#field').value,scrollY})");
+    const value = await a.evaluate<{ answer: number; marker: string }>({
+      description: "execute governed top-level return function body",
+      script: "const left = 19; const right = 23; return {answer:left + right, marker:document.querySelector('#marker').textContent};",
+    });
+    assert.equal(value.answer, 42);
+    assert.match(value.marker, /^A:/u);
+    assert.equal(await readState<string>(b, "JSON.stringify({url:location.href,title:document.title,value:document.querySelector('#field').value,scrollY})"), beforeB);
+  }
+  if (scenario === "ACC-023B-07") {
+    const beforeB = await readState<string>(b, "JSON.stringify({clicked:document.querySelector('#action').dataset.clicked||null,scrollY})");
+    const actionPoint = await pointOf(a, "#action");
+    assert.equal(await readState<string>(a, `document.elementFromPoint(${actionPoint.x},${actionPoint.y})?.id`), "action");
+    await stage("scenario07-click", async () => a!.clickLocatedDomElement({ targetLabel: "fixture A dedicated click", point: actionPoint }));
+    assert.equal(await readState<string>(a, "document.querySelector('#action').dataset.clicked"), "yes");
+    assert.equal(await readState<string>(b, "JSON.stringify({clicked:document.querySelector('#action').dataset.clicked||null,scrollY})"), beforeB);
+  }
+  if (scenario === "ACC-023B-08") {
+    const beforeB = await readState<string>(b, "document.querySelector('#field').value");
+    await a.clickLocatedDomElement({ targetLabel: "fixture A dedicated fill", point: await pointOf(a, "#field") });
+    await a.textInput({ targetLabel: "fixture A dedicated fill", action: "clear-input" });
+    await a.textInput({ targetLabel: "fixture A dedicated fill", action: "type-text", text: "DEDICATED_TEXT_TARGET" });
+    await a.textInput({ targetLabel: "fixture A dedicated fill", action: "press-key", key: "Tab" });
+    assert.equal(await readState<string>(a, "document.querySelector('#field').value"), "DEDICATED_TEXT_TARGET");
+    assert.equal(await readState<string>(a, "document.querySelector('#field').dataset.committed"), "DEDICATED_TEXT_TARGET");
+    assert.equal(await readState<string>(b, "document.querySelector('#field').value"), beforeB);
+  }
+  if (scenario === "ACC-023B-09") {
+    const approved = path.join(runRoot, "approved-nine.txt");
+    await writeFile(approved, "scenario nine\n");
+    await a.setFileInputFiles({ elementRef: { selector: "#file", targetKind: "file-input" }, filePath: approved, description: "scenario nine exact-target file input" });
+    assert.deepEqual(await readState<{ name: string; status: string; count: number; proxyCount: number }>(a, "({name:document.querySelector('#file-owner').shadowRoot.querySelector('kat-file-item').getAttribute('name'),status:document.querySelector('#file-owner').shadowRoot.querySelector('kat-file-item').getAttribute('file-status'),count:document.querySelector('#file-owner').shadowRoot.querySelector('#kat-file-attachment').files.length,proxyCount:document.querySelector('#file').files.length})"), { name: "approved-nine.txt", status: "ready", count: 0, proxyCount: 0 });
+    assert.equal(await readState<number>(b, "document.querySelector('#file-owner').shadowRoot.querySelector('#kat-file-attachment').files.length"), 0);
+    assert.equal(await frontmostApp(), frontBefore);
+  }
+  if (scenario === "ACC-023B-10") {
+    const beforeB = await readState<string>(b, "JSON.stringify({url:location.href,title:document.title,value:document.querySelector('#field').value})");
+    await assert.rejects(
+      () => a!.evaluate({ description: "governed evaluation exception", script: "throw new Error('CONTROLLED_EVALUATION_FAILURE');" }),
+      /CONTROLLED_EVALUATION_FAILURE/u,
+    );
+    assert.equal(await readState<string>(b, "JSON.stringify({url:location.href,title:document.title,value:document.querySelector('#field').value})"), beforeB);
+    assert.equal(await a.evaluate<number>({ description: "session remains exact after observed failure", script: "return 42;" }), 42);
   }
   process.stdout.write(`${JSON.stringify({ status: "CHROME_VERIFIED", scenario, candidate: "working-tree", marker, frontBefore, frontAfter: await frontmostApp() })}\n`);
 } catch (error) {
@@ -128,6 +212,7 @@ try {
   await a?.closeTarget({ reason: "real Chrome acceptance cleanup A" }).catch(() => undefined);
   await b?.closeTarget({ reason: "real Chrome acceptance cleanup B" }).catch(() => undefined);
   await browser.close().catch(() => undefined);
+  server.closeAllConnections();
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await rm(runRoot, { force: true, recursive: true });
 }

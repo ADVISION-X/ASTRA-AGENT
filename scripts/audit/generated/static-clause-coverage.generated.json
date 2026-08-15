@@ -1,21 +1,24 @@
 {
-  "generatedAt": "2026-08-15T04:41:58.303Z",
+  "generatedAt": "2026-08-15T21:53:30.672Z",
   "summary": {
-    "activeLawCount": 234,
-    "activeClauseCount": 235,
-    "boundClauseCount": 235,
-    "machineClauseCount": 226,
-    "executedMachineClauseCount": 226,
-    "deferredRealChromeClauseCount": 9,
+    "activeLawCount": 238,
+    "activeClauseCount": 239,
+    "boundClauseCount": 239,
+    "machineClauseCount": 227,
+    "executedMachineClauseCount": 227,
+    "deferredRealChromeClauseCount": 12,
     "realChromeClauseIds": [
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1::grasseye-amazon-invoice-upload-010-requirement",
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1::grasseye-amazon-invoice-upload-011-requirement",
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1::grasseye-amazon-invoice-upload-014-requirement",
+      "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1::grasseye-amazon-invoice-upload-016-requirement",
       "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1::grasseye-app-shell-ui-physical-cleanup-001-requirement",
       "GRASSEYE-DEEP-RESEARCH-059-V1::grasseye-deep-research-059-requirement",
       "APEX-DOM-020-V1::apex-dom-020-requirement",
+      "APEX-DOM-021-V1::apex-dom-021-requirement",
       "APEX-LOCAL-BROWSER-001-V1::apex-local-browser-001-requirement",
       "APEX-LOCAL-BROWSER-003-V1::apex-local-browser-003-requirement",
+      "APEX-LOCAL-BROWSER-004-V1::apex-local-browser-004-requirement",
       "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5::grasseye-xuanxue-ai-production-001-v5-real-chrome-proof"
     ],
     "uncoveredMachineClauseIds": [],
@@ -384,6 +387,23 @@
       "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
       "capabilityDomain": "amazon-invoice-upload",
       "evidenceMode": "acceptance",
+      "ownerInspectorPath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+      "checkIds": [
+        "amazon-invoice-upload/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/amazon-invoice-upload/manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
+      "capabilityDomain": "amazon-invoice-upload",
+      "evidenceMode": "real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
       "checkIds": [
         "amazon-invoice-upload/owner-assertion-set"
@@ -1095,6 +1115,27 @@
           "symbolName": "inspectDomain"
         }
       ],
+      "manifestPath": "scripts/audit/domains/architecture-boundary/manifest.json"
+    },
+    {
+      "lawId": "APEX-ARCH-012-V1",
+      "clauseId": "apex-arch-012-requirement",
+      "capabilityDomain": "architecture-boundary",
+      "evidenceMode": "acceptance",
+      "ownerInspectorPath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+      "checkIds": [
+        "architecture-boundary/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "primaryEvidence": {
+        "engine": "ast",
+        "sourceEvidenceIndex": 0
+      },
       "manifestPath": "scripts/audit/domains/architecture-boundary/manifest.json"
     },
     {
@@ -2692,6 +2733,27 @@
       "manifestPath": "scripts/audit/domains/dom-automation/manifest.json"
     },
     {
+      "lawId": "APEX-DOM-021-V1",
+      "clauseId": "apex-dom-021-requirement",
+      "capabilityDomain": "dom-automation",
+      "evidenceMode": "real-chrome",
+      "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
+      "checkIds": [
+        "dom-automation/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "primaryEvidence": {
+        "engine": "ast",
+        "sourceEvidenceIndex": 0
+      },
+      "manifestPath": "scripts/audit/domains/dom-automation/manifest.json"
+    },
+    {
       "lawId": "GRASSEYE-EVIDENCE-001-V2",
       "clauseId": "grasseye-evidence-001-v2-requirement",
       "capabilityDomain": "forensics-persistence-capability",
@@ -2864,6 +2926,23 @@
     {
       "lawId": "APEX-LOCAL-BROWSER-003-V1",
       "clauseId": "apex-local-browser-003-requirement",
+      "capabilityDomain": "local-browser-session",
+      "evidenceMode": "real-chrome",
+      "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
+      "checkIds": [
+        "local-browser-session/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",

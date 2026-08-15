@@ -426,6 +426,77 @@ Flow 禁止：
 
 ---
 
+```md
+## [APEX-ARCH-012-V1] 生产确认必须同时证明是与不是
+
+```apex-law
+{
+  "lawId": "APEX-ARCH-012-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "architecture-boundary",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+dynamic",
+  "summary": "Every production stage must confirm the intended identity and state, exclude named adjacent false states, require uniqueness, and terminate at an explicit observation boundary.",
+  "appliesTo": [
+    "src/plugins/**/*.{ts,tsx}",
+    "src/capabilities/**/*.{ts,tsx}",
+    "src/lib/browser/**/*.{ts,tsx}",
+    "scripts/acceptance/**/*.{ts,tsx}"
+  ],
+  "required": [
+    "The owning flow defines positive identity and state facts before a later side effect.",
+    "The same boundary excludes named adjacent false targets, conflicting states, loading states, error states, stale states, foreign states and duplicate candidates.",
+    "A single-object action requires exactly one candidate.",
+    "Every observation, search, retry and scroll stage has an explicit maximum count or deadline.",
+    "Ambiguity, conflict or budget exhaustion fails closed without executing a later side effect.",
+    "Browser and external-platform construction first records a personally traversed real-path inclusion and exclusion contract, then proves the production code through the same ordered path."
+  ],
+  "forbidden": [
+    "Success inferred from one positive text while a conflicting state remains possible.",
+    "Selector or label match without owner-defined negative exclusions.",
+    "Zero or multiple candidates treated as one target.",
+    "Unconditional browser observation, search, retry or scroll loop.",
+    "Continuing to scroll, search, retry, guess or enter a fallback after the bounded terminal is exhausted.",
+    "Generic confirmation engine, compatibility bridge, shadow path or second chain."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-arch-012-requirement",
+      "statement": "Every production stage must prove positive identity and state, named negative exclusions, uniqueness and a bounded terminal before later side effects.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "architecture-boundary"
+    }
+  ]
+}
+```
+
+### 法条
+
+这条法案治理的是“判断边界”，不增加业务内容。
+
+每个拥有业务步骤的 Flow 必须在执行下一步前同时回答：
+
+```txt
+为什么确认就是当前目标？
+哪些最容易混淆的相邻目标已经被排除？
+候选是否恰好一个？
+最多观察多少次或多久？
+到界仍不明确时如何停止？
+```
+
+浏览器、DOM、provider、文件、进程或生成结果的观察不能只凭一个正向词命中。
+正向证据与反向证据冲突、候选不是一个、页面仍在加载、目标过期或观察预算耗尽时，
+必须进入 `failed` 或 `review_required`，后续副作用不得发生。
+
+Inspector 必须使用 AST/symbol 识别依赖 `BrowserTargetSession` 的生产文件中的无条件
+`while (true)` / `for (;;)` / `do ... while (true)` 观察风险。具体业务 owner 的 inspector 与
+acceptance 继续负责证明该业务的正向事实、反向排除项、唯一候选和预算耗尽负例。
+
+````
+
+---
+
 ## 4. 能力组稳定边界
 
 ```md

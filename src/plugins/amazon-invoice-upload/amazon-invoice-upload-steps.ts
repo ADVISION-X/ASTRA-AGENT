@@ -46,6 +46,17 @@ export async function openUploadInvoiceEntry(
   await browser.wait(50);
   const snapshot = await readSnapshot(browser);
   traceUploadInvoiceEntrySnapshot(runtimeLogger, mission, snapshot);
+  if (snapshotHasCurrentUploadDialog(snapshot, mission.amazonOrderId)) {
+    recordAmazonDomStepTrace({
+      runtimeLogger,
+      mission,
+      stepName: "reuse current upload dialog",
+      status: "success",
+      snapshot,
+      reason: "The current order upload dialog is already open; do not click the covered page entry again.",
+    });
+    return stepSuccess(undefined);
+  }
   const uploadEntry = locateUploadInvoiceButton(snapshot);
   if (!uploadEntry.ok) return uploadInvoiceEntryFailure(runtimeLogger, mission, snapshot, uploadEntry);
   traceUploadInvoiceEntryLocated(runtimeLogger, mission, snapshot, uploadEntry.element);
@@ -174,7 +185,7 @@ async function waitForUploadDialog(
   while (Date.now() - startedAt < UPLOAD_DIALOG_READY_TIMEOUT_MS) {
     const snapshot = await readSnapshot(browser);
     lastSnapshot = snapshot;
-    if (snapshot.fileInputs.length > 0 || snapshotHasUploadDialogCopy(snapshot)) {
+    if (snapshotHasCurrentUploadDialog(snapshot, mission.amazonOrderId)) {
       recordAmazonDomStepTrace({
         runtimeLogger,
         mission,
@@ -200,17 +211,17 @@ async function waitForUploadDialog(
   return false;
 }
 
-function snapshotHasUploadDialogCopy(snapshot: Awaited<ReturnType<typeof readSnapshot>>): boolean {
-  const dialogText = [
-    ...snapshot.dialogs,
-    ...snapshot.textBlocks,
-    ...snapshot.buttons,
-    ...snapshot.genericClickableElements,
-  ].map((item) =>
-    `${item.visibleText ?? ""} ${item.ariaLabel ?? ""} ${item.nearbyText ?? ""}`,
-  ).join(" ").toLowerCase();
-  return ["请上传", "请上传您的发票或贷记单", "choose file", "select file", "please upload your invoice or credit note", "select file type", "upload invoice", "invoice file"].some((hint) =>
-    dialogText.includes(hint));
+function snapshotHasCurrentUploadDialog(
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
+  amazonOrderId: string,
+): boolean {
+  const currentDialog = snapshot.dialogs.find((dialog) => {
+    if (dialog.hidden) return false;
+    const text = `${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""} ${dialog.nearbyText ?? ""}`.toLowerCase();
+    return text.includes(amazonOrderId.toLowerCase())
+      && ["请上传", "上传发票", "upload invoice", "upload your invoice", "invoice or credit note"].some((hint) => text.includes(hint));
+  });
+  return currentDialog !== undefined && snapshot.fileInputs.some((fileInput) => fileInput.disabled !== true);
 }
 
 export const normalizeSubmitFailure = (

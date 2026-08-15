@@ -22,6 +22,7 @@ const ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT = 8;
 type OrderDetailWaitResult =
   | { status: "ready" }
   | { status: "blocked"; result: AmazonInvoiceUploadTaskResult }
+  | { status: "technical_failure"; result: AmazonInvoiceUploadTaskResult }
   | { status: "not_ready"; reason: string };
 
 type NavigationOutcomeInput = {
@@ -67,6 +68,7 @@ export async function openApprovedOrderDetail(
     const readiness = await waitForApprovedOrderDetail(browser, runtimeLogger, mission, execution, window);
     if (readiness.status === "ready") return { ok: true, proof };
     if (readiness.status === "blocked") return { ok: false, failure: withNavigationProof(readiness.result, proof, execution.runtimeLogRef) };
+    if (readiness.status === "technical_failure") return { ok: false, failure: withNavigationProof(readiness.result, proof, execution.runtimeLogRef) };
     lastReason = readiness.reason;
     if (window < ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT) {
       recordAmazonDomStepTrace({
@@ -331,6 +333,63 @@ const snapshotIsLoading = (snapshot: DomSnapshot): boolean =>
   [...snapshot.textBlocks.map((item) => item.visibleText), ...snapshot.dialogs.map((item) => item.visibleText)]
     .some((value) => String(value ?? "").includes("正在加载"));
 
+type OrderDetailObservation =
+  | Exclude<OrderDetailWaitResult, { status: "not_ready" }>
+  | { status: "pending"; reason: string };
+
+const recordOrderObservation = (input: {
+  runtimeLogger: RuntimeLogger;
+  mission: AmazonInvoiceUploadMissionInput;
+  execution: AmazonInvoiceUploadExecutionContext;
+  stepName: string;
+  traceStartedAtMs: number;
+  status: "failed" | "review_required" | "success";
+  reason: string;
+  snapshot?: DomSnapshot;
+}): void => recordAmazonDomStepTrace({
+  runtimeLogger: input.runtimeLogger,
+  mission: input.mission,
+  stepName: input.stepName,
+  status: input.status,
+  reason: input.reason,
+  ...(input.snapshot ? { snapshot: input.snapshot } : {}),
+  startedAtMs: input.traceStartedAtMs,
+  startedAlready: true,
+  traceId: input.execution.executionId,
+  ...(input.execution.taskId ? { taskId: input.execution.taskId } : {}),
+  runtimeLogRef: input.execution.runtimeLogRef,
+});
+
+const observeOrderDetailOnce = async (input: {
+  browser: BrowserTargetSession;
+  runtimeLogger: RuntimeLogger;
+  mission: AmazonInvoiceUploadMissionInput;
+  execution: AmazonInvoiceUploadExecutionContext;
+  stepName: string;
+  traceStartedAtMs: number;
+  snapshotBudgetMs: number;
+}): Promise<OrderDetailObservation> => {
+  let snapshot: DomSnapshot;
+  try {
+    snapshot = await readSnapshot(input.browser, { timeoutMs: input.snapshotBudgetMs }, input.execution.abortSignal);
+  } catch (error) {
+    const reason = `Order detail DOM observation failed within the 2-second window: ${error instanceof Error ? error.message : String(error)}`;
+    recordOrderObservation({ ...input, status: "failed", reason });
+    return { status: "technical_failure", result: buildOrderDetailTechnicalFailureResult(input.mission, reason) };
+  }
+  const gate = gatedResult(snapshot, input.mission, input.stepName);
+  if (gate) {
+    recordOrderObservation({ ...input, status: "review_required", snapshot, reason: gate.reason });
+    return { status: "blocked", result: gate };
+  }
+  if (snapshotContainsApprovedOrder(snapshot, input.mission.amazonOrderId)
+    && snapshotHasInvoiceActionState(snapshot) && !snapshotIsLoading(snapshot)) {
+    recordOrderObservation({ ...input, status: "success", snapshot, reason: "Order detail showed the requested order id and invoice action state." });
+    return { status: "ready" };
+  }
+  return { status: "pending", reason: orderDetailReadinessFailureReason(snapshot, input.mission.amazonOrderId) };
+};
+
 const waitForApprovedOrderDetail = async (
   browser: BrowserTargetSession,
   runtimeLogger: RuntimeLogger,
@@ -351,57 +410,21 @@ const waitForApprovedOrderDetail = async (
   const windowDeadlineMs = startedAt + ORDER_DETAIL_READY_TIMEOUT_MS;
   let lastReason = "Order detail page did not show the requested order id and invoice action state.";
   while (Date.now() < windowDeadlineMs) {
-    let snapshot: DomSnapshot;
-    try {
-      snapshot = await readSnapshot(browser, {
-        timeoutMs: Math.max(1, windowDeadlineMs - Date.now()),
-      }, execution.abortSignal);
-    } catch (error) {
-      lastReason = `Order detail DOM observation failed within the 2-second window: ${error instanceof Error ? error.message : String(error)}`;
-      break;
-    }
-    const gate = gatedResult(snapshot, mission, stepName);
-    if (gate) {
-      recordAmazonDomStepTrace({ runtimeLogger, mission, stepName, status: "review_required", snapshot, reason: gate.reason, startedAtMs: traceStartedAtMs, startedAlready: true, traceId: execution.executionId, ...(execution.taskId ? { taskId: execution.taskId } : {}), runtimeLogRef: execution.runtimeLogRef });
-      return { status: "blocked", result: gate };
-    }
-    if (
-      snapshotContainsApprovedOrder(snapshot, mission.amazonOrderId)
-      && snapshotHasInvoiceActionState(snapshot)
-      && !snapshotIsLoading(snapshot)
-    ) {
-      recordAmazonDomStepTrace({
-        runtimeLogger,
-        mission,
-        stepName,
-        status: "success",
-        snapshot,
-        reason: "Order detail showed the requested order id and invoice action state.",
-        startedAtMs: traceStartedAtMs,
-        startedAlready: true,
-        traceId: execution.executionId,
-        ...(execution.taskId ? { taskId: execution.taskId } : {}),
-        runtimeLogRef: execution.runtimeLogRef,
-      });
-      return { status: "ready" };
-    }
-    lastReason = orderDetailReadinessFailureReason(snapshot, mission.amazonOrderId);
+    const snapshotBudgetMs = windowDeadlineMs - Date.now();
+    if (snapshotBudgetMs < 100) break;
+    const observation = await observeOrderDetailOnce({
+      browser, runtimeLogger, mission, execution, stepName, traceStartedAtMs, snapshotBudgetMs,
+    });
+    if (observation.status !== "pending") return observation;
+    lastReason = observation.reason;
     const remainingWindowMs = windowDeadlineMs - Date.now();
     if (remainingWindowMs > 0) {
       await browser.wait(Math.min(ORDER_DETAIL_READY_POLL_INTERVAL_MS, remainingWindowMs), execution.abortSignal);
     }
   }
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName,
-    status: "failed",
+  recordOrderObservation({
+    runtimeLogger, mission, execution, stepName, traceStartedAtMs, status: "failed",
     reason: `${lastReason} The 2000ms observation window ${observationWindow}/${ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT} expired.`,
-    startedAtMs: traceStartedAtMs,
-    startedAlready: true,
-    traceId: execution.executionId,
-    ...(execution.taskId ? { taskId: execution.taskId } : {}),
-    runtimeLogRef: execution.runtimeLogRef,
   });
   return { status: "not_ready", reason: lastReason };
 };
@@ -427,6 +450,19 @@ const buildOrderDetailNotFoundResult = (
     status: "order_not_found",
     reason: `${reason} All ${ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT} same-page observation windows expired; no order-page refresh or repeat navigation was executed.`,
     reachedStep: "open approved order detail",
+    amazonOrderId: mission.amazonOrderId,
+    invoiceNo: mission.invoiceNo,
+    reviewRequired: true,
+  });
+
+const buildOrderDetailTechnicalFailureResult = (
+  mission: AmazonInvoiceUploadMissionInput,
+  reason: string,
+): AmazonInvoiceUploadTaskResult =>
+  taskResult({
+    status: "review_required",
+    reason: `Exact-target technical execution failed closed: ${reason}`,
+    reachedStep: "observe approved order detail readiness",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
     reviewRequired: true,

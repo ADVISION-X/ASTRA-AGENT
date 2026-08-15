@@ -1,6 +1,6 @@
 # GrassEye Amazon Invoice Upload Unified Chain 施工图
 
-版本：2026-08-11
+版本：2026-08-15
 状态：active  
 owner：amazon-invoice-upload  
 对应法案：`.github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md`  
@@ -605,6 +605,50 @@ dismissInvoiceReadFailureDialog 必须使用 owner-bound BrowserTargetSession.ev
 5. npm run audit:amazon-invoice-upload / npm run typecheck / npm run ci:full 必须通过。
 ```
 
+## 17.2 Exact-Target 插件模式执行合同
+
+本轮只替换浏览器执行片区，不改变上传业务流程：
+
+```txt
+approved mission
+  -> open approved order detail exactly once
+      -> eight bounded same-page observation windows
+          -> verify already uploaded
+              -> verify PDF amount against live order total
+                  -> open upload entry
+                      -> attach caller-approved PDF
+                          -> final Upload
+                              -> verify upload result
+```
+
+Browser / DOM 分工：
+
+```txt
+snapshot / revalidation / geometry = evaluate_target observation
+click                           = click_target
+fill                            = click_target + text_target
+approved PDF file input         = set_file_input_files
+```
+
+文件输入拓扑固定为：
+
+- `LIGHT_DOM_SUPPORTED`：同一 exact target/document 上调用 `set_file_input_files`。
+- `SHADOW_EXTENSION_REQUIRED`：只有现役 Browser owner 的同一命令可以最小扩展时才允许施工；不得在 Amazon 或 DOM owner 建第二 transport。
+- `UNSUPPORTED_DEEP_SHADOW`、`UNSUPPORTED_FRAME`、`UNKNOWN`：上传前 fail closed，返回结构化 `review_required`。
+
+技术失败与业务失败必须分账：
+
+- `order_not_found` 只允许八个窗口都成功完成观察，但订单标识或发票动作始终未出现。
+- `Illegal return statement`、transport 失败、stale document、snapshot/evaluate 异常都是技术执行失败；必须停止后续动作并返回 `review_required`。
+- 技术异常必须进入 Runtime Log Spine，不能被成功日志、evidence 或 ledger 改写成业务结论。
+
+验收要求：
+
+- Amazon smoke 复用生产 `toBrowserEvaluationExpression`，物理删除 `new Function` 私有 evaluator。
+- inspector 用 ts-morph AST 锁定业务顺序、技术失败分支和禁止私有 evaluator。
+- 真实 Seller Central 验证 file input 实际拓扑、专用 upload command 与提交前 fail-closed。
+- 未命中变更后真实上传路径时，只能报告 `NOT_PRODUCTION_VERIFIED`。
+
 ## 18. Batch Upload Orchestration Ledger
 
 问题追溯：
@@ -800,11 +844,38 @@ API /api/plugins/amazon-invoice-upload/start
 
 ```txt
 任意 Chrome 标签页生命周期、API 上传后网站回焦、Seller Central 提交路径变更后：
+  -> 生产代码施工前，先用批准的 Chrome 插件亲自进入本次失败状态，读取 exact target、真实 DOM / shadow 边界、控件身份和状态顺序
+  -> 生产代码只能实现本次亲自观察到的页面结构和顺序；未观察的后续步骤保持 UNKNOWN / NOT_PRODUCTION_VERIFIED
   -> 先遍历 runtime-logs、forensics、ledger、网站 handoff 日志，区分历史证据和变更后证据
   -> 静态 typecheck / acceptance / audit 只能证明法案结构，不等于生产实测
+  -> 真实失败后必须回到失败页面取得新增证据，禁止无新增证据连续追加猜测补丁、fallback 或第二链
+  -> 施工后用同一批准路径亲自重跑最终候选，前后两份真实证据缺一不可
   -> 没有命中变更后路径的真实 Chrome / Seller Central / 网站标签页证据时，只能报告 NOT_PRODUCTION_VERIFIED
   -> 若只做安全的 Chrome 标签页集成测试，必须明确标注它验证的是标签页策略，不得冒充发票生产上传实测
 ```
+
+Seller Central 当前 `kat-file-upload` 文件合同：
+
+```txt
+隐藏 light-DOM input[name=document] 只是组件代理，不是文件已进入 Amazon 的证明
+  -> Browser owner 解析 open author shadow root 内唯一 enabled #kat-file-attachment
+  -> 对真实 receiver 派发一次 caller-approved PDF
+  -> Amazon owner 在九次有界观察内确认唯一同名 kat-file-item[file-status="ready"]
+  -> 同时排除多个 upload host、重复/异名 item、error/failed/rejected/invalid item
+  -> 记录 after evidence
+  -> 才允许以逐键输入 + Tab commit 填写 documentNumber
+```
+
+禁止用弹窗存在、订单号、文件编号、整页文本、隐藏代理 input、`input.files` 或单纯的 CDP
+命令返回作为 `verify file attached` 成功。Amazon 组件会在消费文件后清空 native receiver；
+唯一合法附件 postcondition 是“唯一 host + 唯一同名 ready item + 零重复/异名/失败 item”。编号可见值也不等于
+组件提交值，必须由真实逐键事件输入并用 Tab 触发提交，随后才允许点击最终上传。
+
+最终提交成功回执固定为：四十次有界观察内恰好一个当前订单“管理发票”弹窗，恰好一行包含
+获准 invoice/order 编号，并显示 Amazon 接收回执或“已上传”状态；同时必须排除重复当前订单
+弹窗、重复编号行、异名行冒充、读取失败、无可用操作、上传失败、invalid 与 error。上传弹窗
+关闭、文件名出现、按钮点击返回或整页撞到一句成功文案都不能单独充当成功证据。到界仍不
+唯一或正反证据冲突时直接 `review_required`，不得重开、滚动、继续提交或启动下一副作用。
 ```
 
 批量上传订单 tab 生命周期必须固定为：

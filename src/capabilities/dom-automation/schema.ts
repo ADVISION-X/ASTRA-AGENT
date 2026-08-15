@@ -7,7 +7,6 @@ const DomAutomationChildCapabilityIdSchema = z.enum([
   "click-dom-element-once",
   "upload-approved-file-once",
   "verify-dom-state-once",
-  "wait-for-dom-state-once",
 ]);
 
 const DomTargetKindSchema = z.enum([
@@ -250,21 +249,6 @@ const DomVerificationResultSchema = z.object({
   reason: z.string().min(1),
 }).strict();
 
-const WaitForDomStateInputSchema = z.object({
-  initialSnapshot: DomSnapshotSchema.optional(),
-	  expectedStates: z.array(z.enum([
-    "file-selected",
-    "success-message",
-    "error-message",
-    "login-required",
-    "captcha-or-2fa-required",
-  ])).min(1),
-  successHints: z.array(z.string().min(1)).default([]),
-  failureHints: z.array(z.string().min(1)).default([]),
-  timeoutMs: z.number().int().min(100).max(30000).default(5000),
-  pollIntervalMs: z.number().int().min(50).max(5000).default(500),
-}).strict();
-
 export const DOM_SCHEMAS = {
   DomActionResult: DomActionResultSchema,
   DomAutomationChildCapabilityId: DomAutomationChildCapabilityIdSchema,
@@ -278,5 +262,4 @@ export const DOM_SCHEMAS = {
   ReadDomSnapshotInput: ReadDomSnapshotInputSchema,
   UploadApprovedFileInput: UploadApprovedFileInputSchema,
   VerifyDomStateInput: VerifyDomStateInputSchema,
-  WaitForDomStateInput: WaitForDomStateInputSchema,
 } as const;

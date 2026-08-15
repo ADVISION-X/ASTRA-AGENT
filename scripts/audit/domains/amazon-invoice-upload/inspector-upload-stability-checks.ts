@@ -95,24 +95,21 @@ export function hasObjectProperty(file: SourceFile, propertyName: string): boole
 
 export function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existingUploadFile: SourceFile, existingEvidenceFile: SourceFile): string[] {
   const missing: string[] = [];
-  const verifyValues = stringLiteralValues(verifyFile);
-  if (!verifyValues.has("./amazon-invoice-upload-existing.js")) missing.push("post-submit-existing-evidence:import");
-  if (!functionCallsIdentifier(verifyFile, "verifyUploadSuccess", "verifyAlreadyUploadedInvoice")) {
-    missing.push("post-submit-existing-evidence:fallback-call");
+  if (!functionCallsIdentifier(verifyFile, "waitForUploadSuccessBoundary", "observeExistingInvoiceConfirmation")) {
+    missing.push("post-submit-confirmation-boundary:owner-call");
   }
-  if (!verifyValues.has("already_uploaded")) missing.push("post-submit-existing-evidence:already-uploaded-terminal");
+  const existingValues = stringLiteralValues(existingEvidenceFile);
   for (const value of [
     "Thank you for uploading the document",
     "The customer will be able to download it directly from their account",
     "Upload another invoice or credit note",
   ]) {
-    if (!verifyValues.has(value)) missing.push(`english-success-evidence:${value}`);
+    if (!existingValues.has(value)) missing.push(`english-success-evidence:${value}`);
   }
   const existingUploadValues = stringLiteralValues(existingUploadFile);
   if (!existingUploadValues.has("already_uploaded")) {
     missing.push("english-existing-evidence:already-uploaded-terminal");
   }
-  const existingValues = stringLiteralValues(existingEvidenceFile);
   for (const value of [
     "Thank you for uploading the document",
     "The customer will be able to download it directly from their account",
@@ -132,7 +129,7 @@ export function collectEnglishUploadEvidenceGaps(verifyFile: SourceFile, existin
   }
   for (const functionName of [
     "hasExistingInvoiceEvidence",
-    "hasOrderBoundInvoiceDialog",
+    "observeExistingInvoiceConfirmation",
     "findOrderBoundInvoiceDialogText",
     "hasInvoiceDialogReadyForUpload",
   ]) {

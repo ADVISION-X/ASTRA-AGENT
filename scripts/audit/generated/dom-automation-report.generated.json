@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:41:38.140Z",
+  "generatedAt": "2026-08-15T21:53:10.129Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,25 +16,27 @@
     "APEX-DOM-011-V1",
     "APEX-DOM-012-V1",
     "APEX-DOM-013-V1",
-    "APEX-DOM-020-V1"
+    "APEX-DOM-020-V1",
+    "APEX-DOM-021-V1"
   ],
   "status": "PASS",
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23",
+      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T04:41:38.069Z",
-      "endedAt": "2026-08-15T04:41:38.139Z",
-      "durationMs": 70,
+      "startedAt": "2026-08-15T21:53:10.062Z",
+      "endedAt": "2026-08-15T21:53:10.129Z",
+      "durationMs": 67,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+        "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke.ts",
         "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -190,6 +192,7 @@
         "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
@@ -561,7 +564,6 @@
         "src/capabilities/dom-automation/runtime/dom-target-binding.ts",
         "src/capabilities/dom-automation/runtime/dom-upload.ts",
         "src/capabilities/dom-automation/runtime/dom-verify.ts",
-        "src/capabilities/dom-automation/runtime/dom-wait.ts",
         "src/capabilities/dom-automation/schema.ts",
         "src/capabilities/forensics-persistence/ability-group.ts",
         "src/capabilities/forensics-persistence/children/append-artifact.ts",
@@ -630,8 +632,10 @@
         "src/lib/browser/browser-controller.ts",
         "src/lib/browser/chrome-extension/build.mjs",
         "src/lib/browser/chrome-extension/dist/protocol.js",
+        "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
+        "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
         "src/lib/browser/current-chrome-browser-action-result.ts",
@@ -640,6 +644,7 @@
         "src/lib/browser/current-chrome-native-multi-file-picker.ts",
         "src/lib/browser/exact-target/browser-command-contract.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
+        "src/lib/browser/exact-target/browser-evaluation-contract.ts",
         "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
@@ -861,79 +866,79 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:4f6999f4-c44f-4808-b9f3-cee09680ad23"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
     }
   ],
   "inspectedFiles": [
@@ -941,6 +946,7 @@
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+    "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -1096,6 +1102,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
@@ -1467,7 +1474,6 @@
     "src/capabilities/dom-automation/runtime/dom-target-binding.ts",
     "src/capabilities/dom-automation/runtime/dom-upload.ts",
     "src/capabilities/dom-automation/runtime/dom-verify.ts",
-    "src/capabilities/dom-automation/runtime/dom-wait.ts",
     "src/capabilities/dom-automation/schema.ts",
     "src/capabilities/forensics-persistence/ability-group.ts",
     "src/capabilities/forensics-persistence/children/append-artifact.ts",
@@ -1536,8 +1542,10 @@
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/chrome-extension/build.mjs",
     "src/lib/browser/chrome-extension/dist/protocol.js",
+    "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
+    "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
     "src/lib/browser/current-chrome-browser-action-result.ts",
@@ -1546,6 +1554,7 @@
     "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/exact-target/browser-command-contract.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
+    "src/lib/browser/exact-target/browser-evaluation-contract.ts",
     "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",

@@ -7,7 +7,7 @@ applyTo: "src/plugins/amazon-invoice-upload/**,src/app/workbench-amazon-routes.t
 # GrassEye Amazon Invoice Upload Unified Chain
 
 status: active  
-version: 2026-08-11
+version: 2026-08-16
 capabilityDomain: amazon-invoice-upload  
 tier: P0  
 enforcementMode: machine-blocking  
@@ -19,6 +19,55 @@ Amazon invoice upload is one bounded job-flow owner:
 
 ```txt
 src/plugins/amazon-invoice-upload/**
+```
+
+## [GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1] Exact-Target Technical Failure Integrity
+
+```apex-law
+{
+  "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "amazon-invoice-upload",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+acceptance+runtime-log+real-chrome",
+  "summary": "The existing invoice upload flow must keep its business sequence unchanged while exact-target Browser or DOM execution failures remain technical failures and never masquerade as order_not_found.",
+  "appliesTo": [
+    "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/audit/domains/amazon-invoice-upload/**",
+    "scripts/acceptance/amazon-invoice-upload*.ts",
+    "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md"
+  ],
+  "required": [
+    "The approved input, single order-detail navigation, eight bounded same-page readiness windows, already-uploaded check, amount hard gate, approved PDF attachment, final submit and success verification remain the only upload sequence.",
+    "A Browser or DOM execution exception is recorded as a structured technical execution failure and returns review_required before any later upload action.",
+    "order_not_found is permitted only when all eight observation windows executed successfully and observed that the requested order identity or invoice action state never became ready.",
+    "Amazon smoke acceptance uses the same production evaluation-expression contract as the unique Browser owner and must not implement a private evaluator.",
+    "Real Seller Central verification resolves the actual enabled input[type=file] inside the unique open kat-file-upload author shadow root when the light-DOM input is only a hidden proxy, dispatches the approved PDF once, then admits attachment only when that component exposes exactly one same-name kat-file-item with file-status ready and zero duplicate, foreign or terminal-failure items; the component may synchronously clear the native receiver.",
+    "Invoice-number fill is admitted only after the Amazon owner has observed that exact ready file item; whole-page order-id text, input.files and the visible pending copy 文件未上传 are never attachment verdicts.",
+    "Invoice-number text uses ordered real key events followed by Tab so the kat-input business model commits the approved value before final submit; direct text insertion or a visible shadow-input value alone is insufficient.",
+    "Final success is proved within forty bounded observations by exactly one current-order manage-invoice dialog containing exactly one approved invoice/order number row plus an Amazon accepted receipt or uploaded state, while duplicate dialogs, duplicate rows, foreign numbers and governed failure states are absent.",
+    "When a delayed current-order upload dialog becomes visible after the first click deadline, the retry path recognizes that exact visible dialog and its enabled file input as ready before locating or clicking the now-covered page entry again."
+  ],
+  "forbidden": [
+    "classifying Illegal return statement, transport failure, document-stale failure or DOM snapshot exception as order_not_found",
+    "new Function, eval or a caller-local evaluation wrapper in Amazon code or smoke support",
+    "changing mission input, business order, amount gate, final submit authorization or upload_success evidence to repair Browser transport",
+    "refresh, repeat navigation, compatibility bridge, fallback evaluator or second upload flow",
+    "retry-clicking the page upload entry after the current-order upload dialog is already open"
+    ,"treating a hidden light-DOM proxy, dialog visibility, order id, invoice number, input.files or generic page text as proof that Amazon accepted the PDF"
+    ,"using direct text insertion, a synthetic value setter or a visible inner-input value as proof that kat-input committed the invoice number"
+    ,"continuing to fill, submit, reopen, scroll or retry after duplicate, foreign, failure or bounded-exhaustion attachment/result evidence"
+  ],
+  "clauses": [
+    {
+      "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
+      "statement": "Amazon invoice upload must preserve its existing business sequence and report exact-target execution failures as technical review-required results rather than false order_not_found results.",
+      "evidenceMode": "real-chrome",
+      "ownerDomain": "amazon-invoice-upload"
+    }
+  ]
+}
 ```
 
 ```apex-law

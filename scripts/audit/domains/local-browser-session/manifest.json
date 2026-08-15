@@ -24,6 +24,12 @@
         "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
       },
       {
+        "lawId": "APEX-LOCAL-BROWSER-004-V1",
+        "clauseId": "apex-local-browser-004-requirement",
+        "checkIds": ["local-browser-session/owner-assertion-set"],
+        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+      },
+      {
         "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
         "clauseId": "grasseye-security-privacy-browser-001-requirement",
         "checkIds": ["local-browser-session/owner-assertion-set"],

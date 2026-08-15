@@ -50,7 +50,7 @@ function buildDomUploadOutcome(
   return buildDomActionOutcome(
     {
       status: uploadResult.ok ? "success" : "failed",
-      message: uploadResult.ok ? "approved file selected for located file input" : uploadResult.message,
+      message: uploadResult.ok ? "approved file selection dispatched once to one real file input receiver" : uploadResult.message,
     },
     beforeEvidenceRef,
     afterEvidenceRef,

@@ -45,9 +45,3 @@ export type VerifyDomStateInput = {
   successHints?: string[] | undefined;
   failureHints?: string[] | undefined;
 };
-
-export type WaitForDomStateInput = Omit<VerifyDomStateInput, "snapshot"> & {
-  initialSnapshot?: import("./dom-automation.js").DomSnapshot | undefined;
-  timeoutMs?: number | undefined;
-  pollIntervalMs?: number | undefined;
-};

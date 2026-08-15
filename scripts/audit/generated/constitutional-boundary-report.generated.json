@@ -1,11 +1,12 @@
 {
-  "generatedAt": "2026-08-15T04:41:25.517Z",
+  "generatedAt": "2026-08-15T21:52:57.475Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+    "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -161,6 +162,7 @@
     "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+    "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
@@ -532,7 +534,6 @@
     "src/capabilities/dom-automation/runtime/dom-target-binding.ts",
     "src/capabilities/dom-automation/runtime/dom-upload.ts",
     "src/capabilities/dom-automation/runtime/dom-verify.ts",
-    "src/capabilities/dom-automation/runtime/dom-wait.ts",
     "src/capabilities/dom-automation/schema.ts",
     "src/capabilities/forensics-persistence/ability-group.ts",
     "src/capabilities/forensics-persistence/children/append-artifact.ts",
@@ -601,8 +602,10 @@
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/chrome-extension/build.mjs",
     "src/lib/browser/chrome-extension/dist/protocol.js",
+    "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
+    "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
     "src/lib/browser/current-chrome-browser-action-result.ts",
@@ -611,6 +614,7 @@
     "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/exact-target/browser-command-contract.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
+    "src/lib/browser/exact-target/browser-evaluation-contract.ts",
     "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
@@ -845,19 +849,20 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:daf2ee08-1160-4c86-8591-01fddd47c021",
+      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T04:41:25.384Z",
-      "endedAt": "2026-08-15T04:41:25.517Z",
-      "durationMs": 133,
+      "startedAt": "2026-08-15T21:52:57.332Z",
+      "endedAt": "2026-08-15T21:52:57.474Z",
+      "durationMs": 142,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+        "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke.ts",
         "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
@@ -1013,6 +1018,7 @@
         "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
+        "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
@@ -1384,7 +1390,6 @@
         "src/capabilities/dom-automation/runtime/dom-target-binding.ts",
         "src/capabilities/dom-automation/runtime/dom-upload.ts",
         "src/capabilities/dom-automation/runtime/dom-verify.ts",
-        "src/capabilities/dom-automation/runtime/dom-wait.ts",
         "src/capabilities/dom-automation/schema.ts",
         "src/capabilities/forensics-persistence/ability-group.ts",
         "src/capabilities/forensics-persistence/children/append-artifact.ts",
@@ -1453,8 +1458,10 @@
         "src/lib/browser/browser-controller.ts",
         "src/lib/browser/chrome-extension/build.mjs",
         "src/lib/browser/chrome-extension/dist/protocol.js",
+        "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
+        "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
         "src/lib/browser/current-chrome-browser-action-result.ts",
@@ -1463,6 +1470,7 @@
         "src/lib/browser/current-chrome-native-multi-file-picker.ts",
         "src/lib/browser/exact-target/browser-command-contract.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
+        "src/lib/browser/exact-target/browser-evaluation-contract.ts",
         "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
@@ -1684,25 +1692,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:daf2ee08-1160-4c86-8591-01fddd47c021"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:daf2ee08-1160-4c86-8591-01fddd47c021"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:daf2ee08-1160-4c86-8591-01fddd47c021"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:daf2ee08-1160-4c86-8591-01fddd47c021"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
     }
   ]
 }

@@ -26,7 +26,7 @@ export function collectUploadRuntimeStabilityGaps(files: UploadRuntimeStabilityF
     .some((identifier) => astIdentifierName(identifier) === "AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS") ?? false)) {
     missing.push("snapshot-deadline-flow-support:explicit-timeout");
   }
-  if (!(files.orderFile.getVariableDeclaration("waitForApprovedOrderDetail")?.getDescendantsOfKind(SyntaxKind.CatchClause).length)) {
+  if (!(files.orderFile.getVariableDeclaration("observeOrderDetailOnce")?.getDescendantsOfKind(SyntaxKind.CatchClause).length)) {
     missing.push("snapshot-deadline-order-detail:structured-exception");
   }
   const screenshotValues = new Set(files.chromeScreenshotFile
@@ -47,8 +47,8 @@ export function collectUploadRuntimeStabilityGaps(files: UploadRuntimeStabilityF
   if (!hasConstInitializer(files.fileAttachmentFile, "FILE_INPUT_READY_TIMEOUT_MS", 2_000)) {
     missing.push("file-input-timeout-2000");
   }
-  if (!hasConstInitializer(files.verifyFile, "UPLOAD_SUCCESS_TIMEOUT_MS", 2_000)) {
-    missing.push("upload-success-timeout-2000");
+  if (!hasConstInitializer(files.verifyFile, "UPLOAD_SUCCESS_OBSERVATION_LIMIT", 40)) {
+    missing.push("upload-success-observation-limit-40");
   }
   if (files.flowFile.getFunction("openSellerCentralEntry") || files.flowFile.getFunction("waitForSellerCentralEntry")) {
     missing.push("single-order-navigation:retired-entry-open-wait");

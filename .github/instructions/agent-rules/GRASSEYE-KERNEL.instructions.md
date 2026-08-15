@@ -7,7 +7,7 @@ applyTo: ".github/instructions/agent-rules/**"
 # GrassEye Kernel
 
 status: active
-version: 2026-05-26
+version: 2026-08-16
 
 ## System Identity
 
@@ -36,7 +36,63 @@ One ability group = same-kind child abilities.
 AI = bounded choice judge by default; a P0 job-flow law may authorize audited flow-scoped business content.
 Evidence proves every step.
 Audit is strict temple law, not a soft smoke gate.
+Real-browser construction starts from personally observed live page structure and state order, never from a theoretically plausible browser model.
+Every production stage confirms the intended identity and state, excludes adjacent false identities and states, requires one unique candidate, and stops at a fixed observation boundary.
 ```
+
+## Real Browser Construction Admission
+
+Any production change to BrowserController, the Chrome extension, DOM
+Automation, or a job flow that depends on real page controls is admitted only
+after Codex personally traverses the current failing state through the approved
+Chrome extension or real-browser path.
+
+The pre-construction observation must identify the exact controlled target,
+the before-state, light DOM and author-shadow structure, the browser-owned UA
+shadow boundary where relevant, the actual action receiver, and the observed
+after-state in the runtime trace. Production code may implement only that
+observed structure and state order.
+
+Typecheck, static audit, synthetic DOM, documentation, historical selectors,
+screenshots, standard control semantics, and the statement that an approach
+"should work" do not authorize browser production construction. An unobserved
+state remains `UNKNOWN` and `NOT_PRODUCTION_VERIFIED`.
+
+After every live failure, Codex must return to the exact failed page and trace
+before changing the implementation again. No second speculative edit,
+compatibility bridge, fallback, shadow path, or parallel browser chain may be
+added without new live evidence. The final candidate must then be traversed
+again through the same approved real-browser path. Pre-construction evidence
+proves the source of the implementation contract; post-construction evidence
+proves that the candidate actually works. Sensitive final actions remain
+subject to the owning flow's human gate and explicit user authorization.
+
+## Production Confirmation Boundary
+
+Every production stage that observes an external, browser, provider, file,
+process, or generated state must reach one owner-defined terminal boundary
+before the next stage starts:
+
+1. all required positive identity and state facts are present;
+2. all named adjacent false targets, conflicting states, loading states, error
+   states, stale states, foreign states and duplicate candidates are absent;
+3. exactly one candidate remains when the action targets one object;
+4. observation ends after an explicit maximum count or deadline;
+5. ambiguity, conflict or exhaustion returns `failed` or `review_required` and
+   performs no later side effect.
+
+An unconditional search, observation, retry or scroll loop is forbidden. A
+process-lifetime worker may remain alive only under its owning shutdown
+contract; it may not use that lifetime as an unbounded business-stage
+observation budget.
+
+Production hardening is always: personally traverse the approved real path and
+record both inclusion and exclusion facts; make the production code succeed
+through that same ordered path; then bind the positive gate, negative gate,
+uniqueness gate and bounded stop into active law, blueprint, owner inspection
+and acceptance. This boundary does not authorize additional business content,
+generic confirmation engines, compatibility, fallback, bridge, shadow paths or
+a second chain.
 
 ## First Validated Job Flow
 

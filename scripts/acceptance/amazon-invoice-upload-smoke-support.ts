@@ -15,8 +15,10 @@ import type {
   BrowserTargetRef,
   ControlledBrowserTarget,
 } from "../../src/lib/browser/exact-target/browser-target-ref.js";
+import { toBrowserEvaluationExpression } from "../../src/lib/browser/exact-target/browser-evaluation-contract.js";
 
 export const ORDER_DETAIL_EIGHTH_WINDOW_SIGNAL_DELAY_MS = 15_000;
+const UPLOAD_DIALOG_OPEN_DELAY_MS = 2_300;
 
 const smokeFixtureHtml = `
 <html><head><title>Seller Central Local Dry Run</title></head>
@@ -35,14 +37,33 @@ const smokeFixtureHtml = `
     </table>
   </aside>
   <div id="upload-invoice" role="button" tabindex="0"></div>
-  <section id="upload-panel" hidden>
+  <section id="upload-panel" role="dialog" hidden>
+    <h2>为订单 123-1234567-1234567 上传发票</h2>
+    <p>请上传您的发票或贷记单</p>
     <label for="invoice-file">Choose file</label>
-    <input id="invoice-file" type="file" />
+    <kat-file-upload name="document" accept="application/pdf"><span><input id="invoice-file" name="document" type="file" hidden /></span></kat-file-upload>
     <kat-input required="true" label="文件编号" type="text" value="" name="documentNumber"></kat-input>
     <button id="submit-upload">上传</button>
   </section>
   <div id="status"></div>
   <script>
+    customElements.define("kat-file-upload", class extends HTMLElement {
+      connectedCallback() {
+        if (this.shadowRoot) return;
+        const root = this.attachShadow({ mode: "open" });
+        root.innerHTML = '<input id="kat-file-attachment" type="file" accept="application/pdf" />';
+        root.querySelector("input").addEventListener("change", (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const item = document.createElement("kat-file-item");
+          item.setAttribute("name", file.name);
+          item.setAttribute("file-status", "ready");
+          item.textContent = file.name + " 文件未上传";
+          root.appendChild(item);
+          event.target.value = "";
+        });
+      }
+    });
     customElements.define("kat-input", class extends HTMLElement {
       connectedCallback() {
         if (!this.shadowRoot) {
@@ -53,25 +74,37 @@ const smokeFixtureHtml = `
           hidden.name = "documentNumber";
           hidden.type = "text";
           this.appendChild(hidden);
-          root.querySelector("input").addEventListener("input", (event) => {
+          root.querySelector("input").addEventListener("change", (event) => {
             hidden.value = event.target.value;
             this.setAttribute("value", event.target.value);
           });
         }
       }
     });
+    window.uploadInvoiceClickCount = 0;
     document.querySelector("#upload-invoice").addEventListener("click", () => {
-      document.querySelector("#upload-panel").hidden = false;
+      window.uploadInvoiceClickCount += 1;
+      window.setTimeout(() => {
+        document.querySelector("#upload-panel").hidden = false;
+      }, ${UPLOAD_DIALOG_OPEN_DELAY_MS});
     });
     window.setTimeout(() => {
       document.querySelector("#upload-invoice").textContent = "Upload invoice";
     }, ${ORDER_DETAIL_EIGHTH_WINDOW_SIGNAL_DELAY_MS});
-    document.querySelector("#invoice-file").addEventListener("change", () => {
+    document.querySelector("kat-file-upload").shadowRoot.querySelector("#kat-file-attachment").addEventListener("change", () => {
       document.querySelector("#status").textContent = "File attached INV-1";
     });
     document.querySelector("#submit-upload").addEventListener("click", () => {
       const invoiceNumber = document.querySelector('kat-input[name="documentNumber"] input[name="documentNumber"]').value;
-      document.querySelector("#status").textContent = invoiceNumber === "INV-1" ? "Invoice uploaded successfully" : "Invoice number missing";
+      if (invoiceNumber !== "INV-1") {
+        document.querySelector("#status").textContent = "Invoice number missing";
+        return;
+      }
+      document.querySelector("#upload-panel").innerHTML = '<h3>订单123-1234567-1234567的发票</h3>'
+        + '<p>感谢您上传文件。客户可以直接从自己的账户下载文件。</p>'
+        + '<table><tr><th>日期</th><th>类型</th><th>编号</th><th>状态</th><th>操作</th></tr>'
+        + '<tr><td>2026/8/16</td><td>发票 由卖家生成</td><td>INV-1</td><td>等待中：待处理</td><td>下载</td></tr></table>'
+        + '<div>上传其他发票或贷记单</div>';
     });
   </script>
 </body></html>
@@ -326,14 +359,16 @@ export class AmazonSmokeBrowserAdapter implements BrowserTargetSession {
     if (input.description === "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog") {
       this.noActionsDialogDismissClicks += 1;
     }
-    return this.page.evaluate<unknown, string>((source) => {
-      const run = new Function(source) as () => unknown;
-      return run();
-    }, input.script) as Promise<T>;
+    return this.page.evaluate<T>(toBrowserEvaluationExpression(input.script));
   }
   async setFileInputFiles(input: { elementRef: { selector: string; targetKind: "file-input" }; filePath: string; description: string }): Promise<BrowserActionResult> {
     this.fileInputSetCalls += 1;
-    await this.page.locator(input.elementRef.selector).setInputFiles(input.filePath);
+    const receiver = this.page.locator("kat-file-upload").locator("#kat-file-attachment");
+    await receiver.setInputFiles(input.filePath);
+    const readyItem = this.page.locator("kat-file-upload").locator('kat-file-item[file-status="ready"]');
+    if (await readyItem.count() !== 1 || await receiver.evaluate((element) => (element as HTMLInputElement).files?.length ?? 0) !== 0) {
+      throw new Error("fixture component did not consume the approved file into one ready item");
+    }
     return action(`set approved file for ${input.description}`);
   }
   async wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult> {

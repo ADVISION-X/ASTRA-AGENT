@@ -15,6 +15,7 @@ import type {
 import type { BrowserWireTargetDescriptor } from "../chrome-extension/protocol.js";
 import { BrowserNativeTransportServer } from "./browser-native-transport-server.js";
 import { BrowserTerminalError, type BrowserMutationClass } from "./browser-command-contract.js";
+import { toBrowserEvaluationExpression } from "./browser-evaluation-contract.js";
 import { PhysicalFocusLease } from "./physical-focus-lease.js";
 import type { ControlledBrowserTarget } from "./browser-target-ref.js";
 import { BrowserTargetRegistry } from "./browser-target-registry.js";
@@ -187,7 +188,10 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
   }
 
   async evaluate<T>(input: Parameters<BrowserTargetSession["evaluate"]>[0]): Promise<T> {
-    return (await this.command<T>({ kind: "evaluate_target", expression: input.script }, "observation", input.abortSignal, input.timeoutMs)).result;
+    return (await this.command<T>({
+      kind: "evaluate_target",
+      expression: toBrowserEvaluationExpression(input.script),
+    }, "observation", input.abortSignal, input.timeoutMs)).result;
   }
 
   async click(input: Parameters<BrowserTargetSession["click"]>[0]): Promise<BrowserActionResult> {

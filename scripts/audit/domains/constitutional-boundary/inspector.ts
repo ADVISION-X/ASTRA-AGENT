@@ -21,7 +21,6 @@ const domPrimitiveNames = new Set([
   "fillDomElementOnce",
   "clickDomElementOnce",
   "uploadApprovedFileOnce",
-  "waitForDomStateOnce",
   "verifyDomStateOnce",
 ]);
 

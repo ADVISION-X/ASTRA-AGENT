@@ -1,30 +1,19 @@
 import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { taskResult, waitForState } from "./amazon-invoice-upload-flow-support.js";
+import { readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
-import { verifyAlreadyUploadedInvoice } from "./amazon-invoice-upload-existing.js";
+import { observeExistingInvoiceConfirmation } from "./amazon-existing-invoice-evidence.js";
 
-const UPLOAD_SUCCESS_HINTS = [
-  "invoice uploaded successfully",
-  "file uploaded successfully",
-  "upload completed",
-  "submitted successfully",
-  "Thank you for uploading the file",
-  "Thank you for uploading the document",
-  "The customer can download the file directly from their account",
-  "The customer will be able to download it directly from their account",
-  "Upload another invoice or credit note",
-  "上传成功",
-  "感谢您上传文件",
-  "客户可以直接从自己的账户下载文件",
-  "上传其他发票或贷记单",
-];
-const UPLOAD_SUCCESS_TIMEOUT_MS = 2_000;
+const UPLOAD_SUCCESS_OBSERVATION_LIMIT = 40;
 const UPLOAD_SUCCESS_POLL_INTERVAL_MS = 250;
 
-type VerifySuccessResult = Awaited<ReturnType<typeof waitForState>>;
+type VerifySuccessResult = {
+  status: "success" | "rejected" | "not_confirmed";
+  reason: string;
+  evidenceRef: string;
+};
 
 export async function verifyUploadSuccess(
   browser: BrowserTargetSession,
@@ -32,13 +21,7 @@ export async function verifyUploadSuccess(
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const success = await waitForState(browser, {
-    expectedStates: ["success-message"],
-    successHints: UPLOAD_SUCCESS_HINTS,
-    failureHints: ["failed", "invalid", "error", "文件上传失败", "无法上传"],
-    timeoutMs: UPLOAD_SUCCESS_TIMEOUT_MS,
-    pollIntervalMs: UPLOAD_SUCCESS_POLL_INTERVAL_MS,
-  });
+  const success = await waitForUploadSuccessBoundary(browser, mission, abortSignal);
   recordAmazonDomStepTrace({
     runtimeLogger,
     mission,
@@ -48,8 +31,6 @@ export async function verifyUploadSuccess(
     evidenceRef: success.evidenceRef,
   });
   if (success.status !== "success") {
-    const existing = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission, abortSignal);
-    if (existing?.status === "already_uploaded") return existing;
     return buildUploadReviewResult(mission, success);
   }
   recordAmazonDomStepTrace({
@@ -60,6 +41,32 @@ export async function verifyUploadSuccess(
     reason: "Active Seller Central order worker tab retained for next invoice navigation.",
   });
   return buildUploadSuccessResult(mission, success);
+}
+
+async function waitForUploadSuccessBoundary(
+  browser: BrowserTargetSession,
+  mission: AmazonInvoiceUploadMissionInput,
+  abortSignal: AbortSignal,
+): Promise<VerifySuccessResult> {
+  for (let observation = 1; observation <= UPLOAD_SUCCESS_OBSERVATION_LIMIT; observation += 1) {
+    const snapshot = await readSnapshot(browser, { maxTextLengthPerNode: 240 }, abortSignal);
+    const boundary = observeExistingInvoiceConfirmation(snapshot, mission);
+    const evidenceRef = `amazon-upload-success-boundary:${mission.amazonOrderId}:${observation}`;
+    if (boundary.status === "confirmed") {
+      return { status: "success", reason: boundary.reason, evidenceRef };
+    }
+    if (boundary.status === "rejected") {
+      return { status: "rejected", reason: boundary.reason, evidenceRef };
+    }
+    if (observation < UPLOAD_SUCCESS_OBSERVATION_LIMIT) {
+      await browser.wait(UPLOAD_SUCCESS_POLL_INTERVAL_MS, abortSignal);
+    }
+  }
+  return {
+    status: "not_confirmed",
+    reason: `Amazon upload did not expose one unique current-order dialog and one unique expected invoice row without a failure state within ${UPLOAD_SUCCESS_OBSERVATION_LIMIT} bounded observations.`,
+    evidenceRef: `amazon-upload-success-boundary:${mission.amazonOrderId}:exhausted`,
+  };
 }
 
 const buildUploadReviewResult = (

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:41:37.000Z",
+  "generatedAt": "2026-08-15T21:53:08.976Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -11,13 +11,13 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:3ff41a3d-eb7d-4f39-820f-e91f019dd2ec",
+      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:4e898faf-4740-40ea-a9e4-840c116660f6",
       "capabilityDomain": "app-shell-ui",
       "checkId": "app-shell-ui/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T04:41:36.697Z",
-      "endedAt": "2026-08-15T04:41:37.000Z",
+      "startedAt": "2026-08-15T21:53:08.673Z",
+      "endedAt": "2026-08-15T21:53:08.976Z",
       "durationMs": 303,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
@@ -99,13 +99,13 @@
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
       "clauseId": "grasseye-app-shell-ui-001-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:3ff41a3d-eb7d-4f39-820f-e91f019dd2ec"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:4e898faf-4740-40ea-a9e4-840c116660f6"
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
       "clauseId": "grasseye-app-shell-ui-002-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:3ff41a3d-eb7d-4f39-820f-e91f019dd2ec"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:4e898faf-4740-40ea-a9e4-840c116660f6"
     }
   ],
   "inspectedFiles": [

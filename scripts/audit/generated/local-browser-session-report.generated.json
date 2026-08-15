@@ -1,38 +1,42 @@
 {
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-15T04:41:26.698Z",
+  "generatedAt": "2026-08-15T21:52:58.735Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-LOCAL-BROWSER-001-V1",
     "APEX-LOCAL-BROWSER-002-V1",
     "APEX-LOCAL-BROWSER-003-V1",
+    "APEX-LOCAL-BROWSER-004-V1",
     "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6043b148-d853-40f3-ac07-7e27c84b7873",
+      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:707b6569-4f6d-4505-a5b0-2cd7ae4111e5",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T04:41:25.529Z",
-      "endedAt": "2026-08-15T04:41:26.698Z",
-      "durationMs": 1169,
+      "startedAt": "2026-08-15T21:52:57.486Z",
+      "endedAt": "2026-08-15T21:52:58.735Z",
+      "durationMs": 1249,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/lib/browser/browser-controller.ts",
         "src/lib/browser/chrome-extension/manifest.json",
         "src/lib/browser/chrome-extension/protocol.ts",
+        "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
         "src/lib/browser/current-chrome-browser-controller.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
+        "src/lib/browser/exact-target/browser-evaluation-contract.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
-        "src/lib/browser/exact-target/physical-focus-lease.ts"
+        "src/lib/browser/exact-target/physical-focus-lease.ts",
+        "src/lib/browser/native-messaging-host/install.mjs"
       ],
       "findingCount": 0
     }
@@ -42,13 +46,13 @@
       "lawId": "APEX-LOCAL-BROWSER-002-V1",
       "clauseId": "apex-local-browser-002-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6043b148-d853-40f3-ac07-7e27c84b7873"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:707b6569-4f6d-4505-a5b0-2cd7ae4111e5"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:2642da42-8a6b-4130-a7ca-67cf43c06b97:check:6043b148-d853-40f3-ac07-7e27c84b7873"
+      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:707b6569-4f6d-4505-a5b0-2cd7ae4111e5"
     }
   ],
   "inspectedFiles": [
@@ -56,13 +60,16 @@
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/chrome-extension/manifest.json",
     "src/lib/browser/chrome-extension/protocol.ts",
+    "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
     "src/lib/browser/current-chrome-browser-controller.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
+    "src/lib/browser/exact-target/browser-evaluation-contract.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
-    "src/lib/browser/exact-target/physical-focus-lease.ts"
+    "src/lib/browser/exact-target/physical-focus-lease.ts",
+    "src/lib/browser/native-messaging-host/install.mjs"
   ]
 }

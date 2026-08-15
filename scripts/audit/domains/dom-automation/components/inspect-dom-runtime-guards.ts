@@ -37,13 +37,6 @@ const runtimeGuards: readonly RuntimeGuard[] = [
     requiredStringLiterals: ["expected text did not match", "dom-click-after"],
     message: "DOM click must gate sensitive text, revalidate once, and capture after-action evidence.",
   },
-  {
-    checkId: "dom/wait-snapshot-deadline",
-    filePath: "src/capabilities/dom-automation/runtime/dom-wait.ts",
-    lawId: "APEX-DOM-010-V1",
-    requiredIdentifiers: ["DOM_WAIT_SNAPSHOT_TIMEOUT_MS", "snapshotTimeoutMs", "readDomSnapshotOnce"],
-    message: "DOM waits must bound every underlying snapshot so a low-level evaluation cannot outlive the governed wait window.",
-  },
 ];
 
 const inspectGuard = (sourceFile: SourceFile, guard: RuntimeGuard, collector: DomFindingCollector): void => {
