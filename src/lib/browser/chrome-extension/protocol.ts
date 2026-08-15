@@ -6,6 +6,19 @@ export type BrowserWireMutationClass =
   | "idempotent_mutation"
   | "non_idempotent_mutation";
 
+export type BrowserWireDomElementIdentity = {
+  tagName?: string | undefined;
+  type?: string | undefined;
+  role?: string | undefined;
+  ariaLabel?: string | undefined;
+  labelText?: string | undefined;
+  placeholder?: string | undefined;
+  name?: string | undefined;
+  id?: string | undefined;
+  visibleText?: string | undefined;
+  testId?: string | undefined;
+};
+
 export type BrowserWireCommand =
   | {
       kind: "acquire_target";
@@ -17,6 +30,8 @@ export type BrowserWireCommand =
   | { kind: "navigate_target"; tabId: number; url: string }
   | { kind: "evaluate_target"; tabId: number; expression: string }
   | { kind: "click_target"; tabId: number; x: number; y: number; button: "left" | "right" | "middle"; clickCount: 1 | 2 }
+  | { kind: "click_dom_target"; tabId: number; selector: string; identity: BrowserWireDomElementIdentity; expectedText?: string }
+  | { kind: "fill_dom_target"; tabId: number; selector: string; identity: BrowserWireDomElementIdentity; approvedText: string; clearBeforeType: boolean }
   | { kind: "move_target"; tabId: number; x: number; y: number }
   | { kind: "scroll_target"; tabId: number; x: number; y: number; deltaX: number; deltaY: number }
   | { kind: "text_target"; tabId: number; action: "type-text" | "clear-input" | "press-key"; text?: string; key?: string }
@@ -89,6 +104,18 @@ const isTextTargetCommand = (command: Record<string, unknown>): boolean =>
   && (command.text === undefined || typeof command.text === "string")
   && (command.key === undefined || typeof command.key === "string");
 
+const isDomElementIdentity = (value: unknown): value is BrowserWireDomElementIdentity => {
+  if (!value || typeof value !== "object") return false;
+  const identity = value as Record<string, unknown>;
+  const keys = ["tagName", "type", "role", "ariaLabel", "labelText", "placeholder", "name", "id", "visibleText", "testId"];
+  return keys.some((key) => typeof identity[key] === "string" && (identity[key] as string).length > 0)
+    && keys.every((key) => identity[key] === undefined || typeof identity[key] === "string");
+};
+
+const isAtomicDomCommand = (command: Record<string, unknown>): boolean =>
+  typeof command.selector === "string" && command.selector.length > 0
+  && isDomElementIdentity(command.identity);
+
 const hasSafeTabId = (command: Record<string, unknown>): boolean => Number.isSafeInteger(command.tabId);
 
 const tabCommand = (
@@ -102,6 +129,11 @@ const BROWSER_WIRE_COMMAND_VALIDATORS: Readonly<Record<string, (command: Record<
   navigate_target: tabCommand(isNavigateOrEvaluateCommand),
   evaluate_target: tabCommand(isNavigateOrEvaluateCommand),
   click_target: tabCommand(isClickTargetCommand),
+  click_dom_target: tabCommand((command) => isAtomicDomCommand(command)
+    && (command.expectedText === undefined || typeof command.expectedText === "string")),
+  fill_dom_target: tabCommand((command) => isAtomicDomCommand(command)
+    && typeof command.approvedText === "string" && command.approvedText.length > 0
+    && typeof command.clearBeforeType === "boolean"),
   move_target: tabCommand((command) => isFiniteNumber(command.x) && isFiniteNumber(command.y)),
   scroll_target: tabCommand((command) =>
     isFiniteNumber(command.x) && isFiniteNumber(command.y)

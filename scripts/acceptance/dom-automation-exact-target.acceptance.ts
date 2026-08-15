@@ -12,6 +12,7 @@ const clickInput = (target: BrowserTargetRef, document: BrowserDocumentRef) => (
     documentRef: document,
     elementRef: "fixture-button",
     selector: "button",
+    identity: { tagName: "button" },
     targetKind: "button" as const,
     confidence: 1,
     matchedSignals: ["fixture"],

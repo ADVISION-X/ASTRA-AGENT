@@ -33,9 +33,9 @@ const runtimeGuards: readonly RuntimeGuard[] = [
     checkId: "dom/click-sensitive-review-gate",
     filePath: "src/capabilities/dom-automation/runtime/dom-click.ts",
     lawId: "APEX-DOM-008-V1",
-    requiredIdentifiers: ["DANGEROUS_TEXT", "buildDomReviewRequiredResult", "captureDomEvidenceRef"],
-    requiredStringLiterals: ["expected text did not match", "dom-click-after"],
-    message: "DOM click must gate sensitive text, revalidate once, and capture after-action evidence.",
+    requiredIdentifiers: ["DANGEROUS_TEXT", "buildDomReviewRequiredResult", "captureDomEvidenceRef", "clickLocatedDomElement"],
+    requiredStringLiterals: ["atomic DOM click failed closed", "dom-click-after"],
+    message: "DOM click must gate sensitive text, dispatch one atomic identity-bound command, and capture after-action evidence.",
   },
 ];
 

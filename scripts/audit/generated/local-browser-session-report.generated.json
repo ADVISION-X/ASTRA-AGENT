@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-15T21:52:58.735Z",
+  "generatedAt": "2026-08-15T23:02:52.262Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -13,17 +13,18 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:707b6569-4f6d-4505-a5b0-2cd7ae4111e5",
+      "runId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d",
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:71b9b932-f7be-4f19-bf45-195479d20b56",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T21:52:57.486Z",
-      "endedAt": "2026-08-15T21:52:58.735Z",
-      "durationMs": 1249,
+      "startedAt": "2026-08-15T23:02:51.093Z",
+      "endedAt": "2026-08-15T23:02:52.262Z",
+      "durationMs": 1169,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/manifest.json",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
@@ -46,18 +47,19 @@
       "lawId": "APEX-LOCAL-BROWSER-002-V1",
       "clauseId": "apex-local-browser-002-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:707b6569-4f6d-4505-a5b0-2cd7ae4111e5"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:71b9b932-f7be-4f19-bf45-195479d20b56"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:707b6569-4f6d-4505-a5b0-2cd7ae4111e5"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:71b9b932-f7be-4f19-bf45-195479d20b56"
     }
   ],
   "inspectedFiles": [
     "scripts/audit/domains/local-browser-session/inspector.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/manifest.json",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",

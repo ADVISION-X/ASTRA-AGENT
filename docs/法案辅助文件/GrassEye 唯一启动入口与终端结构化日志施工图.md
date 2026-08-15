@@ -76,7 +76,7 @@ dependency check
 ## 启动禁止
 
 - 不运行任何 job flow。
-- 不调用 DOM、browser、upload、click、fill、wait、verify 子能力。
+- 不调用 DOM 六项子能力或 browser/upload/click/fill 动作。
 - 不调用 AI judgment，不声明 provider mission-ready。
 - 不运行 `ci:full`、acceptance、typecheck、audit owner。
 - 不要求旧 registry readiness。

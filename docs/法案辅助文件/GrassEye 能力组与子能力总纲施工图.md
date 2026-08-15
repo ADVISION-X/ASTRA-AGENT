@@ -53,7 +53,7 @@ User Requirement
 
 ## 3. 当前现役能力组
 
-- DOM Automation：snapshot、locate、fill、click、upload、wait、verify
+- DOM Automation：snapshot、locate、fill、click、upload、one-shot verify（固定六项）
 - AI Input Gateway / Choice Judge：有限选项问题投递、provider proof、schema 校验
 - Evidence Store / Forensics Persistence：step trace、artifact ref、失败原因、结果记录
 - Video Download：媒体候选路由、下载、校验、artifact 生命周期

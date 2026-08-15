@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T21:52:15.928Z",
+  "generatedAt": "2026-08-15T23:02:12.238Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -644,7 +644,9 @@
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/build.mjs",
+    "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
     "src/lib/browser/chrome-extension/dist/protocol.js",
     "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
@@ -875,14 +877,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc",
+      "runId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d",
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977",
       "capabilityDomain": "capability-group-governance",
       "checkId": "capability-group-governance/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T21:52:15.891Z",
-      "endedAt": "2026-08-15T21:52:15.927Z",
-      "durationMs": 36,
+      "startedAt": "2026-08-15T23:02:12.203Z",
+      "endedAt": "2026-08-15T23:02:12.237Z",
+      "durationMs": 34,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1482,7 +1484,9 @@
         "src/capabilities/video-download/schema.ts",
         "src/capabilities/video-download/type-contracts.ts",
         "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/build.mjs",
+        "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
         "src/lib/browser/chrome-extension/dist/protocol.js",
         "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
@@ -1718,49 +1722,49 @@
       "lawId": "APEX-CAPABILITY-GROUP-001-V1",
       "clauseId": "apex-capability-group-001-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-002-V1",
       "clauseId": "apex-capability-group-002-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-003-V1",
       "clauseId": "apex-capability-group-003-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-004-V1",
       "clauseId": "apex-capability-group-004-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-005-V1",
       "clauseId": "apex-capability-group-005-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-006-V1",
       "clauseId": "apex-capability-group-006-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-007-V1",
       "clauseId": "apex-capability-group-007-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-008-V1",
       "clauseId": "apex-capability-group-008-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:424b6daf-ae21-4ccb-a654-efc2529e51dc"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:140903b1-0ab8-4700-b148-5eb52ab66977"
     }
   ]
 }

@@ -1,7 +1,7 @@
 # GrassEye DOM Automation 生产稳定态施工图
 
 status: active
-version: 2026-08-15-v4
+version: 2026-08-16-v5
 owner: dom-automation
 active law: `.github/instructions/agent-rules/modules/module-dom-automation.instructions.md`
 
@@ -10,12 +10,12 @@ active law: `.github/instructions/agent-rules/modules/module-dom-automation.inst
 DOM Automation 是业务中立的页面原子动作能力组。它只负责：
 
 ```txt
-snapshot -> locate -> one approved fill / click / upload -> wait / verify -> structured result
+snapshot -> locate -> one approved fill / click / upload -> one-shot verify -> structured result
 ```
 
 它不决定 Amazon 流程、不决定下一步、不判业务成功，不拥有 Browser session、Evidence、Runtime Log 或业务状态。
 
-本图只描述现役七个 child abilities。已退役的 scroll/select/dismiss-overlay 不保留 wrapper、alias、fallback、mode switch 或影子实现。
+本图只描述现役六个 child abilities。重复观察与有限停止归 owning Business Flow；已退役的独立 DOM 等待、scroll/select/dismiss-overlay 不保留 wrapper、alias、fallback、mode switch 或影子实现。
 
 ## 2. Owner 边界
 
@@ -52,7 +52,7 @@ Business Flow -> src/capabilities/dom-automation/index.ts -> one child ability -
 
 ## 4. 法定子能力清单
 
-现役清单固定为七个：
+现役清单固定为六个：
 
 | child ability | 输入 | 输出 | 终态边界 |
 | --- | --- | --- | --- |
@@ -103,7 +103,7 @@ Locator 只在 snapshot 上按 role、kind、visible text、label、aria label�
 
 唯一候选才可返回 element ref。零候选为 `not_found`；多个同分候选为 `ambiguous`。禁止坐标优先、全局 selector 注入和平台业务步骤。
 
-Locator / Wait / Verify 的统一确认公式：
+Locate / one-shot verify 的统一确认公式：
 
 ```txt
 confirmed
@@ -197,10 +197,10 @@ validate caller-approved local path equality
 
 禁止 native picker fallback、DOM value assignment、第二 file transport、任意路径或把 `file-selected` 当业务 upload success。
 
-## 11. Wait / Verify 图纸
+## 11. One-shot Verify 图纸
 
-- Wait 与 Verify 都是纯观察。
-- 总 timeout 由 caller 给出；每次 snapshot 使用剩余预算与底层上限的较小值。
+- Verify 只判断当前一次 snapshot，是纯观察。
+- 重复观察的总 timeout、次数上限和每次剩余预算由 owning Business Flow 管理。
 - navigation/document stale 立即返回结构化终态。
 - predicate 只判断 caller-approved DOM state，不决定业务下一步。
 - 只有业务 plugin 能把多个原子结果归纳为 `upload_success`、`already_uploaded` 等业务终态。
@@ -212,10 +212,9 @@ DOM runtime 只依赖既有 `BrowserTargetSession` 窄口：
 ```ts
 interface BrowserTargetSession {
   evaluate<T>(input: { script: string; timeoutMs?: number }): Promise<T>;
-  clickLocatedDomElement(input: { point: { x: number; y: number }; documentRef: string }): Promise<BrowserActionResult>;
-  textInput(input: { text: string; replace?: boolean; documentRef: string }): Promise<BrowserActionResult>;
+  clickLocatedDomElement(input: { selector: string; identity: DomIdentity; expectedText?: string }): Promise<BrowserActionResult>;
+  fillLocatedDomElement(input: { selector: string; identity: DomIdentity; approvedText: string; clearBeforeType: boolean }): Promise<BrowserActionResult>;
   setFileInputFiles(input: { selector: string; files: string[]; documentRef: string }): Promise<BrowserActionResult>;
-  wait(durationMs: number, signal?: AbortSignal): Promise<void>;
 }
 ```
 
@@ -232,7 +231,7 @@ interface BrowserTargetSession {
 
 ## 14. Frame / Shadow / SPA 边界
 
-- SPA hydration、loading、overlay 通过 bounded snapshot/wait 观察。
+- SPA hydration、loading、overlay 由 owning Business Flow 通过 bounded snapshot 序列观察。
 - frame/shadow identity 无法由现役 exact-target Browser 命令绑定时必须 fail closed。
 - 禁止 foreground focus、active tab、coordinate probing、legacy evaluator 或隐藏 Playwright 链兜底。
 
@@ -266,11 +265,11 @@ scripts/audit/domains/dom-automation/
 
 Inspector 必须使用 ts-morph AST/symbol，阻断：
 
-- public facade 与七能力清单漂移。
+- public facade 与六能力清单漂移。
 - plugin 绕过 `index.ts` 或 DOM runtime import plugin。
-- `BrowserTargetSession.evaluate` 脚本中出现 mutation call/property assignment。
-- click 未调用 `clickLocatedDomElement`。
-- fill 未调用 `clickLocatedDomElement` 与 `textInput`。
+- click/fill 保留“先观察坐标、后突变”的时间差链路。
+- click 未且只调用一次 `clickLocatedDomElement` 原子命令。
+- fill 未且只调用一次 `fillLocatedDomElement` 原子命令。
 - upload 未调用 `setFileInputFiles` 或未验证 approved path/file-input。
 - active/current/front/first fallback、系统 focus lease、caller-local evaluator。
 - retired child owner 或第二链路径复活。
@@ -283,16 +282,15 @@ Deterministic acceptance 必须真实执行：
 
 1. snapshot 获取受限结构。
 2. locate 返回唯一、not_found、ambiguous。
-3. fill 经专用 click/clear/逐键 text/Tab commit command 并验证值；禁止 `Input.insertText`。
-4. click 经专用 click command 并验证状态。
+3. fill 在同一 Chrome 原子命令中完成身份复核、唯一 editable receiver 解析、精确赋值、事件提交和值核对。
+4. click 在同一 Chrome 原子命令中完成身份复核、唯一目标解析和点击。
 5. upload 只接收 approved light-DOM file input，由 Browser 向唯一真实 receiver 派发一次；组件终态由业务 owner 另行观察。
-6. wait 在 deadline 内达到/超时。
-7. verify 返回 matched/mismatched。
-8. stale document、unsupported frame/deep shadow fail closed。
-9. 技术 evaluate exception 不归类为业务 not_found。
-10. mutation scripts 物理归零。
+6. verify 返回 matched/mismatched；重复观察由 owning Business Flow 的 deadline/次数上限管理。
+7. stale document、unsupported frame/deep shadow fail closed。
+8. 技术 evaluate exception 不归类为业务 not_found。
+9. DOM 侧坐标观察/突变分段 scripts 物理归零。
 
-真实 Chrome 必须证明后台 controlled target 的 evaluate/click/fill/upload 只影响目标 tab，前台 tab 的 URL、title、scroll 和 input marker 不变。真实 Seller Central 还必须证明逐键输入加 Tab 能让 KAT 输入模型接受值，以及文件组件在清空 native receiver 后仍以自己的 ready item 表示已选文件；未实际提交成功时标记 `NOT_PRODUCTION_VERIFIED`。
+真实 Chrome 必须证明后台 controlled target 的 evaluate/click/fill/upload 只影响目标 tab，前台 tab 的 URL、title、scroll 和 input marker 不变。真实 Seller Central 还必须证明单个原子 fill 命令能让 KAT 输入模型接受精确值，以及文件组件在清空 native receiver 后仍以自己的 ready item 表示已选文件；未实际提交成功时标记 `NOT_PRODUCTION_VERIFIED`。
 
 ## 18. 施工顺序
 
@@ -307,7 +305,7 @@ active law -> blueprint -> Browser evaluation owner -> DOM click/fill/upload
 ## 19. 完成定义
 
 - active law、施工图、manifest、inspector 与 generated truth 同一候选一致。
-- 七个 child abilities 通过 public facade，旧 mutation/evaluator 片区物理不存在。
+- 六个 child abilities 通过 public facade，旧坐标观察/突变分段片区物理不存在。
 - deterministic acceptance、owner audit、typecheck 通过。
 - `ACC-023B-01` 至 `ACC-023B-10` 的真实 Chrome exact-target matrix 通过。
 - Seller Central 文件输入拓扑已实读，支持则以专用 command 完成；不支持则上传前 fail closed。

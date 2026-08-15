@@ -92,7 +92,9 @@ interface BrowserController {
   navigateTarget(input: NavigateTargetInput): Promise<ControlledBrowserTarget>;
   evaluateTarget<T>(input: TargetDocumentCommand): Promise<T>;
   clickTarget(input: TargetDocumentPointCommand): Promise<BrowserActionResult>;
-  fillTarget(input: TargetDocumentTextCommand): Promise<BrowserActionResult>;
+  clickDomTarget(input: TargetDocumentIdentityCommand): Promise<BrowserActionResult>;
+  fillDomTarget(input: TargetDocumentIdentityTextCommand): Promise<BrowserActionResult>;
+  textTarget(input: TargetDocumentTextCommand): Promise<BrowserActionResult>;
   scrollTarget(input: TargetDocumentScrollCommand): Promise<BrowserActionResult>;
   captureTargetScreenshot(input: TargetDocumentCommand): Promise<BrowserActionResult>;
   setTargetFileInputFiles(input: TargetDocumentFileInputCommand): Promise<BrowserActionResult>;
@@ -166,7 +168,8 @@ caller function body
 - 只在 `src/lib/browser/exact-target/**` 包装一次。
 - Native host 与 MV3 worker 只转发/执行已规范化 expression，不再包裹。
 - `evaluate_target` 的 `mutationClass` 固定为 `observation`。
-- click/scroll/fill/upload 分别只走 `click_target`、`scroll_target`、`text_target`、`set_file_input_files`。
+- 通用 click/scroll/text 分别走 `click_target`、`scroll_target`、`text_target`；DOM click/fill 只走 `click_dom_target`、`fill_dom_target`，上传走 `set_file_input_files`。
+- `click_dom_target` / `fill_dom_target` 在同一命令中完成 selector 唯一解析、当前 identity 对比、可交互性核对和 mutation，不接收先前观察出的坐标。
 - 禁止 caller-local wrapper、`eval`、`new Function`、双模式或失败回退。
 - top-level `return` 必须在 deterministic acceptance 和真实 Chrome 中得到证明。
 - duplicate/out-of-order commandId、nonce/version/origin/size 错误全部 fail closed。
@@ -282,12 +285,12 @@ local-browser-atomic-cutover.acceptance.ts
 6. native picker 只在 focus lease 内运行；用户切走后不重抢。
 7. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
 8. 函数体 top-level return 经唯一生产 wrapper 成功返回，且不存在 `Illegal return statement`。
-9. click、fill、file-input mutation 只通过专用 exact-target command 完成。
+9. DOM click、DOM fill、file-input mutation 只通过各自专用 exact-target command 完成；identity 改变攻击必须 fail closed。
 10. 前台非目标 tab 在全部场景中保持 URL、title、scroll 和 input marker 不变。
 
-`text_target` 的固定输入序列为：click 精确输入 owner -> clear-input -> 每个获准字符依次
-`rawKeyDown -> char -> keyUp` -> `Tab`。不得使用 `Input.insertText` 或脚本 value setter，
-因为它们能改变可见值却不保证 Web Component 的业务模型收到输入。
+`text_target` 只保留为通用 Browser 文本命令，不得与先前坐标 click 拼装成 DOM fill。
+DOM fill 由单个 `fill_dom_target` 对同一已复核 receiver 完成精确值写入、组件事件提交和值核对；
+不得回退到 `click_target + text_target`、`Input.insertText` 或第二输入链。
 
 真实 Amazon `kat-file-upload` 的唯一文件接收顺序：
 

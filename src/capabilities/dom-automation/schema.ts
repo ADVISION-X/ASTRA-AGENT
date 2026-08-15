@@ -97,7 +97,12 @@ const DomFormSummarySchema = z.object({
   buttonCount: z.number().int().nonnegative(),
 }).strict();
 
-const DomDialogSummarySchema = DomElementSummaryBaseSchema.strict();
+const DomDialogSummarySchema = DomElementSummaryBaseSchema.extend({
+  descendantRows: z.array(DomCandidateSummarySchema.refine(
+    (row) => row.candidateKind === "table-row" || row.candidateKind === "role-row",
+    { message: "dialog descendant rows must be table or role rows" },
+  )),
+}).strict();
 
 const DomFrameSummarySchema = z.object({
   selectorCandidate: z.string(),
@@ -143,6 +148,21 @@ const DomElementRefSchema = z.object({
   documentRef: z.string().min(1),
   elementRef: z.string().min(1),
   selector: z.string().min(1),
+  identity: DomElementSummaryBaseSchema.pick({
+    tagName: true,
+    type: true,
+    role: true,
+    ariaLabel: true,
+    labelText: true,
+    placeholder: true,
+    name: true,
+    id: true,
+    visibleText: true,
+    testId: true,
+  }).partial().refine(
+    (identity) => Object.values(identity).some((value) => typeof value === "string" && value.length > 0),
+    { message: "DOM identity requires at least one exact signal" },
+  ),
   frameRef: z.string().min(1).optional(),
   targetKind: DomTargetKindSchema,
   confidence: z.number().min(0).max(1),
@@ -152,7 +172,6 @@ const DomElementRefSchema = z.object({
   proximityAnchor: z.string().min(1).optional(),
   componentLibHint: z.string().min(1).optional(),
   sourceSnapshotRef: z.string().min(1).optional(),
-  textFingerprint: z.string().min(1).optional(),
   capturedAt: z.string().datetime().optional(),
 }).strict();
 

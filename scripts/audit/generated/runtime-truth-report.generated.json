@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T21:53:30.668Z",
+  "generatedAt": "2026-08-15T23:03:22.986Z",
   "status": "PASS",
   "inspectedFiles": [
     "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"
@@ -12,14 +12,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:badba21e-aea1-4f32-a880-ddb9e05a83df",
+      "runId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d",
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:c295ad7b-9973-4f31-aced-903117c10057",
       "capabilityDomain": "runtime-truth",
       "checkId": "runtime-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T21:53:30.668Z",
-      "endedAt": "2026-08-15T21:53:30.668Z",
-      "durationMs": 0,
+      "startedAt": "2026-08-15T23:03:22.985Z",
+      "endedAt": "2026-08-15T23:03:22.986Z",
+      "durationMs": 1,
       "evidenceRefs": [
         "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"
       ],
@@ -31,7 +31,7 @@
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",
       "clauseId": "apex-runtime-truth-001-requirement",
       "checkId": "runtime-truth/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:badba21e-aea1-4f32-a880-ddb9e05a83df"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:c295ad7b-9973-4f31-aced-903117c10057"
     }
   ]
 }

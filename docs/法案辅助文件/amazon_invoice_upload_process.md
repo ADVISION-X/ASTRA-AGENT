@@ -2,7 +2,7 @@
 
 > 文件用途：本文件只定义 **Amazon invoice upload** 技能的流程步骤、DOM 观察信息与每一步注意事项。  
 > 文件边界：本文件不写 active law、不写数据库设计、不写代码实现、不写 CI 真相。  
-> 核心原则：流程顺序归 Amazon invoice upload job flow owner；DOM Automation 只提供中性 snapshot / locate / click / upload / wait / verify 子能力；Chrome 实走信息只能作为实现地图，不高于 active law。
+> 核心原则：流程顺序归 Amazon invoice upload job flow owner；DOM Automation 固定只提供 snapshot / locate / fill / click / upload / one-shot verify 六项中性子能力；重复观察与有限停止归业务 Flow；Chrome 实走信息只能作为实现地图，不高于 active law。
 
 ---
 

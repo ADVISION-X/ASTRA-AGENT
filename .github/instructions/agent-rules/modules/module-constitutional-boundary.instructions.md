@@ -138,4 +138,4 @@ Required:
 
 Forbidden:
 
-- Plugin, app, mediator, local-runtime, or acceptance files importing `readDomSnapshotOnce`, `locateDomElementOnce`, `fillDomElementOnce`, `clickDomElementOnce`, `uploadApprovedFileOnce`, `waitForDomStateOnce`, or `verifyDomStateOnce` outside the allowlisted bridge.
+- Plugin, app, mediator, local-runtime, or acceptance files importing any of the six DOM primitives—`readDomSnapshotOnce`, `locateDomElementOnce`, `fillDomElementOnce`, `clickDomElementOnce`, `uploadApprovedFileOnce`, or `verifyDomStateOnce`—outside the allowlisted bridge.

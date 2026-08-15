@@ -1,13 +1,13 @@
 ---
 name: "GrassEye DOM Automation Capability"
-description: "Production-grade law for the DOM Automation ability group: snapshot, locate, fill, click, upload, wait, verify, structured failure, evidence truth, SPA/dynamic content, frame/shadow boundaries, and audit enforcement."
+description: "Production-grade law for the six DOM Automation abilities: snapshot, locate, fill, click, upload, one-shot verify, structured failure, evidence truth, SPA/dynamic content, frame/shadow boundaries, and audit enforcement."
 applyTo: "src/capabilities/dom-automation/**,src/plugins/**,src/mediator/**,src/lib/browser/**,scripts/acceptance/**,scripts/audit/**"
 ---
 
 # GrassEye DOM Automation Capability
 
 status: active
-version: 2026-08-15-v4
+version: 2026-08-16-v5
 capabilityDomain: dom-automation
 constructionBlueprint: `docs/法案辅助文件/GrassEye_DOM自动化生产稳定态施工图.md`
 
@@ -24,8 +24,7 @@ DOM Automation owns same-kind browser-page primitives:
 - Approved text fill.
 - Located element click.
 - Approved file upload.
-- DOM state wait.
-- DOM state verification.
+- One-shot DOM state verification.
 
 DOM Automation does not own:
 
@@ -440,7 +439,7 @@ Required:
 - Password fields return `review_required`.
 - Action result must include before/after evidence or fail/review.
 - Filled value must be verified before success.
-- Text entry must use ordered exact-target keyboard events and commit with Tab so component-owned input/change state is updated; `Input.insertText` and synthetic value mutation are forbidden.
+- Text entry must use one `fill_dom_target` command that revalidates identity and receiver, applies only approved text, dispatches the component input/change events and verifies the exact retained value before returning; split click/text entry and second verification paths are forbidden.
 
 ## 10. Law APEX-DOM-008-V1 — Click Safety
 
@@ -477,8 +476,8 @@ Required:
 
 Required:
 
-- DOM selector and text/kind revalidation happen before the click.
-- Coordinates may be used only as browser execution transport after DOM target selection.
+- DOM selector, captured identity and text/kind revalidation happen inside the same `click_dom_target` command that clicks the resolved object.
+- A previously observed coordinate is never accepted as DOM action identity or transport.
 - Dangerous text or irreversible action terms must return `review_required` unless an explicit domain law authorizes the flow.
 - After evidence is required for success.
 
@@ -531,7 +530,7 @@ Required:
 - Browser file-input support is a low-level port; business plugins call DOM upload, not browser private upload code.
 - Upload returns structured success/failure/review-required.
 
-## 12. Law APEX-DOM-010-V1 — Wait / Verify Truth
+## 12. Law APEX-DOM-010-V1 — One-shot Verification Truth
 
 ```apex-law
 {
@@ -552,7 +551,7 @@ Required:
     "Login or captcha state downgraded to not_found.",
     "Verification evidence ref that cannot be traced to an observed snapshot or action.",
     "Business success terms hardcoded in DOM core.",
-    "An underlying DOM snapshot evaluation that can outlive the caller's governed wait deadline.",
+    "An underlying DOM snapshot evaluation that can outlive the caller's governed observation deadline.",
     "A positive hint accepted while a negative, loading, stale, foreign or duplicate state remains unresolved.",
     "An unconditional observe, locate, retry or scroll loop."
   ],
@@ -572,7 +571,7 @@ Required:
 - `login_required` and `captcha_or_2fa_required` outrank generic success/failure hints.
 - `file_selected` is not final upload success unless the job flow explicitly expects only file selection.
 - Ambiguous success and failure signals return `ambiguous`.
-- A production wait contract carries caller-owned positive facts and named negative exclusions; DOM core reports the observed conflict but never invents business meaning.
+- A production finite-observation contract carries caller-owned positive facts and named negative exclusions; DOM core reports the observed conflict but never invents business meaning.
 - A single-target locate returns success only for exactly one candidate and excludes hidden, disabled, stale, foreign-document and equal-score duplicate candidates.
 - Timeouts return the latest structured observed status, not fake success.
 - Every observe, locate, retry and scroll sequence ends at an explicit count or deadline; budget exhaustion never authorizes another action path.
@@ -838,7 +837,7 @@ Forbidden:
   "summary": "Every DOM ref and action must remain bound to one opaque BrowserTargetRef and one current BrowserDocumentRef.",
   "required": [
     "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
-    "Locate, fill, click, upload, wait, verify and scroll reject stale, foreign, navigated or mismatched document refs before side effects.",
+    "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
     "DOM ordinary actions use target-bound BrowserController commands without foreground focus; only an explicitly approved native picker may request PhysicalFocusLease.",
     "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
   ],
@@ -846,7 +845,7 @@ Forbidden:
     "evaluateActiveTab or any active/current/first page fallback",
     "raw tab, target, session or window identifiers in DOM public contracts",
     "reusing an element ref after document generation changes",
-    "system mouse or keyboard for ordinary DOM click, fill or scroll",
+    "system mouse or keyboard for ordinary DOM click or fill",
     "business plugins bypassing the DOM facade to call browser page primitives"
   ],
   "clauses": [
@@ -960,7 +959,7 @@ DOM Automation may be called production-stable only when all are true:
 - Locator supports proximity hints, component library patterns, and CJK text matching.
 - Web Compatibility Coverage Map shows no unaddressed gaps without a structured `review_required` return path.
 
-## 21.1 Law APEX-DOM-021-V1 — Observation and Mutation Separation
+## 21.1 Law APEX-DOM-021-V1 — Atomic Identity Revalidation And Mutation
 
 ```apex-law
 {
@@ -970,30 +969,30 @@ DOM Automation may be called production-stable only when all are true:
   "capabilityDomain": "dom-automation",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast+acceptance+real-chrome",
-  "summary": "DOM Automation must use evaluate only for observation and revalidation; click, fill and upload mutations must use dedicated exact-target Browser commands.",
+  "summary": "DOM click and fill must each use one dedicated exact-target Chrome command that revalidates the located identity and performs the mutation on that same resolved object without a coordinate or focus time gap.",
   "appliesTo": [
     "src/capabilities/dom-automation/**/*.{ts,tsx,js,jsx,mjs}",
     "src/lib/browser/**/*.{ts,tsx,js,jsx,mjs}",
     "scripts/acceptance/**/*.{ts,tsx,js,jsx,mjs}"
   ],
   "required": [
-    "Click revalidates and derives one visible viewport point through observation, then invokes clickLocatedDomElement on the same exact target and current document.",
-    "Fill revalidates and derives one editable element point through observation, then invokes clickLocatedDomElement, clear-input, ordered keyboard textInput and a Tab commit; verification is a later observation.",
+    "Click invokes clickLocatedDomElement exactly once; the Chrome command resolves one selector, compares the current DOM identity with the captured identity, validates visibility and enabled state, and clicks that same object in one atomic command.",
+    "Fill invokes fillLocatedDomElement exactly once; the Chrome command resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, dispatches the component events, and verifies the exact retained value before returning.",
     "Upload revalidates a supported light-DOM file input and invokes setFileInputFiles with only the caller-approved path.",
     "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
     "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
   ],
   "forbidden": [
-    "Element.click, scrollIntoView, focus, value setters, execCommand or synthetic input/change events inside BrowserTargetSession.evaluate scripts",
+    "A DOM child performing a separate BrowserTargetSession.evaluate before or after click/fill mutation",
     "page mutation through evaluate_target",
-    "a caller-local evaluator, coordinate fallback, foreground-focus fallback or compatibility bridge",
+    "a caller-local evaluator, point observation followed by coordinate click, split click/clear/text/Tab fill, foreground-focus fallback or compatibility bridge",
     "claiming unsupported deep shadow or frame upload succeeded",
-    "Input.insertText, synthetic value assignment or later input.files retention used as component commit proof"
+    "generic text_target, Input.insertText or later input.files retention used as DOM fill/file component commit proof"
   ],
   "clauses": [
     {
       "clauseId": "apex-dom-021-requirement",
-      "statement": "DOM Automation must separate observation from mutation and route click, fill and upload through dedicated exact-target Browser commands.",
+      "statement": "DOM click and fill must each bind identity revalidation, uniqueness checks and mutation into one dedicated exact-target Chrome command.",
       "evidenceMode": "real-chrome",
       "ownerDomain": "dom-automation"
     }
@@ -1013,7 +1012,7 @@ DOM Automation is active but not production-stable.
 DOM Automation is allowed to know the page structure.
 It is not allowed to know the business mission.
 
-DOM may look, find, fill, click, upload, scroll, select, dismiss overlays, and verify one observation; owning Business Flows perform any bounded wait sequence.
+DOM may snapshot, locate, fill, click, upload, and verify one observation; owning Business Flows perform any bounded repeated-observation sequence.
 It may not plan, decide the workflow, forge evidence, or become a second flow.
 
 The six child abilities are the complete hands of GrassEye on governed web pages.

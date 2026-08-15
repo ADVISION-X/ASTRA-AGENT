@@ -10,18 +10,6 @@ import {
   type ScoredDomLocatorCandidate,
 } from "./dom-locator-candidates.js";
 
-function buildTextFingerprint(scored: ScoredDomLocatorCandidate): string {
-  return createHash("sha256")
-    .update([
-      scored.candidate.ariaLabel,
-      scored.candidate.labelText,
-      scored.candidate.placeholder,
-      scored.candidate.visibleText,
-    ].filter(Boolean).join("|"))
-    .digest("hex")
-    .slice(0, 16);
-}
-
 function buildElementRef(input: LocateDomElementInput, scored: ScoredDomLocatorCandidate): DomElementRef {
   const hash = createHash("sha256")
     .update(`${input.targetKind}:${scored.candidate.selectorCandidate}:${scored.matchedSignals.join("|")}`)
@@ -32,6 +20,18 @@ function buildElementRef(input: LocateDomElementInput, scored: ScoredDomLocatorC
     documentRef: input.snapshot.documentRef,
     elementRef: `dom:${hash}`,
     selector: scored.candidate.selectorCandidate,
+    identity: {
+      tagName: scored.candidate.tagName,
+      ...(scored.candidate.type ? { type: scored.candidate.type } : {}),
+      ...(scored.candidate.role ? { role: scored.candidate.role } : {}),
+      ...(scored.candidate.ariaLabel ? { ariaLabel: scored.candidate.ariaLabel } : {}),
+      ...(scored.candidate.labelText ? { labelText: scored.candidate.labelText } : {}),
+      ...(scored.candidate.placeholder ? { placeholder: scored.candidate.placeholder } : {}),
+      ...(scored.candidate.name ? { name: scored.candidate.name } : {}),
+      ...(scored.candidate.id ? { id: scored.candidate.id } : {}),
+      ...(scored.candidate.visibleText ? { visibleText: scored.candidate.visibleText } : {}),
+      ...(scored.candidate.testId ? { testId: scored.candidate.testId } : {}),
+    },
     targetKind: input.targetKind,
     confidence: Math.max(0.1, Math.min(0.98, scored.score)),
     matchedSignals: scored.matchedSignals,
@@ -39,7 +39,6 @@ function buildElementRef(input: LocateDomElementInput, scored: ScoredDomLocatorC
     ["fall" + "backUsed"]: scored.usedCssLastResort,
     ...(input.proximityAnchorText ? { proximityAnchor: input.proximityAnchorText } : {}),
     ...(scored.candidate.candidateKind === "dropdown-trigger" ? { componentLibHint: "semantic-dropdown-trigger" } : {}),
-    textFingerprint: buildTextFingerprint(scored),
     capturedAt: input.snapshot.capturedAt,
   }) as DomElementRef;
 }
@@ -104,6 +103,7 @@ export function locateDomElementOnce(rawInput: LocateDomElementInput): DomElemen
     documentRef: input.snapshot.documentRef,
     elementRef: `dom:unresolved:${result.status}`,
     selector: "__DOM_LOCATE_UNRESOLVED__",
+    identity: { tagName: "unresolved" },
     targetKind: input.targetKind,
     confidence: 0,
     matchedSignals: [result.status],

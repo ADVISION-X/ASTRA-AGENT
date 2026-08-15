@@ -95,9 +95,10 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
   "required": [
     "BrowserTargetSession.evaluate accepts a governed JavaScript function body and the exact-target Browser runtime wraps that body into one executable expression exactly once before transport.",
     "The MV3 service worker executes the already-normalized expression and does not add another function, eval, Function constructor or caller-specific wrapper.",
-    "evaluate_target remains an observation command; click, scroll, text input and file input mutations use click_target, scroll_target, text_target and set_file_input_files against the same exact target and current document generation.",
+    "evaluate_target remains an observation command; generic click, scroll and text input use click_target, scroll_target and text_target, while governed DOM click/fill use click_dom_target and fill_dom_target and file input uses set_file_input_files against the same exact target and current document generation.",
+    "click_dom_target and fill_dom_target each resolve one selector, compare the current element identity with the caller-captured identity, validate the exact receiver and perform the mutation within that same Chrome command; they never consume a previously observed coordinate.",
     "set_file_input_files resolves the one real enabled file receiver inside an open author shadow root when the governed light-DOM input is only a hidden component proxy, dispatches the approved file selection once, and never treats a later input.files read as component attachment truth because a consuming component may clear the receiver synchronously.",
-    "text_target type-text dispatches one ordered real keyboard event sequence per approved character and fill commits with Tab; Input.insertText is not an admitted replacement for component-observed keyboard input.",
+    "text_target remains a generic Browser text command; DOM fill cannot compose it with a prior coordinate click and must use the atomic fill_dom_target contract.",
     "Deterministic acceptance proves top-level return works through the production wrapper, and real-Chrome acceptance proves evaluation and dedicated mutations affect only the controlled background target."
   ],
   "forbidden": [
@@ -106,7 +107,7 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
     "wrapping the expression again in the Native host or MV3 service worker",
     "DOM click, scroll, fill or upload mutation hidden inside evaluate_target",
     "reporting business file attachment success from the Browser command, the hidden proxy, or a later input.files read instead of an owner-observed component postcondition",
-    "using Input.insertText for governed component text entry",
+    "using click_target plus text_target as a governed DOM fill compatibility path",
     "compatibility bridges, fallback evaluation modes or dual evaluation contracts"
   ],
   "clauses": [

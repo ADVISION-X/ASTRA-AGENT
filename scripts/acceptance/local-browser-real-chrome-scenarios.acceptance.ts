@@ -124,7 +124,7 @@ try {
 
   if (scenario === "ACC-023B-01") {
     const beforeB = await readState<string>(b, "JSON.stringify({value:document.querySelector('#field').value,scrollY,clicked:document.querySelector('#action').dataset.clicked||null})");
-    await a.clickLocatedDomElement({ targetLabel: "fixture A field", point: await pointOf(a, "#field") });
+    await a.click({ targetLabel: "fixture A field", point: await pointOf(a, "#field") });
     await a.textInput({ targetLabel: "fixture A field", action: "type-text", text: "A_ONLY" });
     await stage("scenario01-scroll", () => a!.scroll({ targetLabel: "fixture A", deltaX: 0, deltaY: 500 }));
     const point = await pointOf(a, "#action");
@@ -173,16 +173,40 @@ try {
     const beforeB = await readState<string>(b, "JSON.stringify({clicked:document.querySelector('#action').dataset.clicked||null,scrollY})");
     const actionPoint = await pointOf(a, "#action");
     assert.equal(await readState<string>(a, `document.elementFromPoint(${actionPoint.x},${actionPoint.y})?.id`), "action");
-    await stage("scenario07-click", async () => a!.clickLocatedDomElement({ targetLabel: "fixture A dedicated click", point: actionPoint }));
+    await assert.rejects(
+      () => a!.clickLocatedDomElement({
+        targetLabel: "fixture A changed identity attack",
+        element: { selector: "#action", identity: { tagName: "input", type: "submit", id: "different-action" } },
+      }),
+      /TARGET_IDENTITY_CHANGED/u,
+    );
+    assert.equal(await readState<string | null>(a, "document.querySelector('#action').dataset.clicked||null"), null);
+    await stage("scenario07-click", async () => a!.clickLocatedDomElement({
+      targetLabel: "fixture A dedicated click",
+      element: { selector: "#action", identity: { tagName: "input", type: "submit", id: "action", visibleText: "action" } },
+      expectedText: "action",
+    }));
     assert.equal(await readState<string>(a, "document.querySelector('#action').dataset.clicked"), "yes");
     assert.equal(await readState<string>(b, "JSON.stringify({clicked:document.querySelector('#action').dataset.clicked||null,scrollY})"), beforeB);
   }
   if (scenario === "ACC-023B-08") {
     const beforeB = await readState<string>(b, "document.querySelector('#field').value");
-    await a.clickLocatedDomElement({ targetLabel: "fixture A dedicated fill", point: await pointOf(a, "#field") });
-    await a.textInput({ targetLabel: "fixture A dedicated fill", action: "clear-input" });
-    await a.textInput({ targetLabel: "fixture A dedicated fill", action: "type-text", text: "DEDICATED_TEXT_TARGET" });
-    await a.textInput({ targetLabel: "fixture A dedicated fill", action: "press-key", key: "Tab" });
+    await assert.rejects(
+      () => a!.fillLocatedDomElement!({
+        targetLabel: "fixture A changed fill identity attack",
+        element: { selector: "#field", identity: { tagName: "input", type: "input", id: "different-field" } },
+        approvedText: "MUST_NOT_APPEAR",
+        clearBeforeType: true,
+      }),
+      /TARGET_IDENTITY_CHANGED/u,
+    );
+    assert.equal(await readState<string>(a, "document.querySelector('#field').value"), "");
+    await a.fillLocatedDomElement!({
+      targetLabel: "fixture A dedicated fill",
+      element: { selector: "#field", identity: { tagName: "input", type: "input", id: "field" } },
+      approvedText: "DEDICATED_TEXT_TARGET",
+      clearBeforeType: true,
+    });
     assert.equal(await readState<string>(a, "document.querySelector('#field').value"), "DEDICATED_TEXT_TARGET");
     assert.equal(await readState<string>(a, "document.querySelector('#field').dataset.committed"), "DEDICATED_TEXT_TARGET");
     assert.equal(await readState<string>(b, "document.querySelector('#field').value"), beforeB);

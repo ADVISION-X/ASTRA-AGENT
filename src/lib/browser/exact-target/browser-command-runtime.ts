@@ -199,7 +199,27 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
     await this.command({ kind: "click_target", x: input.point.x, y: input.point.y, button: input.button ?? "left", clickCount: input.clickCount ?? 1 }, "non_idempotent_mutation", input.abortSignal);
     return this.action(createId("browser-click"), `clicked ${input.targetLabel} on exact target`, started);
   }
-  clickLocatedDomElement(input: Parameters<BrowserTargetSession["clickLocatedDomElement"]>[0]) { return this.click(input); }
+  async clickLocatedDomElement(input: Parameters<BrowserTargetSession["clickLocatedDomElement"]>[0]): Promise<BrowserActionResult> {
+    const started = Date.now();
+    await this.command({
+      kind: "click_dom_target",
+      selector: input.element.selector,
+      identity: input.element.identity,
+      ...(input.expectedText ? { expectedText: input.expectedText } : {}),
+    }, "non_idempotent_mutation", input.abortSignal);
+    return this.action(createId("browser-dom-click"), `atomically revalidated and clicked ${input.targetLabel} on exact target`, started);
+  }
+  async fillLocatedDomElement(input: Parameters<NonNullable<BrowserTargetSession["fillLocatedDomElement"]>>[0]): Promise<BrowserActionResult> {
+    const started = Date.now();
+    await this.command({
+      kind: "fill_dom_target",
+      selector: input.element.selector,
+      identity: input.element.identity,
+      approvedText: input.approvedText,
+      clearBeforeType: input.clearBeforeType,
+    }, "non_idempotent_mutation", input.abortSignal);
+    return this.action(createId("browser-dom-fill"), `atomically revalidated and filled ${input.targetLabel} on exact target`, started);
+  }
   async move(input: Parameters<NonNullable<BrowserTargetSession["move"]>>[0]): Promise<BrowserActionResult> {
     const started = Date.now();
     await this.command({ kind: "move_target", x: input.point.x, y: input.point.y }, "idempotent_mutation", input.abortSignal);

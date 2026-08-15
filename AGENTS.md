@@ -405,7 +405,7 @@ Plugin 禁止：
 
 | Capability | 功能 | 强制边界 |
 | --- | --- | --- |
-| `dom-automation` | snapshot、locate、fill、click、upload、wait、verify | 只做 DOM 原子动作；不懂平台业务；不得返回业务成功；敏感点击/上传必须受调用方批准 |
+| `dom-automation` | snapshot、locate、fill、click、upload、verify（固定六项） | 只做 DOM 原子动作；重复观察与有限停止由 owning Business Flow 负责；不懂平台业务；不得返回业务成功；敏感点击/上传必须受调用方批准 |
 | `ai-input-gateway` | 把已治理 prompt 和获准附件送给外部 AI，取回 raw response 和 provider proof | 只管运输，不做领域判断，不生成流程/selector/坐标/浏览器命令；不得出现第二 provider transport |
 | `forensics-persistence` | append record、artifact、ref、hash、failure reason | 只记发生过什么，不决定下一步，不代替业务 task state 或 audit truth |
 | `media-processing` | 单次图片/视频处理、依赖检查、产物和 proof | 只处理媒体，不决定业务价值，不在 job 里另造处理实现 |

@@ -625,7 +625,6 @@ locate-dom-element-once
 fill-dom-element-once
 click-dom-element-once
 upload-approved-file-once
-wait-for-dom-state-once
 verify-dom-state-once
 ```
 

@@ -8,7 +8,7 @@ const distDir = path.join(sourceDir, "dist");
 
 await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
-for (const name of ["protocol", "service-worker-command-execution", "service-worker"]) {
+for (const name of ["protocol", "service-worker-command-execution", "atomic-dom-command", "service-worker"]) {
   const source = await readFile(path.join(sourceDir, `${name}.ts`), "utf8");
   const result = ts.transpileModule(source, {
     compilerOptions: {

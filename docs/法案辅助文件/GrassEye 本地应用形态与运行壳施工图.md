@@ -98,7 +98,7 @@ Amazon invoice upload 必须收集：
 - old commander console。
 - visual runtime control panel。
 - AI next-action planner。
-- 页面直接控制 DOM、browser、upload、click、fill、wait、verify。
+- 页面直接控制 DOM、browser、upload、click、fill 或 one-shot verify。
 - 页面决定业务流程下一步。
 - 页面伪造 evidence 或 task success。
 - `src/lib/local-runtime/**` 直接 import plugin 私有文件或 capability 私有文件。

@@ -254,6 +254,37 @@ export const forbiddenRuntimeCall = runtime.execute();
     "a relative side-effect import under src/types must fail",
   );
 
+  writeFixture(`${pluginRoot}/flow.ts`, `export const startFixtureTask = (input: { value: string }) => {
+  while (true) { void input.value; }
+};
+export const resumeFixtureTask = (input: { value: string }) => input.value;
+`);
+  const trulyUnbounded = await runInspector();
+  assert.equal(
+    trulyUnbounded.findings.some((finding) =>
+      finding.checkId === "architecture/unbounded-production-stage"
+      && finding.filePath === `${pluginRoot}/flow.ts`),
+    true,
+    "a production loop with no terminal exit must fail",
+  );
+
+  writeFixture(`${pluginRoot}/flow.ts`, `export const startFixtureTask = (input: { value: string }) => {
+  const deadlineAt = Date.now() + 100;
+  while (true) {
+    if (Date.now() >= deadlineAt) return input.value;
+  }
+};
+export const resumeFixtureTask = (input: { value: string }) => input.value;
+`);
+  const deadlineBounded = await runInspector();
+  assert.equal(
+    deadlineBounded.findings.some((finding) =>
+      finding.checkId === "architecture/unbounded-production-stage"
+      && finding.filePath === `${pluginRoot}/flow.ts`),
+    false,
+    "an unconditional syntax loop with an explicit deadline return must not be misclassified",
+  );
+
   process.stdout.write("architecture-active-plugin-mediators-acceptance-ok\n");
 } finally {
   writeFileSync(resolveFromRepo(statusPath), originalStatus);

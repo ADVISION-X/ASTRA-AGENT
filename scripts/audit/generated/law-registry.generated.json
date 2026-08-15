@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T21:52:10.829Z",
+  "generatedAt": "2026-08-15T23:02:07.129Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -274,8 +274,8 @@
         "Amazon smoke acceptance uses the same production evaluation-expression contract as the unique Browser owner and must not implement a private evaluator.",
         "Real Seller Central verification resolves the actual enabled input[type=file] inside the unique open kat-file-upload author shadow root when the light-DOM input is only a hidden proxy, dispatches the approved PDF once, then admits attachment only when that component exposes exactly one same-name kat-file-item with file-status ready and zero duplicate, foreign or terminal-failure items; the component may synchronously clear the native receiver.",
         "Invoice-number fill is admitted only after the Amazon owner has observed that exact ready file item; whole-page order-id text, input.files and the visible pending copy 文件未上传 are never attachment verdicts.",
-        "Invoice-number text uses ordered real key events followed by Tab so the kat-input business model commits the approved value before final submit; direct text insertion or a visible shadow-input value alone is insufficient.",
-        "Final success is proved within forty bounded observations by exactly one current-order manage-invoice dialog containing exactly one approved invoice/order number row plus an Amazon accepted receipt or uploaded state, while duplicate dialogs, duplicate rows, foreign numbers and governed failure states are absent.",
+        "Invoice-number text uses one fill_dom_target Chrome command that revalidates the captured kat-input identity, resolves one editable receiver, applies only the approved value, dispatches component events and verifies the exact retained value before final submit.",
+        "Final success is proved within forty bounded observations by exactly one visible current-order manage-invoice dialog containing exactly one descendant row with the exact approved invoiceNo and an explicit Amazon successful state such as 由卖家生成 / Seller generated; whole-page rows, hidden dialogs, order-id-only rows, partial numbers, duplicate rows, foreign numbers and governed failure states are excluded.",
         "When a delayed current-order upload dialog becomes visible after the first click deadline, the retry path recognizes that exact visible dialog and its enabled file input as ready before locating or clicking the now-covered page entry again."
       ],
       "forbidden": [
@@ -285,7 +285,8 @@
         "refresh, repeat navigation, compatibility bridge, fallback evaluator or second upload flow",
         "retry-clicking the page upload entry after the current-order upload dialog is already open",
         "treating a hidden light-DOM proxy, dialog visibility, order id, invoice number, input.files or generic page text as proof that Amazon accepted the PDF",
-        "using direct text insertion, a synthetic value setter or a visible inner-input value as proof that kat-input committed the invoice number",
+        "using split coordinate click plus text_target, a visible inner-input value, or a second verification chain as proof that kat-input committed the invoice number",
+        "using the current order id as a substitute for invoiceNo, or using a row outside the unique visible dialog as final upload proof",
         "continuing to fill, submit, reopen, scroll or retry after duplicate, foreign, failure or bounded-exhaustion attachment/result evidence"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
@@ -391,11 +392,11 @@
       "capabilityDomain": "amazon-invoice-upload",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast",
-      "summary": "DOM Automation may provide only neutral snapshot, locate, click, upload, wait, and verify primitives; Seller Central report semantics and step order must stay inside amazon-invoice-upload.",
+      "summary": "DOM Automation may provide only six neutral primitives: snapshot, locate, fill, click, upload, and one-shot verify; Seller Central report semantics, repeated observation, finite stopping, and step order must stay inside amazon-invoice-upload.",
       "clauses": [
         {
           "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
-          "statement": "DOM Automation may provide only neutral snapshot, locate, click, upload, wait, and verify primitives; Seller Central report semantics and step order must stay inside amazon-invoice-upload.",
+          "statement": "DOM Automation may provide only six neutral primitives: snapshot, locate, fill, click, upload, and one-shot verify; Seller Central report semantics, repeated observation, finite stopping, and step order must stay inside amazon-invoice-upload.",
           "evidenceMode": "static",
           "ownerDomain": "amazon-invoice-upload"
         }
@@ -743,7 +744,7 @@
         "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
         "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
         "After opening Manage invoice / 管理发票, the flow waits until one unique visible dialog is bound to the current amazonOrderId and exposes exactly one explicit terminal branch: a matching uploaded invoice row, a fully rendered upload-ready table plus upload action, or an exact governed read-failure blocker such as 很抱歉，目前没有可用的操作。 or 读取失败.",
-        "The real-Chrome Chinese already-uploaded branch is the conjunction of dialog heading 订单<amazonOrderId>的发票, a row containing the matching complete order/invoice id, and the explicit status 成功：已上传 or equivalent strong uploaded state; the heading alone is only an order-binding signal.",
+        "The real-Chrome Chinese already-uploaded branch is the conjunction of one visible dialog heading 订单<amazonOrderId>的发票, exactly one descendant row containing the exact complete invoiceNo, and the explicit status 由卖家生成 / Seller generated, 成功：已上传 or an equivalent strong uploaded state; the heading, order id or a whole-page row alone is not success evidence.",
         "Only when the unique visible invoice dialog whose title contains the current complete amazonOrderId exposes an exact governed read-failure blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and resume the same AND THEN terminal-state wait; read-failure text from any unrelated dialog must be ignored.",
         "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, or the exact blocker appears again, the order must stop as review_required before any PDF upload.",
         "APP batch upload and external API upload must use this same plugin-owned recovery through the existing /api/plugins/amazon-invoice-upload/start route.",
@@ -4154,7 +4155,7 @@
         "Login or captcha state downgraded to not_found.",
         "Verification evidence ref that cannot be traced to an observed snapshot or action.",
         "Business success terms hardcoded in DOM core.",
-        "An underlying DOM snapshot evaluation that can outlive the caller's governed wait deadline.",
+        "An underlying DOM snapshot evaluation that can outlive the caller's governed observation deadline.",
         "A positive hint accepted while a negative, loading, stale, foreign or duplicate state remains unresolved.",
         "An unconditional observe, locate, retry or scroll loop."
       ],
@@ -4331,7 +4332,7 @@
       ],
       "required": [
         "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
-        "Locate, fill, click, upload, wait, verify and scroll reject stale, foreign, navigated or mismatched document refs before side effects.",
+        "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
         "DOM ordinary actions use target-bound BrowserController commands without foreground focus; only an explicitly approved native picker may request PhysicalFocusLease.",
         "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
       ],
@@ -4339,7 +4340,7 @@
         "evaluateActiveTab or any active/current/first page fallback",
         "raw tab, target, session or window identifiers in DOM public contracts",
         "reusing an element ref after document generation changes",
-        "system mouse or keyboard for ordinary DOM click, fill or scroll",
+        "system mouse or keyboard for ordinary DOM click or fill",
         "business plugins bypassing the DOM facade to call browser page primitives"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
@@ -4383,11 +4384,11 @@
       "capabilityDomain": "dom-automation",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast+acceptance+real-chrome",
-      "summary": "DOM Automation must use evaluate only for observation and revalidation; click, fill and upload mutations must use dedicated exact-target Browser commands.",
+      "summary": "DOM click and fill must each use one dedicated exact-target Chrome command that revalidates the located identity and performs the mutation on that same resolved object without a coordinate or focus time gap.",
       "clauses": [
         {
           "clauseId": "apex-dom-021-requirement",
-          "statement": "DOM Automation must separate observation from mutation and route click, fill and upload through dedicated exact-target Browser commands.",
+          "statement": "DOM click and fill must each bind identity revalidation, uniqueness checks and mutation into one dedicated exact-target Chrome command.",
           "evidenceMode": "real-chrome",
           "ownerDomain": "dom-automation"
         }
@@ -4398,18 +4399,18 @@
         "scripts/acceptance/**/*.{ts,tsx,js,jsx,mjs}"
       ],
       "required": [
-        "Click revalidates and derives one visible viewport point through observation, then invokes clickLocatedDomElement on the same exact target and current document.",
-        "Fill revalidates and derives one editable element point through observation, then invokes clickLocatedDomElement, clear-input, ordered keyboard textInput and a Tab commit; verification is a later observation.",
+        "Click invokes clickLocatedDomElement exactly once; the Chrome command resolves one selector, compares the current DOM identity with the captured identity, validates visibility and enabled state, and clicks that same object in one atomic command.",
+        "Fill invokes fillLocatedDomElement exactly once; the Chrome command resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, dispatches the component events, and verifies the exact retained value before returning.",
         "Upload revalidates a supported light-DOM file input and invokes setFileInputFiles with only the caller-approved path.",
         "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
         "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
       ],
       "forbidden": [
-        "Element.click, scrollIntoView, focus, value setters, execCommand or synthetic input/change events inside BrowserTargetSession.evaluate scripts",
+        "A DOM child performing a separate BrowserTargetSession.evaluate before or after click/fill mutation",
         "page mutation through evaluate_target",
-        "a caller-local evaluator, coordinate fallback, foreground-focus fallback or compatibility bridge",
+        "a caller-local evaluator, point observation followed by coordinate click, split click/clear/text/Tab fill, foreground-focus fallback or compatibility bridge",
         "claiming unsupported deep shadow or frame upload succeeded",
-        "Input.insertText, synthetic value assignment or later input.files retention used as component commit proof"
+        "generic text_target, Input.insertText or later input.files retention used as DOM fill/file component commit proof"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
       "blockIndex": 17
@@ -4634,9 +4635,10 @@
       "required": [
         "BrowserTargetSession.evaluate accepts a governed JavaScript function body and the exact-target Browser runtime wraps that body into one executable expression exactly once before transport.",
         "The MV3 service worker executes the already-normalized expression and does not add another function, eval, Function constructor or caller-specific wrapper.",
-        "evaluate_target remains an observation command; click, scroll, text input and file input mutations use click_target, scroll_target, text_target and set_file_input_files against the same exact target and current document generation.",
+        "evaluate_target remains an observation command; generic click, scroll and text input use click_target, scroll_target and text_target, while governed DOM click/fill use click_dom_target and fill_dom_target and file input uses set_file_input_files against the same exact target and current document generation.",
+        "click_dom_target and fill_dom_target each resolve one selector, compare the current element identity with the caller-captured identity, validate the exact receiver and perform the mutation within that same Chrome command; they never consume a previously observed coordinate.",
         "set_file_input_files resolves the one real enabled file receiver inside an open author shadow root when the governed light-DOM input is only a hidden component proxy, dispatches the approved file selection once, and never treats a later input.files read as component attachment truth because a consuming component may clear the receiver synchronously.",
-        "text_target type-text dispatches one ordered real keyboard event sequence per approved character and fill commits with Tab; Input.insertText is not an admitted replacement for component-observed keyboard input.",
+        "text_target remains a generic Browser text command; DOM fill cannot compose it with a prior coordinate click and must use the atomic fill_dom_target contract.",
         "Deterministic acceptance proves top-level return works through the production wrapper, and real-Chrome acceptance proves evaluation and dedicated mutations affect only the controlled background target."
       ],
       "forbidden": [
@@ -4645,7 +4647,7 @@
         "wrapping the expression again in the Native host or MV3 service worker",
         "DOM click, scroll, fill or upload mutation hidden inside evaluate_target",
         "reporting business file attachment success from the Browser command, the hidden proxy, or a later input.files read instead of an owner-observed component postcondition",
-        "using Input.insertText for governed component text entry",
+        "using click_target plus text_target as a governed DOM fill compatibility path",
         "compatibility bridges, fallback evaluation modes or dual evaluation contracts"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T21:52:57.475Z",
+  "generatedAt": "2026-08-15T23:02:51.081Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -600,7 +600,9 @@
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/build.mjs",
+    "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
     "src/lib/browser/chrome-extension/dist/protocol.js",
     "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
@@ -849,14 +851,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a",
+      "runId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d",
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:7c807ad7-716e-4f3c-a3e7-cd67220643a7",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T21:52:57.332Z",
-      "endedAt": "2026-08-15T21:52:57.474Z",
-      "durationMs": 142,
+      "startedAt": "2026-08-15T23:02:50.956Z",
+      "endedAt": "2026-08-15T23:02:51.081Z",
+      "durationMs": 125,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1456,7 +1458,9 @@
         "src/capabilities/video-download/schema.ts",
         "src/capabilities/video-download/type-contracts.ts",
         "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/build.mjs",
+        "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
         "src/lib/browser/chrome-extension/dist/protocol.js",
         "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
@@ -1692,25 +1696,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:7c807ad7-716e-4f3c-a3e7-cd67220643a7"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:7c807ad7-716e-4f3c-a3e7-cd67220643a7"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:7c807ad7-716e-4f3c-a3e7-cd67220643a7"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:5bd91823-541d-4a3b-88ac-4901a16b053a"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:7c807ad7-716e-4f3c-a3e7-cd67220643a7"
     }
   ]
 }

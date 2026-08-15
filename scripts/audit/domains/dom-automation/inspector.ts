@@ -5,9 +5,8 @@ import { inspectDomFoundationGates } from "./components/inspect-dom-foundation-g
 import { inspectDomRuntimeGuards } from "./components/inspect-dom-runtime-guards.js";
 import { createDomFindingCollector } from "./components/dom-inspector-support.js";
 import { createFinding } from "../../shared/finding-utils.js";
-import { Node, Project, SyntaxKind, type FunctionDeclaration, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type FunctionDeclaration, type SourceFile } from "ts-morph";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
 
 const inspectExactTargetBinding = (context: InspectorContext) => {
   const findings: InspectorFinding[] = [];
@@ -38,22 +37,6 @@ const inspectExactTargetBinding = (context: InspectorContext) => {
   return findings;
 };
 
-const embeddedScriptSource = (fn: FunctionDeclaration): SourceFile | null => {
-  const returned = fn.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
-  if (!returned) return null;
-  let body: string;
-  if (Node.isNoSubstitutionTemplateLiteral(returned)) {
-    body = returned.getLiteralText();
-  } else if (Node.isTemplateExpression(returned)) {
-    body = returned.getHead().getLiteralText()
-      + returned.getTemplateSpans().map((span) => `null${span.getLiteral().getLiteralText()}`).join("");
-  } else {
-    return null;
-  }
-  const project = new Project({ useInMemoryFileSystem: true });
-  return project.createSourceFile("embedded-observation.ts", `function observed(){${body}}`);
-};
-
 const methodCallNames = (fn: FunctionDeclaration): string[] =>
   fn.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
     const expression = call.getExpression();
@@ -68,41 +51,23 @@ const sourceMethodCallNames = (file: SourceFile): string[] =>
 
 type DomActionFiles = Record<"click" | "fill" | "upload", SourceFile | undefined>;
 
-const inspectObservationBuilders = (
+const inspectAtomicDomMutationBoundary = (
   files: DomActionFiles,
   paths: Record<keyof DomActionFiles, string>,
   addGap: (filePath: string, message: string) => void,
 ): void => {
-  for (const [key, functionNames] of [
-    ["click", ["buildClickObservationScript"]],
-    ["fill", ["buildFillObservationScript", "buildVerifyScript"]],
+  for (const [key, required, forbidden] of [
+    ["click", "clickLocatedDomElement", ["evaluate", "click", "textInput"]],
+    ["fill", "fillLocatedDomElement", ["evaluate", "clickLocatedDomElement", "click", "textInput"]],
   ] as const) {
-    for (const functionName of functionNames) {
-      const builder = files[key]?.getFunction(functionName);
-      if (!builder) {
-        addGap(paths[key], `${functionName} observation builder is missing`);
-        continue;
-      }
-      const embedded = embeddedScriptSource(builder);
-      if (!embedded) {
-        addGap(paths[key], `${functionName} must expose an AST-parseable observation body`);
-        continue;
-      }
-      const forbiddenCalls = embedded.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) => {
-        const expression = call.getExpression();
-        const name = Node.isPropertyAccessExpression(expression)
-          ? expression.getName()
-          : Node.isIdentifier(expression) ? astIdentifierName(expression) ?? "" : "";
-        return ["click", "scrollIntoView", "focus", "execCommand", "dispatchEvent", "eval"].includes(name);
-      });
-      const propertyMutations = embedded.getDescendantsOfKind(SyntaxKind.BinaryExpression).filter((binary) =>
-        binary.getOperatorToken().getKind() === SyntaxKind.EqualsToken
-        && Node.isPropertyAccessExpression(binary.getLeft()));
-      const constructors = embedded.getDescendantsOfKind(SyntaxKind.NewExpression).filter((node) =>
-        Node.isIdentifier(node.getExpression()) && astIdentifierName(node.getExpression()) === "Function");
-      if (forbiddenCalls.length || propertyMutations.length || constructors.length) {
-        addGap(paths[key], `${functionName} must remain observation-only and contain no page mutation`);
-      }
+    const file = files[key];
+    if (!file) continue;
+    const calls = sourceMethodCallNames(file);
+    if (calls.filter((name) => name === required).length !== 1) {
+      addGap(paths[key], `${key} must dispatch exactly one BrowserTargetSession.${required} atomic command`);
+    }
+    for (const name of forbidden) {
+      if (calls.includes(name)) addGap(paths[key], `${key} must not retain split observation/mutation call ${name}`);
     }
   }
 };
@@ -121,8 +86,8 @@ const inspectObservationMutationSeparation = (context: InspectorContext): Inspec
     checkId: "dom-automation/owner-assertion-set", lawId, clauseId, filePath, message,
   }));
   const requiredCalls: ReadonlyArray<readonly [keyof typeof paths, string, readonly string[]]> = [
-    ["click", "clickDomElementOnce", ["evaluate", "clickLocatedDomElement"]],
-    ["fill", "fillDomElementOnce", ["evaluate", "clickLocatedDomElement", "textInput"]],
+    ["click", "clickDomElementOnce", ["clickLocatedDomElement"]],
+    ["fill", "fillDomElementOnce", ["fillLocatedDomElement"]],
     ["upload", "uploadApprovedFileOnce", ["setFileInputFiles"]],
   ];
   for (const [key, functionName, required] of requiredCalls) {
@@ -134,11 +99,7 @@ const inspectObservationMutationSeparation = (context: InspectorContext): Inspec
     const calls = new Set(key === "fill" ? sourceMethodCallNames(files[key]!) : methodCallNames(fn));
     for (const call of required) if (!calls.has(call)) addGap(paths[key], `${functionName} must call BrowserTargetSession.${call}`);
   }
-  const fillLiterals = new Set(files.fill?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
-  for (const required of ["Tab", "dom-fill-commit-failed"]) {
-    if (!fillLiterals.has(required)) addGap(paths.fill, `fill must commit component text through ${required}`);
-  }
-  inspectObservationBuilders(files, paths, addGap);
+  inspectAtomicDomMutationBoundary(files, paths, addGap);
   return findings;
 };
 

@@ -51,12 +51,19 @@ async function waitForUploadSuccessBoundary(
   for (let observation = 1; observation <= UPLOAD_SUCCESS_OBSERVATION_LIMIT; observation += 1) {
     const snapshot = await readSnapshot(browser, { maxTextLengthPerNode: 240 }, abortSignal);
     const boundary = observeExistingInvoiceConfirmation(snapshot, mission);
-    const evidenceRef = `amazon-upload-success-boundary:${mission.amazonOrderId}:${observation}`;
     if (boundary.status === "confirmed") {
-      return { status: "success", reason: boundary.reason, evidenceRef };
+      return {
+        status: "success",
+        reason: boundary.reason,
+        evidenceRef: await captureFinalBoundaryEvidence(browser, mission, observation, boundary.reason, abortSignal),
+      };
     }
     if (boundary.status === "rejected") {
-      return { status: "rejected", reason: boundary.reason, evidenceRef };
+      return {
+        status: "rejected",
+        reason: boundary.reason,
+        evidenceRef: await captureFinalBoundaryEvidence(browser, mission, observation, boundary.reason, abortSignal),
+      };
     }
     if (observation < UPLOAD_SUCCESS_OBSERVATION_LIMIT) {
       await browser.wait(UPLOAD_SUCCESS_POLL_INTERVAL_MS, abortSignal);
@@ -65,8 +72,34 @@ async function waitForUploadSuccessBoundary(
   return {
     status: "not_confirmed",
     reason: `Amazon upload did not expose one unique current-order dialog and one unique expected invoice row without a failure state within ${UPLOAD_SUCCESS_OBSERVATION_LIMIT} bounded observations.`,
-    evidenceRef: `amazon-upload-success-boundary:${mission.amazonOrderId}:exhausted`,
+    evidenceRef: await captureFinalBoundaryEvidence(
+      browser,
+      mission,
+      UPLOAD_SUCCESS_OBSERVATION_LIMIT,
+      "bounded final receipt observations exhausted",
+      abortSignal,
+    ),
   };
+}
+
+async function captureFinalBoundaryEvidence(
+  browser: BrowserTargetSession,
+  mission: AmazonInvoiceUploadMissionInput,
+  observation: number,
+  reason: string,
+  abortSignal: AbortSignal,
+): Promise<string> {
+  const capture = await browser.screenshotRegion({
+    regionLabel: `amazon-final-receipt-${mission.amazonOrderId}`,
+    contentLines: [
+      `invoiceNo=${mission.invoiceNo}`,
+      `observation=${observation}`,
+      reason,
+    ],
+    captureProfile: "observation_lightweight",
+    abortSignal,
+  });
+  return capture.sourceFilePath;
 }
 
 const buildUploadReviewResult = (

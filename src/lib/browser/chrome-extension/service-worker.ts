@@ -7,6 +7,7 @@ import {
   type BrowserWireTargetDescriptor,
 } from "./protocol.js";
 import { commandFingerprint, executeCommand } from "./service-worker-command-execution.js";
+import { atomicDomExpression } from "./atomic-dom-command.js";
 
 declare const chrome: {
   alarms: {
@@ -222,7 +223,7 @@ const dispatchTypedCharacter = async (tabId: number, character: string): Promise
 };
 
 type PageCommand = Extract<BrowserWireCommand, { kind:
-  | "navigate_target" | "evaluate_target" | "click_target" | "move_target" | "scroll_target" }>;
+  | "navigate_target" | "evaluate_target" | "click_target" | "click_dom_target" | "fill_dom_target" | "move_target" | "scroll_target" }>;
 type InteractionCommand = Extract<BrowserWireCommand, { kind:
   | "text_target" | "screenshot_target" | "set_file_input_files" | "focus_target" | "release_target" | "close_target" }>;
 
@@ -265,6 +266,13 @@ const runClickPageCommand = async (
   return readDescriptor(command.tabId);
 };
 
+const runAtomicDomPageCommand = async (
+  command: Extract<PageCommand, { kind: "click_dom_target" | "fill_dom_target" }>,
+): Promise<unknown> => {
+  await evaluate(command.tabId, atomicDomExpression(command));
+  return readDescriptor(command.tabId);
+};
+
 const runScrollPageCommand = async (
   command: Extract<PageCommand, { kind: "scroll_target" }>,
 ): Promise<unknown> => {
@@ -297,6 +305,7 @@ const runPageCommand = async (command: PageCommand): Promise<unknown> => {
   }
   if (command.kind === "evaluate_target") return evaluate(command.tabId, command.expression);
   if (command.kind === "click_target") return runClickPageCommand(command);
+  if (command.kind === "click_dom_target" || command.kind === "fill_dom_target") return runAtomicDomPageCommand(command);
   if (command.kind === "move_target") {
     await ensureAttached(command.tabId);
     await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", { type: "mouseMoved", x: command.x, y: command.y });
@@ -382,7 +391,7 @@ const runCommand = async (
   if (command.kind === "acquire_target") return acquireTarget(command);
   await assertDocument(command.tabId, expectedLoaderId);
   if (command.kind === "inspect_target") return readDescriptor(command.tabId);
-  if (["navigate_target", "evaluate_target", "click_target", "move_target", "scroll_target"].includes(command.kind)) {
+  if (["navigate_target", "evaluate_target", "click_target", "click_dom_target", "fill_dom_target", "move_target", "scroll_target"].includes(command.kind)) {
     return runPageCommand(command as PageCommand);
   }
   return runInteractionCommand(command as InteractionCommand);

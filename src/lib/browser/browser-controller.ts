@@ -82,6 +82,24 @@ type BrowserScrollCoordinateSpace = "browserViewport";
 type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
 type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
+type BrowserDomElementIdentity = {
+  tagName?: string | undefined;
+  type?: string | undefined;
+  role?: string | undefined;
+  ariaLabel?: string | undefined;
+  labelText?: string | undefined;
+  placeholder?: string | undefined;
+  name?: string | undefined;
+  id?: string | undefined;
+  visibleText?: string | undefined;
+  testId?: string | undefined;
+};
+
+type BrowserLocatedDomElement = {
+  selector: string;
+  identity: BrowserDomElementIdentity;
+};
+
 type BrowserFileInputRef = { selector: string; targetKind: "file-input" };
 
 type BrowserNativeMultiFilePickerResult = BrowserActionResult & {
@@ -128,7 +146,15 @@ interface BrowserTargetSession {
   }): Promise<BrowserActionResult>;
   clickLocatedDomElement(input: {
     targetLabel: string;
-    point: { x: number; y: number };
+    element: BrowserLocatedDomElement;
+    expectedText?: string | undefined;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
+  fillLocatedDomElement?(input: {
+    targetLabel: string;
+    element: BrowserLocatedDomElement;
+    approvedText: string;
+    clearBeforeType: boolean;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   textInput(input: {
@@ -191,6 +217,8 @@ export type {
   BrowserScrollCoordinateSpace,
   BrowserTextInputAction,
   BrowserTextInputKey,
+  BrowserDomElementIdentity,
+  BrowserLocatedDomElement,
   BrowserOpenReusePolicy,
   BrowserNativeMultiFilePickerResult,
   BrowserTargetSession,

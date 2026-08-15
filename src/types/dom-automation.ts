@@ -26,6 +26,7 @@ export type DomElementRef = {
   documentRef: BrowserDocumentRef;
   elementRef: string;
   selector: string;
+  identity: BrowserDomElementIdentity;
   frameRef?: string | undefined;
   targetKind: DomTargetKind;
   confidence: number;
@@ -35,7 +36,6 @@ export type DomElementRef = {
   proximityAnchor?: string | undefined;
   componentLibHint?: string | undefined;
   sourceSnapshotRef?: string | undefined;
-  textFingerprint?: string | undefined;
   capturedAt?: string | undefined;
 };
 
@@ -49,7 +49,9 @@ export type DomSnapshot = {
   buttons: DomElementSummary[];
   links: Array<DomElementSummary & { hrefHost?: string | undefined }>;
   fileInputs: Array<DomElementSummary & { type: "file"; accept?: string | undefined }>;
-  dialogs: DomElementSummary[];
+  dialogs: Array<DomElementSummary & {
+    descendantRows: Array<DomElementSummary & { candidateKind: "table-row" | "role-row" }>;
+  }>;
   frames: Array<{ selectorCandidate: string; title?: string | undefined; name?: string | undefined; srcHost?: string | undefined }>;
   textBlocks: Array<DomElementSummary & { candidateKind: string }>;
   tableRows: Array<DomElementSummary & { candidateKind: string }>;
@@ -83,4 +85,5 @@ export type DomVerificationResult = {
 export type DomLocateResult =
   | { ok: true; status: "success"; elementRef: DomElementRef }
   | { ok: false; status: "not_found" | "ambiguous" | "review_required"; reason: string; candidates?: DomElementRef[] };
+import type { BrowserDomElementIdentity } from "../lib/browser/browser-controller.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target.js";

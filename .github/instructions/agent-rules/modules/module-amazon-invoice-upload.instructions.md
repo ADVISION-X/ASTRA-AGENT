@@ -45,8 +45,8 @@ src/plugins/amazon-invoice-upload/**
     "Amazon smoke acceptance uses the same production evaluation-expression contract as the unique Browser owner and must not implement a private evaluator.",
     "Real Seller Central verification resolves the actual enabled input[type=file] inside the unique open kat-file-upload author shadow root when the light-DOM input is only a hidden proxy, dispatches the approved PDF once, then admits attachment only when that component exposes exactly one same-name kat-file-item with file-status ready and zero duplicate, foreign or terminal-failure items; the component may synchronously clear the native receiver.",
     "Invoice-number fill is admitted only after the Amazon owner has observed that exact ready file item; whole-page order-id text, input.files and the visible pending copy 文件未上传 are never attachment verdicts.",
-    "Invoice-number text uses ordered real key events followed by Tab so the kat-input business model commits the approved value before final submit; direct text insertion or a visible shadow-input value alone is insufficient.",
-    "Final success is proved within forty bounded observations by exactly one current-order manage-invoice dialog containing exactly one approved invoice/order number row plus an Amazon accepted receipt or uploaded state, while duplicate dialogs, duplicate rows, foreign numbers and governed failure states are absent.",
+    "Invoice-number text uses one fill_dom_target Chrome command that revalidates the captured kat-input identity, resolves one editable receiver, applies only the approved value, dispatches component events and verifies the exact retained value before final submit.",
+    "Final success is proved within forty bounded observations by exactly one visible current-order manage-invoice dialog containing exactly one descendant row with the exact approved invoiceNo and an explicit Amazon successful state such as 由卖家生成 / Seller generated; whole-page rows, hidden dialogs, order-id-only rows, partial numbers, duplicate rows, foreign numbers and governed failure states are excluded.",
     "When a delayed current-order upload dialog becomes visible after the first click deadline, the retry path recognizes that exact visible dialog and its enabled file input as ready before locating or clicking the now-covered page entry again."
   ],
   "forbidden": [
@@ -56,7 +56,8 @@ src/plugins/amazon-invoice-upload/**
     "refresh, repeat navigation, compatibility bridge, fallback evaluator or second upload flow",
     "retry-clicking the page upload entry after the current-order upload dialog is already open"
     ,"treating a hidden light-DOM proxy, dialog visibility, order id, invoice number, input.files or generic page text as proof that Amazon accepted the PDF"
-    ,"using direct text insertion, a synthetic value setter or a visible inner-input value as proof that kat-input committed the invoice number"
+    ,"using split coordinate click plus text_target, a visible inner-input value, or a second verification chain as proof that kat-input committed the invoice number"
+    ,"using the current order id as a substitute for invoiceNo, or using a row outside the unique visible dialog as final upload proof"
     ,"continuing to fill, submit, reopen, scroll or retry after duplicate, foreign, failure or bounded-exhaustion attachment/result evidence"
   ],
   "clauses": [
@@ -188,7 +189,7 @@ Download completion is not upload completion. Website status return is not task 
   "capabilityDomain": "amazon-invoice-upload",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast",
-  "summary": "DOM Automation may provide only neutral snapshot, locate, click, upload, wait, and verify primitives; Seller Central report semantics and step order must stay inside amazon-invoice-upload.",
+  "summary": "DOM Automation may provide only six neutral primitives: snapshot, locate, fill, click, upload, and one-shot verify; Seller Central report semantics, repeated observation, finite stopping, and step order must stay inside amazon-invoice-upload.",
   "appliesTo": [
     "src/capabilities/dom-automation/**/*.{ts,tsx,js,jsx,mjs}",
     "src/plugins/amazon-invoice-upload/**/*.{ts,tsx,js,jsx,mjs}"
@@ -201,7 +202,7 @@ Download completion is not upload completion. Website status return is not task 
   "clauses": [
     {
       "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
-      "statement": "DOM Automation may provide only neutral snapshot, locate, click, upload, wait, and verify primitives; Seller Central report semantics and step order must stay inside amazon-invoice-upload.",
+      "statement": "DOM Automation may provide only six neutral primitives: snapshot, locate, fill, click, upload, and one-shot verify; Seller Central report semantics, repeated observation, finite stopping, and step order must stay inside amazon-invoice-upload.",
       "evidenceMode": "static",
       "ownerDomain": "amazon-invoice-upload"
     }
@@ -559,7 +560,7 @@ Download completion is not upload completion. Website status return is not task 
     "Skipped items must be visible in the queue as already_uploaded with reason skipped_by_upload_ledger and reachedStep upload ledger preflight.",
     "Manage invoice, Manage invoices, Pending, 管理发票, or 待处理 text may locate invoice actions, but must not be sufficient evidence for upload_success or already_uploaded.",
     "After opening Manage invoice / 管理发票, the flow waits until one unique visible dialog is bound to the current amazonOrderId and exposes exactly one explicit terminal branch: a matching uploaded invoice row, a fully rendered upload-ready table plus upload action, or an exact governed read-failure blocker such as 很抱歉，目前没有可用的操作。 or 读取失败.",
-    "The real-Chrome Chinese already-uploaded branch is the conjunction of dialog heading 订单<amazonOrderId>的发票, a row containing the matching complete order/invoice id, and the explicit status 成功：已上传 or equivalent strong uploaded state; the heading alone is only an order-binding signal.",
+    "The real-Chrome Chinese already-uploaded branch is the conjunction of one visible dialog heading 订单<amazonOrderId>的发票, exactly one descendant row containing the exact complete invoiceNo, and the explicit status 由卖家生成 / Seller generated, 成功：已上传 or an equivalent strong uploaded state; the heading, order id or a whole-page row alone is not success evidence.",
     "Only when the unique visible invoice dialog whose title contains the current complete amazonOrderId exposes an exact governed read-failure blocker may the same upload flow execute one recovery: derive a safe point outside that dialog from the live dialog rectangle and viewport, click the blank area, verify within 2 seconds that the blocked dialog disappeared, reopen Manage invoice once, and resume the same AND THEN terminal-state wait; read-failure text from any unrelated dialog must be ignored.",
     "If the dialog is ambiguous, no safe outside point exists, dismissal is not verified, reopening fails, or the exact blocker appears again, the order must stop as review_required before any PDF upload.",
     "APP batch upload and external API upload must use this same plugin-owned recovery through the existing /api/plugins/amazon-invoice-upload/start route.",

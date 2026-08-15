@@ -316,9 +316,37 @@ export class AmazonSmokeBrowserAdapter implements BrowserTargetSession {
     await this.page.mouse.click(input.point.x, input.point.y, { button: input.button ?? "left", clickCount: input.clickCount ?? 1 });
     return action(`clicked ${input.targetLabel}`);
   }
-  async clickLocatedDomElement(input: { targetLabel: string; point: { x: number; y: number } }): Promise<BrowserActionResult> {
-    await this.page.mouse.click(input.point.x, input.point.y);
+  async clickLocatedDomElement(input: Parameters<BrowserTargetSession["clickLocatedDomElement"]>[0]): Promise<BrowserActionResult> {
+    const locator = this.page.locator(input.element.selector);
+    if (await locator.count() !== 1) throw new Error("TARGET_AMBIGUOUS:smoke atomic click selector");
+    await locator.evaluate((element, expected) => {
+      if (element.tagName.toLowerCase() !== expected.tagName
+        || (expected.id && element.id !== expected.id)
+        || (expected.name && element.getAttribute("name") !== expected.name)) {
+        throw new Error("TARGET_IDENTITY_CHANGED:smoke atomic click identity");
+      }
+      (element as HTMLElement).click();
+    }, input.element.identity);
     return action(`clicked located DOM element ${input.targetLabel}`);
+  }
+  async fillLocatedDomElement(input: Parameters<NonNullable<BrowserTargetSession["fillLocatedDomElement"]>>[0]): Promise<BrowserActionResult> {
+    const locator = this.page.locator(input.element.selector);
+    if (await locator.count() !== 1) throw new Error("TARGET_AMBIGUOUS:smoke atomic fill selector");
+    await locator.evaluate((host, payload) => {
+      if (host.tagName.toLowerCase() !== payload.identity.tagName
+        || (payload.identity.id && host.id !== payload.identity.id)
+        || (payload.identity.name && host.getAttribute("name") !== payload.identity.name)) {
+        throw new Error("TARGET_IDENTITY_CHANGED:smoke atomic fill identity");
+      }
+      const editor = host.shadowRoot?.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")
+        ?? host as HTMLInputElement | HTMLTextAreaElement;
+      editor.value = payload.clearBeforeType ? payload.approvedText : editor.value + payload.approvedText;
+      editor.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, data: payload.approvedText }));
+      editor.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+      editor.blur();
+      if (editor.value !== payload.approvedText) throw new Error("TARGET_VALUE_MISMATCH:smoke atomic fill value");
+    }, { identity: input.element.identity, approvedText: input.approvedText, clearBeforeType: input.clearBeforeType });
+    return action(`filled located DOM element ${input.targetLabel}`);
   }
   async textInput(input: { targetLabel: string; action: "type-text" | "clear-input" | "press-key"; text?: string | null; key?: "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" | null }): Promise<BrowserActionResult> {
     if (input.action === "clear-input") {
@@ -417,6 +445,7 @@ export class AmazonHangingOpenBrowserAdapter implements BrowserTargetSession {
   async scroll(): Promise<BrowserActionResult> { return action("scroll not reached"); }
   async click(): Promise<BrowserActionResult> { return action("click not reached"); }
   async clickLocatedDomElement(): Promise<BrowserActionResult> { return action("click located not reached"); }
+  async fillLocatedDomElement(): Promise<BrowserActionResult> { return action("fill located not reached"); }
   async textInput(): Promise<BrowserActionResult> { return action("text input not reached"); }
   async screenshotRegion(input: { regionLabel: string }): Promise<BrowserCaptureResult> {
     return {

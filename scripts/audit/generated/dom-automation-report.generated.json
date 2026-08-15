@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T21:53:10.129Z",
+  "generatedAt": "2026-08-15T23:03:03.163Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,14 +23,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106",
+      "runId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d",
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T21:53:10.062Z",
-      "endedAt": "2026-08-15T21:53:10.129Z",
-      "durationMs": 67,
+      "startedAt": "2026-08-15T23:03:03.104Z",
+      "endedAt": "2026-08-15T23:03:03.163Z",
+      "durationMs": 59,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -630,7 +630,9 @@
         "src/capabilities/video-download/schema.ts",
         "src/capabilities/video-download/type-contracts.ts",
         "src/lib/browser/browser-controller.ts",
+        "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/build.mjs",
+        "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
         "src/lib/browser/chrome-extension/dist/protocol.js",
         "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
@@ -866,79 +868,79 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:389c6e8c-d582-4bcf-b241-5eb4e8f089ce:check:ef9aeeaf-4049-4d31-9643-ab51b0c0f106"
+      "checkRunId": "audit-run:d29bd73a-6cbf-40d2-96f7-781a50855e6d:check:4c401e7e-4a5c-4e89-b800-76478f901a59"
     }
   ],
   "inspectedFiles": [
@@ -1540,7 +1542,9 @@
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/build.mjs",
+    "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
     "src/lib/browser/chrome-extension/dist/protocol.js",
     "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",

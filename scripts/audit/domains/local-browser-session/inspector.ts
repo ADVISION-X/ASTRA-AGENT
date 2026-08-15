@@ -19,6 +19,7 @@ const ownerPaths = [
   "src/lib/browser/exact-target/browser-native-transport-server.ts",
   "src/lib/browser/exact-target/physical-focus-lease.ts",
   "src/lib/browser/chrome-extension/service-worker.ts",
+  "src/lib/browser/chrome-extension/atomic-dom-command.ts",
   "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
   "src/lib/browser/chrome-extension/protocol.ts",
   "src/lib/browser/native-messaging-host/install.mjs"
@@ -168,11 +169,34 @@ const inspectWorkerCommandSurface = (
     add(findings, lawId, clauseId, workerPath, "MV3 evaluate must execute the normalized expression without a private evaluator or second wrapper");
   }
   const requiredCommands = new Set(worker?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
-  for (const command of ["evaluate_target", "click_target", "scroll_target", "text_target", "set_file_input_files"]) {
+  for (const command of ["evaluate_target", "click_target", "click_dom_target", "fill_dom_target", "scroll_target", "text_target", "set_file_input_files"]) {
     if (!requiredCommands.has(command)) add(findings, lawId, clauseId, workerPath, `exact-target command surface is missing ${command}`);
   }
   for (const cdpMethod of ["DOM.getNodeForLocation", "DOM.resolveNode", "DOM.requestNode", "Runtime.callFunctionOn"]) {
     if (!requiredCommands.has(cdpMethod)) add(findings, lawId, clauseId, workerPath, `dedicated exact-target mutation is missing ${cdpMethod}`);
+  }
+};
+
+const inspectAtomicDomCommandSurface = (
+  worker: SourceFile | undefined,
+  atomicDom: SourceFile | undefined,
+  findings: InspectorFinding[],
+  lawId: string,
+  clauseId: string,
+  workerPath: string,
+): void => {
+  const atomicLiterals = [
+    ...(atomicDom?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []),
+    ...(atomicDom?.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()) ?? []),
+    ...(atomicDom?.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()) ?? []),
+    ...(atomicDom?.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()) ?? []),
+    ...(atomicDom?.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()) ?? []),
+  ];
+  for (const atomicSignal of ["TARGET_IDENTITY_CHANGED:atomic DOM identity no longer matches", "TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text"]) {
+    if (!atomicLiterals.some((literal) => literal.includes(atomicSignal))) add(findings, lawId, clauseId, "src/lib/browser/chrome-extension/atomic-dom-command.ts", `atomic DOM command is missing ${atomicSignal}`);
+  }
+  if (!worker?.getImportDeclaration((declaration) => declaration.getModuleSpecifierValue() === "./atomic-dom-command.js")) {
+    add(findings, lawId, clauseId, workerPath, "MV3 worker must import the one atomic DOM command builder");
   }
 };
 
@@ -225,12 +249,14 @@ const inspectWorkerRetiredPaths = (
 
 const inspectWorkerEvaluationContract = (
   worker: SourceFile | undefined,
+  atomicDom: SourceFile | undefined,
   findings: InspectorFinding[],
   lawId: string,
   clauseId: string,
   workerPath: string,
 ): void => {
   inspectWorkerCommandSurface(worker, findings, lawId, clauseId, workerPath);
+  inspectAtomicDomCommandSurface(worker, atomicDom, findings, lawId, clauseId, workerPath);
   inspectWorkerTargetGuards(worker, findings, lawId, clauseId, workerPath);
   inspectWorkerRetiredPaths(worker, findings, lawId, clauseId, workerPath);
 };
@@ -241,9 +267,11 @@ const inspectEvaluationContract = (context: InspectorContext, findings: Inspecto
   const runtimePath = "src/lib/browser/exact-target/browser-command-runtime.ts";
   const contractPath = "src/lib/browser/exact-target/browser-evaluation-contract.ts";
   const workerPath = "src/lib/browser/chrome-extension/service-worker.ts";
+  const atomicDomPath = "src/lib/browser/chrome-extension/atomic-dom-command.ts";
   const runtime = source(context, runtimePath);
   const contract = source(context, contractPath);
   const worker = source(context, workerPath);
+  const atomicDom = source(context, atomicDomPath);
   const evaluateMethod = runtime?.getClass("ExactBrowserTargetSession")?.getMethod("evaluate");
   const normalizerCalls = evaluateMethod?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) =>
     Node.isIdentifier(call.getExpression()) && astIdentifierName(call.getExpression()) === "toBrowserEvaluationExpression") ?? [];
@@ -251,7 +279,7 @@ const inspectEvaluationContract = (context: InspectorContext, findings: Inspecto
   const evaluateLiterals = new Set(evaluateMethod?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
   if (!evaluateLiterals.has("observation")) add(findings, lawId, clauseId, runtimePath, "evaluate_target must remain an observation command");
   if (!contract?.getVariableDeclaration("toBrowserEvaluationExpression")) add(findings, lawId, clauseId, contractPath, "the unique function-body evaluation normalizer is missing");
-  inspectWorkerEvaluationContract(worker, findings, lawId, clauseId, workerPath);
+  inspectWorkerEvaluationContract(worker, atomicDom, findings, lawId, clauseId, workerPath);
 };
 
 const inspectDomainEvaluation = async (

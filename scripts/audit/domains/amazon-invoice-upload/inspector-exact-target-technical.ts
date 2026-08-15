@@ -20,13 +20,16 @@ const paths = {
 
 type TechnicalFiles = Readonly<Record<keyof typeof paths, SourceFile>>;
 
-const loadFiles = (context: InspectorContext): TechnicalFiles | null => {
+const loadFiles = (context: InspectorContext): { files: TechnicalFiles | null; missing: string[] } => {
   const entries = Object.entries(paths).map(([key, filePath]) => [
     key,
     context.project.getSourceFile(resolveFromRepo(filePath)),
   ] as const);
-  if (entries.some(([, file]) => !file)) return null;
-  return Object.fromEntries(entries) as TechnicalFiles;
+  const missing = entries.filter(([, file]) => !file).map(([key]) => paths[key as keyof typeof paths]);
+  return {
+    files: missing.length === 0 ? Object.fromEntries(entries) as TechnicalFiles : null,
+    missing,
+  };
 };
 
 const inspectOrderObservation = (
@@ -114,14 +117,14 @@ const inspectFinalConfirmation = (
 ): void => {
   const verifyIdentifiers = new Set(files.verify.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
   const verifyNumbers = new Set(files.verify.getDescendantsOfKind(SyntaxKind.NumericLiteral).map((node) => node.getLiteralValue()));
-  for (const required of ["waitForUploadSuccessBoundary", "observeExistingInvoiceConfirmation", "UPLOAD_SUCCESS_OBSERVATION_LIMIT"]) {
+  for (const required of ["waitForUploadSuccessBoundary", "captureFinalBoundaryEvidence", "observeExistingInvoiceConfirmation", "screenshotRegion", "sourceFilePath", "UPLOAD_SUCCESS_OBSERVATION_LIMIT"]) {
     if (!verifyIdentifiers.has(required)) add(paths.verify, `Amazon final confirmation boundary is missing ${required}`);
   }
   if (!verifyNumbers.has(40) || files.verify.getDescendantsOfKind(SyntaxKind.WhileStatement).length > 0) {
     add(paths.verify, "Amazon final confirmation must use forty bounded observations and no while loop");
   }
   const evidenceIdentifiers = new Set(files.evidence.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
-  for (const required of ["observeExistingInvoiceConfirmation", "dialogTexts", "invoiceRows", "matchingRows", "uploadedRows", "hasFailureState", "hasInvoiceRowContext"]) {
+  for (const required of ["observeExistingInvoiceConfirmation", "dialogs", "currentOrderDialogs", "descendantRows", "matchingRows", "successfulRows", "hasExactInvoiceNumber", "hasExplicitSuccessfulInvoiceState", "hasFailureState", "hasInvoiceRowContext"]) {
     if (!evidenceIdentifiers.has(required)) add(paths.evidence, `Amazon inclusion/exclusion classifier is missing ${required}`);
   }
   const unbounded = files.existing.getDescendantsOfKind(SyntaxKind.WhileStatement)
@@ -130,8 +133,12 @@ const inspectFinalConfirmation = (
   if (unbounded) add(paths.existing, "Amazon current-order invoice observation must not contain an unconditional loop");
   const boundary = files.smokeBoundary.getFunction("assertPositiveAndNegativeConfirmationBoundary");
   const literals = boundary?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? [];
-  for (const required of ["confirmed", "rejected", "pending", "INV-FOREIGN", "文件上传失败"]) {
+  for (const required of ["confirmed", "rejected", "pending", "INV-FOREIGN", "INV-BOUNDARY-EXTRA", "文件上传失败"]) {
     if (!literals.some((literal) => literal.includes(required))) add(paths.smokeBoundary, `Amazon confirmation-boundary attack is missing ${required}`);
+  }
+  const boundaryIdentifiers = new Set(boundary?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []);
+  for (const required of ["outsideDialogRow", "orderIdOnly", "partialInvoice", "missingSuccessState", "hiddenDialog"]) {
+    if (!boundaryIdentifiers.has(required)) add(paths.smokeBoundary, `Amazon confirmation-boundary attack is missing ${required}`);
   }
 };
 
@@ -140,8 +147,6 @@ export const inspectExactTargetTechnicalIntegrity = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const files = loadFiles(context);
-  if (!files) return;
   const add = (filePath: string, message: string): void => {
     findings.push(createFinding({
       checkId: "amazon-invoice-upload/exact-target-technical-integrity",
@@ -150,6 +155,10 @@ export const inspectExactTargetTechnicalIntegrity = (
       message,
     }));
   };
+  const loaded = loadFiles(context);
+  for (const missingPath of loaded.missing) add(missingPath, "required Amazon exact-target technical file is missing");
+  const files = loaded.files;
+  if (!files) return;
   inspectOrderObservation(files, add);
   inspectUploadEntry(files, add);
   inspectFileAttachment(files, add);

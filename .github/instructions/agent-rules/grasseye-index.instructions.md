@@ -18,7 +18,7 @@ Kernel loads first. Current top-level authority is the 2026-05-21 job-flow autom
 | Amazon invoice upload, order upload, approved PDF upload, Seller Central flow | modules/module-dom-automation.instructions.md |
 | new lawful job flow, platform/product/page/data workflows, flow admission | modules/module-architecture-boundary.instructions.md |
 | Amazon product mining flow ownership, keyword AI dedup, search/detail/review extraction, structured package + PDF handoff (Phase 1 draft) | modules/module-amazon-product-mining.instructions.md |
-| DOM snapshot, locator, fill, click, upload, wait, verify | modules/module-dom-automation.instructions.md |
+| DOM snapshot, locator, fill, click, upload, one-shot verify（固定六项） | modules/module-dom-automation.instructions.md |
 | AI bounded choice, A/B/C/D judgment, schema-validated choice result | modules/module-ai-capability.instructions.md |
 | external AI provider transport for bounded choice packages | modules/module-ai-input-gateway.instructions.md |
 | evidence trace, DOM snapshot ref, screenshot ref, upload result, failure reason | modules/module-forensics-persistence-capability.instructions.md |

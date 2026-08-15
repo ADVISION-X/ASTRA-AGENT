@@ -155,6 +155,7 @@ type InteractiveBrowserFacade = Pick<
   | "scroll"
   | "click"
   | "clickLocatedDomElement"
+  | "fillLocatedDomElement"
   | "textInput"
 >;
 
@@ -180,6 +181,10 @@ const createInteractiveBrowserFacade = (
       withMutation(() => input.base.click(value), { route: routeByDefault }),
     clickLocatedDomElement: (value) =>
       withMutation(() => input.base.clickLocatedDomElement(value), {
+        route: routeByDefault,
+      }),
+    fillLocatedDomElement: (value) =>
+      withMutation(() => input.base.fillLocatedDomElement!(value), {
         route: routeByDefault,
       }),
     textInput: (value) =>

@@ -114,7 +114,7 @@ Any active code, law, script, or UI surface that cannot serve a lawful job flow,
 
 - Business flow scripts own process order and business decisions.
 - Job Mediator owns request routing, schema validation, and flow selection only; it never owns process order or browser actions.
-- DOM Automation owns DOM snapshot, semantic location, fill, click, upload, wait, and verify primitives.
+- DOM Automation owns exactly six primitives: DOM snapshot, semantic location, fill, click, upload, and one-shot verify. Repeated observation and finite stopping belong to the owning Business Flow.
 - Browser owns local session open, wait, screenshot evidence, and file-input foundation.
 - AI Choice Judge owns bounded A/B/C/D questions by default; a P0 job-flow law may own a separate flow-scoped AI content stage only when the law defines prompt ownership, raw persistence, output contract, and audit coverage.
 - Evidence Store owns step traces, DOM snapshot references, screenshot references, result records, and failure reasons.

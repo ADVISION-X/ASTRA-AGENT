@@ -85,7 +85,7 @@ const base = (el) => ({
   hidden: isHidden(el),
   selectorCandidate: selectorFor(el),
   formId: el.form?.id || undefined,
-  testId: attr(el, "data-testid") || attr(el, "data-automation-id") || undefined
+  testId: attr(el, "data-testid") || attr(el, "data-automation-id") || attr(el, "data-test-tag") || undefined
 });
 const visible = (item) => !item.hidden;
 `;
@@ -123,7 +123,18 @@ const forms = Array.from(document.querySelectorAll("form")).map((el) => ({
   inputCount: el.querySelectorAll("input, textarea, select").length,
   buttonCount: el.querySelectorAll("button, [role='button'], input[type='submit']").length
 }));
-const dialogs = Array.from(document.querySelectorAll("dialog, [role='dialog'], [aria-modal='true']")).map(base).filter(visible);
+const dialogs = Array.from(document.querySelectorAll("dialog, [role='dialog'], [aria-modal='true']"))
+  .map((dialog) => ({
+    ...base(dialog),
+    descendantRows: Array.from(dialog.querySelectorAll("tr, [role='row'], kat-table-row"))
+      .map((row) => ({
+        ...base(row),
+        candidateKind: row.matches("[role='row']") ? "role-row" : "table-row"
+      }))
+      .filter((row) => !row.hidden && Boolean(row.visibleText || row.ariaLabel || row.nearbyText))
+      .slice(0, 80)
+  }))
+  .filter(visible);
 const frames = ${includeFrames ? "Array.from(document.querySelectorAll('iframe, frame')).map((el) => { let srcHost; try { srcHost = new URL(el.src).host || undefined; } catch {} return {selectorCandidate: selectorFor(el), title: attr(el, 'title') || undefined, name: attr(el, 'name') || undefined, srcHost}; })" : "[]"};
 const tableRows = summarizeCandidates("tr", "table-row", 80);
 const roleRows = summarizeCandidates("[role='row']", "role-row", 80);
