@@ -19,7 +19,10 @@ interface CloudEnvelope {
 }
 
 interface LegacyCredential {
-  protocol_version: "xuanxue-ai-production-v1" | "xuanxue-ai-production-v2";
+  protocol_version:
+    | "xuanxue-ai-production-v1"
+    | "xuanxue-ai-production-v2"
+    | "xuanxue-ai-production-v3";
   server_base_url: string;
   credential: string;
   device_id: string;
@@ -37,6 +40,7 @@ const terminal = new Set(["completed", "review_required", "failed", "cancelled"]
 const legacyProtocols = new Set([
   "xuanxue-ai-production-v1",
   "xuanxue-ai-production-v2",
+  "xuanxue-ai-production-v3",
 ]);
 const parseLegacyCredential = (value: unknown): LegacyCredential => {
   const candidate = value as Partial<LegacyCredential>;
@@ -49,7 +53,7 @@ const parseLegacyCredential = (value: unknown): LegacyCredential => {
     || typeof candidate.max_in_flight !== "number"
     || typeof candidate.enrolled_at !== "string"
   ) {
-    throw new Error("XUANXUE_AI_PRODUCTION_V1_CREDENTIAL_INVALID");
+    throw new Error("XUANXUE_AI_PRODUCTION_LEGACY_CREDENTIAL_INVALID");
   }
   return candidate as LegacyCredential;
 };
@@ -61,20 +65,39 @@ const readCloudTerminalStatuses = async (
   const reconciled: ReconciledOrder[] = [];
   for (const row of rows) {
     const baseUrl = credential.server_base_url.replace(/\/+$/u, "");
-    const response = await fetch(
+    let response = await fetch(
       `${baseUrl}/internal/ai-production/jobs/${encodeURIComponent(row.order_id)}/device-status`,
       {
         headers: { authorization: `Bearer ${credential.credential}` },
         signal: AbortSignal.timeout(30_000),
       },
     );
-    const body = await response.json() as CloudEnvelope;
+    let body = await response.json() as CloudEnvelope;
+    if (
+      response.status === 404
+      && body.error?.code === "AI_PRODUCTION_DEVICE_JOB_NOT_FOUND"
+    ) {
+      const serviceKey = process.env.XUANXUE_AI_PRODUCTION_CUTOVER_SERVICE_KEY;
+      if (!serviceKey) {
+        throw new Error(
+          `XUANXUE_AI_PRODUCTION_LEGACY_IDENTITY_RECEIPT_REQUIRED:${row.order_id}`,
+        );
+      }
+      response = await fetch(
+        `${baseUrl}/internal/ai-production/jobs/${encodeURIComponent(row.order_id)}`,
+        {
+          headers: { "x-ai-production-service-key": serviceKey },
+          signal: AbortSignal.timeout(30_000),
+        },
+      );
+      body = await response.json() as CloudEnvelope;
+    }
     const cloudStatus = body.data?.status;
     if (!response.ok || body.ok !== true || !cloudStatus) {
-      throw new Error(`XUANXUE_AI_PRODUCTION_V1_DRAIN_CLOUD_READ_FAILED:${row.order_id}:${body.error?.code ?? response.status}`);
+      throw new Error(`XUANXUE_AI_PRODUCTION_LEGACY_CUTOVER_CLOUD_READ_FAILED:${row.order_id}:${body.error?.code ?? response.status}`);
     }
     if (!terminal.has(cloudStatus)) {
-      throw new Error(`XUANXUE_AI_PRODUCTION_V1_ACTIVE_DRAIN_REQUIRED:${row.order_id}:${cloudStatus}`);
+      throw new Error(`XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED:${row.order_id}:${cloudStatus}`);
     }
     reconciled.push({ orderId: row.order_id, cloudStatus });
   }
@@ -172,7 +195,8 @@ try {
   const rows = database.prepare(`
     select order_id,status from production_orders
     where json_extract(order_json,'$.protocolVersion') in (
-      'xuanxue-ai-production-v1','xuanxue-ai-production-v2'
+      'xuanxue-ai-production-v1','xuanxue-ai-production-v2',
+      'xuanxue-ai-production-v3'
     )
       and status not in ('completed','review_required','failed','cancelled')
     order by created_at,order_id
@@ -184,7 +208,7 @@ try {
     reconciled,
   ))();
   await writeXuanxueAiProductionCloudCredential(dataDir, {
-    protocol_version: "xuanxue-ai-production-v3",
+    protocol_version: "xuanxue-ai-production-v4",
     server_base_url: legacyCredential.server_base_url,
     credential: legacyCredential.credential,
     device_id: legacyCredential.device_id,
@@ -195,6 +219,7 @@ try {
   process.stdout.write(JSON.stringify({
     verdict: "PASS",
     source_protocol: legacyCredential.protocol_version,
+    target_protocol: "xuanxue-ai-production-v4",
     reconciled_count: reconciled.length,
     order_ids: reconciled.map((item) => item.orderId),
   }, null, 2) + "\n");

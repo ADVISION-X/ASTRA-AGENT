@@ -33,7 +33,7 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-fixture.ts",
   "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
   "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
-  "scripts/acceptance/xuanxue-ai-production-v2-drain-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-legacy-cutover-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
   "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
@@ -79,7 +79,7 @@ export const pluginPaths = [
   cloudWorkerPath,
   "src/mediator/xuanxue-ai-production-route.ts",
   "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-  "scripts/startup/xuanxue-ai-production-v1-drain.ts",
+  "scripts/startup/xuanxue-ai-production-legacy-cutover.ts",
   gatewayTitleStatePath, gatewayTitleHousekeepingPath, gatewayTitleWorkerPath,
   acceptancePath, ...acceptanceSupportPaths,
 ] as const;

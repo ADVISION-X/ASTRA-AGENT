@@ -279,7 +279,6 @@ export const material = (
   timeoutMs: 60_000,
   maxInputChars: 10_000,
   maxFileCount: 8,
-  maxFileBytes: 10_000_000,
 });
 
 export const order = (
@@ -287,7 +286,7 @@ export const order = (
   productId: XuanxueAiProductionOrder["productId"],
   stageIds: readonly XuanxueAiProductionOrder["materials"][number]["stageId"][],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v3",
+  protocolVersion: "xuanxue-ai-production-v4",
   orderId,
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,

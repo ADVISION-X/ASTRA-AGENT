@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 
 import { resolveWebChatAttachmentTransportKind } from "../children/attach-approved-web-chat-files-once.js";
 import { AiFeedInputSchema } from "../schema.js";
-import { assertNativePickerContracts } from "./attachment-native-picker-contract.acceptance-helper.js";
 
 assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 0 }), "skipped");
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 1 }), "ordered_clipboard");
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 2 }), "native_picker_batch");
-assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gemini-web-chat", fileCount: 17 }), "ordered_clipboard");
-await assertNativePickerContracts();
+assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 1 }), "exact_target_file_input_batch");
+assert.equal(resolveWebChatAttachmentTransportKind({ providerKind: "gpt-web-chat", fileCount: 10 }), "exact_target_file_input_batch");
+assert.throws(
+  () => resolveWebChatAttachmentTransportKind({ providerKind: "gemini-web-chat", fileCount: 1 }),
+  /EXACT_TARGET_FILE_INPUT_PROVIDER_NOT_APPROVED/u,
+);
 
 const request = {
   providerKind: "gpt-web-chat",
@@ -24,7 +25,7 @@ const request = {
   requestedBy: "acceptance-test",
 };
 assert.throws(
-  () => AiFeedInputSchema.parse({ ...request, transportKind: "native_picker_batch" }),
+  () => AiFeedInputSchema.parse({ ...request, transportKind: "exact_target_file_input_batch" }),
   /unrecognized/iu,
   "callers must not choose the attachment transport",
 );

@@ -86,7 +86,8 @@ const readUnarchivedLegacyRows = (
   from production_orders o
   where json_extract(o.order_json,'$.protocolVersion') in (
     'xuanxue-ai-production-v1',
-    'xuanxue-ai-production-v2'
+    'xuanxue-ai-production-v2',
+    'xuanxue-ai-production-v3'
   ) and not exists (
     select 1 from production_legacy_protocol_archives a
     where a.order_id=o.order_id
@@ -173,8 +174,8 @@ const archiveRows = (
 };
 
 /**
- * One-way cutover for historical v1/v2 rows. Old JSON, result, stage and event
- * bytes remain in place as a read-only archive. Active v3 readers exclude every
+ * One-way cutover for historical v1/v2/v3 rows. Old JSON, result, stage and event
+ * bytes remain in place as a read-only archive. Active v4 readers exclude every
  * archived order, so no invented owner, person or chart identity can enter the
  * current production graph.
  */

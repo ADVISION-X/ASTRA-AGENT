@@ -387,7 +387,6 @@ export const buildXuanxueAiFeedInput = async (
     maxInputChars: stage.material.maxInputChars,
     maxFileCount:
       stage.material.maxFileCount + trustedGeneratedFileCount,
-    maxFileBytes: stage.material.maxFileBytes,
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: record.order.orderId,

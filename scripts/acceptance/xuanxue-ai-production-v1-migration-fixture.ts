@@ -30,7 +30,7 @@ const legacyMaterial = {
   stageId: "analysis", promptPackageId: "legacy:analysis",
   promptContractId: "legacy-contract", expectedOutputSchemaRef: null,
   textPrompt: "legacy prompt", inputRefs: [], timeoutMs: 60_000,
-  maxInputChars: 10_000, maxFileCount: 1, maxFileBytes: 1_000,
+  maxInputChars: 10_000, maxFileCount: 1,
 };
 
 const legacyProviderProof = (rawHash: string, createdAt: string) => ({
@@ -49,7 +49,8 @@ const legacyRows = (
   status: "completed" | "running",
   protocolVersion:
     | "xuanxue-ai-production-v1"
-    | "xuanxue-ai-production-v2",
+    | "xuanxue-ai-production-v2"
+    | "xuanxue-ai-production-v3",
 ) => {
   const createdAt = "2026-01-01T00:00:00.000Z";
   const raw = "legacy terminal answer";
@@ -95,7 +96,8 @@ export function seedLegacyDatabase(
   status: "completed" | "running",
   protocolVersion:
     | "xuanxue-ai-production-v1"
-    | "xuanxue-ai-production-v2" = "xuanxue-ai-production-v1",
+    | "xuanxue-ai-production-v2"
+    | "xuanxue-ai-production-v3" = "xuanxue-ai-production-v1",
 ): void {
   const filePath = path.join(
     dataDir, "plugin-tasks", "xuanxue-ai-production",

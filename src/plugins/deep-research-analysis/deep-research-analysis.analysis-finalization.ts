@@ -182,7 +182,6 @@ export const runFinalAdjudicationPhase = async (
     timeoutMs: 1_800_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     maxFileCount: attachmentLimits.maxFileCount,
-    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "FINAL_ADJUDICATION_SEND",
       capture: "FINAL_ADJUDICATION_CAPTURE",

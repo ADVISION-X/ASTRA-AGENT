@@ -93,7 +93,7 @@ const inspectContracts = (
     messagePrefix: "Whole-order contract must contain",
     values,
     required: [
-      "xuanxue-ai-production-v3",
+      "xuanxue-ai-production-v4",
       "bazi_chart_interpretation",
       "bazi_ai_full_analysis",
       "bazi_report_followup",

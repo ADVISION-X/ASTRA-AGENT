@@ -5,6 +5,7 @@ import type {
 } from "./schema.js";
 import type { AiProviderAdapter } from "./contracts/ai-provider-adapter.contract.js";
 import type { WebChatAttachmentUploadProof } from "./contracts/ai-provider-adapter.contract.js";
+import type { AiProviderUploadedFileProof } from "./contracts/ai-provider-adapter.contract.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type AiInputGatewayAbilityGroupId = "ai-input-gateway";
@@ -51,5 +52,12 @@ export interface AiInputGatewayAbilityGroup {
     expectedInputHash: string;
     expectedOutputHash: string;
   }): Promise<string | null>;
+  preflightApprovedWebChatFiles?(
+    input: unknown,
+    options?: Pick<AiInputGatewayExecuteOptions, "signal">,
+  ): Promise<{
+    uploadedFiles: AiProviderUploadedFileProof[];
+    attachmentUploadProof: WebChatAttachmentUploadProof;
+  }>;
   execute(input: unknown, options?: AiInputGatewayExecuteOptions): Promise<AiFeedResult>;
 }

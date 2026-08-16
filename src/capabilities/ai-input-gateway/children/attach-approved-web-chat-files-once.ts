@@ -15,8 +15,7 @@ import {
   readExactAttachmentState,
   waitForExactAttachmentCount,
 } from "../providers/web-chat-upload-page-actions.js";
-import { attachByNativePickerBatch } from "../providers/web-chat-native-picker-attachment.js";
-import { attachByOrderedClipboard } from "../providers/web-chat-ordered-clipboard-attachment.js";
+import { attachByExactTargetFileInputBatch } from "../providers/web-chat-exact-target-file-input-attachment.js";
 import type {
   StagedWebChatAttachment,
   WebChatAttachmentTransportResult,
@@ -197,11 +196,12 @@ const isReviewRequired = (error: unknown): boolean =>
 export const resolveWebChatAttachmentTransportKind = (input: {
   providerKind: AiFeedInput["providerKind"];
   fileCount: number;
-}): "skipped" | "ordered_clipboard" | "native_picker_batch" => {
+}): "skipped" | "exact_target_file_input_batch" => {
   if (input.fileCount === 0) return "skipped";
-  return input.providerKind === "gpt-web-chat" && input.fileCount >= 2
-    ? "native_picker_batch"
-    : "ordered_clipboard";
+  if (input.providerKind !== "gpt-web-chat") {
+    throw new Error("review_required: EXACT_TARGET_FILE_INPUT_PROVIDER_NOT_APPROVED");
+  }
+  return "exact_target_file_input_batch";
 };
 
 const completeSkippedAttempt = async (
@@ -257,19 +257,12 @@ const performAttachmentTransport = async (
       requireComposerTextEmpty: true,
     },
   );
-  state.transportResult = state.transportKind === "native_picker_batch"
-    ? await attachByNativePickerBatch({
-        ...input,
-        stagingDirectoryPath: staged.stagingDirectoryPath,
-        files: staged.files,
-        expectedPageUrl: state.expectedPageUrl,
-      })
-    : await attachByOrderedClipboard({
-        ...input,
-        stagingDirectoryPath: staged.stagingDirectoryPath,
-        files: staged.files,
-        expectedPageUrl: state.expectedPageUrl,
-      });
+  state.transportResult = await attachByExactTargetFileInputBatch({
+    ...input,
+    stagingDirectoryPath: staged.stagingDirectoryPath,
+    files: staged.files,
+    expectedPageUrl: state.expectedPageUrl,
+  });
   return waitForStableAttachmentSet({
     browser: input.browser,
     context: input.context,

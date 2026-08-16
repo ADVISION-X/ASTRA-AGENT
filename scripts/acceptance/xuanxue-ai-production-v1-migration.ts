@@ -13,8 +13,8 @@ import {
   seedLegacyDatabase,
 } from "./xuanxue-ai-production-v1-migration-fixture.js";
 import {
-  runV2DrainAcceptance,
-} from "./xuanxue-ai-production-v2-drain-acceptance.js";
+  runLegacyCutoverAcceptance,
+} from "./xuanxue-ai-production-legacy-cutover-acceptance.js";
 
 type StoredBytes = {
   order_json: string;
@@ -215,7 +215,7 @@ const acceptCompletedStageWithoutOutputProofBlock = async (
 };
 
 export async function acceptXuanxueV1Migration(root: string): Promise<void> {
-  await runV2DrainAcceptance(root);
+  await runLegacyCutoverAcceptance(root);
   const fixture = await prepareTerminalFixture(root);
   const archive = runArchiveAndReadReceipt(
     fixture.terminalDir,

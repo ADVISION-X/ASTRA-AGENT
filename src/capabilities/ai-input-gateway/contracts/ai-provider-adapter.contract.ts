@@ -18,8 +18,7 @@ export type AiProviderUploadedFileProof = {
 
 export type WebChatAttachmentTransportKind =
   | "skipped"
-  | "ordered_clipboard"
-  | "native_picker_batch";
+  | "exact_target_file_input_batch";
 
 export type WebChatAttachmentUploadProof = {
   childCapabilityId: "attach-approved-web-chat-files-once";

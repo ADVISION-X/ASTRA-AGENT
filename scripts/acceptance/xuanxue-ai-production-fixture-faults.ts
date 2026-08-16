@@ -41,7 +41,7 @@ const terminalAttachmentFailure = (
       attachmentUploadProof: {
         childCapabilityId: "attach-approved-web-chat-files-once",
         uploadAttemptId: "fixture-terminal-attachment-attempt",
-        transportKind: "ordered_clipboard",
+        transportKind: "exact_target_file_input_batch",
         expectedFileCount: 1,
         detectedFileCount: 0,
         stagingManifestHash: hash("fixture-terminal-attachment-manifest"),

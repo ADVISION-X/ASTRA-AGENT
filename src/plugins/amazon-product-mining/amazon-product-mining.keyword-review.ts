@@ -146,7 +146,6 @@ const requestKeywordOpportunityReview = (input: {
   timeoutMs: 120_000,
   maxInputChars: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS,
   maxFileCount: input.context.artifacts.uploadFileRefs.length,
-  maxFileBytes: 200_000_000,
   requestedBy: "ai-capability",
   missionId: input.context.taskId,
   runId: input.context.reviewId,

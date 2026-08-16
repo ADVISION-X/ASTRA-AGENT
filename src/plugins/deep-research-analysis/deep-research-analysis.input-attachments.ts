@@ -17,7 +17,6 @@ export const buildDeepResearchGatewayInputRefs = (input: {
 
 export const getDeepResearchInputAttachmentLimits = (
   attachments: readonly DeepResearchInputAttachment[],
-): { maxFileCount: number; maxFileBytes: number } => ({
+): { maxFileCount: number } => ({
   maxFileCount: attachments.length,
-  maxFileBytes: attachments.length > 0 ? 200_000_000 : 1,
 });

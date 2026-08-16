@@ -122,16 +122,15 @@ const stageMaterial = async (
   }
   return {
     stageId: material.stage_id,
-    promptPackageId: material.prompt_package_id,
-    promptContractId: material.prompt_contract_id,
+    promptPackageId: material.instruction_package_id,
+    promptContractId: material.output_contract_ref,
     expectedOutputSchemaRef: material.output_schema_ref,
     expectedOutputKind: material.expected_output_kind,
-    textPrompt: material.text_prompt,
+    textPrompt: material.task_directive,
     inputRefs,
     timeoutMs: material.timeout_ms,
     maxInputChars: material.max_input_chars,
     maxFileCount: material.max_file_count,
-    maxFileBytes: material.max_file_bytes,
   };
 };
 
@@ -191,7 +190,7 @@ const childOrder = (
   job: XuanxueAiProductionCloudClaimedJob,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-    protocolVersion: "xuanxue-ai-production-v3",
+    protocolVersion: "xuanxue-ai-production-v4",
   orderId: job.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: job.source_task_id,
@@ -244,7 +243,7 @@ const parentReplayOrder = (
   replay: CloudParentReplay | CloudDependencyReplay,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-    protocolVersion: "xuanxue-ai-production-v3",
+    protocolVersion: "xuanxue-ai-production-v4",
   orderId: replay.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: replay.source_task_id,

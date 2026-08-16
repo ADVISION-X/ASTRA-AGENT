@@ -211,16 +211,17 @@ device heartbeat
 → one whole-order result or bounded failure
 ```
 
-协议固定 `xuanxue-ai-production-v3`。活动创建、领取和恢复不接受 v1/v2。SQLite 切换只处理
-已终态 v1/v2：先逐阶段重算原始回答 hash，再对数据库和 `cloud-staging/generated-inputs`
+协议固定 `xuanxue-ai-production-v4`。活动创建、领取和恢复不接受 v1/v2/v3。SQLite 切换只处理
+已终态 v1/v2/v3：先逐阶段重算原始回答 hash，再对数据库和 `cloud-staging/generated-inputs`
 建立可恢复快照，在系统临时目录实际恢复数据库并核对 schema、行数、逐表行 hash、材料相对
 路径、byte size 与 sha256。全部一致后，只把旧订单登记到
 `production_legacy_protocol_archives`；订单、result、stage 与 event 原字节不改，v3 读取和
 恢复 SQL 必须排除档案。任何活动旧单、错误 hash 或恢复对账差异都使启动失败，不建双轨，
-也不得编造 legacy owner/person/chart。一次性 `xuanxue-ai-production:v1-drain` 兼管 v1/v2，
-只以原设备凭证查询绑定 job 的 `job_id/status`，把云端终态追加为本地
-`legacy_cloud_terminal_reconciled` 后再升级凭证。已有 `v1_cloud_terminal_reconciled` 只作为
-精确历史事件读取。conversation graph 冷启动仅扫描未归档 v3 活动状态，禁止再次执行或
+也不得编造 legacy owner/person/chart。一次性 `xuanxue-ai-production:legacy-cutover` 只离线读取 v1/v2/v3，
+优先以当前设备凭证查询绑定 job 的 `job_id/status`；只有云端明确返回设备身份不匹配时，
+本次离线命令才可使用网站既有 service credential 只读复核同一 `job_id/status`。两种查询都只接受云端终态，随后把终态追加为本地
+`legacy_cloud_terminal_reconciled` 后唯一写入 v4 设备凭证。该工具不进入启动、领取、恢复或执行运行时；已有 `v1_cloud_terminal_reconciled` 只作为
+精确历史事件读取。conversation graph 冷启动仅扫描未归档 v4 活动状态，禁止再次执行或
 重新提交 GPT。
 领取后的所有 job mutation 携带 lease token/version
 和幂等键；唯一例外是重启恢复请求，它没有可信旧 token，必须绑定原设备与四段稳定身份，

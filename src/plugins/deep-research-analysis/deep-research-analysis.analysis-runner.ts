@@ -66,7 +66,6 @@ export type DeepResearchGatewayPromptPackage = {
   timeoutMs: number;
   maxInputChars: number;
   maxFileCount: number;
-  maxFileBytes: number;
 };
 
 export type DeepResearchGatewayResult = {

@@ -6,11 +6,8 @@ import {
   CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
   FOCUS_COMPOSER_SCRIPT,
   VERIFY_COMPOSER_FOCUSED_SCRIPT,
-  buildClickChatGptAddButtonScript,
-  buildClickChatGptLocalFileMenuItemScript,
 } from "./web-chat-composer-scripts.js";
 import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
-import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hygiene.js";
 
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
 
@@ -90,52 +87,3 @@ export const clickChatGptSendButton = (
     script: CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
-
-export const openChatGptNativeFilePicker = async (
-  browser: BrowserTargetSession,
-  context: AiProviderAdapterContext,
-  expectedPageUrl: string,
-): Promise<void> => {
-  await dismissChatGptSearchDialogIfVisible(browser, context);
-  const addButton = await browser.evaluate<WebChatEvaluation>({
-    description: "open ChatGPT attachment menu",
-    script: buildClickChatGptAddButtonScript(expectedPageUrl),
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-  if (addButton.status !== "success") {
-    throw new Error(`review_required: ${addButton.message}`);
-  }
-  const deadline = Date.now() + 10_000;
-  let lastMessage = "attachment menu was not checked";
-  while (Date.now() < deadline) {
-    const menuItem = await browser.evaluate<WebChatEvaluation & {
-      targetPoint?: { x: number; y: number };
-    }>({
-      description: "choose ChatGPT local file upload action",
-      script: buildClickChatGptLocalFileMenuItemScript(expectedPageUrl),
-      ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-    });
-    lastMessage = menuItem.message;
-    if (menuItem.status === "success") {
-      if (!menuItem.targetPoint) {
-        throw new Error("review_required: CHATGPT_LOCAL_FILE_MENU_ITEM_POINT_MISSING");
-      }
-      const clicked = await browser.click({
-        targetLabel: "uniquely located ChatGPT local file upload menu item",
-        point: menuItem.targetPoint,
-        coordinateSpace: "browserViewport",
-        button: "left",
-        clickCount: 1,
-      });
-      if (!clicked.ok) {
-        throw new Error(`review_required: CHATGPT_LOCAL_FILE_MENU_ITEM_REAL_CLICK_FAILED; ${clicked.message}`);
-      }
-      return;
-    }
-    if (menuItem.status === "review_required" || menuItem.status === "failed") {
-      throw new Error(`review_required: ${menuItem.message}`);
-    }
-    await browser.wait(150);
-  }
-  throw new Error(`review_required: CHATGPT_LOCAL_FILE_MENU_ITEM_NOT_READY; last=${lastMessage}`);
-};

@@ -16,10 +16,20 @@ import { feedGeminiWebChatOnce } from "./runtime/feed-gemini-web-chat-once.js";
 import { feedGptWebChatOnce } from "./runtime/feed-gpt-web-chat-once.js";
 import { resolveWebChatMaxInFlight } from "./runtime/web-chat-concurrency-lease.js";
 import {
+  acquireWebChatBrowserMutationLease,
+  acquireWebChatCapacityLease,
+} from "./runtime/web-chat-concurrency-lease.js";
+import {
   recoverCheckpointedWebChatProviderLease,
 } from "./providers/web-chat-checkpoint-response.js";
 import { classifyWebChatFailure } from "./failure-classification.js";
 import { createProviderOperatorControl } from "./runtime/provider-operator-control.js";
+import { attachApprovedWebChatFilesOnce } from "./children/attach-approved-web-chat-files-once.js";
+import { openProviderPage } from "./providers/web-chat-open.js";
+import {
+  clearComposer,
+  waitForExactAttachmentCount,
+} from "./providers/web-chat-upload-page-actions.js";
 
 const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
   "feed-gemini-api-once",
@@ -161,6 +171,60 @@ export const createAiInputGatewayAbilityGroup = (
         dataDir: context.dataDir,
         ...input,
       });
+    },
+
+    async preflightApprovedWebChatFiles(rawInput, options) {
+      const request = AiFeedInputSchema.parse(rawInput);
+      if (!browser || request.providerKind !== "gpt-web-chat") {
+        throw new Error("review_required: GPT web-chat provider target is required for attachment preflight.");
+      }
+      await operatorControl.waitForRelease(options?.signal);
+      operatorControl.ensureHousekeeping();
+      const capacityLease = await acquireWebChatCapacityLease({
+        dataDir: context.dataDir,
+        timeoutMs: request.timeoutMs,
+        ...(options?.signal ? { signal: options.signal } : {}),
+      });
+      let mutationLease: Awaited<ReturnType<typeof acquireWebChatBrowserMutationLease>> | null = null;
+      try {
+        mutationLease = await acquireWebChatBrowserMutationLease({
+          dataDir: context.dataDir,
+          timeoutMs: request.timeoutMs,
+          ...(options?.signal ? { signal: options.signal } : {}),
+        });
+        const adapterContext = {
+          dataDir: context.dataDir,
+          browser,
+          ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
+          ...(options?.signal ? { abortSignal: options.signal } : {}),
+        };
+        await openProviderPage({
+          browser,
+          providerUrl: "https://chatgpt.com/",
+          runtimeName: "gpt-web-chat-provider-input-preflight",
+          context: adapterContext,
+          request,
+        });
+        const result = await attachApprovedWebChatFilesOnce({
+          browser,
+          request,
+          context: adapterContext,
+        });
+        const cleared = await clearComposer(browser, adapterContext);
+        if (cleared.status !== "success" || !cleared.pageUrl) {
+          throw new Error(`review_required: provider preflight cleanup was not proven; ${cleared.message}`);
+        }
+        await waitForExactAttachmentCount(browser, adapterContext, 0, [], 10_000, {
+          expectedPageUrl: cleared.pageUrl,
+          baselineAttachmentCount: 0,
+          requireReady: false,
+          requireComposerTextEmpty: true,
+        });
+        return result;
+      } finally {
+        await mutationLease?.release();
+        await capacityLease.release();
+      }
     },
 
     async execute(rawInput: unknown, options): Promise<AiFeedResult> {

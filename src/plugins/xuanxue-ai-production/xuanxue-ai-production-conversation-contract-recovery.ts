@@ -88,7 +88,6 @@ const materialIdentity = (
   timeoutMs: material.timeoutMs,
   maxInputChars: material.maxInputChars,
   maxFileCount: material.maxFileCount,
-  maxFileBytes: material.maxFileBytes,
 }));
 
 const isLegacyFollowupParentRepair = (

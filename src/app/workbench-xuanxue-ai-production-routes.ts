@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
+import { runXuanxueProviderInputPreflight } from "../plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.js";
 
 const readOrderId = (url: URL): string | null => {
   const orderId = url.searchParams.get("orderId")?.trim();
@@ -14,6 +15,17 @@ export const handleXuanxueAiProductionRequest = async (
   workbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> => {
+  if (
+    request.method === "POST"
+    && url.pathname === "/api/plugins/xuanxue-ai-production/provider-input-preflight"
+  ) {
+    const result = await runXuanxueProviderInputPreflight({
+      rawInput: await readJsonBody(request),
+      aiInputGateway: workbench.getAiInputGatewayAbilityGroup(),
+    });
+    writeJson(response, 200, result);
+    return true;
+  }
   if (
     request.method === "GET"
     && url.pathname === "/api/xuanxue-ai-production/status"

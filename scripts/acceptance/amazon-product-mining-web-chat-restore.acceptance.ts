@@ -31,7 +31,6 @@ const createRequest = (promptContractId: string): AiFeedInput => ({
   timeoutMs: 180_000,
   maxInputChars: 30_000,
   maxFileCount: 0,
-  maxFileBytes: 1,
   requestedBy: "acceptance-test",
   missionId: null,
   runId: null,

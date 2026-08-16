@@ -131,18 +131,6 @@ const createBrowserFacade = (
         route: routeByDefault,
       });
   }
-  if (input.base.selectFilesInNativePicker) {
-    browser.selectFilesInNativePicker = (value) =>
-      withMutation(() => input.base.selectFilesInNativePicker!(value), {
-        route: routeByDefault,
-      });
-  }
-  if (input.base.pasteFileFromSystemClipboard) {
-    browser.pasteFileFromSystemClipboard = (value) =>
-      withMutation(() => input.base.pasteFileFromSystemClipboard!(value), {
-        route: routeByDefault,
-      });
-  }
   return browser;
 };
 

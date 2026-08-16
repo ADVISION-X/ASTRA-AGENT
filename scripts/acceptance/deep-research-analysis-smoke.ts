@@ -291,7 +291,6 @@ const verifyAttachmentRefsReachResearchStages = (
   assert(observedInputs.length === 5, `Expected 5 AI feed inputs, received ${observedInputs.length}.`);
   observedInputs.forEach((input, index) => {
     assert(input.maxFileCount === 1, `AI feed ${index + 1} must permit one file.`);
-    assert(input.maxFileBytes === 200_000_000, `AI feed ${index + 1} must preserve the approved file byte budget.`);
     assert(
       input.inputRefs.some((ref) => ref.filePath === filePath && ref.kind === "user-attachment"),
       `AI feed ${index + 1} must receive the user attachment ref.`,

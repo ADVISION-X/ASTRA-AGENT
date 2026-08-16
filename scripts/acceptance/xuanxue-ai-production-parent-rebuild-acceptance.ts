@@ -307,16 +307,17 @@ const cloudMaterial = (
   candidate: XuanxueAiProductionOrder["materials"][number],
 ) => ({
   stage_id: candidate.stageId,
-  prompt_package_id: candidate.promptPackageId,
-  prompt_contract_id: candidate.promptContractId,
+  instruction_package_id: candidate.promptPackageId,
+  output_contract_ref: candidate.promptContractId,
   output_schema_ref: candidate.expectedOutputSchemaRef,
   expected_output_kind: candidate.expectedOutputKind,
-  text_prompt: candidate.textPrompt,
+  task_directive: candidate.textPrompt,
   timeout_ms: candidate.timeoutMs,
   max_input_chars: candidate.maxInputChars,
   max_file_count: candidate.maxFileCount,
-  max_file_bytes: candidate.maxFileBytes,
   inputs: [],
+  control_plane: "excluded_specialized_capability" as const,
+  exclusion_reason: "manual_accuracy_challenge" as const,
 });
 
 const cloudSubject = (candidate: XuanxueAiProductionOrder) => ({
@@ -357,7 +358,7 @@ const parseCloudReplayClaim = (
   parent: XuanxueAiProductionOrder,
   child: XuanxueAiProductionOrder,
 ) => XuanxueAiProductionCloudClaimedJobSchema.parse({
-  protocol_version: "xuanxue-ai-production-v3",
+  protocol_version: "xuanxue-ai-production-v4",
   ...cloudOrderIdentity(child),
   idempotency_key: `idem:${child.orderId}`,
   frozen_subject: cloudSubject(child),

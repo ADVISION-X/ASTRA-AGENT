@@ -84,7 +84,6 @@ const requestFor = (worker: number): AiFeedInput => ({
   timeoutMs: 60_000,
   maxInputChars: 1_000,
   maxFileCount: 0,
-  maxFileBytes: 1,
   requestedBy: "acceptance-test",
   missionId: "parallel-acceptance",
   runId: `parallel-worker-${worker}`,

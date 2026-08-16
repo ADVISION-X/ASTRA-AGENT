@@ -29,11 +29,13 @@ import {
   acceptXuanxueOrderGraphs,
 } from "./xuanxue-ai-production-order-graph-acceptance.js";
 import { acceptXuanxueV1Migration } from "./xuanxue-ai-production-v1-migration.js";
+import { acceptXuanxueProviderPreflightContract } from "./xuanxue-ai-production-provider-preflight.js";
 
 const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
 );
 try {
+  await acceptXuanxueProviderPreflightContract();
   await acceptXuanxueV1Migration(dataDir);
   const generatedDirectory = path.join(dataDir, "runtime-data", "ai-input-gateway", "generated-images");
   await mkdir(generatedDirectory, { recursive: true });

@@ -118,11 +118,10 @@ export const XuanxueAiStageMaterialSchema = z.object({
   timeoutMs: z.number().int().min(60_000).max(3_600_000).default(3_600_000),
   maxInputChars: z.number().int().min(1).max(500_000).default(120_000),
   maxFileCount: z.number().int().min(0).max(64).default(32),
-  maxFileBytes: z.number().int().min(1).max(1_000_000_000).default(500_000_000),
 }).strict();
 
 export const XuanxueAiStoredProductionOrderSchema = z.object({
-  protocolVersion: z.literal("xuanxue-ai-production-v3"),
+  protocolVersion: z.literal("xuanxue-ai-production-v4"),
   orderId: z.string().min(1).max(200),
   sourceProject: z.literal("xuanxue-web"),
   sourceTaskId: z.string().min(1).max(240),

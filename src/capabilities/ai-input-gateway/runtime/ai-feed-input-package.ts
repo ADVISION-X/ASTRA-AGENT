@@ -77,10 +77,7 @@ const assertFileLimits = async (
   for (const ref of fileRefs) {
     const filePath = ref.filePath;
     if (!filePath) continue;
-    const info = await stat(filePath);
-    if (info.size > input.maxFileBytes) {
-      throw new Error(`AI feed file exceeds maxFileBytes=${input.maxFileBytes}: ${ref.id}.`);
-    }
+    await stat(filePath);
     await assertUploadableFile(filePath, ref.mimeType);
     const bytes = await readFile(filePath);
     const actualFileName = basename(filePath);

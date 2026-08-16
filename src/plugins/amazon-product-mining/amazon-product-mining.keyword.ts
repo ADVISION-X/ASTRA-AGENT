@@ -216,7 +216,6 @@ const runKeywordGenerationAttempt = async (input: KeywordGenerationAttemptInput)
       timeoutMs: 60_000,
       maxInputChars: 30_000,
       maxFileCount: 0,
-      maxFileBytes: 1,
       requestedBy: "ai-capability",
       missionId: input.taskId,
       runId,

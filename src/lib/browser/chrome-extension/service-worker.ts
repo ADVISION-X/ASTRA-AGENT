@@ -94,7 +94,17 @@ const ensureAttached = async (tabId: number): Promise<void> => {
   try {
     await chrome.debugger.attach({ tabId }, "1.3");
   } catch (error) {
-    throw new Error(`DEVTOOLS_ATTACHMENT_CONFLICT:${error instanceof Error ? error.message : String(error)}`);
+    try {
+      // A Manifest V3 service worker can be restarted while Chrome keeps the
+      // debugger session owned by this extension alive. In that case the
+      // in-memory attachedTabs set is empty even though our own attachment
+      // still exists. Detach-and-reattach recovers only an attachment owned by
+      // this extension; a foreign DevTools/debugger owner remains fail-closed.
+      await chrome.debugger.detach({ tabId });
+      await chrome.debugger.attach({ tabId }, "1.3");
+    } catch {
+      throw new Error(`DEVTOOLS_ATTACHMENT_CONFLICT:${error instanceof Error ? error.message : String(error)}`);
+    }
   }
   attachedTabs.add(tabId);
   await chrome.debugger.sendCommand({ tabId }, "Page.enable");

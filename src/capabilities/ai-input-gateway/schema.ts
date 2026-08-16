@@ -82,7 +82,6 @@ export const AiFeedInputSchema = z.object({
   timeoutMs: z.number().int().positive().default(180_000),
   maxInputChars: z.number().int().positive().default(30_000),
   maxFileCount: z.number().int().nonnegative().default(3),
-  maxFileBytes: z.number().int().positive().default(200_000_000),
   requestedBy: z.enum(["ai-capability", "manual-test", "acceptance-test"]),
   missionId: z.string().min(1).nullable().default(null),
   runId: z.string().min(1).nullable().default(null),
@@ -127,7 +126,7 @@ const AiFeedProviderProofIdentitySchema = z.object({
   attachmentUploadProof: z.object({
     childCapabilityId: z.literal("attach-approved-web-chat-files-once"),
     uploadAttemptId: z.string().min(1),
-    transportKind: z.enum(["skipped", "ordered_clipboard", "native_picker_batch"]),
+    transportKind: z.enum(["skipped", "exact_target_file_input_batch"]),
     expectedFileCount: z.number().int().nonnegative(),
     detectedFileCount: z.number().int().nonnegative(),
     stagingManifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).nullable(),

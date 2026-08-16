@@ -60,7 +60,6 @@ export const buildGatewaySender = (context: DeepResearchAnalysisContext): DeepRe
     timeoutMs: Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs),
     maxInputChars: promptPackage.maxInputChars,
     maxFileCount: promptPackage.maxFileCount,
-    maxFileBytes: promptPackage.maxFileBytes,
     requestedBy: "ai-capability",
     missionId: promptPackage.jobId,
     runId: promptPackage.jobId,
@@ -79,7 +78,6 @@ export const buildPromptPackage = (input: {
   timeoutMs?: number;
   maxInputChars?: number;
   maxFileCount?: number;
-  maxFileBytes?: number;
 }): DeepResearchGatewayPromptPackage => ({
   jobId: input.jobId,
   promptPackageId: `${input.jobId}:${input.promptKey}:${input.prompt.promptVersion}`,
@@ -91,5 +89,4 @@ export const buildPromptPackage = (input: {
   timeoutMs: input.timeoutMs ?? 180_000,
   maxInputChars: input.maxInputChars ?? 30_000,
   maxFileCount: input.maxFileCount ?? 0,
-  maxFileBytes: input.maxFileBytes ?? 1,
 });

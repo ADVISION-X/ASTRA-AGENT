@@ -465,7 +465,6 @@ export const runBusinessHtmlReportPhase = async (
     timeoutMs: 1_800_000,
     maxInputChars: Number.MAX_SAFE_INTEGER,
     maxFileCount: attachmentLimits.maxFileCount,
-    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "HTML_REPORT_SEND",
       capture: "HTML_REPORT_CAPTURE",

@@ -35,10 +35,11 @@ const readContentType = (request: import("node:http").IncomingMessage): string =
 
 const readApiBodyPreview = async (
   request: import("node:http").IncomingMessage,
+  maxBytes = Number.POSITIVE_INFINITY,
 ): Promise<unknown> => {
   const contentType = readContentType(request);
   if (contentType.startsWith("application/json")) {
-    const raw = (await readRequestBuffer(request)).toString("utf8").trim();
+    const raw = (await readRequestBuffer(request, maxBytes)).toString("utf8").trim();
     return raw ? { json: JSON.parse(raw) } : { json: {} };
   }
   if (contentType.startsWith("multipart/form-data")) {
@@ -219,7 +220,12 @@ async function handleRequest(
   if (boundaryDecision.kind === "allowed") {
     let allowedDecision = boundaryDecision;
     if (boundaryDecision.originCategory === "external-website" && request.method !== "GET") {
-      const bodyPreview = await readApiBodyPreview(request);
+      const bodyPreview = await readApiBodyPreview(
+        request,
+        url.pathname === "/api/plugins/xuanxue-ai-production/provider-input-preflight"
+          ? 32 * 1024 * 1024
+          : Number.POSITIVE_INFINITY,
+      );
       const bodyDecision = handleWorkbenchApiBoundary(buildWorkbenchApiBoundaryInput({ request, url, baseUrl, bodyPreview }));
       if (bodyDecision.kind === "blocked") {
         recordApiBoundaryDecision({ decision: bodyDecision, request, url, workbench });

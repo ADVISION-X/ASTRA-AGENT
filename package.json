@@ -11,7 +11,7 @@
     "browser:install": "node src/lib/browser/native-messaging-host/install.mjs",
     "browser:verify": "node src/lib/browser/native-messaging-host/install.mjs --verify",
     "browser:uninstall": "node src/lib/browser/native-messaging-host/install.mjs --uninstall",
-    "xuanxue-ai-production:v1-drain": "node --import tsx scripts/startup/xuanxue-ai-production-v1-drain.ts",
+    "xuanxue-ai-production:legacy-cutover": "node --import tsx scripts/startup/xuanxue-ai-production-legacy-cutover.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "acceptance:local-browser-exact-target": "node --import tsx scripts/acceptance/local-browser-exact-target-contract.acceptance.ts && node --import tsx scripts/acceptance/local-browser-native-transport.acceptance.ts && node --import tsx scripts/acceptance/local-browser-target-actions.acceptance.ts && node --import tsx scripts/acceptance/local-browser-focus-lease.acceptance.ts && node --import tsx scripts/acceptance/dom-automation-exact-target.acceptance.ts && node --import tsx scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts && node --import tsx scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",

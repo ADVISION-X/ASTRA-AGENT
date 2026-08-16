@@ -130,7 +130,6 @@ export const runDecompositionPhase = async (
       attachments: context.input.inputAttachments,
     }),
     maxFileCount: attachmentLimits.maxFileCount,
-    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "DECOMPOSE_SEND",
       capture: "DECOMPOSE_CAPTURE",
@@ -207,7 +206,6 @@ const runAnalysisPhase = async (
       attachments: context.input.inputAttachments,
     }),
     maxFileCount: attachmentLimits.maxFileCount,
-    maxFileBytes: attachmentLimits.maxFileBytes,
     stages: {
       send: "ANALYSIS_SEND",
       capture: "ANALYSIS_CAPTURE",
