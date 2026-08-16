@@ -14,25 +14,17 @@ export const attachment = {
     "src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts",
   sharedPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-  orderedTransportPath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
-  nativeTransportPath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
+  exactTargetTransportPath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
   attachmentTransportPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-  composerScriptsPath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
   browserContractPath: "src/lib/browser/browser-controller.ts",
-  nativePrimitivePath:
-    "src/lib/browser/current-chrome-native-multi-file-picker.ts",
   exactTargetRefPath:
     "src/lib/browser/exact-target/browser-target-ref.ts",
   exactTargetRuntimePath:
     "src/lib/browser/exact-target/browser-command-runtime.ts",
   acceptancePath:
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
-  attachmentNativePickerAcceptancePath:
-    "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
 } as const;
 
 const runtimeCoordination = {
@@ -94,8 +86,6 @@ const runtimeInteraction = {
     "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
   searchDialogHygienePath:
     "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
-  pageActionsPath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
   submitPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
   generatedImageCapturePath:

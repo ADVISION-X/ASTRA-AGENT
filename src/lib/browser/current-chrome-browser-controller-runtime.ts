@@ -3,7 +3,6 @@ import path from "node:path";
 import type { LocalBrowserSessionConfig } from "../../types/local-browser-session.js";
 import { createId } from "../local-runtime/ids.js";
 import type { BrowserController, BrowserStateSnapshot } from "./browser-controller.js";
-import { selectCurrentChromeNativePickerFiles } from "./current-chrome-native-multi-file-picker.js";
 import { BrowserCommandRuntime } from "./exact-target/browser-command-runtime.js";
 import { createInitialLocalBrowserSessionState } from "./local-browser-session.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
@@ -26,7 +25,6 @@ export const createCurrentChromeBrowserControllerRuntime = (
     createId("browser-controller-session"),
     path.join(options.dataDir, "browser-runtime", "controller-native.sock"),
     options.screenshotDir,
-    selectCurrentChromeNativePickerFiles,
     runtimeLogger,
   );
   const initial = createInitialLocalBrowserSessionState(options.sessionConfig);

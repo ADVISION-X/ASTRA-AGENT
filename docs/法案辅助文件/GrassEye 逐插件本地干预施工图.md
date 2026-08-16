@@ -48,7 +48,7 @@ running | pause_requested | paused | cancel_requested | cancelled
 - 一般 DOM/item/round 边界：3 秒内停止新命令。
 - xuanxue 新 stage：2 秒内停止。
 - image transfer：允许当前传输最多 10 秒到 owning checkpoint，之后不得开始下一项。
-- 已提交 provider/download/upload：只等该 owner 现有 timeout 与 checkpoint；等待期间不得持有 PhysicalFocusLease。
+- 已提交 provider/download/upload：只等该 owner 现有 timeout 与 checkpoint；等待期间不得触发页面动作。
 
 预算超时不是继续运行授权。Owner 必须写 `review_required` 或相应终态，并把 failure reason、最后 checkpoint 和 evidence refs 留在自己的账内。
 
@@ -60,7 +60,7 @@ running | pause_requested | paused | cancel_requested | cancelled
 - takeover/resume 必须从 owner checkpoint 重新 acquire 精确 target，核验 origin、业务身份和已持久化 hash，再继续；旧 refs 永久不可复活。
 - Product Mining、Deep Research、xuanxue-ai-production 接管 provider Tab 时，AI Input Gateway 必须登记精确 owner key、暂停 title housekeeping，并阻塞全部新 Web AI 操作；只有同一 owner 的显式 resume 才解除阻塞。
 - 不得恢复 active-tab、front-window、URL-first、first-page、same-path 或 host-tab fallback。
-- 普通 DOM/Browser 动作不申请焦点；只有批准的系统文件选择器、OS 鼠标或键盘动作进入 PhysicalFocusLease。
+- DOM/Browser 动作只走插件精确 target；系统文件选择器、OS 鼠标、OS 键盘和焦点租约均不存在。
 
 ## 5. Workbench 接线
 

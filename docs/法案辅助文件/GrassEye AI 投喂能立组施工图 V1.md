@@ -83,11 +83,9 @@ URL 与提示词 marker 并立即释放发送短锁，服务端生成等待不�
 origin/document generation；不得切换或假设当前前台标签。target 消失时进入 recovery_pending，
 禁止 URL-first fallback。
 
-普通 DOM evaluate/click/fill/scroll/screenshot 全部通过 exact-target CDP，不使用辅助功能窗口、
-Chrome activate、系统鼠标或键盘。只有 native file picker 或明确无法由 CDP 完成的 OS 动作
-才申请 Browser-owned `PhysicalFocusLease`：reason code 必须获准，绑定同一 target/window/document，
-最多 15 秒。用户主动切走或身份变化后立即取消且不重抢。该租约不得覆盖 provider 生成等待，
-不得把已完成回答变成盲轮询。
+普通 DOM evaluate/click/fill/scroll/screenshot/file-input 全部通过 exact-target 插件 CDP，不使用
+辅助功能窗口、Chrome activate、系统鼠标、系统键盘、剪贴板、原生文件选择器或焦点租约。
+provider 生成等待同样不得激活或轮询用户前台窗口。
 
 侧栏行即使存在 DOM，只要中心点落在浏览器可视区之外，就不允许点击该坐标。系统必须在
 exact target 内发送 CDP scroll，把精确 canonical URL 或系统名称对应的行滚进可视区，重新定位后再
@@ -316,12 +314,11 @@ attach-approved-web-chat-files-once
 
 ```txt
 0 files                         -> skipped
-GPT Web Chat + 1 file           -> ordered_clipboard
-GPT Web Chat + 2 or more files  -> native_picker_batch
-Gemini Web Chat + any files     -> ordered_clipboard
+GPT Web Chat + any files        -> exact_target_file_input_batch
 ```
 
-不存在调用方选择，不存在同一次尝试内换路。
+不存在调用方选择，不存在同一次尝试内换路。文件附件只允许已加载 Chrome 插件在精确受控标签页中
+命中唯一文档 file input；Gemini Web Chat 当前不得借用 GPT 传输，也不得建立第二附件链。
 
 ## Staging Flow
 
@@ -344,56 +341,26 @@ governed inputRefs
 
 终态后删除该次目录。
 
-## Ordered Clipboard Transport
+## Exact Target File Input Transport
 
-每个文件只执行一次：
-
-```txt
-focus composer
--> copy one staged file object
--> activate Chrome
--> refocus composer
--> paste
--> prove exact cumulative count and names
-```
-
-任一步失败即结束本次子能力，不重贴、不换路。
-
-## Native Picker Batch Transport
-
-Gateway 的 ChatGPT 页面适配器只负责：
+唯一插件传输固定执行：
 
 ```txt
-唯一可见的附件加号
--> 唯一本地文件菜单项
--> 原生文件选择窗口出现
+绑定已治理的 Chrome 标签页 target
+-> 核对页面 URL 与调用方持久化的 expectedPageUrl 完全相同
+-> 在该 target 内核对唯一、已连接、可用、支持 multiple 的 #upload-files 文档输入框
+-> 插件通过 browser.setFileInputFiles 逐件写入已校验暂存文件
+-> 每件写入后证明从零开始的精确累计附件数量与精确暂存显示名
+-> 全部附件连续稳定后才形成 attachments_stable
 ```
 
-通用 Browser primitive 只负责：
+任一步失败即结束本次子能力，不重传、不换路。不得打开原生文件窗口，不得使用剪贴板，
+不得抢占电脑焦点，不得调用 macOS Accessibility 或键盘路径，也不得保留上述旧路径的包装器、
+回退、迁移解码器或兼容桥。
 
-```txt
-重新读取自动化窗口完整 bounds 并 AXRaise 精确匹配窗口
--> 原生 picker 再次核对 window 1 bounds 与受控窗口完全相同
--> 确认唯一原生 sheet
--> Command+Shift+G
--> 确认该 sheet 内唯一嵌套的“前往文件夹”sheet
--> 确认嵌套 sheet 内唯一 text field 并显式聚焦
--> 输入已验证暂存目录
--> Enter 后证明嵌套 sheet 已关闭
--> 证明全部期望文件可见
--> 聚焦文件列表
--> Command+A
--> 证明唯一且可用的 Open/打开按钮
--> AXPress
--> 证明 sheet 关闭
-```
-
-“前往文件夹”嵌套 sheet 尚未出现时，只允许有界重复同一个
-`Command+Shift+G` 开启动作；一旦出现多于一个嵌套 sheet、多于一个候选 text field、
-窗口 bounds 不一致或显式聚焦无法核验，立即 `review_required`。不得读取进程级任意
-`AXFocusedUIElement` 并把普通搜索框、文件名栏或其他文本框误当成目录输入框。
-
-它不出现 ChatGPT、Gemini、SEO、八字、奇门或业务任务词。
+本地只核验来源字节、哈希、暂存集合和真实附件结果。不得用文件字节上限、TOKEN 估算、
+TOKEN 预算、提高阈值或拆分文件阻断获准真实文件；真实 provider 窗口是否接受该文件，
+只能由本次真实 Chrome 运行结果证明。
 
 ## DOM Inclusion And Exclusion
 
@@ -492,11 +459,7 @@ src/capabilities/ai-input-gateway/runtime/
 
 src/capabilities/ai-input-gateway/providers/
   web-chat-attachment-transport.ts
-  web-chat-ordered-clipboard-attachment.ts
-  web-chat-native-picker-attachment.ts
-
-src/lib/browser/
-  current-chrome-native-multi-file-picker.ts
+  web-chat-exact-target-file-input-attachment.ts
 
 scripts/acceptance/
   ai-input-gateway-attachment.acceptance.ts
@@ -513,13 +476,15 @@ scripts/audit/domains/ai-input-gateway/
 自动验收覆盖：
 
 ```txt
-0 / 1 / 2 / 17 fixed routing
+0 / 1 / 2 / 17 fixed exact-target routing
 public request rejects transport details
 source and staging hash identity
 unique ordered display names
 exact directory membership
 aggregate terminal proof
 no same-attempt fallback
+no clipboard, native picker, focus lease or OS accessibility upload path
+no local byte or token admission gate
 staging cleanup
 old implementation absent
 ten independent feeds can occupy ten in-flight slots

@@ -40,8 +40,8 @@
   "blueprintRefs": [
     {
       "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
-      "requiredAnchors": ["## 2. 唯一四跳链路", "## 9. PhysicalFocusLease", "## 11. Audit owner", "## 13. Security Privacy Ownership"]
+      "requiredAnchors": ["## 2. 唯一四跳链路", "## 9. 插件单链与焦点归零", "## 11. Audit owner", "## 13. Security Privacy Ownership"]
     }
   ],
-  "description": "Exact target BrowserController, private MV3 Native Messaging transport and bounded physical focus lease owner."
+  "description": "Exact target BrowserController and one private MV3 Native Messaging transport with no physical-focus or OS file-action path."
 }

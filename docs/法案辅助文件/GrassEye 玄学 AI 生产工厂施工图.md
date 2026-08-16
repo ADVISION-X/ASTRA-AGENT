@@ -211,18 +211,9 @@ device heartbeat
 → one whole-order result or bounded failure
 ```
 
-协议固定 `xuanxue-ai-production-v4`。活动创建、领取和恢复不接受 v1/v2/v3。SQLite 切换只处理
-已终态 v1/v2/v3：先逐阶段重算原始回答 hash，再对数据库和 `cloud-staging/generated-inputs`
-建立可恢复快照，在系统临时目录实际恢复数据库并核对 schema、行数、逐表行 hash、材料相对
-路径、byte size 与 sha256。全部一致后，只把旧订单登记到
-`production_legacy_protocol_archives`；订单、result、stage 与 event 原字节不改，v3 读取和
-恢复 SQL 必须排除档案。任何活动旧单、错误 hash 或恢复对账差异都使启动失败，不建双轨，
-也不得编造 legacy owner/person/chart。一次性 `xuanxue-ai-production:legacy-cutover` 只离线读取 v1/v2/v3，
-优先以当前设备凭证查询绑定 job 的 `job_id/status`；只有云端明确返回设备身份不匹配时，
-本次离线命令才可使用网站既有 service credential 只读复核同一 `job_id/status`。两种查询都只接受云端终态，随后把终态追加为本地
-`legacy_cloud_terminal_reconciled` 后唯一写入 v4 设备凭证。该工具不进入启动、领取、恢复或执行运行时；已有 `v1_cloud_terminal_reconciled` 只作为
-精确历史事件读取。conversation graph 冷启动仅扫描未归档 v4 活动状态，禁止再次执行或
-重新提交 GPT。
+协议固定 `xuanxue-ai-production-v4`。v1/v2/v3 的一次性账本清算和设备迁移已经完成；旧 decoder、
+排空命令、归档消费者、兼容读取和回退入口全部退出活动工作树。当前创建、领取、恢复、冷启动
+扫描和设备凭据只认识 v4，不得从 Git 历史重建旧链，也不得保留离线桥作为第二入口。
 领取后的所有 job mutation 携带 lease token/version
 和幂等键；唯一例外是重启恢复请求，它没有可信旧 token，必须绑定原设备与四段稳定身份，
 并在恢复后重新领取新 lease。
@@ -284,8 +275,7 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
 - 证明带 `filecite` / 私用区字符的回答立即作废、换新 execution id 重跑且不进入结果。
 - 证明污染或 provider 失败 seed 不进入 completed，并从该阶段重新执行。
 - 证明附件 child 给出终态 `failed/review_required` proof 后，同 lease、再次执行与重启恢复的
-  Gateway 上传调用总数仍为 1，原 attempt id/proof 不变，10 秒观察窗内没有复制粘贴或
-  原生文件选择器再进入。
+  Gateway 上传调用总数仍为 1，原 attempt id/proof 不变，10 秒观察窗内没有第二上传动作。
 - 证明同一订单父聊天失效只触发一次下游失败，随后记录整图重建，从第一阶段到最后阶段
   重新落在同一个新 GPT URL，禁止紧循环与空白追问。
 - 证明定时质量复盘总在独立新聊天执行，无 continuation parent；人工 challenge 仍继续父会话。
@@ -293,6 +283,6 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
   原图；下载/转换/上传中断从同 execution/checkpoint 恢复，不重发第三轮。
 - 证明媒体 facade 使用 contain 固定中性画布输出无元数据的 1200×630 WebP，红线不确定即阻断；
   插件内不存在第二套 sharp/Vision 处理器，任务期间不联网安装依赖。
-- 证明终态 v1/v2 账本在数据库与本地材料实际恢复、全量 hash 对账后原字节归档；活动旧单、
-  错误 hash、恢复差异和 v3 读取旧档案均阻断。
+- 证明活动数据库只存在 v4 账本，不存在旧协议表、旧订单、迁移消费者或兼容读取路径；v4
+  hash 格式或字节身份损坏直接失败关闭，不允许启动修复桥。
 - 审计云端领取只使用剩余容量，生产工厂不存在第二云端执行片区。

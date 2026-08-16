@@ -1,5 +1,4 @@
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
-import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
 import type {
   DeepResearchAnalysisStartInput,
@@ -97,13 +96,13 @@ export type GrassEyeWorkbenchHandle = {
   takeoverDeepResearch: RequestPluginIntervention;
   resumeDeepResearch: RequestPluginIntervention;
   getMediaProcessingAbilityGroup: () => MediaProcessingAbilityGroup;
-  getAiInputGatewayAbilityGroup: () => AiInputGatewayAbilityGroup;
   getHealthReport: () => Promise<WorkbenchHealthReport>;
   getMissionReadinessReport: () => Promise<WorkbenchMissionReadinessReport>;
   getMissionStartPreflight: (
     input: WorkbenchPreflightInput,
   ) => Promise<WorkbenchPreflightResult>;
   getModeInfo: () => unknown;
+  preflightXuanxueAiProductionProviderInputs: (input: unknown) => Promise<unknown>;
   readXuanxueAiProductionStatus: (orderId: string) => {
     order: XuanxueAiOrderRecord;
     intervention: XuanxueAiInterventionRecord;

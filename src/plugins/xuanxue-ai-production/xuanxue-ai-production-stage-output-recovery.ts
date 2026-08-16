@@ -1,5 +1,4 @@
 import type Database from "better-sqlite3";
-import { createHash } from "node:crypto";
 
 import {
   type XuanxueAiOrderStatus,
@@ -12,141 +11,6 @@ import {
 import {
   xuanxueAiOutputIntegrityFailure,
 } from "./xuanxue-ai-production-output-integrity.js";
-
-interface RepairableStageRow {
-  order_id: string;
-  stage_id: string;
-  status: XuanxueAiStageStatus;
-  stage_json: string;
-}
-
-const canonicalOutputHash = (rawResponseText: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(
-    Buffer.from(rawResponseText, "utf8"),
-  ).digest("hex")}`;
-
-const normalizedOutputHash = (value: string): string =>
-  value.startsWith("sha256:") ? value : `sha256:${value}`;
-
-const canonicalStageRepair = (
-  stage: XuanxueAiStageRecord,
-  now: string,
-): XuanxueAiStageRecord | null => {
-  if (!stage.rawResponseText || !stage.rawOutputHash) return null;
-  const canonical = canonicalOutputHash(stage.rawResponseText);
-  const providerRecorded = stage.aiFeedResult?.providerProof.outputHash;
-  const feedRecorded = stage.aiFeedResult?.rawOutputHash;
-  const identityMismatch =
-    normalizedOutputHash(stage.rawOutputHash) !== canonical
-    || (providerRecorded
-      && normalizedOutputHash(providerRecorded) !== canonical)
-    || (feedRecorded && normalizedOutputHash(feedRecorded) !== canonical);
-  if (
-    identityMismatch
-    || (
-      stage.rawOutputHash === canonical
-      && (!feedRecorded || feedRecorded === canonical)
-      && (!providerRecorded || providerRecorded === canonical)
-    )
-  ) return null;
-  return {
-    ...stage,
-    rawOutputHash: canonical,
-    aiFeedResult: stage.aiFeedResult
-      ? {
-          ...stage.aiFeedResult,
-          rawOutputHash: feedRecorded ? canonical : null,
-          providerProof: {
-            ...stage.aiFeedResult.providerProof,
-            outputHash: providerRecorded ? canonical : null,
-          },
-        }
-      : null,
-    updatedAt: now,
-  };
-};
-
-const recoverDependencyHashFailure = (
-  database: Database.Database,
-  orderId: string,
-  now: string,
-): void => {
-  const order = database.prepare(`
-    select status,failure_reason from production_orders where order_id=?
-  `).get(orderId) as {
-    status: XuanxueAiOrderStatus;
-    failure_reason: string | null;
-  } | undefined;
-  if (
-    order?.status !== "failed"
-    || !order.failure_reason?.startsWith(
-      "XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:",
-    )
-  ) return;
-  const rows = database.prepare(`
-    select stage_id,stage_json from production_stages
-    where order_id=? and status!='completed' order by ordinal
-  `).all(orderId) as Array<{ stage_id: string; stage_json: string }>;
-  for (const row of rows) {
-    const stage = JSON.parse(row.stage_json) as XuanxueAiStageRecord;
-    if (stage.rawResponseText || stage.aiFeedResult) continue;
-    const queued = {
-      ...stage,
-      status: "queued" as const,
-      attemptCount: Math.max(0, stage.attemptCount - 1),
-      progressPhase: "queued" as const,
-      failureReason: null,
-      updatedAt: now,
-    };
-    database.prepare(`
-      update production_stages set status='queued',stage_json=?,updated_at=?
-      where order_id=? and stage_id=?
-    `).run(JSON.stringify(queued), now, orderId, row.stage_id);
-  }
-  database.prepare(`
-    update production_orders set status='recovery_pending',result_json=null,
-      failure_reason=null,updated_at=? where order_id=?
-  `).run(now, orderId);
-  appendXuanxueAiProductionEvent(database, {
-    orderId,
-    stageId: null,
-    eventType: "order_output_hash_repaired",
-    fromStatus: "failed",
-    toStatus: "recovery_pending",
-    detail: {
-      repair: "canonical_sha256_prefix_verified_against_raw_response_bytes",
-    },
-    createdAt: now,
-  });
-};
-
-export const repairCanonicalOutputHashState = (
-  database: Database.Database,
-): void => {
-  const rows = database.prepare(`
-    select order_id,stage_id,status,stage_json
-    from production_stages order by order_id,ordinal
-  `).all() as RepairableStageRow[];
-  const now = new Date().toISOString();
-  database.transaction(() => {
-    const repairedOrders = new Set<string>();
-    for (const row of rows) {
-      const repaired = canonicalStageRepair(
-        JSON.parse(row.stage_json) as XuanxueAiStageRecord,
-        now,
-      );
-      if (!repaired) continue;
-      database.prepare(`
-        update production_stages set stage_json=?,updated_at=?
-        where order_id=? and stage_id=?
-      `).run(JSON.stringify(repaired), now, row.order_id, row.stage_id);
-      repairedOrders.add(row.order_id);
-    }
-    for (const orderId of repairedOrders) {
-      recoverDependencyHashFailure(database, orderId, now);
-    }
-  })();
-};
 
 const completedStageIntegrityFailure = (
   stage: XuanxueAiStageRecord,
@@ -235,9 +99,6 @@ export const repairInvalidCompletedStageOutputs = (
     select order_id,status from production_orders
     where status in (
       'queued','running','recovery_pending','review_required','failed'
-    ) and not exists (
-      select 1 from production_legacy_protocol_archives a
-      where a.order_id=production_orders.order_id
     ) order by created_at,order_id
   `).all() as RepairableOrderRow[];
   const repairedAt = new Date().toISOString();
@@ -310,10 +171,6 @@ export const repairRecoverableProviderFailures = (
     from production_orders o join production_stages s on s.order_id=o.order_id
     where o.status in ('failed','review_required')
       and s.status in ('failed','review_required')
-      and not exists (
-        select 1 from production_legacy_protocol_archives a
-        where a.order_id=o.order_id
-      )
     order by o.created_at,s.ordinal
   `).all() as ProviderFailureRow[];
   const now = new Date().toISOString();

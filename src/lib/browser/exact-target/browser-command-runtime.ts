@@ -4,7 +4,6 @@ import path from "node:path";
 import { createId } from "../../local-runtime/ids.js";
 import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import { runLoggedBrowserValueAction } from "../current-chrome-browser-action-logging.js";
-import { pasteCurrentChromeFileFromSystemClipboard } from "../current-chrome-native-multi-file-picker.js";
 import type {
   BrowserActionResult,
   BrowserCaptureResult,
@@ -16,7 +15,6 @@ import type { BrowserWireTargetDescriptor } from "../chrome-extension/protocol.j
 import { BrowserNativeTransportServer } from "./browser-native-transport-server.js";
 import { BrowserTerminalError, type BrowserMutationClass } from "./browser-command-contract.js";
 import { toBrowserEvaluationExpression } from "./browser-evaluation-contract.js";
-import { PhysicalFocusLease } from "./physical-focus-lease.js";
 import type { ControlledBrowserTarget } from "./browser-target-ref.js";
 import { BrowserTargetRegistry } from "./browser-target-registry.js";
 
@@ -38,7 +36,6 @@ const sameRequestedUrl = (requested: string, observed: string): boolean => {
 export class BrowserCommandRuntime {
   readonly registry: BrowserTargetRegistry;
   readonly transport: BrowserNativeTransportServer;
-  readonly focusLease = new PhysicalFocusLease();
   private readonly targetSessions = new Set<ExactBrowserTargetSession>();
   private readonly targetSessionsByOwner = new Map<string, ExactBrowserTargetSession>();
   private executionAbortSignal: AbortSignal | null = null;
@@ -47,12 +44,6 @@ export class BrowserCommandRuntime {
     controllerSessionId: string,
     socketPath: string,
     private readonly screenshotDir: string,
-    private readonly runNativePicker: (input: {
-      stagingDirectoryPath: string;
-      expectedFileNames: string[];
-      description: string;
-      abortSignal?: AbortSignal;
-    }) => Promise<{ ok: boolean; message: string; observedFileNames: string[] }>,
     readonly runtimeLogger?: RuntimeLogger,
   ) {
     this.registry = new BrowserTargetRegistry(controllerSessionId);
@@ -82,7 +73,6 @@ export class BrowserCommandRuntime {
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, Buffer.from(data, "base64"), { mode: 0o600 });
   }
-  nativePicker(input: Parameters<BrowserCommandRuntime["runNativePicker"]>[0]) { return this.runNativePicker(input); }
   logged<T>(input: {
     actionKind: string;
     beforeUrl: string;
@@ -264,52 +254,6 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
     const signal = this.runtime.signal(abortSignal); const started = Date.now();
     await this.runtime.logged({ actionKind: "wait", beforeUrl: this.target?.url ?? "about:blank", readAfterUrl: () => this.target?.url ?? "about:blank", run: () => new Promise<void>((resolve, reject) => { const timer = setTimeout(resolve, durationMs); const abort = () => { clearTimeout(timer); reject(signal?.reason instanceof Error ? signal.reason : new Error("browser wait aborted")); }; signal?.addEventListener("abort", abort, { once: true }); }) });
     return this.action(createId("browser-wait"), `waited ${durationMs}ms for exact target`, started);
-  }
-  async selectFilesInNativePicker(input: Parameters<NonNullable<BrowserTargetSession["selectFilesInNativePicker"]>>[0]) {
-    const target = await this.ensureTarget(); const entry = this.runtime.registry.resolve(target.targetRef, target.documentRef);
-    const signal = this.runtime.signal(input.abortSignal);
-    const receipt = await this.runtime.logged({ actionKind: "native_file_picker", beforeUrl: entry.descriptor.url, readAfterUrl: () => this.target?.url ?? entry.descriptor.url, run: () => this.runtime.focusLease.run({ reason: "native_file_picker", targetRef: target.targetRef, documentRef: target.documentRef, ...(signal ? { abortSignal: signal } : {}), focus: async (leaseSignal) => { await this.loggedTransportCommand({ command: { kind: "focus_target", tabId: entry.descriptor.tabId, windowId: entry.descriptor.windowId }, expectedLoaderId: entry.descriptor.loaderId, mutationClass: "idempotent_mutation", abortSignal: leaseSignal }, entry.descriptor.url); }, verifyFocus: (leaseSignal) => this.verifyPhysicalFocus(entry.descriptor, leaseSignal), action: (leaseSignal) => this.runtime.nativePicker({ ...input, abortSignal: leaseSignal }) }) });
-    const action = this.action(createId("browser-native-picker"), receipt.value.message, receipt.startedAtMs);
-    return { ...action, ok: receipt.value.ok, observedFileNames: receipt.value.observedFileNames, focusLeaseId: receipt.focusLeaseId };
-  }
-  async pasteFileFromSystemClipboard(input: Parameters<NonNullable<BrowserTargetSession["pasteFileFromSystemClipboard"]>>[0]): Promise<BrowserActionResult> {
-    const target = await this.ensureTarget();
-    const entry = this.runtime.registry.resolve(target.targetRef, target.documentRef);
-    const signal = this.runtime.signal(input.abortSignal);
-    const receipt = await this.runtime.logged({
-      actionKind: "os_keyboard_action",
-      beforeUrl: entry.descriptor.url,
-      readAfterUrl: () => this.target?.url ?? entry.descriptor.url,
-      run: () => this.runtime.focusLease.run({
-        reason: "os_keyboard_action",
-        targetRef: target.targetRef,
-        documentRef: target.documentRef,
-        ...(signal ? { abortSignal: signal } : {}),
-        focus: async (leaseSignal) => {
-          await this.loggedTransportCommand({
-            command: { kind: "focus_target", tabId: entry.descriptor.tabId, windowId: entry.descriptor.windowId },
-            expectedLoaderId: entry.descriptor.loaderId,
-            mutationClass: "idempotent_mutation",
-            abortSignal: leaseSignal,
-          }, entry.descriptor.url);
-        },
-        verifyFocus: (leaseSignal) => this.verifyPhysicalFocus(entry.descriptor, leaseSignal),
-        action: (leaseSignal) => pasteCurrentChromeFileFromSystemClipboard(input.filePath, leaseSignal),
-      }),
-    });
-    return {
-      ...this.action(createId("browser-system-clipboard"), input.description, receipt.startedAtMs),
-      focusLeaseId: receipt.focusLeaseId,
-    };
-  }
-  private async verifyPhysicalFocus(descriptor: BrowserWireTargetDescriptor, abortSignal: AbortSignal): Promise<boolean> {
-    const response = await this.loggedTransportCommand<BrowserWireTargetDescriptor>({
-      command: { kind: "inspect_target", tabId: descriptor.tabId },
-      expectedLoaderId: descriptor.loaderId,
-      mutationClass: "observation",
-      abortSignal,
-    }, descriptor.url);
-    return response.result.active && response.result.windowFocused;
   }
   async releaseTargetForOperator(input: { reason: string }): Promise<BrowserActionResult> {
     const started = Date.now();

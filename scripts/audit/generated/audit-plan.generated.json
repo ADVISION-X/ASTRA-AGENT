@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T23:33:27.338Z",
+  "generatedAt": "2026-08-16T04:12:11.270Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2944,7 +2944,7 @@
           "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
           "requiredAnchors": [
             "## 2. 唯一四跳链路",
-            "## 9. PhysicalFocusLease",
+            "## 9. 插件单链与焦点归零",
             "## 11. Audit owner",
             "## 13. Security Privacy Ownership"
           ]

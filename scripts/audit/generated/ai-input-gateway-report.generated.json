@@ -2,7 +2,7 @@
   "capabilityDomain": "ai-input-gateway",
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-15T23:33:29.582Z",
+  "generatedAt": "2026-08-16T04:12:13.353Z",
   "executionGroup": "foundation",
   "lawIds": [
     "APEX-AI-INPUT-GATEWAY-001-V1",
@@ -15,19 +15,18 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d",
+      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d",
       "capabilityDomain": "ai-input-gateway",
       "checkId": "ai-input-gateway/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T23:33:28.939Z",
-      "endedAt": "2026-08-15T23:33:29.581Z",
-      "durationMs": 642,
+      "startedAt": "2026-08-16T04:12:12.722Z",
+      "endedAt": "2026-08-16T04:12:13.352Z",
+      "durationMs": 630,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
         "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
         "scripts/audit/domains/ai-input-gateway/inspector.ts",
-        "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
@@ -42,15 +41,12 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
@@ -77,7 +73,6 @@
         "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
         "src/capabilities/ai-input-gateway/schema.ts",
         "src/lib/browser/browser-controller.ts",
-        "src/lib/browser/current-chrome-native-multi-file-picker.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts"
       ],
@@ -89,50 +84,49 @@
       "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
       "clauseId": "apex-ai-input-gateway-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
       "clauseId": "apex-ai-input-gateway-002-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
       "clauseId": "apex-ai-input-gateway-003-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
       "clauseId": "apex-ai-input-gateway-004-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     },
     {
       "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
       "clauseId": "apex-ai-input-gateway-005-v3-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     },
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
       "clauseId": "grasseye-ai-choice-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-AI-001-V1",
       "clauseId": "grasseye-security-privacy-ai-001-requirement",
       "checkId": "ai-input-gateway/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:5c679852-c429-4000-b24b-9d9e9420ea3d"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b85ac1a9-094b-4b03-8118-a0ad4c2e091d"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
     "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
     "scripts/audit/domains/ai-input-gateway/inspector.ts",
-    "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
@@ -147,15 +141,12 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
@@ -182,7 +173,6 @@
     "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/lib/browser/browser-controller.ts",
-    "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts"
   ]

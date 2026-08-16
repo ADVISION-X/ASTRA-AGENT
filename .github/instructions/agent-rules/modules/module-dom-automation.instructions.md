@@ -838,7 +838,7 @@ Forbidden:
   "required": [
     "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
     "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
-    "DOM ordinary actions use target-bound BrowserController commands without foreground focus; only an explicitly approved native picker may request PhysicalFocusLease.",
+    "DOM actions and file input use target-bound Chrome extension commands without foreground focus; native picker, clipboard and PhysicalFocusLease paths are absent.",
     "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
   ],
   "forbidden": [

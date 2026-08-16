@@ -102,11 +102,6 @@ type BrowserLocatedDomElement = {
 
 type BrowserFileInputRef = { selector: string; targetKind: "file-input" };
 
-type BrowserNativeMultiFilePickerResult = BrowserActionResult & {
-  observedFileNames: string[];
-  focusLeaseId?: string;
-};
-
 interface BrowserTargetSession {
   readonly ownerId?: string;
   getTarget?(): ControlledBrowserTarget | null;
@@ -182,17 +177,6 @@ interface BrowserTargetSession {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
-  selectFilesInNativePicker?(input: {
-    stagingDirectoryPath: string;
-    expectedFileNames: string[];
-    description: string;
-    abortSignal?: AbortSignal;
-  }): Promise<BrowserNativeMultiFilePickerResult>;
-  pasteFileFromSystemClipboard?(input: {
-    filePath: string;
-    description: string;
-    abortSignal?: AbortSignal;
-  }): Promise<BrowserActionResult>;
   wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult>;
   closeTarget(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
@@ -220,7 +204,6 @@ export type {
   BrowserDomElementIdentity,
   BrowserLocatedDomElement,
   BrowserOpenReusePolicy,
-  BrowserNativeMultiFilePickerResult,
   BrowserTargetSession,
   BrowserController,
 };

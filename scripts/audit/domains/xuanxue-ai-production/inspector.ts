@@ -153,28 +153,6 @@ const inspectContracts = (
     ],
   });
 };
-const inspectProtocolCutoverDurability = (
-  findings: InspectorFinding[],
-  durabilityLaw: string,
-  values: ReadonlySet<string>,
-): void => requireValues(findings, {
-  lawId: durabilityLaw,
-  checkId: "xuanxue-ai-production/durable-ledger",
-  filePath: storePath,
-  messagePrefix: "Protocol cutover ledger must contain",
-  values,
-  required: [
-    "archiveTerminalXuanxueAiLegacyProtocolRows",
-    "createVerifiedLegacyCutoverBackup",
-    "production_legacy_protocol_archives",
-    "XUANXUE_AI_PRODUCTION_LEGACY_BACKUP_RESTORE_MISMATCH",
-    "XUANXUE_AI_PRODUCTION_LEGACY_ARCHIVED_ORDER_ID_CONFLICT",
-    "XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED",
-    "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
-    "legacy_cloud_terminal_reconciled",
-    "v1_terminal_status_restored",
-  ],
-});
 const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
@@ -193,18 +171,11 @@ const inspectDurability = (
       "journal_mode = WAL",
       "listRecoverableOrders",
       "listCloudRecoveryOrders",
-      "repairCanonicalOutputHashState",
       "repairInvalidCompletedStageOutputs",
       "invalid_completed_stage_restarted",
-      "canonical_sha256_prefix_verified_against_raw_response_bytes",
       "requestHash",
       "recoverMissingRequiredContinuationParents",
-      "repairLegacyFollowupWrongChatExecutionStates",
-      "followup_parent_binding_repaired",
-      "followup_parent_wrong_chat_execution_retired",
-      "followup-parent-binding-recovery",
       "trustedGeneratedFileCount",
-      "replacedExecutionIds",
       "followup_parent_replay_requested",
       "production_parent_conversation_rebuilds",
       "parent_conversation_rebuild_recorded",
@@ -366,7 +337,6 @@ const inspectAcceptance = (
       "bazi_chart_interpretation",
       "listCloudRecoveryOrders",
       "ORDER_IDENTITY_CONFLICT",
-      "a byte-verified legacy hash prefix defect must resume without resubmitting the completed stage",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
       "a paid follow-up without an exact parent must never reach GPT",
@@ -377,25 +347,17 @@ const inspectAcceptance = (
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a missing parent chat must replay the parent first, then ask the follow-up",
       "a cloud replay package must reconstruct an absent local parent before the follow-up",
-      "a repaired legacy follow-up must continue in its exact parent chat",
       "one verified parent attachment must expand the frozen material file limit exactly once",
-      "legacy wrong-chat attachment proof must be retired with a fresh execution id",
-      "an already repaired follow-up must retire its legacy wrong-chat execution",
-      "JSON field ordering and governance transport upgrades must not block exact legacy parent repair",
       "QUESTION_A_ONLY",
       "person:naming-aux-4",
       "continuation_parent_replay",
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
-      "XUANXUE_AI_PRODUCTION_LEGACY_ACTIVE_DRAIN_REQUIRED",
-      "XUANXUE_AI_PRODUCTION_V1_HASH_MISMATCH",
-      "archived legacy rows must be invisible to v3 readers",
-      "legacy cutover must be idempotent",
       "article_image_generation",
       "scheduled_quality_reflection",
       "public-knowledge-redline-check",
       "terminalAttachmentGatewayCallCount",
       "a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt",
-      "restart recovery must preserve the terminal attachment proof without copy-paste or picker re-upload",
+      "restart recovery must preserve the terminal attachment proof without a second upload attempt",
     ],
   });
 };
@@ -431,7 +393,6 @@ const inspectDomainEvaluation = async (
   inspectXuanxueRecoveryDurability(
     context, findings, laws.durability, values,
   );
-  inspectProtocolCutoverDurability(findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);

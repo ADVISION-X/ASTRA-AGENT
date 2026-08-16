@@ -12,10 +12,9 @@ src/lib/browser/**
   one in-memory target registry
   one private Native Messaging transport
   one MV3 extension
-  one bounded PhysicalFocusLease owner
 ```
 
-Browser 只负责浏览器目标、文档世代、低层命令、连接生命周期和焦点租约，不拥有业务步骤、AI 判断、业务状态、Evidence 真相或 Runtime Log 真相。
+Browser 只负责浏览器目标、文档世代、插件低层命令和连接生命周期，不拥有业务步骤、AI 判断、业务状态、Evidence 真相或 Runtime Log 真相。
 
 ## 2. 唯一四跳链路
 
@@ -45,7 +44,6 @@ src/lib/browser/exact-target/
   browser-native-transport-protocol.ts
   browser-native-transport-server.ts
   browser-command-runtime.ts
-  physical-focus-lease.ts
 
 src/lib/browser/chrome-extension/
   manifest.json
@@ -98,7 +96,6 @@ interface BrowserController {
   scrollTarget(input: TargetDocumentScrollCommand): Promise<BrowserActionResult>;
   captureTargetScreenshot(input: TargetDocumentCommand): Promise<BrowserActionResult>;
   setTargetFileInputFiles(input: TargetDocumentFileInputCommand): Promise<BrowserActionResult>;
-  withPhysicalFocusLease<T>(input: PhysicalFocusLeaseInput, action: () => Promise<T>): Promise<T>;
   releaseTarget(targetRef: BrowserTargetRef): Promise<void>;
 }
 ```
@@ -191,25 +188,13 @@ build extension
 
 Startup 法定入口不参与安装、升级、卸载或 provider 激活。
 
-## 9. PhysicalFocusLease
+## 9. 插件单链与焦点归零
 
-允许 reason code：
-
-```txt
-native_file_picker
-os_pointer_action
-os_keyboard_action
-```
-
-规则：
-
-- 绑定 exact target/window/document。
-- 最大 15 秒。
-- 用户主动切走、window bounds/identity 改变或超时即取消。
-- 用户打断后不重抢。
-- `os_keyboard_action` 的文件剪贴板粘贴由 Browser owner 执行：扩展先精确激活 target/window，动作前后都核对 active tab + focused window；AI capability 不得直接调用 AppleScript/JXA。
-- provider generation wait 永不持有。
-- navigate/evaluate/click/fill/scroll/screenshot/DOM file-input 永不申请。
+- 所有页面动作和文件输入只走 exact-target MV3 插件命令。
+- Browser public contract 不提供原生文件选择器、系统剪贴板、OS 鼠标、OS 键盘或焦点租约。
+- extension protocol 不提供 `focus_target`，不得激活 Chrome、切换用户前台标签页或抢占电脑。
+- 文件输入只允许 `set_file_input_files` 命中精确 target/document 内的唯一 receiver。
+- `physical-focus-lease.ts`、`current-chrome-native-multi-file-picker.ts` 及其验收已物理删除，禁止重建包装器、回退或第二链。
 
 ## 10. Consumer 迁移
 
@@ -237,7 +222,7 @@ Inspector 使用 ts-morph AST/symbol 证明：
 - 唯一 BrowserController 构造点。
 - raw Chrome id 不越界。
 - 所有 public page command 要求 target/document refs。
-- 普通动作不能调用 FocusLease。
+- Browser 与调用方不存在 FocusLease 或 OS 文件动作符号。
 - active-tab、URL-first、first-page 和 AppleScript/JXA 页面动作符号不可达且退休文件不存在。
 - extension/host 不能拥有业务状态、evidence 或 secret。
 - Startup 未获得安装或业务职责。
@@ -269,7 +254,6 @@ Inspector 使用 ts-morph AST/symbol 证明：
 local-browser-exact-target-contract.acceptance.ts
 local-browser-native-transport.acceptance.ts
 local-browser-target-actions.acceptance.ts
-local-browser-focus-lease.acceptance.ts
 local-browser-real-chrome-scenarios.acceptance.ts
 local-browser-business-workday.acceptance.ts
 local-browser-atomic-cutover.acceptance.ts
@@ -282,7 +266,7 @@ local-browser-atomic-cutover.acceptance.ts
 3. 前台 marker 全部不变。
 4. navigation 后旧 document/element ref 必须拒绝。
 5. 关闭 target、extension reload、host/controller exit、DevTools 冲突全部 fail closed。
-6. native picker 只在 focus lease 内运行；用户切走后不重抢。
+6. 文件输入只通过插件精确 target 命令运行，前台标签和窗口焦点保持不变。
 7. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
 8. 函数体 top-level return 经唯一生产 wrapper 成功返回，且不存在 `Illegal return statement`。
 9. DOM click、DOM fill、file-input mutation 只通过各自专用 exact-target command 完成；identity 改变攻击必须 fail closed。

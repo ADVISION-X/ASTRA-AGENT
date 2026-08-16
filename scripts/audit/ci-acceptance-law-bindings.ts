@@ -20,7 +20,6 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts", { clauseId: "apex-local-browser-001-requirement", lawId: "APEX-LOCAL-BROWSER-001-V1" }],
   ["scripts/acceptance/local-browser-real-chrome.acceptance.ts", { clauseId: "apex-local-browser-001-requirement", lawId: "APEX-LOCAL-BROWSER-001-V1" }],
   ["scripts/acceptance/local-browser-native-transport.acceptance.ts", { clauseId: "apex-local-browser-002-requirement", lawId: "APEX-LOCAL-BROWSER-002-V1" }],
-  ["scripts/acceptance/local-browser-focus-lease.acceptance.ts", { clauseId: "apex-local-browser-003-requirement", lawId: "APEX-LOCAL-BROWSER-003-V1" }],
   ["scripts/acceptance/local-browser-business-workday.acceptance.ts", { clauseId: "apex-local-browser-003-requirement", lawId: "APEX-LOCAL-BROWSER-003-V1" }],
   ["scripts/acceptance/dom-automation-exact-target.acceptance.ts", { clauseId: "apex-dom-020-requirement", lawId: "APEX-DOM-020-V1" }],
   ["scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v3-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V3" }],

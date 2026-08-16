@@ -37,7 +37,6 @@ const buildWorkbenchHandle = (
       getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
     getMediaProcessingAbilityGroup: () => assembly.mediaProcessing,
-    getAiInputGatewayAbilityGroup: () => assembly.aiInputGateway,
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
     ...buildAmazonInvoiceHandle(assembly, dataDir),

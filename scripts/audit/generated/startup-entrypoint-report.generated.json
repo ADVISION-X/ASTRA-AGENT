@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T23:34:26.521Z",
+  "generatedAt": "2026-08-16T04:13:08.203Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -15,14 +15,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5",
+      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4",
       "capabilityDomain": "startup-entrypoint",
       "checkId": "startup-entrypoint/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T23:34:26.480Z",
-      "endedAt": "2026-08-15T23:34:26.521Z",
-      "durationMs": 41,
+      "startedAt": "2026-08-16T04:13:08.167Z",
+      "endedAt": "2026-08-16T04:13:08.202Z",
+      "durationMs": 35,
       "evidenceRefs": [
         "package.json",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
@@ -42,8 +42,7 @@
         "scripts/startup/lib/startup-main-support.mjs",
         "scripts/startup/lib/terminal-structured-log.mjs",
         "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
-        "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-        "scripts/startup/xuanxue-ai-production-v1-drain.ts"
+        "scripts/startup/xuanxue-ai-production-cloud-enroll.ts"
       ],
       "findingCount": 0
     }
@@ -53,43 +52,43 @@
       "lawId": "APEX-STARTUP-001-V1",
       "clauseId": "apex-startup-001-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     },
     {
       "lawId": "APEX-STARTUP-002-V1",
       "clauseId": "apex-startup-002-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     },
     {
       "lawId": "APEX-STARTUP-003-V1",
       "clauseId": "apex-startup-003-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     },
     {
       "lawId": "APEX-STARTUP-004-V1",
       "clauseId": "apex-startup-004-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     },
     {
       "lawId": "APEX-STARTUP-005-V1",
       "clauseId": "apex-startup-005-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     },
     {
       "lawId": "APEX-STARTUP-006-V1",
       "clauseId": "apex-startup-006-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     },
     {
       "lawId": "APEX-STARTUP-007-V1",
       "clauseId": "apex-startup-007-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:b4d3953f-4b9a-4bf5-a2ce-a22d3e821bf5"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:92b89b77-7bee-46a6-acbb-dcb599f64ee4"
     }
   ],
   "inspectedFiles": [
@@ -111,7 +110,6 @@
     "scripts/startup/lib/startup-main-support.mjs",
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
-    "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-    "scripts/startup/xuanxue-ai-production-v1-drain.ts"
+    "scripts/startup/xuanxue-ai-production-cloud-enroll.ts"
   ]
 }

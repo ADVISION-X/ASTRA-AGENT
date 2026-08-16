@@ -74,6 +74,103 @@ const readUtf8 = (bytes: Buffer, inputId: string): string => {
   }
 };
 
+type PreflightRequest = z.infer<typeof XuanxueProviderInputPreflightRequestSchema>;
+type PreparedFile = {
+  file: PreflightRequest["files"][number];
+  filePath: string;
+};
+
+const prepareFiles = async (
+  request: PreflightRequest,
+  directory: string,
+): Promise<PreparedFile[]> => Promise.all(request.files.map(async (file) => {
+  const bytes = decodeFile(file);
+  readUtf8(bytes, file.input_id);
+  const filePath = path.join(directory, `${String(file.ordinal).padStart(3, "0")}-${file.file_name}`);
+  await writeFile(filePath, bytes, { flag: "wx", mode: 0o600 });
+  const persisted = await readFile(filePath);
+  if (persisted.byteLength !== bytes.byteLength || sha256(persisted) !== file.sha256) {
+    throw new Error(`XUANXUE_PROVIDER_PREFLIGHT_STAGING_INTEGRITY_INVALID:${file.input_id}`);
+  }
+  return { file, filePath };
+}));
+
+const buildGatewayRequest = (request: PreflightRequest, prepared: PreparedFile[]) => ({
+  providerKind: "gpt-web-chat" as const,
+  taskIdentity: {
+    labelKey: "seo_research" as const,
+    sourceProject: "xuanxue-web",
+    taskKind: "provider-input-preflight",
+    sourceTaskId: request.source_task_id,
+  },
+  promptPackageId: `provider-input-preflight:${request.input_set_hash}`,
+  promptContractId: "public-knowledge-provider-input-preflight.v1",
+  expectedOutputSchemaRef: null,
+  expectedOutputKind: "text" as const,
+  textPrompt: "Provider input preflight only. Do not submit this prompt.",
+  inputRefs: prepared.map(({ file, filePath }) => ({
+    id: file.input_id,
+    kind: "public_knowledge_provider_preflight_input",
+    summary: "Frozen public knowledge corpus input for provider upload preflight",
+    filePath,
+    mimeType: file.mime_type,
+    fileName: path.basename(filePath),
+    sha256: file.sha256,
+    byteCount: file.byte_count,
+  })),
+  modelName: null,
+  timeoutMs: 3_600_000,
+  maxInputChars: 1_000,
+  maxFileCount: request.files.length,
+  requestedBy: "ai-capability" as const,
+  missionId: request.source_task_id,
+  runId: request.source_task_id,
+  roundId: "provider-input-preflight",
+  conversationScopeRef: `provider-input-preflight:${request.source_task_id}`,
+});
+
+const assertUploadProof = (
+  proof: Awaited<ReturnType<NonNullable<AiInputGatewayAbilityGroup["preflightApprovedWebChatFiles"]>>>["attachmentUploadProof"],
+  expectedFileCount: number,
+): void => {
+  if (proof.status !== "attachments_stable"
+    || proof.expectedFileCount !== expectedFileCount
+    || proof.detectedFileCount !== expectedFileCount
+    || proof.files.length !== expectedFileCount) {
+    throw new Error("XUANXUE_PROVIDER_PREFLIGHT_UPLOAD_PROOF_INVALID");
+  }
+};
+
+const buildReceiptFiles = (
+  prepared: PreparedFile[],
+  proof: Awaited<ReturnType<NonNullable<AiInputGatewayAbilityGroup["preflightApprovedWebChatFiles"]>>>["attachmentUploadProof"],
+  proofHash: `sha256:${string}`,
+) => prepared.map(({ file }, index) => {
+  const actual = proof.files[index];
+  if (!actual || actual.inputRefId !== file.input_id || actual.order !== index + 1
+    || actual.sha256 !== file.sha256 || actual.byteCount !== file.byte_count) {
+    throw new Error(`XUANXUE_PROVIDER_PREFLIGHT_UPLOAD_IDENTITY_INVALID:${file.input_id}`);
+  }
+  return {
+    input_id: file.input_id,
+    ordinal: file.ordinal,
+    file_name: file.file_name,
+    sha256: file.sha256,
+    byte_count: file.byte_count,
+    provider_receipt_ref: `chatgpt-web-upload:${proof.uploadAttemptId}:${proofHash}:${file.input_id}`,
+  };
+});
+
+const providerProfile = {
+  schema_version: "chatgpt-web-attachment-transport-profile.v1",
+  provider: "chatgpt-web",
+  transport: "browser_attachment_upload",
+  max_files_per_upload: MAX_FILES_PER_UPLOAD,
+  local_file_size_gate: "absent",
+  local_token_gate: "absent",
+  acceptance_authority: "real_chatgpt_window",
+} as const;
+
 export async function runXuanxueProviderInputPreflight(input: {
   rawInput: unknown;
   aiInputGateway: AiInputGatewayAbilityGroup;
@@ -84,89 +181,14 @@ export async function runXuanxueProviderInputPreflight(input: {
   }
   const directory = await mkdtemp(path.join(tmpdir(), "xuanxue-provider-preflight-"));
   try {
-    const prepared = await Promise.all(request.files.map(async (file) => {
-      const bytes = decodeFile(file);
-      readUtf8(bytes, file.input_id);
-      const filePath = path.join(directory, `${String(file.ordinal).padStart(3, "0")}-${file.file_name}`);
-      await writeFile(filePath, bytes, { flag: "wx", mode: 0o600 });
-      const persisted = await readFile(filePath);
-      if (persisted.byteLength !== bytes.byteLength || sha256(persisted) !== file.sha256) {
-        throw new Error(`XUANXUE_PROVIDER_PREFLIGHT_STAGING_INTEGRITY_INVALID:${file.input_id}`);
-      }
-      return { file, filePath };
-    }));
-    const upload = await input.aiInputGateway.preflightApprovedWebChatFiles({
-      providerKind: "gpt-web-chat",
-      taskIdentity: {
-        labelKey: "seo_research",
-        sourceProject: "xuanxue-web",
-        taskKind: "provider-input-preflight",
-        sourceTaskId: request.source_task_id,
-      },
-      promptPackageId: `provider-input-preflight:${request.input_set_hash}`,
-      promptContractId: "public-knowledge-provider-input-preflight.v1",
-      expectedOutputSchemaRef: null,
-      expectedOutputKind: "text",
-      textPrompt: "Provider input preflight only. Do not submit this prompt.",
-      inputRefs: prepared.map(({ file, filePath }) => ({
-        id: file.input_id,
-        kind: "public_knowledge_provider_preflight_input",
-        summary: "Frozen public knowledge corpus input for provider upload preflight",
-        filePath,
-        mimeType: file.mime_type,
-        fileName: path.basename(filePath),
-        sha256: file.sha256,
-        byteCount: file.byte_count,
-      })),
-      modelName: null,
-      timeoutMs: 3_600_000,
-      maxInputChars: 1_000,
-      maxFileCount: request.files.length,
-      requestedBy: "ai-capability",
-      missionId: request.source_task_id,
-      runId: request.source_task_id,
-      roundId: "provider-input-preflight",
-      conversationScopeRef: `provider-input-preflight:${request.source_task_id}`,
-    });
+    const prepared = await prepareFiles(request, directory);
+    const upload = await input.aiInputGateway.preflightApprovedWebChatFiles(
+      buildGatewayRequest(request, prepared),
+    );
     const proof = upload.attachmentUploadProof;
-    if (
-      proof.status !== "attachments_stable"
-      || proof.expectedFileCount !== request.files.length
-      || proof.detectedFileCount !== request.files.length
-      || proof.files.length !== request.files.length
-    ) {
-      throw new Error("XUANXUE_PROVIDER_PREFLIGHT_UPLOAD_PROOF_INVALID");
-    }
+    assertUploadProof(proof, request.files.length);
     const proofHash = hashCanonical(proof);
-    const files = prepared.map(({ file }, index) => {
-      const actual = proof.files[index];
-      if (
-        !actual
-        || actual.inputRefId !== file.input_id
-        || actual.order !== index + 1
-        || actual.sha256 !== file.sha256
-        || actual.byteCount !== file.byte_count
-      ) {
-        throw new Error(`XUANXUE_PROVIDER_PREFLIGHT_UPLOAD_IDENTITY_INVALID:${file.input_id}`);
-      }
-      return {
-        input_id: file.input_id,
-        ordinal: file.ordinal,
-        file_name: file.file_name,
-        sha256: file.sha256,
-        byte_count: file.byte_count,
-        provider_receipt_ref: `chatgpt-web-upload:${proof.uploadAttemptId}:${proofHash}:${file.input_id}`,
-      };
-    });
-    const providerProfile = {
-      schema_version: "chatgpt-web-attachment-transport-profile.v1",
-      provider: "chatgpt-web",
-      transport: "browser_attachment_upload",
-      max_files_per_upload: MAX_FILES_PER_UPLOAD,
-      local_file_size_gate: "absent",
-      local_token_gate: "absent",
-      acceptance_authority: "real_chatgpt_window",
-    } as const;
+    const files = buildReceiptFiles(prepared, proof, proofHash);
     return {
       schema_version: "xuanxue-ai-production-provider-input-preflight-result.v1" as const,
       status: "verified" as const,

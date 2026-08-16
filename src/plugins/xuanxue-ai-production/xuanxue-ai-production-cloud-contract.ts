@@ -310,61 +310,84 @@ const cloudClaimLeaseShape = {
   lease_version: z.number().int().positive(),
 } as const;
 
-export const XuanxueAiProductionCloudClaimedJobSchema = z.object({
+const XuanxueAiProductionCloudClaimedJobBaseSchema = z.object({
   ...cloudClaimIdentityShape,
   ...cloudClaimConversationShape,
   ...cloudClaimLeaseShape,
-}).strict().superRefine((job, context) => {
-  if (
-    Boolean(job.conversation_parent)
-    !== Boolean(job.continuation_parent_replay)
-  ) {
+}).strict();
+
+type CloudClaimedJobCandidate = z.infer<typeof XuanxueAiProductionCloudClaimedJobBaseSchema>;
+
+const inspectParentReplay = (job: CloudClaimedJobCandidate, context: z.RefinementCtx): void => {
+  if (Boolean(job.conversation_parent) !== Boolean(job.continuation_parent_replay)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_REQUIRED",
       path: ["continuation_parent_replay"],
     });
   }
-  if (
-    job.conversation_parent
-    && job.continuation_parent_replay?.job_id
-      !== job.conversation_parent.job_id
-  ) {
+  if (job.conversation_parent
+    && job.continuation_parent_replay?.job_id !== job.conversation_parent.job_id) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_IDENTITY_INVALID",
       path: ["continuation_parent_replay", "job_id"],
     });
   }
+};
+
+const buildPreflightInputSet = (job: CloudClaimedJobCandidate, material: CloudClaimedJobCandidate["materials"][number]) => ({
+  schema_version: "ai-production-provider-input-preflight-request.v1",
+  source_task_id: job.source_task_id,
+  product_id: job.product_id,
+  input_bundle_ref: job.input_bundle_ref,
+  input_bundle_hash: job.input_bundle_hash,
+  stage_id: material.stage_id,
+  inputs: material.inputs.map(({ input_id, ordinal, file_name, sha256, byte_count, object_ref }) => ({
+    input_id,
+    ordinal,
+    file_name,
+    sha256,
+    byte_count,
+    object_ref,
+  })),
+});
+
+const preflightFilesMatch = (material: CloudClaimedJobCandidate["materials"][number]): boolean => {
+  const receipt = material.provider_input_preflight_receipt;
+  return Boolean(receipt && receipt.files.length === material.inputs.length
+    && material.inputs.every((input, index) => {
+      const file = receipt.files[index];
+      return file?.input_id === input.input_id && file.ordinal === input.ordinal
+        && file.file_name === input.file_name && file.sha256 === input.sha256
+        && file.byte_count === input.byte_count;
+    }));
+};
+
+const inspectMaterialPreflight = (
+  job: CloudClaimedJobCandidate,
+  material: CloudClaimedJobCandidate["materials"][number],
+  context: z.RefinementCtx,
+): void => {
+  const receipt = material.provider_input_preflight_receipt;
+  if (job.product_id === "public_knowledge_article_pipeline" && material.stage_id === "corpus_research" && !receipt) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_REQUIRED", path: ["materials"] });
+    return;
+  }
+  if (!receipt) return;
+  const { receipt_hash: receiptHash, ...receiptBody } = receipt;
+  if (receipt.source_task_id !== job.source_task_id || receipt.product_id !== job.product_id
+    || receipt.input_bundle_ref !== job.input_bundle_ref || receipt.input_bundle_hash !== job.input_bundle_hash
+    || receipt.stage_id !== material.stage_id || receipt.input_set_hash !== canonicalHash(buildPreflightInputSet(job, material))
+    || !preflightFilesMatch(material) || receiptHash !== canonicalHash(receiptBody)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_INVALID", path: ["materials"] });
+  }
+};
+
+export const XuanxueAiProductionCloudClaimedJobSchema = XuanxueAiProductionCloudClaimedJobBaseSchema.superRefine((job, context) => {
+  inspectParentReplay(job, context);
   for (const material of job.materials) {
-    const receipt = material.provider_input_preflight_receipt;
-    if (job.product_id === "public_knowledge_article_pipeline" && material.stage_id === "corpus_research" && !receipt) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_REQUIRED", path: ["materials"] });
-      continue;
-    }
-    if (!receipt) continue;
-    const filesMatch = receipt.files.length === material.inputs.length
-      && material.inputs.every((input, index) => {
-        const file = receipt.files[index];
-        return file?.input_id === input.input_id && file.ordinal === input.ordinal
-          && file.file_name === input.file_name && file.sha256 === input.sha256
-          && file.byte_count === input.byte_count;
-      });
-    const { receipt_hash: receiptHash, ...receiptBody } = receipt;
-    const inputSet = {
-      schema_version: "ai-production-provider-input-preflight-request.v1",
-      source_task_id: job.source_task_id, product_id: job.product_id,
-      input_bundle_ref: job.input_bundle_ref, input_bundle_hash: job.input_bundle_hash,
-      stage_id: material.stage_id,
-      inputs: material.inputs.map(({ input_id, ordinal, file_name, sha256, byte_count, object_ref }) => ({ input_id, ordinal, file_name, sha256, byte_count, object_ref })),
-    };
-    if (receipt.source_task_id !== job.source_task_id || receipt.product_id !== job.product_id
-      || receipt.input_bundle_ref !== job.input_bundle_ref || receipt.input_bundle_hash !== job.input_bundle_hash
-      || receipt.stage_id !== material.stage_id || receipt.input_set_hash !== canonicalHash(inputSet)
-      || !filesMatch
-      || receiptHash !== canonicalHash(receiptBody)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_INVALID", path: ["materials"] });
-    }
+    inspectMaterialPreflight(job, material, context);
   }
 });
 

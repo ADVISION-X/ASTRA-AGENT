@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T23:34:25.782Z",
+  "generatedAt": "2026-08-16T04:13:07.507Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,14 +23,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1",
+      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-15T23:34:25.720Z",
-      "endedAt": "2026-08-15T23:34:25.782Z",
-      "durationMs": 62,
+      "startedAt": "2026-08-16T04:13:07.446Z",
+      "endedAt": "2026-08-16T04:13:07.507Z",
+      "durationMs": 61,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -121,7 +121,6 @@
         "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
         "scripts/acceptance/local-browser-business-workday.acceptance.ts",
         "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
-        "scripts/acceptance/local-browser-focus-lease.acceptance.ts",
         "scripts/acceptance/local-browser-native-transport.acceptance.ts",
         "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
         "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
@@ -153,10 +152,8 @@
         "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
         "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
-        "scripts/acceptance/xuanxue-ai-production-v1-migration-fixture.ts",
-        "scripts/acceptance/xuanxue-ai-production-v1-migration.ts",
-        "scripts/acceptance/xuanxue-ai-production-v2-drain-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -408,7 +405,6 @@
         "scripts/startup/lib/terminal-structured-log.mjs",
         "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
         "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-        "scripts/startup/xuanxue-ai-production-v1-drain.ts",
         "src/app/amazon-invoice-intervention-client.ts",
         "src/app/amazon-product-mining-intervention-client.ts",
         "src/app/app-shell/amazon-invoice-workspace.ts",
@@ -469,7 +465,6 @@
         "src/app/workbench-xuanxue-ai-production-client.ts",
         "src/app/workbench-xuanxue-ai-production-routes.ts",
         "src/capabilities/ai-input-gateway/ability-group.ts",
-        "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
@@ -500,15 +495,14 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
@@ -635,15 +629,15 @@
         "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
         "src/lib/browser/chrome-extension/dist/protocol.js",
         "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
+        "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+        "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
-        "src/lib/browser/current-chrome-browser-action-result.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
         "src/lib/browser/current-chrome-browser-controller.ts",
-        "src/lib/browser/current-chrome-native-multi-file-picker.ts",
         "src/lib/browser/exact-target/browser-command-contract.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-evaluation-contract.ts",
@@ -651,7 +645,6 @@
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
-        "src/lib/browser/exact-target/physical-focus-lease.ts",
         "src/lib/browser/local-browser-session.ts",
         "src/lib/browser/native-messaging-host/controller-channel.mjs",
         "src/lib/browser/native-messaging-host/host.mjs",
@@ -824,13 +817,13 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
@@ -841,8 +834,6 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-cutover-backup.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
@@ -868,79 +859,79 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e3b1491e-4137-4d09-9ad0-313ca7082ea9:check:20946850-b703-4d21-b2a9-ba56ea2382b1"
+      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:b9e5490d-a55e-48e2-b671-4ab6a3411aa9"
     }
   ],
   "inspectedFiles": [
@@ -1033,7 +1024,6 @@
     "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
     "scripts/acceptance/local-browser-business-workday.acceptance.ts",
     "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
-    "scripts/acceptance/local-browser-focus-lease.acceptance.ts",
     "scripts/acceptance/local-browser-native-transport.acceptance.ts",
     "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
     "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
@@ -1065,10 +1055,8 @@
     "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
     "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
-    "scripts/acceptance/xuanxue-ai-production-v1-migration-fixture.ts",
-    "scripts/acceptance/xuanxue-ai-production-v1-migration.ts",
-    "scripts/acceptance/xuanxue-ai-production-v2-drain-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
     "scripts/audit/build-audit-artifacts.ts",
@@ -1320,7 +1308,6 @@
     "scripts/startup/lib/terminal-structured-log.mjs",
     "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
     "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-    "scripts/startup/xuanxue-ai-production-v1-drain.ts",
     "src/app/amazon-invoice-intervention-client.ts",
     "src/app/amazon-product-mining-intervention-client.ts",
     "src/app/app-shell/amazon-invoice-workspace.ts",
@@ -1381,7 +1368,6 @@
     "src/app/workbench-xuanxue-ai-production-client.ts",
     "src/app/workbench-xuanxue-ai-production-routes.ts",
     "src/capabilities/ai-input-gateway/ability-group.ts",
-    "src/capabilities/ai-input-gateway/acceptance/attachment-native-picker-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
@@ -1412,15 +1398,14 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-continuation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-native-picker-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-ordered-clipboard-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
@@ -1547,15 +1532,15 @@
     "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
     "src/lib/browser/chrome-extension/dist/protocol.js",
     "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
+    "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+    "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
-    "src/lib/browser/current-chrome-browser-action-result.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
     "src/lib/browser/current-chrome-browser-controller.ts",
-    "src/lib/browser/current-chrome-native-multi-file-picker.ts",
     "src/lib/browser/exact-target/browser-command-contract.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-evaluation-contract.ts",
@@ -1563,7 +1548,6 @@
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
-    "src/lib/browser/exact-target/physical-focus-lease.ts",
     "src/lib/browser/local-browser-session.ts",
     "src/lib/browser/native-messaging-host/controller-channel.mjs",
     "src/lib/browser/native-messaging-host/host.mjs",
@@ -1736,13 +1720,13 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-contract-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
@@ -1753,8 +1737,6 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-cutover-backup.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-protocol-migration.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",

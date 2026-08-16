@@ -91,22 +91,12 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
 ## 3. 持久工厂
 
 - 整单、阶段、状态、输入 hash、原始回答、provider proof 和事件必须写入本地 SQLite。
-- 原始回答 hash 必须统一保存为 `sha256:<64位小写十六进制>`。启动时若发现旧记录只缺
-  `sha256:` 前缀，必须先按保存的原始回答字节重算并完全一致，才可原子修复元数据并恢复
-  后续阶段；字节不一致仍永久失败，禁止借迁移绕过完整性。
-- 活动订单只接受 `xuanxue-ai-production-v4`。历史 v1/v2/v3 账本只能由显式离线历史版本 decoder
-  只读核验；不得为旧记录编造 owner、person、chart、subject 或 authorization。只有订单与
-  阶段均已终态且逐阶段按原始回答字节重算 hash 完全一致时，才可在数据库和本地材料完成
-  可恢复备份、临时隔离恢复、schema/行数/主键/逐行 hash/文件路径/byte size/sha256 对账后，
-  把旧记录原字节登记为 `production_legacy_protocol_archives` 只读档案。v4 当前读取、恢复、
-  worker 和新写入必须机械排除这些档案。存在任一非终态旧协议订单必须拒绝启动并先排空，
-  hash 不符必须阻断。排空工具同时处理 v1/v2/v3，优先用当前设备凭证读取该设备绑定 job 的最小
-  终态；只有云端明确返回设备身份不匹配时，本次离线命令才可使用网站既有 service credential
-  只读复核同一 job 的最小终态，不得取得私有材料、领取、恢复、执行或修改云端 job；云端已终态时追加
-  `legacy_cloud_terminal_reconciled` 后才允许升级本地凭证。重启恢复不得把该终态重新打开；
-  已有 `v1_cloud_terminal_reconciled` 历史事件仍由精确旧版 decoder 只读识别。不得运行
-  v1/v2/v3 双轨。离线清算工具不属于运行时读取、领取或执行入口；完成本机切换后，运行时
-  凭据 schema、cloud claim schema、本地订单 schema 和新写入不得再接受 v3。
+- 原始回答 hash 必须统一保存为 `sha256:<64位小写十六进制>`。v4 账本出现缺前缀、错误格式
+  或字节不一致都按不可变身份损坏失败关闭；运行时不得改写、补齐或迁移这类记录。
+- 活动订单、凭据、cloud claim、本地读取、恢复和新写入只接受 `xuanxue-ai-production-v4`。
+  v1/v2/v3 的一次性清算与设备迁移已经完成，旧 decoder、排空工具、归档表消费者和启动兼容
+  代码必须从活动仓库物理删除；不得保留离线桥、回退入口或第二读取链。历史证据只存在于既有
+  备份和 Git 历史，不得重新接回运行时。
 - `orderId` 与 `sourceTaskId` 都幂等；相同 hash 重放复用，冲突在 GPT 提交前失败。
 - 每个阶段的 Gateway `inputRefs` 必须包含整单 `inputBundleRef` 这一非文件身份锚点。
   即使阶段没有附件，模型运行证明也不得出现空输入；附件数量、上传动作与文件证明只统计
@@ -328,8 +318,8 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "parallel submissions into one parent GPT conversation",
     "using page-global user-turn count deltas as authority to resend a stage that already has an exact logical-turn marker",
     "resuming a known detached downstream stage in its blank or wrong conversation",
-    "reviving a legacy parentless follow-up through a blank conversation",
-    "automatic copy-paste or native-picker re-upload after a terminal attachment upload proof",
+    "reviving an invalid parentless follow-up through a blank conversation",
+    "any second upload attempt after a terminal attachment upload proof",
     "publishing provider-internal citation residue as a production answer"
   ],
   "clauses": [

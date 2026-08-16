@@ -18,14 +18,6 @@ interface RestartAcceptanceInput {
   readonly gateway: FixtureGateway;
   readonly runtime: XuanxueAiProductionRuntime;
   readonly completedOrderId: string;
-  readonly qimenParent: {
-    readonly jobId: string;
-    readonly rawOutputHash: string;
-    readonly executionId: string;
-    readonly inputBundleHash: string;
-    readonly conversationScopeRef: string;
-    readonly frozenSubject: XuanxueAiProductionOrder["frozenSubject"];
-  };
 }
 const seedRecoverableBacklog = (
   runtime: XuanxueAiProductionRuntime,
@@ -40,112 +32,6 @@ const seedRecoverableBacklog = (
     createXuanxueAiProductionOrder(runtime, candidate);
   }
   return orders;
-};
-
-const seedHashRepair = (
-  runtime: XuanxueAiProductionRuntime,
-): XuanxueAiProductionOrder => {
-  const repairable = order(
-    "aiprod_restart_hash_repair",
-    "public_knowledge_article_pipeline",
-    ["corpus_research", "article_synthesis", "article_image_generation"],
-  );
-  const record = createXuanxueAiProductionOrder(runtime, repairable);
-  const research = record.stages[0]!;
-  const synthesis = record.stages[1]!;
-  const result = providerResult({
-    providerKind: "gpt-web-chat",
-    taskIdentity: {
-      labelKey: "bazi_analysis",
-      sourceProject: "xuanxue-web",
-      taskKind: repairable.productId,
-      sourceTaskId: `${repairable.orderId}:corpus_research`,
-    },
-    promptPackageId: research.material.promptPackageId,
-    promptContractId: research.material.promptContractId,
-    expectedOutputSchemaRef: research.material.expectedOutputSchemaRef,
-    expectedOutputKind: research.material.expectedOutputKind,
-    textPrompt: research.material.textPrompt,
-    inputRefs: [],
-    modelName: null,
-    timeoutMs: research.material.timeoutMs,
-    maxInputChars: research.material.maxInputChars,
-    maxFileCount: research.material.maxFileCount,
-    requestedBy: "ai-capability",
-    missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
-    runId: repairable.orderId,
-    roundId: "corpus_research",
-  }, 1);
-  const bareHash = result.rawOutputHash!.replace(/^sha256:/u, "");
-  runtime.store.updateStage({
-    ...research,
-    status: "completed",
-    attemptCount: 1,
-    aiFeedResult: {
-      ...result,
-      rawOutputHash: bareHash,
-      providerProof: { ...result.providerProof, outputHash: bareHash },
-    },
-    rawResponseText: result.rawResponseText ?? null,
-    rawOutputHash: bareHash,
-    progressPhase: "terminal",
-    updatedAt: new Date().toISOString(),
-  }, "fixture_legacy_stage_completed");
-  runtime.store.updateStage({
-    ...synthesis,
-    status: "running",
-    attemptCount: 1,
-    progressPhase: "submitting",
-    updatedAt: new Date().toISOString(),
-  }, "fixture_dependency_started");
-  runtime.store.updateOrder({
-    orderId: repairable.orderId,
-    status: "failed",
-    failureReason:
-      "XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:corpus_research",
-    updatedAt: new Date().toISOString(),
-    eventType: "fixture_dependency_hash_failed",
-  });
-  return repairable;
-};
-
-const seedLegacyReview = (
-  input: RestartAcceptanceInput,
-): XuanxueAiProductionOrder => {
-  const legacy: XuanxueAiProductionOrder = {
-    ...order(
-      "aiprod_restart_legacy_review",
-      "qimen_report_followup",
-      ["followup"],
-    ),
-    conversationParent: {
-      relation: "same_conversation",
-      jobId: input.qimenParent.jobId,
-      stageId: "analysis",
-      executionId: input.qimenParent.executionId,
-      rawOutputHash: input.qimenParent.rawOutputHash,
-      inputBundleHash: input.qimenParent.inputBundleHash,
-      conversationScopeRef: input.qimenParent.conversationScopeRef,
-    },
-    frozenSubject: input.qimenParent.frozenSubject,
-  };
-  const record = createXuanxueAiProductionOrder(input.runtime, legacy);
-  input.runtime.store.updateStage({
-    ...record.stages[0]!,
-    status: "review_required",
-    attemptCount: 1,
-    progressPhase: "terminal",
-    failureReason: "duplicate inputHash in the same round.",
-    updatedAt: new Date().toISOString(),
-  }, "fixture_legacy_control_plane_review");
-  input.runtime.store.updateOrder({
-    orderId: legacy.orderId,
-    status: "review_required",
-    failureReason: "duplicate inputHash in the same round.",
-    updatedAt: new Date().toISOString(),
-    eventType: "fixture_legacy_control_plane_review",
-  });
-  return legacy;
 };
 
 const seedInvalidCompletedPrefix = (
@@ -346,8 +232,6 @@ const seedSubmittedContinuation = (
 
 interface RestartFixtures {
   readonly recoverable: XuanxueAiProductionOrder[];
-  readonly repairable: XuanxueAiProductionOrder;
-  readonly legacy: XuanxueAiProductionOrder;
   readonly invalidPrefix: XuanxueAiProductionOrder;
   readonly foreign: XuanxueAiProductionOrder;
   readonly cancelled: XuanxueAiProductionOrder;
@@ -381,7 +265,7 @@ const assertReopenedLedgerIdentity = (
   );
   assert.equal(
     reopened.listRecoverableOrders().length,
-    fixtures.recoverable.length + 4,
+    fixtures.recoverable.length + 2,
     "restart discovery must never truncate an offline backlog",
   );
 };
@@ -402,15 +286,6 @@ const assertReopenedRepairState = (
     submittedContinuation?.stages[1]?.status,
     "waiting_provider",
     "startup repair must not infer detachment from a missing aggregate result",
-  );
-  const repaired = reopened.readOrder(fixtures.repairable.orderId);
-  assert.equal(repaired?.status, "recovery_pending");
-  assert.equal(repaired?.stages[0]?.status, "completed");
-  assert.match(repaired?.stages[0]?.rawOutputHash ?? "", /^sha256:/u);
-  assert.equal(repaired?.stages[1]?.status, "queued");
-  assert.equal(
-    reopened.readOrder(fixtures.legacy.orderId)?.status,
-    "recovery_pending",
   );
   const repairedInvalid = reopened.readOrder(
     fixtures.invalidPrefix.orderId,
@@ -451,11 +326,6 @@ const resumeReopenedLedger = async (
       reopened.readOrder(candidate.orderId)?.status === "completed",
   ), "all persisted offline orders must resume without a 64-order ceiling");
   assert.equal(
-    reopened.readOrder(fixtures.repairable.orderId)?.status,
-    "completed",
-    "a byte-verified legacy hash prefix defect must resume without resubmitting the completed stage",
-  );
-  assert.equal(
     reopened.readOrder(fixtures.invalidPrefix.orderId)?.status,
     "completed",
   );
@@ -484,8 +354,8 @@ const acceptReopenedLedger = async (
 
 export const acceptXuanxueRestartRecovery = async (input: RestartAcceptanceInput): Promise<void> => {
   const fixtures = {
-    recoverable: seedRecoverableBacklog(input.runtime), repairable: seedHashRepair(input.runtime),
-    legacy: seedLegacyReview(input), invalidPrefix: seedInvalidCompletedPrefix(input.runtime),
+    recoverable: seedRecoverableBacklog(input.runtime),
+    invalidPrefix: seedInvalidCompletedPrefix(input.runtime),
     foreign: seedForeignLedger(input.runtime), cancelled: seedCloudCancelled(input),
     submittedContinuation: seedSubmittedContinuation(input),
   };

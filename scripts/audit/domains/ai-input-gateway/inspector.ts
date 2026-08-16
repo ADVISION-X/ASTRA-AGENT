@@ -15,7 +15,6 @@ import {
 import {
   type AiInputGatewayFinding as Finding,
   identifiers,
-  literalVocabulary,
   propertyNames,
   pushAiInputGatewayFinding as pushFinding,
   requireAiInputGatewaySource as requireSourceFile,
@@ -54,12 +53,12 @@ const inspectAttachmentChild = (context: InspectorContext, findings: Finding[], 
   if (!child || !shared || !adapterContract) return;
   const childIds = identifiers(child);
   const childStrings = stringLiterals(child);
-  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
+  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "attachByExactTargetFileInputBatch", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
     if (!childIds.has(requiredIdentifier)) {
       pushFinding(findings, proofLawId, P.attachment.childPath, "ai-input-gateway/attachment-child-structure", `${P.attachment.childPath} must contain ${requiredIdentifier}.`);
     }
   }
-  for (const requiredLiteral of ["skipped", "ordered_clipboard", "native_picker_batch", "attachments_stable"]) {
+  for (const requiredLiteral of ["skipped", "exact_target_file_input_batch", "attachments_stable"]) {
     if (!childStrings.has(requiredLiteral)) {
       pushFinding(findings, routingLawId, P.attachment.childPath, "ai-input-gateway/fixed-routing-literal", `${P.attachment.childPath} must declare ${requiredLiteral}.`);
     }
@@ -78,34 +77,6 @@ const inspectAttachmentChild = (context: InspectorContext, findings: Finding[], 
   for (const field of ["uploadAttemptId", "transportKind", "expectedFileCount", "detectedFileCount", "stagingManifestHash", "files", "startedAt", "endedAt", "status", "failureReason", "reviewRequiredReason"]) {
     if (!proofProperties.has(field)) {
       pushFinding(findings, proofLawId, P.attachment.adapterContractPath, "ai-input-gateway/aggregate-proof-field", `Aggregate attachment proof must contain ${field}.`);
-    }
-  }
-};
-
-const inspectNativePrimitive = (context: InspectorContext, findings: Finding[], lawId: string): void => {
-  const primitive = requireSourceFile(context, findings, lawId, P.attachment.nativePrimitivePath);
-  const browserContract = requireSourceFile(context, findings, lawId, P.attachment.browserContractPath);
-  if (!primitive || !browserContract) return;
-  if (!identifiers(browserContract).has("selectFilesInNativePicker")) {
-    pushFinding(findings, lawId, P.attachment.browserContractPath, "ai-input-gateway/browser-native-picker-contract", "BrowserController must expose the generic native multi-file picker primitive.");
-  }
-  const vocabulary = literalVocabulary(primitive);
-  for (const forbiddenWord of ["chatgpt", "gemini", "seo", "bazi", "qimen", "八字", "奇门"]) {
-    if (vocabulary.has(forbiddenWord)) {
-      pushFinding(findings, lawId, P.attachment.nativePrimitivePath, "ai-input-gateway/generic-browser-primitive", `Generic native picker primitive must not contain ${forbiddenWord}.`);
-    }
-  }
-  const nativeIdentifiers = identifiers(primitive);
-  for (const requiredIdentifier of [
-    "expectedFileNames",
-    "stagingDirectoryPath",
-    "observedFileNames",
-    "NativePickerWindowIdentity",
-    "NATIVE_PICKER_FOLDER_NAVIGATION_ATTEMPTS",
-    "windowIdentity",
-  ]) {
-    if (!nativeIdentifiers.has(requiredIdentifier)) {
-      pushFinding(findings, lawId, P.attachment.nativePrimitivePath, "ai-input-gateway/native-picker-proof", `Native picker primitive must contain ${requiredIdentifier}.`);
     }
   }
 };
@@ -334,27 +305,25 @@ const inspectTransientOverlayHygiene = (
 ): void => {
   const hygiene = requireSourceFile(context, findings, lawId, P.runtime.searchDialogHygienePath);
   const search = requireSourceFile(context, findings, lawId, P.runtime.namedConversationSearchPath);
-  const pageActions = requireSourceFile(context, findings, lawId, P.runtime.pageActionsPath);
   const submit = requireSourceFile(context, findings, lawId, P.runtime.submitPath);
+  const abilityGroup = requireSourceFile(context, findings, lawId, "src/capabilities/ai-input-gateway/ability-group.ts");
   const acceptance = requireSourceFile(context, findings, lawId, P.attachment.acceptancePath);
-  if (!hygiene || !search || !pageActions || !submit || !acceptance) return;
+  if (!hygiene || !search || !submit || !abilityGroup || !acceptance) return;
   const combinedIdentifiers = new Set([
     ...identifiers(hygiene),
     ...identifiers(search),
-    ...identifiers(pageActions),
     ...identifiers(submit),
+    ...identifiers(abilityGroup),
     ...identifiers(acceptance),
   ]);
   const hygieneStrings = stringLiterals(hygiene);
-  const searchCleanupCalls = search
+  const searchCleanupCalls = [search, submit, abilityGroup].flatMap((sourceFile) => sourceFile
     .getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) =>
-      astExpressionPath(call.getExpression()) === "dismissChatGptSearchDialogIfVisible")
-    .length;
+      astExpressionPath(call.getExpression()) === "dismissChatGptSearchDialogIfVisible"));
   if (
     !combinedIdentifiers.has("dismissChatGptSearchDialogIfVisible")
-    || !combinedIdentifiers.has("staleSearchDialog")
-    || searchCleanupCalls < 2
+    || searchCleanupCalls.length < 2
     || !hygieneStrings.has("CHATGPT_SEARCH_DIALOG_AMBIGUOUS")
     || !hygieneStrings.has("CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS")
     || !hygieneStrings.has("CHATGPT_SEARCH_DIALOG_STILL_VISIBLE")
@@ -410,7 +379,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   }
   inspectPublicBoundary(context, findings, publicLawId);
   inspectAttachmentChild(context, findings, routingLawId, proofLawId);
-  inspectNativePrimitive(context, findings, routingLawId);
   inspectRemovedRegion(findings, routingLawId);
   inspectBoundedParallelExecution(context, findings, parallelLawId);
   inspectFreshConversationIdentity(context, findings, parallelLawId);

@@ -2,10 +2,6 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
-import {
-  archiveTerminalXuanxueAiLegacyProtocolRows,
-} from "./xuanxue-ai-production-store-protocol-migration.js";
-
 const databasePath = (dataDir: string): string =>
   path.join(
     dataDir,
@@ -109,6 +105,5 @@ export const openXuanxueAiProductionDatabase = (
   database.pragma("foreign_keys = ON");
   initializeProductionTables(database);
   ensureConversationRebuildColumns(database);
-  archiveTerminalXuanxueAiLegacyProtocolRows(database, dataDir);
   return database;
 };

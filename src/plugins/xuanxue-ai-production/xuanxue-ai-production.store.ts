@@ -41,9 +41,7 @@ import {
 } from "./xuanxue-ai-production-store-orders.js";
 import {
   recoverMissingRequiredContinuationParents,
-  repairCanonicalOutputHashState,
   repairInvalidCompletedStageOutputs,
-  repairLegacyFollowupWrongChatExecutionStates,
   repairRecoverableProviderFailures,
 } from "./xuanxue-ai-production-store-recovery.js";
 
@@ -69,11 +67,9 @@ export class XuanxueAiProductionStore {
   constructor(dataDir: string) {
     this.dataDir = dataDir;
     this.database = openXuanxueAiProductionDatabase(dataDir);
-    repairCanonicalOutputHashState(this.database);
     repairInvalidCompletedStageOutputs(this.database);
     repairRecoverableProviderFailures(this.database);
     recoverMissingRequiredContinuationParents(this.database);
-    repairLegacyFollowupWrongChatExecutionStates(this.database);
   }
 
   close(): void {

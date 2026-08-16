@@ -57,27 +57,6 @@ export const stringLiterals = (source: SourceFile): Set<string> =>
       .map((node) => node.getLiteralText()),
   ]);
 
-export const literalVocabulary = (source: SourceFile): Set<string> => {
-  const separators = new Set([
-    " ", "\n", "\r", "\t", "_", "-", ".", ":", ";", ",", "(", ")", "[", "]",
-    "{", "}", "'", '"', "`", "/", "\\", "|", "=", "+", "*", "?", "!",
-  ]);
-  const words: string[] = [];
-  for (const literal of stringLiterals(source)) {
-    let current = "";
-    for (const character of literal.toLowerCase()) {
-      if (!separators.has(character)) {
-        current += character;
-        continue;
-      }
-      if (current) words.push(current);
-      current = "";
-    }
-    if (current) words.push(current);
-  }
-  return new Set(words);
-};
-
 export const propertyNames = (node: Node): Set<string> =>
   new Set(
     node.getDescendantsOfKind(SyntaxKind.PropertyAssignment)

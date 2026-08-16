@@ -17,7 +17,6 @@ const ownerPaths = [
   "src/lib/browser/exact-target/browser-command-runtime.ts",
   "src/lib/browser/exact-target/browser-evaluation-contract.ts",
   "src/lib/browser/exact-target/browser-native-transport-server.ts",
-  "src/lib/browser/exact-target/physical-focus-lease.ts",
   "src/lib/browser/chrome-extension/service-worker.ts",
   "src/lib/browser/chrome-extension/atomic-dom-command.ts",
   "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
@@ -103,26 +102,20 @@ const inspectPhysicalActionOwnership = (
   }
 };
 
-const inspectFocusLease = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectPluginOnlyFileActions = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const lawId = "APEX-LOCAL-BROWSER-003-V1";
   const clauseId = "apex-local-browser-003-requirement";
-  const focus = source(context, "src/lib/browser/exact-target/physical-focus-lease.ts");
   const commandRuntime = source(context, "src/lib/browser/exact-target/browser-command-runtime.ts");
-  const physicalFileActions = source(context, "src/lib/browser/current-chrome-native-multi-file-picker.ts");
-  const literals = new Set(focus?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
-  for (const required of ["native_file_picker", "os_pointer_action", "os_keyboard_action", "FOCUS_LEASE_DENIED", "OPERATOR_INTERRUPTED"]) {
-    if (!literals.has(required)) add(findings, lawId, clauseId, "src/lib/browser/exact-target/physical-focus-lease.ts", `focus lease contract is missing ${required}`);
+  const protocol = source(context, "src/lib/browser/chrome-extension/protocol.ts");
+  const values = new Set([commandRuntime, protocol].flatMap((file) => [
+    ...(file?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []),
+    ...(file?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []),
+  ]));
+  for (const forbidden of ["PhysicalFocusLease", "focusLease", "focus_target", "native_file_picker", "os_pointer_action", "os_keyboard_action", "pasteFileFromSystemClipboard", "selectFilesInNativePicker"]) {
+    if (values.has(forbidden)) add(findings, lawId, clauseId, "src/lib/browser/exact-target/browser-command-runtime.ts", `plugin-only Browser contract retains forbidden ${forbidden}`);
   }
-  const numeric = new Set(focus?.getDescendantsOfKind(SyntaxKind.NumericLiteral).map((node) => node.getLiteralValue()) ?? []);
-  if (!numeric.has(15_000)) add(findings, lawId, clauseId, "src/lib/browser/exact-target/physical-focus-lease.ts", "focus lease must cap at 15000ms");
-  const commandIds = new Set(commandRuntime?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []);
-  const commandLiterals = new Set(commandRuntime?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
-  if (!commandIds.has("pasteFileFromSystemClipboard") || !commandIds.has("focusLease") || !commandLiterals.has("os_keyboard_action")) {
-    add(findings, lawId, clauseId, "src/lib/browser/exact-target/browser-command-runtime.ts", "system clipboard paste must be owned by the exact-target Browser session under os_keyboard_action focus lease");
-  }
-  const clipboardIds = new Set(physicalFileActions?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []);
-  if (!clipboardIds.has("pasteCurrentChromeFileFromSystemClipboard") || !clipboardIds.has("execFileAsync")) {
-    add(findings, lawId, clauseId, "src/lib/browser/current-chrome-native-multi-file-picker.ts", "Browser owner must contain the only system clipboard paste implementation");
+  for (const retiredPath of ["src/lib/browser/exact-target/physical-focus-lease.ts", "src/lib/browser/current-chrome-native-multi-file-picker.ts"]) {
+    if (existsSync(resolveFromRepo(retiredPath))) add(findings, lawId, clauseId, retiredPath, "retired physical-focus file action path must be absent");
   }
   inspectPhysicalActionOwnership(context, findings, lawId, clauseId);
 };
@@ -328,7 +321,7 @@ const inspectDomainEvaluation = async (
   const findings: InspectorFinding[] = [];
   inspectOwnerAst(context, findings);
   inspectTransport(context, findings);
-  inspectFocusLease(context, findings);
+  inspectPluginOnlyFileActions(context, findings);
   inspectEvaluationContract(context, findings);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

@@ -37,7 +37,6 @@ export type BrowserWireCommand =
   | { kind: "text_target"; tabId: number; action: "type-text" | "clear-input" | "press-key"; text?: string; key?: string }
   | { kind: "screenshot_target"; tabId: number }
   | { kind: "set_file_input_files"; tabId: number; selector: string; filePath: string }
-  | { kind: "focus_target"; tabId: number; windowId: number }
   | { kind: "release_target"; tabId: number }
   | { kind: "close_target"; tabId: number };
 
@@ -142,7 +141,6 @@ const BROWSER_WIRE_COMMAND_VALIDATORS: Readonly<Record<string, (command: Record<
   screenshot_target: tabCommand(),
   set_file_input_files: tabCommand((command) =>
     typeof command.selector === "string" && typeof command.filePath === "string"),
-  focus_target: tabCommand((command) => Number.isSafeInteger(command.windowId)),
   release_target: tabCommand(),
   close_target: tabCommand(),
 };

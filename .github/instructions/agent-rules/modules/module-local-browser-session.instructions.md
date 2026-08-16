@@ -15,7 +15,6 @@ Browser owns:
 - binding navigate, evaluate, click, fill, scroll, screenshot and DOM file-input work to the exact target and document supplied by the owning flow;
 - the private Controller -> owner-only Unix socket -> Native host -> Chrome Native Messaging -> MV3 service worker -> `chrome.debugger` transport;
 - target lifecycle, document-generation invalidation, bounded command deadlines and fail-closed disconnection semantics;
-- a short `PhysicalFocusLease` only for approved native file-picker or unavoidable OS pointer/keyboard actions;
 - waiting, session state and screenshot/file-input foundations.
 
 Browser does not own:
@@ -37,11 +36,10 @@ refs. No background task may reacquire that owner target until the same task is
 explicitly resumed. Resume never revives old refs; the next owner action mints
 new refs after exact URL, origin and document verification.
 
-Ordinary page work never activates Chrome, raises a window, uses the system
-mouse/keyboard, or depends on the foreground tab. Only `native_file_picker`,
-`os_pointer_action`, and `os_keyboard_action` may acquire a focus lease; every
-lease is bounded to fifteen seconds, is cancelled when the operator changes
-focus, and is never automatically reacquired after an operator interruption.
+Page work never activates Chrome, raises a window, uses the system mouse,
+system keyboard, clipboard, native file picker or foreground-tab identity.
+All file input is an exact-target extension command; no physical focus lease or
+OS action transport remains in the active Browser owner.
 
 The Controller does not create a provider-tab pool and does not decide business
 concurrency. AI Input Gateway still owns conversation switching inside exactly
@@ -170,22 +168,22 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
   "capabilityDomain": "local-browser-session",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "Physical focus is an explicit short lease reserved for approved OS actions and must never be required by ordinary page control.",
+  "summary": "Chrome extension exact-target commands are the only page and file-action transport; physical focus and OS action paths are absent.",
   "required": [
-    "Only native_file_picker, os_pointer_action and os_keyboard_action may request PhysicalFocusLease.",
-    "A lease is bound to one exact target/window/document, lasts at most fifteen seconds and is cancelled on timeout, identity change or operator focus change.",
-    "Provider generation wait and ordinary navigate/evaluate/click/fill/scroll/screenshot/DOM file-input work never hold a focus lease."
+    "Navigate, evaluate, click, fill, scroll, screenshot and DOM file-input work execute only through the exact-target MV3 extension transport.",
+    "The public Browser contract and extension protocol expose no native picker, system clipboard, OS pointer, OS keyboard, window activation or focus-target command.",
+    "Retired focus-lease and native-file-picker source files are physically absent."
   ],
   "forbidden": [
-    "automatic focus reacquisition after operator interruption",
-    "application-wide activation as target identity proof",
-    "focus leases controlled by external callers or business UI",
-    "holding physical focus while waiting for provider output"
+    "PhysicalFocusLease or any replacement focus owner",
+    "native picker, system clipboard, AppleScript/JXA, OS pointer or OS keyboard file transport",
+    "application-wide activation or foreground focus as target identity proof",
+    "a second file-input transport beside set_file_input_files"
   ],
   "clauses": [
     {
       "clauseId": "apex-local-browser-003-requirement",
-      "statement": "Physical focus is an explicit short lease reserved for approved OS actions and must never be required by ordinary page control.",
+      "statement": "The exact-target Chrome extension is the only page and file-action transport, with physical focus and OS action paths physically absent.",
       "evidenceMode": "real-chrome",
       "ownerDomain": "local-browser-session"
     }

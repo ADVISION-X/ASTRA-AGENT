@@ -30,6 +30,7 @@ import {
   clearComposer,
   waitForExactAttachmentCount,
 } from "./providers/web-chat-upload-page-actions.js";
+import { dismissChatGptSearchDialogIfVisible } from "./providers/web-chat-search-dialog-hygiene.js";
 
 const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
   "feed-gemini-api-once",
@@ -134,12 +135,88 @@ const executeParsedRequest = (
   return executeGptWebChat(input);
 };
 
-export const createAiInputGatewayAbilityGroup = (
+type ProviderOperatorControl = ReturnType<typeof createProviderOperatorControl>;
+
+const runPreflightAttachment = async (input: {
+  context: AiInputGatewayExecutionContext;
+  browser: BrowserTargetSession;
+  request: AiFeedInput;
+  signal?: AbortSignal;
+}) => {
+  const adapterContext = {
+    dataDir: input.context.dataDir,
+    browser: input.browser,
+    ...(input.context.runtimeLogger ? { runtimeLogger: input.context.runtimeLogger } : {}),
+    ...(input.signal ? { abortSignal: input.signal } : {}),
+  };
+  await openProviderPage({
+    browser: input.browser,
+    providerUrl: "https://chatgpt.com/",
+    runtimeName: "gpt-web-chat-provider-input-preflight",
+    context: adapterContext,
+    request: input.request,
+  });
+  await dismissChatGptSearchDialogIfVisible(input.browser, adapterContext);
+  const result = await attachApprovedWebChatFilesOnce({
+    browser: input.browser,
+    request: input.request,
+    context: adapterContext,
+  });
+  const cleared = await clearComposer(input.browser, adapterContext);
+  if (cleared.status !== "success" || !cleared.pageUrl) {
+    throw new Error(`review_required: provider preflight cleanup was not proven; ${cleared.message}`);
+  }
+  await waitForExactAttachmentCount(input.browser, adapterContext, 0, [], 10_000, {
+    expectedPageUrl: cleared.pageUrl,
+    baselineAttachmentCount: 0,
+    requireReady: false,
+    requireComposerTextEmpty: true,
+  });
+  return result;
+};
+
+const preflightApprovedWebChatFiles = async (input: {
+  rawInput: unknown;
+  options: Pick<AiInputGatewayExecuteOptions, "signal"> | undefined;
+  context: AiInputGatewayExecutionContext;
+  browser: BrowserTargetSession | undefined;
+  operatorControl: ProviderOperatorControl;
+}) => {
+  const request = AiFeedInputSchema.parse(input.rawInput);
+  if (!input.browser || request.providerKind !== "gpt-web-chat") {
+    throw new Error("review_required: GPT web-chat provider target is required for attachment preflight.");
+  }
+  await input.operatorControl.waitForRelease(input.options?.signal);
+  input.operatorControl.ensureHousekeeping();
+  const capacityLease = await acquireWebChatCapacityLease({
+    dataDir: input.context.dataDir,
+    timeoutMs: request.timeoutMs,
+    ...(input.options?.signal ? { signal: input.options.signal } : {}),
+  });
+  let mutationLease: Awaited<ReturnType<typeof acquireWebChatBrowserMutationLease>> | null = null;
+  try {
+    mutationLease = await acquireWebChatBrowserMutationLease({
+      dataDir: input.context.dataDir,
+      timeoutMs: request.timeoutMs,
+      ...(input.options?.signal ? { signal: input.options.signal } : {}),
+    });
+    return await runPreflightAttachment({
+      context: input.context,
+      browser: input.browser,
+      request,
+      ...(input.options?.signal ? { signal: input.options.signal } : {}),
+    });
+  } finally {
+    await mutationLease?.release();
+    await capacityLease.release();
+  }
+};
+
+const buildAiInputGatewaySurface = (
   context: AiInputGatewayExecutionContext,
-  browser?: BrowserTargetSession,
-): AiInputGatewayAbilityGroup => {
-  const operatorControl = createProviderOperatorControl(context, browser);
-  return {
+  browser: BrowserTargetSession | undefined,
+  operatorControl: ProviderOperatorControl,
+): AiInputGatewayAbilityGroup => ({
     abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
 
     listChildCapabilityIds(): AiInputGatewayChildCapabilityId[] {
@@ -173,58 +250,14 @@ export const createAiInputGatewayAbilityGroup = (
       });
     },
 
-    async preflightApprovedWebChatFiles(rawInput, options) {
-      const request = AiFeedInputSchema.parse(rawInput);
-      if (!browser || request.providerKind !== "gpt-web-chat") {
-        throw new Error("review_required: GPT web-chat provider target is required for attachment preflight.");
-      }
-      await operatorControl.waitForRelease(options?.signal);
-      operatorControl.ensureHousekeeping();
-      const capacityLease = await acquireWebChatCapacityLease({
-        dataDir: context.dataDir,
-        timeoutMs: request.timeoutMs,
-        ...(options?.signal ? { signal: options.signal } : {}),
+    preflightApprovedWebChatFiles(rawInput, options) {
+      return preflightApprovedWebChatFiles({
+        rawInput,
+        options,
+        context,
+        browser,
+        operatorControl,
       });
-      let mutationLease: Awaited<ReturnType<typeof acquireWebChatBrowserMutationLease>> | null = null;
-      try {
-        mutationLease = await acquireWebChatBrowserMutationLease({
-          dataDir: context.dataDir,
-          timeoutMs: request.timeoutMs,
-          ...(options?.signal ? { signal: options.signal } : {}),
-        });
-        const adapterContext = {
-          dataDir: context.dataDir,
-          browser,
-          ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
-          ...(options?.signal ? { abortSignal: options.signal } : {}),
-        };
-        await openProviderPage({
-          browser,
-          providerUrl: "https://chatgpt.com/",
-          runtimeName: "gpt-web-chat-provider-input-preflight",
-          context: adapterContext,
-          request,
-        });
-        const result = await attachApprovedWebChatFilesOnce({
-          browser,
-          request,
-          context: adapterContext,
-        });
-        const cleared = await clearComposer(browser, adapterContext);
-        if (cleared.status !== "success" || !cleared.pageUrl) {
-          throw new Error(`review_required: provider preflight cleanup was not proven; ${cleared.message}`);
-        }
-        await waitForExactAttachmentCount(browser, adapterContext, 0, [], 10_000, {
-          expectedPageUrl: cleared.pageUrl,
-          baselineAttachmentCount: 0,
-          requireReady: false,
-          requireComposerTextEmpty: true,
-        });
-        return result;
-      } finally {
-        await mutationLease?.release();
-        await capacityLease.release();
-      }
     },
 
     async execute(rawInput: unknown, options): Promise<AiFeedResult> {
@@ -240,5 +273,12 @@ export const createAiInputGatewayAbilityGroup = (
         options,
       });
     },
-  };
+  });
+
+export const createAiInputGatewayAbilityGroup = (
+  context: AiInputGatewayExecutionContext,
+  browser?: BrowserTargetSession,
+): AiInputGatewayAbilityGroup => {
+  const operatorControl = createProviderOperatorControl(context, browser);
+  return buildAiInputGatewaySurface(context, browser, operatorControl);
 };

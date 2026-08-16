@@ -287,10 +287,10 @@ const assertExactSearchDialogHygiene = (sources: ContractSources): void => {
   );
   assert.equal(
     sources.namedConversationSearch.match(/dismissChatGptSearchDialogIfVisible/g)?.length === 3
-      && sources.pageActions.includes("dismissChatGptSearchDialogIfVisible")
+      && sources.abilityGroup.includes("dismissChatGptSearchDialogIfVisible")
       && sources.submit.includes("dismissChatGptSearchDialogIfVisible"),
     true,
-    "failed search, attachment upload and prompt focus must share exact search-dialog hygiene",
+    "failed search, exact-target attachment preflight and prompt focus must share exact search-dialog hygiene",
   );
   assert.equal(
     sources.submit.includes("dismissFloatingMenus")

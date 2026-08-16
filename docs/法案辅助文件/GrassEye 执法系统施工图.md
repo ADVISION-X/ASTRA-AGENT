@@ -96,7 +96,7 @@ scripts/audit/domains/local-browser-session/inspector.ts
 scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts
 ```
 
-该 owner 使用 ts-morph AST/symbol 执法三个 active Browser law：唯一 Controller、opaque target/document、四跳私有 transport、PhysicalFocusLease 限界、Startup no-change，以及 active-tab/URL-first/first-page/AppleScript-JXA 页面旁路的物理归零。真实 Chrome 条款在 generated truth 中明确标记 deferred，不得用静态 PASS 冒充。
+该 owner 使用 ts-morph AST/symbol 执法三个 active Browser law：唯一 Controller、opaque target/document、四跳私有插件 transport、物理焦点与 OS 文件动作归零、Startup no-change，以及 active-tab/URL-first/first-page/AppleScript-JXA 页面旁路的物理归零。真实 Chrome 条款在 generated truth 中明确标记 deferred，不得用静态 PASS 冒充。
 
 每个 OWNER 只允许：
 

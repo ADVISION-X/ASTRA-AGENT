@@ -21,7 +21,6 @@ const browserActionMethods: ReadonlySet<string> = new Set([
   "textInput",
   "evaluate",
   "setFileInputFiles",
-  "selectFilesInNativePicker",
   "screenshotRegion",
   "closeTarget",
   "close",

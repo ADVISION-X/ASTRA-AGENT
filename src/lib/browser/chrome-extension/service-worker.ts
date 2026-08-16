@@ -1,13 +1,9 @@
 import {
-  GRASSEYE_BROWSER_PROTOCOL_VERSION,
-  GRASSEYE_NATIVE_HOST_NAME,
-  isBrowserWireMessage,
   type BrowserWireCommand,
-  type BrowserWireMessage,
   type BrowserWireTargetDescriptor,
 } from "./protocol.js";
-import { commandFingerprint, executeCommand } from "./service-worker-command-execution.js";
 import { atomicDomExpression, runAtomicDomFillKeyboardCommand } from "./atomic-dom-command.js";
+import { configureNativeTransport, connectNativeTransport } from "./service-worker-native-transport.js";
 declare const chrome: {
   alarms: {
     create(name: string, info: { periodInMinutes: number }): void;
@@ -20,7 +16,6 @@ declare const chrome: {
     onDetach: { addListener(listener: (source: { tabId?: number }) => void): void };
   };
   runtime: {
-    connectNative(name: string): NativePort;
     onInstalled: { addListener(listener: () => void): void };
     onStartup: { addListener(listener: () => void): void };
   };
@@ -29,7 +24,6 @@ declare const chrome: {
     get(tabId: number): Promise<ChromeTab>;
     query(query: Record<string, unknown>): Promise<ChromeTab[]>;
     remove(tabId: number): Promise<void>;
-    update(tabId: number, input: { active: boolean }): Promise<ChromeTab>;
     onRemoved: { addListener(listener: (tabId: number) => void): void };
   };
   windows: {
@@ -37,13 +31,6 @@ declare const chrome: {
     update(windowId: number, input: { focused: boolean }): Promise<unknown>;
   };
 };
-
-interface NativePort {
-  postMessage(message: BrowserWireMessage): void;
-  disconnect(): void;
-  onMessage: { addListener(listener: (message: unknown) => void): void };
-  onDisconnect: { addListener(listener: () => void): void };
-}
 
 interface ChromeTab {
   readonly id?: number;
@@ -66,18 +53,6 @@ interface RuntimeResult {
 }
 
 const attachedTabs = new Set<number>();
-let nativePort: NativePort | null = null;
-let authenticatedNonce: string | null = null;
-let lastAcceptedSequence = 0;
-
-interface CommandReceipt {
-  readonly fingerprint: string;
-  readonly sequence: number;
-  readonly completion: Promise<Extract<BrowserWireMessage, { type: "response" }>>;
-  response: Extract<BrowserWireMessage, { type: "response" }> | null;
-}
-
-const commandReceipts = new Map<string, CommandReceipt>();
 
 const asRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" ? value as Record<string, unknown> : {};
@@ -234,7 +209,7 @@ const dispatchTypedCharacter = async (tabId: number, character: string): Promise
 type PageCommand = Extract<BrowserWireCommand, { kind:
   | "navigate_target" | "evaluate_target" | "click_target" | "click_dom_target" | "fill_dom_target" | "move_target" | "scroll_target" }>;
 type InteractionCommand = Extract<BrowserWireCommand, { kind:
-  | "text_target" | "screenshot_target" | "set_file_input_files" | "focus_target" | "release_target" | "close_target" }>;
+  | "text_target" | "screenshot_target" | "set_file_input_files" | "release_target" | "close_target" }>;
 
 const runClickPageCommand = async (
   command: Extract<PageCommand, { kind: "click_target" }>,
@@ -381,14 +356,6 @@ const runFileInputCommand = async (
   return readDescriptor(command.tabId);
 };
 
-const runFocusCommand = async (
-  command: Extract<InteractionCommand, { kind: "focus_target" }>,
-): Promise<unknown> => {
-  await chrome.windows.update(command.windowId, { focused: true });
-  await chrome.tabs.update(command.tabId, { active: true });
-  return readDescriptor(command.tabId);
-};
-
 const runInteractionCommand = async (command: InteractionCommand): Promise<unknown> => {
   if (command.kind === "text_target") return runTextCommand(command);
   if (command.kind === "screenshot_target") {
@@ -396,7 +363,6 @@ const runInteractionCommand = async (command: InteractionCommand): Promise<unkno
     return chrome.debugger.sendCommand({ tabId: command.tabId }, "Page.captureScreenshot", { format: "png", fromSurface: true });
   }
   if (command.kind === "set_file_input_files") return runFileInputCommand(command);
-  if (command.kind === "focus_target") return runFocusCommand(command);
   await detachTab(command.tabId);
   if (command.kind === "release_target") return { released: true };
   await chrome.tabs.remove(command.tabId);
@@ -416,94 +382,11 @@ const runCommand = async (
   return runInteractionCommand(command as InteractionCommand);
 };
 
-const trimCommandReceipts = (): void => {
-  if (commandReceipts.size <= 512) return;
-  for (const [commandId, receipt] of commandReceipts) {
-    if (receipt.response) commandReceipts.delete(commandId);
-    if (commandReceipts.size <= 512) return;
-  }
-};
-
-const rejectProtocolCommand = (
-  message: Extract<BrowserWireMessage, { type: "command" }>,
-  code: string,
-  reason: string,
-): void => {
-  nativePort?.postMessage({
-    protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
-    type: "response",
-    commandId: message.commandId,
-    sequence: message.sequence,
-    ok: false,
-    errorCode: code,
-    errorMessage: reason,
-  });
-};
-
-const handleMessage = async (message: unknown): Promise<void> => {
-  if (!nativePort || !isBrowserWireMessage(message)) return;
-  if (message.type === "controller_challenge") {
-    authenticatedNonce = message.nonce;
-    lastAcceptedSequence = 0;
-    commandReceipts.clear();
-    nativePort.postMessage({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "extension_authenticated", nonce: message.nonce });
-    return;
-  }
-  if (message.type !== "command" || !authenticatedNonce) return;
-  const fingerprint = commandFingerprint(message);
-  const existing = commandReceipts.get(message.commandId);
-  if (existing) {
-    if (existing.sequence !== message.sequence || existing.fingerprint !== fingerprint) {
-      rejectProtocolCommand(message, "COMMAND_ID_CONFLICT", "command id was reused with different content");
-      return;
-    }
-    nativePort.postMessage(await existing.completion);
-    return;
-  }
-  if (!Number.isSafeInteger(message.sequence) || message.sequence !== lastAcceptedSequence + 1) {
-    rejectProtocolCommand(
-      message,
-      message.sequence <= lastAcceptedSequence ? "COMMAND_SEQUENCE_REPLAY" : "COMMAND_SEQUENCE_OUT_OF_ORDER",
-      `expected command sequence ${lastAcceptedSequence + 1}, received ${message.sequence}`,
-    );
-    return;
-  }
-  lastAcceptedSequence = message.sequence;
-  const receipt: CommandReceipt = {
-    fingerprint,
-    sequence: message.sequence,
-    completion: executeCommand(message, runCommand),
-    response: null,
-  };
-  commandReceipts.set(message.commandId, receipt);
-  const response = await receipt.completion;
-  receipt.response = response;
-  nativePort.postMessage(response);
-  trimCommandReceipts();
-};
-
-const connect = (): void => {
-  if (nativePort) return;
-  authenticatedNonce = null;
-  lastAcceptedSequence = 0;
-  commandReceipts.clear();
-  const port = chrome.runtime.connectNative(GRASSEYE_NATIVE_HOST_NAME);
-  nativePort = port;
-  port.onMessage.addListener((message) => { void handleMessage(message); });
-  port.onDisconnect.addListener(() => {
-    if (nativePort === port) nativePort = null;
-    authenticatedNonce = null;
-    lastAcceptedSequence = 0;
-    commandReceipts.clear();
-    void detachAllTabs();
-  });
-  port.postMessage({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "extension_hello" });
-};
-
-chrome.runtime.onInstalled.addListener(connect);
-chrome.runtime.onStartup.addListener(connect);
+configureNativeTransport({ runCommand, onDisconnect: () => { void detachAllTabs(); } });
+chrome.runtime.onInstalled.addListener(connectNativeTransport);
+chrome.runtime.onStartup.addListener(connectNativeTransport);
 chrome.debugger.onDetach.addListener((source) => { if (Number.isInteger(source.tabId)) attachedTabs.delete(source.tabId as number); });
 chrome.tabs.onRemoved.addListener((tabId) => { attachedTabs.delete(tabId); });
-chrome.alarms.onAlarm.addListener((alarm) => { if (alarm.name === "grasseye-native-reconnect") connect(); });
+chrome.alarms.onAlarm.addListener((alarm) => { if (alarm.name === "grasseye-native-reconnect") connectNativeTransport(); });
 chrome.alarms.create("grasseye-native-reconnect", { periodInMinutes: 0.5 });
-connect();
+connectNativeTransport();

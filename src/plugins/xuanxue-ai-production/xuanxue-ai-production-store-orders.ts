@@ -12,9 +12,6 @@ import {
 import {
   appendXuanxueAiProductionEvent,
 } from "./xuanxue-ai-production-store-event.js";
-import {
-  repairLegacyFollowupParentBinding,
-} from "./xuanxue-ai-production-store-recovery.js";
 
 interface OrderRow {
   order_json: string;
@@ -34,10 +31,7 @@ export const readXuanxueAiProductionOrder = (
   orderId: string,
 ): XuanxueAiOrderRecord | null => {
   const row = database.prepare(
-    `select * from production_orders o where order_id=? and not exists (
-      select 1 from production_legacy_protocol_archives a
-      where a.order_id=o.order_id
-    )`,
+    "select * from production_orders where order_id=?",
   ).get(orderId) as OrderRow | undefined;
   if (!row) return null;
   const stageRows = database.prepare(`
@@ -71,13 +65,6 @@ const resolveIdentityCollision = (input: {
   if (input.existing.order.requestHash === input.incoming.requestHash) {
     return input.existing;
   }
-  const repaired = repairLegacyFollowupParentBinding(
-    input.database,
-    input.existing,
-    input.incoming,
-    input.stages,
-  );
-  if (repaired) return input.readOrder(input.incoming.orderId)!;
   throw new Error(input.conflictCode);
 };
 
@@ -133,14 +120,6 @@ export const createXuanxueAiProductionOrder = (
   stages: readonly XuanxueAiStageRecord[],
   readOrder: XuanxueAiOrderReader,
 ): XuanxueAiOrderRecord => {
-  const archivedByOrderId = database.prepare(`
-    select 1 from production_legacy_protocol_archives where order_id=?
-  `).get(order.orderId);
-  if (archivedByOrderId) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_LEGACY_ARCHIVED_ORDER_ID_CONFLICT",
-    );
-  }
   const existing = readOrder(order.orderId);
   if (existing) {
     return resolveIdentityCollision({
@@ -152,20 +131,10 @@ export const createXuanxueAiProductionOrder = (
       conflictCode: "XUANXUE_AI_PRODUCTION_ORDER_IDENTITY_CONFLICT",
     });
   }
-  const bySource = database.prepare(`
-    select o.order_json,
-      exists(select 1 from production_legacy_protocol_archives a
-        where a.order_id=o.order_id) as archived
-    from production_orders o where o.source_task_id=?
-  `).get(order.sourceTaskId) as
-    | (Pick<OrderRow, "order_json"> & { archived: number })
-    | undefined;
+  const bySource = database.prepare(
+    "select order_json from production_orders where source_task_id=?",
+  ).get(order.sourceTaskId) as Pick<OrderRow, "order_json"> | undefined;
   if (bySource) {
-    if (bySource.archived === 1) {
-      throw new Error(
-        "XUANXUE_AI_PRODUCTION_LEGACY_ARCHIVED_SOURCE_TASK_CONFLICT",
-      );
-    }
     const stored = XuanxueAiStoredProductionOrderSchema.parse(
       JSON.parse(bySource.order_json),
     );
@@ -191,11 +160,8 @@ export const listXuanxueAiProductionOrders = (
 ): XuanxueAiOrderRecord[] => {
   const placeholders = statuses.map(() => "?").join(",");
   const rows = database.prepare(`
-    select o.order_id from production_orders o
-    where o.status in (${placeholders}) and not exists (
-      select 1 from production_legacy_protocol_archives a
-      where a.order_id=o.order_id
-    ) order by o.created_at,o.order_id
+    select order_id from production_orders
+    where status in (${placeholders}) order by created_at,order_id
   `).all(...statuses) as Array<{ order_id: string }>;
   return rows.map((row) => readOrder(row.order_id)!);
 };

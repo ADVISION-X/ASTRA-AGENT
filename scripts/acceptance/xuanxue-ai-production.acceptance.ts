@@ -28,7 +28,6 @@ import {
 import {
   acceptXuanxueOrderGraphs,
 } from "./xuanxue-ai-production-order-graph-acceptance.js";
-import { acceptXuanxueV1Migration } from "./xuanxue-ai-production-v1-migration.js";
 import { acceptXuanxueProviderPreflightContract } from "./xuanxue-ai-production-provider-preflight.js";
 
 const dataDir = await mkdtemp(
@@ -36,7 +35,6 @@ const dataDir = await mkdtemp(
 );
 try {
   await acceptXuanxueProviderPreflightContract();
-  await acceptXuanxueV1Migration(dataDir);
   const generatedDirectory = path.join(dataDir, "runtime-data", "ai-input-gateway", "generated-images");
   await mkdir(generatedDirectory, { recursive: true });
   const generatedImagePath = path.join(generatedDirectory, "fixture-generated.png");
@@ -249,7 +247,7 @@ try {
     terminalAttachmentGateway.requests.length
       - terminalAttachmentGatewayCallCount,
     1,
-    "restart recovery must preserve the terminal attachment proof without copy-paste or picker re-upload",
+    "restart recovery must preserve the terminal attachment proof without a second upload attempt",
   );
   assert.equal(
     terminalAttachmentReplay.stages[0]?.aiFeedResult?.providerProof
@@ -412,14 +410,6 @@ try {
     gateway,
     runtime,
     completedOrderId: hehun.orderId,
-    qimenParent: {
-      jobId: qimenFollowupParent.orderId,
-      rawOutputHash: qimenFollowupParentFinal.rawOutputHash!,
-      executionId: qimenFollowupParentFinal.executionId,
-      inputBundleHash: qimenFollowupParent.inputBundleHash,
-      conversationScopeRef: qimenFollowupParent.conversationScopeRef,
-      frozenSubject: qimenFollowupParent.frozenSubject,
-    },
   });
   process.stdout.write(
     "[ACCEPTANCE] xuanxue-ai-production PASS: fixed single-conversation graphs, contaminated-output restart, exact-parent FIFO, parent-conversation replay from cloud material, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",
