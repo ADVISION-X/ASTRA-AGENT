@@ -142,6 +142,8 @@ read signed/prebuilt artifact
 
 生产 extension 使用固定 Chrome Web Store identity；load-unpacked 只能用于开发/真实页面前验，不得成为 production artifact。
 
+本地测试模式是明确隔离的非生产模式，只有设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 才可启用。测试模式可以使用 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl` 门禁，但仍必须验证 ArtifactSet 文件哈希、release tuple、Profile Enrollment Receipt、Native Host install/doctor、Authority 握手和 exact-target 约束。默认缺省值必须是 `production`；测试模式不得被生产配置或生产发布物料隐式启用。
+
 ## 8. Composition root
 
 `createWorkbenchAssembly()` 必须是 Authority admission gate：

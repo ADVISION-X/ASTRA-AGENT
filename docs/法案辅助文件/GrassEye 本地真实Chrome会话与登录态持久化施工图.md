@@ -399,6 +399,8 @@ resolve prebuilt Host artifact
 
 生产发布的进一步硬门仍包括代码签名、公证、Verified CRX/CWS identity、SBOM/provenance、anti-rollback/revocation policy 与 same-artifact proof。
 
+本地测试模式只在显式设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 时启用；它允许 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl`，但仍必须验证 ArtifactSet 文件哈希、release tuple、Enrollment Receipt、Native Host doctor、Authority handshake 和 exact-target。缺省模式永远是 production，测试模式不得进入生产发布链。
+
 ## 18. 失败语义
 
 Terminal/fail-closed errors 至少包括：

@@ -1,0 +1,1 @@
+/Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/grasseye-browserctl: /Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs

@@ -1,0 +1,14 @@
+/Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/deps/serde-9e1d431313643ac4.d: /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/build/serde-3919e5fe82cf37c9/out/private.rs
+
+/Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/deps/libserde-9e1d431313643ac4.rlib: /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/build/serde-3919e5fe82cf37c9/out/private.rs
+
+/Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/deps/libserde-9e1d431313643ac4.rmeta: /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/build/serde-3919e5fe82cf37c9/out/private.rs
+
+/Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/Users/nexgen/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/build/serde-3919e5fe82cf37c9/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/nexgen/Documents/AGENT/src/lib/browser/native-messaging-host/target/release/build/serde-3919e5fe82cf37c9/out

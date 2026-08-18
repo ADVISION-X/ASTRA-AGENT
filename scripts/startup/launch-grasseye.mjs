@@ -233,7 +233,10 @@ async function verifyBrowserRuntime(root) {
     "browser_runtime_preflight",
     "passed",
     "read-only Browser Runtime preflight passed",
-    { durationMs: Date.now() - preflightStart },
+    {
+      durationMs: Date.now() - preflightStart,
+      refs: [`runtimeMode=${process.env.GRASSEYE_BROWSER_RUNTIME_MODE?.trim() || "production"}`],
+    },
   );
 }
 

@@ -9,6 +9,7 @@ const RELEASE_SEQUENCE = 2;
 const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 2;
 const PROTOCOL_VERSION = "grasseye-browser-v2";
 const EXTENSION_ID = "mepfnlhndaiihhfejbbhfehegpbdnipl";
+const runtimeMode = () => process.env.GRASSEYE_BROWSER_RUNTIME_MODE?.trim() || "production";
 
 const sha256 = async (filePath) =>
   `sha256:${createHash("sha256").update(await readFile(filePath)).digest("hex")}`;
@@ -24,10 +25,15 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
   const root = path.resolve(artifactRoot);
   const manifestPath = path.join(root, "browser-artifact-set.json");
   const signaturePath = path.join(root, "browser-artifact-set.sig");
-  const publicKeyPem = process.env.GRASSEYE_BROWSER_RELEASE_PUBLIC_KEY_PEM?.trim();
-  if (!publicKeyPem) throw new Error("BROWSER_RELEASE_PUBLIC_KEY_REQUIRED");
+  const mode = runtimeMode();
+  if (mode !== "production" && mode !== "test") throw new Error(`BROWSER_RUNTIME_MODE_INVALID:${mode}`);
+  const testPublicKeyPath = path.join(root, "browser-artifact-set.test-public-key.pem");
+  const publicKeyPem = mode === "test"
+    ? (existsSync(testPublicKeyPath) ? await readFile(testPublicKeyPath, "utf8") : "")
+    : process.env.GRASSEYE_BROWSER_RELEASE_PUBLIC_KEY_PEM?.trim();
+  if (!publicKeyPem) throw new Error(mode === "test" ? "BROWSER_TEST_RELEASE_PUBLIC_KEY_REQUIRED" : "BROWSER_RELEASE_PUBLIC_KEY_REQUIRED");
   if (!existsSync(manifestPath) || !existsSync(signaturePath)) {
-    throw new Error("BROWSER_ARTIFACT_SIGNATURE_FILES_REQUIRED");
+    throw new Error(mode === "test" ? "BROWSER_TEST_ARTIFACT_SIGNATURE_FILES_REQUIRED" : "BROWSER_ARTIFACT_SIGNATURE_FILES_REQUIRED");
   }
   const manifestBytes = await readFile(manifestPath);
   const signatureBytes = await readFile(signaturePath);
@@ -44,6 +50,7 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
     || manifest.minimumAcceptedReleaseSequence !== MINIMUM_ACCEPTED_RELEASE_SEQUENCE
     || manifest.protocolVersion !== PROTOCOL_VERSION
     || manifest.extensionId !== EXTENSION_ID
+    || manifest.artifactMode !== mode
     || manifest.platformArch !== platformArch
     || typeof manifest.sourceCommitSha !== "string"
     || manifest.sourceCommitSha === "UNBOUND"
@@ -68,8 +75,10 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
   if (process.platform === "darwin") {
     runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", hostPath]);
     runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", browserctlPath]);
-    runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", hostPath]);
-    runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", browserctlPath]);
+    if (mode === "production") {
+      runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", hostPath]);
+      runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", browserctlPath]);
+    }
   }
 
   return Object.freeze({

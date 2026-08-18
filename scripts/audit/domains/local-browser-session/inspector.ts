@@ -59,6 +59,8 @@ const requiredFiles = [
   "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
   "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs",
   "src/lib/browser/native-messaging-host/install.mjs",
+  "src/lib/browser/release/build-browser-runtime.mjs",
+  "src/lib/browser/release/verify-browser-artifact.mjs",
   "src/lib/local-runtime/workbench-browser-support.ts",
   "src/lib/local-runtime/workbench-assembly.ts",
   "src/lib/local-runtime/workbench-status.ts",
@@ -447,6 +449,8 @@ const inspectRustHostOnly = (findings: InspectorFinding[]): void => {
   const cargo = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/native-messaging-host/Cargo.toml");
   const host = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/host/src/main.rs");
   const browserctl = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs");
+  const build = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/build-browser-runtime.mjs");
+  const verifier = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/verify-browser-artifact.mjs");
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, installPath, installer, [
     "BROWSERCTL_PREBUILT_BINARY_REQUIRED",
     "grasseye-browserctl",
@@ -469,6 +473,16 @@ const inspectRustHostOnly = (findings: InspectorFinding[]): void => {
     "write_atomic",
     "host_sha256",
     "allowed_origins",
+  ]);
+  requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/build-browser-runtime.mjs", build, [
+    "GRASSEYE_BROWSER_RUNTIME_MODE",
+    "Apple Development",
+    "browser-artifact-set.test-public-key.pem",
+  ]);
+  requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/verify-browser-artifact.mjs", verifier, [
+    "GRASSEYE_BROWSER_RUNTIME_MODE",
+    "manifest.artifactMode",
+    "spctl",
   ]);
 };
 
