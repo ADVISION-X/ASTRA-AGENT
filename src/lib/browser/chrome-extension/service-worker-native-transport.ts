@@ -249,16 +249,8 @@ class NativePortActor {
     if (this.commandReceipts.has(payload.commandId)) throw new Error("BROWSER_COMMAND_ID_REPLAY");
     this.lastAcceptedSequence = permit.sequence;
     const completion = executeCommand(
-      {
-        protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
-        releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
-        type: "command_frame",
-        permit,
-        iv: message.iv,
-        ciphertext: message.ciphertext,
-      },
-      async () => runCommandHandler!(payload.command, payload.expectedLoaderId),
-      payload,
+      { payload, deadlineAt: permit.deadlineAt },
+      async (command, expectedLoaderId) => runCommandHandler!(command, expectedLoaderId),
     );
     this.commandReceipts.set(payload.commandId, completion);
     const response = await completion;
