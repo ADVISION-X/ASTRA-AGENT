@@ -9,6 +9,15 @@ import type {
 } from "./workbench-status-types.js";
 
 type WorkbenchStatusAssembly = Pick<WorkbenchAssembly, "browserController">;
+type AiProductionHealthSnapshot = {
+  readonly status: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
+  readonly contractManifestHash: string;
+  readonly activeCount: number;
+  readonly lastSuccessfulHeartbeatAt: string | null;
+  readonly lastErrorCode: string | null;
+  readonly lastErrorReason: string | null;
+  readonly checkedAt: string;
+} | null;
 
 const readRuntimeInitializationComponent = (
   state: WorkbenchInitializationState,
@@ -25,6 +34,27 @@ const readRuntimeInitializationComponent = (
     : null,
   ownerResponsible: "local-runtime",
 });
+
+const readAiProductionComponent = (
+  health: AiProductionHealthSnapshot,
+): WorkbenchHealthComponent | null => {
+  if (!health) return null;
+  const ok = health.status === "ready";
+  const detail = ok
+    ? `AI production worker contract ready; active=${health.activeCount}; manifest=${health.contractManifestHash}.`
+    : `AI production worker ${health.status}; code=${health.lastErrorCode ?? "unknown"}; manifest=${health.contractManifestHash}; reason=${health.lastErrorReason ?? "unknown"}.`;
+  return {
+    name: "xuanxueAiProductionWorker",
+    ok,
+    detail,
+    actionableMessage: ok
+      ? null
+      : health.status === "contract_blocked"
+        ? "Deploy xuanxue-web and AGENT with the same localization contract manifest and product hashes before restarting."
+        : "Inspect the xuanxue-ai-production worker error and restore its cloud/API dependency without changing task identity.",
+    ownerResponsible: "xuanxue-ai-production",
+  };
+};
 
 const readBrowserAuthorityComponent = (
   assembly: WorkbenchStatusAssembly,
@@ -57,10 +87,13 @@ const readBrowserAuthorityComponent = (
 export async function getHealthReport(
   assembly: WorkbenchStatusAssembly,
   initialization: WorkbenchInitializationState,
+  aiProductionHealth: AiProductionHealthSnapshot = null,
 ): Promise<WorkbenchHealthReport> {
   const checkedAt = new Date().toISOString();
+  const productionComponent = readAiProductionComponent(aiProductionHealth);
   const components = [
     readRuntimeInitializationComponent(initialization),
+    ...(productionComponent ? [productionComponent] : []),
     readBrowserAuthorityComponent(assembly),
   ];
   const allOk = components.every((component) => component.ok);
