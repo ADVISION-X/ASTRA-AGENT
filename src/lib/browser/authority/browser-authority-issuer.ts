@@ -30,14 +30,15 @@ type IssueInput = Readonly<{
 
 export class BrowserAuthorityIssuer {
   private current: AuthenticatedBrowserAuthority | null = null;
+  private pending: AuthenticatedBrowserAuthority | null = null;
   private lastHeartbeatMonotonicMs = 0;
   private changedAtMonotonicMs = performance.now();
   private absentReason = "not_authenticated";
 
-  issue(input: IssueInput): AuthenticatedBrowserAuthority {
+  prepare(input: IssueInput): AuthenticatedBrowserAuthority {
     const now = performance.now();
-    if (this.current) {
-      throw new Error("BROWSER_AUTHORITY_ALREADY_PRESENT: revoke the current authority before issuing another");
+    if (this.current || this.pending) {
+      throw new Error("BROWSER_AUTHORITY_ALREADY_PENDING_OR_PRESENT");
     }
     if (!Number.isSafeInteger(input.connectionGeneration) || input.connectionGeneration <= 0) {
       throw new Error("BROWSER_AUTHORITY_GENERATION_INVALID");
@@ -45,16 +46,27 @@ export class BrowserAuthorityIssuer {
     if (!Number.isSafeInteger(input.nativePortEpoch) || input.nativePortEpoch <= 0) {
       throw new Error("BROWSER_AUTHORITY_PORT_EPOCH_INVALID");
     }
-    const authority = AuthenticatedBrowserAuthority.issueInternal({
+    const candidate = AuthenticatedBrowserAuthority.issueInternal({
       ...input,
       issuedAtMonotonicMs: now,
       hardExpiresAtMonotonicMs: now + BROWSER_AUTHORITY_MAX_AGE_MS,
     });
-    this.current = authority;
+    this.pending = candidate;
+    return candidate;
+  }
+
+  commit(candidate: AuthenticatedBrowserAuthority): AuthenticatedBrowserAuthority {
+    if (this.current) throw new Error("BROWSER_AUTHORITY_ALREADY_PRESENT");
+    if (!this.pending || this.pending.certificate.certificateHash !== candidate.certificate.certificateHash) {
+      throw new Error("BROWSER_AUTHORITY_PENDING_CANDIDATE_MISMATCH");
+    }
+    const now = performance.now();
+    this.current = candidate;
+    this.pending = null;
     this.lastHeartbeatMonotonicMs = now;
     this.changedAtMonotonicMs = now;
     this.absentReason = "";
-    return authority;
+    return candidate;
   }
 
   requireCurrent(): AuthenticatedBrowserAuthority {
@@ -83,6 +95,7 @@ export class BrowserAuthorityIssuer {
   revoke(reason: string): void {
     const now = performance.now();
     this.current = null;
+    this.pending = null;
     this.lastHeartbeatMonotonicMs = 0;
     this.changedAtMonotonicMs = now;
     this.absentReason = reason || "revoked";
