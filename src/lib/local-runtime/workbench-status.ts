@@ -26,29 +26,29 @@ const readRuntimeInitializationComponent = (
   ownerResponsible: "local-runtime",
 });
 
-const readBrowserSessionComponent = (
+const readBrowserAuthorityComponent = (
   assembly: WorkbenchStatusAssembly,
 ): WorkbenchHealthComponent => {
   try {
-    const state = assembly.browserController.getSessionState();
-    const transportReady = state.browserMode === "fixture" || state.transportReady === true;
+    const authority = assembly.browserController.getAuthoritySnapshot();
+    const present = authority.state === "AUTHENTICATED_AUTHORITY_PRESENT";
     return {
-      name: "browserSession",
-      ok: transportReady,
-      detail: transportReady
-        ? `Browser session state: ${state.browserMode}`
-        : `Browser session transport is not authenticated: ${state.browserMode}`,
-      actionableMessage: transportReady
+      name: "browserAuthority",
+      ok: present,
+      detail: present
+        ? `Authenticated browser authority present for generation ${authority.connectionGeneration}.`
+        : `Browser authority absent: ${authority.reason}`,
+      actionableMessage: present
         ? null
-        : "Wait for the fixed-id extension and Native Messaging host to authenticate, then retry.",
+        : "Repair the enrolled Chrome profile, signed Native Host, extension or transport identity before admitting browser work.",
       ownerResponsible: "Browser",
     };
   } catch (error) {
     return {
-      name: "browserSession",
+      name: "browserAuthority",
       ok: false,
-      detail: error instanceof Error ? error.message : "browser session check failed",
-      actionableMessage: "Ensure the local browser session is configured and accessible.",
+      detail: error instanceof Error ? error.message : "browser authority check failed",
+      actionableMessage: "Repair the browser infrastructure authority chain before admitting browser work.",
       ownerResponsible: "Browser",
     };
   }
@@ -61,7 +61,7 @@ export async function getHealthReport(
   const checkedAt = new Date().toISOString();
   const components = [
     readRuntimeInitializationComponent(initialization),
-    readBrowserSessionComponent(assembly),
+    readBrowserAuthorityComponent(assembly),
   ];
   const allOk = components.every((component) => component.ok);
   return {
@@ -77,13 +77,13 @@ export async function getMissionReadinessReport(
   _options: GrassEyeWorkbenchOptions,
 ): Promise<WorkbenchMissionReadinessReport> {
   const checkedAt = new Date().toISOString();
-  const components = [readBrowserSessionComponent(assembly)];
+  const components = [readBrowserAuthorityComponent(assembly)];
   const allReady = components.every((component) => component.ok);
   return {
     status: allReady ? "ready" : "not_ready",
     reason: allReady
-      ? "Amazon invoice upload workbench is ready."
-      : components.find((component) => !component.ok)?.detail ?? "Browser readiness failed.",
+      ? "Browser authority and mission runtime are ready."
+      : components.find((component) => !component.ok)?.detail ?? "Browser authority readiness failed.",
     components,
     checkedAt,
   };
@@ -94,13 +94,13 @@ export async function getMissionStartPreflight(
   _options: GrassEyeWorkbenchOptions,
   _input: unknown,
 ): Promise<WorkbenchPreflightResult> {
-  const component = readBrowserSessionComponent(assembly);
+  const component = readBrowserAuthorityComponent(assembly);
   if (!component.ok) {
     return {
       status: "blocked",
-      actionableMessage: component.actionableMessage ?? "Resolve the browser readiness failure.",
-      failureReason: component.detail ?? "Browser readiness failed.",
-      recommendedAction: "Open the browser session before starting the Amazon upload flow.",
+      actionableMessage: component.actionableMessage ?? "Resolve the browser authority failure.",
+      failureReason: component.detail ?? "Browser authority failed.",
+      recommendedAction: "Repair browser infrastructure before starting the mission.",
       ownerResponsible: component.ownerResponsible ?? "Browser",
       components: [component],
     };
@@ -108,10 +108,10 @@ export async function getMissionStartPreflight(
 
   return {
     status: "ready",
-    actionableMessage: "Amazon invoice upload flow can start.",
+    actionableMessage: "Mission can start under the current authenticated browser authority.",
     failureReason: null,
-    recommendedAction: "Run the Amazon invoice upload flow script.",
-    ownerResponsible: "amazon-invoice-upload",
+    recommendedAction: "Run the governed mission flow.",
+    ownerResponsible: "local-runtime",
     components: [component],
   };
 }
