@@ -61,13 +61,21 @@ export const completeXuanxueAiProductionOrder = (
 ): XuanxueAiOrderRecord => {
   const updatedAt = new Date().toISOString();
   const result: XuanxueAiProductionResult = {
-    orderId: record.order.orderId, sourceTaskId: record.order.sourceTaskId,
-    productId: record.order.productId, inputBundleRef: record.order.inputBundleRef,
+    orderId: record.order.orderId,
+    sourceTaskId: record.order.sourceTaskId,
+    productId: record.order.productId,
+    inputBundleRef: record.order.inputBundleRef,
     inputBundleHash: record.order.inputBundleHash,
-    requestHash: record.order.requestHash, status: "completed",
+    requestHash: record.order.requestHash,
+    contractManifestHash: record.order.contractManifestHash,
+    productContractHash: record.order.productContractHash,
+    localizationRole: record.order.localizationRole,
+    status: "completed",
     finalStageId: profile.finalStageId,
-    stages: record.stages.map(completedResultStage), failureReason: null,
-    createdAt: record.createdAt, updatedAt,
+    stages: record.stages.map(completedResultStage),
+    failureReason: null,
+    createdAt: record.createdAt,
+    updatedAt,
   };
   return runtime.store.updateOrder({
     orderId: record.order.orderId, status: "completed", result,
