@@ -23,6 +23,13 @@ const removeAttachmentCount = composerRoot instanceof HTMLElement
   : 0;
 const composerRootText = composerRoot instanceof HTMLElement ? clip(composerRoot.innerText || "") : "";
 const hasPastedTextCard = /已粘贴的文本|在文本字段中显示|pasted text|pasted content/i.test(composerRootText);
+const composerTurnMarkers = Array.from(
+  composerText.matchAll(/\\[INTERNAL_TRANSPORT_MARKER:(GRASSEYE_TURN_[a-f0-9]{32})\\]/gu),
+  (match) => match[1],
+);
+const internalMarkerMentionCount = (
+  composerText.match(/INTERNAL_TRANSPORT_MARKER:/gu) || []
+).length;
 const generating = Array.from(document.querySelectorAll("button")).some((button) =>
   isVisible(button)
   && /stop streaming|stop generating|停止生成|停止回应/i.test(clip(
@@ -34,6 +41,16 @@ const isFreshConversation = Boolean(composer)
 ${CHATGPT_FRESH_ZERO_STATE_FIELDS.map((field) => `  && ${field} === 0`).join("\n")}
   && !hasPastedTextCard
   && !generating;
+const eligibleSubmittedDraftCleanup = Boolean(composer)
+  && isFreshPath
+  && userCount === 0
+  && assistantCount === 0
+  && composerText.length > 0
+  && removeAttachmentCount === 0
+  && !hasPastedTextCard
+  && !generating
+  && composerTurnMarkers.length === 1
+  && internalMarkerMentionCount === 1;
 return {
   status: isFreshConversation ? "success" : "pending",
   message: isFreshConversation
@@ -45,6 +62,9 @@ return {
   isFreshPath,
   composerReady: Boolean(composer),
   composerTextLength: composerText.length,
+  composerTurnMarkers,
+  internalMarkerMentionCount,
+  eligibleSubmittedDraftCleanup,
   removeAttachmentCount,
   hasPastedTextCard,
   generating,

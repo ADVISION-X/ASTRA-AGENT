@@ -338,3 +338,48 @@ Required:
 - The default readiness budget must be at least `60000ms`.
 - The default readiness poll interval must stay bounded between `250ms` and `1000ms`.
 - Spawn success is only process readiness; app readiness remains `/api/health`.
+
+## [APEX-STARTUP-008-V1] Initialization-Truthful Health
+
+```apex-law
+{
+  "lawId": "APEX-STARTUP-008-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "startup-entrypoint",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+runtime",
+  "summary": "The workbench health endpoint and startup probe must report ready only after every mandatory runtime owner has initialized successfully, and initialization failure must close the started server and fail startup.",
+  "appliesTo": [
+    "src/app/server.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/lib/local-runtime/workbench-status.ts",
+    "scripts/startup/lib/service-readiness.mjs"
+  ],
+  "required": [
+    "GET /api/health includes a mandatory runtime-initialization component whose state is initializing, ready, or failed.",
+    "Only status=healthy is accepted by cold-start readiness and hot-mount probes.",
+    "A mandatory owner initialization exception is preserved as a bounded non-secret health reason, closes the newly started HTTP server, and makes the app process exit non-zero."
+  ],
+  "forbidden": [
+    "Reporting healthy before mandatory runtime initialization settles.",
+    "Accepting degraded as startup-ready or hot-mount-ready.",
+    "Leaving the HTTP listener alive after mandatory owner initialization fails.",
+    "Hiding an asynchronous initialization failure behind browser-session health."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-startup-008-requirement",
+      "statement": "The workbench health endpoint and startup probe must report ready only after every mandatory runtime owner has initialized successfully, and initialization failure must close the started server and fail startup.",
+      "evidenceMode": "acceptance",
+      "ownerDomain": "startup-entrypoint"
+    }
+  ]
+}
+```
+
+Required:
+
+- The app may bind its local port while initialization is in progress, but `/api/health` must remain non-healthy until all mandatory owners finish initialization.
+- Initialization failure must remain visible long enough to produce the real terminal failure, then the newly started listener must close.
+- Health reasons must identify the failed owner without returning credentials, tokens, cookies, prompts, or provider output.

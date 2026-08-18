@@ -74,7 +74,15 @@ function startServer(): ReturnType<typeof createServer> {
 async function startLocalRuntime(): Promise<void> {
   const server = startServer();
   process.stdout.write(`GrassEye local workbench listening on ${baseUrl}\n`);
-  await workbench.init();
+  try {
+    await workbench.init();
+  } catch (error) {
+    await Promise.allSettled([
+      workbench.shutdown(),
+      new Promise<void>((resolve) => server.close(() => resolve())),
+    ]);
+    throw error;
+  }
   const shutdown = async (): Promise<void> => {
     await workbench.shutdown();
     await new Promise<void>((resolve) => server.close(() => resolve()));

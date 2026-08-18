@@ -1,7 +1,56 @@
 {
-  "status": "PASS",
-  "findings": [],
-  "generatedAt": "2026-08-16T04:12:56.521Z",
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "local-browser-session/owner-assertion-set",
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
+      "message": "exact-target command surface is missing text_target",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/chrome-extension/service-worker.ts"
+    },
+    {
+      "checkId": "local-browser-session/owner-assertion-set",
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
+      "message": "exact-target command surface is missing set_file_input_files",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/chrome-extension/service-worker.ts"
+    },
+    {
+      "checkId": "local-browser-session/owner-assertion-set",
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
+      "message": "dedicated exact-target mutation is missing DOM.requestNode",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/chrome-extension/service-worker.ts"
+    },
+    {
+      "checkId": "local-browser-session/owner-assertion-set",
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
+      "message": "file-input command must resolve one real author-shadow receiver before dispatch",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/chrome-extension/service-worker.ts"
+    },
+    {
+      "checkId": "local-browser-session/owner-assertion-set",
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
+      "message": "text_target must dispatch ordered rawKeyDown keyboard events",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/chrome-extension/service-worker.ts"
+    },
+    {
+      "checkId": "local-browser-session/owner-assertion-set",
+      "lawId": "APEX-LOCAL-BROWSER-004-V1",
+      "clauseId": "apex-local-browser-004-requirement",
+      "message": "text_target must dispatch ordered char keyboard events",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/chrome-extension/service-worker.ts"
+    }
+  ],
+  "generatedAt": "2026-08-18T01:13:23.854Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -13,14 +62,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:a6aa425b-cd20-483b-b28d-935f29e80a5d",
+      "runId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7",
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:9bcf9baf-4fec-4c23-a337-be6a374d3735",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-16T04:12:55.348Z",
-      "endedAt": "2026-08-16T04:12:56.521Z",
-      "durationMs": 1173,
+      "status": "FAIL",
+      "startedAt": "2026-08-18T01:13:22.651Z",
+      "endedAt": "2026-08-18T01:13:23.854Z",
+      "durationMs": 1203,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/lib/browser/browser-controller.ts",
@@ -38,7 +87,7 @@
         "src/lib/browser/exact-target/browser-target-registry.ts",
         "src/lib/browser/native-messaging-host/install.mjs"
       ],
-      "findingCount": 0
+      "findingCount": 6
     }
   ],
   "executedChecks": [
@@ -46,13 +95,13 @@
       "lawId": "APEX-LOCAL-BROWSER-002-V1",
       "clauseId": "apex-local-browser-002-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:a6aa425b-cd20-483b-b28d-935f29e80a5d"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:9bcf9baf-4fec-4c23-a337-be6a374d3735"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:a6aa425b-cd20-483b-b28d-935f29e80a5d"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:9bcf9baf-4fec-4c23-a337-be6a374d3735"
     }
   ],
   "inspectedFiles": [

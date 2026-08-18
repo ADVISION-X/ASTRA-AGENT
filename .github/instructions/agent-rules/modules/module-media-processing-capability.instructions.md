@@ -266,7 +266,6 @@ generate-video-poster-once
 optimize-image-for-web-once
 resize-image-for-web-once
 generate-responsive-image-variants-once
-inspect-public-knowledge-image-redlines-once
 ```
 
 Child semantics:
@@ -277,7 +276,6 @@ Child semantics:
 - `optimize-image-for-web-once` transforms one source image into one optimized website image output.
 - `resize-image-for-web-once` transforms one source image into one requested dimension-constrained image output.
 - `generate-responsive-image-variants-once` transforms one source image into one deterministic responsive variant set defined by the caller-approved preset.
-- `inspect-public-knowledge-image-redlines-once` observes one normalized public-knowledge image for faces, readable text and page/map/chart/logo-style classifications; it returns hash-bound proof or `review_required` and never decides publication.
 
 Required direction:
 
@@ -486,7 +484,7 @@ Required image success facts:
 - proof ref;
 - completed timestamp.
 
-The `public-knowledge-hero` preset is fixed to opaque WebP 1200×630. It uses `contain` on an opaque neutral background so the complete generated frame remains visible; center crop is forbidden. Encoding must omit source metadata and the output must be decoded again before success. The caller must then invoke `public-knowledge-redline-check`; an unavailable or uncertain observer is `review_required`, never PASS.
+The `public-knowledge-hero` preset is fixed to opaque WebP 1200×630. It uses `contain` on an opaque neutral background so the complete generated frame remains visible; center crop is forbidden. Encoding must omit source metadata and the output must be decoded again before success. Media Processing proves only mechanical artifact integrity; it must not inspect or reject people, faces, readable text, pages, maps, charts, logos, watermarks, astrology charts, style or any other creative content.
 
 Required variant-set success facts:
 

@@ -14,8 +14,8 @@ type TurnIdentityObservation = {
   userTurnCount: number;
 };
 
-const observationScript = (turnMarker: string): string => `
-const marker = ${JSON.stringify(turnMarker)};
+const observationScript = (promptText: string): string => `
+const expectedPrompt = String(${JSON.stringify(promptText)} || "").replace(/\\s+/gu, " ").trim();
 const visible = (node) => {
   if (!(node instanceof Element)) return false;
   const style = getComputedStyle(node);
@@ -45,11 +45,11 @@ const geminiTurns = geminiCandidates
     text: text(node),
   }));
 const turns = chatGptTurns.length > 0 ? chatGptTurns : geminiTurns;
-const matches = turns.filter((turn) => turn.text.includes(marker));
+const matches = turns.filter((turn) => turn.text === expectedPrompt);
 if (matches.length > 1) {
   return {
     status: "review_required",
-    message: "WEB_CHAT_TURN_MARKER_AMBIGUOUS",
+    message: "WEB_CHAT_PROMPT_IDENTITY_AMBIGUOUS",
     pageUrl: location.href,
     userTurnId: null,
     matchingUserTurnCount: matches.length,
@@ -59,7 +59,7 @@ if (matches.length > 1) {
 if (matches.length === 0) {
   return {
     status: "pending",
-    message: "waiting for internally marked user turn",
+    message: "waiting for exact submitted user prompt",
     pageUrl: location.href,
     userTurnId: null,
     matchingUserTurnCount: 0,
@@ -68,7 +68,7 @@ if (matches.length === 0) {
 }
 return {
   status: "success",
-  message: "internally marked user turn found",
+  message: "exact submitted user prompt found",
   pageUrl: location.href,
   userTurnId: matches[0].id,
   matchingUserTurnCount: 1,
@@ -141,9 +141,6 @@ const buildSubmissionProof = (input: {
   canonicalConversationUrl: input.canonical
     ? input.observation.pageUrl
     : null,
-  systemChatTitle: null,
-  observedAutoChatTitle: null,
-  chatTitleVerifiedAt: null,
   userTurnId: input.observation.userTurnId,
   previousAssistantCount: input.previousAssistantCount,
   previousUserMessageCount: input.previousUserMessageCount,
@@ -167,8 +164,8 @@ export const captureWebChatSubmissionProof = async (input: {
   let last: TurnIdentityObservation | null = null;
   while (Date.now() < deadline) {
     last = await input.browser.evaluate<TurnIdentityObservation>({
-      description: "bind submitted web-chat turn to its internal marker and canonical conversation",
-      script: observationScript(execution.turnMarker),
+      description: "bind submitted web-chat turn to its exact clean prompt and canonical conversation",
+      script: observationScript(input.request.textPrompt),
       ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
     });
     transientConversationUrl ??= last.pageUrl;

@@ -29,7 +29,6 @@ const governedFiles = [
   "src/capabilities/media-processing/runtime/result.ts",
   "src/capabilities/media-processing/dependency-readiness.ts",
   "src/capabilities/media-processing/runtime/sharp-runner.ts",
-  "src/capabilities/media-processing/runtime/image-redline-observer.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
   "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
@@ -53,7 +52,6 @@ const expectedChildren = [
   "optimize-image-for-web-once",
   "resize-image-for-web-once",
   "generate-responsive-image-variants-once",
-  "inspect-public-knowledge-image-redlines-once",
 ] as const;
 
 const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> = {
@@ -63,7 +61,6 @@ const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> =
   "optimize-image-for-web-once": "createOptimizeImageForWeb",
   "resize-image-for-web-once": "createResizeImageForWeb",
   "generate-responsive-image-variants-once": "createGenerateResponsiveImageSet",
-  "inspect-public-knowledge-image-redlines-once": "createInspectPublicKnowledgeImageRedlines",
 };
 
 const forbiddenMediaOwnerNames = [

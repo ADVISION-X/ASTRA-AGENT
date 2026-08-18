@@ -1,6 +1,6 @@
 # GrassEye 精确标签页本地 Chrome 会话施工图
 
-版本：2026-08-14
+版本：2026-08-16.1
 状态：active construction blueprint
 权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`
 
@@ -147,6 +147,11 @@ Observation 可以由 owning caller 重新从 checkpoint 发起；任何 mutatio
 - Native host manifest `allowed_origins` 只有固定 extension origin。
 - Native 消息遵守 Chrome 4-byte length framing，并设置 request/response size 上限。
 - Controller、host、extension protocol version 必须完全一致。
+- 每次 `connectNative` 返回的 port 是一个独立运输会话。worker 的当前 port 指针先完成换主，
+  随后只有来自该指针所指 port 的 challenge/command 才能认证或修改 `lastAcceptedSequence`。
+  已断开、被替换或迟到的旧 port 消息必须在 nonce/sequence 状态变更前直接忽略。
+- 当前 port 的 controller challenge 对该 port 精确重置一次序号，首条命令必须是 sequence 1；
+  Controller/host 重启后即使旧 port 有迟到 challenge，也不得把新 port 已接受的序号清零。
 
 ### 7.1 evaluate 唯一表达式合同
 
@@ -266,6 +271,8 @@ local-browser-atomic-cutover.acceptance.ts
 3. 前台 marker 全部不变。
 4. navigation 后旧 document/element ref 必须拒绝。
 5. 关闭 target、extension reload、host/controller exit、DevTools 冲突全部 fail closed。
+   Native port 换主后注入旧 port 的迟到 challenge，当前 port 仍从 sequence 1 正常执行；旧消息
+   不得触发认证回执、序号归零、乱序错误或 debugger 命令。
 6. 文件输入只通过插件精确 target 命令运行，前台标签和窗口焦点保持不变。
 7. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
 8. 函数体 top-level return 经唯一生产 wrapper 成功返回，且不存在 `Illegal return statement`。

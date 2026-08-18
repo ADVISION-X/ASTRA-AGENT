@@ -18,6 +18,22 @@ interface LocatedImageDownload {
   point?: { x: number; y: number };
 }
 
+export interface GeneratedImageTurnEvidence {
+  role: "user" | "assistant";
+  promptMatched: boolean;
+  substantive: boolean;
+}
+
+export interface GeneratedImageTurnDecision {
+  status: "success" | "pending" | "review_required";
+  message: string;
+  assistantIndex?: number;
+}
+
+type GeneratedImageArtifact = NonNullable<
+  import("../contracts/ai-provider-adapter.contract.js").AiProviderRawResponse["outputArtifacts"]
+>[number];
+
 const imageExtensions = new Set([".png", ".webp", ".jpg", ".jpeg"]);
 let generatedImageCaptureTail: Promise<void> = Promise.resolve();
 
@@ -49,45 +65,62 @@ async function downloads(): Promise<DownloadEntry[]> {
 }
 
 function generatedImageTurnRole(turn: Element): string {
-  return turn.getAttribute("data-message-author-role")
-    || turn.querySelector("[data-message-author-role]")
-      ?.getAttribute("data-message-author-role")
-    || "";
+  return turn.getAttribute("data-turn") || "";
+}
+
+function generatedImageTurnHasSubstantiveContent(turn: Element): boolean {
+  const hasText = Array.from(
+    turn.querySelectorAll("[data-conversation-screenshot-content]"),
+  ).some((node) => (node.textContent || "").trim().length > 0);
+  const hasImage = Array.from(turn.querySelectorAll("img"))
+    .some((image) => (image.currentSrc || image.getAttribute("src") || "").trim().length > 0);
+  return hasText || hasImage;
+}
+
+export function decideGeneratedImageAssistantTurn(
+  turns: readonly GeneratedImageTurnEvidence[],
+): GeneratedImageTurnDecision {
+  const promptIndexes = turns.flatMap((turn, index) =>
+    turn.role === "user" && turn.promptMatched ? [index] : []);
+  if (promptIndexes.length !== 1) {
+    return { status: "review_required", message: "exact generated-image user prompt must occur once" };
+  }
+  const promptIndex = promptIndexes[0]!;
+  const substantiveAfterPrompt = turns.flatMap((turn, index) =>
+    index > promptIndex && turn.substantive ? [index] : []);
+  if (substantiveAfterPrompt.length === 0) {
+    return { status: "pending", message: "substantive assistant turn following exact prompt not found" };
+  }
+  const assistantIndex = substantiveAfterPrompt[0]!;
+  if (turns[assistantIndex]!.role !== "assistant") {
+    return { status: "review_required", message: "first substantive turn after generated-image prompt is not assistant" };
+  }
+  if (substantiveAfterPrompt.length > 1) {
+    return { status: "review_required", message: "conversation advanced beyond generated-image assistant turn" };
+  }
+  return { status: "success", message: "exact generated-image assistant turn located", assistantIndex };
 }
 
 function findGeneratedImageAssistant(
-  marker: string,
+  promptText: string,
 ): Element | LocatedImageDownload {
   const turns = Array.from(document.querySelectorAll(
-    'article[data-testid^="conversation-turn"], [data-message-author-role="assistant"]',
+    '[data-testid^="conversation-turn-"][data-turn="user"], [data-testid^="conversation-turn-"][data-turn="assistant"]',
   ));
-  const markedUserTurns = marker
-    ? turns.filter((turn) => generatedImageTurnRole(turn) === "user"
-      && (turn.textContent || "").includes(marker))
-    : [];
-  if (markedUserTurns.length !== 1) {
-    return { status: "review_required", message: "exact generated-image user turn marker must occur once" };
-  }
-  const markerIndex = turns.indexOf(markedUserTurns[0]!);
-  const assistantIndex = turns.findIndex(
-    (turn, index) => index > markerIndex
-      && generatedImageTurnRole(turn) === "assistant",
-  );
-  if (assistantIndex < 0) {
-    return { status: "pending", message: "assistant turn following exact marker not found" };
-  }
-  if (turns.slice(assistantIndex + 1).some(
-    (turn) => generatedImageTurnRole(turn) === "user"
-      || generatedImageTurnRole(turn) === "assistant",
-  )) {
-    return { status: "review_required", message: "conversation advanced beyond generated-image assistant turn" };
-  }
-  return turns[assistantIndex]!;
+  const decision = decideGeneratedImageAssistantTurn(turns.map((turn) => ({
+    role: generatedImageTurnRole(turn) as "user" | "assistant",
+    promptMatched: (turn.textContent || "").replace(/\s+/gu, " ").trim()
+      === promptText.replace(/\s+/gu, " ").trim(),
+    substantive: generatedImageTurnHasSubstantiveContent(turn),
+  })));
+  return decision.status === "success"
+    ? turns[decision.assistantIndex!]!
+    : decision;
 }
 
-function findGeneratedImageDownloadButton(
+function findGeneratedImageCard(
   assistant: Element,
-): HTMLButtonElement | LocatedImageDownload {
+): HTMLElement | LocatedImageDownload {
   const images = Array.from(assistant.querySelectorAll("img")).filter((image) => {
     const rect = image.getBoundingClientRect();
     const src = image.currentSrc || image.src || "";
@@ -103,33 +136,28 @@ function findGeneratedImageDownloadButton(
   if (logicalSources.size > 1) {
     return { status: "review_required", message: "more than one logical image found in latest assistant turn" };
   }
-  const downloadButtons = Array.from(assistant.querySelectorAll("button"))
-    .filter((button) => {
-      const label = `${button.getAttribute("aria-label") || ""} ${button.textContent || ""}`
-        .toLowerCase();
-      return label.includes("download") || label.includes("下载");
-    });
-  if (downloadButtons.length > 1) {
-    return { status: "review_required", message: "generated image assistant turn has ambiguous download controls" };
+  const cards = images.map((image) => image.closest('[role="button"]'))
+    .filter((card): card is HTMLElement => card instanceof HTMLElement);
+  const uniqueCards = [...new Set(cards)];
+  if (uniqueCards.length !== 1) {
+    return uniqueCards.length === 0
+      ? { status: "pending", message: "generated image card is not interactive yet" }
+      : { status: "review_required", message: "generated image assistant turn has ambiguous image cards" };
   }
-  const target = downloadButtons[0];
-  if (!target) {
-    return { status: "pending", message: "generated image download control not present" };
-  }
-  return target;
+  return uniqueCards[0]!;
 }
 
-function inspectGeneratedImageAssistantTurn(marker: string): LocatedImageDownload {
-  const assistant = findGeneratedImageAssistant(marker);
+function inspectGeneratedImageAssistantTurn(promptText: string): LocatedImageDownload {
+  const assistant = findGeneratedImageAssistant(promptText);
   if (!(assistant instanceof Element)) return assistant;
-  const target = findGeneratedImageDownloadButton(assistant);
-  if (!(target instanceof HTMLButtonElement)) return target;
+  const target = findGeneratedImageCard(assistant);
+  if (!(target instanceof HTMLElement)) return target;
   const rect = target.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) {
     return { status: "pending", message: "generated image download control not visible" };
   }
   return {
-    status: "success", message: "generated image download located",
+    status: "success", message: "generated image card located",
     point: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
   };
 }
@@ -141,11 +169,44 @@ async function locateDownload(
   return browser.evaluate<LocatedImageDownload>({
     description: "locate generated image download inside exact latest assistant turn",
     script: `${generatedImageTurnRole.toString()}
+${generatedImageTurnHasSubstantiveContent.toString()}
+${decideGeneratedImageAssistantTurn.toString()}
 ${findGeneratedImageAssistant.toString()}
-${findGeneratedImageDownloadButton.toString()}
-(${inspectGeneratedImageAssistantTurn.toString()})(${JSON.stringify(
-  context.webChatExecution?.turnMarker ?? "",
-)})`,
+${findGeneratedImageCard.toString()}
+return (${inspectGeneratedImageAssistantTurn.toString()})(${JSON.stringify(
+  context.webChatExecution?.requestTextPrompt ?? "",
+)});`,
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });
+}
+
+function inspectGeneratedImageViewerDownload(): LocatedImageDownload {
+  const candidates = Array.from(document.querySelectorAll('button[aria-label="保存"]'))
+    .filter((button) => {
+      const rect = button.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+  if (candidates.length === 0) {
+    return { status: "pending", message: "generated image viewer save action not present" };
+  }
+  if (candidates.length > 1) {
+    return { status: "review_required", message: "generated image viewer has ambiguous save actions" };
+  }
+  const rect = candidates[0]!.getBoundingClientRect();
+  return {
+    status: "success",
+    message: "generated image viewer save action located",
+    point: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+  };
+}
+
+async function locateViewerDownload(
+  browser: BrowserTargetSession,
+  context: AiProviderAdapterContext,
+): Promise<LocatedImageDownload> {
+  return browser.evaluate<LocatedImageDownload>({
+    description: "locate unique generated image viewer save action",
+    script: `return (${inspectGeneratedImageViewerDownload.toString()})();`,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 }
@@ -170,12 +231,11 @@ async function waitForNewDownload(before: Set<string>, startedAt: number): Promi
   throw new Error("review_required: generated image download did not complete");
 }
 
-async function captureChatGptGeneratedImageOnce(input: {
+async function downloadGeneratedImageOnce(input: {
   browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
-}): Promise<NonNullable<import("../contracts/ai-provider-adapter.contract.js").AiProviderRawResponse["outputArtifacts"]>[number] | null> {
-  if (input.request.expectedOutputKind !== "generated_image") return null;
+}): Promise<DownloadEntry> {
   const before = new Set((await downloads()).map((entry) => entry.filePath));
   const startedAt = Date.now();
   let located: LocatedImageDownload = { status: "pending", message: "not checked" };
@@ -189,13 +249,41 @@ async function captureChatGptGeneratedImageOnce(input: {
   if (located.status !== "success" || !located.point) {
     throw new Error(`review_required: ${located.message}`);
   }
-  const clicked = await input.browser.click({
-    targetLabel: "generated image download in latest assistant turn",
+  const opened = await input.browser.click({
+    targetLabel: "generated image card in exact assistant turn",
     point: located.point,
     coordinateSpace: "browserViewport",
   });
-  if (!clicked.ok) throw new Error("review_required: generated image download click failed");
-  const downloaded = await waitForNewDownload(before, startedAt);
+  if (!opened.ok) throw new Error("review_required: generated image card click failed");
+  let viewerDownload: LocatedImageDownload = { status: "pending", message: "not checked" };
+  const viewerDeadline = Date.now() + 30_000;
+  while (Date.now() < viewerDeadline) {
+    viewerDownload = await locateViewerDownload(input.browser, input.context);
+    if (viewerDownload.status === "review_required") {
+      throw new Error(`review_required: ${viewerDownload.message}`);
+    }
+    if (viewerDownload.status === "success" && viewerDownload.point) break;
+    await input.browser.wait(500);
+  }
+  if (viewerDownload.status !== "success" || !viewerDownload.point) {
+    throw new Error(`review_required: ${viewerDownload.message}`);
+  }
+  const clicked = await input.browser.click({
+    targetLabel: "unique download action in generated image viewer",
+    point: viewerDownload.point,
+    coordinateSpace: "browserViewport",
+  });
+  if (!clicked.ok) throw new Error("review_required: generated image viewer download click failed");
+  return waitForNewDownload(before, startedAt);
+}
+
+async function persistGeneratedImageArtifact(
+  input: {
+    request: AiFeedInput;
+    context: AiProviderAdapterContext;
+  },
+  downloaded: DownloadEntry,
+): Promise<GeneratedImageArtifact> {
   const sharp = (await import("sharp")).default;
   const metadata = await sharp(downloaded.filePath).metadata();
   if (!metadata.width || !metadata.height || !metadata.format) {
@@ -223,11 +311,21 @@ async function captureChatGptGeneratedImageOnce(input: {
   };
 }
 
+async function captureChatGptGeneratedImageOnce(input: {
+  browser: BrowserTargetSession;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+}): Promise<GeneratedImageArtifact | null> {
+  if (input.request.expectedOutputKind !== "generated_image") return null;
+  const downloaded = await downloadGeneratedImageOnce(input);
+  return persistGeneratedImageArtifact(input, downloaded);
+}
+
 export async function captureChatGptGeneratedImage(input: {
   browser: BrowserTargetSession;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
-}): Promise<NonNullable<import("../contracts/ai-provider-adapter.contract.js").AiProviderRawResponse["outputArtifacts"]>[number] | null> {
+}): Promise<GeneratedImageArtifact | null> {
   if (input.request.expectedOutputKind !== "generated_image") return null;
   return withGeneratedImageCaptureLease(() => captureChatGptGeneratedImageOnce(input));
 }

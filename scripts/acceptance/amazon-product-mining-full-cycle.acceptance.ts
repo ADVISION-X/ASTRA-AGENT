@@ -148,10 +148,9 @@ const aiInputGateway: AiInputGatewayAbilityGroup = {
     if (promptContractId === "amazon-product-mining-keyword-opportunity-review-v1") {
       const reviewInput = input as {
         inputRefs?: Array<{ id?: string; kind?: string; summary?: string; filePath?: string }>;
-        maxInputChars?: number;
         maxFileCount?: number;
       };
-      assert.equal(reviewInput.maxInputChars, 900_000);
+      assert.equal("maxInputChars" in reviewInput, false);
       assert.equal(reviewInput.inputRefs?.length, 1);
       assert.equal(reviewInput.maxFileCount, reviewInput.inputRefs?.length);
       assert.equal(reviewInput.inputRefs?.every((ref) => ref.kind === "keyword-full-package-zip"), true);

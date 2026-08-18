@@ -18,7 +18,6 @@ import {
   type KeywordFullPackageArtifacts,
 } from "./amazon-product-mining.keyword-full-package.js";
 
-export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS = 900_000;
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND: AmazonKeywordProviderKind = "gpt-web-chat";
 export const AMAZON_KEYWORD_OPPORTUNITY_REVIEW_RETRY_LIMIT = 3;
 
@@ -144,7 +143,6 @@ const requestKeywordOpportunityReview = (input: {
   }),
   modelName: null,
   timeoutMs: 120_000,
-  maxInputChars: AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS,
   maxFileCount: input.context.artifacts.uploadFileRefs.length,
   requestedBy: "ai-capability",
   missionId: input.context.taskId,

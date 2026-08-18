@@ -15,16 +15,6 @@ export const handleXuanxueAiProductionRequest = async (
   url: URL,
 ): Promise<boolean> => {
   if (
-    request.method === "POST"
-    && url.pathname === "/api/plugins/xuanxue-ai-production/provider-input-preflight"
-  ) {
-    const result = await workbench.preflightXuanxueAiProductionProviderInputs(
-      await readJsonBody(request),
-    );
-    writeJson(response, 200, result);
-    return true;
-  }
-  if (
     request.method === "GET"
     && url.pathname === "/api/xuanxue-ai-production/status"
   ) {

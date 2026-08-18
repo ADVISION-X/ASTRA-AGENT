@@ -3,11 +3,28 @@ import type { WorkbenchAssembly } from "./workbench-assembly.js";
 import type {
   WorkbenchHealthComponent,
   WorkbenchHealthReport,
+  WorkbenchInitializationState,
   WorkbenchMissionReadinessReport,
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 
 type WorkbenchStatusAssembly = Pick<WorkbenchAssembly, "browserController">;
+
+const readRuntimeInitializationComponent = (
+  state: WorkbenchInitializationState,
+): WorkbenchHealthComponent => ({
+  name: "runtimeInitialization",
+  ok: state.status === "ready",
+  detail: state.status === "ready"
+    ? "Mandatory runtime owners initialized."
+    : state.status === "initializing"
+      ? "Mandatory runtime owners are initializing."
+      : `Mandatory runtime owner initialization failed: ${state.failureReason ?? "unknown failure"}`,
+  actionableMessage: state.status === "failed"
+    ? "Inspect the startup terminal failure and repair the named runtime owner before restarting."
+    : null,
+  ownerResponsible: "local-runtime",
+});
 
 const readBrowserSessionComponent = (
   assembly: WorkbenchStatusAssembly,
@@ -34,9 +51,13 @@ const readBrowserSessionComponent = (
 
 export async function getHealthReport(
   assembly: WorkbenchStatusAssembly,
+  initialization: WorkbenchInitializationState,
 ): Promise<WorkbenchHealthReport> {
   const checkedAt = new Date().toISOString();
-  const components = [readBrowserSessionComponent(assembly)];
+  const components = [
+    readRuntimeInitializationComponent(initialization),
+    readBrowserSessionComponent(assembly),
+  ];
   const allOk = components.every((component) => component.ok);
   return {
     status: allOk ? "healthy" : "degraded",

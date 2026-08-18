@@ -7,6 +7,7 @@ import type {
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { captureWebChatResponseArtifacts } from "./web-chat-response-artifacts.js";
+import { captureChatGptGeneratedImage } from "./web-chat-generated-image-capture.js";
 import { extractWebChatConversation } from "./web-chat-response-capture.js";
 import {
   buildWebChatRawResponse,
@@ -14,38 +15,7 @@ import {
   persistWorkspaceAfterResponse,
 } from "./web-chat-shared-support.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
-import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
 import { readWebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
-
-const finalizeCompletedChatGptTitle = async (input: {
-  browser: BrowserTargetSession;
-  request: AiFeedInput;
-  context: AiProviderAdapterContext;
-  submission: WebChatSubmissionProof;
-}): Promise<WebChatSubmissionProof> => {
-  const execution = input.context.webChatExecution;
-  if (
-    !execution ||
-    execution.providerKind !== "gpt-web-chat" ||
-    (input.submission.systemChatTitle === execution.systemChatTitle &&
-      input.submission.chatTitleVerifiedAt)
-  ) {
-    return input.submission;
-  }
-  if (!execution.resumeAttachmentUploadProof) {
-    throw new Error(
-      "review_required: submitted ChatGPT execution is missing its attachment proof before title recovery.",
-    );
-  }
-  const renamed = await renameSubmittedChatGptConversation({
-    browser: input.browser,
-    context: input.context,
-    submission: input.submission,
-    timeoutMs: input.request.timeoutMs,
-  });
-  await execution.onConversationCanonicalized(renamed);
-  return renamed;
-};
 
 const verifyResumableTurn = async (input: {
   browser: BrowserTargetSession;
@@ -59,23 +29,23 @@ const verifyResumableTurn = async (input: {
   }
   const identity = await input.browser.evaluate<{
     pageUrl: string;
-    markerCount: number;
+    promptCount: number;
   }>({
     description:
-      "verify exact named web-chat conversation marker before resuming provider polling",
+      "verify exact canonical web-chat conversation marker before resuming provider polling",
     script: `
-const marker = ${JSON.stringify(execution.turnMarker)};
 const nodes = Array.from(document.querySelectorAll("[data-message-author-role='user'], user-query, user-query-content, .user-query-container"));
-const markerCount = nodes.filter((node) => (node.textContent || "").includes(marker)).length;
-return { pageUrl: location.href, markerCount };
+const expectedPrompt = String(${JSON.stringify(execution.requestTextPrompt)} || "").replace(/\s+/gu, " ").trim();
+const promptCount = nodes.filter((node) => String(node.textContent || "").replace(/\s+/gu, " ").trim() === expectedPrompt).length;
+return { pageUrl: location.href, promptCount };
 `,
     ...(input.context.abortSignal
       ? { abortSignal: input.context.abortSignal }
       : {}),
   });
-  if (identity.markerCount !== 1) {
+  if (identity.promptCount !== 1) {
     throw new Error(
-      `review_required: resumable named web-chat conversation does not contain exactly one expected marker; count=${identity.markerCount}; pageUrl=${identity.pageUrl}`,
+      `review_required: resumable canonical web-chat conversation does not contain exactly one expected prompt; count=${identity.promptCount}; pageUrl=${identity.pageUrl}`,
     );
   }
 };
@@ -166,12 +136,72 @@ const buildResumedResponse = async (input: {
   });
 };
 
+const resumeGeneratedImageConversation = async (
+  input: ResumeConversationInput,
+  execution: WebChatExecutionContext,
+  submission: WebChatSubmissionProof,
+): Promise<AiProviderRawResponse> => {
+  const generatedImage = await captureChatGptGeneratedImage({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+  });
+  if (!generatedImage) {
+    throw new Error("review_required: generated image artifact was not captured during resume");
+  }
+  const finalizedSubmission = await captureWebChatSubmissionProof({
+    ...input,
+    previousAssistantCount: submission.previousAssistantCount,
+    previousUserMessageCount: submission.previousUserMessageCount,
+    ...(execution.resumeForkActionProof?.childConversationUrl
+      ? { initialConversationUrl: execution.resumeForkActionProof.childConversationUrl }
+      : {}),
+    requireCanonical: true,
+  });
+  await execution.onConversationCanonicalized(finalizedSubmission);
+  const conversationUrl = finalizedSubmission.canonicalConversationUrl
+    ?? finalizedSubmission.transientConversationUrl;
+  const response = buildWebChatRawResponse({
+    request: input.request,
+    runtimeName: input.runtimeName,
+    providerUrl: input.providerUrl,
+    sourcePageUrlBeforeFeed: null,
+    extracted: {
+      status: "success",
+      message: "Recovered the exact generated image assistant turn.",
+      answerText: `generated_image:${generatedImage.sha256}`,
+      pageUrl: conversationUrl,
+    },
+    answerText: `generated_image:${generatedImage.sha256}`,
+    uploadedFiles: execution.resumeUploadedFiles,
+    ...(execution.resumeAttachmentUploadProof
+      ? { attachmentUploadProof: execution.resumeAttachmentUploadProof }
+      : {}),
+    outputRefs: [generatedImage.artifactRef],
+    outputArtifacts: [generatedImage],
+    managedParallelExecution: true,
+    forkActionProof: execution.resumeForkActionProof,
+    submissionProof: finalizedSubmission,
+  });
+  persistWorkspaceAfterResponse({ request: input.request, context: input.context, response });
+  await cleanupProviderWorkspaceAfterResponse({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    response,
+  });
+  return response;
+};
+
 export const resumeSubmittedWebChatConversation = async (
   input: ResumeConversationInput,
 ): Promise<AiProviderRawResponse> => {
   await verifyResumableTurn(input);
   const execution = input.context.webChatExecution!;
   const submission = execution.resumeSubmission!;
+  if (input.request.expectedOutputKind === "generated_image") {
+    return resumeGeneratedImageConversation(input, execution, submission);
+  }
   const conversation = await readResumedConversation({
     requestInput: input,
     execution,
@@ -190,17 +220,13 @@ export const resumeSubmittedWebChatConversation = async (
     requireCanonical: true,
   });
   await execution.onConversationCanonicalized(finalizedSubmission);
-  const renamedSubmission = await finalizeCompletedChatGptTitle({
-    ...input,
+  const response = await buildResumedResponse({
+    requestInput: input,
+    execution,
     submission: {
       ...finalizedSubmission,
       submittedAt: submission.submittedAt,
     },
-  });
-  const response = await buildResumedResponse({
-    requestInput: input,
-    execution,
-    submission: renamedSubmission,
     conversation,
   });
   persistWorkspaceAfterResponse({

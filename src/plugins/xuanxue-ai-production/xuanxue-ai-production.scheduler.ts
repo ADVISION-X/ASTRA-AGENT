@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   createXuanxueAiProductionOrder,
   executeXuanxueAiProductionOrder,
+  type XuanxueAiProductionExecutionObserver,
   type XuanxueAiProductionRuntime,
 } from "./xuanxue-ai-production.flow.js";
 import {
@@ -18,6 +19,7 @@ interface ScheduledOrder {
   readonly orderId: string;
   readonly promise: Promise<XuanxueAiOrderRecord>;
   readonly resolve: (record: XuanxueAiOrderRecord) => void;
+  readonly observers: Set<XuanxueAiProductionExecutionObserver>;
 }
 
 const DEFAULT_PRODUCTION_WINDOW = 10;
@@ -205,9 +207,15 @@ export class XuanxueAiProductionCoordinator {
       : `parent-stage:${parent.jobId}:${parent.stageId}`;
   }
 
-  async execute(orderId: string): Promise<XuanxueAiOrderRecord> {
+  async execute(
+    orderId: string,
+    observer?: XuanxueAiProductionExecutionObserver,
+  ): Promise<XuanxueAiOrderRecord> {
     const alreadyScheduled = this.scheduled.get(orderId);
-    if (alreadyScheduled) return alreadyScheduled.promise;
+    if (alreadyScheduled) {
+      if (observer) alreadyScheduled.observers.add(observer);
+      return alreadyScheduled.promise;
+    }
     const existing = this.runtime.store.readOrder(orderId);
     if (!existing) {
       return Promise.reject(
@@ -239,6 +247,7 @@ export class XuanxueAiProductionCoordinator {
       }
     }
     const scheduled = this.register(orderId);
+    if (observer) scheduled.observers.add(observer);
     this.requestPump();
     return scheduled.promise;
   }
@@ -264,7 +273,12 @@ export class XuanxueAiProductionCoordinator {
     const promise = new Promise<XuanxueAiOrderRecord>((accept) => {
       resolve = accept;
     });
-    const scheduled = { orderId, promise, resolve };
+    const scheduled = {
+      orderId,
+      promise,
+      resolve,
+      observers: new Set<XuanxueAiProductionExecutionObserver>(),
+    };
     this.scheduled.set(orderId, scheduled);
     this.waiting.push(orderId);
     return scheduled;
@@ -368,6 +382,13 @@ export class XuanxueAiProductionCoordinator {
       record = await executeXuanxueAiProductionOrder(
         this.runtime,
         scheduled.orderId,
+        {
+          onAttachmentUploadCompleted: async (input) => {
+            for (const observer of scheduled.observers) {
+              await observer.onAttachmentUploadCompleted?.(input);
+            }
+          },
+        },
       );
     } catch (error) {
       reason = error instanceof Error ? error.message : String(error);
@@ -383,6 +404,13 @@ export class XuanxueAiProductionCoordinator {
           record = await executeXuanxueAiProductionOrder(
             this.runtime,
             scheduled.orderId,
+            {
+              onAttachmentUploadCompleted: async (input) => {
+                for (const observer of scheduled.observers) {
+                  await observer.onAttachmentUploadCompleted?.(input);
+                }
+              },
+            },
           );
           scheduled.resolve(record);
           return;

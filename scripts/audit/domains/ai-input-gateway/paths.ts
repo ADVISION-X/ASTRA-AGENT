@@ -55,16 +55,10 @@ const runtimeCoordination = {
 const runtimeConversation = {
   freshConversationPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
+  freshConversationControlPath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
   submissionCheckpointPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
-  chatTitlePath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
-  chatTitleScriptsPath:
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-  titleHousekeepingPath:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
-  titleHousekeepingWorkerPath:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
   responseCapturePath:
     "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
   answerEvaluationPath:
@@ -77,13 +71,13 @@ const runtimeConversation = {
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
   recoveryPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
+  pageActionScriptsPath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
 } as const;
 
 const runtimeInteraction = {
   singleTabRoutingPath:
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-  namedConversationSearchPath:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
   searchDialogHygienePath:
     "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
   submitPath:
@@ -101,10 +95,8 @@ export const runtime = {
 export const executionRuntime = {
   executionStatePath:
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
-  continuationTitlePath:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
-  systemChatTitlePath:
-    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+  canonicalBindingPath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
   managedExecutionPath:
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
   managedExecutionStartPath:
@@ -123,6 +115,10 @@ export const acceptance = {
 } as const;
 
 export const removed = {
+  removedProviderInputPreflightPath:
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
+  removedProviderInputPreflightAcceptancePath:
+    "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
   removedUploadPath:
     "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
   removedAcceptancePath:
@@ -131,6 +127,20 @@ export const removed = {
     "src/capabilities/ai-input-gateway/runtime/web-chat-provider-lease.ts",
   removedSerialAcceptancePath:
     "scripts/acceptance/ai-input-gateway-provider-lease.acceptance.ts",
+  removedChatTitlePath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
+  removedChatTitleScriptsPath:
+    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
+  removedSystemTitlePath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
+  removedTitleHousekeepingPath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
+  removedTitleHousekeepingWorkerPath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
+  removedNamedConversationSearchPath:
+    "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
+  removedRenameAcceptancePath:
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
 } as const;
 
 export const governedPaths = [

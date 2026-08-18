@@ -13,13 +13,6 @@ const executionStateDirectory = (dataDir: string): string =>
     "web-chat-executions",
   );
 
-interface ContinuationTitleCandidate {
-  createdAt: string;
-  recordTitle: string | null;
-  verifiedSubmissionTitle: string | null;
-  verifiedAt: string | null;
-}
-
 const normalizedCanonicalConversationUrl = (
   providerKind: "gpt-web-chat" | "gemini-web-chat",
   rawUrl: string,
@@ -71,6 +64,49 @@ const readExecutionState = async (
     await readFile(path.join(executionStateDirectory(dataDir), entry), "utf8"),
   ) as Partial<WebChatExecutionRecord>;
 
+export type SubmittedDraftOwnerResolution = {
+  matchCount: number;
+  owner: {
+    executionId: string;
+    canonicalConversationUrl: string;
+  } | null;
+};
+
+export const resolveSubmittedDraftOwnerByTurnMarker = async (input: {
+  dataDir: string;
+  providerKind: "gpt-web-chat";
+  turnMarker: string;
+}): Promise<SubmittedDraftOwnerResolution> => {
+  if (!/^GRASSEYE_TURN_[a-f0-9]{32}$/u.test(input.turnMarker)) {
+    return { matchCount: 0, owner: null };
+  }
+  const matches: Array<NonNullable<SubmittedDraftOwnerResolution["owner"]>> = [];
+  for (const entry of await listExecutionStateFiles(input.dataDir)) {
+    if (!entry.endsWith(".json")) continue;
+    const candidate = await readExecutionState(input.dataDir, entry);
+    if (
+      candidate.schemaVersion !== "web-chat-execution-v2"
+      || candidate.providerKind !== input.providerKind
+      || candidate.turnMarker !== input.turnMarker
+      || typeof candidate.executionId !== "string"
+      || !candidate.submission?.canonicalConversationUrl
+      || !candidate.submission.userTurnId
+      || !candidate.submission.submittedAt
+    ) continue;
+    matches.push({
+      executionId: candidate.executionId,
+      canonicalConversationUrl: normalizedCanonicalConversationUrl(
+        input.providerKind,
+        candidate.submission.canonicalConversationUrl,
+      ),
+    });
+  }
+  return {
+    matchCount: matches.length,
+    owner: matches.length === 1 ? matches[0]! : null,
+  };
+};
+
 export const assertWebChatCanonicalConversationBinding = async (input: {
   dataDir: string;
   executionId: string;
@@ -116,64 +152,4 @@ export const assertWebChatCanonicalConversationBinding = async (input: {
       );
     }
   }
-};
-
-const continuationTitleCandidate = (
-  candidate: Partial<WebChatExecutionRecord>,
-): ContinuationTitleCandidate => ({
-  createdAt: candidate.createdAt ?? "",
-  recordTitle: candidate.systemChatTitle?.trim() || null,
-  verifiedSubmissionTitle:
-    candidate.submission?.chatTitleVerifiedAt
-    && candidate.submission.systemChatTitle?.trim()
-      ? candidate.submission.systemChatTitle.trim()
-      : null,
-  verifiedAt: candidate.submission?.chatTitleVerifiedAt ?? null,
-});
-
-const selectContinuationTitle = (
-  candidates: readonly ContinuationTitleCandidate[],
-): string | null => {
-  const earliestVerifiedTitle = [...candidates]
-    .filter((candidate) => Boolean(candidate.verifiedSubmissionTitle))
-    .sort((left, right) =>
-      (left.verifiedAt ?? left.createdAt).localeCompare(
-        right.verifiedAt ?? right.createdAt,
-      ))
-    .map((candidate) => candidate.verifiedSubmissionTitle)
-    .find((title): title is string => Boolean(title));
-  if (earliestVerifiedTitle) return earliestVerifiedTitle;
-  return [...candidates]
-    .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-    .map((candidate) => candidate.recordTitle)
-    .find((title): title is string => Boolean(title))
-    ?? null;
-};
-
-export const resolveContinuationWebChatSystemTitle = async (input: {
-  dataDir: string;
-  providerKind: "gpt-web-chat" | "gemini-web-chat";
-  canonicalConversationUrl: string;
-}): Promise<string | null> => {
-  if (input.providerKind !== "gpt-web-chat") return null;
-  const expected = normalizedCanonicalConversationUrl(
-    input.providerKind,
-    input.canonicalConversationUrl,
-  );
-  const candidates: ContinuationTitleCandidate[] = [];
-  for (const entry of await listExecutionStateFiles(input.dataDir)) {
-    if (!entry.endsWith(".json")) continue;
-    const candidate = await readExecutionState(input.dataDir, entry);
-    if (
-      candidate.schemaVersion !== "web-chat-execution-v2"
-      || candidate.providerKind !== input.providerKind
-      || !candidate.submission?.canonicalConversationUrl
-      || normalizedCanonicalConversationUrl(
-        input.providerKind,
-        candidate.submission.canonicalConversationUrl,
-      ) !== expected
-    ) continue;
-    candidates.push(continuationTitleCandidate(candidate));
-  }
-  return selectContinuationTitle(candidates);
 };

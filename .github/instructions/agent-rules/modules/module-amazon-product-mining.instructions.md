@@ -1324,7 +1324,8 @@ App 可保存最近 taskId，
 - 每个详情字段必须携带字段级 `status/reason/detail`。页面无该字段应表达为 `not_present`，不得让高级 AI 靠裸 `null` 猜测。
 - review navigation samples 必须携带评论页码、评论人、标题、正文、日期、变体、helpful、图片、视频、语言、地区、raw review text 和 `fieldDisclosureMap`。
 - keyword review navigation input 必须披露 `reviewCoverage`：已入库可访问评论数、导航样本数、未内联数量和样本策略。
-- keyword opportunity review 的 GPT Web Chat `maxInputChars` 必须不低于 `900_000`，避免导航与 prompt 被旧上限挡住。
+- keyword opportunity review 不得向 GPT Web Chat 传递 `maxInputChars` 或任何 prompt 字符、字节、token
+  上限；是否接收完整治理提示词只能由真实 provider 页面决定，禁止用调高旧上限伪装删除门禁。
 - AST 级执法必须证明上述字段进入生产 navigation input，并由 acceptance 读取实际生成的 review input 校验。
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-024-V2] Automatic Resume With Plugin-Owned Intervention

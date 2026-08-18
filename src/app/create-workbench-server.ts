@@ -220,12 +220,7 @@ async function handleRequest(
   if (boundaryDecision.kind === "allowed") {
     let allowedDecision = boundaryDecision;
     if (boundaryDecision.originCategory === "external-website" && request.method !== "GET") {
-      const bodyPreview = await readApiBodyPreview(
-        request,
-        url.pathname === "/api/plugins/xuanxue-ai-production/provider-input-preflight"
-          ? 32 * 1024 * 1024
-          : Number.POSITIVE_INFINITY,
-      );
+      const bodyPreview = await readApiBodyPreview(request, Number.POSITIVE_INFINITY);
       const bodyDecision = handleWorkbenchApiBoundary(buildWorkbenchApiBoundaryInput({ request, url, baseUrl, bodyPreview }));
       if (bodyDecision.kind === "blocked") {
         recordApiBoundaryDecision({ decision: bodyDecision, request, url, workbench });

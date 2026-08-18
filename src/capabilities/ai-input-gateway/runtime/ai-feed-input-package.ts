@@ -28,12 +28,6 @@ const fileHash = (value: Buffer): `sha256:${string}` => `sha256:${hashValue(valu
 
 const normalizeDeclaredHash = (value: string): `sha256:${string}` => (value.startsWith("sha256:") ? value : `sha256:${value}`) as `sha256:${string}`;
 
-const assertPromptSafe = (input: AiFeedInput): void => {
-  if (input.textPrompt.length > input.maxInputChars) {
-    throw new Error(`AI feed prompt exceeds maxInputChars=${input.maxInputChars}.`);
-  }
-};
-
 const isImageRef = (mimeType: string | undefined, filePath: string): boolean => mimeType?.startsWith("image/") === true || /\.(png|jpe?g|webp|gif)$/iu.test(filePath);
 
 const isVideoRef = (mimeType: string | undefined, filePath: string): boolean => mimeType?.startsWith("video/") === true || ((mimeType === undefined || mimeType === "application/octet-stream") && /\.(mp4|m4v|mov)$/iu.test(filePath));
@@ -113,7 +107,6 @@ const assertFileLimits = async (
 };
 
 export const buildAiFeedInputPackage = async (input: AiFeedInput): Promise<AiFeedInputPackage> => {
-  assertPromptSafe(input);
   const { imagePaths, uploadableFiles } = await assertFileLimits(input);
   return {
     inputHash: hashValue(
@@ -178,7 +171,6 @@ const assertResumedAttachmentIdentity = (input: ResumedWebChatInput, fileRefs: A
 };
 
 export const buildResumedWebChatInputPackage = async (input: ResumedWebChatInput): Promise<AiFeedInputPackage> => {
-  assertPromptSafe(input.request);
   const fileRefs = input.request.inputRefs.filter((ref) => ref.filePath);
   assertResumedAttachmentIdentity(input, fileRefs);
   return {

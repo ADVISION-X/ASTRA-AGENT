@@ -103,8 +103,11 @@ const handleCommand = async (
   trimCommandReceipts();
 };
 
-const handleMessage = async (message: unknown): Promise<void> => {
-  if (!nativePort || !isBrowserWireMessage(message)) return;
+const handleMessage = async (
+  message: unknown,
+  sourcePort: NativePort,
+): Promise<void> => {
+  if (nativePort !== sourcePort || !isBrowserWireMessage(message)) return;
   if (message.type === "controller_challenge") {
     resetSession();
     authenticatedNonce = message.nonce;
@@ -123,7 +126,9 @@ export const connectNativeTransport = (): void => {
   resetSession();
   const port = chrome.runtime.connectNative(GRASSEYE_NATIVE_HOST_NAME);
   nativePort = port;
-  port.onMessage.addListener((message) => { void handleMessage(message); });
+  port.onMessage.addListener((message) => {
+    void handleMessage(message, port);
+  });
   port.onDisconnect.addListener(() => {
     if (nativePort === port) nativePort = null;
     resetSession();

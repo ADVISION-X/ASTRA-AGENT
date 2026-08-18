@@ -29,16 +29,9 @@ const governedContinuationUrl = (request: AiFeedInput): URL => {
 
 export const openGovernedContinuation = async (input: ContinuationInput): Promise<void> => {
   const requestedUrl = governedContinuationUrl(input.request);
-  const turnMarker = input.request.providerContinuationRef?.priorTurnMarker;
-  if (!turnMarker) {
-    throw new Error(
-      "review_required: provider continuation turn marker is missing",
-    );
-  }
   await focusChatGptConversationByCanonicalPath({
     base: input.browser,
     conversationUrl: requestedUrl.href,
-    turnMarker,
     timeoutMs: 15_000,
     ...(input.context.abortSignal
       ? { signal: input.context.abortSignal }

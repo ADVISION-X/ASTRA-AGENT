@@ -78,7 +78,14 @@ const resolveModuleTargetPath = (
   sourceFile: SourceFile,
   targetFile: SourceFile | undefined,
   moduleSpecifierValue: string,
-): string | undefined => targetFile ? toRepoPath(targetFile.getFilePath()) : resolveRelativeTargetPath(sourceFile, moduleSpecifierValue);
+): string | undefined => {
+  const runtimeTarget = runtimeSpecifierExtensions.some((extension) =>
+    moduleSpecifierValue.endsWith(extension))
+    ? resolveRelativeTargetPath(sourceFile, moduleSpecifierValue)
+    : undefined;
+  return runtimeTarget
+    ?? (targetFile ? toRepoPath(targetFile.getFilePath()) : resolveRelativeTargetPath(sourceFile, moduleSpecifierValue));
+};
 
 const resolveImportLikeTargetPath = (sourceFile: SourceFile, moduleSpecifierValue: string): string | undefined =>
   resolveModuleTargetPath(sourceFile, undefined, moduleSpecifierValue);

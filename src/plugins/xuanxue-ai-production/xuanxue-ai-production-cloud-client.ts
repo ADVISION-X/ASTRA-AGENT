@@ -23,6 +23,17 @@ interface UploadedOutputArtifact {
   readonly state: "staged";
 }
 
+export interface XuanxueAiProductionAttachmentCheckpointProof {
+  readonly stage_id: string;
+  readonly upload_attempt_id: string;
+  readonly status: "skipped" | "attachments_stable" | "failed" | "review_required";
+  readonly expected_count: number;
+  readonly detected_count: number;
+  readonly current_file_name: string | null;
+  readonly staging_manifest_hash: `sha256:${string}` | null;
+  readonly observed_at: string;
+}
+
 interface JsonEnvelope<T> {
   readonly ok?: boolean;
   readonly data?: T;
@@ -246,6 +257,7 @@ export async function checkpointXuanxueAiProductionJob(
       | "recovery_pending";
     readonly localOrderId?: string;
     readonly failureReason?: string;
+    readonly attachmentUploadProof?: XuanxueAiProductionAttachmentCheckpointProof;
   },
 ): Promise<void> {
   await cloudRequest(
@@ -259,10 +271,14 @@ export async function checkpointXuanxueAiProductionJob(
         lease_token: job.lease_token,
         lease_version: job.lease_version,
         idempotency_key:
-          `${job.job_id}:lease:${job.lease_version}:${input.status}`,
+          `${job.job_id}:lease:${job.lease_version}:${input.status}`
+          + (input.attachmentUploadProof
+            ? `:attachment:${input.attachmentUploadProof.stage_id}:${input.attachmentUploadProof.upload_attempt_id}`
+            : ""),
         status: input.status,
         local_order_id: input.localOrderId ?? null,
         failure_reason: input.failureReason ?? null,
+        attachment_upload_proof: input.attachmentUploadProof ?? null,
       }),
     },
   );

@@ -313,7 +313,6 @@ const cloudMaterial = (
   expected_output_kind: candidate.expectedOutputKind,
   task_directive: candidate.textPrompt,
   timeout_ms: candidate.timeoutMs,
-  max_input_chars: candidate.maxInputChars,
   max_file_count: candidate.maxFileCount,
   inputs: [],
   control_plane: "excluded_specialized_capability" as const,

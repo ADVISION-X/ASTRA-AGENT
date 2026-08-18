@@ -129,7 +129,6 @@ const stageMaterial = async (
     textPrompt: material.task_directive,
     inputRefs,
     timeoutMs: material.timeout_ms,
-    maxInputChars: material.max_input_chars,
     maxFileCount: material.max_file_count,
   };
 };

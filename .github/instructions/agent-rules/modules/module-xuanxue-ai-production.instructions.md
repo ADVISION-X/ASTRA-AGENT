@@ -6,7 +6,7 @@ applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/mediator/xuanxue-ai-prod
 # GrassEye 玄学 AI 生产工厂法案
 
 status: active
-version: 2026-08-16
+version: 2026-08-16.4
 capabilityDomain: xuanxue-ai-production
 
 ## 1. 唯一责任
@@ -101,6 +101,25 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
 - 每个阶段的 Gateway `inputRefs` 必须包含整单 `inputBundleRef` 这一非文件身份锚点。
   即使阶段没有附件，模型运行证明也不得出现空输入；附件数量、上传动作与文件证明只统计
   带 `filePath` 的真实文件，禁止把逻辑输入包伪装成附件。
+- 网站、工厂与 Gateway 均不得声明、传递或执行 `maxInputChars`、prompt 字符/字节/token 预算、
+  阈值放宽或文本切片。系统只核对提示词精确身份与原始字节，是否能接收由真实 GPT 页面决定；
+  失败只能来自真实 provider 结果，禁止本地字符门禁制造执行重启。
+- 公开知识文章只允许正式 `corpus_research` 执行上传一次附件。网站先创建一张持久 production
+  job，AGENT 领取后下载并重验冻结字节；随后同一 execution 在唯一真实 Chrome 插件标签页
+  把全部附件一次性放入最终 composer，持久化逐附件顺序、原文件名、显示文件名、SHA-256、
+  字节数、expected/detected count 与稳定窗口 proof，且只有 proof 全等后才点击发送。job 创建、
+  对象下载或本地暂存都不是 provider submission。独立 provider-input-preflight route、base64
+  文件副本、临时预检会话、预检容量队列、上传后清空再重传、HTTP 请求体/文件字节上限和
+  第二附件动作图必须物理不存在。真实窗口拒绝、附件漂移、缺件、乱序或 proof 缺失时，同一
+  job 必须以 `XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION` 失败关闭，并证明
+  submission、turn marker 与 canonical conversation 均未形成；不得进入恢复循环或换 execution
+  重传。
+- 附件 child 形成终态 `AttachmentUploadProof` 时，必须在原执行和原 cloud lease 内立即通过既有
+  job checkpoint 回传最小结构化摘要：`stage_id / upload_attempt_id / status / expected_count /
+  detected_count / current_file_name / staging_manifest_hash / observed_at`。这个摘要只是本地持久 proof 的
+  可观测投影，不是第二 proof、第二遥测通道或提交授权；不得传入本地路径、提示词、provider
+  URL、marker 或秘密。回调必须挂在唯一 coordinator 中同一 order 的实际执行上，不得为了进度重跑阶段、
+  重读一次上传动作或新建 polling owner。
 - 网站下发的 `maxFileCount` 只约束网站冻结的阶段材料。AGENT 为同一动作图生成的、已经
   重算 hash 的前置阶段原始回答或父报告附件，必须按实际生成数量一份一份精确增加最终
   Gateway 附件上限；禁止沿用网站材料上限误杀合法补件，也禁止用任意常数或无限上限放宽。
@@ -133,10 +152,13 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
   GPT 会话运行，禁止 continuation parent、禁止打开父 `webChatUrl`、禁止把复盘轮次写进
   用户聊天。它只回传严格结构化线索或 `no_issue`，不修改父回答或生产对象。
 - 公开知识文章固定恰好三个阶段且共享同一个 canonical `webChatUrl`。第三阶段必须精确绑定
-  自己的 user turn marker 和紧随其后的目标 assistant turn，只登记一个逻辑生成图片；页面
+  自己的精确 clean prompt identity 和紧随其后的目标 assistant turn；internal marker 只留在
+  本地 execution proof，不得进入 provider 可见正文；页面
   其他图片、多个 preview/thumbnail、截图或文本 URL 不得进入结果。原图由 Gateway 下载，
-  工厂只能通过 `media-processing` 公共 facade 执行 contain 固定画布、WebP、元数据清除和
-  红线观察；任何失败或不确定必须 `review_required`，不得私写 sharp/Vision 第二实现。
+  工厂只能通过 `media-processing` 公共 facade 执行 contain 固定画布、WebP、元数据清除、
+  解码复验和 hash 证明，不得私写 sharp 第二实现。网站交付的第三阶段提示词是唯一创意
+  指令，AGENT 必须原样运输，不得追加人物、文字、地图、图表、Logo、命盘、风格或候选数量
+  等语义限制，也不得建立图像内容红线观察或第二创意裁决。
 - 三类付费报告追问也必须携带固定父身份：八字只接受
   `bazi_chart_interpretation/chart_interpretation` 或
   `bazi_ai_full_analysis/question_analysis`，奇门只接受
@@ -156,11 +178,11 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
 - 同一已验证 `webChatUrl` 是一条持久串行车道：该聊天上的 N 个用户问题、命名步骤、
   人工复盘与追问严格按本地 `createdAt + orderId` FIFO，前一项未完成时下一项不得投喂。
   URL 尚未取得前用不可变父 job/stage 作为临时车道键；不同物理聊天继续共享总生产窗口并发。
-- 同一张整单的第二、第三或第 N 个 stage 必须继承首轮父聊天的同一个系统名称；阶段只新增
-  turn marker，不得根据自己的 execution id 再给父聊天改名。回答 checkpoint 一旦完成，
-  下一 stage 立即取得提交优先级，旧 stage 的改名整理不得阻塞它。每个已经发布但尚未核验
-  父标题的 stage 必须保留独立持久 `chatTitleRename=pending` 尾工；AGENT 重启后只补做页面
-  改名和身份核验，禁止重放模型、重新收费或让整单退回 AI 轮询。
+- 同一张整单的第二、第三或第 N 个 stage 只通过父 canonical URL、父 turn marker、父回答
+  hash 与本轮 turn marker 续接。供应商自动标题不进入生产身份，AGENT 禁止读取或修改标题。
+  回答 checkpoint 一旦完成，下一 stage 立即取得提交优先级；AGENT 重启先按唯一 provider
+  exact canonical conversation URL 非创建式恢复精确 provider target，再按该 URL 恢复 stage；
+  同源但 URL 不同的标签不得阻断或被选中，物理标签当前 URL 不是 stage 身份，禁止猜测、重放模型、重新收费或让整单退回 AI 轮询。
 - 启动时发现历史付费追问没有 `conversationParent`，必须保留其订单、阶段和事件证据，
   进入 `recovery_pending` 并请求网站按原业务记录重新发出带父身份与父重放包的订单；
   用户侧只显示处理中。新 claim 到达时只允许在原 order/source/product/input bundle 与
@@ -181,14 +203,24 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
   “输入完整性校验失败”“输入缺失无法解读”“无法读取附件”等 provider 失败回答时，
   该次回答立即作废，清空 response/proof，生成新 execution id，从当前阶段重新投喂；
   坏回答不得进入 seed、阶段结果或整单结果。
-- 新根任务只有在唯一新用户轮次同时包含本次提示词首段与唯一末尾 marker、正式 URL
-  尚未被其他根 execution 占用后才算投喂成功。按钮点击、空白首页、相似旧提示词或旧
-  marker 回弹都必须立即废弃本次 execution 并内部重跑；不得进入用户侧失败或阻断。
+- 新根任务只有在唯一新用户轮次与本次 clean prompt 精确匹配、正式 URL 尚未被其他根
+  execution 占用后才算投喂成功。按钮点击、空白首页、相似旧提示词或重复 prompt 都必须
+  立即废弃本次 execution 并内部重跑；不得把内部 marker 拼进 provider 可见正文。
 - Gateway 已把一次 execution 持久化为 `failed/review_required` 时，工厂先看持久化提交
   证明。已有正式 provider URL 或 submitted turn 的执行必须保留原 execution id、marker 和
   父聊天等待恢复，哪怕故障来自监控产生的第二标签、登录或安全屏障，也不得再次投喂。只有
   已证明污染/无效的完整回答，或从未形成提交证明的真正终态身份故障，才清空旧 feed result、
   生成新 execution id，并把被替换编号交给防重复闸门原子换主。
+- “真正终态身份故障”必须有排除普通等待态的正面证据，只限新根提交已经回弹到外国
+  marker、正式 canonical 会话已被另一 fresh execution 占用，或同一 marker 出现多份等不可继续
+  使用本 execution 的身份冲突。首页仍在 hydration、clean-root 检查为 `pending`、composer 尚未
+  就绪、新聊天控件暂时为 0 个或多个且尚未点击、命令超时、页面尚未回到 `/` 都确定不是终态
+  身份故障；无提交证明时也必须保留同一 execution id 有界恢复。通用 Gateway 分类为
+  `failed/review_required`、错误字符串或重试次数本身均不得作为 fresh execution 许可。
+- 同一阶段的提交前身份冲突最多允许一次 fresh execution 换主。替换后的 execution 再遇身份
+  冲突时保留该编号进入 `recovery_pending`，等待真实页面条件恢复或显式人工处置；不得形成
+  `restart:2`、`restart:3` 等无限编号风暴。回答完整落盘后被证明污染/无效的重新投喂继续受
+  阶段 timeout 约束，不与这条提交前身份替换额度混用。
 - 临时无货、登录、验证码、安全屏障、provider 故障、父会话恢复和输出污染全部进入
   `recovery_pending`，用户侧继续显示处理中。`review_required/failed` 只保留给已证明的
   外来设备账本、不可变身份冲突或安全攻击，不得用来处理普通用户体验问题。

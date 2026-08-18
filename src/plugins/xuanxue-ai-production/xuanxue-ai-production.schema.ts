@@ -3,6 +3,7 @@ import { z } from "zod";
 import type {
   AiFeedResult,
   AiInputGatewayProgress,
+  WebChatAttachmentUploadProof,
 } from "../../capabilities/ai-input-gateway/index.js";
 import {
   isXuanxueAiPaidFollowupProduct,
@@ -13,6 +14,9 @@ import {
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID =
   "xuanxue-ai-production" as const;
+
+export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
+  "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION" as const;
 
 export const XuanxueAiProductIdSchema = z.enum([
   "bazi_chart_interpretation",
@@ -116,7 +120,6 @@ export const XuanxueAiStageMaterialSchema = z.object({
   textPrompt: z.string().min(1),
   inputRefs: z.array(XuanxueAiMaterialRefSchema),
   timeoutMs: z.number().int().min(60_000).max(3_600_000).default(3_600_000),
-  maxInputChars: z.number().int().min(1).max(500_000).default(120_000),
   maxFileCount: z.number().int().min(0).max(64).default(32),
 }).strict();
 
@@ -280,6 +283,7 @@ export interface XuanxueAiStageRecord {
   readonly attemptCount: number;
   readonly material: XuanxueAiStageMaterial;
   readonly aiFeedResult: AiFeedResult | null;
+  readonly attachmentUploadProof: WebChatAttachmentUploadProof | null;
   readonly rawResponseText: string | null;
   readonly rawOutputHash: string | null;
   readonly progressPhase: AiInputGatewayProgress["phase"] | "queued" | "terminal";
@@ -301,7 +305,6 @@ export interface XuanxueAiGeneratedImageArtifact {
   readonly height: 630;
   /** Local-only path. The cloud worker strips it before publishing. */
   readonly localFilePath?: string;
-  readonly safetyProofRef?: string;
   readonly checkpointProofRef?: string;
 }
 

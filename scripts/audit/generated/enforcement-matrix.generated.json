@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T04:12:11.270Z",
+  "generatedAt": "2026-08-18T01:15:16.996Z",
   "rows": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -340,7 +340,8 @@
         "APEX-STARTUP-004-V1",
         "APEX-STARTUP-005-V1",
         "APEX-STARTUP-006-V1",
-        "APEX-STARTUP-007-V1"
+        "APEX-STARTUP-007-V1",
+        "APEX-STARTUP-008-V1"
       ]
     },
     {

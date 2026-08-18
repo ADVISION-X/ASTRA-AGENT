@@ -145,7 +145,6 @@ const inspectKeywordReviewOwnerSurface = (input: {
 	  }
 
   const hasReviewInputContract = input.keywordReviewFile
-    && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS")
     && hasIdentifier(input.keywordReviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_PROVIDER_KIND")
     && hasIdentifier(input.keywordReviewFile, "buildKeywordOpportunityReviewInputRefs")
     && hasIdentifier(input.keywordReviewFile, "uploadFileRefs")
@@ -157,7 +156,7 @@ const inspectKeywordReviewOwnerSurface = (input: {
       checkId: "amazon-mining/keyword-review-ai-input-contract",
       lawId: input.lawId,
       filePath: "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-      message: "Keyword opportunity review must feed GPT Web Chat with a structured keyword full package archive inputRef and the governed input budget.",
+      message: "Keyword opportunity review must feed GPT Web Chat with a structured keyword full package archive inputRef and no local prompt-capacity gate.",
     }));
   }
 
@@ -441,7 +440,7 @@ export const inspectKeywordReviewEvidenceSliceDepth = (
     ...missingIdentifiers(evidenceFile, KEYWORD_REVIEW_DEPTH_IDS.evidence),
     ...missingIdentifiers(acceptanceFile, KEYWORD_REVIEW_DEPTH_IDS.acceptance),
     ...(numericConstantAtLeast(evidenceFile, "KEYWORD_REVIEW_MAX_REVIEW_SAMPLES_PER_PRODUCT", 8) ? [] : ["reviewSampleLimitAtLeast8"]),
-    ...(numericConstantAtLeast(reviewFile, "AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS", 900_000) ? [] : ["keywordReviewMaxInputAtLeast900k"]),
+    ...(reviewFile.getFullText().includes("maxInputChars") ? ["retiredKeywordReviewPromptGate"] : []),
   ];
   if (missing.length === 0) return;
   findings.push(createFinding({

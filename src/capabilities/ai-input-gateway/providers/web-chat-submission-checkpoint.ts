@@ -74,7 +74,7 @@ export const finalizeObservedWebChatSubmission = async (
     attachmentUploadProof: input.attachmentUploadProof,
   });
   emitSubmitStage(input, "prompt_submit", "success", null, {
-    method: "exact_turn_marker_and_canonical_conversation",
+    method: "exact_clean_prompt_and_canonical_conversation",
     executionId: input.context.webChatExecution.executionId,
     userTurnId: submission.userTurnId,
     canonicalConversationUrl:

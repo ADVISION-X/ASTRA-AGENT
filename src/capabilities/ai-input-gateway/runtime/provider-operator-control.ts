@@ -1,31 +1,14 @@
 import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
-import type { AiInputGatewayExecutionContext } from "../contract.js";
-import {
-  scheduleWebChatTitleHousekeeping,
-  stopWebChatTitleHousekeeping,
-} from "./web-chat-title-housekeeping-worker.js";
 
 export const createProviderOperatorControl = (
-  context: AiInputGatewayExecutionContext,
   browser?: BrowserTargetSession,
 ) => {
   const owners = new Set<string>();
   const waiters = new Set<() => void>();
-  const ensureHousekeeping = (): void => {
-    if (!browser) return;
-    scheduleWebChatTitleHousekeeping({
-      dataDir: context.dataDir,
-      browser,
-      ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
-    });
-  };
-  ensureHousekeeping();
   return {
-    ensureHousekeeping,
     async release(ownerKey: string): Promise<boolean> {
       if (!ownerKey.trim()) throw new Error("AI provider takeover requires an owner key");
       owners.add(ownerKey);
-      await stopWebChatTitleHousekeeping(context.dataDir);
       if (!browser?.getTarget?.() || !browser.releaseTargetForOperator) return false;
       await browser.releaseTargetForOperator({ reason: `operator takeover for ${ownerKey}` });
       return true;
@@ -34,7 +17,7 @@ export const createProviderOperatorControl = (
       owners.delete(ownerKey);
       if (owners.size === 0) [...waiters].forEach((finish) => finish());
     },
-    close: () => stopWebChatTitleHousekeeping(context.dataDir),
+    close: async () => undefined,
     waitForRelease(signal?: AbortSignal): Promise<void> {
       if (owners.size === 0) return Promise.resolve();
       return new Promise<void>((resolve, reject) => {

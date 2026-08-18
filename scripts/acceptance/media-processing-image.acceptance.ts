@@ -80,13 +80,4 @@ const center = await sharp(heroArtifact.filePath).extract({ left: 600, top: 315,
 assert.ok(edge[0]! > 180 && edge[1]! > 180, "Contain canvas must retain the neutral side background.");
 assert.ok(center[2]! > center[0]!, "Contain canvas must retain the uncropped blue source at center.");
 
-const redline = await group.processMedia({
-  missionId: "media-processing-public-redline-acceptance",
-  runId: "media-processing-public-redline-run",
-  inputFilePath: heroArtifact.filePath,
-  presetId: "public-knowledge-redline-check",
-});
-assert.equal(redline.childCapabilityId, "inspect-public-knowledge-image-redlines-once");
-assert.equal(redline.status, "success", "A plain abstract image must pass the governed redline observer.");
-
 process.stdout.write("[ACCEPTANCE][media-processing-image] PASS\n");

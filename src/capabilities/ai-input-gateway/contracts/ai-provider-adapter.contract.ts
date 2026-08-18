@@ -47,9 +47,6 @@ export type WebChatSubmissionProof = {
   turnMarker?: string;
   transientConversationUrl: string;
   canonicalConversationUrl: string | null;
-  systemChatTitle: string | null;
-  observedAutoChatTitle: string | null;
-  chatTitleVerifiedAt: string | null;
   userTurnId: string;
   previousAssistantCount: number;
   previousUserMessageCount: number;
@@ -72,7 +69,7 @@ export type WebChatExecutionContext = {
   executionId: string;
   attemptId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
-  systemChatTitle: string | null;
+  requestTextPrompt: string;
   turnMarker: string;
   submittedPromptHash: string;
   resumeSubmission: WebChatSubmissionProof | null;

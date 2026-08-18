@@ -8,7 +8,7 @@ import type {
 import { resolveFromRepo } from "../../shared/paths.js";
 import {
   flowPath,
-  gatewayTitleHousekeepingPath,
+  gatewayCanonicalRoutingPath,
 } from "./inspector-paths.js";
 
 const finding = (
@@ -18,22 +18,33 @@ const finding = (
   message: string,
 ): InspectorFinding => createFinding({ lawId, checkId, filePath, message });
 
-const inspectTitleHousekeeping = (
+const inspectCanonicalProviderIdentity = (
   findings: InspectorFinding[],
   lawId: string,
   values: ReadonlySet<string>,
 ): void => {
   const required = [
-    "WebChatTitleRenameState", "chatTitleRename", "response_captured",
-    "drainWebChatTitleHousekeeping", "scheduleWebChatTitleHousekeeping",
-    "runWebChatTitleHousekeepingNow",
+    "focusChatGptConversationByCanonicalPath",
+    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY",
+    "markerCount",
+    "rowCount",
   ];
   for (const value of required) {
     if (values.has(value)) continue;
     findings.push(finding(lawId,
-      "xuanxue-ai-production/durable-title-housekeeping",
-      gatewayTitleHousekeepingPath,
-      `Published parent-chat title debt must contain ${value}.`));
+      "xuanxue-ai-production/canonical-provider-identity",
+      gatewayCanonicalRoutingPath,
+      `Canonical provider recovery must contain ${value}.`));
+  }
+  for (const forbidden of [
+    "WebChatTitleRenameState", "renameSubmittedChatGptConversation",
+    "scheduleWebChatTitleHousekeeping",
+  ]) {
+    if (!values.has(forbidden)) continue;
+    findings.push(finding(lawId,
+      "xuanxue-ai-production/title-chain-retired",
+      gatewayCanonicalRoutingPath,
+      `Provider title side chain must not contain ${forbidden}.`));
   }
 };
 
@@ -77,6 +88,6 @@ export const inspectXuanxueRecoveryDurability = (
   lawId: string,
   values: ReadonlySet<string>,
 ): void => {
-  inspectTitleHousekeeping(findings, lawId, values);
+  inspectCanonicalProviderIdentity(findings, lawId, values);
   inspectTerminalAttachmentGuard(context, findings, lawId);
 };

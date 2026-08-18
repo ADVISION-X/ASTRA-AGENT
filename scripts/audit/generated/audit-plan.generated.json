@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T04:12:11.270Z",
+  "generatedAt": "2026-08-18T01:15:16.996Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -3524,7 +3524,8 @@
         "APEX-STARTUP-004-V1",
         "APEX-STARTUP-005-V1",
         "APEX-STARTUP-006-V1",
-        "APEX-STARTUP-007-V1"
+        "APEX-STARTUP-007-V1",
+        "APEX-STARTUP-008-V1"
       ],
       "bindings": [
         {
@@ -3624,6 +3625,20 @@
             }
           ],
           "evidenceMode": "acceptance"
+        },
+        {
+          "lawId": "APEX-STARTUP-008-V1",
+          "clauseId": "apex-startup-008-requirement",
+          "checkIds": [
+            "startup-entrypoint/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "acceptance"
         }
       ],
       "blueprintRefs": [
@@ -3634,6 +3649,7 @@
             "## 启动顺序",
             "## 端口清理",
             "## 热挂载",
+            "## 初始化健康状态",
             "## 启动禁止",
             "## 质检对口"
           ]

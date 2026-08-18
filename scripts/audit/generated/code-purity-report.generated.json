@@ -4,8 +4,54 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [],
-  "generatedAt": "2026-08-16T04:12:55.201Z",
+  "findings": [
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "apex-code-purity-017-requirement",
+      "message": "scripts/startup/lib/service-readiness.mjs exports probeExistingWorkbench without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"probeExistingWorkbench\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "apex-code-purity-017-requirement",
+      "message": "scripts/startup/lib/service-readiness.mjs exports waitForWorkbenchHealth without any provable final consumer.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"waitForWorkbenchHealth\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "apex-code-purity-017-requirement",
+      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper waitForDelay alive only through a dead export subgraph.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"waitForDelay\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "apex-code-purity-017-requirement",
+      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper probeHealth alive only through a dead export subgraph.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"probeHealth\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/dead-internal-declaration-subgraph",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "apex-code-purity-017-requirement",
+      "message": "scripts/startup/lib/service-readiness.mjs keeps dead internal declaration subgraph member isWorkbenchHealthReport.",
+      "severity": "fatal",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"isWorkbenchHealthReport\",\"verificationCommand\":\"npm run ci:full\"}"
+    }
+  ],
+  "generatedAt": "2026-08-18T01:15:59.383Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -113,12 +159,14 @@
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/acceptance/support/plugin-intervention-contract.acceptance-support.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
@@ -127,8 +175,9 @@
     "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-    "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
+    "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
     "scripts/audit/build-audit-artifacts.ts",
@@ -340,6 +389,7 @@
     "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
     "scripts/audit/domains/runtime-truth/inspector.ts",
+    "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
@@ -444,10 +494,10 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -462,8 +512,6 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
@@ -471,6 +519,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
@@ -508,19 +557,15 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -555,7 +600,6 @@
     "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
     "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
     "src/capabilities/media-processing/runtime/hash-stream.ts",
-    "src/capabilities/media-processing/runtime/image-redline-observer.ts",
     "src/capabilities/media-processing/runtime/media-source.ts",
     "src/capabilities/media-processing/runtime/result.ts",
     "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -608,6 +652,8 @@
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+    "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+    "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
     "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
@@ -784,7 +830,6 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -798,9 +843,9 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -826,7 +871,68 @@
     "src/types/plugin-intervention.ts",
     "src/types/structured-log.ts"
   ],
-  "inventoryItems": [],
+  "inventoryItems": [
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "function",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "startup",
+      "reason": "Export probeExistingWorkbench has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "startup-script",
+      "symbolName": "probeExistingWorkbench",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "declarationKind": "function",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "startup",
+      "reason": "Export waitForWorkbenchHealth has no final reachable consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "startup-script",
+      "symbolName": "waitForWorkbenchHealth",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "declarationKind": "variable",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "startup",
+      "reason": "Top-level variable waitForDelay is only reachable from a dead exported subgraph and has no live runtime root.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "startup-script",
+      "symbolName": "waitForDelay",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "declarationKind": "function",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "startup",
+      "reason": "Top-level function probeHealth is only reachable from a dead exported subgraph and has no live runtime root.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "startup-script",
+      "symbolName": "probeHealth",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/dead-internal-declaration-subgraph",
+      "declarationKind": "function",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "startup",
+      "reason": "Top-level function isWorkbenchHealthReport survives only inside a dead internal declaration subgraph.",
+      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
+      "role": "startup-script",
+      "symbolName": "isWorkbenchHealthReport",
+      "verificationCommand": "npm run ci:full"
+    }
+  ],
   "lawIds": [
     "APEX-CODE-PURITY-001-V1",
     "APEX-CODE-PURITY-002-V1",
@@ -1342,6 +1448,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/startup-initialization-health.acceptance.ts",
+      "reason": "package.json script acceptance:startup-entrypoint",
+      "scriptName": "acceptance:startup-entrypoint"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/video-download-telegram-web.acceptance.ts",
       "reason": "package.json script acceptance:video-download-telegram-web",
       "scriptName": "acceptance:video-download-telegram-web"
@@ -1605,37 +1717,95 @@
       "scriptName": "browser:install"
     }
   ],
-  "liveExportCount": 2281,
-  "orphanDeclarationCount": 0,
-  "reachableFileCount": 818,
-  "status": "PASS",
+  "liveExportCount": 2277,
+  "orphanDeclarationCount": 3,
+  "reachableFileCount": 817,
+  "status": "FAIL",
   "unreachableFileCount": 0,
-  "uselessCodeInventory": [],
-  "unprovenPublicExports": [],
+  "uselessCodeInventory": [
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs exports probeExistingWorkbench without any provable final consumer."
+    },
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs exports waitForWorkbenchHealth without any provable final consumer."
+    },
+    {
+      "category": "unused-top-level",
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper waitForDelay alive only through a dead export subgraph."
+    },
+    {
+      "category": "unused-top-level",
+      "checkId": "code-purity/dead-export-helper-subgraph",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper probeHealth alive only through a dead export subgraph."
+    },
+    {
+      "category": "unused-top-level",
+      "checkId": "code-purity/dead-internal-declaration-subgraph",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs keeps dead internal declaration subgraph member isWorkbenchHealthReport."
+    }
+  ],
+  "unprovenPublicExports": [
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs exports probeExistingWorkbench without any provable final consumer."
+    },
+    {
+      "category": "dead-public-export",
+      "checkId": "code-purity/zombie-export",
+      "filePath": "scripts/startup/lib/service-readiness.mjs",
+      "keepReason": null,
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "message": "scripts/startup/lib/service-readiness.mjs exports waitForWorkbenchHealth without any provable final consumer."
+    }
+  ],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 0,
+  "zombieExportCount": 2,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2281,
-    "orphanDeclarationCount": 0,
-    "reachableFileCount": 818,
+    "liveExportCount": 2277,
+    "orphanDeclarationCount": 3,
+    "reachableFileCount": 817,
     "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 0,
-    "zombieExportCount": 0
+    "uselessCodeInventoryCount": 5,
+    "zombieExportCount": 2
   },
   "checkRuns": [
     {
-      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405",
+      "runId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6",
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-16T04:12:16.237Z",
-      "endedAt": "2026-08-16T04:12:55.200Z",
-      "durationMs": 38963,
+      "status": "FAIL",
+      "startedAt": "2026-08-18T01:15:21.536Z",
+      "endedAt": "2026-08-18T01:15:59.382Z",
+      "durationMs": 37846,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1743,12 +1913,14 @@
         "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
         "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
         "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+        "scripts/acceptance/startup-initialization-health.acceptance.ts",
         "scripts/acceptance/support/plugin-intervention-contract.acceptance-support.ts",
         "scripts/acceptance/video-download-telegram-web.acceptance.ts",
         "scripts/acceptance/video-download-youtube-production.acceptance.ts",
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
         "scripts/acceptance/workbench-api-boundary.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture.ts",
         "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
@@ -1757,8 +1929,9 @@
         "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-        "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
+        "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -1970,6 +2143,7 @@
         "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
         "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
         "scripts/audit/domains/runtime-truth/inspector.ts",
+        "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
         "scripts/audit/domains/video-download-capability/inspector.ts",
@@ -2074,10 +2248,10 @@
         "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-        "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -2092,8 +2266,6 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
@@ -2101,6 +2273,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
@@ -2138,19 +2311,15 @@
         "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
         "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
         "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
         "src/capabilities/ai-input-gateway/schema.ts",
         "src/capabilities/dom-automation/index.ts",
         "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -2185,7 +2354,6 @@
         "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
         "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
         "src/capabilities/media-processing/runtime/hash-stream.ts",
-        "src/capabilities/media-processing/runtime/image-redline-observer.ts",
         "src/capabilities/media-processing/runtime/media-source.ts",
         "src/capabilities/media-processing/runtime/result.ts",
         "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -2238,6 +2406,8 @@
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+        "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+        "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
         "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
@@ -2414,7 +2584,6 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -2428,9 +2597,9 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -2456,7 +2625,7 @@
         "src/types/plugin-intervention.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 0
+      "findingCount": 5
     }
   ],
   "executedChecks": [
@@ -2464,145 +2633,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:8be92710-7647-4cf4-8e48-186cf64b0405"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
     }
   ]
 }

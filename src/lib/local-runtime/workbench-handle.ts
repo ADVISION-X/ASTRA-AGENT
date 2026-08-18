@@ -102,7 +102,6 @@ export type GrassEyeWorkbenchHandle = {
     input: WorkbenchPreflightInput,
   ) => Promise<WorkbenchPreflightResult>;
   getModeInfo: () => unknown;
-  preflightXuanxueAiProductionProviderInputs: (input: unknown) => Promise<unknown>;
   readXuanxueAiProductionStatus: (orderId: string) => {
     order: XuanxueAiOrderRecord;
     intervention: XuanxueAiInterventionRecord;

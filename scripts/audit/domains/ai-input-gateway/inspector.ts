@@ -10,7 +10,7 @@ import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
   inspectFreshConversationIdentity,
-  inspectHumanReadableSystemChatTitle,
+  inspectCanonicalConversationIdentity,
 } from "./identity-inspector.js";
 import {
   type AiInputGatewayFinding as Finding,
@@ -35,6 +35,24 @@ const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], l
     if (publicInputProperties.has(forbidden) || executeOptionProperties.has(forbidden)) {
       pushFinding(findings, lawId, P.attachment.schemaPath, "ai-input-gateway/no-public-transport-controls", `Public request/options must not expose ${forbidden}.`);
     }
+  }
+  if (publicInputProperties.has("maxInputChars")) {
+    pushFinding(findings, lawId, P.attachment.schemaPath, "ai-input-gateway/no-local-prompt-capacity-gate", "Public AI feed input must not expose maxInputChars or any local prompt-capacity gate.");
+  }
+  if (typePropertyNames(contract, "AiInputGatewayAbilityGroup").has("preflightApprovedWebChatFiles")) {
+    pushFinding(findings, lawId, P.attachment.contractPath, "ai-input-gateway/no-detached-provider-preflight", "AI Input Gateway must not expose a detached provider attachment preflight surface.");
+  }
+  const abilityGroup = requireSourceFile(context, findings, lawId, "src/capabilities/ai-input-gateway/ability-group.ts");
+  const abilityGroupValues = abilityGroup
+    ? new Set([...identifiers(abilityGroup), ...stringLiterals(abilityGroup)])
+    : new Set<string>();
+  if (["preflightApprovedWebChatFiles", "runPreflightAttachment", "provider-input-preflight"]
+    .some((value) => abilityGroupValues.has(value))) {
+    pushFinding(findings, lawId, "src/capabilities/ai-input-gateway/ability-group.ts", "ai-input-gateway/no-detached-provider-preflight", "AI Input Gateway implementation must not retain a detached provider preflight or upload-clear-reupload path.");
+  }
+  const inputPackage = requireSourceFile(context, findings, lawId, "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts");
+  if (inputPackage && identifiers(inputPackage).has("maxInputChars")) {
+    pushFinding(findings, lawId, "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts", "ai-input-gateway/no-local-prompt-capacity-gate", "AI feed packaging must not reject governed prompt text by local character capacity.");
   }
   if (!executeOptionProperties.has("onAttachmentUploadCompleted")) {
     pushFinding(findings, lawId, P.attachment.contractPath, "ai-input-gateway/aggregate-progress-callback", "Execute options must expose only the aggregate attachment terminal callback.");
@@ -82,7 +100,7 @@ const inspectAttachmentChild = (context: InspectorContext, findings: Finding[], 
 };
 
 const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
-  for (const removedPath of [P.removed.removedUploadPath, P.removed.removedAcceptancePath, P.removed.removedSerialLeasePath, P.removed.removedSerialAcceptancePath]) {
+  for (const removedPath of Object.values(P.removed)) {
     if (existsSync(resolveFromRepo(removedPath))) {
       pushFinding(findings, lawId, removedPath, "ai-input-gateway/removed-old-region", `${removedPath} must remain deleted.`);
     }
@@ -90,13 +108,13 @@ const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
 };
 
 const requireParallelSources = (context: InspectorContext, findings: Finding[], lawId: string): SourceFile[] | null => {
-  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.attachment.exactTargetRefPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.chatTitlePath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.attachment.exactTargetRefPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.singleTabRoutingPath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
   return sources.every((source): source is SourceFile => source !== null) ? sources : null;
 };
 
 const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Finding[], lawId: string): void => {
   const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
-  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "BrowserTargetRef", "renameSubmittedChatGptConversation", "captureWebChatSubmissionProof", "turnMarker", "systemChatTitle", "executionId", "capacitySlot"]) {
+  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "BrowserTargetRef", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
     if (!allIdentifiers.has(required)) {
       pushFinding(findings, lawId, P.runtime.concurrencyLeasePath, "ai-input-gateway/bounded-parallel-runtime", `Bounded parallel web-chat runtime must contain ${required}.`);
     }
@@ -142,10 +160,6 @@ const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Findin
       repoPath: P.runtime.rateLimitDialogPath,
       symbolName: "acknowledgeChatGptRateLimitDialogIfVisible",
     },
-    {
-      repoPath: P.runtime.singleTabRoutingPath,
-      symbolName: "focusNamedChatGptConversation",
-    },
   ] as const;
   for (const target of targets) {
     const source = requireSourceFile(context, findings, lawId, target.repoPath);
@@ -155,12 +169,14 @@ const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Findin
       pushFinding(findings, lawId, target.repoPath, "ai-input-gateway/no-chatgpt-page-refresh", `${target.repoPath} must expose ${target.symbolName} for no-refresh enforcement.`);
       continue;
     }
-    const hasPageOpenCall = symbolNode.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-      const expression = call.getExpression();
-      return Node.isPropertyAccessExpression(expression) && expression.getName() === "open";
-    });
-    if (hasPageOpenCall) {
-      pushFinding(findings, lawId, target.repoPath, "ai-input-gateway/no-chatgpt-page-refresh", `${target.symbolName} must not refresh, reload, reopen, or navigate the ChatGPT page.`);
+    const refreshCallFound = symbolNode
+      .getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some((call) => {
+        const path = astExpressionPath(call.getExpression());
+        return path === "reload" || path === "refresh" || path === "location.reload";
+      });
+    if (refreshCallFound) {
+      pushFinding(findings, lawId, target.repoPath, "ai-input-gateway/no-chatgpt-page-refresh", `${target.symbolName} must not refresh or reload the ChatGPT page.`);
     }
   }
   for (const repoPath of [P.runtime.rateLimitDialogPath, P.runtime.recoveryPath, P.runtime.singleTabRoutingPath]) {
@@ -171,76 +187,6 @@ const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Findin
   }
 };
 
-const inspectExactSidebarRename = (
-  chatTitleScripts: SourceFile,
-  findings: Finding[],
-  lawId: string,
-): void => {
-  const titleStrings = stringLiterals(chatTitleScripts);
-  for (const required of ["^/c/(?!WEB:)[^/?#]+(?:[?#].*)?$", "li"]) {
-    if (!titleStrings.has(required)) {
-      pushFinding(findings, lawId, P.runtime.chatTitleScriptsPath, "ai-input-gateway/exact-sidebar-row-rename", `ChatGPT rename targeting must declare the exact string literal ${required}.`);
-    }
-  }
-  if (identifiers(chatTitleScripts).has("depth")) {
-    pushFinding(findings, lawId, P.runtime.chatTitleScriptsPath, "ai-input-gateway/exact-sidebar-row-rename", "ChatGPT rename targeting must not climb into the page-header conversation menu.");
-  }
-};
-const inspectAtomicRenameWiring = (
-  sources: readonly (readonly [string, SourceFile])[],
-  findings: Finding[],
-  lawId: string,
-): void => {
-  for (const [repoPath, source] of sources) {
-    if (!identifiers(source).has("runExclusivePatrol")) {
-      pushFinding(findings, lawId, repoPath, "ai-input-gateway/atomic-completed-chat-rename", `${repoPath} must wire runExclusivePatrol for one non-interleavable rename transaction.`);
-    }
-  }
-};
-const inspectCompletedConversationRename = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): void => {
-  const shared = requireSourceFile(context, findings, lawId, P.attachment.sharedPath);
-  const chatTitle = requireSourceFile(context, findings, lawId, P.runtime.chatTitlePath);
-  const scripts = requireSourceFile(context, findings, lawId, P.runtime.chatTitleScriptsPath);
-  const adapter = requireSourceFile(context, findings, lawId, P.attachment.adapterContractPath);
-  const browser = requireSourceFile(context, findings, lawId, P.runtime.singleTabBrowserPath);
-  const managed = requireSourceFile(context, findings, lawId, P.executionRuntime.managedExecutionPath);
-  if (!shared || !chatTitle || !scripts || !adapter || !browser || !managed) return;
-  const submitFlow = shared.getVariableDeclaration("executeWebChatConversation")?.getInitializer();
-  const completedFlow = shared.getVariableDeclaration("buildCompletedWebChatResponse")?.getInitializer();
-  const hasRenameCall = (node: Node | undefined): boolean => Boolean(node?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => astExpressionPath(call.getExpression()) === "renameSubmittedChatGptConversation"));
-  if (hasRenameCall(submitFlow)) {
-    pushFinding(findings, lawId, P.attachment.sharedPath, "ai-input-gateway/deferred-completed-chat-rename", "Submission must release the browser mutation lane before the provider answer exposes its rename menu.");
-  }
-  if (!hasRenameCall(completedFlow)) {
-    pushFinding(findings, lawId, P.attachment.sharedPath, "ai-input-gateway/deferred-completed-chat-rename", "A completed ChatGPT response must schedule exact row-scoped rename as bounded post-publication housekeeping.");
-  }
-  inspectExactSidebarRename(scripts, findings, lawId);
-  inspectAtomicRenameWiring([
-    [P.attachment.adapterContractPath, adapter],
-    [P.runtime.singleTabBrowserPath, browser],
-    [P.executionRuntime.managedExecutionPath, managed],
-    [P.runtime.chatTitlePath, chatTitle],
-  ], findings, lawId);
-  if (!stringLiterals(chatTitle).has("WEB_CHAT_RENAME_NOT_READY")) {
-    pushFinding(findings, lawId, P.runtime.chatTitlePath, "ai-input-gateway/retryable-completed-chat-rename", "Transient ChatGPT rename UI must remain retryable without discarding the captured answer.");
-  }
-  if (
-    !identifiers(chatTitle).has("RENAME_PATROL_SLICE_MS")
-    || !identifiers(chatTitle).has("remainingRenameMs")
-    || chatTitle.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
-      .some((property) =>
-        property.getName() === "timeoutMs"
-        && property.getInitializerIfKind(SyntaxKind.NumericLiteral)
-          ?.getLiteralValue() === 60_000)
-  ) {
-    pushFinding(findings, lawId, P.runtime.chatTitlePath, "ai-input-gateway/submission-priority-over-rename", "A rename patrol slice must be bounded to fifteen seconds, release the browser lane when UI is not ready, and never retain a sixty-second in-lock title wait.");
-  }
-};
 const inspectSharedRateLimitWatcher = (
   context: InspectorContext,
   findings: Finding[],
@@ -291,11 +237,96 @@ const inspectTransientPatrolRetry = (
   if (
     !identifiers(answer).has("isTransientNavigationExtractionError")
     || !identifiers(capture).has("webChatExecution")
-    || !identifiers(routing).has("focusUnrenamedChatGptConversation")
+    || !identifiers(routing).has("focusChatGptConversationByCanonicalPath")
     || !identifiers(acceptance).has("assertTransientPatrolRemainsRetryable")
     || !stringLiterals(acceptance).has("WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact submitted ChatGPT sidebar row is not ready for marker verification")
   ) {
     pushFinding(findings, lawId, P.runtime.answerSupportPath, "ai-input-gateway/live-generation-proof", "A submitted sidebar row that is not yet focusable must remain retryable across response preflight and before-poll routing.");
+  }
+};
+
+const countCanonicalSubmissionBindings = (singleTab: SourceFile): number =>
+  singleTab.getDescendantsOfKind(SyntaxKind.IfStatement).filter((statement) => {
+    const condition = statement.getExpression();
+    if (!Node.isCallExpression(condition)
+      || astExpressionPath(condition.getExpression()) !== "isRoutableWebChatSubmission"
+      || condition.getArguments().length !== 1) return false;
+    const thenStatement = statement.getThenStatement();
+    if (!Node.isExpressionStatement(thenStatement)) return false;
+    const assignment = thenStatement.getExpression();
+    return Node.isBinaryExpression(assignment)
+      && assignment.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+      && astExpressionPath(assignment.getLeft()) === "state.submission"
+      && astExpressionPath(assignment.getRight()) === "submission";
+  }).length;
+
+const hasCanonicalRouteGuard = (singleTab: SourceFile): boolean =>
+  singleTab.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) => {
+    const condition = statement.getExpression();
+    const operand = Node.isPrefixUnaryExpression(condition)
+      ? condition.getOperand()
+      : undefined;
+    return Node.isPrefixUnaryExpression(condition)
+      && condition.getOperatorToken() === SyntaxKind.ExclamationToken
+      && operand !== undefined
+      && Node.isCallExpression(operand)
+      && astExpressionPath(operand.getExpression()) === "isRoutableWebChatSubmission"
+      && operand.getArguments().length === 1
+      && Node.isReturnStatement(statement.getThenStatement());
+  });
+
+const hasCanonicalResumeGuard = (singleTab: SourceFile): boolean =>
+  singleTab.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((assignment) => {
+    const initializer = assignment.getInitializer();
+    const canonicalSubmission = initializer
+      && Node.isConditionalExpression(initializer)
+      ? initializer.getCondition()
+      : undefined;
+    return assignment.getName() === "submission"
+      && canonicalSubmission !== undefined
+      && Node.isCallExpression(canonicalSubmission)
+      && astExpressionPath(canonicalSubmission.getExpression()) === "isRoutableWebChatSubmission"
+      && canonicalSubmission.getArguments().length === 1
+      && canonicalSubmission.getArguments()[0]?.getText() === "input.resumeSubmission";
+  });
+
+const inspectTransientSubmissionIsNotRoutable = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const singleTab = requireSourceFile(
+    context,
+    findings,
+    lawId,
+    P.runtime.singleTabBrowserPath,
+  );
+  const acceptance = requireSourceFile(
+    context,
+    findings,
+    lawId,
+    P.acceptance.sourceContractAcceptancePath,
+  );
+  if (!singleTab || !acceptance) return;
+  if (
+    !identifiers(singleTab).has("isRoutableWebChatSubmission")
+    || !hasCanonicalRouteGuard(singleTab)
+    || countCanonicalSubmissionBindings(singleTab) !== 2
+    || !hasCanonicalResumeGuard(singleTab)
+    || !stringLiterals(acceptance).has(
+      "a transient WEB submission receipt must prevent resubmission without becoming a route identity",
+    )
+    || !stringLiterals(acceptance).has(
+      "only a verified canonical conversation may become routable",
+    )
+  ) {
+    pushFinding(
+      findings,
+      lawId,
+      P.runtime.singleTabBrowserPath,
+      "ai-input-gateway/transient-submission-not-routable",
+      "A transient /c/WEB: receipt may prevent resubmission but only a verified canonical conversation may bind or drive single-tab routing.",
+    );
   }
 };
 const inspectTransientOverlayHygiene = (
@@ -304,26 +335,24 @@ const inspectTransientOverlayHygiene = (
   lawId: string,
 ): void => {
   const hygiene = requireSourceFile(context, findings, lawId, P.runtime.searchDialogHygienePath);
-  const search = requireSourceFile(context, findings, lawId, P.runtime.namedConversationSearchPath);
   const submit = requireSourceFile(context, findings, lawId, P.runtime.submitPath);
   const abilityGroup = requireSourceFile(context, findings, lawId, "src/capabilities/ai-input-gateway/ability-group.ts");
   const acceptance = requireSourceFile(context, findings, lawId, P.attachment.acceptancePath);
-  if (!hygiene || !search || !submit || !abilityGroup || !acceptance) return;
+  if (!hygiene || !submit || !abilityGroup || !acceptance) return;
   const combinedIdentifiers = new Set([
     ...identifiers(hygiene),
-    ...identifiers(search),
     ...identifiers(submit),
     ...identifiers(abilityGroup),
     ...identifiers(acceptance),
   ]);
   const hygieneStrings = stringLiterals(hygiene);
-  const searchCleanupCalls = [search, submit, abilityGroup].flatMap((sourceFile) => sourceFile
+  const searchCleanupCalls = [submit, abilityGroup].flatMap((sourceFile) => sourceFile
     .getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) =>
       astExpressionPath(call.getExpression()) === "dismissChatGptSearchDialogIfVisible"));
   if (
     !combinedIdentifiers.has("dismissChatGptSearchDialogIfVisible")
-    || searchCleanupCalls.length < 2
+    || searchCleanupCalls.length !== 1
     || !hygieneStrings.has("CHATGPT_SEARCH_DIALOG_AMBIGUOUS")
     || !hygieneStrings.has("CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS")
     || !hygieneStrings.has("CHATGPT_SEARCH_DIALOG_STILL_VISIBLE")
@@ -334,7 +363,7 @@ const inspectTransientOverlayHygiene = (
       lawId,
       P.runtime.searchDialogHygienePath,
       "ai-input-gateway/transient-overlay-hygiene",
-      "Search routing, attachment selection and prompt focus must close only one exact harmless chat-search dialog and verify disappearance without universal Escape cleanup.",
+      "Attachment selection and prompt focus must close only one exact harmless chat-search dialog and verify disappearance without universal Escape cleanup.",
     );
   }
 };
@@ -348,15 +377,25 @@ const inspectGeneratedImageCapture = (
   const values = new Set([...identifiers(capture), ...stringLiterals(capture)]);
   for (const required of [
     "captureChatGptGeneratedImage",
-    "markedUserTurns",
+    "promptMatched",
     "assistantIndex",
+    "decideGeneratedImageAssistantTurn",
+    "generatedImageTurnHasSubstantiveContent",
+    "data-turn",
+    "HTMLElement",
+    'button[aria-label="保存"]',
     "logicalSources",
-    "downloadButtons",
+    "findGeneratedImageCard",
     "waitForNewDownload",
     "review_required: more than one new image download appeared during generated image capture",
   ]) {
     if (!values.has(required)) {
       pushFinding(findings, lawId, P.runtime.generatedImageCapturePath, "ai-input-gateway/exact-generated-image-turn", `Generated image capture must contain ${required}.`);
+    }
+  }
+  for (const retired of ['label === "download"', 'label === "下载"']) {
+    if (stringLiterals(capture).has(retired)) {
+      pushFinding(findings, lawId, P.runtime.generatedImageCapturePath, "ai-input-gateway/exact-generated-image-viewer-save", `Generated image capture must not retain retired viewer identity ${retired}.`);
     }
   }
 };
@@ -383,13 +422,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectBoundedParallelExecution(context, findings, parallelLawId);
   inspectFreshConversationIdentity(context, findings, parallelLawId);
   inspectNoChatGptPageRefresh(context, findings, parallelLawId);
-  inspectCompletedConversationRename(context, findings, parallelLawId);
-  inspectHumanReadableSystemChatTitle(context, findings, parallelLawId);
+  inspectCanonicalConversationIdentity(context, findings, parallelLawId);
   findings.push(...inspectAiInputGatewayRecovery(context, parallelLawId));
   inspectSubmissionPriorityPatrol(context, findings, parallelLawId);
   inspectSharedRateLimitWatcher(context, findings, parallelLawId);
   inspectLiveGenerationProof(context, findings, parallelLawId);
   inspectTransientPatrolRetry(context, findings, parallelLawId);
+  inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId);
   inspectTransientOverlayHygiene(context, findings, parallelLawId);
   inspectGeneratedImageCapture(context, findings, parallelLawId);
   inspectConversationTopology(context, findings, parallelLawId);

@@ -6,8 +6,6 @@ import {
 export const buildXuanxueAiProductionHandle = (
   owner: ReturnType<typeof createXuanxueAiProductionWorkbenchOwner>,
 ) => ({
-  preflightXuanxueAiProductionProviderInputs: (rawInput: unknown) =>
-    owner.preflightProviderInputs(rawInput),
   readXuanxueAiProductionStatus: (orderId: string) =>
     owner.readOrderStatus(orderId),
   pauseXuanxueAiProduction: (input: unknown) =>

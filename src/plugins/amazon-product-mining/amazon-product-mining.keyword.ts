@@ -214,7 +214,6 @@ const runKeywordGenerationAttempt = async (input: KeywordGenerationAttemptInput)
       inputRefs: [],
       modelName: null,
       timeoutMs: 60_000,
-      maxInputChars: 30_000,
       maxFileCount: 0,
       requestedBy: "ai-capability",
       missionId: input.taskId,

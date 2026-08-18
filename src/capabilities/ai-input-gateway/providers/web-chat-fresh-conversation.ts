@@ -9,8 +9,14 @@ import type {
   WebChatEvaluation,
 } from "./web-chat-evaluation-contract.js";
 import {
+  clearProvenSubmittedRootDraft,
+} from "./web-chat-upload-page-actions.js";
+import {
   CHATGPT_FRESH_CONVERSATION_SCRIPT,
 } from "./web-chat-fresh-conversation-script.js";
+import {
+  resolveSubmittedDraftOwnerByTurnMarker,
+} from "../runtime/web-chat-canonical-binding.js";
 
 const CHATGPT_NEW_CHAT_SCRIPT = `
 const visible = (element) => {
@@ -19,36 +25,37 @@ const visible = (element) => {
   const style = getComputedStyle(element);
   return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
 };
-const candidates = Array.from(document.querySelectorAll('a,button,[role="link"],[role="button"]'))
+const normalize = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
+const providerRoot = new URL("/", location.href);
+const renderedCandidates = Array.from(document.querySelectorAll('a[data-testid="create-new-chat-button"][data-sidebar-item="true"]'))
   .filter(visible)
   .map((element) => ({
     element,
-    visibleText: (element instanceof HTMLElement ? element.innerText : element.textContent || "")
-      .replace(/\\s+/gu, " ")
-      .trim(),
-    ariaLabel: (element.getAttribute("aria-label") || "")
-      .replace(/\\s+/gu, " ")
-      .trim(),
-    testId: element.getAttribute("data-testid"),
-    label: [element.getAttribute("aria-label"), element.getAttribute("title"), element.textContent]
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\\s+/gu, " ")
-      .trim(),
-  }))
-  .filter(({label}) => /(?:^|\\s)(?:新聊天|new chat)(?:\\s|$)/iu.test(label));
-const exactTextCandidates = candidates.filter(({visibleText, testId}) =>
-  testId === "create-new-chat-button"
-  && /^(?:新聊天|new chat)$/iu.test(visibleText)
-);
-const exactAriaCandidates = candidates.filter(({ariaLabel}) =>
-  /^(?:新聊天|new chat)$/iu.test(ariaLabel)
-);
-const selected = exactTextCandidates.length === 1
-  ? exactTextCandidates
-  : exactAriaCandidates.length === 1
-    ? exactAriaCandidates
-    : candidates;
+    visibleText: normalize(element instanceof HTMLElement ? element.innerText : element.textContent),
+    href: element instanceof HTMLAnchorElement ? new URL(element.href, location.href) : null,
+    pointerEvents: getComputedStyle(element).pointerEvents,
+    rect: element.getBoundingClientRect(),
+  }));
+const actionableCandidates = renderedCandidates.filter(({element, visibleText, href, pointerEvents, rect}) => {
+  if (
+    !/^(?:新聊天|new chat)$/iu.test(visibleText)
+    || !href
+    || href.origin !== providerRoot.origin
+    || href.pathname !== providerRoot.pathname
+    || href.search !== ""
+    || href.hash !== ""
+    || pointerEvents === "none"
+  ) return false;
+  const hit = document.elementFromPoint(
+    rect.left + rect.width / 2,
+    rect.top + rect.height / 2,
+  );
+  const hitAnchor = hit instanceof Element
+    ? hit.closest('a[data-testid="create-new-chat-button"][data-sidebar-item="true"]')
+    : null;
+  return hitAnchor === element;
+});
+const selected = actionableCandidates;
 if (selected.length !== 1) {
   return {
     status: "review_required",
@@ -56,14 +63,16 @@ if (selected.length !== 1) {
       ? "ChatGPT new chat control was not found"
       : "CHATGPT_NEW_CHAT_CONTROL_AMBIGUOUS",
     pageUrl: location.href,
-    candidateCount: candidates.length,
-    candidateLabels: candidates.map(({label}) => label),
+    candidateCount: selected.length,
+    renderedCandidateCount: renderedCandidates.length,
+    candidateLabels: renderedCandidates.map(({visibleText, pointerEvents}) =>
+      [visibleText, pointerEvents].join(":")),
   };
 }
 selected[0].element.click();
 return {
   status: "success",
-  message: "clicked unique visible ChatGPT new chat control",
+  message: "clicked unique actionable ChatGPT sidebar new chat control",
   pageUrl: location.href,
 };
 `;
@@ -78,9 +87,9 @@ interface FreshConversationInput {
   isRecoverableComposerTimeout: (error: unknown) => boolean;
   emitStage: (input: {
     stage: string;
-    status: string;
+    status: "start" | "success" | "failed";
     startedAtMs: number | null;
-    refs?: Record<string, unknown>;
+    refs?: Record<string, string | number | boolean | null | undefined>;
   }) => void;
 }
 
@@ -132,7 +141,7 @@ const waitForFreshChatGptConversation = async (
       if (!isTransientProviderEvaluationTimeout(error)) throw error;
       lastMessage = error instanceof Error ? error.message : String(error);
     }
-    await input.browser.wait(300);
+    await input.browser.wait(1_000);
   }
   input.emitStage({
     stage: "fresh_chatgpt_conversation",
@@ -163,6 +172,69 @@ const alreadyOnFreshChatGptConversation = async (
   return state.status === "success";
 };
 
+const readFreshChatGptConversation = (
+  input: FreshConversationInput,
+): Promise<WebChatEvaluation> => input.browser.evaluate<WebChatEvaluation>({
+  description: "inspect ChatGPT clean root and protected draft boundary",
+  script: CHATGPT_FRESH_CONVERSATION_SCRIPT,
+  ...(input.context.abortSignal
+    ? { abortSignal: input.context.abortSignal }
+    : {}),
+});
+
+const clearUniquelyOwnedSubmittedRootDraft = async (
+  input: FreshConversationInput,
+): Promise<boolean> => {
+  const state = await readFreshChatGptConversation(input);
+  if (state.eligibleSubmittedDraftCleanup !== true) return false;
+  const marker = state.composerTurnMarkers?.length === 1
+    ? state.composerTurnMarkers[0]
+    : null;
+  if (!marker) return false;
+  const owner = await resolveSubmittedDraftOwnerByTurnMarker({
+    dataDir: input.context.dataDir,
+    providerKind: "gpt-web-chat",
+    turnMarker: marker,
+  });
+  if (
+    owner.matchCount !== 1
+    || !owner.owner
+    || owner.owner.executionId === input.context.webChatExecution?.executionId
+  ) return false;
+  const startedAtMs = Date.now();
+  input.emitStage({
+    stage: "clear_uniquely_owned_submitted_root_draft",
+    status: "start",
+    startedAtMs: null,
+    refs: {
+      ownerExecutionId: owner.owner.executionId,
+      canonicalConversationUrl: owner.owner.canonicalConversationUrl,
+    },
+  });
+  const cleared = await clearProvenSubmittedRootDraft(
+    input.browser,
+    input.context,
+    marker,
+  );
+  if (cleared.status !== "success") {
+    throw new Error(`${cleared.status}: ${cleared.message}`);
+  }
+  await input.browser.wait(1_000);
+  const proven = await readFreshChatGptConversation(input);
+  if (proven.status !== "success") {
+    throw new Error(
+      `review_required: submitted root draft clear did not establish a clean root; last=${proven.status}: ${proven.message}`,
+    );
+  }
+  input.emitStage({
+    stage: "clear_uniquely_owned_submitted_root_draft",
+    status: "success",
+    startedAtMs,
+    refs: { ownerExecutionId: owner.owner.executionId },
+  });
+  return true;
+};
+
 const clickChatGptNewConversation = async (
   input: FreshConversationInput,
 ): Promise<void> => {
@@ -191,7 +263,7 @@ const clickChatGptNewConversation = async (
     ) {
       throw new Error(`${state.status}: ${state.message}`);
     }
-    await input.browser.wait(300);
+    await input.browser.wait(1_000);
   }
   if (lastState?.status !== "success") {
     throw new Error(
@@ -207,7 +279,7 @@ const recoverChatGptComposer = async (
   const reopened = await input.browser.open({
     url: input.providerUrl,
     title: "recover-provider-composer",
-    reusePolicy: "reuse-exact-url",
+    reusePolicy: "bind-existing-exact-origin",
   });
   if (!reopened.ok) {
     throw new Error(
@@ -223,7 +295,22 @@ export const startFreshChatGptConversation = async (
 ): Promise<void> => {
   if (!input.required) return;
   if (!await alreadyOnFreshChatGptConversation(input)) {
-    await clickChatGptNewConversation(input);
+    const initial = await readFreshChatGptConversation(input);
+    const cleared = await clearUniquelyOwnedSubmittedRootDraft(input);
+    if (!cleared) {
+      if (
+        initial.isFreshPath === true
+        && initial.userCount === 0
+        && initial.assistantCount === 0
+        && (initial.composerTextLength ?? 0) > 0
+      ) {
+        throw new Error(
+          "review_required: ChatGPT root composer contains a protected unknown or unproven draft.",
+        );
+      }
+      await clickChatGptNewConversation(input);
+      await clearUniquelyOwnedSubmittedRootDraft(input);
+    }
   }
   await waitForFreshChatGptConversation(input);
   try {

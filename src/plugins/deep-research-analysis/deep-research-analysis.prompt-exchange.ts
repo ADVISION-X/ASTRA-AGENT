@@ -58,7 +58,6 @@ type PromptExchangeInput<TParsed> = {
   };
   subQuestionId?: string;
   timeoutMs?: number;
-  maxInputChars?: number;
   maxFileCount?: number;
   parse: (rawText: string) => DeepResearchParserResult<TParsed>;
   successRecordCount: (parsed: TParsed) => number;
@@ -229,7 +228,6 @@ const preparePromptExchange = <TParsed>(input: PromptExchangeInput<TParsed>) => 
       providerKind: input.providerKind,
       inputRefs: input.inputRefs,
       ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
-      ...(input.maxInputChars ? { maxInputChars: input.maxInputChars } : {}),
       ...(typeof input.maxFileCount === "number" ? { maxFileCount: input.maxFileCount } : {}),
     }),
     preview: buildPromptPreview(input.prompt, input.subQuestionId),

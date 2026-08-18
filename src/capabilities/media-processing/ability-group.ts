@@ -122,14 +122,6 @@ const buildPublicRequestInput = (input: MediaProcessingPublicRequest): MediaProc
         quality: 86,
       };
     }
-    case "public-knowledge-redline-check": {
-      const childCapabilityId = "inspect-public-knowledge-image-redlines-once";
-      return {
-        ...buildPublicRequestBase(parsed, childCapabilityId),
-        childCapabilityId,
-        outputFormat: "webp",
-      };
-    }
     case "web-video": {
       const childCapabilityId = "optimize-video-for-web-once";
       return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: "mp4" };

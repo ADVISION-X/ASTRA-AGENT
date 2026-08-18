@@ -180,7 +180,6 @@ export const runFinalAdjudicationPhase = async (
       attachments: context.input.inputAttachments,
     }),
     timeoutMs: 1_800_000,
-    maxInputChars: Number.MAX_SAFE_INTEGER,
     maxFileCount: attachmentLimits.maxFileCount,
     stages: {
       send: "FINAL_ADJUDICATION_SEND",

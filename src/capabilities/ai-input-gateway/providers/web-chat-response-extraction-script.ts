@@ -200,14 +200,14 @@ return {
 };
 `;
 
-const MARKER_SCOPED_CHATGPT_RESPONSE_SCRIPT = `
+const PROMPT_SCOPED_CHATGPT_RESPONSE_SCRIPT = `
 const extractText = (node) => (node instanceof HTMLElement ? node.innerText : node?.textContent || "")
   .replace(/\\s+/gu, " ")
   .trim();
 const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
 const matchingUserTurns = turns.filter((turn) => {
   const user = turn.querySelector("[data-message-author-role='user']");
-  return user instanceof Element && extractText(user).includes(marker);
+  return user instanceof Element && extractText(user) === expectedPrompt;
 });
 const conversationTurnIds = turns
   .map((turn) => turn.getAttribute("data-testid"))
@@ -279,10 +279,10 @@ return {
 };
 `;
 
-export const buildMarkerScopedChatGptResponseScript = (
-  turnMarker: string,
+export const buildPromptScopedChatGptResponseScript = (
+  promptText: string,
 ): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const marker = ${JSON.stringify(turnMarker)};
-${MARKER_SCOPED_CHATGPT_RESPONSE_SCRIPT}
+const expectedPrompt = String(${JSON.stringify(promptText)} || "").replace(/\\s+/gu, " ").trim();
+${PROMPT_SCOPED_CHATGPT_RESPONSE_SCRIPT}
 `;

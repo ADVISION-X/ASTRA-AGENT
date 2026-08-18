@@ -8,7 +8,6 @@ import { startXuanxueAiProductionCloudWorker } from "./xuanxue-ai-production-clo
 import type { XuanxueAiProductionCloudWorkerHandle } from "./xuanxue-ai-production-cloud-contract.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type { XuanxueAiInterventionRequest } from "./xuanxue-ai-production.schema.js";
-import { runXuanxueProviderInputPreflight } from "./xuanxue-ai-production-provider-input-preflight.js";
 
 type XuanxueAiInterventionAction = "pause" | "cancel" | "takeover" | "resume";
 type CreateOrderRoute = (
@@ -27,7 +26,8 @@ const startOwnerCloudWorker = (input: {
   dataDir: input.dataDir,
   execution: {
     createOrder: (order) => input.createOrderRoute(order, input.runtime),
-    executeOrder: (orderId) => input.coordinator.execute(orderId),
+    executeOrder: (orderId, observer) =>
+      input.coordinator.execute(orderId, observer),
     listCloudRecoveryOrders: () => input.store.listCloudRecoveryOrders(),
     repairCompletedCheckpointProviderProofs: () => input.store.repairCompletedCheckpointProviderProofs(
       (proof) => input.aiInputGateway.recoverCheckpointedProviderLease?.(proof) ?? Promise.resolve(null),
@@ -140,9 +140,6 @@ export const createXuanxueAiProductionWorkbenchOwner = (
         order,
         intervention: ownerStore.readIntervention(orderId),
       };
-    },
-    preflightProviderInputs(rawInput: unknown) {
-      return runXuanxueProviderInputPreflight({ rawInput, aiInputGateway });
     },
     requestIntervention(action: XuanxueAiInterventionAction, input: XuanxueAiInterventionRequest) {
       return requestOwnerIntervention(dependencies, state, action, input);

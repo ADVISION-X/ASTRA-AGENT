@@ -28,6 +28,12 @@ export type WebChatEvaluation = {
   pendingAttachmentCount?: number;
   attachmentDelta?: number;
   composerTextLength?: number;
+  composerTurnMarkers?: string[];
+  internalMarkerMentionCount?: number;
+  eligibleSubmittedDraftCleanup?: boolean;
+  isFreshPath?: boolean;
+  userCount?: number;
+  removeAttachmentCount?: number;
   boundAttachmentCount?: number;
   lastUserMessageText?: string | null;
   inputFocused?: boolean;

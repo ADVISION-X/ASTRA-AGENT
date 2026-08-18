@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-16T04:13:27.344Z",
-  "status": "PASS",
+  "generatedAt": "2026-08-18T01:13:53.969Z",
+  "status": "FAIL",
   "inspectorFileCount": 22,
   "generatedPlanEntryCount": 22,
   "inspectedFiles": [
@@ -232,6 +232,7 @@
     "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
     "scripts/audit/domains/runtime-truth/inspector.ts",
     "scripts/audit/domains/runtime-truth/manifest.json",
+    "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/startup-entrypoint/manifest.json",
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
@@ -260,7 +261,48 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": [],
+  "findings": [
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/ai-input-gateway/identity-inspector.ts uses source-text judgment sources.promptEvaluation.getFullText().includes(value) on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/ai-input-gateway/identity-inspector.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/ai-input-gateway/inspector.ts uses source-text judgment canonicalSubmission.getArguments()[0]?.getText() === \"input.resumeSubmission\" on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts uses source-text judgment sources.routing.getFullText().includes(\"markerCount > 1 || rows.length > 1\") on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/ai-input-gateway/recovery-inspector.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts uses source-text judgment reviewFile.getFullText().includes(\"maxInputChars\") on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts uses source-text judgment expression.getText().includes(\"healthReport.status\") on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts"
+    }
+  ],
   "capabilityDomain": "audit-truth",
   "executionGroup": "meta",
   "lawIds": [
@@ -270,14 +312,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:90793d81-1bf7-4b95-a577-4acc19efe609",
+      "runId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7",
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-16T04:13:19.460Z",
-      "endedAt": "2026-08-16T04:13:27.344Z",
-      "durationMs": 7884,
+      "status": "FAIL",
+      "startedAt": "2026-08-18T01:13:46.360Z",
+      "endedAt": "2026-08-18T01:13:53.969Z",
+      "durationMs": 7609,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -507,6 +549,7 @@
         "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
         "scripts/audit/domains/runtime-truth/inspector.ts",
         "scripts/audit/domains/runtime-truth/manifest.json",
+        "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/audit/domains/startup-entrypoint/manifest.json",
         "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
@@ -535,7 +578,7 @@
         "scripts/audit/shared/source-files.ts",
         "scripts/audit/shared/source-module-targets.ts"
       ],
-      "findingCount": 0
+      "findingCount": 5
     }
   ],
   "executedChecks": [
@@ -543,19 +586,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:90793d81-1bf7-4b95-a577-4acc19efe609"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:90793d81-1bf7-4b95-a577-4acc19efe609"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:90793d81-1bf7-4b95-a577-4acc19efe609"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a"
     }
   ]
 }

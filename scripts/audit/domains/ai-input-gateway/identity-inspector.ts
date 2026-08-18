@@ -15,9 +15,11 @@ import {
 import * as P from "./paths.js";
 
 interface FreshIdentitySources {
-  continuationTitle: SourceFile;
+  canonicalBinding: SourceFile;
   managedExecution: SourceFile;
   freshConversation: SourceFile;
+  freshConversationControl: SourceFile;
+  pageActionScripts: SourceFile;
   promptEvaluation: SourceFile;
   checkpoint: SourceFile;
   acceptance: SourceFile;
@@ -29,14 +31,20 @@ const loadFreshIdentitySources = (
   findings: AiInputGatewayFinding[],
   lawId: string,
 ): FreshIdentitySources | null => {
-  const continuationTitle = requireAiInputGatewaySource(
-    context, findings, lawId, P.executionRuntime.continuationTitlePath,
+  const canonicalBinding = requireAiInputGatewaySource(
+    context, findings, lawId, P.executionRuntime.canonicalBindingPath,
   );
   const managedExecution = requireAiInputGatewaySource(
     context, findings, lawId, P.executionRuntime.managedExecutionPath,
   );
   const freshConversation = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.freshConversationPath,
+  );
+  const freshConversationControl = requireAiInputGatewaySource(
+    context, findings, lawId, P.runtime.freshConversationControlPath,
+  );
+  const pageActionScripts = requireAiInputGatewaySource(
+    context, findings, lawId, P.runtime.pageActionScriptsPath,
   );
   const promptEvaluation = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.answerEvaluationPath,
@@ -51,18 +59,22 @@ const loadFreshIdentitySources = (
     context, findings, lawId, P.attachment.sharedPath,
   );
   if (
-    !continuationTitle
+    !canonicalBinding
     || !managedExecution
     || !freshConversation
+    || !freshConversationControl
+    || !pageActionScripts
     || !promptEvaluation
     || !checkpoint
     || !acceptance
     || !shared
   ) return null;
   return {
-    continuationTitle,
+    canonicalBinding,
     managedExecution,
     freshConversation,
+    freshConversationControl,
+    pageActionScripts,
     promptEvaluation,
     checkpoint,
     acceptance,
@@ -93,7 +105,7 @@ const sharedPreparationCallOrderIsValid = (source: SourceFile): boolean => {
     && preSubmit < attachment;
 };
 
-const freshIdentityContractIsValid = (
+const freshIdentityCoreIsValid = (
   sources: FreshIdentitySources,
 ): boolean => {
   const zeroFields = variableStringValues(
@@ -105,20 +117,23 @@ const freshIdentityContractIsValid = (
     "WEB_CHAT_FOREIGN_TURN_REBOUND",
     "visibleConversationBusy",
   ].every((value) =>
-    identifiers(sources.promptEvaluation).has(value)
-    || literalContains(sources.promptEvaluation, value));
+    sources.promptEvaluation.getFullText().includes(value));
   const checkpointHasRequiredIdentity = [
-    "exact_turn_marker_and_canonical_conversation",
+    "exact_clean_prompt_and_canonical_conversation",
     "observeSubmittedWebChatTurn",
     "finalizeObservedWebChatSubmission",
   ].every((value) =>
-    identifiers(sources.checkpoint).has(value)
-    || literalContains(sources.checkpoint, value));
-  return identifiers(sources.continuationTitle)
+    sources.checkpoint.getFullText().includes(value));
+  return identifiers(sources.canonicalBinding)
     .has("assertWebChatCanonicalConversationBinding")
+    && identifiers(sources.canonicalBinding)
+      .has("resolveSubmittedDraftOwnerByTurnMarker")
     && identifiers(sources.managedExecution).has("assertBinding")
+    && sources.managedExecution.getFullText().includes("request: input.request")
     && identifiers(sources.acceptance)
       .has("assertCanonicalConversationOwnership")
+    && identifiers(sources.acceptance)
+      .has("assertSubmittedDraftOwnershipRequiresOneCanonicalOwner")
     && [
       "userCount",
       "assistantCount",
@@ -134,6 +149,34 @@ const freshIdentityContractIsValid = (
     && checkpointHasRequiredIdentity;
 };
 
+const freshIdentityCleanupIsValid = (
+  sources: FreshIdentitySources,
+): boolean => literalContains(
+      sources.freshConversationControl,
+      'a[data-testid="create-new-chat-button"][data-sidebar-item="true"]',
+    )
+    && sources.freshConversationControl.getFullText().includes("hitAnchor")
+    && sources.freshConversationControl.getFullText().includes("pointerEvents")
+    && !identifiers(sources.freshConversationControl)
+      .has("exactAriaCandidates")
+    && sources.freshConversationControl.getFullText()
+      .includes("clearUniquelyOwnedSubmittedRootDraft")
+    && sources.freshConversation.getFullText()
+      .includes("eligibleSubmittedDraftCleanup")
+    && identifiers(sources.pageActionScripts)
+      .has("buildClearProvenSubmittedRootDraftScript")
+    && literalContains(
+      sources.freshConversationControl,
+      "protected unknown or unproven draft",
+    )
+    && literalContains(
+      sources.pageActionScripts,
+      "owned stale draft guard changed before clear",
+    );
+
+const freshIdentityContractIsValid = (sources: FreshIdentitySources): boolean =>
+  freshIdentityCoreIsValid(sources) && freshIdentityCleanupIsValid(sources);
+
 export const inspectFreshConversationIdentity = (
   context: InspectorContext,
   findings: AiInputGatewayFinding[],
@@ -148,78 +191,13 @@ export const inspectFreshConversationIdentity = (
     "ai-input-gateway/fresh-conversation-identity",
     "Fresh GPT submission must prove a clean zero-turn composer, persist "
     + "one exact logical-turn marker before post-submit inspection, and "
-    + "bind an unoccupied canonical conversation before logging success.",
+    + "bind an unoccupied canonical conversation before logging success. "
+    + "A root draft may be cleared only after one canonical ledger owner "
+    + "and the exact guarded marker are both proven; unknown drafts stay intact.",
   );
 };
 
-const inspectSystemTitleBuilder = (
-  systemTitle: SourceFile,
-  findings: AiInputGatewayFinding[],
-  lawId: string,
-): void => {
-  const values = stringLiterals(systemTitle);
-  for (const required of ["SEO资料研究", "AI任务", "｜"]) {
-    if (!values.has(required)) {
-      pushAiInputGatewayFinding(
-        findings,
-        lawId,
-        P.executionRuntime.systemChatTitlePath,
-        "ai-input-gateway/human-readable-system-chat-title",
-        `System chat title builder must declare ${required}.`,
-      );
-    }
-  }
-  if (
-    identifiers(systemTitle).has("textPrompt")
-    || [...values].some((literal) => literal.startsWith("GRASSEYE-"))
-  ) {
-    pushAiInputGatewayFinding(
-      findings,
-      lawId,
-      P.executionRuntime.systemChatTitlePath,
-      "ai-input-gateway/human-readable-system-chat-title",
-      "System chat titles must not copy prompt text or retain the legacy "
-      + "machine-only title prefix.",
-    );
-  }
-};
-
-const inspectTitleAcceptance = (
-  acceptance: SourceFile,
-  findings: AiInputGatewayFinding[],
-  lawId: string,
-): void => {
-  const acceptanceIds = identifiers(acceptance);
-  for (const required of [
-    "buildHumanReadableSystemChatTitle",
-    "seoTitle",
-    "assertContinuationInheritsParentSystemTitle",
-  ]) {
-    if (!acceptanceIds.has(required)) {
-      pushAiInputGatewayFinding(
-        findings,
-        lawId,
-        P.acceptance.identityRecoveryAcceptancePath,
-        "ai-input-gateway/human-readable-system-chat-title",
-        `Title acceptance must prove ${required}.`,
-      );
-    }
-  }
-  const acceptanceValues = stringLiterals(acceptance);
-  for (const required of ["seo_research", "bazi_analysis", "generic_ai"]) {
-    if (!acceptanceValues.has(required)) {
-      pushAiInputGatewayFinding(
-        findings,
-        lawId,
-        P.acceptance.identityRecoveryAcceptancePath,
-        "ai-input-gateway/human-readable-system-chat-title",
-        `Title acceptance must cover ${required}.`,
-      );
-    }
-  }
-};
-
-export const inspectHumanReadableSystemChatTitle = (
+export const inspectCanonicalConversationIdentity = (
   context: InspectorContext,
   findings: AiInputGatewayFinding[],
   lawId: string,
@@ -227,54 +205,39 @@ export const inspectHumanReadableSystemChatTitle = (
   const executionState = requireAiInputGatewaySource(
     context, findings, lawId, P.executionRuntime.executionStatePath,
   );
-  const continuationTitle = requireAiInputGatewaySource(
-    context, findings, lawId, P.executionRuntime.continuationTitlePath,
+  const canonicalBinding = requireAiInputGatewaySource(
+    context, findings, lawId, P.executionRuntime.canonicalBindingPath,
   );
-  const managedStart = requireAiInputGatewaySource(
-    context, findings, lawId, P.executionRuntime.managedExecutionStartPath,
-  );
-  const systemTitle = requireAiInputGatewaySource(
-    context, findings, lawId, P.executionRuntime.systemChatTitlePath,
+  const routing = requireAiInputGatewaySource(
+    context, findings, lawId, P.runtime.singleTabRoutingPath,
   );
   const acceptance = requireAiInputGatewaySource(
     context, findings, lawId, P.acceptance.identityRecoveryAcceptancePath,
   );
   if (
     !executionState
-    || !continuationTitle
-    || !managedStart
-    || !systemTitle
+    || !canonicalBinding
+    || !routing
     || !acceptance
   ) return;
-  if (!identifiers(executionState).has("buildHumanReadableSystemChatTitle")) {
-    pushAiInputGatewayFinding(
-      findings,
-      lawId,
-      P.executionRuntime.executionStatePath,
-      "ai-input-gateway/human-readable-system-chat-title",
-      "New GPT executions must use the single human-readable system chat "
-      + "title builder.",
-    );
-  }
-  inspectSystemTitleBuilder(systemTitle, findings, lawId);
-  const continuationContract = [
-    identifiers(continuationTitle).has(
-      "resolveContinuationWebChatSystemTitle",
-    ),
-    identifiers(managedStart).has("resolveContinuationWebChatSystemTitle"),
-    identifiers(continuationTitle).has("earliestVerifiedTitle"),
-    identifiers(continuationTitle).has("verifiedAt"),
+  const contract = [
+    identifiers(canonicalBinding).has("assertWebChatCanonicalConversationBinding"),
+    identifiers(canonicalBinding).has("resolveSubmittedDraftOwnerByTurnMarker"),
+    identifiers(routing).has("focusChatGptConversationByCanonicalPath"),
+    identifiers(acceptance).has("assertCanonicalConversationOwnership"),
+    identifiers(acceptance)
+      .has("assertSubmittedDraftOwnershipRequiresOneCanonicalOwner"),
+    !identifiers(executionState).has("buildHumanReadableSystemChatTitle"),
+    !identifiers(executionState).has("WebChatTitleRenameState"),
   ].every(Boolean);
-  if (!continuationContract) {
+  if (!contract) {
     pushAiInputGatewayFinding(
       findings,
       lawId,
-      P.executionRuntime.managedExecutionStartPath,
-      "ai-input-gateway/one-parent-conversation-title",
-      "Every continuation turn must inherit one durable title from its exact "
-      + "parent conversation, and legacy title pollution must collapse "
-      + "deterministically without blocking the user.",
+      P.executionRuntime.canonicalBindingPath,
+      "ai-input-gateway/canonical-conversation-identity",
+      "Provider identity must use canonical URL plus exact clean prompt identity and "
+      + "must not retain a title generator or rename-debt state.",
     );
   }
-  inspectTitleAcceptance(acceptance, findings, lawId);
 };

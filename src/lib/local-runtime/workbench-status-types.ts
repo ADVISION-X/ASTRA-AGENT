@@ -13,6 +13,11 @@ export type WorkbenchHealthReport = {
   sourceFingerprint: string;
 };
 
+export type WorkbenchInitializationState = {
+  status: "initializing" | "ready" | "failed";
+  failureReason: string | null;
+};
+
 export type WorkbenchMissionReadinessReport = {
   status: "ready" | "not_ready";
   reason: string;

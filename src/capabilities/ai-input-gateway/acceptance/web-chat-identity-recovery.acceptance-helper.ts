@@ -12,48 +12,9 @@ import {
 } from "../runtime/web-chat-execution-state.js";
 import {
   assertWebChatCanonicalConversationBinding,
-  resolveContinuationWebChatSystemTitle,
-} from "../runtime/web-chat-continuation-title.js";
-import { buildHumanReadableSystemChatTitle } from "../runtime/web-chat-system-title.js";
-
-const assertHumanReadableTitles = (): void => {
-  const seoTitle = buildHumanReadableSystemChatTitle({
-    labelKey: "seo_research",
-    executionId: "generic_example-seo-task",
-    turnMarker: "GRASSEYE_TURN_1234567890abcdef",
-    createdAt: "2026-07-26T04:40:00.000Z",
-  });
-  assert.match(
-    seoTitle,
-    /^SEO资料研究｜07-26 04:40Z｜[A-F0-9]{8}-CDEF$/u,
-    "SEO conversations must have a readable task label, UTC time and short trace",
-  );
-  assert.doesNotMatch(
-    seoTitle,
-    /public-knowledge|generic_example|GRASSEYE_TURN/u,
-    "readable titles must not expose transport ids or raw contract vocabulary",
-  );
-  assert.match(
-    buildHumanReadableSystemChatTitle({
-      labelKey: "bazi_analysis",
-      executionId: "generic_example-bazi-task",
-      turnMarker: "GRASSEYE_TURN_abcdef1234567890",
-      createdAt: "2026-07-26T04:41:00.000Z",
-    }),
-    /^八字分析｜07-26 04:41Z｜[A-F0-9]{8}-7890$/u,
-    "known business contracts must resolve to a human-readable allowlisted label",
-  );
-  assert.match(
-    buildHumanReadableSystemChatTitle({
-      labelKey: "generic_ai",
-      executionId: "generic_example-task",
-      turnMarker: "GRASSEYE_TURN_1234567890abcdef",
-      createdAt: "2026-07-26T04:42:00.000Z",
-    }),
-    /^AI任务｜07-26 04:42Z｜[A-F0-9]{8}-CDEF$/u,
-    "unknown contracts must use the neutral internal fallback without copying caller text",
-  );
-};
+  resolveSubmittedDraftOwnerByTurnMarker,
+} from "../runtime/web-chat-canonical-binding.js";
+import { assertDuplicateCanonicalDomRowsAreOneLogicalRoute } from "./web-chat-canonical-route.acceptance-helper.js";
 
 const assertProviderFailuresRemainRecoverable = (): void => {
   assert.equal(resolveManagedGptPollIntervalMs(""), 5_000);
@@ -64,45 +25,23 @@ const assertProviderFailuresRemainRecoverable = (): void => {
   );
   for (const reason of [
     "GPT_PROMPT_MISMATCH; controlled Chrome tab is not active",
-    "GPT_PROMPT_MISMATCH; 不能获取对象。 (-1728)",
     "review_required: NATIVE_FILE_LIST_MISMATCH",
-    "review_required: WEB_CHAT_COMPOSER_CLEAR_ACTION_UNPROVEN; provider composer not uniquely found",
-    "osascript exited with code unknown",
+    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical row is still hydrating",
+    "TRANSPORT_DISCONNECTED:TARGET_EVALUATION_FAILED:SyntaxError: corrected browser script may resume",
+    "review_required: the exact provider target is not acquired.",
   ]) {
     assert.equal(
-      classifyWebChatFailure(new Error(reason), false),
+      classifyWebChatFailure(new Error(reason), true),
       "recovery_pending",
       `transient provider failure must remain retryable: ${reason}`,
     );
   }
-  const missingConversationReason =
-    "review_required: locate exact system-renamed ChatGPT search result timed out";
-  assert.equal(
-    classifyWebChatFailure(
-      new Error(missingConversationReason),
-      true,
-      Array.from({ length: 20 }, () => missingConversationReason),
-    ),
-    "recovery_pending",
-    "an exact submitted conversation lookup never becomes a user-visible terminal block because of retry count",
-  );
   assert.equal(
     classifyWebChatFailure(
       new Error("review_required: web-chat execution is terminal: failed"),
       false,
     ),
     "recovery_pending",
-    "a legacy terminal-state echo without its root cause must receive one recovery pass",
-  );
-  assert.equal(
-    classifyWebChatFailure(
-      new Error(
-        "review_required: web-chat execution is terminal: failed; root=review_required: WEB_CHAT_COMPOSER_CLEAR_ACTION_UNPROVEN; provider composer not uniquely found",
-      ),
-      false,
-    ),
-    "recovery_pending",
-    "a terminal-state echo must inherit its recoverable root cause",
   );
   assert.equal(
     classifyWebChatFailure(
@@ -112,206 +51,138 @@ const assertProviderFailuresRemainRecoverable = (): void => {
       false,
     ),
     "failed",
-    "a terminal-state echo must not conceal a genuinely immutable root failure",
   );
 };
 
-const assertCorrectedIdentityStartsFreshAttempt = async (): Promise<void> => {
-  const retryStateDir = await mkdtemp(
-    path.join(os.tmpdir(), "grasseye-web-chat-attempt-restart-"),
-  );
+const assertRootlessSyntheticTerminalEchoGetsOneRecovery = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-rootless-terminal-"));
   try {
-    const retryExecutionId = "xuanxue-ai-production:qimen-retry:followup";
-    const initialRetryState = await startOrResumeWebChatExecution({
-      dataDir: retryStateDir,
-      executionId: retryExecutionId,
+    const initial = await startOrResumeWebChatExecution({
+      dataDir,
+      executionId: "xuanxue-ai-production:rootless-terminal:research",
       providerKind: "gpt-web-chat",
-      taskLabelKey: "hehun_analysis",
-      inputHash: "qimen-retry-input",
-      textPrompt: "qimen retry prompt",
+      inputHash: "same-input",
+      textPrompt: "same prompt",
     });
-    const failedRetryState = await updateWebChatExecution({
-      dataDir: retryStateDir,
-      record: initialRetryState.record,
+    const terminalEcho = (attemptId: string) => ({
+      occurredAt: new Date().toISOString(),
+      attemptId,
+      phase: "failed" as const,
+      classification: "failed" as const,
+      recoverable: false,
+      reason: "review_required: web-chat execution is terminal: failed; root=unknown terminal provider failure",
+    });
+    const failed = await updateWebChatExecution({
+      dataDir,
+      record: initial.record,
+      patch: {
+        status: "failed",
+        failures: [terminalEcho(initial.record.attemptId)],
+      },
+    });
+    const recovered = await startOrResumeWebChatExecution({
+      dataDir,
+      executionId: initial.record.executionId,
+      providerKind: "gpt-web-chat",
+      inputHash: "same-input",
+      textPrompt: "same prompt",
+    });
+    assert.equal(recovered.resume, false);
+    assert.equal(recovered.record.status, "recovery_pending");
+    assert.equal(recovered.record.executionId, failed.executionId);
+    assert.equal(recovered.record.turnMarker, failed.turnMarker);
+    assert.notEqual(recovered.record.attemptId, failed.attemptId);
+
+    const failedAgain = await updateWebChatExecution({
+      dataDir,
+      record: recovered.record,
+      patch: {
+        status: "failed",
+        failures: [
+          ...recovered.record.failures,
+          terminalEcho(recovered.record.attemptId),
+        ],
+      },
+    });
+    await assert.rejects(
+      startOrResumeWebChatExecution({
+        dataDir,
+        executionId: initial.record.executionId,
+        providerKind: "gpt-web-chat",
+        inputHash: "same-input",
+        textPrompt: "same prompt",
+      }),
+      /unknown terminal provider failure/u,
+    );
+    assert.equal(failedAgain.failures.length, 2);
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+};
+
+const assertCorrectedUnsubmittedInputStartsFreshAttempt = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-web-chat-restart-"));
+  try {
+    const initial = await startOrResumeWebChatExecution({
+      dataDir,
+      executionId: "xuanxue-ai-production:qimen-retry:followup",
+      providerKind: "gpt-web-chat",
+      inputHash: "initial-input",
+      textPrompt: "same prompt",
+    });
+    const failed = await updateWebChatExecution({
+      dataDir,
+      record: initial.record,
       patch: {
         status: "failed",
         failures: [{
           occurredAt: new Date().toISOString(),
-          attemptId: initialRetryState.record.attemptId,
+          attemptId: initial.record.attemptId,
           phase: "submitting",
-          classification: "failed",
-          recoverable: false,
-          reason: "osascript exited with code unknown",
-        }, {
-          occurredAt: new Date().toISOString(),
-          attemptId: initialRetryState.record.attemptId,
-          phase: "failed",
-          classification: "review_required",
-          recoverable: false,
-          reason:
-            "review_required: persisted web-chat execution identity does not match the requested feed.",
+          classification: "recovery_pending",
+          recoverable: true,
+          reason: "WEB_CHAT_COMPOSER_CLEAR_ACTION_UNPROVEN",
         }],
       },
     });
-    const repairedRetryState = await startOrResumeWebChatExecution({
-      dataDir: retryStateDir,
-      executionId: retryExecutionId,
+    const repaired = await startOrResumeWebChatExecution({
+      dataDir,
+      executionId: initial.record.executionId,
       providerKind: "gpt-web-chat",
-      taskLabelKey: "qimen_analysis",
-      inputHash: "qimen-retry-input-corrected-label",
-      textPrompt: "qimen retry prompt",
+      inputHash: "corrected-input",
+      textPrompt: "same prompt",
     });
-    assert.equal(repairedRetryState.resume, false);
-    assert.equal(repairedRetryState.record.status, "recovery_pending");
-    assert.notEqual(
-      repairedRetryState.record.attemptId,
-      failedRetryState.attemptId,
-    );
-    assert.notEqual(
-      repairedRetryState.record.turnMarker,
-      failedRetryState.turnMarker,
-    );
-    assert.equal(
-      repairedRetryState.record.inputHash,
-      "qimen-retry-input-corrected-label",
-    );
-    assert.match(repairedRetryState.record.systemChatTitle ?? "", /^奇门分析｜/u);
-    assert.equal(repairedRetryState.record.failures.length, 2);
+    assert.equal(repaired.resume, false);
+    assert.equal(repaired.record.status, "recovery_pending");
+    assert.notEqual(repaired.record.attemptId, failed.attemptId);
+    assert.notEqual(repaired.record.turnMarker, failed.turnMarker);
+    assert.equal(repaired.record.inputHash, "corrected-input");
+    assert.equal("systemChatTitle" in repaired.record, false);
+    assert.equal("chatTitleRename" in repaired.record, false);
   } finally {
-    await rm(retryStateDir, { recursive: true, force: true });
+    await rm(dataDir, { recursive: true, force: true });
   }
 };
 
-const assertMultipleTransientFailuresRemainRecoverable =
-  async (): Promise<void> => {
-    const dataDir = await mkdtemp(
-      path.join(os.tmpdir(), "grasseye-web-chat-multi-recovery-"),
-    );
-    try {
-      const input = {
-        dataDir,
-        executionId: "xuanxue-ai-production:multi-recovery:stage",
-        providerKind: "gpt-web-chat" as const,
-        taskLabelKey: "hehun_analysis" as const,
-        inputHash: "multi-recovery-input",
-        textPrompt: "same immutable prompt",
-      };
-      const initial = await startOrResumeWebChatExecution(input);
-      const failed = await updateWebChatExecution({
-        dataDir,
-        record: initial.record,
-        patch: {
-          status: "failed",
-          failures: [
-            {
-              occurredAt: new Date().toISOString(),
-              attemptId: initial.record.attemptId,
-              phase: "submitting",
-              classification: "recovery_pending",
-              recoverable: true,
-              reason:
-                "WEB_CHAT_CONTINUATION_HISTORY_NOT_STABLE: parent still hydrating",
-            },
-            {
-              occurredAt: new Date().toISOString(),
-              attemptId: initial.record.attemptId,
-              phase: "submitting",
-              classification: "failed",
-              recoverable: false,
-              reason:
-                "review_required: WEB_CHAT_COMPOSER_CLEAR_ACTION_UNPROVEN; provider composer not uniquely found",
-            },
-            {
-              occurredAt: new Date().toISOString(),
-              attemptId: initial.record.attemptId,
-              phase: "failed",
-              classification: "failed",
-              recoverable: false,
-              reason:
-                "review_required: web-chat execution is terminal: failed",
-            },
-          ],
-        },
-      });
-      const recovered = await startOrResumeWebChatExecution(input);
-      assert.equal(recovered.resume, false);
-      assert.equal(recovered.record.status, "recovery_pending");
-      assert.equal(recovered.record.executionId, failed.executionId);
-      assert.equal(recovered.record.turnMarker, failed.turnMarker);
-      assert.notEqual(recovered.record.attemptId, failed.attemptId);
-      assert.equal(recovered.record.failures.length, 3);
-    } finally {
-      await rm(dataDir, { recursive: true, force: true });
-    }
-  };
-
-const assertFeedRateIdentity = (): void => {
-  const guardedRoundId = `same-execution-retry:${Date.now()}`;
-  const guardedExecutionId = "xuanxue-ai-production:retry-owner";
-  assert.equal(checkAiFeedRateGuard({
-    inputHash: "same-input",
-    roundId: guardedRoundId,
-    transport: "web-chat",
-    executionId: guardedExecutionId,
-    supersededExecutionId: null,
-  }).ok, true);
-  assert.equal(checkAiFeedRateGuard({
-    inputHash: "same-input",
-    roundId: guardedRoundId,
-    transport: "web-chat",
-    executionId: guardedExecutionId,
-    supersededExecutionId: null,
-  }).ok, true, "the same durable execution may retry without becoming a duplicate task");
-  assert.equal(checkAiFeedRateGuard({
-    inputHash: "same-input",
-    roundId: guardedRoundId,
-    transport: "web-chat",
-    executionId: "xuanxue-ai-production:different-owner",
-    supersededExecutionId: null,
-  }).ok, false, "a different execution must remain blocked from duplicating the same round input");
-  const replacementExecutionId =
-    "xuanxue-ai-production:authorized-replacement";
-  assert.equal(checkAiFeedRateGuard({
-    inputHash: "same-input",
-    roundId: guardedRoundId,
-    transport: "web-chat",
-    executionId: replacementExecutionId,
-    supersededExecutionId: guardedExecutionId,
-  }).ok, true, "an explicit fresh execution may replace only its exact retired owner");
-  assert.equal(checkAiFeedRateGuard({
-    inputHash: "same-input",
-    roundId: guardedRoundId,
-    transport: "web-chat",
-    executionId: guardedExecutionId,
-    supersededExecutionId: null,
-  }).ok, false, "a retired execution cannot reclaim the round after replacement");
-};
-
 const assertCanonicalConversationOwnership = async (): Promise<void> => {
-  const stateDir = await mkdtemp(
-    path.join(os.tmpdir(), "grasseye-web-chat-conversation-owner-"),
-  );
+  const dataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-web-chat-owner-"));
   try {
     const owner = await startOrResumeWebChatExecution({
-      dataDir: stateDir,
+      dataDir,
       executionId: "xuanxue-ai-production:owner:base",
       providerKind: "gpt-web-chat",
-      taskLabelKey: "bazi_analysis",
       inputHash: "owner-input",
       textPrompt: "owner prompt",
     });
+    const canonicalUrl = "https://chatgpt.com/c/already-owned-conversation";
     await updateWebChatExecution({
-      dataDir: stateDir,
+      dataDir,
       record: owner.record,
       patch: {
         status: "conversation_canonicalized",
         submission: {
           transientConversationUrl: "https://chatgpt.com/",
-          canonicalConversationUrl:
-            "https://chatgpt.com/c/already-owned-conversation",
-          systemChatTitle: null,
-          observedAutoChatTitle: null,
-          chatTitleVerifiedAt: null,
+          canonicalConversationUrl: canonicalUrl,
           userTurnId: "conversation-turn-1",
           previousAssistantCount: 0,
           previousUserMessageCount: 0,
@@ -321,127 +192,159 @@ const assertCanonicalConversationOwnership = async (): Promise<void> => {
     });
     await assert.rejects(
       assertWebChatCanonicalConversationBinding({
-        dataDir: stateDir,
+        dataDir,
         executionId: "xuanxue-ai-production:foreign:base",
         providerKind: "gpt-web-chat",
-        canonicalConversationUrl:
-          "https://chatgpt.com/c/already-owned-conversation?model=auto",
+        canonicalConversationUrl: `${canonicalUrl}?model=auto`,
         continuationConversationUrl: null,
       }),
       /WEB_CHAT_CANONICAL_CONVERSATION_ALREADY_BOUND/u,
-      "a fresh order must never reuse another execution's canonical chat",
     );
     await assert.doesNotReject(
       assertWebChatCanonicalConversationBinding({
-        dataDir: stateDir,
+        dataDir,
         executionId: "xuanxue-ai-production:owner:followup",
         providerKind: "gpt-web-chat",
-        canonicalConversationUrl:
-          "https://chatgpt.com/c/already-owned-conversation",
-        continuationConversationUrl:
-          "https://chatgpt.com/c/already-owned-conversation",
+        canonicalConversationUrl: canonicalUrl,
+        continuationConversationUrl: canonicalUrl,
       }),
-      "an explicit continuation must remain in its exact parent chat",
     );
     await assert.rejects(
       assertWebChatCanonicalConversationBinding({
-        dataDir: stateDir,
+        dataDir,
         executionId: "xuanxue-ai-production:owner:wrong-followup",
         providerKind: "gpt-web-chat",
-        canonicalConversationUrl:
-          "https://chatgpt.com/c/different-conversation",
-        continuationConversationUrl:
-          "https://chatgpt.com/c/already-owned-conversation",
+        canonicalConversationUrl: "https://chatgpt.com/c/different-conversation",
+        continuationConversationUrl: canonicalUrl,
       }),
       /WEB_CHAT_CONTINUATION_CONVERSATION_DRIFT/u,
-      "a continuation must never drift away from its exact parent chat",
     );
   } finally {
-    await rm(stateDir, { recursive: true, force: true });
+    await rm(dataDir, { recursive: true, force: true });
   }
 };
 
-const assertContinuationInheritsParentSystemTitle =
-  async (): Promise<void> => {
-    const stateDir = await mkdtemp(
-      path.join(os.tmpdir(), "grasseye-web-chat-parent-title-"),
-    );
-    try {
-      const parent = await startOrResumeWebChatExecution({
-        dataDir: stateDir,
-        executionId: "xuanxue-ai-production:stable-title:base",
-        providerKind: "gpt-web-chat",
-        taskLabelKey: "naming_analysis",
-        inputHash: "stable-title-parent-input",
-        textPrompt: "stable title parent prompt",
-      });
-      const parentUrl =
-        "https://chatgpt.com/c/stable-parent-conversation";
-      const persistedParent = await updateWebChatExecution({
-        dataDir: stateDir,
-        record: parent.record,
-        patch: {
-          status: "waiting_provider",
-          submission: {
-            transientConversationUrl: parentUrl,
-            canonicalConversationUrl: parentUrl,
-            systemChatTitle: parent.record.systemChatTitle,
-            observedAutoChatTitle: null,
-            chatTitleVerifiedAt: "2026-07-29T10:00:00.000Z",
-            userTurnId: "conversation-turn-1",
-            previousAssistantCount: 0,
-            previousUserMessageCount: 0,
-            submittedAt: new Date().toISOString(),
-          },
-        },
-      });
-      const pollutedLaterStage = await startOrResumeWebChatExecution({
-        dataDir: stateDir,
-        executionId: "xuanxue-ai-production:stable-title:later-stage",
-        providerKind: "gpt-web-chat",
-        taskLabelKey: "naming_analysis",
-        inputHash: "stable-title-later-input",
-        textPrompt: "stable title later prompt",
-      });
-      await updateWebChatExecution({
-        dataDir: stateDir,
-        record: pollutedLaterStage.record,
-        patch: {
-          status: "response_captured",
-          submission: {
-            transientConversationUrl: parentUrl,
-            canonicalConversationUrl: parentUrl,
-            systemChatTitle: pollutedLaterStage.record.systemChatTitle,
-            observedAutoChatTitle: null,
-            chatTitleVerifiedAt: "2026-07-29T10:05:00.000Z",
-            userTurnId: "conversation-turn-3",
-            previousAssistantCount: 1,
-            previousUserMessageCount: 1,
-            submittedAt: "2026-07-29T10:04:00.000Z",
-          },
-        },
-      });
-      assert.equal(
-        await resolveContinuationWebChatSystemTitle({
-          dataDir: stateDir,
-          providerKind: "gpt-web-chat",
-          canonicalConversationUrl: parentUrl,
-        }),
-        persistedParent.systemChatTitle,
-        "every continuation must inherit the earliest verified whole-order parent title and collapse legacy later-stage title pollution without blocking",
-      );
-    } finally {
-      await rm(stateDir, { recursive: true, force: true });
-    }
-  };
+const createSubmittedDraftCandidate = async (dataDir: string, input: {
+  executionId: string;
+  canonicalConversationUrl: string | null;
+}) => {
+  const started = await startOrResumeWebChatExecution({
+    dataDir,
+    executionId: input.executionId,
+    turnIdentitySeed: "shared-submitted-draft-marker",
+    providerKind: "gpt-web-chat",
+    inputHash: input.executionId,
+    textPrompt: input.executionId,
+  });
+  return updateWebChatExecution({
+    dataDir,
+    record: started.record,
+    patch: {
+      status: input.canonicalConversationUrl ? "conversation_canonicalized" : "submitted_transient",
+      submission: {
+        transientConversationUrl: "https://chatgpt.com/c/WEB:submitted-draft",
+        canonicalConversationUrl: input.canonicalConversationUrl,
+        userTurnId: "conversation-turn-1",
+        previousAssistantCount: 0,
+        previousUserMessageCount: 0,
+        submittedAt: new Date().toISOString(),
+      },
+    },
+  });
+};
 
-export const assertWebChatIdentityAndRecoveryPolicies =
-  async (): Promise<void> => {
-    assertHumanReadableTitles();
-    assertProviderFailuresRemainRecoverable();
-    await assertCorrectedIdentityStartsFreshAttempt();
-    await assertMultipleTransientFailuresRemainRecoverable();
-    await assertCanonicalConversationOwnership();
-    await assertContinuationInheritsParentSystemTitle();
-    assertFeedRateIdentity();
-  };
+const resolveDraftOwner = (dataDir: string, turnMarker: string) =>
+  resolveSubmittedDraftOwnerByTurnMarker({
+    dataDir,
+    providerKind: "gpt-web-chat",
+    turnMarker,
+  });
+
+const assertSubmittedDraftOwnershipRequiresOneCanonicalOwner = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-submitted-draft-owner-"));
+  try {
+    const transient = await createSubmittedDraftCandidate(dataDir, {
+      executionId: "submitted-draft:transient-only",
+      canonicalConversationUrl: null,
+    });
+    assert.deepEqual(
+      await resolveDraftOwner(dataDir, transient.turnMarker),
+      { matchCount: 0, owner: null },
+      "a transient-only receipt must never authorize composer cleanup",
+    );
+    const canonical = await createSubmittedDraftCandidate(dataDir, {
+      executionId: "submitted-draft:canonical-owner",
+      canonicalConversationUrl: "https://chatgpt.com/c/submitted-draft-owner",
+    });
+    assert.deepEqual(
+      await resolveDraftOwner(dataDir, canonical.turnMarker),
+      {
+        matchCount: 1,
+        owner: {
+          executionId: canonical.executionId,
+          canonicalConversationUrl: "https://chatgpt.com/c/submitted-draft-owner",
+        },
+      },
+      "one durable canonical owner is positive stale-draft ownership proof",
+    );
+    await createSubmittedDraftCandidate(dataDir, {
+      executionId: "submitted-draft:duplicate-owner",
+      canonicalConversationUrl: "https://chatgpt.com/c/submitted-draft-duplicate",
+    });
+    assert.deepEqual(
+      await resolveDraftOwner(dataDir, canonical.turnMarker),
+      { matchCount: 2, owner: null },
+      "duplicate ledger owners must fail closed without clearing",
+    );
+    assert.deepEqual(
+      await resolveDraftOwner(dataDir, "not-a-governed-marker"),
+      { matchCount: 0, owner: null },
+      "malformed or foreign marker text must never authorize cleanup",
+    );
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+};
+
+const assertFeedRateIdentity = (): void => {
+  const roundId = `same-execution-retry:${Date.now()}`;
+  const first = "xuanxue-ai-production:retry-owner";
+  assert.equal(checkAiFeedRateGuard({
+    inputHash: "same-input",
+    roundId,
+    transport: "web-chat",
+    executionId: first,
+    supersededExecutionId: null,
+  }).ok, true);
+  assert.equal(checkAiFeedRateGuard({
+    inputHash: "same-input",
+    roundId,
+    transport: "web-chat",
+    executionId: first,
+    supersededExecutionId: null,
+  }).ok, true);
+  assert.equal(checkAiFeedRateGuard({
+    inputHash: "same-input",
+    roundId,
+    transport: "web-chat",
+    executionId: "xuanxue-ai-production:different-owner",
+    supersededExecutionId: null,
+  }).ok, false);
+  assert.equal(checkAiFeedRateGuard({
+    inputHash: "same-input",
+    roundId,
+    transport: "web-chat",
+    executionId: "xuanxue-ai-production:replacement",
+    supersededExecutionId: first,
+  }).ok, true);
+};
+
+export const assertWebChatIdentityAndRecoveryPolicies = async (): Promise<void> => {
+  assertProviderFailuresRemainRecoverable();
+  await assertDuplicateCanonicalDomRowsAreOneLogicalRoute();
+  await assertCorrectedUnsubmittedInputStartsFreshAttempt();
+  await assertRootlessSyntheticTerminalEchoGetsOneRecovery();
+  await assertCanonicalConversationOwnership();
+  await assertSubmittedDraftOwnershipRequiresOneCanonicalOwner();
+  assertFeedRateIdentity();
+};

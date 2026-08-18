@@ -64,7 +64,6 @@ export type DeepResearchGatewayPromptPackage = {
   inputRefs: DeepResearchGatewayInputRef[];
   providerKind: ProviderKind;
   timeoutMs: number;
-  maxInputChars: number;
   maxFileCount: number;
 };
 

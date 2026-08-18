@@ -173,7 +173,6 @@ src/capabilities/media-processing/
   │  ├─ optimize-image-for-web-once.ts
   │  ├─ resize-image-for-web-once.ts
   │  └─ generate-responsive-image-variants-once.ts
-  │  └─ inspect-public-knowledge-image-redlines-once.ts
   ├─ runtime/
   │  ├─ ffmpeg-runner.ts                       # safe process adapter, no shell:true
   │  ├─ ffprobe-runner.ts                      # output/input video metadata validation
@@ -305,7 +304,6 @@ type MediaProcessingExecutionContext = {
 | `optimize-image-for-web-once` | 1 个本地图片 artifact | 1 个优化图片 artifact | 格式/质量/metadata 优化 |
 | `resize-image-for-web-once` | 1 个本地图片 artifact | 1 个尺寸受限图片 artifact | 不负责整套 responsive variants |
 | `generate-responsive-image-variants-once` | 1 个本地图片 artifact | 1 个 deterministic variant set | 一个输入生成一组固定尺寸图 |
-| `inspect-public-knowledge-image-redlines-once` | 1 个规范化 WebP | hash 绑定的观察 proof 或 review_required | 只观察人脸、可读文字和页面/地图/图表/Logo 类红线，不决定发布 |
 
 子能力原则：
 
@@ -951,7 +949,6 @@ Fixtures：
 [ ] resize-image-for-web-once success
 [ ] generate-responsive-image-variants-once success
 [ ] public-knowledge-hero uses 1200×630 contain canvas and opaque neutral background
-[ ] inspect-public-knowledge-image-redlines-once binds the inspected file hash and fails closed on unavailable or uncertain observation
 [ ] invalid extension-only image fails
 [ ] variant set does not upscale
 [ ] output validation failure prevents success
@@ -1007,11 +1004,8 @@ Fixtures：
 - optimize-image-for-web-once
 - resize-image-for-web-once
 - generate-responsive-image-variants-once
-- inspect-public-knowledge-image-redlines-once
-- inspect-public-knowledge-image-redlines-once
 - image acceptance
 - public-knowledge hero exact 1200×630 contain canvas, opaque neutral background and metadata stripping
-- public-knowledge redline observation for faces, readable text and page/map/chart/logo-style classifications
 ```
 
 ### Phase 3 — Video Processing

@@ -8,7 +8,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import {
   acceptancePath, acceptanceSupportPaths, authorityPaths,
   cloudContractPath, cloudCredentialPath, cloudWorkerPath,
-  pluginPaths, profilePath, schedulerPath, schemaPath, storePath,
+  pluginPaths, profilePath, removedSecondChainPaths, schedulerPath, schemaPath, storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 import { collectXuanxueSourceValues, inspectXuanxueLocalIntervention } from "./components/local-intervention-inspector.js";
@@ -81,6 +81,65 @@ const inspectAuthority = (
   }
 };
 
+const sourceContainsDetachedProviderPreflightMarker = (source: SourceFile): boolean => {
+  const markers = [
+    "provider-input-preflight",
+    "provider_input_preflight",
+    "preflightApprovedWebChatFiles",
+    "bytes_base64",
+  ];
+  const values = [
+    ...source.getDescendantsOfKind(SyntaxKind.Identifier)
+      .map((node) => String(node.compilerNode.escapedText)),
+    ...source.getDescendantsOfKind(SyntaxKind.StringLiteral)
+      .map((node) => node.getLiteralText()),
+    ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
+      .map((node) => node.getLiteralText()),
+    ...source.getDescendantsOfKind(SyntaxKind.TemplateHead)
+      .map((node) => node.getLiteralText()),
+    ...source.getDescendantsOfKind(SyntaxKind.TemplateMiddle)
+      .map((node) => node.getLiteralText()),
+    ...source.getDescendantsOfKind(SyntaxKind.TemplateTail)
+      .map((node) => node.getLiteralText()),
+  ];
+  return markers.some((marker) => values.some((value) => value.indexOf(marker) >= 0));
+};
+
+const inspectRemovedSecondChain = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  boundaryLaw: string,
+): void => {
+  for (const filePath of removedSecondChainPaths) {
+    if (!existsSync(resolveFromRepo(filePath))) continue;
+    findings.push(finding(
+      boundaryLaw,
+      "xuanxue-ai-production/no-detached-provider-preflight",
+      filePath,
+      `${filePath} must remain physically deleted.`,
+    ));
+  }
+  for (const filePath of [
+    "src/app/workbench-xuanxue-ai-production-routes.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/create-workbench-server.ts",
+    "src/capabilities/ai-input-gateway/contract.ts",
+    "src/capabilities/ai-input-gateway/ability-group.ts",
+    cloudContractPath,
+  ]) {
+    const file = resolveFromRepo(filePath);
+    if (!existsSync(file)) continue;
+    const sourceFile = context.project.getSourceFile(file);
+    if (!sourceFile || !sourceContainsDetachedProviderPreflightMarker(sourceFile)) continue;
+    findings.push(finding(
+      boundaryLaw,
+      "xuanxue-ai-production/no-detached-provider-preflight",
+      filePath,
+      `${filePath} must not retain the detached provider preflight chain.`,
+    ));
+  }
+};
+
 const inspectContracts = (
   findings: InspectorFinding[],
   laws: Laws,
@@ -119,6 +178,7 @@ const inspectContracts = (
       "forked_from_checkpoint",
       "same_conversation",
       "generated_image",
+      "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION",
     ],
   });
   requireValues(findings, {
@@ -188,6 +248,10 @@ const inspectDurability = (
       "supersededExecutionId",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
+      "hasProvenTerminalPreSubmitIdentityConflict",
+      "a still-hydrating fresh root is a recoverable wait on the same execution id",
+      "a stage may replace one proven foreign pre-submit identity only once",
+      "a second identity conflict must recover on the replacement execution instead of minting restart:2",
     ],
   });
   requireValues(findings, {
@@ -289,6 +353,12 @@ const inspectCloud = (
       "reconcileDurableLocalOrders",
       "cancelCloudRecoveryOrder",
       "cloud_cancelled_order_settled",
+      "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION",
+      "attachment_upload_proof",
+      "XuanxueAiProductionAttachmentCheckpointProof",
+      "stage_attachment_upload_proof",
+      "onAttachmentUploadCompleted",
+      "XUANXUE_AI_PRODUCTION_ATTACHMENT_CHECKPOINT_DEFERRED",
     ],
   });
   requireValues(findings, {
@@ -354,10 +424,10 @@ const inspectAcceptance = (
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
       "article_image_generation",
       "scheduled_quality_reflection",
-      "public-knowledge-redline-check",
       "terminalAttachmentGatewayCallCount",
       "a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt",
       "restart recovery must preserve the terminal attachment proof without a second upload attempt",
+      "a blocked pre-submit attachment set must never create a second provider upload attempt",
     ],
   });
 };
@@ -384,6 +454,7 @@ const inspectDomainEvaluation = async (
   };
   const findings: InspectorFinding[] = [];
   inspectAuthority(findings, laws.boundary);
+  inspectRemovedSecondChain(context, findings, laws.boundary);
   const sources = pluginPaths.flatMap((filePath) => {
     const result = source(context, findings, laws.boundary, filePath);
     return result ? [result] : [];

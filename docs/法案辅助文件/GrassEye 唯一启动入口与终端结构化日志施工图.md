@@ -32,6 +32,7 @@ dependency check
 -> hot-mount GET /api/health probe
 -> port clear when no healthy workbench is mounted
 -> app server start when no healthy workbench is mounted
+-> mandatory runtime owner initialization
 -> GET /api/health readiness probe for started service
 -> open local workbench page
 -> structured terminal report
@@ -44,8 +45,10 @@ dependency check
 - 启动前先探测现有 `/api/health`，健康则热挂载现有 workbench。
 - 现有端口不健康时，真实清理本地 app server 端口。
 - 未热挂载时启动本地 HTTP workbench。
-- 用 `/api/health` 证明 app shell readiness。
+- 用 `/api/health` 证明 app shell 与全部 mandatory runtime owner 已完成初始化；初始化中或初始化失败都不得返回 `healthy`。
 - 新启动服务的 `/api/health` readiness 默认等待预算不得低于 60s；poll 间隔必须保持在 250ms 到 1000ms 之间。
+- cold-start 与 hot-mount 只接受 `status=healthy`；`degraded` 只能用于诊断，不能作为启动成功。
+- mandatory owner 初始化抛错时，保留不含秘密的精确失败原因，关闭本次新建 HTTP listener，并让 app process 非零退出。
 - 在 readiness 通过后打开本地 workbench URL。
 - 输出结构化终端日志和明确 failureReason。
 
@@ -67,11 +70,26 @@ dependency check
 热挂载用于代码迭代期间复用已经健康的本地 workbench：
 
 - 在清理端口前，先探测 `${baseUrl}/api/health`。
-- `/api/health` 返回 HTTP OK 且 source fingerprint 匹配当前源码时，不启动第二个 app server。
+- `/api/health` 返回 HTTP OK、`status=healthy` 且 source fingerprint 匹配当前源码时，不启动第二个 app server。
 - `/api/health` 健康但 source fingerprint 缺失或不匹配时，视为旧内存代码，不得 hot-mount，必须进入端口清理和单一启动链。
 - 热挂载只打开 workbench 页面并输出 structured ready report。
 - 热挂载不证明 job readiness、AI readiness、evidence truth 或 CI truth。
 - `/api/health` 不可达或返回非 OK 时，进入端口清理和单一启动链。
+- `/api/health` 返回 `degraded`、`initializing` 或 mandatory owner 初始化失败时，不得热挂载。
+
+## 初始化健康状态
+
+workbench 内部只维护一份启动生命周期：
+
+```txt
+initializing -> ready
+initializing -> failed
+```
+
+- `/api/health` 必须包含 `runtimeInitialization` 组件。
+- `initializing` 与 `failed` 的组件 `ok=false`，只有 `ready` 才能为 `ok=true`。
+- 初始化异常只输出 owner 和不含秘密的有界原因；不得回传 prompt、cookie、token、credential 或 provider 内容。
+- 新启动进程初始化失败后必须关闭 server；不得留下“端口仍活着但 owner 没起来”的假健康壳。
 
 ## 启动禁止
 
@@ -119,3 +137,5 @@ startup-entrypoint owner inspector 检查：
 - 启动脚本是否启动 local app server 并打开 workbench。
 - 启动脚本是否仍包含 registry readiness hard gate、AI readiness hard gate、CI/audit/acceptance/typecheck 调用、job flow 或能力调用。
 - 启动日志是否保留结构化字段和 failureReason。
+- `/api/health` 是否在 mandatory owner 初始化完成前保持非 healthy，startup probe 是否拒绝 degraded。
+- mandatory owner 初始化失败后，本次新建 listener 是否真实关闭并由进程返回失败。

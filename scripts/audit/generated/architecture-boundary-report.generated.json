@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T04:12:16.176Z",
+  "generatedAt": "2026-08-18T01:15:21.477Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -366,6 +366,7 @@
     "acceptance:media-processing",
     "acceptance:runtime-log-spine",
     "acceptance:runtime-truth-completed-evidence",
+    "acceptance:startup-entrypoint",
     "acceptance:video-download-telegram-web",
     "acceptance:video-download-youtube-production",
     "acceptance:workbench-api-boundary",
@@ -488,12 +489,14 @@
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+    "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/acceptance/support/plugin-intervention-contract.acceptance-support.ts",
     "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
@@ -502,8 +505,9 @@
     "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-    "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
+    "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
     "scripts/audit/build-audit-artifacts.ts",
@@ -716,6 +720,7 @@
     "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
     "scripts/audit/domains/runtime-truth/inspector.ts",
+    "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "scripts/audit/domains/video-download-capability/inspector.ts",
@@ -820,10 +825,10 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -838,8 +843,6 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
@@ -847,6 +850,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
@@ -884,19 +888,15 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -931,7 +931,6 @@
     "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
     "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
     "src/capabilities/media-processing/runtime/hash-stream.ts",
-    "src/capabilities/media-processing/runtime/image-redline-observer.ts",
     "src/capabilities/media-processing/runtime/media-source.ts",
     "src/capabilities/media-processing/runtime/result.ts",
     "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -984,6 +983,8 @@
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+    "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+    "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
     "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
@@ -1160,7 +1161,6 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -1174,9 +1174,9 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -1205,14 +1205,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167",
+      "runId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6",
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-16T04:12:13.364Z",
-      "endedAt": "2026-08-16T04:12:16.174Z",
-      "durationMs": 2810,
+      "startedAt": "2026-08-18T01:15:18.836Z",
+      "endedAt": "2026-08-18T01:15:21.476Z",
+      "durationMs": 2640,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -1325,12 +1325,14 @@
         "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
         "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
         "scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
+        "scripts/acceptance/startup-initialization-health.acceptance.ts",
         "scripts/acceptance/support/plugin-intervention-contract.acceptance-support.ts",
         "scripts/acceptance/video-download-telegram-web.acceptance.ts",
         "scripts/acceptance/video-download-youtube-production.acceptance.ts",
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
         "scripts/acceptance/workbench-api-boundary.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture.ts",
         "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
@@ -1339,8 +1341,9 @@
         "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-        "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
+        "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -1553,6 +1556,7 @@
         "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
         "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
         "scripts/audit/domains/runtime-truth/inspector.ts",
+        "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
         "scripts/audit/domains/video-download-capability/inspector.ts",
@@ -1657,10 +1661,10 @@
         "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-        "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -1675,8 +1679,6 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
@@ -1684,6 +1686,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
@@ -1721,19 +1724,15 @@
         "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
         "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
         "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
         "src/capabilities/ai-input-gateway/schema.ts",
         "src/capabilities/dom-automation/index.ts",
         "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -1768,7 +1767,6 @@
         "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
         "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
         "src/capabilities/media-processing/runtime/hash-stream.ts",
-        "src/capabilities/media-processing/runtime/image-redline-observer.ts",
         "src/capabilities/media-processing/runtime/media-source.ts",
         "src/capabilities/media-processing/runtime/result.ts",
         "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -1821,6 +1819,8 @@
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+        "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+        "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
         "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
@@ -1997,7 +1997,6 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -2011,9 +2010,9 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -2047,85 +2046,85 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "APEX-ARCH-012-V1",
       "clauseId": "apex-arch-012-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:83cc3d86-dacf-421d-879e-e27a61ca6167"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
     }
   ]
 }

@@ -3,6 +3,7 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import { buildWaitForExactAttachmentCountScript } from "./web-chat-composer-scripts.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
+  buildClearProvenSubmittedRootDraftScript,
   CLEAR_COMPOSER_SCRIPT,
 } from "./web-chat-page-action-scripts.js";
 import { getRecentChatGptBlockingDialog } from "./web-chat-rate-limit-dialog.js";
@@ -36,6 +37,17 @@ export const clearComposer = (
   browser.evaluate<WebChatEvaluation>({
     description: "clear stale AI web chat draft and attachments",
     script: CLEAR_COMPOSER_SCRIPT,
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });
+
+export const clearProvenSubmittedRootDraft = (
+  browser: BrowserTargetSession,
+  context: AiProviderAdapterContext,
+  expectedTurnMarker: string,
+): Promise<WebChatEvaluation> =>
+  browser.evaluate<WebChatEvaluation>({
+    description: "clear uniquely owned submitted ChatGPT root draft",
+    script: buildClearProvenSubmittedRootDraftScript(expectedTurnMarker),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 

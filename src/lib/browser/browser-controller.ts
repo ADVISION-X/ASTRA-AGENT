@@ -26,9 +26,12 @@ type BrowserActionResult = {
 
 type BrowserOpenReusePolicy =
   | "reuse-exact-url"
+  | "bind-existing-exact-url"
+  | "bind-existing-exact-origin"
   | "open-new-tab";
 
-type BrowserOpenNavigationMode = "acquired_exact_target" | "navigated_exact_target";
+type BrowserOpenNavigationMode =
+  "acquired_exact_target" | "navigated_exact_target";
 
 type BrowserOpenResult = BrowserActionResult;
 
@@ -80,7 +83,17 @@ type BrowserClickCoordinateSpace = "browserViewport";
 type BrowserClickButton = "left" | "right" | "middle";
 type BrowserScrollCoordinateSpace = "browserViewport";
 type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
-type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+type BrowserTextInputKey =
+  | "Enter"
+  | "Tab"
+  | "Escape"
+  | "Backspace"
+  | "Delete"
+  | "L"
+  | "ArrowUp"
+  | "ArrowDown"
+  | "ArrowLeft"
+  | "ArrowRight";
 
 type BrowserDomElementIdentity = {
   tagName?: string | undefined;
@@ -105,11 +118,15 @@ type BrowserFileInputRef = { selector: string; targetKind: "file-input" };
 interface BrowserTargetSession {
   readonly ownerId?: string;
   getTarget?(): ControlledBrowserTarget | null;
-  releaseTargetForOperator?(input: { reason: string }): Promise<BrowserActionResult>;
+  releaseTargetForOperator?(input: {
+    reason: string;
+  }): Promise<BrowserActionResult>;
   setExecutionAbortSignal?(abortSignal: AbortSignal | null): void;
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
-  getGeometrySnapshot(abortSignal?: AbortSignal): Promise<BrowserGeometrySnapshot>;
+  getGeometrySnapshot(
+    abortSignal?: AbortSignal,
+  ): Promise<BrowserGeometrySnapshot>;
   open(input: {
     url: string;
     title: string;
@@ -177,8 +194,14 @@ interface BrowserTargetSession {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
-  wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult>;
-  closeTarget(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
+  wait(
+    durationMs: number,
+    abortSignal?: AbortSignal,
+  ): Promise<BrowserActionResult>;
+  closeTarget(input: {
+    reason: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 
@@ -187,7 +210,12 @@ interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
   createTargetSession(ownerId: string): BrowserTargetSession;
-  close(): Promise<{ browserActionId: string; ok: boolean; message: string; createdAt: string }>;
+  close(): Promise<{
+    browserActionId: string;
+    ok: boolean;
+    message: string;
+    createdAt: string;
+  }>;
 }
 
 export type {

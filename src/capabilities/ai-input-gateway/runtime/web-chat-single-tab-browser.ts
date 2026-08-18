@@ -15,7 +15,6 @@ type SingleTabBrowserInput = {
   dataDir: string;
   executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
-  systemChatTitle: string | null;
   turnMarker: string;
   timeoutMs: number;
   signal?: AbortSignal;
@@ -27,6 +26,12 @@ type SingleTabState = {
   initialMutationLease: WebChatRuntimeLease | null;
   submission: WebChatSubmissionProof | null;
 };
+
+export const isRoutableWebChatSubmission = (
+  submission: WebChatSubmissionProof | null,
+): submission is WebChatSubmissionProof & { canonicalConversationUrl: string } =>
+  typeof submission?.canonicalConversationUrl === "string"
+  && submission.canonicalConversationUrl.length > 0;
 
 const delay = (durationMs: number, signal?: AbortSignal): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -66,11 +71,10 @@ const routeToBoundConversation = async (
   input: SingleTabBrowserInput,
   state: SingleTabState,
 ): Promise<void> => {
-  if (!state.submission) return;
+  if (!isRoutableWebChatSubmission(state.submission)) return;
   await focusBoundWebChatConversation({
     base: input.base,
     providerKind: input.providerKind,
-    systemChatTitle: input.systemChatTitle,
     submission: state.submission,
     turnMarker: input.turnMarker,
     ...(input.signal ? { signal: input.signal } : {}),
@@ -104,12 +108,23 @@ const createMutationRunner =
           }));
     const ownsLease = lease !== initialLease;
     try {
+      let routed = false;
+      if (
+        !input.base.getTarget?.() &&
+        !options.allowMissingProviderTab &&
+        options.route !== false &&
+        state.submission
+      ) {
+        await routeToBoundConversation(input, state);
+        routed = true;
+      }
       if (!input.base.getTarget?.() && !options.allowMissingProviderTab) {
         throw new Error(
           "review_required: the exact provider target is not acquired.",
         );
       }
-      if (options.route !== false) await routeToBoundConversation(input, state);
+      if (options.route !== false && !routed)
+        await routeToBoundConversation(input, state);
       return await operation();
     } finally {
       if (ownsLease) await lease.release();
@@ -152,33 +167,33 @@ const createInteractiveBrowserFacade = (
   withMutation: MutationRunner,
   routeByDefault: boolean,
 ): InteractiveBrowserFacade => ({
-    getHealth: () => input.base.getHealth(),
-    getSessionState: () => input.base.getSessionState(),
-    getGeometrySnapshot: () =>
-      withMutation(() => input.base.getGeometrySnapshot(), {
-        route: routeByDefault,
-      }),
-    open: (value) =>
-      withMutation(
-        () => input.base.open({ ...value, reusePolicy: "reuse-exact-url" }),
-        { route: false, allowMissingProviderTab: true },
-      ),
-    scroll: (value) =>
-      withMutation(() => input.base.scroll(value), { route: routeByDefault }),
-    click: (value) =>
-      withMutation(() => input.base.click(value), { route: routeByDefault }),
-    clickLocatedDomElement: (value) =>
-      withMutation(() => input.base.clickLocatedDomElement(value), {
-        route: routeByDefault,
-      }),
-    fillLocatedDomElement: (value) =>
-      withMutation(() => input.base.fillLocatedDomElement!(value), {
-        route: routeByDefault,
-      }),
-    textInput: (value) =>
-      withMutation(() => input.base.textInput(value), {
-        route: routeByDefault,
-      }),
+  getHealth: () => input.base.getHealth(),
+  getSessionState: () => input.base.getSessionState(),
+  getGeometrySnapshot: () =>
+    withMutation(() => input.base.getGeometrySnapshot(), {
+      route: routeByDefault,
+    }),
+  open: (value) =>
+    withMutation(
+      () => input.base.open(value),
+      { route: false, allowMissingProviderTab: true },
+    ),
+  scroll: (value) =>
+    withMutation(() => input.base.scroll(value), { route: routeByDefault }),
+  click: (value) =>
+    withMutation(() => input.base.click(value), { route: routeByDefault }),
+  clickLocatedDomElement: (value) =>
+    withMutation(() => input.base.clickLocatedDomElement(value), {
+      route: routeByDefault,
+    }),
+  fillLocatedDomElement: (value) =>
+    withMutation(() => input.base.fillLocatedDomElement!(value), {
+      route: routeByDefault,
+    }),
+  textInput: (value) =>
+    withMutation(() => input.base.textInput(value), {
+      route: routeByDefault,
+    }),
 });
 
 type ObservationBrowserFacade = Pick<
@@ -196,55 +211,53 @@ const createObservationBrowserFacade = (
   withMutation: MutationRunner,
   routeByDefault: boolean,
 ): ObservationBrowserFacade => ({
-    screenshotRegion: (value) =>
-      withMutation(() => input.base.screenshotRegion(value), {
-        route: routeByDefault,
-      }),
-    evaluate: <T>(
-      value: Parameters<BrowserTargetSession["evaluate"]>[0],
-    ) =>
-      withMutation(() => input.base.evaluate<T>(value), {
-        route: routeByDefault,
-      }),
-    setFileInputFiles: (value) =>
-      withMutation(() => input.base.setFileInputFiles(value), {
-        route: routeByDefault,
-      }),
-    wait: async (durationMs: number): Promise<BrowserActionResult> => {
-      await delay(durationMs, input.signal);
-      return {
-        browserActionId: "single-tab-web-chat-wait",
-        ok: true,
-        message: `waited ${durationMs}ms without occupying the single browser mutation slot`,
-        createdAt: new Date().toISOString(),
-      };
-    },
-    closeTarget: async (): Promise<BrowserActionResult> => ({
-      browserActionId: "single-tab-web-chat-leave-open",
-      ok: true,
-      message: "left the single controlled web-chat tab open",
-      createdAt: new Date().toISOString(),
+  screenshotRegion: (value) =>
+    withMutation(() => input.base.screenshotRegion(value), {
+      route: routeByDefault,
     }),
-    close: async (): Promise<BrowserActionResult> => ({
-      browserActionId: "single-tab-web-chat-leave-open",
-      ok: true,
-      message: "left the single controlled web-chat tab open",
-      createdAt: new Date().toISOString(),
+  evaluate: <T>(value: Parameters<BrowserTargetSession["evaluate"]>[0]) =>
+    withMutation(() => input.base.evaluate<T>(value), {
+      route: routeByDefault,
     }),
+  setFileInputFiles: (value) =>
+    withMutation(() => input.base.setFileInputFiles(value), {
+      route: routeByDefault,
+    }),
+  wait: async (durationMs: number): Promise<BrowserActionResult> => {
+    await delay(durationMs, input.signal);
+    return {
+      browserActionId: "single-tab-web-chat-wait",
+      ok: true,
+      message: `waited ${durationMs}ms without occupying the single browser mutation slot`,
+      createdAt: new Date().toISOString(),
+    };
+  },
+  closeTarget: async (): Promise<BrowserActionResult> => ({
+    browserActionId: "single-tab-web-chat-leave-open",
+    ok: true,
+    message: "left the single controlled web-chat tab open",
+    createdAt: new Date().toISOString(),
+  }),
+  close: async (): Promise<BrowserActionResult> => ({
+    browserActionId: "single-tab-web-chat-leave-open",
+    ok: true,
+    message: "left the single controlled web-chat tab open",
+    createdAt: new Date().toISOString(),
+  }),
 });
 
 const bindConversationIdentity = (
   state: SingleTabState,
   submission: WebChatSubmissionProof,
 ): void => {
-  state.submission = submission;
+  if (isRoutableWebChatSubmission(submission)) state.submission = submission;
 };
 
 const bindObservedConversation = (
   state: SingleTabState,
   submission: WebChatSubmissionProof,
 ): void => {
-  state.submission = submission;
+  if (isRoutableWebChatSubmission(submission)) state.submission = submission;
 };
 
 const releaseInitialMutationLease = async (
@@ -260,7 +273,9 @@ export const createSingleTabWebChatBrowser = (
 ): SingleTabWebChatBrowser => {
   const state: SingleTabState = {
     initialMutationLease: input.initialMutationLease,
-    submission: input.resumeSubmission,
+    submission: isRoutableWebChatSubmission(input.resumeSubmission)
+      ? input.resumeSubmission
+      : null,
   };
   const withSubmissionThenPatrol = createMutationRunner(
     input,
@@ -285,6 +300,9 @@ export const createSingleTabWebChatBrowser = (
         ...(input.signal ? { signal: input.signal } : {}),
       });
       try {
+        if (!input.base.getTarget?.() && state.submission) {
+          await routeToBoundConversation(input, state);
+        }
         if (!input.base.getTarget?.()) {
           throw new Error(
             "review_required: the exact provider target is not acquired.",

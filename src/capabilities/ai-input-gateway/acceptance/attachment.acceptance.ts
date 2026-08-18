@@ -51,7 +51,6 @@ const buildRequest = async (directory: string, fileCount: number) => {
     inputRefs,
     modelName: null,
     timeoutMs: 180_000,
-    maxInputChars: 10_000,
     maxFileCount: fileCount,
     requestedBy: "acceptance-test",
     missionId: "attachment-acceptance",
@@ -425,7 +424,8 @@ try {
     "utf8",
   );
   assert.match(submittedAttachmentSource, /matchingUserMessages\.length !== 1/u);
-  assert.match(submittedAttachmentSource, /internally marked submitted user message contains exact bound file attachment set/u);
+  assert.match(submittedAttachmentSource, /clean submitted user message contains exact bound file attachment set/u);
+  assert.equal(submittedAttachmentSource.includes("internally marked submitted user message"), false);
   assert.equal(submittedAttachmentSource.includes("previousUserMessageCount"), false);
   assert.equal(existsSync(path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts")), false);
 } finally {

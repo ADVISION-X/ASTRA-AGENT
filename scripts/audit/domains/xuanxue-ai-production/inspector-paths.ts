@@ -20,12 +20,10 @@ export const cloudCredentialPath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts";
 export const cloudWorkerPath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
-export const gatewayTitleStatePath =
+export const gatewayExecutionStatePath =
   "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
-export const gatewayTitleHousekeepingPath =
-  "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts";
-export const gatewayTitleWorkerPath =
-  "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts";
+export const gatewayCanonicalRoutingPath =
+  "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
 export const acceptancePath =
   "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
 
@@ -39,6 +37,11 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
   "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+] as const;
+
+export const removedSecondChainPaths = [
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
+  "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
 ] as const;
 
 export const pluginPaths = [
@@ -64,7 +67,7 @@ export const pluginPaths = [
   flowPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
-  "src/plugins/xuanxue-ai-production/generated-image-policy.ts", schedulerPath,
+  schedulerPath,
   cloudContractPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
   cloudCredentialPath,
@@ -73,6 +76,6 @@ export const pluginPaths = [
   cloudWorkerPath,
   "src/mediator/xuanxue-ai-production-route.ts",
   "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-  gatewayTitleStatePath, gatewayTitleHousekeepingPath, gatewayTitleWorkerPath,
+  gatewayExecutionStatePath, gatewayCanonicalRoutingPath,
   acceptancePath, ...acceptanceSupportPaths,
 ] as const;

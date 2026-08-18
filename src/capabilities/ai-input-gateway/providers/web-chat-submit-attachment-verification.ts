@@ -11,7 +11,7 @@ export const waitForSubmittedUserMessageAttachments = async (input: {
   expectedCount: number;
   expectedKind: "image" | "file";
   expectedFileNames: readonly string[];
-  turnMarker: string;
+  promptText: string;
   timeoutMs: number;
   acknowledgeRateLimit: () => Promise<void>;
 }): Promise<void> => {
@@ -28,7 +28,7 @@ export const waitForSubmittedUserMessageAttachments = async (input: {
         input.expectedCount,
         input.expectedKind,
         input.expectedFileNames,
-        input.turnMarker,
+        input.promptText,
       );
       lastEvaluation = evaluation;
       lastMessage = `${evaluation.status}: ${evaluation.message}`;

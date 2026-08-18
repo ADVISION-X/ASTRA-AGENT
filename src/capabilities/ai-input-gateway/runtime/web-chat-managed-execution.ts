@@ -11,21 +11,16 @@ import {
   webChatFailureReason,
 } from "../failure-classification.js";
 import {
-  buildInternallyMarkedPrompt,
   readWebChatExecution,
   updateWebChatExecution,
   type WebChatExecutionFailure,
   type WebChatExecutionRecord,
-  type WebChatTitleRenameState,
 } from "./web-chat-execution-state.js";
 import {
   assertWebChatCanonicalConversationBinding,
-} from "./web-chat-continuation-title.js";
+} from "./web-chat-canonical-binding.js";
 import { persistWebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 import type { SingleTabWebChatBrowser } from "./web-chat-single-tab-browser.js";
-import {
-  scheduleWebChatTitleHousekeeping,
-} from "./web-chat-title-housekeeping-worker.js";
 import {
   managedExecutionIdFor,
   startActiveExecution,
@@ -88,34 +83,6 @@ const createExecutionUpdater = (
   input.setRecord(updated);
 };
 
-const buildVerifiedTitleRenameState = (
-  record: WebChatExecutionRecord,
-  verifiedAt: string,
-): WebChatTitleRenameState => ({
-  status: "verified",
-  attemptCount: record.chatTitleRename?.attemptCount ?? 0,
-  lastAttemptAt: record.chatTitleRename?.lastAttemptAt ?? null,
-  nextAttemptAt: null,
-  lastFailureReason: null,
-  verifiedAt,
-});
-
-const buildCheckpointTitleRenameState = (
-  record: WebChatExecutionRecord,
-): WebChatTitleRenameState | null => {
-  if (record.providerKind !== "gpt-web-chat") return null;
-  const verifiedAt = record.submission?.chatTitleVerifiedAt;
-  if (verifiedAt) return buildVerifiedTitleRenameState(record, verifiedAt);
-  return {
-    status: "pending",
-    attemptCount: record.chatTitleRename?.attemptCount ?? 0,
-    lastAttemptAt: record.chatTitleRename?.lastAttemptAt ?? null,
-    nextAttemptAt: null,
-    lastFailureReason: record.chatTitleRename?.lastFailureReason ?? null,
-    verifiedAt: null,
-  };
-};
-
 const assertBinding = (
   input: BuildExecutionContextInput,
   submission: Parameters<WebChatExecutionContext["onConversationCanonicalized"]>[0],
@@ -173,18 +140,12 @@ const buildCanonicalizedCallback = (
     status: record.responseCheckpoint ? "response_checkpointed" : "conversation_canonicalized",
     submission: current ? {
       ...submission,
-      systemChatTitle: submission.systemChatTitle ?? current.systemChatTitle,
-      observedAutoChatTitle: submission.observedAutoChatTitle ?? current.observedAutoChatTitle,
-      chatTitleVerifiedAt: submission.chatTitleVerifiedAt ?? current.chatTitleVerifiedAt,
       submittedAt: current.submittedAt,
     } : submission,
     forkActionProof: record.forkActionProof && submission.canonicalConversationUrl ? {
       ...record.forkActionProof,
       childConversationUrl: submission.canonicalConversationUrl,
     } : record.forkActionProof,
-    chatTitleRename: submission.chatTitleVerifiedAt
-      ? buildVerifiedTitleRenameState(record, submission.chatTitleVerifiedAt)
-      : record.chatTitleRename,
   });
 };
 
@@ -219,9 +180,6 @@ const buildResponseCheckpointCallback = (
       status: "response_checkpointed",
       responseCheckpoint: checkpoint,
       responseHash: checkpoint.rawOutputHash,
-      chatTitleRename: buildCheckpointTitleRenameState(
-        input.getRecord(),
-      ),
     });
     await reportProgress(input.source, "response_checkpointed");
     return checkpoint;
@@ -235,7 +193,7 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
     executionId: record.executionId,
     attemptId: record.attemptId,
     providerKind: record.providerKind,
-    systemChatTitle: record.systemChatTitle,
+    requestTextPrompt: input.source.request.textPrompt,
     turnMarker: record.turnMarker,
     submittedPromptHash: record.submittedPromptHash,
     resumeSubmission: input.resume ? record.submission : null,
@@ -315,25 +273,11 @@ const markActivePostProcessingFailure = async (
   error: unknown,
 ): Promise<void> => {
   const reason = webChatFailureReason(error);
-  const currentRenameState = state.record.chatTitleRename;
   state.record = await updateWebChatExecution({
     dataDir: input.dataDir,
     record: state.record,
     patch: {
       status: "response_captured",
-      chatTitleRename:
-        state.record.providerKind === "gpt-web-chat"
-        && state.record.responseCheckpoint
-        && !state.record.submission?.chatTitleVerifiedAt
-          ? {
-              status: "pending",
-              attemptCount: currentRenameState?.attemptCount ?? 0,
-              lastAttemptAt: new Date().toISOString(),
-              nextAttemptAt: null,
-              lastFailureReason: reason,
-              verifiedAt: null,
-            }
-          : currentRenameState,
       failures: [
         ...(state.record.failures ?? []),
         {
@@ -347,18 +291,6 @@ const markActivePostProcessingFailure = async (
       ].slice(-20),
     },
   }).catch(() => state.record);
-  if (
-    input.browser
-    && state.record.chatTitleRename?.status === "pending"
-  ) {
-    scheduleWebChatTitleHousekeeping({
-      dataDir: input.dataDir,
-      browser: input.browser,
-      ...(input.runtimeLogger
-        ? { runtimeLogger: input.runtimeLogger }
-        : {}),
-    });
-  }
 };
 
 const buildActiveExecution = (
@@ -380,12 +312,7 @@ const buildActiveExecution = (
     releasePendingSubmission,
   });
   return {
-    request: state.resume
-      ? input.request
-      : {
-          ...input.request,
-          textPrompt: buildInternallyMarkedPrompt(input.request.textPrompt, state.record.turnMarker),
-        },
+    request: input.request,
     ...(state.singleTabBrowser ? { browser: state.singleTabBrowser.browser } : {}),
     webChatExecution,
     providerLeaseId: state.capacityLease.leaseId,

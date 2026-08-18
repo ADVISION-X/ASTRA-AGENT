@@ -130,11 +130,13 @@ const lastUserMessage = userMessages[userMessages.length - 1] || null;
 const lastUserMessageText = lastUserMessage instanceof HTMLElement
   ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "")
   : "";
-const foreignTransportMarker = lastUserMessageText.match(/INTERNAL_TRANSPORT_MARKER:GRASSEYE_TURN_[A-Za-z0-9_-]+/u)?.[0] || null;
-const expectedTransportMarker = expectedSuffix.match(/INTERNAL_TRANSPORT_MARKER:GRASSEYE_TURN_[A-Za-z0-9_-]+/u)?.[0] || null;
-const matchingExpectedTurns = expectedTransportMarker
-  ? userMessages.filter((message) => clip(message.innerText || message.textContent || "").includes(expectedTransportMarker))
-  : [];
+const expectedLength = __EXPECTED_LENGTH__;
+const matchingExpectedTurns = userMessages.filter((message) => {
+  const text = clip(message.innerText || message.textContent || "");
+  return text.length === expectedLength
+    && text.startsWith(expectedPrefix)
+    && text.endsWith(expectedSuffix);
+});
 const expectedUserMessage = matchingExpectedTurns.length === 1 ? matchingExpectedTurns[0] : null;
 const expectedUserMessageText = expectedUserMessage instanceof HTMLElement
   ? clip(expectedUserMessage.innerText || expectedUserMessage.textContent || "")
@@ -158,13 +160,7 @@ if (matchingExpectedTurns.length > 1) {
     composerText: actual,
   };
 }
-if (
-  expectedUserMessage
-  && !expectedTurnIsLast
-  && foreignTransportMarker
-  && expectedTransportMarker
-  && foreignTransportMarker !== expectedTransportMarker
-) {
+if (expectedUserMessage && !expectedTurnIsLast) {
   return {
     status: "failed",
     message: "WEB_CHAT_FOREIGN_TURN_REBOUND",
@@ -174,8 +170,6 @@ if (
     userMessageCount,
     lastUserMessageText,
     composerText: actual,
-    foreignTransportMarker,
-    expectedTransportMarker,
   };
 }
 if (
@@ -186,7 +180,7 @@ if (
 ) {
   return {
     status: "success",
-    message: "provider contains exactly one latest user turn with the exact verified transport marker and prompt identity",
+    message: "provider contains exactly one latest user turn with the exact verified prompt identity",
     pageUrl: location.href,
     generating,
     assistantCount,
@@ -220,6 +214,7 @@ return {
 `;
 
 export const buildVerifyPromptSubmittedScript = (input: {
+  expectedLength: number;
   expectedPrefix: string;
   expectedSuffix: string;
   previousUserMessageCount: number;
@@ -239,4 +234,4 @@ const composerClearedAfterVerifiedPaste = ${JSON.stringify(input.wasPromptVerifi
   && !promptStillInComposer
   && !pastedTextCardReady;
 ${WEB_CHAT_SUBMITTED_VERDICT_SCRIPT}
-`;
+`.replace("__EXPECTED_LENGTH__", String(input.expectedLength));

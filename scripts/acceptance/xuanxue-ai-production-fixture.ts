@@ -5,6 +5,7 @@ import type {
   AiFeedResult,
   AiInputGatewayAbilityGroup,
 } from "../../src/capabilities/ai-input-gateway/index.js";
+import type { WebChatFailureClassification } from "../../src/capabilities/ai-input-gateway/index.js";
 import type {
   XuanxueAiProductionOrder,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
@@ -12,6 +13,20 @@ import { FixtureGatewayFaults } from "./xuanxue-ai-production-fixture-faults.js"
 
 export const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const classifyFixtureWebChatFailure = (
+  error: unknown,
+  hasDurableSubmission: boolean,
+): WebChatFailureClassification => {
+  const reason = error instanceof Error ? error.message : String(error);
+  if (hasDurableSubmission || /(?:WEB_CHAT_|ChatGPT fresh conversation pending|不能获取对象)/iu.test(reason)) {
+    return "recovery_pending";
+  }
+  if (/(?:login|sign in|verification|captcha|security barrier|credential)/iu.test(reason)) {
+    return "review_required";
+  }
+  return "failed";
+};
 
 const fixtureConversationProofs = (
   input: AiFeedInput,
@@ -64,7 +79,30 @@ const fixtureProviderProof = (
   pageUrl: string,
   turnMarker: string,
   verifiedAt: string,
-): AiFeedResult["providerProof"] => ({
+): AiFeedResult["providerProof"] => {
+  const files = input.inputRefs.filter((ref) => Boolean(ref.filePath));
+  const attachmentUploadProof = files.length > 0 ? {
+    childCapabilityId: "attach-approved-web-chat-files-once" as const,
+    uploadAttemptId: `fixture-upload:${input.taskIdentity.sourceTaskId}`,
+    transportKind: "exact_target_file_input_batch" as const,
+    expectedFileCount: files.length,
+    detectedFileCount: files.length,
+    stagingManifestHash: hash(JSON.stringify(files.map((file) => file.id))),
+    files: files.map((file, index) => ({
+      inputRefId: file.id,
+      order: index + 1,
+      sourceFileName: file.fileName ?? `fixture-${index + 1}.md`,
+      displayFileName: file.fileName ?? `fixture-${index + 1}.md`,
+      sha256: file.sha256!,
+      byteCount: file.byteCount!,
+    })),
+    startedAt: verifiedAt,
+    endedAt: verifiedAt,
+    status: "attachments_stable" as const,
+    failureReason: null,
+    reviewRequiredReason: null,
+  } : undefined;
+  return ({
   providerKind: "gpt-web-chat",
   providerLeaseId: `fixture-lease:${ordinal}`,
   modelName: null,
@@ -85,6 +123,7 @@ const fixtureProviderProof = (
   retryCount: 0, cooldownMs: 0,
   estimatedInputTokens: null, estimatedOutputTokens: null,
   tokenEstimateUnavailableReason: "fixture",
+  ...(attachmentUploadProof ? { attachmentUploadProof } : {}),
   ...(input.providerContinuationRef ? {
     continuationPriorTaskId: input.providerContinuationRef.priorTaskId,
     continuationPriorRawOutputHash: input.providerContinuationRef.priorRawOutputHash,
@@ -92,7 +131,8 @@ const fixtureProviderProof = (
     continuationActualUrl: input.providerContinuationRef.providerPageUrl,
     continuationVerified: true,
   } : {}),
-});
+  });
+};
 
 export const providerResult = (
   input: AiFeedInput,
@@ -193,6 +233,13 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     return 10;
   }
 
+  classifyFailure(
+    error: unknown,
+    hasDurableSubmission: boolean,
+  ): WebChatFailureClassification {
+    return classifyFixtureWebChatFailure(error, hasDurableSubmission);
+  }
+
   private start(
     request: AiFeedInput,
     executionId: string,
@@ -253,8 +300,14 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
           occurredAt: new Date().toISOString(),
         });
       }
-      if (fault) return fault.result;
-      return this.bareOutputHashes ? bareHashResult(result) : result;
+      const selected = fault
+        ? fault.result
+        : this.bareOutputHashes ? bareHashResult(result) : result;
+      const attachmentProof = selected.providerProof.attachmentUploadProof;
+      if (attachmentProof) {
+        await options?.onAttachmentUploadCompleted?.(attachmentProof as import("../../src/capabilities/ai-input-gateway/index.js").WebChatAttachmentUploadProof);
+      }
+      return selected;
     } finally {
       this.finish(lane);
     }
@@ -277,7 +330,6 @@ export const material = (
   textPrompt: `fixture prompt for ${stageId}`,
   inputRefs: [],
   timeoutMs: 60_000,
-  maxInputChars: 10_000,
   maxFileCount: 8,
 });
 

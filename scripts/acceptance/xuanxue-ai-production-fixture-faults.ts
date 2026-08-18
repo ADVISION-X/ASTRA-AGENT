@@ -86,6 +86,26 @@ const reviewFailure = (
   reviewRequiredReason: reason,
 });
 
+const preSubmitReviewFailure = (
+  result: AiFeedResult,
+  reason: string,
+): AiFeedResult => {
+  const failure = reviewFailure(result, reason);
+  return {
+    ...failure,
+    providerProof: {
+      ...failure.providerProof,
+      webChatUrl: null,
+      freshConversationProof: null,
+      sameConversationProof: null,
+      forkedFromCheckpointProof: null,
+      uploadedFileRefs: [],
+      uploadedFiles: [],
+      attachmentUploadProof: undefined,
+    },
+  };
+};
+
 type ConsumedFixtureFault = {
   result: AiFeedResult;
   emitsRecoveryProgress: boolean;
@@ -93,6 +113,8 @@ type ConsumedFixtureFault = {
 
 export class FixtureGatewayFaults {
   readonly transient = new Map<string, number>();
+  readonly freshConversationPending = new Map<string, number>();
+  readonly preSubmitIdentityConflict = new Map<string, number>();
   readonly terminalAttachment = new Map<string, number>();
   readonly submittedReview = new Map<string, number>();
   readonly contaminated = new Map<string, number>();
@@ -121,6 +143,16 @@ export class FixtureGatewayFaults {
     if (this.take(this.submittedReview, key)) return {
       result: reviewFailure(result,
         "review_required: more than one physical provider tab is open."),
+      emitsRecoveryProgress: false,
+    };
+    if (this.take(this.freshConversationPending, key)) return {
+      result: preSubmitReviewFailure(result,
+        "review_required: ChatGPT fresh conversation was not established; last=pending: ChatGPT fresh conversation pending; pageUrl=https://chatgpt.com/"),
+      emitsRecoveryProgress: true,
+    };
+    if (this.take(this.preSubmitIdentityConflict, key)) return {
+      result: preSubmitReviewFailure(result,
+        "WEB_CHAT_FOREIGN_TURN_REBOUND: expected current marker; observed foreign marker"),
       emitsRecoveryProgress: false,
     };
     if (this.take(this.terminalAttachment, key)) return {

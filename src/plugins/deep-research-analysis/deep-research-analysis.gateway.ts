@@ -58,7 +58,6 @@ export const buildGatewaySender = (context: DeepResearchAnalysisContext): DeepRe
     inputRefs: promptPackage.inputRefs.map(toAiGatewayInputRef),
     modelName: context.modelName ?? null,
     timeoutMs: Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs),
-    maxInputChars: promptPackage.maxInputChars,
     maxFileCount: promptPackage.maxFileCount,
     requestedBy: "ai-capability",
     missionId: promptPackage.jobId,
@@ -76,7 +75,6 @@ export const buildPromptPackage = (input: {
   providerKind: ProviderKind;
   inputRefs: DeepResearchGatewayInputRef[];
   timeoutMs?: number;
-  maxInputChars?: number;
   maxFileCount?: number;
 }): DeepResearchGatewayPromptPackage => ({
   jobId: input.jobId,
@@ -87,6 +85,5 @@ export const buildPromptPackage = (input: {
   inputRefs: input.inputRefs,
   providerKind: input.providerKind,
   timeoutMs: input.timeoutMs ?? 180_000,
-  maxInputChars: input.maxInputChars ?? 30_000,
   maxFileCount: input.maxFileCount ?? 0,
 });

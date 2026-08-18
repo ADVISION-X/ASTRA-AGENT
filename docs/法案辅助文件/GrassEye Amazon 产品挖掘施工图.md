@@ -611,7 +611,7 @@ status = extracted | not_present | blocked | unsupported_structure | manual_requ
 GPT Web Chat 输入上限：
 
 ```txt
-AMAZON_KEYWORD_OPPORTUNITY_REVIEW_MAX_INPUT_CHARS >= 900000
+keyword review request has no maxInputChars or local prompt-capacity gate
 ```
 
 原因：关键词级机会评审需要读取前 30 个产品的深度详情、图片索引和完整可访问评论文件。内联导航可以帮助 GPT 定位文件，但不能代替 full package。

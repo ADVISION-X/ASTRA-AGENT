@@ -13,6 +13,9 @@ async function probeHealth(healthUrl, expectedSourceFingerprint) {
   if (!isWorkbenchHealthReport(healthReport)) {
     throw new Error("Local workbench health did not return a GrassEye health report.");
   }
+  if (healthReport.status !== "healthy") {
+    throw new Error(`Local workbench health is not ready: ${healthReport.status}`);
+  }
   if (
     expectedSourceFingerprint
     && healthReport.sourceFingerprint !== expectedSourceFingerprint

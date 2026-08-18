@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-16T04:13:04.932Z",
+  "generatedAt": "2026-08-18T01:13:31.999Z",
   "status": "PASS",
-  "scannedFiles": 441,
+  "scannedFiles": 436,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -70,10 +70,10 @@
     "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
     "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-    "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -88,8 +88,6 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
@@ -97,6 +95,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
@@ -134,19 +133,15 @@
     "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
     "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
     "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-    "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
     "src/capabilities/ai-input-gateway/schema.ts",
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -181,7 +176,6 @@
     "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
     "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
     "src/capabilities/media-processing/runtime/hash-stream.ts",
-    "src/capabilities/media-processing/runtime/image-redline-observer.ts",
     "src/capabilities/media-processing/runtime/media-source.ts",
     "src/capabilities/media-processing/runtime/result.ts",
     "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -228,6 +222,8 @@
     "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+    "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+    "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
     "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
@@ -401,7 +397,6 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -415,9 +410,9 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -445,7 +440,7 @@
     "src/types/sharp.d.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 33,
+  "emitCallCount": 27,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
@@ -453,7 +448,7 @@
   "missingTraceContractCount": 0,
   "catchBranchCount": 3,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 23,
+  "failureBranchCount": 22,
   "failureWithoutClassCount": 0,
   "stageStartCount": 19,
   "stageTerminalCount": 15,
@@ -463,8 +458,8 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 441,
-    "emitCallCount": 33,
+    "scannedFiles": 436,
+    "emitCallCount": 27,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -474,7 +469,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 437,
+      "scannedFiles": 432,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -483,28 +478,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 338
+      "scannedFiles": 331
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335,
+      "scannedFiles": 328,
       "metrics": {
-        "emitCallCount": 17
+        "emitCallCount": 11
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335
+      "scannedFiles": 328
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 339,
+      "scannedFiles": 332,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -513,13 +508,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 18
+      "scannedFiles": 17
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 339,
+      "scannedFiles": 332,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -540,24 +535,24 @@
       "name": "ai-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 1
+      "scannedFiles": 0
     },
     {
       "name": "browser-action-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 45
+      "scannedFiles": 43
     },
     {
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 18,
+      "scannedFiles": 17,
       "metrics": {
-        "emitCallCount": 33,
+        "emitCallCount": 27,
         "stageStartCount": 19,
         "stageTerminalCount": 15,
-        "failureBranchCount": 23
+        "failureBranchCount": 22
       }
     },
     {
@@ -596,14 +591,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340",
+      "runId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7",
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8",
       "capabilityDomain": "runtime-log-spine",
       "checkId": "runtime-log-spine/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-16T04:12:56.539Z",
-      "endedAt": "2026-08-16T04:13:04.932Z",
-      "durationMs": 8393,
+      "startedAt": "2026-08-18T01:13:23.880Z",
+      "endedAt": "2026-08-18T01:13:31.998Z",
+      "durationMs": 8118,
       "evidenceRefs": [
         "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
         "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -672,10 +667,10 @@
         "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
         "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
-        "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -690,8 +685,6 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
@@ -699,6 +692,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation-contract.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
@@ -736,19 +730,15 @@
         "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
         "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
         "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-continuation-title.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-response-checkpoint.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-scheduler-ledger.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-        "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
         "src/capabilities/ai-input-gateway/schema.ts",
         "src/capabilities/dom-automation/index.ts",
         "src/capabilities/dom-automation/runtime/dom-action-result.ts",
@@ -783,7 +773,6 @@
         "src/capabilities/media-processing/runtime/ffmpeg-runner.ts",
         "src/capabilities/media-processing/runtime/ffprobe-metadata.ts",
         "src/capabilities/media-processing/runtime/hash-stream.ts",
-        "src/capabilities/media-processing/runtime/image-redline-observer.ts",
         "src/capabilities/media-processing/runtime/media-source.ts",
         "src/capabilities/media-processing/runtime/result.ts",
         "src/capabilities/media-processing/runtime/sharp-runner.ts",
@@ -830,6 +819,8 @@
         "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+        "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+        "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
         "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
@@ -1003,7 +994,6 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
-        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -1017,9 +1007,9 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -1055,133 +1045,133 @@
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "clauseId": "grasseye-runtime-log-spine-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
       "clauseId": "grasseye-runtime-log-spine-002-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
       "clauseId": "grasseye-runtime-log-spine-003-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
       "clauseId": "grasseye-runtime-log-spine-004-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
       "clauseId": "grasseye-runtime-log-spine-005-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "grasseye-runtime-log-spine-006-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
       "clauseId": "grasseye-runtime-log-spine-007-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
       "clauseId": "grasseye-runtime-log-spine-008-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
       "clauseId": "grasseye-runtime-log-spine-009-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "grasseye-runtime-log-spine-010-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
       "clauseId": "grasseye-runtime-log-spine-011-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
       "clauseId": "grasseye-runtime-log-spine-012-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "grasseye-runtime-log-spine-013-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "grasseye-runtime-log-spine-014-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "grasseye-runtime-log-spine-015-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "grasseye-runtime-log-spine-016-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
       "clauseId": "grasseye-runtime-log-spine-017-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
       "clauseId": "grasseye-runtime-log-spine-018-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
       "clauseId": "grasseye-runtime-log-spine-019-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
       "clauseId": "grasseye-runtime-log-spine-020-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
       "clauseId": "grasseye-structured-logging-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
       "clauseId": "grasseye-security-privacy-log-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:2331adf4-56cf-49cd-b5e8-c08fe4f37340"
+      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
     }
   ]
 }

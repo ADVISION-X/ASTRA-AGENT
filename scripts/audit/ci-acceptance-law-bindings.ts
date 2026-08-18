@@ -13,6 +13,7 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/audit-source-evidence-reachability.acceptance.ts", { clauseId: "apex-audit-007-requirement", lawId: "APEX-AUDIT-007-V1" }],
   ["scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts", { clauseId: "apex-audit-005-requirement", lawId: "APEX-AUDIT-005-V1" }],
   ["scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts", { clauseId: "apex-runtime-truth-001-requirement", lawId: "APEX-RUNTIME-TRUTH-001-V1" }],
+  ["scripts/acceptance/startup-initialization-health.acceptance.ts", { clauseId: "apex-startup-008-requirement", lawId: "APEX-STARTUP-008-V1" }],
   ["scripts/acceptance/forensics-persistence-capability.acceptance.ts", { clauseId: "grasseye-evidence-001-v2-requirement", lawId: "GRASSEYE-EVIDENCE-001-V2" }],
   ["scripts/acceptance/local-browser-exact-target-contract.acceptance.ts", { clauseId: "apex-local-browser-001-requirement", lawId: "APEX-LOCAL-BROWSER-001-V1" }],
   ["scripts/acceptance/local-browser-target-actions.acceptance.ts", { clauseId: "apex-local-browser-001-requirement", lawId: "APEX-LOCAL-BROWSER-001-V1" }],

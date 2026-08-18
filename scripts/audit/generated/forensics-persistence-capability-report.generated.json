@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T04:12:55.345Z",
+  "generatedAt": "2026-08-18T01:15:59.522Z",
   "capabilityDomain": "forensics-persistence-capability",
   "executionGroup": "foundation",
   "lawIds": [
@@ -11,13 +11,13 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:807f65da-d3ac-447c-bf12-c51e1baaf0e3",
+      "runId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6",
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:314aa5af-2696-4e2d-bb33-e140afe2fb6f",
       "capabilityDomain": "forensics-persistence-capability",
       "checkId": "forensics-persistence-capability/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-16T04:12:55.341Z",
-      "endedAt": "2026-08-16T04:12:55.344Z",
+      "startedAt": "2026-08-18T01:15:59.519Z",
+      "endedAt": "2026-08-18T01:15:59.522Z",
       "durationMs": 3,
       "evidenceRefs": [
         "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
@@ -46,19 +46,19 @@
       "lawId": "GRASSEYE-EVIDENCE-001-V2",
       "clauseId": "grasseye-evidence-001-v2-requirement",
       "checkId": "forensics-persistence-capability/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:807f65da-d3ac-447c-bf12-c51e1baaf0e3"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:314aa5af-2696-4e2d-bb33-e140afe2fb6f"
     },
     {
       "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
       "clauseId": "grasseye-local-persistence-schema-001-requirement",
       "checkId": "forensics-persistence-capability/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:807f65da-d3ac-447c-bf12-c51e1baaf0e3"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:314aa5af-2696-4e2d-bb33-e140afe2fb6f"
     },
     {
       "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
       "clauseId": "grasseye-local-persistence-schema-002-v2-requirement",
       "checkId": "forensics-persistence-capability/owner-assertion-set",
-      "checkRunId": "audit-run:6c0ad81e-3971-4071-bc79-5b73da422a33:check:807f65da-d3ac-447c-bf12-c51e1baaf0e3"
+      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:314aa5af-2696-4e2d-bb33-e140afe2fb6f"
     }
   ],
   "inspectedFiles": [

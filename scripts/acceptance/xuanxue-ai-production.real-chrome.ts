@@ -23,10 +23,13 @@ const runId = randomUUID();
 const runRoot = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-real-chrome-"),
 );
+const browserDataDir = path.resolve(
+  process.env.GRASSEYE_BROWSER_DATA_DIR?.trim() || ".grasseye-local",
+);
 const browser = new CurrentChromeBrowserController({
   sessionConfig: createLocalBrowserSessionConfig({ platform: "darwin" }),
   screenshotDir: path.join(runRoot, "browser-captures"),
-  dataDir: runRoot,
+  dataDir: browserDataDir,
 });
 const browserTarget = browser.createTargetSession("xuanxue-ai-production:real-chrome");
 const prepared = await browserTarget.open({

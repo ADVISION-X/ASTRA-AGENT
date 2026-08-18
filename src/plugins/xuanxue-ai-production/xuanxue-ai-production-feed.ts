@@ -35,7 +35,6 @@ import {
 import {
   xuanxueAiOutputIntegrityFailure,
 } from "./xuanxue-ai-production-output-integrity.js";
-import { publicKnowledgeImagePromptBoundary } from "./generated-image-policy.js";
 import { buildTypedJoinInputs } from "./xuanxue-ai-production-typed-join-inputs.js";
 
 export const canonicalXuanxueRawOutputHash = (
@@ -114,6 +113,11 @@ export const initialXuanxueStages = (
     attemptCount: seeded ? 1 : 0,
     material: order.materials[ordinal]!,
     aiFeedResult: seededAccepted ? seededAiResult(seeded!) : null,
+    attachmentUploadProof:
+      seededAccepted
+        ? (seededAiResult(seeded!).providerProof.attachmentUploadProof
+          ?? null) as XuanxueAiStageRecord["attachmentUploadProof"]
+        : null,
     rawResponseText: seededAccepted ? seeded!.rawResponseText : null,
     rawOutputHash: seededAccepted ? seeded!.rawOutputHash : null,
     progressPhase: seededAccepted
@@ -378,13 +382,10 @@ export const buildXuanxueAiFeedInput = async (
     promptContractId: stage.material.promptContractId,
     expectedOutputSchemaRef: stage.material.expectedOutputSchemaRef,
     expectedOutputKind: stage.material.expectedOutputKind,
-    textPrompt: stage.material.expectedOutputKind === "generated_image"
-      ? `${stage.material.textPrompt}\n\n${publicKnowledgeImagePromptBoundary}`
-      : stage.material.textPrompt,
+    textPrompt: stage.material.textPrompt,
     inputRefs,
     modelName: null,
     timeoutMs: stage.material.timeoutMs,
-    maxInputChars: stage.material.maxInputChars,
     maxFileCount:
       stage.material.maxFileCount + trustedGeneratedFileCount,
     requestedBy: "ai-capability",

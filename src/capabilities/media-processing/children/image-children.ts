@@ -21,8 +21,6 @@ import {
   runResizeImageForWeb,
   runResponsiveImageSetForWeb,
 } from "../runtime/sharp-runner.js";
-import { buildMediaProcessingArtifact } from "../runtime/artifact-storage.js";
-import { inspectPublicKnowledgeImageRedlines } from "../runtime/image-redline-observer.js";
 import { prepareMediaProcessingRuntimeDependencies } from "../dependency-readiness.js";
 
 type ImageRunner = (input: {
@@ -107,73 +105,5 @@ export const createGenerateResponsiveImageSet = (): MediaProcessingChildCapabili
   childCapabilityId: "generate-responsive-image-variants-once",
   execute(input, context) {
     return executeImageChild(input, context, runResponsiveImageSetForWeb);
-  },
-});
-
-export const createInspectPublicKnowledgeImageRedlines = (): MediaProcessingChildCapability => ({
-  abilityGroupId: MEDIA_PROCESSING_ABILITY_GROUP_ID,
-  childCapabilityId: "inspect-public-knowledge-image-redlines-once",
-  async execute(input, context) {
-    const startedAt = new Date().toISOString();
-    let sourceByteSize: number | null = null;
-    try {
-      const source = await validateMediaSourceFile(input.inputFilePath, [
-        path.join(context.dataDir, "runtime-data", "media-processing-artifacts"),
-      ]);
-      sourceByteSize = source.byteSize;
-      const sharp = (await import("sharp")).default;
-      const metadata = await sharp(source.filePath).metadata();
-      if (
-        metadata.format !== "webp"
-        || metadata.width !== 1200
-        || metadata.height !== 630
-        || metadata.hasAlpha === true
-        || metadata.exif !== undefined
-        || metadata.icc !== undefined
-        || metadata.iptc !== undefined
-        || metadata.xmp !== undefined
-      ) {
-        return buildMediaProcessingFailure(
-          { input, dataDir: context.dataDir, startedAt, inputByteSize: sourceByteSize },
-          "public_knowledge_image_binary_contract_invalid",
-          "Image must decode as opaque metadata-free 1200x630 WebP.",
-          "review_required",
-        );
-      }
-      const artifact = await buildMediaProcessingArtifact({
-        input,
-        filePath: source.filePath,
-        contentType: "image/webp",
-        width: 1200,
-        height: 630,
-        durationMs: null,
-        format: "webp",
-        sourceByteSize,
-        derivativeKind: "inspection",
-      });
-      const observation = await inspectPublicKnowledgeImageRedlines(source.filePath);
-      if (observation.status !== "passed") {
-        return buildMediaProcessingFailure(
-          { input, dataDir: context.dataDir, startedAt, inputByteSize: sourceByteSize, outputArtifacts: [artifact] },
-          "public_knowledge_image_redline",
-          observation.reason ?? "Image redline inspection was uncertain.",
-          "review_required",
-        );
-      }
-      return buildMediaProcessingSuccess({
-        input,
-        dataDir: context.dataDir,
-        startedAt,
-        inputByteSize: sourceByteSize,
-        outputArtifacts: [artifact],
-      });
-    } catch (error) {
-      return buildMediaProcessingFailure(
-        { input, dataDir: context.dataDir, startedAt, inputByteSize: sourceByteSize },
-        "public_knowledge_image_redline_unavailable",
-        error instanceof Error ? error.message : String(error),
-        "review_required",
-      );
-    }
   },
 });

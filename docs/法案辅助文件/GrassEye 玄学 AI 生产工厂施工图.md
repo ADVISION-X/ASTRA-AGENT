@@ -1,7 +1,7 @@
-# GrassEye 玄学 AI 生产工厂施工图 V3
+# GrassEye 玄学 AI 生产工厂施工图 V4
 
 status: construction-blueprint
-version: 2026-08-08
+version: 2026-08-16.3
 authority: `.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md`
 
 ## Boundary
@@ -15,10 +15,28 @@ AGENT outbound worker → lease → 本地 SQLite 工厂账本
                                              ↓
                               AI Input Gateway 公共合同
                                              ↓
+             正式第一轮同一 composer 单次附件上传与稳定 proof
+                                             ↓
+                    proof 精确等值后才允许 provider submit
+                                             ↓
                               GPT Web 原始回答与证据
                                              ↓
 AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 ```
+
+公开知识 job 先作为持久调度身份存在，不代表 provider 已提交。唯一附件路径是正式
+`corpus_research` execution 自己的 `attach-approved-web-chat-files-once`；它下载后重验原始字节，
+一次性上传全部附件，持久化 exact `AttachmentUploadProof`，然后在原 composer 发送提示词。
+独立 `/provider-input-preflight`、base64 文件复制、临时预检聊天、上传后清空再上传、预检专用
+capacity waiter、请求体/文件 byte ceiling 和第二 attachment graph 全部退出活动仓库。真实窗口
+拒绝或 proof 不等值时，整单终态必须明确是 provider submission 前阻断，不能写成 API 不可达、
+普通恢复态或已提交。
+
+`AttachmentUploadProof` 形成终态时，当前 coordinator 内的同一 order observer 立即把它投影为
+既有 cloud job checkpoint 的 `attachment_upload_proof`。投影只包含 stage、attempt、status、expected/detected、
+最后一个 display file name、manifest hash 和观测时间；不包含本地路径、提示词、URL、marker 或秘密。
+云端只把该摘要作为原 job 事件的持久进度投影，网站继续通过原 job polling 读取。不新建遥测 API、
+旁路表、第二 proof 或反向控制通道，也不因投影失败重复上传或重复提交。
 
 网站不发送“下一步”；AGENT 不计算命盘、不创作领域 prompt、不判断商业履约。
 
@@ -46,6 +64,13 @@ AGENT：整单结果 + checkpoint/failure ───────→ 玄学网站
 Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少一个或顺序错误都在 GPT 前失败。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
 和前序回答文件。零附件阶段因此仍有非空输入证明；上传计数只看带 `filePath` 的真实文件。
+公开知识图片阶段把网站冻结的 `textPrompt` 原样交给 Gateway；插件不追加风格、人物、文字、
+地图、图表、Logo、命盘或候选数量限制。Gateway 在精确 clean prompt 对应的 assistant turn 观察唯一
+完成图片卡片，打开该卡片，再点当前 zh-CN 图片查看器唯一可见
+`button[aria-label="保存"]`；不得用按钮正文、`title`、`下载/Download` 或候选选择器兼容。
+零个保存入口继续等待，多个保存入口失败关闭；此阶段不经过文本回答提取。恢复时
+复用同一 execution identity、URL 与附件证明，直接重复观察下载，不重复提交。下载原图只做 1200×630
+opaque WebP contain、metadata 清除、解码复验和 hash 证明，不做任何内容语义红线裁决。
 同一订单依法同会话的后继节点，其 `continuationFrom` 必须指向紧邻的上一节点；跨订单的
 BZ05、BZ03、NM01 必须携带 immutable base checkpoint 并由 Gateway 执行真实 provider fork。
 所有解析到同一个 `webChatUrl` 的订单和 stage
@@ -73,11 +98,11 @@ profile 不得把它们串成旧的单聊天三调用图。
 
 同一订单在一个进程只有一份 tracked promise；所有指向相同 GPT URL 的工作串行，不同 URL
 继续并发。Gateway 自己执行单标签页 N=1 短操作锁和最多 10 个 provider feed。
-整单首轮只生成一次系统聊天名，后续所有 stage 继承该父聊天名称并各自使用新 marker；
-禁止每个 stage 用自己的 execution id 反复改名。上一 stage 的回答 checkpoint 发布后，
-下一 stage 的父聊天续问优先于旧 stage 的改名、附件装饰和页面清理。旧 stage 未完成的
-改名必须作为 `chatTitleRename=pending` 持久尾工留在 Gateway 账本中；AGENT 重启只补做
-canonical URL＋父名称＋marker 核验，不得重放 GPT 回答，也不得占用整单 AI 生产容量。
+整单首轮与后续 stage 都只以父 canonical URL、父 marker、父回答 hash 与本轮 marker 续接；
+供应商自动标题不进入生产身份，AGENT 不生成、不查询、不修改标题。上一 stage 的回答
+checkpoint 发布后，下一 stage 的父聊天续问优先于附件装饰和页面清理。AGENT 重启先按
+exact canonical conversation URL 非创建式恢复精确 provider target，再按该 URL 恢复
+聊天；精确 canonical URL 才是恢复目标，同源但 URL 不同的标签不参与绑定；物理标签当前 URL 不是 stage 身份，不得重放 GPT 回答，也不得占用整单 AI 生产容量。
 某张订单遇到浏览器瞬断或临时无货时，在当前有效 lease 持续 heartbeat 的前提下，按阶段
 timeout 内的有界退避继续同一 execution id；其他订单继续生产，不互相取消。只有阶段
 timeout 用尽，整单才向云端回传 `recovery_pending`。
@@ -85,6 +110,14 @@ Gateway 返回 `failed/review_required` 时先检查持久化提交证明。已�
 turn 的执行保留原 execution id、marker 与父聊天恢复；监控插件临时形成第二物理 GPT 标签
 只暂停页面动作，绝不能换编号重发。只有被证明污染/无效的完整回答，或从未形成提交证明的
 真正终态身份故障，才清空旧 feed result、生成新 execution id，并继续绑定原父 GPT 聊天。
+提交前身份故障采用白名单，不采用“分类结果不是 recovery”这种反向猜测：只有
+`WEB_CHAT_FOREIGN_TURN_REBOUND`、`WEB_CHAT_FRESH_CONVERSATION_REBOUND`、
+`WEB_CHAT_CANONICAL_CONVERSATION_ALREADY_BOUND` 或同 marker 多份等已经看见外国/重复身份的
+证明，才可换 fresh execution。`ChatGPT fresh conversation pending`、
+`CHATGPT_NEW_CHAT_CONTROL_AMBIGUOUS`、composer 未就绪、首页 hydration、命令超时和普通
+provider 暂不可用都确定保持同一 execution。`supersededExecutionId` 已存在时，提交前故障不再
+换第三个编号，而是保留当前 execution 进入 `recovery_pending`。回答污染重做仍由回答完整性
+owner 单独裁决，不消耗或借用提交前身份替换额度。
 附件 child 已持久化 `attachmentUploadProof.status=failed/review_required` 时，本次附件 execution
 已经终态：同 lease 退避循环、进程重启、重新领取 lease 都只读并保留原 proof，不得再次进入
 Gateway 上传。页面或运输故障修复后，必须取得显式人工授权才能创建新的附件 execution；普通
@@ -152,6 +185,10 @@ SQLite JSON 的对象字段必须先 canonicalize 再比较，字段排列顺序
 一份一份增加上限。例如网站冻结 5 份材料并生成 1 份父报告，最终上限必须精确为 6；
 不得仍按 5 误杀追问，也不得改成任意常数或无限制。
 
+阶段材料、工厂 feed 与 Gateway schema 物理不存在 `maxInputChars`。提示词只保留精确文本、
+合同身份与 hash，不声明字符、字节或 token 容量，不切片、不调高阈值；真实 GPT 页面是唯一
+接收能力裁决者。本地不得因提示词长度失败，更不得据此每十秒换 execution id 重启。
+
 父身份有效但 provider 父聊天不可恢复时执行灾难重放：
 
 ```txt
@@ -176,8 +213,8 @@ GPT 回答含私用区字符、`filecite` 等内部引用残留、乱码替代�
 它与当前轮次账本完全一致时原子换主；不得把合法新执行误判成重复任务后每十秒空转，也不得
 依靠重启进程清空旧账。污染回答不允许进入任何整单结果。
 
-新根阶段若点击发送后回弹到另一 execution 已登记的正式聊天，或最后一条用户消息携带
-其他 execution 的 marker，Gateway 不能记录发送成功。该次 execution 保留证据后立即退休，
+新根阶段若点击发送后回弹到另一 execution 已登记的正式聊天，或最后一条用户消息与本次
+clean prompt 不一致，Gateway 不能记录发送成功。该次 execution 保留证据后立即退休，
 工厂换新 execution 重跑；网站仍只看到处理中。只有 continuation 阶段可复用正式 URL，
 并且实际 URL 必须等于固定父 URL。
 
@@ -257,6 +294,11 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
 - 证明 NM02 使用与源报告不同的 fresh 会话；BZ04 使用所选 BZ05/BZ03 父分支的同一会话。
 - 证明同一 stable canonical identity 的重复订单只执行一次，用户问题与关系综合绝不复用。
 - 证明 10 张在制整单时第 11 张等待，释放后才进入。
+- 证明公开知识生产 job 不携带旧 preflight receipt，也不存在独立 preflight route；第一阶段
+  真实附件调用恰好一次，`attachments_stable` proof 持久化发生在 submit 之前。负例证明
+  provider 窗口拒绝、缺件、乱序、hash/byte 漂移或 proof 缺失均形成
+  `XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION`，且 submission、marker、
+  canonical URL 都为空；中止和断线不会留下 detached waiter 或稍后继续上传的僵尸动作。
 - 证明 order/source task 幂等冲突在投喂前失败。
 - 关闭并重开 SQLite 后，queued/running/recovery_pending 按相同 execution id 恢复。
 - 证明重启恢复先对账原 cloud job，禁止 detached local execution；本地已完成但未回传的
@@ -280,8 +322,12 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
   重新落在同一个新 GPT URL，禁止紧循环与空白追问。
 - 证明定时质量复盘总在独立新聊天执行，无 continuation parent；人工 challenge 仍继续父会话。
 - 证明 SEO 三轮只有一张整单、一个 canonical URL，第三轮只捕获目标 assistant turn 的一个
-  原图；下载/转换/上传中断从同 execution/checkpoint 恢复，不重发第三轮。
-- 证明媒体 facade 使用 contain 固定中性画布输出无元数据的 1200×630 WebP，红线不确定即阻断；
+  原图；轮次身份只读当前 Chrome 外层 `conversation-turn + data-turn`，空白 provider 占位壳既
+  不能冒充回答也不能触发“会话已前进”；下载/转换/上传中断从同 execution/checkpoint 恢复，
+  不重发第三轮；图片卡片接受真实 `DIV[role=button]`，但扩展传输只收标量结果，不收 DOM
+  对象；且不存在旧 `article` / `data-message-author-role` 兼容链。
+- 证明媒体 facade 使用 contain 固定画布输出无元数据的 1200×630 WebP，
+  只做解码、尺寸、MIME、hash 和字节证明，不做图像语义红线裁决；
   插件内不存在第二套 sharp/Vision 处理器，任务期间不联网安装依赖。
 - 证明活动数据库只存在 v4 账本，不存在旧协议表、旧订单、迁移消费者或兼容读取路径；v4
   hash 格式或字节身份损坏直接失败关闭，不允许启动修复桥。

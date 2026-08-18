@@ -34,17 +34,6 @@ export const normalizeGeneratedImageResult = async (
     || artifact.width !== 1200 || artifact.height !== 630) {
     throw new Error("review_required: generated image normalization contract mismatch");
   }
-  const safety = await runtime.mediaProcessing.processMedia({
-    missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
-    runId: `${orderId}-${stageId}-safety`,
-    inputFilePath: artifact.filePath,
-    presetId: "public-knowledge-redline-check",
-    artifactPolicy: "staging",
-    timeoutMs: 120_000,
-  });
-  if (safety.status !== "success" || safety.output.status !== "success") {
-    throw new Error(`review_required: generated image safety:${safety.reviewRequiredReason ?? safety.failureReason ?? "uncertain"}`);
-  }
   return {
     ...result,
     outputArtifacts: [{
@@ -57,8 +46,10 @@ export const normalizeGeneratedImageResult = async (
     }],
     providerProof: {
       ...result.providerProof,
-      outputRefs: [...result.providerProof.outputRefs,
-        `safety-proof:${safety.runtimeProof.proofId}`],
+      outputRefs: [
+        ...result.providerProof.outputRefs,
+        `media-processing-proof:${processed.runtimeProof.proofId}`,
+      ],
     },
   };
 };

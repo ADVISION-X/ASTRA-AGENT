@@ -17,9 +17,12 @@ const generatedImageArtifact = (
     !artifact || artifact.mimeType !== "image/webp"
     || artifact.width !== 1200 || artifact.height !== 630
   ) throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_ARTIFACT_INVALID");
-  const safetyProofRef = result.providerProof.outputRefs
-    .find((ref) => ref.startsWith("safety-proof:"))
-    ?.slice("safety-proof:".length);
+  const checkpointProofRef = result.providerProof.outputRefs.find(
+    (ref) => ref.startsWith("media-processing-proof:"),
+  );
+  if (!checkpointProofRef) {
+    throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_CHECKPOINT_PROOF_MISSING");
+  }
   return {
     artifactId: artifact.artifactRef, role: "generated_image",
     objectRef: `local:${artifact.artifactRef}`,
@@ -28,9 +31,7 @@ const generatedImageArtifact = (
     providerOutputRef: artifact.providerOutputRef,
     mimeType: "image/webp", byteCount: artifact.byteCount,
     width: 1200, height: 630, localFilePath: artifact.filePath,
-    ...(safetyProofRef
-      ? { safetyProofRef, checkpointProofRef: `safety-proof:${safetyProofRef}` }
-      : {}),
+    checkpointProofRef,
   };
 };
 

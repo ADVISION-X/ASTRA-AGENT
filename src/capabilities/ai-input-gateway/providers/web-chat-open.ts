@@ -8,6 +8,7 @@ import { openGovernedForkFromCheckpoint } from "./web-chat-fork.js";
 import {
   startFreshChatGptConversation,
 } from "./web-chat-fresh-conversation.js";
+import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 import {
   focusExistingWorkspaceTab,
@@ -54,7 +55,11 @@ const resolveProviderReusePolicy = (input: {
   providerUrl: string;
   request: AiFeedInput;
   workspaceId: string | null;
-}): "reuse-exact-url" | "open-new-tab" => "reuse-exact-url";
+}): "reuse-exact-url" | "bind-existing-exact-origin" | "open-new-tab" =>
+  new URL(input.providerUrl).host === "chatgpt.com"
+  && input.request.providerKind === "gpt-web-chat"
+    ? "bind-existing-exact-origin"
+    : "reuse-exact-url";
 
 const waitForProviderComposer = async (input: {
   browser: BrowserTargetSession;
@@ -178,7 +183,7 @@ const openOrReuseProviderWorkspace = async (input: {
   workspaceId: string | null;
   savedUrl: string | null;
   focusedExisting: boolean;
-  reusePolicy: "reuse-exact-url" | "open-new-tab";
+  reusePolicy: "reuse-exact-url" | "bind-existing-exact-origin" | "open-new-tab";
 }): Promise<{ ok: boolean; message: string }> => input.focusedExisting
   ? { ok: true, message: "focused existing provider workspace tab" }
   : input.browser.open({
@@ -219,7 +224,7 @@ const waitForComposerWithRecovery = async (
   const reopened = await input.browser.open({
     url: input.providerUrl,
     title: `${input.runtimeName}:recover-provider-composer`,
-    reusePolicy: "reuse-exact-url",
+    reusePolicy: "bind-existing-exact-origin",
   });
   assertProviderPageOpened(reopened);
   await input.browser.wait(1_000);
@@ -274,7 +279,13 @@ const openFreshProviderWorkspace = async (
         : {}),
     }),
     isRecoverableComposerTimeout,
-    emitStage: () => undefined,
+    emitStage: (stage) => emitSubmitStage(
+      { request: input.request },
+      stage.stage,
+      stage.status,
+      stage.startedAtMs,
+      stage.refs,
+    ),
   });
   await persistWorkspaceUrlIfNeeded({ browser: input.browser, context: input.context, request: input.request, workspaceId });
 };

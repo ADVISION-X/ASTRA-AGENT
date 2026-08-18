@@ -6,6 +6,10 @@ import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
+import {
+  initializationTruthPaths,
+  inspectInitializationTruth,
+} from "./inspect-initialization-truth.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -442,7 +446,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const portClearLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-005-V1");
   const hotMountLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-006-V1");
   const coldStartBudgetLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-007-V1");
-  const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, processControlPath, portListenerPath, sourceFingerprintPath, inspectorPath]);
+  const initializationTruthLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-008-V1");
+  const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, processControlPath, portListenerPath, sourceFingerprintPath, ...Object.values(initializationTruthPaths), inspectorPath]);
   const startupFiles = listStartupFiles().map((filePath) => toRepoPath(resolveFromRepo(filePath)));
   startupFiles.forEach((filePath) => inspectedFiles.add(filePath));
   const findings: Finding[] = [];
@@ -455,6 +460,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectRealPortClear(context, findings, portClearLawId);
   inspectHotMountAst(context, findings, hotMountLawId);
   inspectColdStartHealthBudget(context, findings, coldStartBudgetLawId);
+  inspectInitializationTruth(context, findings, initializationTruthLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

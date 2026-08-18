@@ -63,7 +63,6 @@ const seedInvalidCompletedPrefix = (
     inputRefs: [],
     modelName: null,
     timeoutMs: record.stages[0]!.material.timeoutMs,
-    maxInputChars: record.stages[0]!.material.maxInputChars,
     maxFileCount: record.stages[0]!.material.maxFileCount,
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,

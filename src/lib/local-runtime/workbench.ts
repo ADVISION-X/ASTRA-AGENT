@@ -18,6 +18,7 @@ import {
   getMissionStartPreflight,
   getModeInfo,
 } from "./workbench-status.js";
+import type { WorkbenchInitializationState } from "./workbench-status-types.js";
 import { buildXuanxueAiProductionHandle } from "./workbench-xuanxue-ai-production-handle.js";
 
 const buildWorkbenchHandle = (
@@ -25,13 +26,14 @@ const buildWorkbenchHandle = (
   init: () => Promise<void>,
   shutdown: () => Promise<void>,
   xuanxueAiProduction: ReturnType<typeof createXuanxueAiProductionWorkbenchOwner>,
+  getInitializationState: () => WorkbenchInitializationState,
 ): GrassEyeWorkbenchHandle => {
   const dataDir = assembly.dataDir;
   return {
     init,
     shutdown,
     ...buildApiBoundaryLogHandle(assembly),
-    getHealthReport: async () => getHealthReport(assembly),
+    getHealthReport: async () => getHealthReport(assembly, getInitializationState()),
     getMissionReadinessReport: async () => getMissionReadinessReport(assembly, assembly.options),
     getMissionStartPreflight: async (input) =>
       getMissionStartPreflight(assembly, assembly.options, input),
@@ -50,6 +52,10 @@ export class GrassEyeWorkbench {
   private readonly assembly: WorkbenchAssembly;
   private readonly xuanxueAiProduction:
     ReturnType<typeof createXuanxueAiProductionWorkbenchOwner>;
+  private initializationState: WorkbenchInitializationState = {
+    status: "initializing",
+    failureReason: null,
+  };
 
   constructor(options: GrassEyeWorkbenchOptions) {
     this.assembly = createWorkbenchAssembly(options);
@@ -62,9 +68,19 @@ export class GrassEyeWorkbench {
   }
 
   async init(): Promise<void> {
-    await prepareVideoDownloadRuntimeDependencies();
-    continueInterruptedAmazonMiningForWorkbench(this.assembly);
-    await this.xuanxueAiProduction.init();
+    try {
+      await prepareVideoDownloadRuntimeDependencies();
+      continueInterruptedAmazonMiningForWorkbench(this.assembly);
+      await this.xuanxueAiProduction.init();
+      this.initializationState = { status: "ready", failureReason: null };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.initializationState = {
+        status: "failed",
+        failureReason: reason.slice(0, 1_000),
+      };
+      throw error;
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -77,6 +93,7 @@ export class GrassEyeWorkbench {
       () => this.init(),
       () => this.shutdown(),
       this.xuanxueAiProduction,
+      () => this.initializationState,
     );
   }
 }

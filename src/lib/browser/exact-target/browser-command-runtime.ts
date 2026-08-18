@@ -8,6 +8,7 @@ import type {
   BrowserActionResult,
   BrowserCaptureResult,
   BrowserGeometrySnapshot,
+  BrowserOpenReusePolicy,
   BrowserOpenResult,
   BrowserTargetSession,
 } from "../browser-controller.js";
@@ -31,6 +32,12 @@ const sameRequestedUrl = (requested: string, observed: string): boolean => {
     const a = new URL(requested); const b = new URL(observed);
     return a.origin === b.origin && a.pathname === b.pathname;
   } catch { return requested === observed; }
+};
+
+const isRecoverableTargetLoss = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:DEVTOOLS_ATTACHMENT_CONFLICT:.*No tab with given id|TARGET_NOT_FOUND:.*No tab with given id|TRANSPORT_DISCONNECTED:Detached while handling command|TRANSPORT_DISCONNECTED:Native host disconnected|TRANSPORT_DISCONNECTED:controller transport closed)/iu
+    .test(message);
 };
 
 export class BrowserCommandRuntime {
@@ -92,7 +99,7 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
   private releasedTargetRequest: {
     url: string;
     title: string;
-    reusePolicy: "reuse-exact-url";
+    reusePolicy: BrowserOpenReusePolicy;
   } | null = null;
   constructor(private readonly runtime: BrowserCommandRuntime, readonly ownerId: string) {}
   getTarget(): ControlledBrowserTarget | null { return this.target ? { ...this.target } : null; }
@@ -156,13 +163,19 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
     } else {
       const entry = this.runtime.registry.resolve(this.target.targetRef, this.target.documentRef);
       this.runtime.registry.assertNavigationOrigin(this.target.targetRef, input.url);
-      descriptor = (await this.loggedTransportCommand<BrowserWireTargetDescriptor>({
-        command: { kind: "navigate_target", tabId: entry.descriptor.tabId, url: input.url },
-        expectedLoaderId: entry.descriptor.loaderId,
-        mutationClass: "idempotent_mutation",
-        ...(signal ? { abortSignal: signal } : {}),
-        timeoutMs: 30_000,
-      }, entry.descriptor.url)).result;
+      try {
+        descriptor = (await this.loggedTransportCommand<BrowserWireTargetDescriptor>({
+          command: { kind: "navigate_target", tabId: entry.descriptor.tabId, url: input.url },
+          expectedLoaderId: entry.descriptor.loaderId,
+          mutationClass: "idempotent_mutation",
+          ...(signal ? { abortSignal: signal } : {}),
+          timeoutMs: 30_000,
+        }, entry.descriptor.url)).result;
+      } catch (error) {
+        if (!isRecoverableTargetLoss(error)) throw error;
+        this.forgetTargetForRecovery();
+        return this.open(input);
+      }
       this.target = this.runtime.registry.updateDocument(this.target.targetRef, descriptor);
       this.releasedTargetRequest = null;
       navigationMode = "navigated_exact_target";
@@ -246,7 +259,13 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
   async getGeometrySnapshot(abortSignal?: AbortSignal): Promise<BrowserGeometrySnapshot> {
     const target = await this.ensureTarget(); const entry = this.runtime.registry.resolve(target.targetRef, target.documentRef);
     const signal = this.runtime.signal(abortSignal);
-    const descriptor = (await this.loggedTransportCommand<BrowserWireTargetDescriptor>({ command: { kind: "inspect_target", tabId: entry.descriptor.tabId }, expectedLoaderId: entry.descriptor.loaderId, mutationClass: "observation", ...(signal ? { abortSignal: signal } : {}) }, entry.descriptor.url)).result;
+    let descriptor: BrowserWireTargetDescriptor;
+    try {
+      descriptor = (await this.loggedTransportCommand<BrowserWireTargetDescriptor>({ command: { kind: "inspect_target", tabId: entry.descriptor.tabId }, expectedLoaderId: entry.descriptor.loaderId, mutationClass: "observation", ...(signal ? { abortSignal: signal } : {}) }, entry.descriptor.url)).result;
+    } catch (error) {
+      if (isRecoverableTargetLoss(error)) this.forgetTargetForRecovery();
+      throw error;
+    }
     this.target = this.runtime.registry.updateDocument(target.targetRef, descriptor);
     return { windowX: 0, windowY: 0, viewportWidth: descriptor.viewportWidth, viewportHeight: descriptor.viewportHeight, screenshotWidth: Math.round(descriptor.viewportWidth * descriptor.deviceScaleFactor), screenshotHeight: Math.round(descriptor.viewportHeight * descriptor.deviceScaleFactor), scaleFactor: descriptor.deviceScaleFactor, currentUrl: descriptor.url, pageTitle: descriptor.title, visibleContentBounds: { x: 0, y: 0, width: descriptor.viewportWidth, height: descriptor.viewportHeight }, capturedAt: new Date().toISOString(), targetRef: this.target.targetRef, documentRef: this.target.documentRef };
   }
@@ -300,17 +319,29 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
   private async command<T>(command: SessionWireCommand, mutationClass: BrowserMutationClass, abortSignal?: AbortSignal, timeoutMs?: number) {
     const target = await this.ensureTarget(); const entry = this.runtime.registry.resolve(target.targetRef, target.documentRef);
     const signal = this.runtime.signal(abortSignal);
-    const response = await this.loggedTransportCommand<T>({ command: { ...command, tabId: entry.descriptor.tabId } as import("../chrome-extension/protocol.js").BrowserWireCommand, expectedLoaderId: entry.descriptor.loaderId, mutationClass, ...(signal ? { abortSignal: signal } : {}), ...(timeoutMs ? { timeoutMs } : {}) }, entry.descriptor.url);
+    let response: { result: T };
+    try {
+      response = await this.loggedTransportCommand<T>({ command: { ...command, tabId: entry.descriptor.tabId } as import("../chrome-extension/protocol.js").BrowserWireCommand, expectedLoaderId: entry.descriptor.loaderId, mutationClass, ...(signal ? { abortSignal: signal } : {}), ...(timeoutMs ? { timeoutMs } : {}) }, entry.descriptor.url);
+    } catch (error) {
+      if (isRecoverableTargetLoss(error)) this.forgetTargetForRecovery();
+      throw error;
+    }
     try {
       if (command.kind !== "evaluate_target" && command.kind !== "screenshot_target") {
         this.target = this.runtime.registry.updateDocument(target.targetRef, response.result as BrowserWireTargetDescriptor);
       } else {
-        const inspected = await this.loggedTransportCommand<BrowserWireTargetDescriptor>({
-          command: { kind: "inspect_target", tabId: entry.descriptor.tabId },
-          expectedLoaderId: entry.descriptor.loaderId,
-          mutationClass: "observation",
-          ...(signal ? { abortSignal: signal } : {}),
-        }, entry.descriptor.url);
+        let inspected: { result: BrowserWireTargetDescriptor };
+        try {
+          inspected = await this.loggedTransportCommand<BrowserWireTargetDescriptor>({
+            command: { kind: "inspect_target", tabId: entry.descriptor.tabId },
+            expectedLoaderId: entry.descriptor.loaderId,
+            mutationClass: "observation",
+            ...(signal ? { abortSignal: signal } : {}),
+          }, entry.descriptor.url);
+        } catch (error) {
+          if (isRecoverableTargetLoss(error)) this.forgetTargetForRecovery();
+          throw error;
+        }
         this.target = this.runtime.registry.updateDocument(target.targetRef, inspected.result);
       }
     } catch (error) {
@@ -324,6 +355,12 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
       throw error;
     }
     return response;
+  }
+  private forgetTargetForRecovery(): void {
+    if (!this.target) return;
+    this.runtime.registry.close(this.target.targetRef);
+    this.target = null;
+    this.releasedTargetRequest = null;
   }
   private async loggedTransportCommand<T>(
     input: Parameters<BrowserNativeTransportServer["command"]>[0],

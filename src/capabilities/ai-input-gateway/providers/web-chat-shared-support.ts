@@ -50,7 +50,7 @@ return {pageUrl: location.href, hostMatches: location.host === expectedHost};
     const reopened = await input.browser.open({
       url: input.providerUrl,
       title: "recover provider page before attachment upload",
-      reusePolicy: "reuse-exact-url",
+      reusePolicy: "bind-existing-exact-origin",
     });
     if (reopened.ok) {
       await input.browser.wait(1_000);

@@ -95,6 +95,19 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "APEX-STARTUP-008-V1",
+        "clauseId": "apex-startup-008-requirement",
+        "checkIds": [
+          "startup-entrypoint/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },
@@ -106,6 +119,7 @@
         "## 启动顺序",
         "## 端口清理",
         "## 热挂载",
+        "## 初始化健康状态",
         "## 启动禁止",
         "## 质检对口"
       ]

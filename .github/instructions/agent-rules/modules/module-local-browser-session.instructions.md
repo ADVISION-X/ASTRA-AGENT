@@ -7,7 +7,7 @@ applyTo: "src/lib/browser/**, src/lib/local-runtime/**"
 # GrassEye Local Browser Session
 
 status: active
-version: 2026-08-16
+version: 2026-08-16.1
 
 Browser owns:
 - one operator-authorized local Chrome profile and one BrowserController instance;
@@ -138,6 +138,7 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
   },
   "required": [
     "The Controller connects through an owner-only Unix socket and memory-only nonce to one Native host, one fixed-id MV3 extension and chrome.debugger.",
+    "Every Native port owns one nonce and one command sequence session. Only messages emitted by the currently registered port may authenticate, reset sequence state or execute commands; a late message from a disconnected or replaced port is ignored before any session mutation. A new current port resets its sequence exactly once on its own controller challenge and then accepts command sequence 1.",
     "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed.",
     "Release, extension disconnect, debugger detach and tab close remove extension attachment state so a human or another approved debugger can use the tab.",
     "Dedicated Browser infrastructure install, verify and uninstall scripts own registration; the GrassEye startup entry remains unchanged and never installs or activates browser business infrastructure."
@@ -148,6 +149,7 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
     "world-readable socket, nonce or host manifest",
     "Startup installing the extension, registering the host or starting a business job",
     "silent CDP or AppleScript/JXA fallback"
+    ,"allowing a retired Native port's delayed challenge, command or response to reset or mutate the current port's authenticated command sequence"
   ],
   "clauses": [
     {

@@ -30,6 +30,7 @@ export const verifyPromptSubmitted = (
   browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   input: {
+    expectedLength: number;
     expectedPrefix: string;
     expectedSuffix: string;
     previousUserMessageCount: number;
@@ -46,17 +47,17 @@ export const verifyLastUserMessageAttachments = (
   browser: BrowserTargetSession,
   context: AiProviderAdapterContext,
   expectedCount: number,
-  expectedKind: "image" | "file",
-  expectedFileNames: readonly string[],
-  turnMarker: string,
+ expectedKind: "image" | "file",
+ expectedFileNames: readonly string[],
+  promptText: string,
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({
     description: `verify AI web chat submitted user message has bound ${expectedKind} attachment`,
     script: buildVerifyLastUserMessageAttachmentsScript(
       expectedCount,
-      expectedKind,
-      expectedFileNames,
-      turnMarker,
+     expectedKind,
+     expectedFileNames,
+      promptText,
     ),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

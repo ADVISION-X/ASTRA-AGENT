@@ -97,14 +97,14 @@ export const buildVerifyLastUserMessageAttachmentsScript = (
   expectedCount: number,
   expectedKind: "image" | "file",
   expectedFileNames: readonly string[],
-  turnMarker: string,
+  promptText: string,
 ): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 ${WEB_CHAT_ATTACHMENT_COUNT_SCRIPT}
 const expectedCount = ${JSON.stringify(expectedCount)};
 const expectedKind = ${JSON.stringify(expectedKind)};
 const expectedFileNames = ${JSON.stringify(expectedFileNames)};
-const turnMarker = ${JSON.stringify(turnMarker)};
+const expectedPrompt = String(${JSON.stringify(promptText)} || "").replace(/\s+/gu, " ").trim();
 ${WEB_CHAT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 ${CHATGPT_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
 ${GEMINI_SUBMITTED_ATTACHMENT_COUNT_SCRIPT}
@@ -117,7 +117,7 @@ const geminiUserMessages = geminiUserMessageCandidates
   .filter((node) => !geminiUserMessageCandidates.some((other) => other !== node && other.contains(node)));
 const userMessages = chatGptUserMessages.length > 0 ? chatGptUserMessages : geminiUserMessages;
 const matchingUserMessages = userMessages
-  .filter((node) => clip(node.innerText || node.textContent || "").includes(turnMarker));
+  .filter((node) => clip(node.innerText || node.textContent || "") === expectedPrompt);
 const lastUserMessage = matchingUserMessages.length === 1 ? matchingUserMessages[0] : null;
 const boundAttachments = chatGptUserMessages.length > 0
   ? countChatGptBoundAttachments(lastUserMessage)
@@ -133,19 +133,19 @@ const unexpectedFileNames = requireExactFileNames
 const lastUserMessageText = lastUserMessage instanceof HTMLElement ? clip(lastUserMessage.innerText || lastUserMessage.textContent || "") : null;
 const proof = {pageUrl: location.href, boundAttachmentCount, attachmentNames: boundAttachments.names, missingFileNames, unexpectedFileNames, lastUserMessageText, userMessageCount: userMessages.length, matchingUserMessageCount: matchingUserMessages.length};
 if (matchingUserMessages.length > 1) {
-  return {status: "failed", message: "WEB_CHAT_TURN_MARKER_AMBIGUOUS", ...proof};
+  return {status: "failed", message: "WEB_CHAT_PROMPT_IDENTITY_AMBIGUOUS", ...proof};
 }
 if (matchingUserMessages.length !== 1) {
-  return {status: "pending", message: "waiting for the exact internally marked submitted user message", ...proof};
+  return {status: "pending", message: "waiting for the exact clean submitted user message", ...proof};
 }
 if (unexpectedFileNames.length > 0) {
-  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH: internally marked submitted user message contains unexpected attachments", ...proof};
+  return {status: "failed", message: "GPT_ATTACHMENT_FILENAME_MISMATCH: clean submitted user message contains unexpected attachments", ...proof};
 }
 if (boundAttachmentCount === expectedCount && missingFileNames.length === 0) {
-  return {status: "success", message: expectedKind === "image" ? "internally marked submitted user message contains exact bound image attachment set" : "internally marked submitted user message contains exact bound file attachment set", ...proof};
+  return {status: "success", message: expectedKind === "image" ? "clean submitted user message contains exact bound image attachment set" : "clean submitted user message contains exact bound file attachment set", ...proof};
 }
 if (boundAttachmentCount > expectedCount) {
-  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH: internally marked submitted user message contains too many attachments", ...proof};
+  return {status: "failed", message: "GPT_ATTACHMENT_COUNT_MISMATCH: clean submitted user message contains too many attachments", ...proof};
 }
-return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: internally marked submitted user message does not contain required image attachment" : "provider_missing_bound_file: internally marked submitted user message does not contain required file attachment", ...proof};
+return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: clean submitted user message does not contain required image attachment" : "provider_missing_bound_file: clean submitted user message does not contain required file attachment", ...proof};
 `;

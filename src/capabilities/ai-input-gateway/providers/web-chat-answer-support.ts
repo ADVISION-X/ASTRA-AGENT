@@ -2,7 +2,7 @@ import type { BrowserTargetSession } from "../../../lib/browser/browser-controll
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
-  buildMarkerScopedChatGptResponseScript,
+  buildPromptScopedChatGptResponseScript,
   EXTRACT_LAST_RESPONSE_SCRIPT,
 } from "./web-chat-response-extraction-script.js";
 
@@ -21,10 +21,10 @@ const extractAnswer = (
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({
     description: context.webChatExecution
-      ? "extract response belonging to the exact internally marked web-chat turn"
+      ? "extract response belonging to the exact clean-prompt web-chat turn"
       : "extract last AI web chat response",
     script: context.webChatExecution?.providerKind === "gpt-web-chat"
-      ? buildMarkerScopedChatGptResponseScript(context.webChatExecution.turnMarker)
+      ? buildPromptScopedChatGptResponseScript(context.webChatExecution.requestTextPrompt)
       : EXTRACT_LAST_RESPONSE_SCRIPT,
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });

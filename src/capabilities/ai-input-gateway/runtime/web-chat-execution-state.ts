@@ -8,12 +8,7 @@ import type {
   WebChatForkActionProof,
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
-import type { AiTaskLabelKey } from "../schema.js";
 import { classifyWebChatFailure } from "../failure-classification.js";
-import {
-  buildHumanReadableSystemChatTitle,
-  resolveAiTaskLabel,
-} from "./web-chat-system-title.js";
 import type { WebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 
 export type WebChatExecutionStatus =
@@ -38,15 +33,6 @@ export type WebChatExecutionFailure = {
   reason: string;
 };
 
-export type WebChatTitleRenameState = {
-  status: "pending" | "verified" | "review_required";
-  attemptCount: number;
-  lastAttemptAt: string | null;
-  nextAttemptAt: string | null;
-  lastFailureReason: string | null;
-  verifiedAt: string | null;
-};
-
 export type WebChatExecutionRecord = {
   schemaVersion: "web-chat-execution-v2";
   executionId: string;
@@ -56,7 +42,6 @@ export type WebChatExecutionRecord = {
   inputHash: string;
   turnMarker: string;
   submittedPromptHash: string;
-  systemChatTitle: string | null;
   capacitySlot: number | null;
   providerLeaseId: string | null;
   submission: WebChatSubmissionProof | null;
@@ -65,7 +50,6 @@ export type WebChatExecutionRecord = {
   forkActionProof: WebChatForkActionProof | null;
   responseCheckpoint: WebChatResponseCheckpoint | null;
   responseHash: string | null;
-  chatTitleRename: WebChatTitleRenameState | null;
   failures: WebChatExecutionFailure[];
   createdAt: string;
   updatedAt: string;
@@ -90,38 +74,42 @@ const atomicWrite = async (filePath: string, value: WebChatExecutionRecord): Pro
   await rename(tempPath, filePath);
 };
 
-const derivePersistedTitleRenameState = (
-  parsed: Partial<WebChatExecutionRecord>,
-): WebChatTitleRenameState | null => {
-  if (parsed.chatTitleRename) return parsed.chatTitleRename;
-  if (parsed.providerKind !== "gpt-web-chat" || !parsed.responseCheckpoint) {
-    return null;
-  }
-  const verifiedAt = parsed.submission?.chatTitleVerifiedAt ?? null;
-  return {
-    status: verifiedAt ? "verified" : "pending",
-    attemptCount: 0,
-    lastAttemptAt: null,
-    nextAttemptAt: null,
-    lastFailureReason: null,
-    verifiedAt,
-  };
-};
-
 export const readWebChatExecution = async (
   dataDir: string,
   executionId: string,
 ): Promise<WebChatExecutionRecord | null> => {
   try {
-    const parsed = JSON.parse(await readFile(statePath(dataDir, executionId), "utf8")) as Partial<WebChatExecutionRecord>;
+    const parsed = JSON.parse(await readFile(statePath(dataDir, executionId), "utf8")) as Partial<WebChatExecutionRecord> & {
+      systemChatTitle?: unknown;
+      chatTitleRename?: unknown;
+      submission?: (WebChatSubmissionProof & {
+        systemChatTitle?: unknown;
+        observedAutoChatTitle?: unknown;
+        chatTitleVerifiedAt?: unknown;
+      }) | null;
+    };
     if (parsed.schemaVersion !== "web-chat-execution-v2") {
       throw new Error("review_required: legacy web-chat execution state cannot enter the single-tab named-chat runtime.");
     }
+    const {
+      systemChatTitle: _retiredTitle,
+      chatTitleRename: _retiredRenameDebt,
+      submission: rawSubmission,
+      ...record
+    } = parsed;
+    const submission = rawSubmission
+      ? (({
+          systemChatTitle: _retiredSubmissionTitle,
+          observedAutoChatTitle: _retiredObservedTitle,
+          chatTitleVerifiedAt: _retiredTitleVerification,
+          ...proof
+        }) => proof)(rawSubmission)
+      : null;
     return {
-      ...(parsed as WebChatExecutionRecord),
+      ...(record as WebChatExecutionRecord),
       providerLeaseId: parsed.providerLeaseId ?? null,
       forkActionProof: parsed.forkActionProof ?? null,
-      chatTitleRename: derivePersistedTitleRenameState(parsed),
+      submission,
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -134,7 +122,6 @@ type StartWebChatExecutionInput = {
   executionId: string;
   turnIdentitySeed?: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
-  taskLabelKey: AiTaskLabelKey;
   inputHash: string;
   textPrompt: string;
 };
@@ -167,17 +154,7 @@ const restartUnsubmittedExecution = async (
     status: "recovery_pending",
     inputHash: input.inputHash,
     turnMarker,
-    submittedPromptHash: hashSubmittedPrompt(
-      buildInternallyMarkedPrompt(input.textPrompt, turnMarker),
-    ),
-    systemChatTitle: input.providerKind === "gpt-web-chat"
-      ? buildHumanReadableSystemChatTitle({
-          labelKey: input.taskLabelKey,
-          executionId: input.executionId,
-          turnMarker,
-          createdAt: now,
-        })
-      : null,
+    submittedPromptHash: hashSubmittedPrompt(input.textPrompt),
     capacitySlot: null,
     providerLeaseId: null,
     submission: null,
@@ -186,7 +163,6 @@ const restartUnsubmittedExecution = async (
     forkActionProof: null,
     responseCheckpoint: null,
     responseHash: null,
-    chatTitleRename: null,
     updatedAt: now,
   };
   await atomicWrite(statePath(input.dataDir, input.executionId), next);
@@ -195,6 +171,8 @@ const restartUnsubmittedExecution = async (
 
 const migrationIdentityRejection =
   "review_required: persisted web-chat execution identity does not match the requested feed.";
+const TERMINAL_EXECUTION_ERROR_PREFIX =
+  "review_required: web-chat execution is terminal:";
 
 const isCleanTransientPreSubmission = (
   existing: WebChatExecutionRecord,
@@ -210,6 +188,15 @@ const isCleanTransientPreSubmission = (
       failure.reason !== migrationIdentityRejection
       && !isTerminalStateEcho(failure),
   );
+  const rootlessTerminalAttempts = new Set(
+    existing.failures
+      .filter(isTerminalStateEcho)
+      .map((failure) => failure.attemptId),
+  );
+  const hasOneBoundedRootlessRecoveryAuthority =
+    providerFailures.length === 0
+    && existing.failures.length > 0
+    && rootlessTerminalAttempts.size === 1;
   return (
     existing.status === "failed"
     && !existing.submission
@@ -217,7 +204,10 @@ const isCleanTransientPreSubmission = (
     && !existing.attachmentUploadProof
     && !existing.responseCheckpoint
     && !existing.responseHash
-    && providerFailures.length > 0
+    && (
+      providerFailures.length > 0
+      || hasOneBoundedRootlessRecoveryAuthority
+    )
     && providerFailures.every((failure) =>
       classifyWebChatFailure(
         new Error(failure.reason),
@@ -229,25 +219,6 @@ const isCleanTransientPreSubmission = (
       || isTerminalStateEcho(failure)
     ))
   );
-};
-
-const restartForCorrectedLabel = async (
-  input: StartWebChatExecutionInput,
-  existing: WebChatExecutionRecord,
-  cleanTransientPreSubmission: boolean,
-): Promise<StartWebChatExecutionResult> => {
-  const expectedLabel = resolveAiTaskLabel(input.taskLabelKey);
-  const labelCorrectionOnly = (
-    input.providerKind === "gpt-web-chat"
-    && cleanTransientPreSubmission
-    && Boolean(existing.systemChatTitle)
-    && !existing.systemChatTitle?.startsWith(`${expectedLabel}｜`)
-  );
-  if (!labelCorrectionOnly) throw new Error(migrationIdentityRejection);
-  return {
-    record: await restartUnsubmittedExecution(input, existing),
-    resume: false,
-  };
 };
 
 const resumePersistedStatus = (
@@ -281,9 +252,7 @@ const resumeExistingWebChatExecution = async (
   input: StartWebChatExecutionInput,
   existing: WebChatExecutionRecord,
 ): Promise<StartWebChatExecutionResult> => {
-  const expectedSubmittedPromptHash = hashSubmittedPrompt(
-    buildInternallyMarkedPrompt(input.textPrompt, existing.turnMarker),
-  );
+  const expectedSubmittedPromptHash = hashSubmittedPrompt(input.textPrompt);
   if (
     existing.providerKind !== input.providerKind
     || existing.submittedPromptHash !== expectedSubmittedPromptHash
@@ -293,11 +262,11 @@ const resumeExistingWebChatExecution = async (
   const cleanTransientPreSubmission =
     isCleanTransientPreSubmission(existing);
   if (existing.inputHash !== input.inputHash) {
-    return restartForCorrectedLabel(
-      input,
-      existing,
-      cleanTransientPreSubmission,
-    );
+    if (!cleanTransientPreSubmission) throw new Error(migrationIdentityRejection);
+    return {
+      record: await restartUnsubmittedExecution(input, existing),
+      resume: false,
+    };
   }
   const persisted = resumePersistedStatus(existing);
   if (persisted) return persisted;
@@ -315,7 +284,7 @@ const resumeExistingWebChatExecution = async (
         failure.reason,
       ));
   throw new Error(
-    `review_required: web-chat execution is terminal: ${existing.status}; root=${
+    `${TERMINAL_EXECUTION_ERROR_PREFIX} ${existing.status}; root=${
       rootFailure?.reason ?? "unknown terminal provider failure"
     }`,
   );
@@ -326,14 +295,6 @@ const createWebChatExecution = async (
 ): Promise<StartWebChatExecutionResult> => {
   const now = new Date().toISOString();
   const turnMarker = turnMarkerFor(input);
-  const systemChatTitle = input.providerKind === "gpt-web-chat"
-    ? buildHumanReadableSystemChatTitle({
-        labelKey: input.taskLabelKey,
-        executionId: input.executionId,
-        turnMarker,
-        createdAt: now,
-      })
-    : null;
   const record: WebChatExecutionRecord = {
     schemaVersion: "web-chat-execution-v2",
     executionId: input.executionId,
@@ -342,8 +303,7 @@ const createWebChatExecution = async (
     providerKind: input.providerKind,
     inputHash: input.inputHash,
     turnMarker,
-    submittedPromptHash: hashSubmittedPrompt(buildInternallyMarkedPrompt(input.textPrompt, turnMarker)),
-    systemChatTitle,
+    submittedPromptHash: hashSubmittedPrompt(input.textPrompt),
     capacitySlot: null,
     providerLeaseId: null,
     submission: null,
@@ -352,7 +312,6 @@ const createWebChatExecution = async (
     forkActionProof: null,
     responseCheckpoint: null,
     responseHash: null,
-    chatTitleRename: null,
     failures: [],
     createdAt: now,
     updatedAt: now,
@@ -383,9 +342,6 @@ export const updateWebChatExecution = async (input: {
   await atomicWrite(statePath(input.dataDir, next.executionId), next);
   return next;
 };
-
-export const buildInternallyMarkedPrompt = (textPrompt: string, turnMarker: string): string =>
-  `${textPrompt}\n\n[INTERNAL_TRANSPORT_MARKER:${turnMarker}]`;
 
 export const hashSubmittedPrompt = (textPrompt: string): string =>
   `sha256:${createHash("sha256").update(textPrompt).digest("hex")}`;

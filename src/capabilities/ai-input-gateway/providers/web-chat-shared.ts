@@ -24,7 +24,6 @@ import { captureChatGptGeneratedImage } from "./web-chat-generated-image-capture
 import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 import { restoreAfterWebChatFeed } from "./web-chat-recovery.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
-import { renameSubmittedChatGptConversation } from "./web-chat-chat-title.js";
 import {
   extractWebChatConversation,
 } from "./web-chat-response-capture.js";
@@ -151,25 +150,8 @@ const buildCompletedWebChatResponse = async (
       finalizedSubmission,
     );
   }
-  const renamedSubmission =
-    finalizedSubmission && input.submission
-      ? await renameSubmittedChatGptConversation({
-          browser: input.opened.browser,
-          context: input.opened.context,
-          submission: {
-            ...finalizedSubmission,
-            submittedAt: input.submission.submittedAt,
-          },
-          timeoutMs: input.opened.request.timeoutMs,
-        })
-      : finalizedSubmission;
-  if (renamedSubmission && input.opened.context.webChatExecution) {
-    await input.opened.context.webChatExecution.onConversationCanonicalized(
-      renamedSubmission,
-    );
-  }
   const conversationUrl =
-    renamedSubmission?.canonicalConversationUrl ??
+    finalizedSubmission?.canonicalConversationUrl ??
     input.conversation.extracted.pageUrl ??
     null;
   const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
@@ -202,7 +184,67 @@ const buildCompletedWebChatResponse = async (
     outputArtifacts: generatedImage ? [generatedImage] : [],
     managedParallelExecution: Boolean(input.opened.context.webChatExecution),
     forkActionProof: input.opened.forkActionProof,
-    submissionProof: renamedSubmission,
+    submissionProof: finalizedSubmission,
+  });
+};
+
+const executeGeneratedImageConversation = async (input: {
+  opened: OpenedWebChatConversationInput;
+  preSubmit: Awaited<ReturnType<typeof prepareWebChatConversation>>;
+  capturedSubmission: Awaited<ReturnType<typeof captureWebChatSubmissionProof>> | null;
+}): Promise<AiProviderRawResponse> => {
+  const generatedImage = await captureChatGptGeneratedImage({
+    browser: input.opened.browser,
+    request: input.opened.request,
+    context: input.opened.context,
+  });
+  if (!generatedImage) {
+    throw new Error("review_required: generated image artifact was not captured");
+  }
+  const finalizedSubmission = await captureFinalizedSubmission({
+    opened: input.opened,
+    preSubmit: input.preSubmit,
+    conversation: {
+      answerText: `generated_image:${generatedImage.sha256}`,
+      extracted: {
+        status: "success",
+        message: "Captured the exact generated image assistant turn.",
+        answerText: `generated_image:${generatedImage.sha256}`,
+        pageUrl: input.capturedSubmission?.canonicalConversationUrl
+          ?? input.capturedSubmission?.transientConversationUrl
+          ?? input.opened.providerUrl,
+      },
+    },
+    submission: input.capturedSubmission,
+  });
+  if (finalizedSubmission && input.opened.context.webChatExecution) {
+    await input.opened.context.webChatExecution.onConversationCanonicalized(
+      finalizedSubmission,
+    );
+  }
+  const conversationUrl = finalizedSubmission?.canonicalConversationUrl
+    ?? input.capturedSubmission?.canonicalConversationUrl
+    ?? input.capturedSubmission?.transientConversationUrl
+    ?? input.opened.providerUrl;
+  return buildWebChatRawResponse({
+    request: input.opened.request,
+    runtimeName: input.opened.runtimeName,
+    providerUrl: input.opened.providerUrl,
+    sourcePageUrlBeforeFeed: input.opened.sourcePageUrlBeforeFeed,
+    extracted: {
+      status: "success",
+      message: "Captured the exact generated image assistant turn.",
+      answerText: `generated_image:${generatedImage.sha256}`,
+      pageUrl: conversationUrl,
+    },
+    answerText: `generated_image:${generatedImage.sha256}`,
+    uploadedFiles: input.preSubmit.uploadedFiles,
+    attachmentUploadProof: input.preSubmit.attachmentUploadProof,
+    outputRefs: [generatedImage.artifactRef],
+    outputArtifacts: [generatedImage],
+    managedParallelExecution: Boolean(input.opened.context.webChatExecution),
+    forkActionProof: input.opened.forkActionProof,
+    submissionProof: finalizedSubmission ?? input.capturedSubmission,
   });
 };
 
@@ -227,6 +269,13 @@ const executeWebChatConversation = async (
     uploadedFiles: preSubmit.uploadedFiles,
     attachmentUploadProof: preSubmit.attachmentUploadProof,
   });
+  if (input.request.expectedOutputKind === "generated_image") {
+    return executeGeneratedImageConversation({
+      opened: input,
+      preSubmit,
+      capturedSubmission,
+    });
+  }
   const conversation = await extractWebChatConversation({
     browser: input.browser,
     request: input.request,

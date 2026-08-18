@@ -33,9 +33,6 @@ import {
   markCheckpointedWebChatResponsePublished,
   recoverCheckpointedWebChatResponse,
 } from "../providers/web-chat-checkpoint-response.js";
-import {
-  scheduleWebChatTitleHousekeeping,
-} from "./web-chat-title-housekeeping-worker.js";
 
 type ExecuteAiFeedOnceInput = {
   request: AiFeedInput;
@@ -237,19 +234,6 @@ interface ManagedProviderInput {
   cooldownMs: number;
 }
 
-const schedulePublishedTitleHousekeeping = (
-  input: ExecuteAiFeedOnceInput,
-): void => {
-  if (!input.browser) return;
-  scheduleWebChatTitleHousekeeping({
-    dataDir: input.dataDir,
-    browser: input.browser,
-    ...(input.runtimeLogger
-      ? { runtimeLogger: input.runtimeLogger }
-      : {}),
-  });
-};
-
 type ManagedExecution =
   Awaited<ReturnType<typeof prepareManagedWebChatExecution>>;
 
@@ -327,7 +311,6 @@ const buildManagedProviderFailure = async (
       managed?.providerLeaseId ?? null,
     );
     if (recovered) {
-      schedulePublishedTitleHousekeeping(input.execution);
       return recovered;
     }
   } catch (checkpointError) {
@@ -350,7 +333,7 @@ const buildManagedProviderFailure = async (
         ? "recovery_pending"
         : classifyWebChatFailure(effectiveError, false));
   const submission = managed?.durableSubmission() ?? null;
-  return buildProviderFailure({
+  const failure = buildProviderFailure({
     ...input.execution,
     inputPackage: input.inputPackage,
     startedAt: input.startedAt,
@@ -368,6 +351,13 @@ const buildManagedProviderFailure = async (
         }
       : {}),
   });
+  const attachmentProof = failure.providerProof.attachmentUploadProof;
+  if (attachmentProof) {
+    await input.execution.onAttachmentUploadCompleted?.(
+      attachmentProof as WebChatAttachmentUploadProof,
+    );
+  }
+  return failure;
 };
 
 const executeManagedProvider = async (
@@ -378,7 +368,6 @@ const executeManagedProvider = async (
     const recoveredBeforeBrowser =
       await recoverManagedCheckpoint(input, null);
     if (recoveredBeforeBrowser) {
-      schedulePublishedTitleHousekeeping(input.execution);
       return recoveredBeforeBrowser;
     }
     managed = await prepareManagedWebChatExecution(

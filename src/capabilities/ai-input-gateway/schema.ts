@@ -80,7 +80,6 @@ export const AiFeedInputSchema = z.object({
   inputRefs: z.array(AiFeedInputRefSchema).default([]),
   modelName: z.string().min(1).nullable().default(null),
   timeoutMs: z.number().int().positive().default(180_000),
-  maxInputChars: z.number().int().positive().default(30_000),
   maxFileCount: z.number().int().nonnegative().default(3),
   requestedBy: z.enum(["ai-capability", "manual-test", "acceptance-test"]),
   missionId: z.string().min(1).nullable().default(null),

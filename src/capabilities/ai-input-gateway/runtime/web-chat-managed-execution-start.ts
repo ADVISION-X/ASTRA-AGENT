@@ -5,9 +5,6 @@ import {
   type WebChatRuntimeLease,
 } from "./web-chat-concurrency-lease.js";
 import {
-  resolveContinuationWebChatSystemTitle,
-} from "./web-chat-continuation-title.js";
-import {
   startOrResumeWebChatExecution,
   updateWebChatExecution,
   type WebChatExecutionRecord,
@@ -52,36 +49,6 @@ export const managedExecutionIdFor = (
   input.request.promptPackageId,
 ].join(":");
 
-const inheritContinuationSystemTitle = async (
-  source: ManagedWebChatInput,
-  record: WebChatExecutionRecord,
-): Promise<WebChatExecutionRecord> => {
-  const continuationUrl =
-    source.request.providerForkRef?.providerPageUrl
-    ?? source.request.providerContinuationRef?.providerPageUrl
-    ?? null;
-  if (
-    !continuationUrl
-    || record.submission
-    || record.providerKind !== "gpt-web-chat"
-  ) return record;
-  const inheritedSystemChatTitle =
-    await resolveContinuationWebChatSystemTitle({
-      dataDir: source.dataDir,
-      providerKind: record.providerKind,
-      canonicalConversationUrl: continuationUrl,
-    });
-  if (
-    !inheritedSystemChatTitle
-    || record.systemChatTitle === inheritedSystemChatTitle
-  ) return record;
-  return updateWebChatExecution({
-    dataDir: source.dataDir,
-    record,
-    patch: { systemChatTitle: inheritedSystemChatTitle },
-  });
-};
-
 const prepareActiveBrowser = async (input: {
   source: ManagedWebChatInput;
   record: WebChatExecutionRecord;
@@ -120,7 +87,6 @@ const prepareActiveBrowser = async (input: {
       dataDir: input.source.dataDir,
       executionId: record.executionId,
       providerKind: record.providerKind,
-      systemChatTitle: record.systemChatTitle,
       turnMarker: record.turnMarker,
       timeoutMs: input.source.request.timeoutMs,
       initialMutationLease,
@@ -154,14 +120,10 @@ export const startActiveExecution = async (input: {
       input.inputHash,
     ].join("\u0000"),
     providerKind: resolveWebChatProviderKind(input.source),
-    taskLabelKey: input.source.request.taskIdentity.labelKey,
     inputHash: input.inputHash,
     textPrompt: input.source.request.textPrompt,
   });
-  let record = await inheritContinuationSystemTitle(
-    input.source,
-    started.record,
-  );
+  let record = started.record;
   await input.reportProgress("waiting_for_capacity");
   const capacityLease = await acquireWebChatCapacityLease({
     dataDir: input.source.dataDir,

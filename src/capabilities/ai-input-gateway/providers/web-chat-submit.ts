@@ -63,6 +63,7 @@ const waitForPromptSubmitted = async (input: {
   browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
+  expectedLength: number;
   expectedPrefix: string;
   expectedSuffix: string;
   previousUserMessageCount: number;
@@ -75,6 +76,7 @@ const waitForPromptSubmitted = async (input: {
     await acknowledgeChatGptSubmitRateLimitIfVisible(input);
     const submitted = await withWebChatStep("verify_prompt_submitted_after_click", () =>
       verifyPromptSubmitted(input.browser, input.context, {
+        expectedLength: input.expectedLength,
         expectedPrefix: input.expectedPrefix,
         expectedSuffix: input.expectedSuffix,
         previousUserMessageCount: input.previousUserMessageCount,
@@ -399,6 +401,7 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
     browser: input.browser,
     context: input.context,
     request: input.request,
+    expectedLength: input.preparedPrompt.expectedLength,
     expectedPrefix: input.preparedPrompt.expectedPrefix,
     expectedSuffix: input.preparedPrompt.expectedSuffix,
     previousUserMessageCount: input.previousUserMessageCount,
@@ -426,12 +429,8 @@ const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput & {
         .slice()
         .sort((left, right) => left.order - right.order)
         .map((file) => file.displayFileName),
-      turnMarker:
-        input.context.webChatExecution?.turnMarker
-        ?? input.preparedPrompt.expectedSuffix.match(
-          /GRASSEYE_TURN_[A-Za-z0-9_-]+/u,
-        )?.[0]
-        ?? "",
+      promptText:
+        input.request.textPrompt,
       timeoutMs: SUBMITTED_ATTACHMENT_VERIFY_TIMEOUT_MS,
       acknowledgeRateLimit: () => acknowledgeChatGptSubmitRateLimitIfVisible(input),
     });

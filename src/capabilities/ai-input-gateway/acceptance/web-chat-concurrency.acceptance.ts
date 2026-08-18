@@ -36,7 +36,6 @@ import {
   assertResponseCheckpointRecovery,
 } from "./web-chat-recovery.acceptance-helper.js";
 import { assertWebChatSourceContracts } from "./web-chat-source-contract.acceptance-helper.js";
-import { assertRenamePatrolBehavior } from "./web-chat-rename-patrol.acceptance-helper.js";
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 import { assertWebChatIdentityAndRecoveryPolicies } from "./web-chat-identity-recovery.acceptance-helper.js";
 
@@ -82,7 +81,6 @@ const requestFor = (worker: number): AiFeedInput => ({
   inputRefs: [],
   modelName: null,
   timeoutMs: 60_000,
-  maxInputChars: 1_000,
   maxFileCount: 0,
   requestedBy: "acceptance-test",
   missionId: "parallel-acceptance",
@@ -116,9 +114,6 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
           turnMarker: `parallel-turn-${worker}`,
           transientConversationUrl: conversationUrl,
           canonicalConversationUrl: conversationUrl,
-          systemChatTitle: null,
-          observedAutoChatTitle: null,
-          chatTitleVerifiedAt: null,
           userTurnId: `parallel-user-turn-${worker}`,
           previousAssistantCount: 0,
           previousUserMessageCount: 0,
@@ -234,7 +229,6 @@ if (workerArgs[0] === "--worker") {
       dataDir,
       executionId: "transient-pre-submit-repair",
       providerKind: "gpt-web-chat" as const,
-      taskLabelKey: "system_acceptance" as const,
       inputHash: "fixture-transient-input-hash",
       textPrompt: "fixture transient prompt",
     };
@@ -293,7 +287,6 @@ if (workerArgs[0] === "--worker") {
             executionId: string;
             capacitySlot: number | null;
             status: string;
-            systemChatTitle: string | null;
           },
       ),
     );
@@ -310,11 +303,9 @@ if (workerArgs[0] === "--worker") {
     );
     assert.equal(
       activeFirstTenStates.every((state) =>
-        /^系统验收｜\d{2}-\d{2} \d{2}:\d{2}Z｜[A-F0-9]{8}-[A-F0-9]{4}$/u
-          .test(state.systemChatTitle ?? "")
-      ),
+        !("systemChatTitle" in state) && !("chatTitleRename" in state)),
       true,
-      "new GPT executions must persist only the human-readable system title format",
+      "new GPT executions must not persist provider title identity or rename debt",
     );
 
     const eleventh = spawnWorker(11);
@@ -401,7 +392,6 @@ if (workerArgs[0] === "--worker") {
     );
     await secondPatrolLease.release();
 
-    await assertRenamePatrolBehavior();
     await assertWebChatSourceContracts();
 
     let stableAnswerState = createStableAnswerState();
