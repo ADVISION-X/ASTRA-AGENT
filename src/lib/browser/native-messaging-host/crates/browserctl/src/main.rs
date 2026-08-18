@@ -5,6 +5,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -22,6 +23,10 @@ struct HostConnectionConfig {
     release_identity: String,
     extension_id: String,
     socket_path: String,
+    profile_ref: String,
+    user_data_dir: String,
+    profile_directory: String,
+    chrome_executable_path: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -31,15 +36,27 @@ struct ActivationReceipt {
     release_identity: String,
     protocol_version: String,
     extension_id: String,
+    profile_ref: String,
+    user_data_dir: String,
+    profile_directory: String,
+    chrome_executable_path: String,
     host_path: String,
     host_sha256: String,
     controller_socket_path: String,
-    activated_at: String,
+    activated_at_unix_ms: u128,
 }
 
 fn fail(code: &str, detail: impl AsRef<str>) -> ! {
     eprintln!("{}", serde_json::json!({ "status": "BLOCKED", "code": code, "reason": detail.as_ref() }));
-    process::exit(1);
+    process::exit(1)
+}
+
+fn required_env(name: &str) -> String {
+    env::var(name)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| fail("BROWSERCTL_REQUIRED_ENV_MISSING", name))
 }
 
 fn home_dir() -> PathBuf {
@@ -105,9 +122,10 @@ fn write_atomic(path: &Path, bytes: &[u8], mode: u32) {
     fs::create_dir_all(parent)
         .unwrap_or_else(|error| fail("BROWSERCTL_MKDIR_FAILED", format!("{}: {error}", parent.display())));
     let temp = parent.join(format!(".{}.tmp-{}", path.file_name().unwrap().to_string_lossy(), process::id()));
-    let mut options = OpenOptions::new();
-    options.create_new(true).write(true);
-    let mut file = options.open(&temp)
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&temp)
         .unwrap_or_else(|error| fail("BROWSERCTL_TEMP_CREATE_FAILED", format!("{}: {error}", temp.display())));
     file.write_all(bytes)
         .unwrap_or_else(|error| fail("BROWSERCTL_WRITE_FAILED", error.to_string()));
@@ -179,6 +197,25 @@ fn native_manifest_json(host_path: &Path) -> Vec<u8> {
     })).unwrap()
 }
 
+fn enrolled_profile_fields() -> (String, String, String, String) {
+    let profile_ref = required_env("GRASSEYE_BROWSER_PROFILE_REF");
+    let user_data_dir = PathBuf::from(required_env("GRASSEYE_CHROME_USER_DATA_DIR"));
+    let profile_directory = required_env("GRASSEYE_BROWSER_PROFILE_DIRECTORY");
+    let chrome_executable = PathBuf::from(required_env("GRASSEYE_CHROME_EXECUTABLE"));
+    if !user_data_dir.is_absolute() || !user_data_dir.is_dir() {
+        fail("BROWSERCTL_USER_DATA_DIR_INVALID", user_data_dir.display().to_string());
+    }
+    if !chrome_executable.is_absolute() || !chrome_executable.is_file() {
+        fail("BROWSERCTL_CHROME_EXECUTABLE_INVALID", chrome_executable.display().to_string());
+    }
+    (
+        profile_ref,
+        user_data_dir.to_string_lossy().to_string(),
+        profile_directory,
+        chrome_executable.to_string_lossy().to_string(),
+    )
+}
+
 fn install() {
     let source_host = resolve_source_host();
     let source_hash = sha256_file(&source_host);
@@ -192,11 +229,16 @@ fn install() {
 
     let data_dir = data_dir_from_args();
     let socket_path = data_dir.join("browser-runtime").join("controller-native.sock");
+    let (profile_ref, user_data_dir, profile_directory, chrome_executable_path) = enrolled_profile_fields();
     let config = HostConnectionConfig {
         protocol_version: PROTOCOL_VERSION.to_string(),
         release_identity: RELEASE_IDENTITY.to_string(),
         extension_id: EXTENSION_ID.to_string(),
         socket_path: socket_path.to_string_lossy().to_string(),
+        profile_ref: profile_ref.clone(),
+        user_data_dir: user_data_dir.clone(),
+        profile_directory: profile_directory.clone(),
+        chrome_executable_path: chrome_executable_path.clone(),
     };
     write_atomic(
         &connection_config_path(),
@@ -211,15 +253,23 @@ fn install() {
         write_atomic(&directory.join(format!("{HOST_NAME}.json")), &manifest, 0o600);
     }
 
+    let activated_at_unix_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let receipt = ActivationReceipt {
-        schema_version: "grasseye-browser-activation-v1".to_string(),
+        schema_version: "grasseye-browser-activation-v2".to_string(),
         release_identity: RELEASE_IDENTITY.to_string(),
         protocol_version: PROTOCOL_VERSION.to_string(),
         extension_id: EXTENSION_ID.to_string(),
+        profile_ref,
+        user_data_dir,
+        profile_directory,
+        chrome_executable_path,
         host_path: host_path.to_string_lossy().to_string(),
         host_sha256: source_hash.clone(),
         controller_socket_path: socket_path.to_string_lossy().to_string(),
-        activated_at: "generated-by-browserctl".to_string(),
+        activated_at_unix_ms,
     };
     write_atomic(
         &activation_receipt_path(),
@@ -232,6 +282,7 @@ fn install() {
         "releaseIdentity": RELEASE_IDENTITY,
         "protocolVersion": PROTOCOL_VERSION,
         "extensionId": EXTENSION_ID,
+        "profileRef": receipt.profile_ref,
         "hostPath": host_path,
         "hostSha256": source_hash,
         "socketPath": socket_path,
@@ -247,13 +298,16 @@ fn verify() {
         .unwrap_or_else(|error| fail("BROWSERCTL_ACTIVATION_READ_FAILED", error.to_string()));
     let receipt: ActivationReceipt = serde_json::from_slice(&receipt_bytes)
         .unwrap_or_else(|error| fail("BROWSERCTL_ACTIVATION_INVALID", error.to_string()));
-    if receipt.release_identity != RELEASE_IDENTITY
+    if receipt.schema_version != "grasseye-browser-activation-v2"
+        || receipt.release_identity != RELEASE_IDENTITY
         || receipt.protocol_version != PROTOCOL_VERSION
         || receipt.extension_id != EXTENSION_ID
         || receipt.host_path != host_path.to_string_lossy()
         || receipt.host_sha256 != sha256_file(&host_path)
+        || !Path::new(&receipt.user_data_dir).is_absolute()
+        || !Path::new(&receipt.chrome_executable_path).is_absolute()
     {
-        fail("BROWSERCTL_ACTIVATION_MISMATCH", "activation receipt does not match installed host");
+        fail("BROWSERCTL_ACTIVATION_MISMATCH", "activation receipt does not match installed host or enrolled profile");
     }
     let config_bytes = fs::read(connection_config_path())
         .unwrap_or_else(|error| fail("BROWSERCTL_CONFIG_READ_FAILED", error.to_string()));
@@ -262,9 +316,13 @@ fn verify() {
     if config.protocol_version != PROTOCOL_VERSION
         || config.release_identity != RELEASE_IDENTITY
         || config.extension_id != EXTENSION_ID
+        || config.profile_ref != receipt.profile_ref
+        || config.user_data_dir != receipt.user_data_dir
+        || config.profile_directory != receipt.profile_directory
+        || config.chrome_executable_path != receipt.chrome_executable_path
         || !Path::new(&config.socket_path).is_absolute()
     {
-        fail("BROWSERCTL_CONFIG_MISMATCH", "connection config does not match release identity");
+        fail("BROWSERCTL_CONFIG_MISMATCH", "connection config does not match activation receipt");
     }
     let expected_manifest = native_manifest_json(&host_path);
     for directory in chrome_manifest_dirs() {
@@ -280,6 +338,7 @@ fn verify() {
         "releaseIdentity": RELEASE_IDENTITY,
         "protocolVersion": PROTOCOL_VERSION,
         "extensionId": EXTENSION_ID,
+        "profileRef": receipt.profile_ref,
         "hostSha256": receipt.host_sha256,
     }));
 }
