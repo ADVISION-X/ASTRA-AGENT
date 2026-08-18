@@ -45,14 +45,10 @@ export class BrowserAuthorityIssuer {
     if (!Number.isSafeInteger(input.nativePortEpoch) || input.nativePortEpoch <= 0) {
       throw new Error("BROWSER_AUTHORITY_PORT_EPOCH_INVALID");
     }
-    const hardExpiresAtMonotonicMs = Math.min(
-      now + BROWSER_AUTHORITY_HARD_EXPIRY_MS,
-      now + BROWSER_AUTHORITY_MAX_AGE_MS,
-    );
     const authority = AuthenticatedBrowserAuthority.issueInternal({
       ...input,
       issuedAtMonotonicMs: now,
-      hardExpiresAtMonotonicMs,
+      hardExpiresAtMonotonicMs: now + BROWSER_AUTHORITY_MAX_AGE_MS,
     });
     this.current = authority;
     this.lastHeartbeatMonotonicMs = now;
@@ -81,21 +77,7 @@ export class BrowserAuthorityIssuer {
     ) {
       throw new BrowserAuthorityAbsentError("stale heartbeat cannot renew the current browser authority");
     }
-    const now = performance.now();
-    this.lastHeartbeatMonotonicMs = now;
-    const maxAgeBoundary = certificate.issuedAtMonotonicMs + BROWSER_AUTHORITY_MAX_AGE_MS;
-    const nextHardExpiry = Math.min(now + BROWSER_AUTHORITY_HARD_EXPIRY_MS, maxAgeBoundary);
-    this.current = AuthenticatedBrowserAuthority.issueInternal({
-      controllerSessionId: certificate.controllerSessionId,
-      connectionGeneration: certificate.connectionGeneration,
-      nativePortEpoch: certificate.nativePortEpoch,
-      extensionInstanceId: certificate.extensionInstanceId,
-      releaseIdentity: certificate.releaseIdentity,
-      profileEnrollmentId: certificate.profileEnrollmentId,
-      protocolVersion: certificate.protocolVersion,
-      issuedAtMonotonicMs: certificate.issuedAtMonotonicMs,
-      hardExpiresAtMonotonicMs: nextHardExpiry,
-    });
+    this.lastHeartbeatMonotonicMs = performance.now();
   }
 
   revoke(reason: string): void {
@@ -151,8 +133,7 @@ export class BrowserAuthorityIssuer {
     const certificate = this.current.certificate;
     const heartbeatExpired = this.lastHeartbeatMonotonicMs > 0
       && now - this.lastHeartbeatMonotonicMs > BROWSER_AUTHORITY_HARD_EXPIRY_MS;
-    const authorityExpired = now >= certificate.hardExpiresAtMonotonicMs
-      || now - certificate.issuedAtMonotonicMs >= BROWSER_AUTHORITY_MAX_AGE_MS;
-    if (heartbeatExpired || authorityExpired) this.revoke(reason);
+    const authorityAgeExpired = now >= certificate.hardExpiresAtMonotonicMs;
+    if (heartbeatExpired || authorityAgeExpired) this.revoke(reason);
   }
 }
