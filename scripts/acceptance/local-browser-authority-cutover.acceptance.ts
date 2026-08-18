@@ -40,9 +40,29 @@ assert.ok(assembly.indexOf("await createWorkbenchBrowserController") < assembly.
 assert.match(assembly, /authority\.state !== "AUTHENTICATED_AUTHORITY_PRESENT"/u);
 
 const server = read("src/app/server.ts");
-assert.ok(server.indexOf("await workbench.init()") < server.indexOf("startServer()"));
+const serverStart = server.indexOf("const server = startServer();");
+assert.ok(server.indexOf("await workbench.init()") < serverStart);
+
+const profileConfig = read("src/lib/browser/profile/browser-profile-config.ts");
+assert.match(profileConfig, /readBrowserProfileEnrollment/u);
+const profileEnrollment = read("src/lib/browser/profile/browser-profile-enrollment.ts");
+assert.match(profileEnrollment, /normalizeBrowserRuntimePlatform/u);
+assert.match(profileEnrollment, /platform === "darwin" \? "macos"/u);
+assert.match(profileEnrollment, /info_cache/u);
+assert.match(profileEnrollment, /gaiaId: info\?\.gaia_id/u);
+const browserLaw = read(".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md");
+assert.match(browserLaw, /operator-designated/u);
+assert.match(browserLaw, /GRASSEYE_BROWSER_RUNTIME_MODE=test/u);
+const artifactBuilder = read("src/lib/browser/release/build-browser-runtime.mjs");
+assert.match(artifactBuilder, /GRASSEYE_BROWSER_RUNTIME_MODE/u);
+assert.match(artifactBuilder, /Apple Development/u);
+const artifactVerifier = read("src/lib/browser/release/verify-browser-artifact.mjs");
+assert.match(artifactVerifier, /manifest\.artifactMode/u);
+assert.match(artifactVerifier, /spctl/u);
 
 const transport = read("src/lib/browser/exact-target/browser-native-transport-server.ts");
+assert.match(transport, /clearStaleSocketIfUnowned/u);
+assert.match(transport, /ECONNREFUSED/u);
 assert.match(transport, /authority_grant_ack/u);
 assert.ok(transport.indexOf("verifyBrowserTranscriptProof(") < transport.indexOf("authorityIssuer.commit(candidate)"));
 const closeStart = transport.indexOf("private onClose(connection");
@@ -70,5 +90,10 @@ assert.match(installer, /BROWSERCTL_PREBUILT_BINARY_REQUIRED/u);
 assert.equal(installer.includes("transpileModule"), false);
 assert.equal(existsSync(path.join(repoRoot, "src/lib/browser/native-messaging-host/crates/host/src/main.rs")), true);
 assert.equal(existsSync(path.join(repoRoot, "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs")), true);
+assert.match(read("src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs"), /stable_local_state_identity_hash/u);
+const hostSource = read("src/lib/browser/native-messaging-host/crates/host/src/main.rs");
+assert.match(hostSource, /runtime_mode/u);
+assert.match(hostSource, /existing_chrome_holds_enrolled_profile/u);
+assert.match(hostSource, /\/usr\/sbin\/lsof/u);
 
 process.stdout.write("local-browser-authority-cutover PASS\n");

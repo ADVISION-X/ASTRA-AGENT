@@ -10,6 +10,12 @@ import {
 
 export const BROWSER_PROFILE_ENROLLMENT_SCHEMA_VERSION = "grasseye-browser-profile-enrollment-v1" as const;
 
+// Node calls macOS "darwin" while Rust's std::env::consts::OS calls it
+// "macos". The receipt is a cross-language contract, so it uses the Rust
+// spelling everywhere.
+export const normalizeBrowserRuntimePlatform = (platform: string): string =>
+  platform === "darwin" ? "macos" : platform;
+
 export const browserProfileEnrollmentReceiptPath = (): string => {
   if (process.platform === "darwin") {
     return path.join(homedir(), "Library", "Application Support", "GrassEye", "browser-runtime", "profile-enrollment.json");
@@ -36,6 +42,24 @@ export type BrowserProfileEnrollment = Readonly<{
 const sha256 = (value: Buffer | string): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+const stableLocalStateIdentityHash = (input: Readonly<{
+  localStatePath: string;
+  profileDirectory: string;
+}>): string => {
+  const state = JSON.parse(readFileSync(input.localStatePath, "utf8")) as {
+    profile?: { info_cache?: Record<string, Record<string, unknown>> };
+  };
+  const info = state.profile?.info_cache?.[input.profileDirectory];
+  return sha256(JSON.stringify({
+    profileDirectory: input.profileDirectory,
+    profileInfo: {
+      gaiaId: info?.gaia_id ?? null,
+      name: info?.name ?? null,
+      userName: info?.user_name ?? null,
+    },
+  }));
+};
+
 export const createBrowserProfileEnrollment = (input: Readonly<{
   platform: string;
   profileRef: string;
@@ -45,6 +69,7 @@ export const createBrowserProfileEnrollment = (input: Readonly<{
   extensionId: string;
   releaseIdentity: string;
 }>): BrowserProfileEnrollment => {
+  const platform = normalizeBrowserRuntimePlatform(input.platform);
   const profileRef = input.profileRef.trim();
   const userDataDir = path.resolve(input.userDataDir);
   const profileDirectory = input.profileDirectory.trim();
@@ -57,21 +82,24 @@ export const createBrowserProfileEnrollment = (input: Readonly<{
   if (!existsSync(chromeExecutablePath)) throw new Error(`BROWSER_CHROME_EXECUTABLE_MISSING:${chromeExecutablePath}`);
   const localStatePath = path.join(userDataDir, "Local State");
   if (!existsSync(localStatePath)) throw new Error(`BROWSER_PROFILE_LOCAL_STATE_MISSING:${localStatePath}`);
-  const localStateHash = sha256(readFileSync(localStatePath));
+  const localStateHash = stableLocalStateIdentityHash({ localStatePath, profileDirectory });
+  // Rust's serde_json map uses lexicographic key order for this contract.
+  // Keep the TypeScript object in the same order so both sides derive the
+  // same enrollment id from the same profile tuple.
   const identityMaterial = JSON.stringify({
-    platform: input.platform,
-    profileRef,
-    userDataDir,
-    profileDirectory,
     chromeExecutablePath,
     extensionId: input.extensionId,
-    releaseIdentity: input.releaseIdentity,
     localStateHash,
+    platform,
+    profileDirectory,
+    profileRef,
+    releaseIdentity: input.releaseIdentity,
+    userDataDir,
   });
   return Object.freeze({
     schemaVersion: BROWSER_PROFILE_ENROLLMENT_SCHEMA_VERSION,
     profileEnrollmentId: sha256(identityMaterial),
-    platform: input.platform,
+    platform,
     profileRef,
     userDataDir,
     profileDirectory,
@@ -85,6 +113,7 @@ export const createBrowserProfileEnrollment = (input: Readonly<{
 export const readBrowserProfileEnrollment = (input: Readonly<{
   platform: string;
 }>): BrowserProfileEnrollment => {
+  const platform = normalizeBrowserRuntimePlatform(input.platform);
   const receiptPath = browserProfileEnrollmentReceiptPath();
   if (!existsSync(receiptPath)) {
     throw new Error(`BROWSER_PROFILE_ENROLLMENT_MISSING:${receiptPath}`);
@@ -114,7 +143,7 @@ export const readBrowserProfileEnrollment = (input: Readonly<{
   ) {
     throw new Error("BROWSER_PROFILE_ENROLLMENT_INVALID:receipt fields are incomplete");
   }
-  if (receipt.platform !== input.platform) {
+  if (receipt.platform !== platform) {
     throw new Error(`BROWSER_PROFILE_ENROLLMENT_PLATFORM_MISMATCH:${receipt.platform}`);
   }
   if (

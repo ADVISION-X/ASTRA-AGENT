@@ -31,6 +31,7 @@ struct HostConfig {
     user_data_dir: String,
     profile_directory: String,
     chrome_executable_path: String,
+    runtime_mode: String,
 }
 
 fn fail(code: &str, detail: impl AsRef<str>) -> ! {
@@ -103,6 +104,9 @@ fn load_config() -> HostConfig {
     if config.profile_ref.trim().is_empty() || config.profile_directory.trim().is_empty() {
         fail("BROWSER_HOST_PROFILE_ENROLLMENT_INVALID", "profileRef/profileDirectory missing");
     }
+    if config.runtime_mode != "production" && config.runtime_mode != "test" {
+        fail("BROWSER_RUNTIME_MODE_INVALID", config.runtime_mode);
+    }
     for candidate in [&config.socket_path, &config.user_data_dir, &config.chrome_executable_path] {
         if !Path::new(candidate).is_absolute() {
             fail("BROWSER_HOST_ABSOLUTE_PATH_REQUIRED", candidate);
@@ -153,6 +157,13 @@ fn assert_enrolled_browser_ancestry(config: &HostConfig) {
         {
             return;
         }
+        #[cfg(target_os = "macos")]
+        if config.runtime_mode == "test"
+            && command.contains(&config.chrome_executable_path)
+            && existing_chrome_holds_enrolled_profile(pid, config)
+        {
+            return;
+        }
         pid = parent;
     }
     fail(
@@ -162,6 +173,21 @@ fn assert_enrolled_browser_ancestry(config: &HostConfig) {
             config.profile_ref
         ),
     );
+}
+
+#[cfg(target_os = "macos")]
+fn existing_chrome_holds_enrolled_profile(pid: i32, config: &HostConfig) -> bool {
+    let profile_root = Path::new(&config.user_data_dir).join(&config.profile_directory);
+    let output = Command::new("/usr/sbin/lsof")
+        .args(["-p", &pid.to_string(), "-Fn"])
+        .output()
+        .ok();
+    let Some(output) = output else { return false; };
+    if !output.status.success() { return false; }
+    let text = String::from_utf8_lossy(&output.stdout);
+    text.lines()
+        .filter_map(|line| line.strip_prefix('n'))
+        .any(|path| path.starts_with(profile_root.to_string_lossy().as_ref()))
 }
 
 fn validate_message_identity(bytes: &[u8]) {

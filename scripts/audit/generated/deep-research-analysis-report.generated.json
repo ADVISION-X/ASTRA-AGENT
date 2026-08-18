@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:47:05.494Z",
+  "generatedAt": "2026-08-18T16:02:22.751Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -33,14 +33,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b",
+      "runId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad",
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577",
       "capabilityDomain": "deep-research-analysis",
       "checkId": "deep-research-analysis/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:47:04.452Z",
-      "endedAt": "2026-08-18T14:47:05.494Z",
-      "durationMs": 1042,
+      "startedAt": "2026-08-18T16:02:21.642Z",
+      "endedAt": "2026-08-18T16:02:22.751Z",
+      "durationMs": 1109,
       "evidenceRefs": [
         "scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts",
         "scripts/acceptance/deep-research-analysis-smoke-support.ts",
@@ -180,145 +180,145 @@
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "clauseId": "grasseye-deep-research-001-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
       "clauseId": "grasseye-deep-research-038-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-039-V1",
       "clauseId": "grasseye-deep-research-039-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-040-V1",
       "clauseId": "grasseye-deep-research-040-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
       "clauseId": "grasseye-deep-research-041-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
       "clauseId": "grasseye-deep-research-042-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
       "clauseId": "grasseye-deep-research-043-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
       "clauseId": "grasseye-deep-research-044-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
       "clauseId": "grasseye-deep-research-045-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
       "clauseId": "grasseye-deep-research-046-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
       "clauseId": "grasseye-deep-research-047-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
       "clauseId": "grasseye-deep-research-048-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
       "clauseId": "grasseye-deep-research-049-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
       "clauseId": "grasseye-deep-research-050-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-051-V1",
       "clauseId": "grasseye-deep-research-051-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-052-V1",
       "clauseId": "grasseye-deep-research-052-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
       "clauseId": "grasseye-deep-research-053-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
       "clauseId": "grasseye-deep-research-054-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
       "clauseId": "grasseye-deep-research-055-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
       "clauseId": "grasseye-deep-research-056-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
       "clauseId": "grasseye-deep-research-057-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
       "clauseId": "grasseye-deep-research-058-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
       "clauseId": "grasseye-deep-research-060-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
       "clauseId": "grasseye-deep-research-061-requirement",
       "checkId": "deep-research-analysis/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:a6dd50a1-bdcd-46a1-88e6-264f542b474b"
+      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:c77e307b-9236-4349-a290-d93c6c4c6577"
     }
   ],
   "inspectedFiles": [

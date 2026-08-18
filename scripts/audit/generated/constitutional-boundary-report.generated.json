@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:46:55.102Z",
+  "generatedAt": "2026-08-18T16:20:44.823Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -608,6 +608,7 @@
     "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
     "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
     "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
+    "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
@@ -863,14 +864,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:65feffa4-241c-49fa-8a47-4570880167e2",
+      "runId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803",
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:ce314660-1c6d-40ba-96b6-3c4dbd06c1b5",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:46:54.971Z",
-      "endedAt": "2026-08-18T14:46:55.101Z",
-      "durationMs": 130,
+      "startedAt": "2026-08-18T16:20:44.696Z",
+      "endedAt": "2026-08-18T16:20:44.823Z",
+      "durationMs": 127,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1478,6 +1479,7 @@
         "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
         "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
         "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
+        "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
@@ -1720,25 +1722,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:65feffa4-241c-49fa-8a47-4570880167e2"
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:ce314660-1c6d-40ba-96b6-3c4dbd06c1b5"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:65feffa4-241c-49fa-8a47-4570880167e2"
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:ce314660-1c6d-40ba-96b6-3c4dbd06c1b5"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:65feffa4-241c-49fa-8a47-4570880167e2"
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:ce314660-1c6d-40ba-96b6-3c4dbd06c1b5"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:65feffa4-241c-49fa-8a47-4570880167e2"
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:ce314660-1c6d-40ba-96b6-3c4dbd06c1b5"
     }
   ]
 }

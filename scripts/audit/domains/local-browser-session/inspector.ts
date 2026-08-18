@@ -46,6 +46,7 @@ const requiredFiles = [
   "src/lib/browser/transport/browser-session-crypto.ts",
   "src/lib/browser/transport/command-permit.ts",
   "src/lib/browser/exact-target/browser-command-runtime.ts",
+  "src/lib/browser/exact-target/browser-command-contract.ts",
   "src/lib/browser/exact-target/browser-native-transport-server.ts",
   "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
   "src/lib/browser/exact-target/browser-target-ref.ts",
@@ -146,6 +147,7 @@ const assertBefore = (
 const inspectExactTarget = (findings: InspectorFinding[]): void => {
   const controller = requireFile(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/browser-controller.ts");
   const runtime = requireFile(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/exact-target/browser-command-runtime.ts");
+  const contract = requireFile(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/exact-target/browser-command-contract.ts");
   const registry = requireFile(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/exact-target/browser-target-registry.ts");
   requireContains(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/browser-controller.ts", controller, [
     "BrowserTargetSession",
@@ -157,8 +159,10 @@ const inspectExactTarget = (findings: InspectorFinding[]): void => {
     "authorityBindingOf",
     "registry.resolve",
     "expectedLoaderId",
-    "DOCUMENT_STALE",
     "OUTCOME_UNKNOWN",
+  ]);
+  requireContains(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/exact-target/browser-command-contract.ts", contract, [
+    '"DOCUMENT_STALE"',
   ]);
   requireContains(findings, "local-browser-session/exact-target-authority", LAW_EXACT, "src/lib/browser/exact-target/browser-target-registry.ts", registry, [
     "TARGET_FOREIGN_SESSION",
@@ -223,7 +227,7 @@ const inspectCompositionGate = (findings: InspectorFinding[]): void => {
     "static async create",
   ]);
   assertBefore(findings, "local-browser-session/composition-authority-gate", LAW_AUTH, "src/app/server.ts", server,
-    "await workbench.init()", "startServer()", "HTTP server must not listen before Workbench authority initialization succeeds");
+    "await workbench.init()", "const server = startServer()", "HTTP server must not listen before Workbench authority initialization succeeds");
 };
 
 const inspectMutualAuthorityCommit = (findings: InspectorFinding[]): void => {
@@ -468,11 +472,15 @@ const inspectRustHostOnly = (findings: InspectorFinding[]): void => {
     "u32::from_ne_bytes",
     "EXTENSION_TO_HOST_MAX_BYTES",
     "HOST_TO_EXTENSION_MAX_BYTES",
+    "runtime_mode",
+    "existing_chrome_holds_enrolled_profile",
+    "/usr/sbin/lsof",
   ]);
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs", browserctl, [
     "write_atomic",
     "host_sha256",
     "allowed_origins",
+    "stable_local_state_identity_hash",
   ]);
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/build-browser-runtime.mjs", build, [
     "GRASSEYE_BROWSER_RUNTIME_MODE",

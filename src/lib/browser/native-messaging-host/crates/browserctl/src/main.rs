@@ -27,6 +27,7 @@ struct HostConnectionConfig {
     user_data_dir: String,
     profile_directory: String,
     chrome_executable_path: String,
+    runtime_mode: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,6 +75,17 @@ fn required_env(name: &str) -> String {
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| fail("BROWSERCTL_REQUIRED_ENV_MISSING", name))
+}
+
+fn requested_runtime_mode() -> String {
+    let mode = env::var("GRASSEYE_BROWSER_RUNTIME_MODE")
+        .unwrap_or_else(|_| "production".to_string())
+        .trim()
+        .to_string();
+    if mode != "production" && mode != "test" {
+        fail("BROWSER_RUNTIME_MODE_INVALID", mode);
+    }
+    mode
 }
 
 fn home_dir() -> PathBuf {
@@ -138,6 +150,26 @@ fn sha256_bytes(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let hex = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
     format!("sha256:{hex}")
+}
+
+fn stable_local_state_identity_hash(local_state_path: &Path, profile_directory: &str) -> String {
+    let bytes = fs::read(local_state_path)
+        .unwrap_or_else(|error| fail("BROWSER_PROFILE_LOCAL_STATE_READ_FAILED", format!("{}: {error}", local_state_path.display())));
+    let state: serde_json::Value = serde_json::from_slice(&bytes)
+        .unwrap_or_else(|error| fail("BROWSER_PROFILE_LOCAL_STATE_INVALID", error.to_string()));
+    let info = state
+        .get("profile")
+        .and_then(|value| value.get("info_cache"))
+        .and_then(|value| value.get(profile_directory));
+    let identity = serde_json::json!({
+        "profileDirectory": profile_directory,
+        "profileInfo": {
+            "gaiaId": info.and_then(|value| value.get("gaia_id")).cloned().unwrap_or(serde_json::Value::Null),
+            "name": info.and_then(|value| value.get("name")).cloned().unwrap_or(serde_json::Value::Null),
+            "userName": info.and_then(|value| value.get("user_name")).cloned().unwrap_or(serde_json::Value::Null),
+        },
+    });
+    sha256_bytes(serde_json::to_string(&identity).unwrap().as_bytes())
 }
 
 fn write_atomic(path: &Path, bytes: &[u8], mode: u32) {
@@ -255,7 +287,7 @@ fn read_profile_enrollment() -> ProfileEnrollmentReceipt {
     if !local_state_path.is_file() {
         fail("BROWSER_PROFILE_LOCAL_STATE_MISSING", local_state_path.display().to_string());
     }
-    if sha256_file(&local_state_path) != receipt.local_state_hash {
+    if stable_local_state_identity_hash(&local_state_path, &receipt.profile_directory) != receipt.local_state_hash {
         fail("BROWSER_PROFILE_LOCAL_STATE_HASH_MISMATCH", local_state_path.display().to_string());
     }
     receipt
@@ -280,7 +312,7 @@ fn enroll_profile() {
     if !local_state_path.is_file() {
         fail("BROWSER_PROFILE_LOCAL_STATE_MISSING", local_state_path.display().to_string());
     }
-    let local_state_hash = sha256_file(&local_state_path);
+    let local_state_hash = stable_local_state_identity_hash(&local_state_path, &profile_directory);
     let identity_material = serde_json::json!({
         "platform": env::consts::OS,
         "profileRef": profile_ref.clone(),
@@ -344,6 +376,7 @@ fn install() {
         user_data_dir: enrollment.user_data_dir.clone(),
         profile_directory: enrollment.profile_directory.clone(),
         chrome_executable_path: enrollment.chrome_executable_path.clone(),
+        runtime_mode: requested_runtime_mode(),
     };
     write_atomic(
         &connection_config_path(),
@@ -428,6 +461,7 @@ fn verify() {
         || config.user_data_dir != enrollment.user_data_dir
         || config.profile_directory != enrollment.profile_directory
         || config.chrome_executable_path != enrollment.chrome_executable_path
+        || config.runtime_mode != requested_runtime_mode()
         || !Path::new(&config.socket_path).is_absolute()
     {
         fail("BROWSERCTL_CONFIG_MISMATCH", "connection config does not match activation receipt");

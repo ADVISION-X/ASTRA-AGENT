@@ -1,24 +1,7 @@
 {
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "local-browser-session/exact-target-authority",
-      "lawId": "APEX-LOCAL-BROWSER-001-V2",
-      "clauseId": "apex-local-browser-001-v2-requirement",
-      "message": "required production invariant is missing: DOCUMENT_STALE",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-command-runtime.ts"
-    },
-    {
-      "checkId": "local-browser-session/composition-authority-gate",
-      "lawId": "APEX-LOCAL-BROWSER-002-V2",
-      "clauseId": "apex-local-browser-002-v2-requirement",
-      "message": "HTTP server must not listen before Workbench authority initialization succeeds",
-      "severity": "fatal",
-      "filePath": "src/app/server.ts"
-    }
-  ],
-  "generatedAt": "2026-08-18T14:46:55.162Z",
+  "status": "PASS",
+  "findings": [],
+  "generatedAt": "2026-08-18T16:20:44.888Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -31,13 +14,13 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:3bb364ae-bb95-4e87-874b-aa157be0d3df",
+      "runId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803",
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:b85a24d8-8269-4622-a762-e96f53ef7ba5",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-18T14:46:55.156Z",
-      "endedAt": "2026-08-18T14:46:55.162Z",
+      "status": "PASS",
+      "startedAt": "2026-08-18T16:20:44.881Z",
+      "endedAt": "2026-08-18T16:20:44.887Z",
       "durationMs": 6,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -52,6 +35,7 @@
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
         "src/lib/browser/current-chrome-browser-controller.ts",
+        "src/lib/browser/exact-target/browser-command-contract.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
@@ -65,6 +49,8 @@
         "src/lib/browser/profile/browser-profile-config.ts",
         "src/lib/browser/profile/browser-profile-enrollment.ts",
         "src/lib/browser/release/browser-release-identity.ts",
+        "src/lib/browser/release/build-browser-runtime.mjs",
+        "src/lib/browser/release/verify-browser-artifact.mjs",
         "src/lib/browser/transport/browser-session-crypto.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/workbench-assembly.ts",
@@ -72,7 +58,7 @@
         "src/lib/local-runtime/workbench-status.ts",
         "src/lib/local-runtime/workbench.ts"
       ],
-      "findingCount": 2
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -80,7 +66,7 @@
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:3bb364ae-bb95-4e87-874b-aa157be0d3df"
+      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:b85a24d8-8269-4622-a762-e96f53ef7ba5"
     }
   ],
   "inspectedFiles": [
@@ -96,6 +82,7 @@
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
     "src/lib/browser/current-chrome-browser-controller.ts",
+    "src/lib/browser/exact-target/browser-command-contract.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
@@ -109,6 +96,8 @@
     "src/lib/browser/profile/browser-profile-config.ts",
     "src/lib/browser/profile/browser-profile-enrollment.ts",
     "src/lib/browser/release/browser-release-identity.ts",
+    "src/lib/browser/release/build-browser-runtime.mjs",
+    "src/lib/browser/release/verify-browser-artifact.mjs",
     "src/lib/browser/transport/browser-session-crypto.ts",
     "src/lib/browser/transport/command-permit.ts",
     "src/lib/local-runtime/workbench-assembly.ts",

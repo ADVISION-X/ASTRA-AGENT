@@ -152,6 +152,30 @@ const heartbeatTranscript = (input: Readonly<{
   input.monotonicMs,
 ].join(":");
 
+const clearStaleSocketIfUnowned = async (socketPath: string): Promise<void> => {
+  try {
+    statSync(socketPath);
+  } catch {
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    const probe = net.createConnection(socketPath);
+    let settled = false;
+    const finish = (removeStaleSocket: boolean): void => {
+      if (settled) return;
+      settled = true;
+      probe.destroy();
+      if (removeStaleSocket) rmSync(socketPath, { force: true });
+      resolve();
+    };
+    probe.once("connect", () => finish(false));
+    probe.once("error", (error: NodeJS.ErrnoException) => {
+      finish(error.code === "ECONNREFUSED" || error.code === "ENOENT");
+    });
+    probe.setTimeout(250, () => finish(false));
+  });
+};
+
 export class BrowserNativeTransportServer {
   private readonly pending = new Map<string, PendingCommand>();
   private readonly authorityIssuer = new BrowserAuthorityIssuer();
@@ -339,6 +363,7 @@ export class BrowserNativeTransportServer {
 
   private async startInternal(): Promise<void> {
     mkdirSync(path.dirname(this.socketPath), { recursive: true, mode: 0o700 });
+    await clearStaleSocketIfUnowned(this.socketPath);
     const server = net.createServer((socket) => this.accept(socket));
     this.server = server;
     try {

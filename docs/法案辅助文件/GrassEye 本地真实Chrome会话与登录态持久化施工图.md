@@ -145,12 +145,14 @@ profileDirectory
 chromeExecutablePath
 extensionId
 releaseIdentity
-Local State hash
+Local State identity hash（由 profile directory 与 `profile.info_cache[profileDirectory]` 的稳定身份字段计算；不哈希会随 Chrome 正常运行变化的整份文件）
 ```
 
-BrowserProcessSupervisor 启动专用 Chrome 时必须携带精确 `--user-data-dir` 和 `--profile-directory`。Rust Host 在读取 owner-only config 后向上检查进程 ancestry；只有来自同一 enrolled Chrome executable/user-data-dir/profile-directory 的 Host 才可连接 Controller socket。
+BrowserProcessSupervisor 启动 operator-designated enrolled Chrome 时必须携带精确 `--user-data-dir` 和 `--profile-directory`。Rust Host 在读取 owner-only config 后向上检查进程 ancestry；只有来自同一 enrolled Chrome executable/user-data-dir/profile-directory 的 Host 才可连接 Controller socket。
 
-正确 extension ID 但错误 profile/process 不能获得 Authority。
+本机 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 允许已有 Chrome 因单实例复用而缺少显式参数时，使用同一 executable 与 macOS `lsof` 对 enrolled `userDataDir/profileDirectory` 的实际持有关系完成额外证明；production 仍要求 ancestry 中存在显式参数。
+
+用户明确选择并 enrollment 的 `Default` 或 `Profile N` 都可以成为 operator-designated profile；正确 extension ID 但错误 profile/process 不能获得 Authority。
 
 ## 6. ReleaseIdentity
 

@@ -8,15 +8,15 @@
   "extensionVersion": "2.0.0",
   "artifactMode": "test",
   "platformArch": "darwin-arm64",
-  "sourceCommitSha": "8a5e167a7990de19f94f72096d837420129d16db",
+  "sourceCommitSha": "f4d5b82b618885b1dd52c6623157a780ab4f128d",
   "builderIdentity": "nexgen-local-test-builder",
   "host": {
     "path": "bin/grasseye-browser-host",
-    "sha256": "sha256:6b0459682f5ab90a2cf2cf3979a96d58c275494d8b7afd87334fd843a920c5c2"
+    "sha256": "sha256:25e238daa148c661fde4e0377312fe86d30558a0a38c3782fe0d453988c37b88"
   },
   "browserctl": {
     "path": "bin/grasseye-browserctl",
-    "sha256": "sha256:3ce2781d7cb85059d33af10107a6111c20a306128f59effe86d069ff1564dd43"
+    "sha256": "sha256:cde8d5e3ea44d22be0a2d1db7e3ee4c11723a72ac7b2c354c2f76d2c2b6e172b"
   },
   "extension": {
     "path": "extension",

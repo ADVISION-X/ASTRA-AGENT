@@ -78,11 +78,13 @@ fixed extension id = mepfnlhndaiihhfejbbhfehegpbdnipl
 releaseIdentity = grasseye-browser-runtime-2026-08-18-v2
 ```
 
-`browserctl enroll-profile` 是唯一 enrollment owner。它必须把上述首次输入写成 owner-only、0600 的 canonical `BrowserProfileEnrollmentReceipt`，其中绑定 profile tuple 与 `Local State` hash。后续生产运行时只读取并验证该 Receipt；`.env.local` 不是长期 runtime truth，缺少首次 enrollment 输入只能阻断 `enroll-profile`，不能制造第二套 profile 真相。
+`browserctl enroll-profile` 是唯一 enrollment owner。它必须把上述首次输入写成 owner-only、0600 的 canonical `BrowserProfileEnrollmentReceipt`，其中绑定 profile tuple 与从 `Local State.profile.info_cache[profileDirectory]` 的稳定身份字段（`gaia_id`、`name`、`user_name`）及 profile directory 计算的 `Local State` identity hash；不得把会随 Chrome 正常运行变化的整份 `Local State` 文件字节作为长期 hash。后续生产运行时只读取并验证该 Receipt；`.env.local` 不是长期 runtime truth，缺少首次 enrollment 输入只能阻断 `enroll-profile`，不能制造第二套 profile 真相。
 
-BrowserProcessSupervisor 只启动/连接该专用 Chrome：`--user-data-dir` 与 `--profile-directory` 必须显式出现。Rust Native Host 必须验证 Chrome 传入 caller origin，并在 Unix ancestry 中证明 Host 来源于同一 enrolled Chrome executable/user-data-dir/profile-directory。正确扩展 ID 但错误 profile/process 仍必须 fail closed。
+BrowserProcessSupervisor 只启动/连接 operator-designated 的 enrolled Chrome Profile；当 GrassEye 启动 Chrome 时，`--user-data-dir` 与 `--profile-directory` 必须显式出现。Rust Native Host 必须验证 Chrome 传入 caller origin，并证明 Host 来源于同一 enrolled Chrome executable/user-data-dir/profile-directory。正确扩展 ID 但错误 profile/process 仍必须 fail closed。
 
-禁止 silent managed default、读取 last_used 后猜 profile、普通个人 Chrome profile、错误 channel/process tree 获得 Authority。
+在明确的 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 本机测试模式下，若已有 operator-owned Chrome 进程因单实例复用而没有这两个启动参数，Rust Native Host 可以改用同一精确 Chrome executable 加上 macOS `lsof` 证明该进程实际持有 enrolled `userDataDir/profileDirectory`；生产模式仍只接受显式 ancestry 参数，不能把测试例外带入生产。
+
+允许用户明确 enrollment 的 `Default` 或 `Profile N`；禁止 silent managed default、读取 last_used 后猜 profile、未经过 operator-designated enrollment 的个人 Chrome profile、错误 channel/process tree 获得 Authority。
 
 ## 4. Extension 与命令安全
 
