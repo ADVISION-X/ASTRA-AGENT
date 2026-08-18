@@ -96,6 +96,15 @@ const grantTranscript = (binding: AuthorityBinding, challengeId: string): string
   challengeId,
 ].join(":");
 
+const grantAckTranscript = (binding: AuthorityBinding, challengeId: string): string => [
+  "grant-ack-v2",
+  binding.authorityId,
+  binding.authorityCertificateHash,
+  binding.connectionGeneration,
+  binding.nativePortEpoch,
+  challengeId,
+].join(":");
+
 const heartbeatTranscript = (binding: AuthorityBinding, monotonicMs: number): string => [
   "heartbeat-v2",
   binding.authorityId,
@@ -196,7 +205,8 @@ class NativePortActor {
     const handshake = this.handshake;
     if (!handshake || this.authority) throw new Error("BROWSER_AUTHORITY_GRANT_WITHOUT_HANDSHAKE");
     if (
-      message.connectionGeneration !== handshake.connectionGeneration
+      message.challengeId !== handshake.challengeId
+      || message.connectionGeneration !== handshake.connectionGeneration
       || message.nativePortEpoch !== this.nativePortEpoch
     ) {
       throw new Error("BROWSER_AUTHORITY_GRANT_GENERATION_MISMATCH");
@@ -213,6 +223,22 @@ class NativePortActor {
       message.grantProof,
     );
     if (!valid) throw new Error("BROWSER_AUTHORITY_GRANT_PROOF_INVALID");
+    const ackProof = await signExtensionTranscript(
+      handshake.session.hmacKey,
+      grantAckTranscript(binding, handshake.challengeId),
+    );
+    if (this.closed || activeActor !== this) return;
+    this.port.postMessage({
+      protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
+      releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
+      type: "authority_grant_ack",
+      authorityId: binding.authorityId,
+      authorityCertificateHash: binding.authorityCertificateHash,
+      connectionGeneration: binding.connectionGeneration,
+      nativePortEpoch: binding.nativePortEpoch,
+      challengeId: handshake.challengeId,
+      ackProof,
+    });
     this.authority = binding;
     this.lastAcceptedSequence = 0;
     this.startHeartbeat();
