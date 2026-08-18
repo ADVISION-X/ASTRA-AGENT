@@ -30,6 +30,7 @@ scripts/startup/launch-grasseye.mjs
 dependency check
 -> optional update preflight
 -> hot-mount GET /api/health probe
+-> read-only Browser Runtime preflight when cold start is required
 -> port clear when no healthy workbench is mounted
 -> app server start when no healthy workbench is mounted
 -> mandatory runtime owner initialization
@@ -43,6 +44,9 @@ dependency check
 - 检查 Node / npm / dependency 状态。
 - 可选执行受控 update preflight。
 - 启动前先探测现有 `/api/health`，健康则热挂载现有 workbench。
+- 冷启动需要清理端口前，调用唯一 Browser owner 的只读 Runtime preflight。
+- 该 preflight 只能验证 enrollment、签名物料、安装状态和 release identity；不得 install、enroll、repair、activate、rollback、编译或修改 Chrome 状态。
+- preflight 失败时立即以具体 `failureReason` 和 actionable message 阻断冷启动，不启动 app-server，不等待二次 `fetch failed`。
 - 现有端口不健康时，真实清理本地 app server 端口。
 - 未热挂载时启动本地 HTTP workbench。
 - 用 `/api/health` 证明 app shell 与全部 mandatory runtime owner 已完成初始化；初始化中或初始化失败都不得返回 `healthy`。
@@ -132,6 +136,8 @@ startup-entrypoint owner inspector 检查：
 - 启动脚本是否探测 `/api/health`。
 - `waitForWorkbenchHealth` 默认冷启动预算是否至少 60000ms，poll 间隔是否在 250ms 到 1000ms 之间。
 - 启动脚本是否在清理端口前支持 hot-mount health probe。
+- 冷启动是否在清理端口前调用唯一 Browser owner 的只读 Runtime preflight。
+- preflight 是否不包含 install、enroll、repair、activate、rollback、编译或 Chrome 状态写入。
 - 启动脚本是否通过真实 listener discovery / terminate / post-check 完成端口清理。
 - 启动脚本是否避免健康 workbench 被重复重启。
 - 启动脚本是否启动 local app server 并打开 workbench。

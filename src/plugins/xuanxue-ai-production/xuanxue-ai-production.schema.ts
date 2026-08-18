@@ -73,11 +73,11 @@ const XuanxueAiMaterialRefSchema = z.object({
   id: z.string().min(1).max(240),
   kind: z.string().min(1).max(120),
   summary: z.string().min(1).max(500),
-  filePath: z.string().min(1),
-  fileName: z.string().min(1).max(240),
-  mimeType: z.string().min(1).max(160),
-  sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-  byteCount: z.number().int().nonnegative(),
+  filePath: z.string().min(1).optional(),
+  fileName: z.string().min(1).max(240).optional(),
+  mimeType: z.string().min(1).max(160).optional(),
+  sha256: z.string().regex(/^sha256:[a-f0-9]{64}$/u).optional(),
+  byteCount: z.number().int().nonnegative().optional(),
 }).strict();
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
@@ -151,7 +151,6 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
     "scheduled_public_content",
     "scheduled_quality_reflection",
     "terminal_localization",
-    "localization_static_review",
   ]),
   lineageId: z.string().min(1).nullable(),
   reflectionSnapshotRef: z.string().min(1).nullable(),
@@ -322,7 +321,7 @@ const inspectLocalizationPolicy = (
   if (
     staticReview
     && (
-      order.triggerKind !== "localization_static_review"
+      order.triggerKind !== "terminal_localization"
       || order.frozenSubject.privacyOwnerRef !== "localization-catalog"
       || order.frozenSubject.primaryPersonRef !== null
       || order.frozenSubject.participants.length !== 0

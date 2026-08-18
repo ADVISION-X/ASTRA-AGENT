@@ -22,6 +22,7 @@ The only startup chain is:
 dependency check
 -> optional update preflight
 -> hot-mount health probe
+-> read-only Browser Runtime preflight when cold start is required
 -> port clear when no healthy workbench is mounted
 -> local app server start when no healthy workbench is mounted
 -> /api/health readiness probe
@@ -153,6 +154,9 @@ Forbidden:
 Required:
 
 - Startup probes `GET /api/health`.
+- Before a cold start clears the port, startup must call the single Browser owner read-only preflight.
+- The Browser Runtime preflight may verify enrollment, signed artifact presence, installation and release identity, but must not install, enroll, repair, activate, rollback, compile, or modify Chrome state.
+- A failed Browser Runtime preflight must stop cold start with a concrete `failureReason` and actionable message; it must not spawn the app server and wait for a secondary `/api/health` fetch failure.
 - Startup fails with a concrete `failureReason` if the health endpoint is not reachable.
 - Opening the browser is downstream of health readiness.
 

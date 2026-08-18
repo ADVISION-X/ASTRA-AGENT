@@ -14,24 +14,35 @@ type Event =
   | Readonly<{ type: "heartbeat"; generation: number; portEpoch: number }>
   | Readonly<{ type: "command"; generation: number; portEpoch: number }>;
 
+const sameAuthorityEpoch = (
+  state: ModelState,
+  event: { generation: number; portEpoch: number },
+): boolean => state.state !== "ABSENT"
+  && state.generation === event.generation
+  && state.portEpoch === event.portEpoch;
+
+const reduceDisconnect = (state: ModelState, event: Extract<Event, { type: "disconnect" }>): ModelState =>
+  sameAuthorityEpoch(state, event) ? { state: "ABSENT" } : state;
+
+const reduceChallenge = (state: ModelState, event: Extract<Event, { type: "challenge_verified" }>): ModelState =>
+  state.state === "ABSENT"
+    ? { state: "PENDING", generation: event.generation, portEpoch: event.portEpoch }
+    : state;
+
+const reduceGrantAck = (state: ModelState, event: Extract<Event, { type: "grant_ack_verified" }>): ModelState =>
+  state.state === "PENDING" && sameAuthorityEpoch(state, event)
+    ? { state: "PRESENT", generation: event.generation, portEpoch: event.portEpoch }
+    : state;
+
 const reduce = (state: ModelState, event: Event): ModelState => {
-  if (event.type === "disconnect") {
-    if (state.state === "ABSENT") return state;
-    if (state.generation !== event.generation || state.portEpoch !== event.portEpoch) return state;
-    return { state: "ABSENT" };
+  switch (event.type) {
+    case "disconnect": return reduceDisconnect(state, event);
+    case "challenge_verified": return reduceChallenge(state, event);
+    case "grant_ack_verified": return reduceGrantAck(state, event);
+    case "heartbeat":
+    case "command":
+      return state;
   }
-  if (event.type === "challenge_verified") {
-    if (state.state !== "ABSENT") return state;
-    return { state: "PENDING", generation: event.generation, portEpoch: event.portEpoch };
-  }
-  if (event.type === "grant_ack_verified") {
-    if (state.state !== "PENDING") return state;
-    if (state.generation !== event.generation || state.portEpoch !== event.portEpoch) return state;
-    return { state: "PRESENT", generation: event.generation, portEpoch: event.portEpoch };
-  }
-  if (event.type === "heartbeat") return state;
-  if (event.type === "command") return state;
-  return state;
 };
 
 const assertCommandAdmitted = (state: ModelState, event: Extract<Event, { type: "command" }>): void => {

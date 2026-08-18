@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:15:02.789Z",
+  "generatedAt": "2026-08-18T14:37:54.526Z",
   "capabilityDomain": "media-processing-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -18,14 +18,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01",
+      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1",
       "capabilityDomain": "media-processing-capability",
       "checkId": "media-processing-capability/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:15:02.186Z",
-      "endedAt": "2026-08-18T14:15:02.789Z",
-      "durationMs": 603,
+      "startedAt": "2026-08-18T14:37:53.987Z",
+      "endedAt": "2026-08-18T14:37:54.526Z",
+      "durationMs": 539,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-media-processing-capability.instructions.md",
         "docs/法案辅助文件/GrassEye Media Processing 媒体处理能力组施工图.md",
@@ -68,61 +68,61 @@
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
       "clauseId": "grasseye-media-processing-capability-001-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
       "clauseId": "grasseye-media-processing-capability-002-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
       "clauseId": "grasseye-media-processing-capability-003-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
       "clauseId": "grasseye-media-processing-capability-004-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
       "clauseId": "grasseye-media-processing-capability-005-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
       "clauseId": "grasseye-media-processing-capability-006-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
       "clauseId": "grasseye-media-processing-capability-007-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
       "clauseId": "grasseye-media-processing-capability-008-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
       "clauseId": "grasseye-media-processing-capability-009-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     },
     {
       "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
       "clauseId": "grasseye-media-processing-capability-010-requirement",
       "checkId": "media-processing-capability/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:93c35140-810f-4cb6-ba7b-cce9c52f3e01"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6b8957d7-23f7-4bee-a16e-db47f7a2d4c1"
     }
   ],
   "inspectedFiles": [

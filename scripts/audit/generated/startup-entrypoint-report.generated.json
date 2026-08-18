@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:15:02.837Z",
+  "generatedAt": "2026-08-18T14:37:54.577Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
@@ -16,18 +16,20 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2",
+      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d",
       "capabilityDomain": "startup-entrypoint",
       "checkId": "startup-entrypoint/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:15:02.793Z",
-      "endedAt": "2026-08-18T14:15:02.836Z",
-      "durationMs": 43,
+      "startedAt": "2026-08-18T14:37:54.530Z",
+      "endedAt": "2026-08-18T14:37:54.577Z",
+      "durationMs": 47,
       "evidenceRefs": [
         "package.json",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/startup/launch-grasseye.mjs",
+        "scripts/startup/lib/browser-runtime-preflight.d.mts",
+        "scripts/startup/lib/browser-runtime-preflight.mjs",
         "scripts/startup/lib/dependency-check.mjs",
         "scripts/startup/lib/dependency-package-utils.mjs",
         "scripts/startup/lib/dependency-state-analysis.mjs",
@@ -57,55 +59,57 @@
       "lawId": "APEX-STARTUP-001-V1",
       "clauseId": "apex-startup-001-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-002-V1",
       "clauseId": "apex-startup-002-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-003-V1",
       "clauseId": "apex-startup-003-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-004-V1",
       "clauseId": "apex-startup-004-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-005-V1",
       "clauseId": "apex-startup-005-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-006-V1",
       "clauseId": "apex-startup-006-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-007-V1",
       "clauseId": "apex-startup-007-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     },
     {
       "lawId": "APEX-STARTUP-008-V1",
       "clauseId": "apex-startup-008-requirement",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:6e5d6e12-4ae6-414f-b119-07b7d1c689b2"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:465d5edf-c295-43a2-b48f-e73eb4e1a65d"
     }
   ],
   "inspectedFiles": [
     "package.json",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/startup/launch-grasseye.mjs",
+    "scripts/startup/lib/browser-runtime-preflight.d.mts",
+    "scripts/startup/lib/browser-runtime-preflight.mjs",
     "scripts/startup/lib/dependency-check.mjs",
     "scripts/startup/lib/dependency-package-utils.mjs",
     "scripts/startup/lib/dependency-state-analysis.mjs",

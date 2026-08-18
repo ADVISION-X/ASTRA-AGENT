@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:14:02.080Z",
+  "generatedAt": "2026-08-18T14:36:53.310Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -6466,7 +6466,7 @@
       "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "The factory executes nine user-result products, three private-base actions and one internal localization static-review product through explicit fixed graph and provider-verified checkpoint topology.",
+      "summary": "The factory executes the user-result products, private-base actions and four explicit single-stage localization products through fixed graphs and provider-verified checkpoint topology.",
       "clauses": [
         {
           "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
@@ -6482,9 +6482,9 @@
         }
       ],
       "required": [
-        "Exactly nine user-result product ids, three unpriced private-base action ids and one non-user localization_static_review product enter the protocol.",
-        "localization_static_review is one whole-order five-stage internal quality graph: localization_candidate_a and localization_candidate_b are independent fresh conversations, localization_selector_first is a fresh join receiving both immutable candidate outputs, localization_selector_swap continues that selector conversation, and localization_consistency is an independent fresh recheck receiving both selector outputs.",
-        "The localization static-review product has no person subject or synthetic participant; it binds only the immutable localization ContextBundle ref/hash, conversation scope and lease. User and chart products continue to require real frozen participants.",
+        "The protocol includes four single-stage localization products: localization_report_translation, localization_article_translation, localization_static_review_candidate and localization_static_review_selector.",
+        "Localization static-review candidate roles candidate_a and candidate_b are independent single-stage jobs; selector_first, selector_swap and consistency are single-stage selector jobs, with selector_swap continuing the exact selector conversation through conversation_parent.",
+        "Localization products have no person subject or synthetic participant; they bind only the immutable localization review context ref/hash, conversation scope and lease. User and chart products continue to require real frozen participants.",
         "A localization stage may complete only with persisted provider transcript JSONL plus hash and live model identity evidence (family, display name, reasoning effort and evidence hash); request metadata alone is never model proof.",
         "GPT Web localization execution must use the visible composer capability control to open the model menu, visibly select GPT-5.6 Sol, then select and read back the reasoning label from the live slider mapping: 0=极速, 1=中, 2=高, 3=极高, 4=Pro; the requested stage profile is not proof until the provider UI read-back matches.",
         "Provider UI observation must be limited to visible semantic roles/labels (model menu item, reasoning slider and live page URL); missing, ambiguous or mismatched controls fail closed as review_required before prompt submission, and no request field or hardcoded profile may substitute for the observation.",

@@ -8,7 +8,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { CurrentChromeBrowserController } from "../../src/lib/browser/current-chrome-browser-controller.js";
-import { createLocalBrowserSessionConfig } from "../../src/lib/browser/local-browser-session.js";
+import { resolveProductionBrowserProfileEnrollment } from "../../src/lib/browser/profile/browser-profile-config.js";
 
 const execFileAsync = promisify(execFile);
 const argumentValue = (name: string): string | null => {
@@ -76,8 +76,14 @@ await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 const address = server.address();
 if (!address || typeof address === "string") throw new Error("REAL_CHROME_FIXTURE_LISTENER_UNAVAILABLE");
 const origin = `http://127.0.0.1:${address.port}`;
-const browser = new CurrentChromeBrowserController({
-  sessionConfig: createLocalBrowserSessionConfig({ platform: process.platform }),
+const profileEnrollment = resolveProductionBrowserProfileEnrollment({
+  platform: process.platform,
+  ...(process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY
+    ? { profileDirectory: process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY }
+    : {}),
+});
+const browser = await CurrentChromeBrowserController.create({
+  profileEnrollment,
   screenshotDir: path.join(runRoot, "captures"),
   dataDir: process.env.GRASSEYE_DATA_DIR?.trim() || path.resolve(".grasseye-local"),
 });

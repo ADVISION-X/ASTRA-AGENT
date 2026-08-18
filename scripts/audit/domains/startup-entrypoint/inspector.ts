@@ -17,6 +17,7 @@ const launchPath = "scripts/startup/launch-grasseye.mjs";
 const logPath = "scripts/startup/lib/terminal-structured-log.mjs";
 const helperPath = "scripts/startup/lib/startup-log-helpers.mjs";
 const readinessPath = "scripts/startup/lib/service-readiness.mjs";
+const browserRuntimePreflightPath = "scripts/startup/lib/browser-runtime-preflight.mjs";
 const processControlPath = "scripts/startup/lib/process-control.mjs";
 const portListenerPath = "scripts/startup/lib/port-listener-ops.mjs";
 const sourceFingerprintPath = "scripts/startup/lib/source-fingerprint.mjs";
@@ -295,13 +296,50 @@ const inspectRealPortClear = (context: InspectorContext, findings: Finding[], la
 const collectHotMountOrderMetrics = (launchSource: SourceFile) => {
   const hotProbeStart = callStartInFunction(launchSource, "preparePort", "probeExistingWorkbench");
   const clearStart = callStartInFunction(launchSource, "preparePort", "clearWorkbenchPort");
+  const browserPreflightStart = callStartInFunction(launchSource, "performLaunch", "verifyBrowserRuntime");
+  const coldStartClearStart = callStartInFunction(launchSource, "performLaunch", "clearWorkbenchPort");
   const startServiceStart = callStartInFunction(launchSource, "performLaunch", "startService");
   const preparePortStart = callStartInFunction(launchSource, "performLaunch", "preparePort");
   return {
     hasHotMountedBranch: hasHotMountedReturnBranch(launchSource),
     probesBeforeClear: hotProbeStart !== undefined && clearStart !== undefined && hotProbeStart < clearStart,
+    browserPreflightBeforeColdStartClear: browserPreflightStart !== undefined
+      && coldStartClearStart !== undefined
+      && browserPreflightStart < coldStartClearStart,
     preparesBeforeStart: preparePortStart !== undefined && startServiceStart !== undefined && preparePortStart < startServiceStart,
   };
+};
+
+const inspectBrowserRuntimePreflight = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const launchSource = getProjectSource(context, launchPath);
+  const preflightSource = getProjectSource(context, browserRuntimePreflightPath);
+  if (!launchSource || !preflightSource) {
+    pushFinding(findings, {
+      lawId,
+      checkId: "startup/browser-runtime-preflight-source",
+      filePath: browserRuntimePreflightPath,
+      message: "Startup Browser Runtime preflight sources must be visible to the audit project.",
+    });
+    return;
+  }
+
+  const metrics = {
+    launchImportsPreflight: hasNamedImport(launchSource, "browser-runtime-preflight", "runBrowserRuntimePreflight"),
+    preflightCallsArtifactVerifier: hasIdentifier(preflightSource, "verifyBrowserArtifactSet"),
+    preflightCallsBrowserctlVerify: hasStringLiteral(preflightSource, "--verify"),
+    preflightDoesNotInstall: !hasStringLiteral(preflightSource, "--install"),
+    preflightDoesNotRepair: !hasStringLiteral(preflightSource, "--repair"),
+    preflightDoesNotEnroll: !hasStringLiteral(preflightSource, "--enroll-profile"),
+  };
+  if (Object.values(metrics).some((value) => value === false)) {
+    pushFinding(findings, {
+      lawId,
+      checkId: "startup/browser-runtime-preflight",
+      filePath: browserRuntimePreflightPath,
+      message: "Startup must use the single read-only Browser Runtime verifier and must not install, repair or enroll Browser state.",
+      evidence: JSON.stringify(metrics),
+    });
+  }
 };
 
 const hasStringLiteral = (sourceFile: SourceFile, value: string): boolean =>
@@ -447,7 +485,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const hotMountLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-006-V1");
   const coldStartBudgetLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-007-V1");
   const initializationTruthLawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-008-V1");
-  const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, processControlPath, portListenerPath, sourceFingerprintPath, ...Object.values(initializationTruthPaths), inspectorPath]);
+  const inspectedFiles = new Set([packagePath, launchPath, logPath, helperPath, readinessPath, browserRuntimePreflightPath, processControlPath, portListenerPath, sourceFingerprintPath, ...Object.values(initializationTruthPaths), inspectorPath]);
   const startupFiles = listStartupFiles().map((filePath) => toRepoPath(resolveFromRepo(filePath)));
   startupFiles.forEach((filePath) => inspectedFiles.add(filePath));
   const findings: Finding[] = [];
@@ -459,6 +497,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectStructuredReport(context, findings, reportLawId);
   inspectRealPortClear(context, findings, portClearLawId);
   inspectHotMountAst(context, findings, hotMountLawId);
+  inspectBrowserRuntimePreflight(context, findings, readinessLawId);
   inspectColdStartHealthBudget(context, findings, coldStartBudgetLawId);
   inspectInitializationTruth(context, findings, initializationTruthLawId);
 

@@ -12,6 +12,7 @@ import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { probeExistingWorkbench, waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
 import { buildStartupSourceFingerprint } from "./lib/source-fingerprint.mjs";
+import { runBrowserRuntimePreflight } from "./lib/browser-runtime-preflight.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
@@ -134,7 +135,7 @@ async function runUpdatePreflight(root, flags) {
   });
 }
 
-async function preparePort() {
+async function preparePort({ clearPort = true } = {}) {
   const hotMountStart = Date.now();
   logEvent("STARTUP", "bootstrap", "hot_mount_probe", "started", `probing existing workbench at ${baseUrl}/api/health`);
   const hotMount = await probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint });
@@ -145,7 +146,7 @@ async function preparePort() {
         refs: [`healthUrl=${hotMount.healthUrl}`, `stabilityAttempt=${stableHotMount.attempt}`],
         failureReason: stableHotMount.failureReason,
       });
-      await clearWorkbenchPort();
+      if (clearPort) await clearWorkbenchPort();
       return { hotMounted: false };
     }
     logPass("STARTUP", "bootstrap", "hot_mount_probe", "passed", `hot-mounted existing workbench at ${baseUrl}`, {
@@ -160,7 +161,7 @@ async function preparePort() {
     failureReason: hotMount.failureReason,
   });
 
-  await clearWorkbenchPort();
+  if (clearPort) await clearWorkbenchPort();
   return { hotMounted: false };
 }
 
@@ -196,6 +197,44 @@ async function clearWorkbenchPort() {
   logPass("STARTUP", "bootstrap", "port_clear", "passed", `port ${host}:${port} is ready`, {
     durationMs: Date.now() - portStart,
   });
+}
+
+async function verifyBrowserRuntime(root) {
+  const preflightStart = Date.now();
+  logEvent(
+    "STARTUP",
+    "bootstrap",
+    "browser_runtime_preflight",
+    "started",
+    "running read-only Browser Runtime preflight",
+  );
+  const result = await runBrowserRuntimePreflight({ rootDir: root, env: process.env });
+  if (result.status !== "READY") {
+    logFail(
+      "STARTUP",
+      "bootstrap",
+      "browser_runtime_preflight",
+      "failed",
+      "Browser Runtime preflight blocked cold start",
+      {
+        failureReason: result.code,
+        actionableMessage: result.actionableMessage,
+        ...(result.missingEnvironmentVariables
+          ? { refs: [`missingEnvironmentVariables=${result.missingEnvironmentVariables.join(",")}`] }
+          : {}),
+        durationMs: Date.now() - preflightStart,
+      },
+    );
+    throw new Error(`${result.code}: ${result.actionableMessage}`);
+  }
+  logPass(
+    "STARTUP",
+    "bootstrap",
+    "browser_runtime_preflight",
+    "passed",
+    "read-only Browser Runtime preflight passed",
+    { durationMs: Date.now() - preflightStart },
+  );
 }
 
 async function startService(root) {
@@ -281,12 +320,14 @@ function classifyServiceExit(exit, shuttingDown) {
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
-  const portState = await preparePort();
+  const portState = await preparePort({ clearPort: false });
   if (portState.hotMounted) {
     await openReadyPage(flags);
     logStartupReady();
     return undefined;
   }
+  await verifyBrowserRuntime(root);
+  await clearWorkbenchPort();
   const serviceHandle = await startService(root);
   await verifyAppHealth();
   await openReadyPage(flags);

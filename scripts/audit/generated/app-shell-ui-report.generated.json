@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:15:00.928Z",
+  "generatedAt": "2026-08-18T14:37:52.800Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -11,14 +11,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:c15feea3-bf92-4534-9818-d83a268e0d00",
+      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:c8e03073-1816-4ed0-aa99-d6e50b6761a7",
       "capabilityDomain": "app-shell-ui",
       "checkId": "app-shell-ui/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:15:00.619Z",
-      "endedAt": "2026-08-18T14:15:00.927Z",
-      "durationMs": 308,
+      "startedAt": "2026-08-18T14:37:52.507Z",
+      "endedAt": "2026-08-18T14:37:52.800Z",
+      "durationMs": 293,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
         "MIGRATION_FILE_DECISION_TABLE.md",
@@ -99,13 +99,13 @@
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
       "clauseId": "grasseye-app-shell-ui-001-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:c15feea3-bf92-4534-9818-d83a268e0d00"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:c8e03073-1816-4ed0-aa99-d6e50b6761a7"
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
       "clauseId": "grasseye-app-shell-ui-002-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:c15feea3-bf92-4534-9818-d83a268e0d00"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:c8e03073-1816-4ed0-aa99-d6e50b6761a7"
     }
   ],
   "inspectedFiles": [

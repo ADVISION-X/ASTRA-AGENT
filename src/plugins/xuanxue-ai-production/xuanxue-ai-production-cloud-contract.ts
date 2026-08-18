@@ -210,7 +210,6 @@ const triggerKindSchema = z.enum([
   "manual_accuracy_challenge",
   "scheduled_public_content",
   "terminal_localization",
-  "localization_static_review",
   "scheduled_quality_reflection",
 ]);
 

@@ -1,12 +1,11 @@
 {
-  "generatedAt": "2026-08-18T14:14:50.887Z",
+  "generatedAt": "2026-08-18T14:37:43.369Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
-    "scripts/acceptance/amazon-invoice-upload-real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -368,6 +367,7 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts",
     "scripts/startup/launch-grasseye.mjs",
+    "scripts/startup/lib/browser-runtime-preflight.mjs",
     "scripts/startup/lib/dependency-check.mjs",
     "scripts/startup/lib/dependency-package-utils.mjs",
     "scripts/startup/lib/dependency-state-analysis.mjs",
@@ -863,20 +863,19 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:05f09d4d-d84d-49f0-8ecf-ff4f849a6671",
+      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:b14a5aae-5cca-421d-bc1f-3334223aacca",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:14:50.758Z",
-      "endedAt": "2026-08-18T14:14:50.886Z",
-      "durationMs": 128,
+      "startedAt": "2026-08-18T14:37:43.212Z",
+      "endedAt": "2026-08-18T14:37:43.369Z",
+      "durationMs": 157,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
-        "scripts/acceptance/amazon-invoice-upload-real-chrome.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -1238,6 +1237,7 @@
         "scripts/audit/shared/source-files.ts",
         "scripts/audit/shared/source-module-targets.ts",
         "scripts/startup/launch-grasseye.mjs",
+        "scripts/startup/lib/browser-runtime-preflight.mjs",
         "scripts/startup/lib/dependency-check.mjs",
         "scripts/startup/lib/dependency-package-utils.mjs",
         "scripts/startup/lib/dependency-state-analysis.mjs",
@@ -1720,25 +1720,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:05f09d4d-d84d-49f0-8ecf-ff4f849a6671"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:b14a5aae-5cca-421d-bc1f-3334223aacca"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:05f09d4d-d84d-49f0-8ecf-ff4f849a6671"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:b14a5aae-5cca-421d-bc1f-3334223aacca"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:05f09d4d-d84d-49f0-8ecf-ff4f849a6671"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:b14a5aae-5cca-421d-bc1f-3334223aacca"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:05f09d4d-d84d-49f0-8ecf-ff4f849a6671"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:b14a5aae-5cca-421d-bc1f-3334223aacca"
     }
   ]
 }

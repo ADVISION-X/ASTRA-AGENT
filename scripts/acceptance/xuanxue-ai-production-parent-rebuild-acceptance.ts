@@ -351,6 +351,10 @@ const cloudOrderIdentity = (candidate: XuanxueAiProductionOrder) => ({
   input_bundle_ref: candidate.inputBundleRef,
   input_bundle_hash: candidate.inputBundleHash,
   request_hash: candidate.requestHash,
+  contract_manifest_hash: candidate.contractManifestHash,
+  product_contract_hash: candidate.productContractHash,
+  localization_role: candidate.localizationRole,
+  provider_execution_profile: candidate.providerExecutionProfile,
 });
 
 const parseCloudReplayClaim = (

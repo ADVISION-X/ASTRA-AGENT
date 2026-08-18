@@ -398,7 +398,10 @@ export class BrowserNativeTransportServer {
     this.connection = connection;
     this.emitLifecycle({ stage: "socket_connected", generation: connection.generation });
     socket.setEncoding("utf8");
-    socket.on("data", (chunk) => this.onData(connection, chunk));
+    socket.on("data", (chunk) => this.onData(
+      connection,
+      typeof chunk === "string" ? chunk : chunk.toString("utf8"),
+    ));
     socket.on("close", () => this.onClose(connection));
     socket.on("error", () => undefined);
   }

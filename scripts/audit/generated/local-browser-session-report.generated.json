@@ -18,7 +18,7 @@
       "filePath": "src/app/server.ts"
     }
   ],
-  "generatedAt": "2026-08-18T14:14:50.897Z",
+  "generatedAt": "2026-08-18T14:37:43.382Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -31,13 +31,13 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f6eb3136-5fff-40d1-b284-13db6af67580",
+      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:7b42acf3-890c-4e7f-9476-9cdba9eead83",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T14:14:50.895Z",
-      "endedAt": "2026-08-18T14:14:50.897Z",
+      "startedAt": "2026-08-18T14:37:43.379Z",
+      "endedAt": "2026-08-18T14:37:43.381Z",
       "durationMs": 2,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -80,7 +80,7 @@
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f6eb3136-5fff-40d1-b284-13db6af67580"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:7b42acf3-890c-4e7f-9476-9cdba9eead83"
     }
   ],
   "inspectedFiles": [

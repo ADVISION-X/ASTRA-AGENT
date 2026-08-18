@@ -11,7 +11,7 @@ import {
   type AiInputGatewayAbilityGroup,
 } from "../../src/capabilities/ai-input-gateway/index.js";
 import { CurrentChromeBrowserController } from "../../src/lib/browser/current-chrome-browser-controller.js";
-import { createLocalBrowserSessionConfig } from "../../src/lib/browser/local-browser-session.js";
+import { resolveProductionBrowserProfileEnrollment } from "../../src/lib/browser/profile/browser-profile-config.js";
 import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
 import {
   XuanxueAiProductionStore,
@@ -26,8 +26,14 @@ const runRoot = await mkdtemp(
 const browserDataDir = path.resolve(
   process.env.GRASSEYE_BROWSER_DATA_DIR?.trim() || ".grasseye-local",
 );
-const browser = new CurrentChromeBrowserController({
-  sessionConfig: createLocalBrowserSessionConfig({ platform: "darwin" }),
+const profileEnrollment = resolveProductionBrowserProfileEnrollment({
+  platform: process.platform,
+  ...(process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY
+    ? { profileDirectory: process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY }
+    : {}),
+});
+const browser = await CurrentChromeBrowserController.create({
+  profileEnrollment,
   screenshotDir: path.join(runRoot, "browser-captures"),
   dataDir: browserDataDir,
 });

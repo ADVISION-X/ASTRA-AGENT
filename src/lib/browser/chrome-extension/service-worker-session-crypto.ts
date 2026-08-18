@@ -7,11 +7,11 @@ const toBase64 = (value: ArrayBuffer | Uint8Array): string => {
   return btoa(binary);
 };
 
-const fromBase64 = (value: string): Uint8Array => {
+const fromBase64 = (value: string): ArrayBuffer => {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return bytes;
+  return bytes.buffer;
 };
 
 const aad = (input: Readonly<{
@@ -19,9 +19,9 @@ const aad = (input: Readonly<{
   connectionGeneration: number;
   nativePortEpoch: number;
   sequence: number;
-}>): Uint8Array => new TextEncoder().encode(
+}>): ArrayBuffer => new TextEncoder().encode(
   `${input.authorityId}:${input.connectionGeneration}:${input.nativePortEpoch}:${input.sequence}`,
-);
+).buffer;
 
 export type ExtensionEphemeralSession = Readonly<{
   publicKeyBase64: string;
@@ -85,8 +85,8 @@ export const encryptExtensionFrame = async (
   }>,
   value: unknown,
 ): Promise<Readonly<{ iv: string; ciphertext: string }>> => {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const plaintext = new TextEncoder().encode(JSON.stringify(value));
+  const iv = crypto.getRandomValues(new Uint8Array(12)).buffer;
+  const plaintext = new TextEncoder().encode(JSON.stringify(value)).buffer;
   const ciphertext = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv, additionalData: aad(binding), tagLength: 128 },
     key,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:15:03.603Z",
+  "generatedAt": "2026-08-18T14:37:55.305Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,86 +10,6 @@
   ],
   "status": "FAIL",
   "findings": [
-    {
-      "checkId": "xuanxue-ai-production/whole-order-contract",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Whole-order contract must contain localization_candidate_a.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/whole-order-contract",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Whole-order contract must contain localization_candidate_b.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/whole-order-contract",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Whole-order contract must contain localization_selector_first.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/whole-order-contract",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Whole-order contract must contain localization_selector_swap.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/whole-order-contract",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Whole-order contract must contain localization_consistency.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/fixed-profiles",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Fixed product profiles must contain localization_candidate_a.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/fixed-profiles",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Fixed product profiles must contain localization_candidate_b.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/fixed-profiles",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Fixed product profiles must contain localization_selector_first.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/fixed-profiles",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Fixed product profiles must contain localization_selector_swap.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/fixed-profiles",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
-      "message": "Fixed product profiles must contain localization_consistency.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts"
-    },
     {
       "checkId": "xuanxue-ai-production/durable-ledger",
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
@@ -166,53 +86,21 @@
       "checkId": "xuanxue-ai-production/acceptance",
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove localization_candidate_a.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove localization_candidate_b.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove localization_selector_first.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove localization_selector_swap.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove localization_consistency.",
+      "message": "Production acceptance must prove localization_report_translation.",
       "severity": "fatal",
       "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
     }
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:4f723880-7b45-4ccf-944f-ee408f9c450e",
+      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:5989caee-84c6-4f99-8124-eda7b2cf95ea",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T14:15:03.096Z",
-      "endedAt": "2026-08-18T14:15:03.603Z",
-      "durationMs": 507,
+      "startedAt": "2026-08-18T14:37:54.827Z",
+      "endedAt": "2026-08-18T14:37:55.305Z",
+      "durationMs": 478,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
@@ -267,7 +155,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
       ],
-      "findingCount": 24
+      "findingCount": 10
     }
   ],
   "executedChecks": [
@@ -275,25 +163,25 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:4f723880-7b45-4ccf-944f-ee408f9c450e"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:5989caee-84c6-4f99-8124-eda7b2cf95ea"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:4f723880-7b45-4ccf-944f-ee408f9c450e"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:5989caee-84c6-4f99-8124-eda7b2cf95ea"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:4f723880-7b45-4ccf-944f-ee408f9c450e"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:5989caee-84c6-4f99-8124-eda7b2cf95ea"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
       "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:4f723880-7b45-4ccf-944f-ee408f9c450e"
+      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:5989caee-84c6-4f99-8124-eda7b2cf95ea"
     }
   ],
   "inspectedFiles": [

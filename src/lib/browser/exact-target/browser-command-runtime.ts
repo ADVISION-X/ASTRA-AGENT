@@ -194,7 +194,7 @@ export class BrowserCommandRuntime {
       eventType: failed
         ? RuntimeLogEventType.BROWSER_ACTION_FAILED
         : RuntimeLogEventType.BROWSER_ACTION_RESULT,
-      owner: "browser-authority",
+      owner: "browser-session",
       status: failed ? "failed" : "success",
       reason: event.reason ?? `browser authority stage: ${event.stage}`,
       payload: {

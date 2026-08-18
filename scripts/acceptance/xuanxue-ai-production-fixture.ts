@@ -9,6 +9,13 @@ import type { WebChatFailureClassification } from "../../src/capabilities/ai-inp
 import type {
   XuanxueAiProductionOrder,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
+import {
+  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
+  expectedLocalizationProviderProfile,
+  isXuanxueLocalizationProduct,
+  type XuanxueLocalizationRole,
+} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
 import { FixtureGatewayFaults } from "./xuanxue-ai-production-fixture-faults.js";
 
 export const hash = (value: string): `sha256:${string}` =>
@@ -72,16 +79,13 @@ const fixtureConversationProofs = (
     : null,
 });
 
-const fixtureProviderProof = (
+const fixtureAttachmentProof = (
   input: AiFeedInput,
-  ordinal: number,
-  rawResponseText: string,
-  pageUrl: string,
-  turnMarker: string,
   verifiedAt: string,
-): AiFeedResult["providerProof"] => {
+): NonNullable<AiFeedResult["providerProof"]["attachmentUploadProof"]> | undefined => {
   const files = input.inputRefs.filter((ref) => Boolean(ref.filePath));
-  const attachmentUploadProof = files.length > 0 ? {
+  if (files.length === 0) return undefined;
+  return {
     childCapabilityId: "attach-approved-web-chat-files-once" as const,
     uploadAttemptId: `fixture-upload:${input.taskIdentity.sourceTaskId}`,
     transportKind: "exact_target_file_input_batch" as const,
@@ -101,32 +105,50 @@ const fixtureProviderProof = (
     status: "attachments_stable" as const,
     failureReason: null,
     reviewRequiredReason: null,
-  } : undefined;
-  return ({
-  providerKind: "gpt-web-chat",
-  providerLeaseId: `fixture-lease:${ordinal}`,
-  modelName: null,
-  ...(input.taskIdentity.taskKind === "localization_static_review" ? {
+  };
+};
+
+const fixtureModelIdentityProof = (
+  input: AiFeedInput,
+  rawResponseText: string,
+  verifiedAt: string,
+): Pick<AiFeedResult["providerProof"], "modelIdentityProof" | "providerTranscriptJsonl" | "providerTranscriptHash"> => {
+  if (!isXuanxueLocalizationProduct(input.taskIdentity.taskKind)) return {};
+  const transcript = `${JSON.stringify({
+    type: "assistant_message", source: "fixture",
+    task: input.taskIdentity.sourceTaskId, text: rawResponseText,
+  })}\n`;
+  return {
     modelIdentityProof: {
       proofStatus: "verified" as const,
-      modelFamily: "fixture-model-family",
-      modelDisplayName: "Fixture Provider Model",
+      modelFamily: "gpt-5.6",
+      modelDisplayName: "GPT-5.6 Sol",
       modelIdentityStatus: "verified" as const,
-      reasoningEffort: "high",
+      reasoningEffort: input.requestedReasoningEffort === "xhigh" ? "xhigh" : "high",
       observedAt: verifiedAt,
       sourceKind: "provider_ui_observation" as const,
       evidenceRef: `fixture-model-evidence:${input.taskIdentity.sourceTaskId}`,
       evidenceHash: hash(`fixture-model-evidence:${input.taskIdentity.sourceTaskId}`),
     },
-    providerTranscriptJsonl: `${JSON.stringify({
-      type: "assistant_message", source: "fixture",
-      task: input.taskIdentity.sourceTaskId, text: rawResponseText,
-    })}\n`,
-    providerTranscriptHash: hash(`${JSON.stringify({
-      type: "assistant_message", source: "fixture",
-      task: input.taskIdentity.sourceTaskId, text: rawResponseText,
-    })}\n`),
-  } : {}),
+    providerTranscriptJsonl: transcript,
+    providerTranscriptHash: hash(transcript),
+  };
+};
+
+const fixtureProviderProof = (
+  input: AiFeedInput,
+  ordinal: number,
+  rawResponseText: string,
+  pageUrl: string,
+  turnMarker: string,
+  verifiedAt: string,
+): AiFeedResult["providerProof"] => {
+  const attachmentUploadProof = fixtureAttachmentProof(input, verifiedAt);
+  return {
+  providerKind: "gpt-web-chat",
+  providerLeaseId: `fixture-lease:${ordinal}`,
+  modelName: null,
+  ...fixtureModelIdentityProof(input, rawResponseText, verifiedAt),
   inputHash: hash(JSON.stringify(input)),
   outputHash: hash(rawResponseText),
   inputRefs: input.inputRefs.map((ref) => ref.id),
@@ -152,7 +174,7 @@ const fixtureProviderProof = (
     continuationActualUrl: input.providerContinuationRef.providerPageUrl,
     continuationVerified: true,
   } : {}),
-  });
+  };
 };
 
 export const providerResult = (
@@ -342,6 +364,7 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
 
 export const material = (
   stageId: XuanxueAiProductionOrder["materials"][number]["stageId"],
+  localization = false,
 ): XuanxueAiProductionOrder["materials"][number] => ({
   stageId,
   promptPackageId: `fixture:${stageId}`,
@@ -349,7 +372,11 @@ export const material = (
   expectedOutputSchemaRef: `fixture-schema:${stageId}`,
   expectedOutputKind: stageId === "article_image_generation" ? "generated_image" : "text",
   textPrompt: `fixture prompt for ${stageId}`,
-  inputRefs: [],
+  inputRefs: localization ? [{
+    id: `fixture-localization-context:${stageId}`,
+    kind: "localization_review_context_json",
+    summary: "fixture localization review context",
+  }] : [],
   timeoutMs: 60_000,
   maxFileCount: 8,
 });
@@ -358,28 +385,37 @@ export const order = (
   orderId: string,
   productId: XuanxueAiProductionOrder["productId"],
   stageIds: readonly XuanxueAiProductionOrder["materials"][number]["stageId"][],
-): XuanxueAiProductionOrder => ({
+  localizationRole?: XuanxueLocalizationRole,
+): XuanxueAiProductionOrder => {
+  const localization = isXuanxueLocalizationProduct(productId);
+  const contract = localization ? XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS[productId] : null;
+  if (localization && !localizationRole) throw new Error("fixture localization role is required");
+  return {
   protocolVersion: "xuanxue-ai-production-v4",
   orderId,
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,
   productId,
-  serviceClass: productId === "localization_static_review" ? "localization" : productId === "scheduled_quality_reflection" ? "quality_background" : productId === "public_knowledge_article_pipeline" ? "public_content" : "user_delivery",
-  triggerKind: productId === "localization_static_review" ? "localization_static_review" : productId === "scheduled_quality_reflection" ? "scheduled_quality_reflection" : productId === "public_knowledge_article_pipeline" ? "scheduled_public_content" : "user_request",
+  serviceClass: localization ? "localization" : productId === "scheduled_quality_reflection" ? "quality_background" : productId === "public_knowledge_article_pipeline" ? "public_content" : "user_delivery",
+  triggerKind: localization ? "terminal_localization" : productId === "scheduled_quality_reflection" ? "scheduled_quality_reflection" : productId === "public_knowledge_article_pipeline" ? "scheduled_public_content" : "user_request",
   lineageId: productId === "scheduled_quality_reflection" ? `lineage:${orderId}` : null,
   reflectionSnapshotRef: productId === "scheduled_quality_reflection" ? `snapshot:${orderId}` : null,
   reflectionPlanId: productId === "scheduled_quality_reflection" ? `plan:${orderId}` : null,
   inputBundleRef: `bundle:${orderId}`,
   inputBundleHash: hash(`bundle:${orderId}`),
   requestHash: hash(`request:${orderId}`),
+  contractManifestHash: contract ? XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH : null,
+  productContractHash: contract?.product_contract_hash ?? null,
+  localizationRole: localizationRole ?? null,
+  providerExecutionProfile: localizationRole ? expectedLocalizationProviderProfile(localizationRole) : null,
   frozenSubject: {
-    privacyOwnerRef: productId === "localization_static_review" ? "localization-catalog" : `owner:${orderId}`,
+    privacyOwnerRef: productId === "localization_article_translation" ? "public-knowledge-content" : localization ? "localization-catalog" : `owner:${orderId}`,
     snapshotRef: `snapshot:${orderId}`,
     snapshotHash: hash(`snapshot:${orderId}`),
     caseRevisionRef: `case-revision:${orderId}`,
-    primaryPersonRef: productId === "localization_static_review" ? null : `person:${orderId}`,
-    participantManifestHash: productId === "localization_static_review" ? hash("[]") : hash(`participants:${orderId}`),
-    participants: productId === "localization_static_review" ? [] : [{
+    primaryPersonRef: localization ? null : `person:${orderId}`,
+    participantManifestHash: localization ? hash("[]") : hash(`participants:${orderId}`),
+    participants: localization ? [] : [{
       slotRef: "primary",
       roleCode: "primary",
       personRef: `person:${orderId}`,
@@ -395,6 +431,7 @@ export const order = (
   conversationParent: null,
   joinParents: [],
   seededStages: [],
-  materials: stageIds.map(material),
+  materials: stageIds.map((stageId) => material(stageId, localization)),
   createdAt: new Date().toISOString(),
-});
+  };
+};

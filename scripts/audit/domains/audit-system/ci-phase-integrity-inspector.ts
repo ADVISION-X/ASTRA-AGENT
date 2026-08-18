@@ -201,20 +201,22 @@ const guardDefersGeneratedRealChrome = (
   authority: import("ts-morph").Node | undefined,
 ): boolean => {
   const condition = guard.getExpression();
+  const left = Node.isBinaryExpression(condition) ? condition.getLeft() : undefined;
+  const right = Node.isBinaryExpression(condition) ? condition.getRight() : undefined;
   const thenStatement = guard.getThenStatement();
   const returned = Node.isReturnStatement(thenStatement)
     ? thenStatement.getExpression()
     : thenStatement.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
   const comparesEvidenceMode = Node.isBinaryExpression(condition)
     && condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
-    && Node.isPropertyAccessExpression(condition.getLeft())
-    && condition.getLeft().getName() === "evidenceMode"
-    && authority !== undefined && resolvesTo(condition.getLeft().getExpression(), authority);
+    && Node.isPropertyAccessExpression(left)
+    && left.getName() === "evidenceMode"
+    && authority !== undefined && resolvesTo(left.getExpression(), authority);
   const helperCall = isRealChromeEvidenceHelperCall(condition)
     && helperConditionUsesAuthority(condition, authority);
   return Node.isNullLiteral(returned) && (
-    (comparesEvidenceMode && Node.isStringLiteral(condition.getRight())
-      && condition.getRight().getLiteralText() === "real-chrome")
+    (comparesEvidenceMode && Node.isStringLiteral(right)
+      && right.getLiteralText() === "real-chrome")
       || helperCall === true
   );
 };

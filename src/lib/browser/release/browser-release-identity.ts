@@ -4,6 +4,8 @@ export const GRASSEYE_BROWSER_EXTENSION_ID = "mepfnlhndaiihhfejbbhfehegpbdnipl" 
 export const GRASSEYE_BROWSER_EXTENSION_VERSION = "2.0.0" as const;
 export const GRASSEYE_NATIVE_HOST_NAME = "com.grasseye.browser" as const;
 export const GRASSEYE_BROWSER_MINIMUM_CHROME_VERSION = "120" as const;
+export const GRASSEYE_BROWSER_RELEASE_SEQUENCE = 2 as const;
+export const GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 2 as const;
 
 export type BrowserReleaseIdentity = Readonly<{
   releaseIdentity: typeof GRASSEYE_BROWSER_RELEASE_IDENTITY;
