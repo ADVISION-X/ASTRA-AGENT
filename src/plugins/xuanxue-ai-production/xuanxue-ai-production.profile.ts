@@ -12,6 +12,10 @@ import {
 import {
   assertSeededStages,
 } from "./xuanxue-ai-production-seeded-proof.js";
+import {
+  assertXuanxueLocalizationContract,
+  isXuanxueLocalizationProduct,
+} from "./xuanxue-ai-production-localization-contract.js";
 
 export interface XuanxueAiStageDefinition {
   readonly stageId: XuanxueAiStageId;
@@ -26,80 +30,31 @@ export interface XuanxueAiProductionProfile {
   readonly finalStageId: XuanxueAiStageId;
 }
 
+const singleStage = (
+  productId: XuanxueAiProductId,
+  stageId: XuanxueAiStageId,
+): XuanxueAiProductionProfile => ({
+  productId,
+  stages: [{
+    stageId,
+    dependsOn: [],
+    continuationFrom: null,
+    generatedInputsFrom: [],
+  }],
+  finalStageId: stageId,
+});
+
 const profiles: Readonly<Record<
   XuanxueAiProductId,
   XuanxueAiProductionProfile
 >> = {
-  bazi_chart_interpretation: {
-    productId: "bazi_chart_interpretation",
-    stages: [{
-      stageId: "chart_interpretation",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "chart_interpretation",
-  },
-  bazi_ai_full_analysis: {
-    productId: "bazi_ai_full_analysis",
-    stages: [{
-      stageId: "question_analysis",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "question_analysis",
-  },
-  bazi_report_followup: {
-    productId: "bazi_report_followup",
-    stages: [{
-      stageId: "question_analysis",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "question_analysis",
-  },
-  qimen_professional_answer: {
-    productId: "qimen_professional_answer",
-    stages: [{
-      stageId: "analysis",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "analysis",
-  },
-  qimen_report_followup: {
-    productId: "qimen_report_followup",
-    stages: [{
-      stageId: "followup",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "followup",
-  },
-  hehun_ai_analysis: {
-    productId: "hehun_ai_analysis",
-    stages: [{
-      stageId: "final_compatibility",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "final_compatibility",
-  },
-  hehun_report_followup: {
-    productId: "hehun_report_followup",
-    stages: [{
-      stageId: "followup",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "followup",
-  },
+  bazi_chart_interpretation: singleStage("bazi_chart_interpretation", "chart_interpretation"),
+  bazi_ai_full_analysis: singleStage("bazi_ai_full_analysis", "question_analysis"),
+  bazi_report_followup: singleStage("bazi_report_followup", "question_analysis"),
+  qimen_professional_answer: singleStage("qimen_professional_answer", "analysis"),
+  qimen_report_followup: singleStage("qimen_report_followup", "followup"),
+  hehun_ai_analysis: singleStage("hehun_ai_analysis", "final_compatibility"),
+  hehun_report_followup: singleStage("hehun_report_followup", "followup"),
   naming_bazi_analysis_and_naming: {
     productId: "naming_bazi_analysis_and_naming",
     stages: [
@@ -118,66 +73,12 @@ const profiles: Readonly<Record<
     ],
     finalStageId: "naming_author",
   },
-  naming_from_existing_bazi_report: {
-    productId: "naming_from_existing_bazi_report",
-    stages: [{
-      stageId: "naming_author",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "naming_author",
-  },
-  bazi_canonical_base_interpretation: {
-    productId: "bazi_canonical_base_interpretation",
-    stages: [{
-      stageId: "base_interpretation",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "base_interpretation",
-  },
-  hehun_canonical_party_a_interpretation: {
-    productId: "hehun_canonical_party_a_interpretation",
-    stages: [{
-      stageId: "party_a_interpretation",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "party_a_interpretation",
-  },
-  hehun_canonical_party_b_interpretation: {
-    productId: "hehun_canonical_party_b_interpretation",
-    stages: [{
-      stageId: "party_b_interpretation",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "party_b_interpretation",
-  },
-  manual_accuracy_challenge: {
-    productId: "manual_accuracy_challenge",
-    stages: [{
-      stageId: "manual_accuracy_challenge",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "manual_accuracy_challenge",
-  },
-  payment_screenshot_observation: {
-    productId: "payment_screenshot_observation",
-    stages: [{
-      stageId: "payment_screenshot_observation",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "payment_screenshot_observation",
-  },
+  naming_from_existing_bazi_report: singleStage("naming_from_existing_bazi_report", "naming_author"),
+  bazi_canonical_base_interpretation: singleStage("bazi_canonical_base_interpretation", "base_interpretation"),
+  hehun_canonical_party_a_interpretation: singleStage("hehun_canonical_party_a_interpretation", "party_a_interpretation"),
+  hehun_canonical_party_b_interpretation: singleStage("hehun_canonical_party_b_interpretation", "party_b_interpretation"),
+  manual_accuracy_challenge: singleStage("manual_accuracy_challenge", "manual_accuracy_challenge"),
+  payment_screenshot_observation: singleStage("payment_screenshot_observation", "payment_screenshot_observation"),
   public_knowledge_article_pipeline: {
     productId: "public_knowledge_article_pipeline",
     stages: [
@@ -202,52 +103,26 @@ const profiles: Readonly<Record<
     ],
     finalStageId: "article_image_generation",
   },
-  localization_static_review: {
-    productId: "localization_static_review",
-    stages: [
-      {
-        stageId: "localization_candidate_a",
-        dependsOn: [],
-        continuationFrom: null,
-        generatedInputsFrom: [],
-      },
-      {
-        stageId: "localization_candidate_b",
-        dependsOn: [],
-        continuationFrom: null,
-        generatedInputsFrom: [],
-      },
-      {
-        stageId: "localization_selector_first",
-        dependsOn: ["localization_candidate_a", "localization_candidate_b"],
-        continuationFrom: null,
-        generatedInputsFrom: ["localization_candidate_a", "localization_candidate_b"],
-      },
-      {
-        stageId: "localization_selector_swap",
-        dependsOn: ["localization_selector_first"],
-        continuationFrom: "localization_selector_first",
-        generatedInputsFrom: ["localization_selector_first"],
-      },
-      {
-        stageId: "localization_consistency",
-        dependsOn: ["localization_selector_first", "localization_selector_swap"],
-        continuationFrom: null,
-        generatedInputsFrom: ["localization_selector_first", "localization_selector_swap"],
-      },
-    ],
-    finalStageId: "localization_consistency",
-  },
-  scheduled_quality_reflection: {
-    productId: "scheduled_quality_reflection",
-    stages: [{
-      stageId: "scheduled_quality_reflection",
-      dependsOn: [],
-      continuationFrom: null,
-      generatedInputsFrom: [],
-    }],
-    finalStageId: "scheduled_quality_reflection",
-  },
+  localization_report_translation: singleStage(
+    "localization_report_translation",
+    "report_translation",
+  ),
+  localization_article_translation: singleStage(
+    "localization_article_translation",
+    "article_translation",
+  ),
+  localization_static_review_candidate: singleStage(
+    "localization_static_review_candidate",
+    "localization_candidate",
+  ),
+  localization_static_review_selector: singleStage(
+    "localization_static_review_selector",
+    "localization_selector",
+  ),
+  scheduled_quality_reflection: singleStage(
+    "scheduled_quality_reflection",
+    "scheduled_quality_reflection",
+  ),
 };
 
 const CONVERSATION_CHAIN_INVALID =
@@ -299,13 +174,25 @@ const assertMaterialProfile = (
 const assertContinuationProfile = (
   order: XuanxueAiProductionOrder,
 ): void => {
+  const selectorSwap = order.localizationRole === "selector_swap";
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
-    || isXuanxueAiRequiredContinuationProduct(order.productId);
+    || isXuanxueAiRequiredContinuationProduct(order.productId)
+    || selectorSwap;
   if (continuationRequired !== Boolean(order.conversationParent)) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
     );
+  }
+  if (
+    selectorSwap
+    && (
+      order.productId !== "localization_static_review_selector"
+      || order.conversationParent?.relation !== "same_conversation"
+      || order.conversationParent?.stageId !== "localization_selector"
+    )
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_LOCALIZATION_SELECTOR_PARENT_INVALID");
   }
   if (
     isXuanxueAiRequiredContinuationProduct(order.productId)
@@ -453,6 +340,23 @@ const assertFrozenSubjectAndTypedJoin = (
   }
 };
 
+const assertLocalizationProfile = (
+  order: XuanxueAiProductionOrder,
+): void => {
+  if (!isXuanxueLocalizationProduct(order.productId)) return;
+  const material = order.materials[0];
+  assertXuanxueLocalizationContract({
+    productId: order.productId,
+    stageId: material?.stageId ?? "",
+    contractManifestHash: order.contractManifestHash,
+    productContractHash: order.productContractHash,
+    role: order.localizationRole,
+    providerProfile: order.providerExecutionProfile,
+    inputKinds: material?.inputRefs.map((item) => item.kind) ?? [],
+    hasConversationParent: Boolean(order.conversationParent),
+  });
+};
+
 export const assertXuanxueAiOrderMatchesProfile = (
   order: XuanxueAiProductionOrder,
 ): XuanxueAiProductionProfile => {
@@ -465,5 +369,6 @@ export const assertXuanxueAiOrderMatchesProfile = (
   );
   assertContinuationProfile(order);
   assertFrozenSubjectAndTypedJoin(order);
+  assertLocalizationProfile(order);
   return profile;
 };
