@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(sourceDir, "../../..");
+const repoRoot = path.resolve(sourceDir, "../../../..");
 const platformArch = `${process.platform}-${process.arch}`;
 const configured = process.env.GRASSEYE_BROWSERCTL_BINARY?.trim();
 const browserctl = configured
