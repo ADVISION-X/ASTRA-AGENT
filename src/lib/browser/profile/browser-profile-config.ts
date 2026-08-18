@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -10,38 +9,10 @@ import {
   type BrowserProfileEnrollment,
 } from "./browser-profile-enrollment.js";
 
-const DEFAULT_CHROME_EXECUTABLE_PATHS: Readonly<Partial<Record<NodeJS.Platform, readonly string[]>>> = {
-  darwin: [
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta",
-  ],
-  win32: [
-    "C:/Program Files/Google/Chrome/Application/chrome.exe",
-    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-  ],
-  linux: [
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-  ],
-};
-
 const requireEnv = (name: string): string => {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`${name}_REQUIRED_FOR_AUTHENTICATED_BROWSER_AUTHORITY`);
   return value;
-};
-
-const resolveChromeExecutablePath = (): string => {
-  const configured = process.env.GRASSEYE_CHROME_EXECUTABLE?.trim();
-  if (configured) {
-    const resolved = path.resolve(configured);
-    if (!existsSync(resolved)) throw new Error(`BROWSER_CHROME_EXECUTABLE_MISSING:${resolved}`);
-    return resolved;
-  }
-  for (const candidate of DEFAULT_CHROME_EXECUTABLE_PATHS[process.platform] ?? []) {
-    if (existsSync(candidate)) return candidate;
-  }
-  throw new Error("BROWSER_CHROME_EXECUTABLE_NOT_FOUND");
 };
 
 export const resolveProductionBrowserProfileEnrollment = (input: Readonly<{
@@ -56,12 +27,13 @@ export const resolveProductionBrowserProfileEnrollment = (input: Readonly<{
   if (!profileDirectory) {
     throw new Error("GRASSEYE_BROWSER_PROFILE_DIRECTORY_REQUIRED_FOR_AUTHENTICATED_BROWSER_AUTHORITY");
   }
+  const chromeExecutablePath = path.resolve(requireEnv("GRASSEYE_CHROME_EXECUTABLE"));
   return createBrowserProfileEnrollment({
     platform: input.platform,
     profileRef,
     userDataDir,
     profileDirectory,
-    chromeExecutablePath: resolveChromeExecutablePath(),
+    chromeExecutablePath,
     extensionId: GRASSEYE_BROWSER_EXTENSION_ID,
     releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
   });
