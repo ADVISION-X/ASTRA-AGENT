@@ -2,6 +2,8 @@ import { writeStartupFailureBundle } from "./startup-failure-bundle.mjs";
 
 const FAILURE_ACTIONS = [
   [/Dependency state/i, "Repair local dependencies and rerun npm run grasseye:start."],
+  [/native dependency.*could not|NODE_MODULE_VERSION|better_sqlite3\.node|native addon/i, "Rebuild native dependencies with npm rebuild <package> (for this repo: npm rebuild better-sqlite3) and rerun npm run grasseye:start."],
+  [/Local workbench health is not ready: degraded/i, "Inspect startup logs for the failing owner (recent xuanxue-ai-production poll retries observed). Verify environment/config and rerun npm run grasseye:start."],
   [/UPDATE_PREFLIGHT_FAILED/i, "Review dependency ranges before rerunning npm run grasseye:start -- --update."],
   [/health returned HTTP/i, "Inspect the local app health endpoint and rerun npm run grasseye:start."],
   [/Could not clear/i, "Stop the remaining local listener or choose another GRASSEYE_PORT."],

@@ -2,7 +2,12 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
+import {
+  assessDependencyState,
+  getNativeDependenciesNeedingRebuild,
+  installDependencies,
+  rebuildNativeDependency,
+} from "./lib/dependency-check.mjs";
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { probeExistingWorkbench, waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
@@ -85,11 +90,24 @@ async function ensureDependencies(root, flags) {
       refs: dependencyState.reasons,
     });
     await installDependencies({ rootDir: root });
+    if (!dependencyState.nativeDependencyFailures.length) {
+      logEvent("STARTUP", "bootstrap", "dependency_install", "event", "node_modules metadata refreshed via npm install");
+    }
   }
 
-  const finalState = await assessDependencyState({ rootDir: root });
+  let finalState = await assessDependencyState({ rootDir: root });
+  const nativeDependenciesNeedingRebuild = getNativeDependenciesNeedingRebuild(finalState.nativeDependencyFailures ?? []);
+  if (nativeDependenciesNeedingRebuild.length > 0) {
+    for (const packageName of nativeDependenciesNeedingRebuild) {
+      logEvent("STARTUP", "bootstrap", "dependency_native_repair", "started", `rebuilding native dependency ${packageName}`);
+      await rebuildNativeDependency({ rootDir: root, packageName });
+      logPass("STARTUP", "bootstrap", "dependency_native_repair", "passed", `rebuilt native dependency ${packageName}`);
+    }
+    finalState = await assessDependencyState({ rootDir: root });
+  }
+
   if (finalState.requiresInstall) {
-    throw new Error(`Dependency state is still not ready after repair: ${finalState.reasons.join(" ")}`);
+    throw new Error(`Dependency state is still not ready after repair: ${finalState.reasons.join(" | ")}`);
   }
 
   logPass("STARTUP", "bootstrap", "dependency_check", "passed", "dependency readiness passed", {

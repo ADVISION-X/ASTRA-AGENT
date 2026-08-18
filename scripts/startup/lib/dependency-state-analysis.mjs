@@ -34,15 +34,15 @@ export async function collectMetadataReasons(paths) {
   const nodeModulesLockStat = nodeModulesLockExists ? await stat(paths.nodeModulesLockPath) : undefined;
   const reasons = [];
 
-  appendReason(reasons, !packageLockExists, "package-lock.json is missing.");
-  appendReason(reasons, !nodeModulesExists, "node_modules directory is missing.");
-  appendReason(reasons, Boolean(lockStat) && packageStat.mtimeMs > lockStat.mtimeMs, "package.json is newer than package-lock.json.");
-  appendReason(reasons, nodeModulesExists && !nodeModulesLockExists, "node_modules is missing npm install metadata.");
-  appendReason(reasons, Boolean(nodeModulesLockStat) && packageStat.mtimeMs > nodeModulesLockStat.mtimeMs, "package.json is newer than node_modules install metadata.");
+  appendReason(reasons, !packageLockExists, "metadata_stale: package-lock.json is missing.");
+  appendReason(reasons, !nodeModulesExists, "metadata_stale: node_modules directory is missing.");
+  appendReason(reasons, Boolean(lockStat) && packageStat.mtimeMs > lockStat.mtimeMs, "metadata_stale: package.json is newer than package-lock.json.");
+  appendReason(reasons, nodeModulesExists && !nodeModulesLockExists, "metadata_stale: node_modules is missing npm install metadata.");
+  appendReason(reasons, Boolean(nodeModulesLockStat) && packageStat.mtimeMs > nodeModulesLockStat.mtimeMs, "metadata_stale: package.json is newer than node_modules install metadata.");
   appendReason(
     reasons,
     Boolean(lockStat) && Boolean(nodeModulesLockStat) && lockStat.mtimeMs > nodeModulesLockStat.mtimeMs,
-    "package-lock.json is newer than node_modules install metadata.",
+    "metadata_stale: package-lock.json is newer than node_modules install metadata.",
   );
 
   return { reasons, nodeModulesExists };
@@ -61,7 +61,7 @@ export async function findMissingPackages(packageMetadata, nodeModulesPath, node
   const missingPackages = [];
   for (const packageName of requiredPackages) {
     if (!(await pathExists(packageNameToPath(nodeModulesPath, packageName)))) {
-      missingPackages.push(packageName);
+      missingPackages.push(`package_missing: ${packageName}`);
     }
   }
 
