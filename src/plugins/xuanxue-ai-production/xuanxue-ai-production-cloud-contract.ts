@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { createHash } from "node:crypto";
 
 import {
   XuanxueAiProductIdSchema,
@@ -10,17 +9,6 @@ export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
   "xuanxue-ai-production-v4" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
-
-const canonicalJsonValue = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(canonicalJsonValue);
-  if (typeof value !== "object" || value === null) return value;
-  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, entry]) => [key, canonicalJsonValue(entry)]));
-};
-
-const canonicalHash = (value: unknown): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(JSON.stringify(canonicalJsonValue(value))).digest("hex")}`;
 
 const CloudFrozenSubjectSchema = z.object({
   privacy_owner_ref: z.string().min(1),
@@ -102,27 +90,6 @@ export const XuanxueAiProductionCloudInputSchema = z.object({
   may_issue_instruction: z.boolean().optional(),
 }).strict();
 
-const ProviderInputPreflightReceiptSchema = z.object({
-  schema_version: z.literal("ai-production-provider-input-preflight-receipt.v1"),
-  status: z.literal("verified"),
-  source_task_id: z.string().min(1),
-  product_id: XuanxueAiProductIdSchema,
-  input_bundle_ref: z.string().min(1),
-  input_bundle_hash: hashSchema,
-  stage_id: XuanxueAiStageIdSchema,
-  input_set_hash: hashSchema,
-  files: z.array(z.object({
-    input_id: z.string().min(1), ordinal: z.number().int().nonnegative(),
-    file_name: z.string().min(1), sha256: hashSchema,
-    byte_count: z.number().int().nonnegative(),
-    provider_receipt_ref: z.string().min(1),
-  }).strict()),
-  provider_profile_ref: z.string().min(1),
-  provider_profile_hash: hashSchema,
-  issued_at: z.string().datetime(),
-  receipt_hash: hashSchema,
-}).strict();
-
 const CloudStageMaterialBaseSchema = z.object({
   stage_id: XuanxueAiStageIdSchema,
   instruction_package_id: z.string().min(1),
@@ -134,7 +101,6 @@ const CloudStageMaterialBaseSchema = z.object({
   max_input_chars: z.number().int().positive().default(120_000),
   max_file_count: z.number().int().min(0).max(64),
   inputs: z.array(XuanxueAiProductionCloudInputSchema),
-  provider_input_preflight_receipt: ProviderInputPreflightReceiptSchema.optional(),
 });
 
 const ProviderSkillPackageIdentitySchema = z.object({
@@ -354,54 +320,6 @@ const inspectParentReplay = (job: CloudClaimedJobCandidate, context: z.Refinemen
   }
 };
 
-const buildPreflightInputSet = (job: CloudClaimedJobCandidate, material: CloudClaimedJobCandidate["materials"][number]) => ({
-  schema_version: "ai-production-provider-input-preflight-request.v1",
-  source_task_id: job.source_task_id,
-  product_id: job.product_id,
-  input_bundle_ref: job.input_bundle_ref,
-  input_bundle_hash: job.input_bundle_hash,
-  stage_id: material.stage_id,
-  inputs: material.inputs.map(({ input_id, ordinal, file_name, sha256, byte_count, object_ref }) => ({
-    input_id,
-    ordinal,
-    file_name,
-    sha256,
-    byte_count,
-    object_ref,
-  })),
-});
-
-const preflightFilesMatch = (material: CloudClaimedJobCandidate["materials"][number]): boolean => {
-  const receipt = material.provider_input_preflight_receipt;
-  return Boolean(receipt && receipt.files.length === material.inputs.length
-    && material.inputs.every((input, index) => {
-      const file = receipt.files[index];
-      return file?.input_id === input.input_id && file.ordinal === input.ordinal
-        && file.file_name === input.file_name && file.sha256 === input.sha256
-        && file.byte_count === input.byte_count;
-    }));
-};
-
-const inspectMaterialPreflight = (
-  job: CloudClaimedJobCandidate,
-  material: CloudClaimedJobCandidate["materials"][number],
-  context: z.RefinementCtx,
-): void => {
-  const receipt = material.provider_input_preflight_receipt;
-  if (job.product_id === "public_knowledge_article_pipeline" && material.stage_id === "corpus_research" && !receipt) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_REQUIRED", path: ["materials"] });
-    return;
-  }
-  if (!receipt) return;
-  const { receipt_hash: receiptHash, ...receiptBody } = receipt;
-  if (receipt.source_task_id !== job.source_task_id || receipt.product_id !== job.product_id
-    || receipt.input_bundle_ref !== job.input_bundle_ref || receipt.input_bundle_hash !== job.input_bundle_hash
-    || receipt.stage_id !== material.stage_id || receipt.input_set_hash !== canonicalHash(buildPreflightInputSet(job, material))
-    || !preflightFilesMatch(material) || receiptHash !== canonicalHash(receiptBody)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_INVALID", path: ["materials"] });
-  }
-};
-
 const inspectLocalizationOrder = (
   job: CloudClaimedJobCandidate,
   context: z.RefinementCtx,
@@ -433,9 +351,6 @@ const inspectLocalizationOrder = (
 export const XuanxueAiProductionCloudClaimedJobSchema = XuanxueAiProductionCloudClaimedJobBaseSchema.superRefine((job, context) => {
   inspectParentReplay(job, context);
   inspectLocalizationOrder(job, context);
-  for (const material of job.materials) {
-    inspectMaterialPreflight(job, material, context);
-  }
 });
 
 export type XuanxueAiProductionCloudClaimedJob = z.infer<

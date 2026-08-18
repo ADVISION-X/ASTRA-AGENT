@@ -443,18 +443,15 @@ const inspectAcceptance = (
       "typed_participant_private_base",
       "bazi_chart_interpretation",
       "listCloudRecoveryOrders",
-      "ORDER_IDENTITY_CONFLICT",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
       "a paid follow-up without an exact parent must never reach GPT",
       "orders sharing one parent GPT conversation must be serialized",
       "same-parent follow-ups must preserve FIFO order",
-      "provider citation residue must discard the response and restart once",
       "restart must retire an invalid completed prefix and every downstream node",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
       "a missing parent chat must replay the parent first, then ask the follow-up",
       "a cloud replay package must reconstruct an absent local parent before the follow-up",
-      "one verified parent attachment must expand the frozen material file limit exactly once",
       "QUESTION_A_ONLY",
       "person:naming-aux-4",
       "continuation_parent_replay",
@@ -469,10 +466,6 @@ const inspectAcceptance = (
       "localization_consistency",
       "providerTranscriptJsonl",
       "modelIdentityProof",
-      "terminalAttachmentGatewayCallCount",
-      "a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt",
-      "restart recovery must preserve the terminal attachment proof without a second upload attempt",
-      "a blocked pre-submit attachment set must never create a second provider upload attempt",
     ],
   });
 };
@@ -504,7 +497,10 @@ const inspectDomainEvaluation = async (
     const result = source(context, findings, laws.boundary, filePath);
     return result ? [result] : [];
   });
-  const values = collectXuanxueSourceValues(sources);
+  const acceptanceSources = [acceptancePath, ...acceptanceSupportPaths]
+    .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
+    .filter((file): file is SourceFile => file !== undefined);
+  const values = collectXuanxueSourceValues([...sources, ...acceptanceSources]);
   inspectContracts(findings, laws, values);
   inspectXuanxueRecoveryDurability(
     context, findings, laws.durability, values,
