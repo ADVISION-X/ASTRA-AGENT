@@ -1,225 +1,416 @@
-# GrassEye 精确标签页本地 Chrome 会话施工图
+# GrassEye Browser Authority 生产施工图
 
-版本：2026-08-16.1
-状态：active construction blueprint
+版本：2026-08-18.4  
+状态：active construction blueprint  
 权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`
 
-## 1. 唯一责任区
+> 本施工图描述 Browser 插件责任区的唯一终态。它不建立第二真相；与 active law 冲突时以 active law 为准。
+
+## 1. 终态目标与绝对边界
+
+生产运行态永远只有：
 
 ```txt
-src/lib/browser/**
-  one BrowserController
-  one in-memory target registry
-  one private Native Messaging transport
-  one MV3 extension
+AUTHORITY_ABSENT
+AUTHENTICATED_AUTHORITY_PRESENT
 ```
 
-Browser 只负责浏览器目标、文档世代、插件低层命令和连接生命周期，不拥有业务步骤、AI 判断、业务状态、Evidence 真相或 Runtime Log 真相。
+`browserSession 未认证` 不是一个失败状态，而是一个被类型、组合根、协议和法案共同禁止的对象形态。认证前不存在 Browser session、Browser target session 或页面命令能力；只有 Browser infrastructure control plane。
 
-## 2. 唯一四跳链路
+任何根信任、release、profile、Chrome process、Controller、Host、Port、Extension、heartbeat 或命令证书不能证明时，唯一合法结果是 `AUTHORITY_ABSENT + BLOCKED`。不得降级、fallback、伪造 ready 或为了继续业务而返回未认证 Browser 能力。
+
+## 2. 唯一生产拓扑
 
 ```txt
-CurrentChromeBrowserController
-  -> 0600 <dataDir>/browser-runtime/controller-native.sock
-      -> com.grasseye.browser Native host
-          -> Chrome Native Messaging
-              -> fixed-id MV3 service worker
-                  -> chrome.debugger
-                      -> exact target
+GrassEye composition root
+  -> resolve BrowserProfileEnrollment
+  -> BrowserProcessSupervisor
+      -> enrolled Chrome executable
+         --user-data-dir=<explicit>
+         --profile-directory=<explicit>
+  -> CurrentChromeBrowserController.create()
+      -> BrowserCommandRuntime.create()
+          -> BrowserNativeTransportServer
+              -> 0600 <dataDir>/browser-runtime/controller-native.sock
+                  -> grasseye-browser-host (self-contained Rust)
+                      -> Chrome Native Messaging
+                          -> fixed-id MV3 extension
+                              -> NativePortActor(nativePortEpoch)
+                                  -> chrome.debugger
+                                      -> exact target / exact document
 ```
 
-- Controller 创建 socket、内存 nonce、session id 和 command correlation。
-- 一个 `dataDir/controller-native.sock` 只能由一个存活 BrowserController 进程拥有；重复启动必须在绑定阶段失败，绝不删除、替换或抢占已存在的 endpoint。
-- Controller transport 启动失败必须成为可观察的 terminal readiness failure；未完成 authenticated handshake 前，Workbench 不得把 browser mission 报为 ready。
-- Native host 只转发有界消息；不保存 target、业务状态、证据或 secret。
-- MV3 worker 只枚举 target、attach/detach debugger、发送 CDP 命令和返回事件。
-- target registry 只在 Controller 进程内把 raw ids 映射为 opaque refs。
-- 每个 transport 连接拥有递增 lifecycle generation；任一 hop 断连先让 Browser owner 失效全部 registry/session target/document refs，再允许新的 handshake 进入。
-- 旧连接迟到的 close/message 不得修改新连接的认证、序号或 readiness；mutation 已发出但未确认时返回 `OUTCOME_UNKNOWN`，绝不自动重放。
-- listener、Native host socket、extension hello、controller challenge、authenticated、disconnect 都要写入脱敏的 bounded runtime diagnostic。
+Browser 只拥有基础设施、认证 authority、target/document identity 与页面原子动作。它不拥有业务顺序、AI 判断、provider verdict、Evidence 真相、网站 job lease 或发布 verdict。
 
-## 3. 文件落位
+禁止：Playwright 生产旁路、直接 CDP 公共入口、AppleScript/JXA、active-tab/current-page fallback、系统鼠标键盘、clipboard、native picker、第二 Native Host、第二 localhost/WebSocket 浏览器通道。
+
+## 3. 文件责任区
 
 ```txt
-src/lib/browser/exact-target/
-  browser-target-ref.ts
-  browser-command-contract.ts
-  browser-target-registry.ts
-  browser-native-transport-protocol.ts
-  browser-native-transport-server.ts
-  browser-command-runtime.ts
-
-src/lib/browser/chrome-extension/
-  manifest.json
-  protocol.ts
-  service-worker.ts
-  tsconfig.json
-  build.mjs
-  dist/                       # build output, never source truth
-
-src/lib/browser/native-messaging-host/
-  host.mjs
-  controller-channel.mjs
-  manifest.template.json
-  install.mjs
+src/lib/browser/
+  authority/
+    browser-authority-certificate.ts
+    browser-authority-issuer.ts
+  profile/
+    browser-profile-enrollment.ts
+    browser-profile-config.ts
+    browser-process-supervisor.ts
+  release/
+    browser-release-identity.ts
+  transport/
+    browser-session-crypto.ts
+    command-permit.ts
+  exact-target/
+    browser-command-runtime.ts
+    browser-native-transport-server.ts
+    browser-native-transport-protocol.ts
+    browser-file-artifact-grant.ts
+    browser-target-registry.ts
+    browser-target-ref.ts
+  chrome-extension/
+    manifest.json
+    protocol.ts
+    service-worker-session-crypto.ts
+    service-worker-native-transport.ts
+    service-worker-command-execution.ts
+    service-worker.ts
+    ... dedicated DOM/input helpers
+  native-messaging-host/
+    Cargo.toml
+    crates/host/**
+    crates/browserctl/**
+    install.mjs                # thin prebuilt browserctl launcher only
 ```
 
-现役 `browser-controller.ts`、`current-chrome-browser-controller*.ts` 只保留 target-bound 主链。旧 active-tab helpers、URL-first、first-page、AppleScript/JXA 页面动作和 CDP file-input 旁路在原子 cutover 物理删除。
-
-## 4. 身份合同
-
-```ts
-type BrowserTargetRef = string & { readonly __brand: "BrowserTargetRef" };
-type BrowserDocumentRef = string & { readonly __brand: "BrowserDocumentRef" };
-
-interface ControlledBrowserTarget {
-  targetRef: BrowserTargetRef;
-  documentRef: BrowserDocumentRef;
-  origin: string;
-  lifecycle: "attached" | "navigating" | "detached" | "closed";
-}
-```
-
-- `BrowserTargetRef` 绑定 controller session、target raw id、获准 origin 和 target generation。
-- `BrowserDocumentRef` 额外绑定 frame/document loader generation。
-- opaque ref 只可由 registry mint/resolve；调用方不得解析、构造或持久化。
-- navigation committed、frame replacement、detach、target close、extension reload、controller restart 都使旧 document ref 失效。
-- evidence/log 只记录 opaque ref、origin、generation 和 command id，不记录 raw ids。
-
-## 5. Public BrowserController
-
-```ts
-interface BrowserController {
-  acquireTarget(input: AcquireTargetInput): Promise<ControlledBrowserTarget>;
-  navigateTarget(input: NavigateTargetInput): Promise<ControlledBrowserTarget>;
-  evaluateTarget<T>(input: TargetDocumentCommand): Promise<T>;
-  clickTarget(input: TargetDocumentPointCommand): Promise<BrowserActionResult>;
-  clickDomTarget(input: TargetDocumentIdentityCommand): Promise<BrowserActionResult>;
-  fillDomTarget(input: TargetDocumentIdentityTextCommand): Promise<BrowserActionResult>;
-  textTarget(input: TargetDocumentTextCommand): Promise<BrowserActionResult>;
-  scrollTarget(input: TargetDocumentScrollCommand): Promise<BrowserActionResult>;
-  captureTargetScreenshot(input: TargetDocumentCommand): Promise<BrowserActionResult>;
-  setTargetFileInputFiles(input: TargetDocumentFileInputCommand): Promise<BrowserActionResult>;
-  releaseTarget(targetRef: BrowserTargetRef): Promise<void>;
-}
-```
-
-所有页面动作都必须同时携带 `targetRef + documentRef`。普通页面动作通过 CDP 对后台 target 执行，不激活 Chrome、不切换用户当前标签页。
-
-## 6. 命令与失败语义
-
-每条 command envelope 最少包含：
+退休文件必须物理退出：
 
 ```txt
-protocolVersion
-controllerSessionId
+src/lib/browser/local-browser-session.ts
+src/types/local-browser-session.ts
+src/lib/browser/native-messaging-host/host.mjs
+src/lib/browser/native-messaging-host/controller-channel.mjs
+```
+
+## 4. Composition root：认证以后才有业务对象
+
+法定顺序：
+
+```txt
+resolve explicit enrolled profile
+-> ensure enrolled Chrome process
+-> bind owner-only Controller socket
+-> Chrome starts fixed-id extension
+-> Extension starts NativePortActor
+-> Host validates caller origin + enrolled Chrome process ancestry
+-> Controller/Extension mutual handshake
+-> Controller sends pending authority grant
+-> Extension verifies grant and sends grant ACK
+-> Controller verifies ACK
+-> BrowserAuthorityIssuer.commit()
+-> AUTHENTICATED_AUTHORITY_PRESENT
+-> BrowserCommandRuntime factory resolves
+-> BrowserController factory resolves
+-> create AI Gateway / video / browser-dependent owners
+-> expose HTTP server
+```
+
+因此：
+
+- `createWorkbenchAssembly()` 是 Browser Authority admission gate。
+- `CurrentChromeBrowserController` private constructor，只能通过 async `create()` 获得。
+- `BrowserCommandRuntime` 只能通过 async `create()` 获得。
+- HTTP server `listen()` 必须位于 `workbench.init()` 成功之后。
+- Authority 缺席时可以报告 `browserAuthority=absent/BLOCKED`，但不存在 `browserSession` 对象或 `transportReady=false` 的正常运行态。
+
+## 5. Profile 与 Chrome process identity
+
+生产环境必须显式注入：
+
+```txt
+GRASSEYE_CHROME_USER_DATA_DIR
+GRASSEYE_BROWSER_PROFILE_REF
+GRASSEYE_BROWSER_PROFILE_DIRECTORY
+GRASSEYE_CHROME_EXECUTABLE
+```
+
+`BrowserProfileEnrollment` 内容寻址绑定：
+
+```txt
+platform
+profileRef
+userDataDir
+profileDirectory
+chromeExecutablePath
+extensionId
+releaseIdentity
+Local State hash
+```
+
+BrowserProcessSupervisor 启动专用 Chrome 时必须携带精确 `--user-data-dir` 和 `--profile-directory`。Rust Host 在读取 owner-only config 后向上检查进程 ancestry；只有来自同一 enrolled Chrome executable/user-data-dir/profile-directory 的 Host 才可连接 Controller socket。
+
+正确 extension ID 但错误 profile/process 不能获得 Authority。
+
+## 6. ReleaseIdentity
+
+当前冻结 tuple：
+
+```txt
+protocolVersion = grasseye-browser-v2
+releaseIdentity = grasseye-browser-runtime-2026-08-18-v2
+extensionId = mepfnlhndaiihhfejbbhfehegpbdnipl
+extensionVersion = 2.0.0
+nativeHostName = com.grasseye.browser
+minimumChromeVersion = 120
+```
+
+Controller、Extension、Host、browserctl、profile enrollment 必须读到同一 tuple。混合版本不进行兼容猜测，直接 fail closed。
+
+未来版本不得通过永久 legacy bridge 兼容；只允许经过签名兼容矩阵证明的有限 N/N-1 activation window，并由 release security policy 明确吊销与最低接受序列。
+
+## 7. 双向认证与 Authority 原子提交
+
+每个 Native Port 是一个独立 epoch：
+
+```txt
+nativePortEpoch = monotonic extension-local epoch
+connectionGeneration = monotonic Controller connection generation
+```
+
+认证流程：
+
+```txt
+Extension hello
+  {extensionId, extensionVersion, releaseIdentity, extensionInstanceId, nativePortEpoch}
+
+Controller challenge
+  {controllerSessionId, generation, portEpoch, challengeId, nonce, controller ECDH public key}
+
+Extension proof
+  - ephemeral P-256 key
+  - ECDH shared secret
+  - HKDF-SHA256
+  - HMAC(auth transcript)
+
+Controller verifies proof
+  -> BrowserAuthorityIssuer.prepare(candidate)
+  -> candidate is NOT current authority
+
+Controller authority_grant
+  -> HMAC(grant transcript)
+
+Extension verifies grant
+  -> authority_grant_ack with HMAC
+  -> only then marks local actor authority-present
+
+Controller verifies ACK
+  -> BrowserAuthorityIssuer.commit(candidate)
+  -> only now current authority is PRESENT
+```
+
+握手中途任何断开或 proof mismatch 都只会清除 pending candidate；业务从未见到未认证 authority。
+
+## 8. 加密帧与 Command Permit
+
+每个 Port epoch 的临时 session key 只存在内存：
+
+```txt
+P-256 ECDH
+-> HKDF-SHA256
+-> frame key
+-> AES-256-GCM command/response frames
+```
+
+AAD 固定绑定：
+
+```txt
+authorityId
+connectionGeneration
+nativePortEpoch
+sequence
+```
+
+每条 command permit 固定绑定：
+
+```txt
+authorityId
+authorityCertificateHash
+connectionGeneration
+nativePortEpoch
 commandId
-targetRef
-documentRef
-originConstraint
-mutationClass = observation | idempotent_mutation | non_idempotent_mutation
+sequence
 deadlineAt
-payload
+permitHash
 ```
 
-Terminal errors：
+旧 port、旧 generation、旧 authority、旧 permit、旧 completion 即使迟到，也无法通过当前 actor/current connection/current authority 校验，更无法产生当前 frame 的有效认证标签。
+
+## 9. Port Actor 与并发规则
+
+MV3 不再用跨世代全局 `nativePort/authenticatedNonce/lastAcceptedSequence` 作为真相。每次 `connectNative()` 返回一个独立 `NativePortActor`。Actor 自己拥有：port、nativePortEpoch、extensionInstanceId、one-time handshake、committed authority binding、sequence、bounded receipt cache、heartbeat timer。
+
+异步命令完成后只允许回到捕获它的原 Actor 原 Port。`activeActor !== this` 时，迟到消息、disconnect 和 completion 全部无副作用退出。
+
+Controller 同理：每个 socket connection 是独立 `ConnectionState`。只有 `this.connection === connection` 的事件才可修改当前状态。
+
+## 10. Liveness 与撤销顺序
+
+默认：
 
 ```txt
+heartbeatIntervalMs = 1000
+softDrainAfterMs = 3500
+hardExpiryMs = 5000
+watchdogTickMaxMs = 250
+maxAuthorityAgeMs = 8h
+```
+
+Heartbeat 是已认证 Authority 的续活证明，不是认证入口。它永远不能从 ABSENT 生成 Authority。
+
+任一 discontinuity 的顺序必须是：
+
+```txt
+revoke current authority
+-> invalidate registry / target / document / target-session epoch
+-> reject pending command
+-> detach/cleanup/log
+-> schedule reconnect wake
+```
+
+禁止先 reconnect、先 reset global state、先回调业务再 revoke。
+
+8 小时 authority 最大年龄到达时禁止在线 rekey。必须有界 drain 到 checkpoint、revoke 整链、全新 Port、全新 handshake、新 Authority。
+
+## 11. Exact target/document identity
+
+`BrowserTargetRef` 与 `BrowserDocumentRef` 永远 opaque。raw tab/window/frame/debugger id 只存在 `src/lib/browser/**`。
+
+- target ref 至少绑定 controller/authority epoch、raw tab identity、approved origin、target generation。
+- document ref 额外绑定 frame/loader generation。
+- navigation、detach、tab close、Extension reload、Authority revoke 都使旧 document ref 失效。
+- Authority revoke 后旧 target/document ref 永不恢复；显式业务 checkpoint 只能重新 acquire 新 ref。
+- non-idempotent mutation 的 uncertain result 不能因为重连而自动重试。
+
+## 12. Observation 与 mutation 隔离
+
+Public `evaluate({script})` 保留给现有只读观察消费者，但唯一规范化点是 Browser owner：
+
+```txt
+function body
+-> toBrowserEvaluationExpression
+-> evaluate_target
+-> MV3 Runtime.evaluate(
+     throwOnSideEffect = true,
+     userGesture = false
+   )
+```
+
+因此 generic evaluate 在高权限执行器层机械禁止页面 mutation。
+
+所有 mutation 使用专用命令：`navigate_target/click_target/click_dom_target/fill_dom_target/scroll_target/text_target/set_file_input_files/close_target`。
+
+Point click 先 side-effect-free 验证 receiver，再通过 CDP `Input.dispatchMouseEvent`。Unicode/CJK/emoji 文本通过 `Input.insertText`。DOM click/fill 必须在同一命令完成 selector 唯一解析、identity 重验和 mutation。
+
+## 13. URL 与权限双层准入
+
+Controller/business policy 不是唯一防线。MV3 high-privilege executor 自己必须拒绝：
+
+```txt
+file:
+chrome:
+chrome-extension:
+data:
+javascript:
+任意未批准 host
+非本机 plain-http
+```
+
+Extension manifest permissions 是静态上限；service worker 的 runtime allowlist 是第二道高权限准入。未来新增 provider 必须先更新 capability/权限法案与当前真实 Chrome 证据，不能依靠 wildcard 预留万能权限。
+
+## 14. FileArtifactGrant
+
+Wire 不接受 raw `filePath`。Controller 先生成：
+
+```txt
+BrowserFileArtifactGrant
+  grantId
+  realpath
+  device/inode
+  size
+  sha256
+  approvedRoot
+  issuedAt
+```
+
+签发时必须 `realpath -> approved root check -> regular file -> size bound -> hash -> second stat -> reject symlink/race/content drift`。
+
+Extension 只消费 grant 中已批准 path，仍需精确 target/document 与唯一 DOM receiver。未来跨机器/大附件必须升级为 content-addressed artifact stream，不在控制帧中放任意大 payload。
+
+## 15. Native Messaging framing 与预算
+
+外层 Chrome Native Messaging：4-byte unsigned native-endian length + UTF-8 JSON。
+
+内部预算：
+
+```txt
+Host -> Extension control frame <= 256 KiB
+Extension -> Host <= 48 MiB
+Controller <-> Host newline frame <= 64 MiB
+```
+
+任何零长度、超限、短 header、截断 body、非法 JSON、protocol/release mismatch 都 fail closed。
+
+## 16. Rust Native Host
+
+生产 Host `grasseye-browser-host` 职责只有：校验 Chrome caller origin、owner-only config/socket/uid、enrolled Chrome process ancestry、外层 release/protocol identity、Native Messaging framing、stdio↔Controller bounded relay。
+
+Host 禁止拥有 authority verdict、target registry、business state、evidence、retry policy、provider secrets、session key。
+
+生产不再使用 Node shebang Host；Node/nvm/Homebrew 变化不能改变 Host 可执行性。
+
+## 17. browserctl 安装事务
+
+`install.mjs` 只是预构建 `grasseye-browserctl` launcher。目标机器禁止从源码构建 Host。
+
+browserctl：
+
+```txt
+resolve prebuilt Host artifact
+-> stage immutable release dir
+-> sha256 readback
+-> write owner-only connection config
+-> write exact allowed_origins NativeMessagingHosts manifest
+-> fsync + atomic rename
+-> write activation receipt
+-> verify installed bytes/config/manifest/profile tuple
+```
+
+连接 config 与 activation receipt 至少绑定 releaseIdentity、protocolVersion、extensionId、profileRef、userDataDir、profileDirectory、chromeExecutablePath、controller socket path、host path/hash。
+
+生产发布的进一步硬门仍包括代码签名、公证、Verified CRX/CWS identity、SBOM/provenance、anti-rollback/revocation policy 与 same-artifact proof。
+
+## 18. 失败语义
+
+Terminal/fail-closed errors 至少包括：
+
+```txt
+BROWSER_AUTHORITY_ABSENT
+TRANSPORT_DISCONNECTED
 TARGET_NOT_FOUND
 TARGET_AMBIGUOUS
-TARGET_FOREIGN_SESSION
 TARGET_ORIGIN_MISMATCH
 DOCUMENT_STALE
-TARGET_CLOSED
-TRANSPORT_DISCONNECTED
-EXTENSION_VERSION_MISMATCH
 DEVTOOLS_ATTACHMENT_CONFLICT
 COMMAND_TIMEOUT
 OUTCOME_UNKNOWN
-FOCUS_LEASE_DENIED
-OPERATOR_INTERRUPTED
+BROWSER_BACKPRESSURE
 ```
 
-Observation 可以由 owning caller 重新从 checkpoint 发起；任何 mutation 在 terminal receipt 不确定时只进入 `OUTCOME_UNKNOWN`，禁止 transport 自动重试。
+- observation 可由 owning business checkpoint 再次发起。
+- idempotent mutation 的 retry 只能由 owning business policy 对新 Authority/新 refs 显式决定。
+- non-idempotent mutation 发出后没有 terminal receipt => `OUTCOME_UNKNOWN`，transport 不重放。
+- 任何旧 authority object 不能因为网络恢复自动变有效。
 
-## 7. MV3 与 Native Messaging
-
-- `manifest_version=3`。
-- 固定 public key 产生稳定 extension id。
-- 权限只包含 `debugger`、`nativeMessaging`、必要 tabs 和明确 provider host permissions。
-- 禁止 cookies、storage、password、webRequest body、任意远程代码。
-- Native host manifest `allowed_origins` 只有固定 extension origin。
-- Native 消息遵守 Chrome 4-byte length framing，并设置 request/response size 上限。
-- Controller、host、extension protocol version 必须完全一致。
-- Controller 只能在 authenticated transport 后报告 ready；startup 不能静默吞掉 socket bind/duplicate-owner 错误。
-- 每次 `connectNative` 返回的 port 是一个独立运输会话。worker 的当前 port 指针先完成换主，
-  随后只有来自该指针所指 port 的 challenge/command 才能认证或修改 `lastAcceptedSequence`。
-  已断开、被替换或迟到的旧 port 消息必须在 nonce/sequence 状态变更前直接忽略。
-- 当前 port 的 controller challenge 对该 port 精确重置一次序号，首条命令必须是 sequence 1；
-  Controller/host 重启后即使旧 port 有迟到 challenge，也不得把新 port 已接受的序号清零。
-- Native host socket 的重复 owner、旧 socket、旧连接 close 和 transport reconnect 必须经过 owner 级 lifecycle generation 处理；不能用启动时无条件 unlink 恢复。
-
-### 7.1 evaluate 唯一表达式合同
-
-Public `BrowserTargetSession.evaluate({ script })` 的 `script` 是函数体，不是可直接交给 CDP 的表达式。唯一转换点位于 exact-target Browser owner：
-
-```txt
-caller function body
-  -> toBrowserEvaluationExpression
-      -> exactly one immediately-invoked function expression
-          -> evaluate_target
-              -> MV3 Runtime.evaluate(expression)
-```
-
-固定规则：
-
-- 只在 `src/lib/browser/exact-target/**` 包装一次。
-- Native host 与 MV3 worker 只转发/执行已规范化 expression，不再包裹。
-- `evaluate_target` 的 `mutationClass` 固定为 `observation`。
-- 通用 click/scroll/text 分别走 `click_target`、`scroll_target`、`text_target`；DOM click/fill 只走 `click_dom_target`、`fill_dom_target`，上传走 `set_file_input_files`。
-- `click_dom_target` / `fill_dom_target` 在同一命令中完成 selector 唯一解析、当前 identity 对比、可交互性核对和 mutation，不接收先前观察出的坐标。
-- 禁止 caller-local wrapper、`eval`、`new Function`、双模式或失败回退。
-- top-level `return` 必须在 deterministic acceptance 和真实 Chrome 中得到证明。
-- duplicate/out-of-order commandId、nonce/version/origin/size 错误全部 fail closed。
-
-## 8. 安装、升级、卸载
-
-`install.mjs` 执行：
-
-```txt
-build extension
--> verify fixed extension id and source hash
--> render absolute Native host manifest
--> chmod owner-only
--> install into Chrome NativeMessagingHosts
--> emit install receipt
-```
-
-升级必须先停止新的 Browser command，等待有界在途观察完成；未决 mutation 进入 `OUTCOME_UNKNOWN`。新旧 protocol 不一致时不启动 consumer。卸载先阻断新命令、detach debugger、停止 host/socket，再删除注册 manifest 和 build 目录。
-
-Startup 法定入口不参与安装、升级、卸载或 provider 激活。
-
-## 9. 插件单链与焦点归零
-
-- 所有页面动作和文件输入只走 exact-target MV3 插件命令。
-- Browser public contract 不提供原生文件选择器、系统剪贴板、OS 鼠标、OS 键盘或焦点租约。
-- extension protocol 不提供 `focus_target`，不得激活 Chrome、切换用户前台标签页或抢占电脑。
-- 文件输入只允许 `set_file_input_files` 命中精确 target/document 内的唯一 receiver。
-- `physical-focus-lease.ts`、`current-chrome-native-multi-file-picker.ts` 及其验收已物理删除，禁止重建包装器、回退或第二链。
-
-## 10. Consumer 迁移
-
-```txt
-Business Flow acquires exact target
--> passes opaque target/document refs to DOM or owning capability
--> every action returns the same identity receipt
--> navigation returns a new document ref
--> caller discards all prior DomElementRef values
-```
-
-AI Input Gateway 仍只控制一个物理 ChatGPT target，但每次 mutation/patrol 都用同一个 opaque targetRef；等待回答时释放 mutation lease。各业务 target 互不影响。
-
-## 11. Audit owner
+## 19. Audit owner
 
 ```txt
 scripts/audit/domains/local-browser-session/
@@ -228,97 +419,67 @@ scripts/audit/domains/local-browser-session/
   inspector-old-path-zero.ts
 ```
 
-Inspector 使用 ts-morph AST/symbol 证明：
-
-- 唯一 BrowserController 构造点。
-- raw Chrome id 不越界。
-- 所有 public page command 要求 target/document refs。
-- Browser 与调用方不存在 FocusLease 或 OS 文件动作符号。
-- active-tab、URL-first、first-page 和 AppleScript/JXA 页面动作符号不可达且退休文件不存在。
-- extension/host 不能拥有业务状态、evidence 或 secret。
-- Startup 未获得安装或业务职责。
-- exact-target session 调用唯一 `toBrowserEvaluationExpression`；worker 未实现第二包装器。
-- `evaluate_target` 只承载 observation，专用 mutation command 仍绑定同一 target/document。
-- transport startup 不会无条件 unlink endpoint，重复 Controller owner 会 fail closed。
-- transport disconnect 会连动 Browser registry/session 失效，旧连接 close 不会修改当前连接状态。
-- Workbench browser health/readiness 读取真实 authenticated transport 状态，而不是只读取 profile 配置。
-- transport 生命周期诊断只使用允许的 runtime-log spine 字段，不落 nonce、token、cookie 或 raw Chrome id。
-
-## 12. Acceptance
-
-### 12.1 真实页面先验与候选回归顺序
-
-任何 BrowserController、MV3 worker、DOM command 或真实页面状态机变更，必须按同一顺序施工：
+P0 checkIds 必须拆分证明：
 
 ```txt
-使用批准的 Chrome 插件进入本次真实失败页面
-  -> 绑定 exact target / current document
-  -> 读取动作前结构与 runtime trace
-  -> 区分 light DOM、author shadow DOM 和 browser-owned UA shadow DOM
-  -> 确认真正接收动作的 node 与动作后状态
-  -> 只依据已观察结构删除并重构唯一责任片区
-  -> 构建同一候选
-  -> 再用批准的 Chrome 插件重跑同一路径
-  -> 分别记录 pre-construction evidence 与 post-construction evidence
+no-unauth-session-type
+no-transport-ready-boolean
+composition-authority-gate
+authority-mutual-commit
+authority-revoke-before-side-effects
+native-port-actor-generation-fence
+command-permit-frame-binding
+profile-process-enrollment
+protocol-release-identity
+side-effect-free-observation
+file-artifact-grant
+rust-native-host-only
+retired-path-zero
 ```
 
-模拟页面只用于把已经观察到的真实拓扑固化成 deterministic regression，不得反过来作为
-真实拓扑的来源。真实失败后没有新增页面证据，不允许继续追加猜测性修改。
+Static Audit 不宣称证明真实时序本身；property/model/fuzz、deterministic acceptance 与真实 Chrome 各自拥有自己的证据主权。
 
-```txt
-local-browser-exact-target-contract.acceptance.ts
-local-browser-native-transport.acceptance.ts
-local-browser-target-actions.acceptance.ts
-local-browser-real-chrome-scenarios.acceptance.ts
-local-browser-business-workday.acceptance.ts
-local-browser-atomic-cutover.acceptance.ts
-```
+## 20. Quality / mutant matrix
 
-真实 Chrome 最小矩阵固定为 `ACC-023B-01` 至 `ACC-023B-10`：
+质检定义必须能杀死至少以下反例；本次施工不要求执行它们：
 
-1. 前台打开用户测试页并写入 title/scroll/input marker。
-2. 后台受控 target 完成 navigate/evaluate/click/fill/scroll/screenshot。
-3. 前台 marker 全部不变。
-4. navigation 后旧 document/element ref 必须拒绝。
-5. 关闭 target、extension reload、host/controller exit、DevTools 冲突全部 fail closed。
-   Native port 换主后注入旧 port 的迟到 challenge，当前 port 仍从 sequence 1 正常执行；旧消息
-   不得触发认证回执、序号归零、乱序错误或 debugger 命令。
-6. 启动第二个使用同一 `dataDir/controller-native.sock` 的 BrowserController 必须失败，且不能 unlink 或改变第一个 owner 的 socket；旧 socket/旧连接 close 也不能删除新 owner endpoint。
-7. Native transport disconnect 必须使所有已签发 target/document refs 立即失败关闭；重连后只能显式从 owner checkpoint acquire 新 refs。
-8. 未 authenticated 时 `/api/health` 或 mission readiness 不得报告 browser ready；listener-only、profile-only、extension-installed-only 都不算 transport ready。
-9. 文件输入只通过插件精确 target 命令运行，前台标签和窗口焦点保持不变。
-10. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
-11. 函数体 top-level return 经唯一生产 wrapper 成功返回，且不存在 `Illegal return statement`。
-12. DOM click、DOM fill、file-input mutation 只通过各自专用 exact-target command 完成；identity 改变攻击必须 fail closed。
-13. 前台非目标 tab 在全部场景中保持 URL、title、scroll 和 input marker 不变。
+1. pre-auth 构造 BrowserController 数据面。
+2. `transportReady=false` 成为合法 session 状态。
+3. health component 重新叫 `browserSession`。
+4. Controller 在 grant ACK 前 commit Authority。
+5. heartbeat 从 ABSENT 创建 Authority。
+6. disconnect 先回调/重连后 revoke。
+7. 旧 Port disconnect 清理新 Port state。
+8. 旧 Port completion 回到新 Port。
+9. 重复 challenge 重置 sequence。
+10. command 无 permit。
+11. command permit 使用旧 certificate hash。
+12. response generation/port/sequence mismatch 仍被接受。
+13. AEAD/AAD 任一字段篡改仍执行。
+14. wrong release/protocol 被接受。
+15. wrong extension id 被接受。
+16. correct extension id + wrong Chrome profile 被接受。
+17. wrong Chrome process ancestry 被 Host 接受。
+18. authority hard expiry 后仍执行命令。
+19. generic evaluate 可产生 side effect。
+20. raw file path 进入 wire contract。
+21. symlink/file drift 不被 grant 阻断。
+22. Host 恢复 Node/shebang 生产链。
+23. active-tab/current-page/focus fallback 复活。
+24. non-idempotent uncertain mutation 自动重放。
+25. second Controller 抢占同一 socket。
+26. proof 后重建同版本不同字节仍获发布准入。
 
-`text_target` 只保留为通用 Browser 文本命令，不得与先前坐标 click 拼装成 DOM fill。
-DOM fill 由单个 `fill_dom_target` 对同一已复核 receiver object 完成聚焦、受信任 CDP 键盘清空与逐字输入、
-每步 identity/value 复核以及最终组件非 error/invalid 状态核对；不得用 JS value setter 或 synthetic
-`input/change` 把“看起来有值”冒充组件提交，也不得回退到 `click_target + text_target`、
-`Input.insertText`、前台系统键盘或第二输入链。
+## 21. 真实 Chrome 证明边界
 
-真实 Amazon `kat-file-upload` 的唯一文件接收顺序：
+未来执行真实 Chrome 证明时，同一候选至少覆盖 foreground marker 不变、Extension reload/worker restart、Host crash/Controller restart、stale Port challenge/disconnect/completion、heartbeat silent half-open/sleep-wake、wrong profile/process/release/protocol、stale target/document ref、DevTools conflict、mutation disconnect=>`OUTCOME_UNKNOWN` no replay、Unicode/CJK/emoji input、file grant drift、packaged artifact identity。
 
-```txt
-governed selector 命中隐藏 light-DOM input[type=file] 代理
-  -> 沿该节点所属自定义元素查找 open author shadow root
-  -> 必须恰好存在一个 enabled input[type=file]
-  -> DOM.setFileInputFiles 只作用于这个真实 receiver
-  -> Browser 只确认这一次获准文件选择已派发
-  -> 业务 owner 观察组件自己的 postcondition
-```
+历史 screenshot、另一个 build 或 load-unpacked 结果不能证明当前发布 artifact。
 
-零个或多个 shadow receiver fail closed。真实组件可以在消费 change 后同步清空 receiver，
-所以 `input.files` 既不是 Browser action 的终态，也不是业务附件真相。不得打开第二套 native
-picker、evaluate mutation 或组件专用 fallback；组件 postcondition 只能由现有业务 owner 读取。
+## 22. 长期扩展规则
 
-## 13. Security Privacy Ownership
+未来八字、奇门、合婚、起名、本地化、报告复核、Amazon、Deep Research 或其他业务需要更多网页能力时，只能增加 versioned command capability、declarative input schema、owner policy、permission/origin requirement、business postcondition、audit binding、acceptance/real-page proof。
 
-`GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1` 归 `local-browser-session` 唯一 owner：BrowserController 不读取或持久化 cookie、localStorage、sessionStorage、password、token，browser profile 与 evidence storage 物理分离。该条款复用现有 Browser owner inspector 与 acceptance，不增加隐私旁路或第二 browser owner。
+不得修改或复制 Authority state model、mutual auth/grant ACK、NativePortActor generation fence、command permit/AEAD frame、Native Messaging main chain、Rust Host trust boundary、profile enrollment、ReleaseIdentity、exact target/document identity。
 
-## 14. 完成定义
-
-- 四条 active local-browser laws、图纸、owner manifest/inspector、acceptance 和 ci:full 绑定一致。
-- 旧链及全部消费者物理归零，没有 wrapper、alias、fallback、mode switch 或第二 transport。
-- 同一最终候选通过 typecheck、owner audit、deterministic acceptance、真实 Chrome 和 `npm run ci:full`。
+这就是“一劳永逸”的边界：功能可以持续增长，连接和信任地基不再被每个新功能重新发明。
