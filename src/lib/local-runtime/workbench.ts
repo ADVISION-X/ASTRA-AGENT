@@ -39,7 +39,11 @@ const buildWorkbenchHandle = (
     init,
     shutdown,
     ...buildApiBoundaryLogHandle(assembly),
-    getHealthReport: async () => getHealthReport(assembly, getInitializationState()),
+    getHealthReport: async () => getHealthReport(
+      assembly,
+      getInitializationState(),
+      xuanxueAiProduction.readProductionHealth(),
+    ),
     getMissionReadinessReport: async () => getMissionReadinessReport(assembly, assembly.options),
     getMissionStartPreflight: async (input) =>
       getMissionStartPreflight(assembly, assembly.options, input),
@@ -175,7 +179,13 @@ export class GrassEyeWorkbench {
   }
 
   private async getHealthReport(): Promise<WorkbenchHealthReport> {
-    if (this.assembly) return getHealthReport(this.assembly, this.initializationState);
+    if (this.assembly) {
+      return getHealthReport(
+        this.assembly,
+        this.initializationState,
+        this.xuanxueAiProduction?.readProductionHealth() ?? null,
+      );
+    }
     const runtimeComponent = {
       name: "runtimeInitialization",
       ok: false,
