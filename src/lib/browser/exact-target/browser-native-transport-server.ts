@@ -66,7 +66,8 @@ type ConnectionState = {
   nativePortEpoch: number | null;
   extensionInstanceId: string | null;
   nextSequence: number;
-  authorityIssued: boolean;
+  pendingAuthority: AuthenticatedBrowserAuthority | null;
+  authorityCommitted: boolean;
 };
 
 export type BrowserTransportLifecycleEvent = {
@@ -75,6 +76,7 @@ export type BrowserTransportLifecycleEvent = {
     | "socket_connected"
     | "extension_hello"
     | "challenge_sent"
+    | "authority_grant_sent"
     | "authenticated_authority_issued"
     | "authority_revoked"
     | "disconnected";
@@ -115,6 +117,21 @@ const grantTranscript = (input: Readonly<{
   challengeId: string;
 }>): string => [
   "grant-v2",
+  input.authorityId,
+  input.authorityCertificateHash,
+  input.connectionGeneration,
+  input.nativePortEpoch,
+  input.challengeId,
+].join(":");
+
+const grantAckTranscript = (input: Readonly<{
+  authorityId: string;
+  authorityCertificateHash: string;
+  connectionGeneration: number;
+  nativePortEpoch: number;
+  challengeId: string;
+}>): string => [
+  "grant-ack-v2",
   input.authorityId,
   input.authorityCertificateHash,
   input.connectionGeneration,
@@ -174,14 +191,23 @@ export class BrowserNativeTransportServer {
       if (!(error instanceof BrowserAuthorityAbsentError)) throw error;
     }
     return new Promise<AuthenticatedBrowserAuthority>((resolve, reject) => {
-      const timer = setTimeout(() => {
+      const waiter: {
+        resolve: (authority: AuthenticatedBrowserAuthority) => void;
+        reject: (error: Error) => void;
+        timer: NodeJS.Timeout;
+      } = {
+        resolve,
+        reject,
+        timer: setTimeout(() => undefined, timeoutMs),
+      };
+      clearTimeout(waiter.timer);
+      waiter.timer = setTimeout(() => {
         this.authorityWaiters.delete(waiter);
         reject(new BrowserTerminalError(
           "TRANSPORT_DISCONNECTED",
           "authenticated browser authority was not established before the startup deadline",
         ));
       }, timeoutMs);
-      const waiter = { resolve, reject, timer };
       this.authorityWaiters.add(waiter);
     });
   }
@@ -366,7 +392,8 @@ export class BrowserNativeTransportServer {
       nativePortEpoch: null,
       extensionInstanceId: null,
       nextSequence: 1,
-      authorityIssued: false,
+      pendingAuthority: null,
+      authorityCommitted: false,
     };
     this.connection = connection;
     this.emitLifecycle({ stage: "socket_connected", generation: connection.generation });
@@ -392,7 +419,7 @@ export class BrowserNativeTransportServer {
       try {
         this.onMessage(JSON.parse(line) as unknown, connection);
       } catch {
-        this.revokeAndDestroy(connection, "Native host sent malformed JSON");
+        this.revokeAndDestroy(connection, "Native host sent malformed or invalid browser protocol data");
         return;
       }
     }
@@ -412,6 +439,10 @@ export class BrowserNativeTransportServer {
       this.handleExtensionAuthentication(value, connection);
       return;
     }
+    if (value.type === "authority_grant_ack") {
+      this.handleAuthorityGrantAck(value, connection);
+      return;
+    }
     if (value.type === "heartbeat") {
       this.handleHeartbeat(value, connection);
       return;
@@ -425,7 +456,7 @@ export class BrowserNativeTransportServer {
     value: Extract<BrowserWireMessage, { type: "extension_hello" }>,
     connection: ConnectionState,
   ): void {
-    if (connection.challenge || connection.authorityIssued) {
+    if (connection.challenge || connection.pendingAuthority || connection.authorityCommitted) {
       this.revokeAndDestroy(connection, "extension hello repeated within one connection generation");
       return;
     }
@@ -459,7 +490,7 @@ export class BrowserNativeTransportServer {
     connection: ConnectionState,
   ): void {
     const challenge = connection.challenge;
-    if (!challenge || connection.authorityIssued || connection.frameKey) {
+    if (!challenge || connection.pendingAuthority || connection.authorityCommitted || connection.frameKey) {
       this.revokeAndDestroy(connection, "extension authentication arrived outside the one-time challenge window");
       return;
     }
@@ -494,7 +525,7 @@ export class BrowserNativeTransportServer {
       return;
     }
     connection.frameKey = frameKey;
-    const authority = this.authorityIssuer.issue({
+    const candidate = this.authorityIssuer.prepare({
       controllerSessionId: this.controllerSessionId,
       connectionGeneration: connection.generation,
       nativePortEpoch: challenge.nativePortEpoch,
@@ -503,8 +534,8 @@ export class BrowserNativeTransportServer {
       profileEnrollmentId: this.profileEnrollmentId,
       protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
     });
-    connection.authorityIssued = true;
-    const certificate = authority.certificate;
+    connection.pendingAuthority = candidate;
+    const certificate = candidate.certificate;
     const grantProof = browserTranscriptProof(frameKey, grantTranscript({
       authorityId: certificate.authorityId,
       authorityCertificateHash: certificate.certificateHash,
@@ -520,8 +551,52 @@ export class BrowserNativeTransportServer {
       authorityCertificateHash: certificate.certificateHash,
       connectionGeneration: certificate.connectionGeneration,
       nativePortEpoch: certificate.nativePortEpoch,
+      challengeId: challenge.challengeId,
       grantProof,
     });
+    this.emitLifecycle({ stage: "authority_grant_sent", generation: connection.generation });
+  }
+
+  private handleAuthorityGrantAck(
+    value: Extract<BrowserWireMessage, { type: "authority_grant_ack" }>,
+    connection: ConnectionState,
+  ): void {
+    const challenge = connection.challenge;
+    const candidate = connection.pendingAuthority;
+    const frameKey = connection.frameKey;
+    if (!challenge || !candidate || !frameKey || connection.authorityCommitted) {
+      this.revokeAndDestroy(connection, "authority grant acknowledgement arrived outside the pending grant window");
+      return;
+    }
+    const certificate = candidate.certificate;
+    if (
+      value.challengeId !== challenge.challengeId
+      || value.authorityId !== certificate.authorityId
+      || value.authorityCertificateHash !== certificate.certificateHash
+      || value.connectionGeneration !== certificate.connectionGeneration
+      || value.nativePortEpoch !== certificate.nativePortEpoch
+    ) {
+      this.revokeAndDestroy(connection, "authority grant acknowledgement binding mismatch");
+      return;
+    }
+    const proofValid = verifyBrowserTranscriptProof(
+      frameKey,
+      grantAckTranscript({
+        authorityId: certificate.authorityId,
+        authorityCertificateHash: certificate.certificateHash,
+        connectionGeneration: certificate.connectionGeneration,
+        nativePortEpoch: certificate.nativePortEpoch,
+        challengeId: challenge.challengeId,
+      }),
+      value.ackProof,
+    );
+    if (!proofValid) {
+      this.revokeAndDestroy(connection, "authority grant acknowledgement proof mismatch");
+      return;
+    }
+    const authority = this.authorityIssuer.commit(candidate);
+    connection.pendingAuthority = null;
+    connection.authorityCommitted = true;
     this.emitLifecycle({ stage: "authenticated_authority_issued", generation: connection.generation });
     this.resolveAuthorityWaiters(authority);
   }
@@ -531,8 +606,8 @@ export class BrowserNativeTransportServer {
     connection: ConnectionState,
   ): void {
     const frameKey = connection.frameKey;
-    if (!frameKey || !connection.authorityIssued) {
-      this.revokeAndDestroy(connection, "heartbeat arrived without an authenticated authority");
+    if (!frameKey || !connection.authorityCommitted) {
+      this.revokeAndDestroy(connection, "heartbeat arrived without a committed authenticated authority");
       return;
     }
     if (!this.authorityIssuer.isCurrent(value)) {
@@ -555,7 +630,7 @@ export class BrowserNativeTransportServer {
     value: Extract<BrowserWireMessage, { type: "response_frame" }>,
     connection: ConnectionState,
   ): void {
-    if (this.connection !== connection || !connection.frameKey) return;
+    if (this.connection !== connection || !connection.frameKey || !connection.authorityCommitted) return;
     if (!this.authorityIssuer.isCurrent(value)) return;
     const pending = [...this.pending.entries()].find(([, item]) => item.permitHash === value.permitHash);
     if (!pending) return;
@@ -626,7 +701,7 @@ export class BrowserNativeTransportServer {
 
   private watchAuthorityLiveness(): void {
     const connection = this.connection;
-    if (!connection?.authorityIssued) return;
+    if (!connection?.authorityCommitted) return;
     try {
       this.authorityIssuer.requireCurrent();
     } catch {
@@ -641,7 +716,7 @@ export class BrowserNativeTransportServer {
       !connection
       || connection.socket.destroyed
       || !connection.frameKey
-      || !connection.authorityIssued
+      || !connection.authorityCommitted
       || connection.generation !== certificate.connectionGeneration
       || connection.nativePortEpoch !== certificate.nativePortEpoch
     ) {
@@ -678,6 +753,7 @@ export class BrowserNativeTransportServer {
     if (this.connection !== connection) return;
     this.revokeAuthority(reason);
     this.failPending("TRANSPORT_DISCONNECTED", reason);
+    connection.pendingAuthority = null;
     connection.socket.destroy(new Error(reason));
   }
 
