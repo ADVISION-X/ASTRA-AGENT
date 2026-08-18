@@ -131,7 +131,7 @@ const CloudStageMaterialBaseSchema = z.object({
   expected_output_kind: z.enum(["text", "generated_image"]).default("text"),
   task_directive: z.string().min(1),
   timeout_ms: z.number().int().min(60_000).max(3_600_000),
-  max_input_chars: z.number().int().positive(),
+  max_input_chars: z.number().int().positive().default(120_000),
   max_file_count: z.number().int().min(0).max(64),
   inputs: z.array(XuanxueAiProductionCloudInputSchema),
   provider_input_preflight_receipt: ProviderInputPreflightReceiptSchema.optional(),

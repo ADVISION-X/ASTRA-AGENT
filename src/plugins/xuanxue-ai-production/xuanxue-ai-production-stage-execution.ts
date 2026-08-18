@@ -11,6 +11,7 @@ import {
   requireXuanxueStage,
 } from "./xuanxue-ai-production-feed.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
+import { normalizeGeneratedImageResult } from "./xuanxue-ai-production-image-result.js";
 import {
   XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
   type XuanxueAiOrderRecord,
@@ -280,12 +281,15 @@ export const executeGatewayStage = async (input: {
   stage: XuanxueAiStageRecord;
   feedInput: Awaited<ReturnType<typeof buildXuanxueAiFeedInput>>;
   observer?: XuanxueAiProductionExecutionObserver;
-}): Promise<AiFeedResult> => canonicalizeStageResult(
-  await input.runtime.aiInputGateway.execute(
+}): Promise<AiFeedResult> => normalizeGeneratedImageResult(
+  input.runtime,
+  input.orderId,
+  input.stage.stageId,
+  canonicalizeStageResult(await input.runtime.aiInputGateway.execute(
     input.feedInput,
     {
       executionId: input.stage.executionId,
-      ...(input.stage.supersededExecutionId
+      ...(input.stage.supersededExecutionId && input.stage.attemptCount === 2
         ? { supersededExecutionId: input.stage.supersededExecutionId }
         : {}),
       onProgress: async (progress) =>
@@ -309,5 +313,5 @@ export const executeGatewayStage = async (input: {
         });
       },
     },
-  ),
+  )),
 );

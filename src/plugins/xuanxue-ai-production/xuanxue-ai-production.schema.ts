@@ -126,6 +126,7 @@ export const XuanxueAiStageMaterialSchema = z.object({
   textPrompt: z.string().min(1),
   inputRefs: z.array(XuanxueAiMaterialRefSchema),
   timeoutMs: z.number().int().min(60_000).max(3_600_000).default(3_600_000),
+  maxInputChars: z.number().int().min(1).max(500_000).optional(),
   maxFileCount: z.number().int().min(0).max(64).default(32),
 }).strict();
 

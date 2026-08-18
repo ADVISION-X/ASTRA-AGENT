@@ -114,6 +114,11 @@ export const initialXuanxueStages = (
     attemptCount: seeded ? 1 : 0,
     material: order.materials[ordinal]!,
     aiFeedResult: seededAccepted ? seededAiResult(seeded!) : null,
+    attachmentUploadProof:
+      seededAccepted
+        ? (seededAiResult(seeded!).providerProof.attachmentUploadProof
+          ?? null) as XuanxueAiStageRecord["attachmentUploadProof"]
+        : null,
     rawResponseText: seededAccepted ? seeded!.rawResponseText : null,
     rawOutputHash: seededAccepted ? seeded!.rawOutputHash : null,
     progressPhase: seededAccepted
@@ -404,7 +409,6 @@ export const buildXuanxueAiFeedInput = async (
       ? stage.stageId === "localization_candidate_a" ? "pro" : "high"
       : null,
     timeoutMs: stage.material.timeoutMs,
-    maxInputChars: stage.material.maxInputChars,
     maxFileCount:
       stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
     requestedBy: "ai-capability",

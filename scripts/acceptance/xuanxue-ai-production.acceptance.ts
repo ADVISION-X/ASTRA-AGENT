@@ -114,13 +114,6 @@ try {
     qimenParent: qimenFollowupParent,
     qimenParentFinal: qimenFollowupParentFinal,
   });
-  await acceptXuanxueRestartRecovery({
-    dataDir,
-    gateway,
-    runtime,
-    completedOrderId: hehun.orderId,
-  });
-
   const localization = order(
     "aiprod_localization_static_review",
     "localization_static_review",
@@ -157,6 +150,12 @@ try {
     ),
     true,
   );
+  await acceptXuanxueRestartRecovery({
+    dataDir,
+    gateway,
+    runtime,
+    completedOrderId: hehun.orderId,
+  });
   store.close();
   process.stdout.write(
     "[ACCEPTANCE] xuanxue-ai-production PASS: fixed single-conversation graphs, contaminated-output restart, exact-parent FIFO, parent-conversation replay from cloud material, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",
