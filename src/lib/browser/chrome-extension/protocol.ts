@@ -175,7 +175,19 @@ export type BrowserWireMessage =
       authorityCertificateHash: string;
       connectionGeneration: number;
       nativePortEpoch: number;
+      challengeId: string;
       grantProof: string;
+    }
+  | {
+      protocolVersion: typeof GRASSEYE_BROWSER_PROTOCOL_VERSION;
+      releaseIdentity: typeof GRASSEYE_BROWSER_RELEASE_IDENTITY;
+      type: "authority_grant_ack";
+      authorityId: string;
+      authorityCertificateHash: string;
+      connectionGeneration: number;
+      nativePortEpoch: number;
+      challengeId: string;
+      ackProof: string;
     }
   | {
       protocolVersion: typeof GRASSEYE_BROWSER_PROTOCOL_VERSION;
@@ -263,12 +275,14 @@ export const isBrowserWireMessage = (value: unknown): value is BrowserWireMessag
       && isBase64(record.extensionPublicKey, 512)
       && isBase64(record.transcriptProof, 512);
   }
-  if (record.type === "authority_grant") {
+  if (record.type === "authority_grant" || record.type === "authority_grant_ack") {
+    const proof = record.type === "authority_grant" ? record.grantProof : record.ackProof;
     return isNonEmptyString(record.authorityId)
       && isNonEmptyString(record.authorityCertificateHash)
       && isPositiveSafeInteger(record.connectionGeneration)
       && isPositiveSafeInteger(record.nativePortEpoch)
-      && isBase64(record.grantProof, 512);
+      && isNonEmptyString(record.challengeId)
+      && isBase64(proof, 512);
   }
   if (record.type === "heartbeat") {
     return isNonEmptyString(record.authorityId)
