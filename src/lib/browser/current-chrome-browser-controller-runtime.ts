@@ -4,6 +4,7 @@ import { createId } from "../local-runtime/ids.js";
 import type { BrowserController } from "./browser-controller.js";
 import { BrowserCommandRuntime } from "./exact-target/browser-command-runtime.js";
 import type { BrowserProfileEnrollment } from "./profile/browser-profile-enrollment.js";
+import { ensureEnrolledBrowserProcess } from "./profile/browser-process-supervisor.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 
 export type CurrentChromeBrowserControllerOptions = {
@@ -21,6 +22,7 @@ export const createCurrentChromeBrowserControllerRuntime = async (
   if (options.headlessRequested === true) {
     throw new Error("Real-platform mode forbids headless browser launch; use the enrolled production Chrome profile.");
   }
+  await ensureEnrolledBrowserProcess(options.profileEnrollment);
   const commandRuntime = await BrowserCommandRuntime.create({
     controllerSessionId: createId("browser-controller-authority"),
     socketPath: path.join(options.dataDir, "browser-runtime", "controller-native.sock"),
