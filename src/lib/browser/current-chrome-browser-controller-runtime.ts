@@ -1,60 +1,62 @@
 import path from "node:path";
 
-import type { LocalBrowserSessionConfig } from "../../types/local-browser-session.js";
 import { createId } from "../local-runtime/ids.js";
-import type { BrowserController, BrowserStateSnapshot } from "./browser-controller.js";
+import type { BrowserController } from "./browser-controller.js";
 import { BrowserCommandRuntime } from "./exact-target/browser-command-runtime.js";
-import { createInitialLocalBrowserSessionState } from "./local-browser-session.js";
+import type { BrowserProfileEnrollment } from "./profile/browser-profile-enrollment.js";
+import { ensureEnrolledBrowserProcess } from "./profile/browser-process-supervisor.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 
 export type CurrentChromeBrowserControllerOptions = {
-  sessionConfig: LocalBrowserSessionConfig;
+  profileEnrollment: BrowserProfileEnrollment;
   screenshotDir: string;
   dataDir: string;
   headlessRequested?: boolean;
+  authorityTimeoutMs?: number;
 };
 
-export const createCurrentChromeBrowserControllerRuntime = (
+export const createCurrentChromeBrowserControllerRuntime = async (
   options: CurrentChromeBrowserControllerOptions,
   runtimeLogger?: RuntimeLogger,
-): BrowserController => {
+): Promise<BrowserController> => {
   if (options.headlessRequested === true) {
-    throw new Error("Real-platform mode forbids headless browser launch; use the authorized local Chrome profile.");
+    throw new Error("Real-platform mode forbids headless browser launch; use the enrolled production Chrome profile.");
   }
-  const commandRuntime = new BrowserCommandRuntime(
-    createId("browser-controller-session"),
-    path.join(options.dataDir, "browser-runtime", "controller-native.sock"),
-    options.screenshotDir,
-    runtimeLogger,
-  );
-  const initial = createInitialLocalBrowserSessionState(options.sessionConfig);
-
-  const snapshot = (): BrowserStateSnapshot => ({
-    ...initial,
-    profileStatus: "profile_ready",
-    profileVerificationStatus: "operator_verified",
-    profileVerificationReason: "authorized local Chrome profile is controlled through the fixed GrassEye extension",
-    open: commandRuntime.targetCount() > 0,
-    currentUrl: "exact-target-only",
-    currentTitle: "GrassEye exact target controller",
-    browserExecutable: options.sessionConfig.chromeExecutablePath,
-    exactTargetCount: commandRuntime.targetCount(),
-    transportReady: commandRuntime.isReady(),
+  await ensureEnrolledBrowserProcess(options.profileEnrollment);
+  const commandRuntime = await BrowserCommandRuntime.create({
+    controllerSessionId: createId("browser-controller-authority"),
+    socketPath: path.join(options.dataDir, "browser-runtime", "controller-native.sock"),
+    screenshotDir: options.screenshotDir,
+    profileEnrollment: options.profileEnrollment,
+    approvedFileRoots: [options.dataDir],
+    ...(runtimeLogger ? { runtimeLogger } : {}),
+    ...(options.authorityTimeoutMs ? { authorityTimeoutMs: options.authorityTimeoutMs } : {}),
   });
 
   return {
     setExecutionAbortSignal: (signal) => commandRuntime.setExecutionAbortSignal(signal),
-    getHealth: () => ({
-      ok: commandRuntime.isReady(),
-      detail: commandRuntime.isReady()
-        ? `exact target transport ready; ${commandRuntime.targetCount()} target session(s)`
-        : "waiting for fixed-id GrassEye MV3 extension and Native Messaging host",
-    }),
-    getSessionState: snapshot,
+    getHealth: () => {
+      const authority = commandRuntime.authoritySnapshot();
+      return authority.state === "AUTHENTICATED_AUTHORITY_PRESENT"
+        ? {
+            ok: true,
+            detail: `authenticated browser authority present; ${commandRuntime.targetCount()} exact target lease(s)`,
+          }
+        : {
+            ok: false,
+            detail: `browser authority absent: ${authority.reason}`,
+          };
+    },
+    getAuthoritySnapshot: () => commandRuntime.authoritySnapshot(),
     createTargetSession: (ownerId) => commandRuntime.createTargetSession(ownerId),
     close: async () => {
       await commandRuntime.close();
-      return { browserActionId: createId("browser-controller-close"), ok: true, message: "exact target BrowserController transport closed", createdAt: new Date().toISOString() };
+      return {
+        browserActionId: createId("browser-controller-close"),
+        ok: true,
+        message: "authenticated BrowserController authority closed",
+        createdAt: new Date().toISOString(),
+      };
     },
   };
 };

@@ -1,0 +1,76 @@
+import { existsSync, readFileSync, statSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import {
+  GRASSEYE_BROWSER_EXTENSION_ID,
+  GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE,
+  GRASSEYE_BROWSER_PROTOCOL_VERSION,
+  GRASSEYE_BROWSER_RELEASE_IDENTITY,
+  GRASSEYE_BROWSER_RELEASE_SEQUENCE,
+} from "./browser-release-identity.js";
+
+export type BrowserActivationReceipt = Readonly<{
+  schemaVersion: "grasseye-browser-activation-v2";
+  releaseIdentity: string;
+  releaseSequence: number;
+  minimumAcceptedReleaseSequence: number;
+  protocolVersion: string;
+  extensionId: string;
+  extensionTreeSha256: string;
+  profileRef: string;
+  userDataDir: string;
+  profileDirectory: string;
+  chromeExecutablePath: string;
+  hostPath: string;
+  hostSha256: string;
+  controllerSocketPath: string;
+  activatedAtUnixMs: number;
+}>;
+
+const HASH_PATTERN = /^sha256:[0-9a-f]{64}$/u;
+
+const defaultReceiptPath = (): string => {
+  if (process.platform === "darwin") {
+    return path.join(os.homedir(), "Library", "Application Support", "GrassEye", "browser-runtime", "active-activation.json");
+  }
+  if (process.platform === "linux") {
+    return path.join(os.homedir(), ".config", "grasseye", "browser-runtime", "active-activation.json");
+  }
+  throw new Error(`BROWSER_ACTIVATION_PLATFORM_UNSUPPORTED:${process.platform}`);
+};
+
+export const readBrowserActivationReceipt = (): BrowserActivationReceipt => {
+  const receiptPath = process.env.GRASSEYE_BROWSER_ACTIVATION_RECEIPT?.trim()
+    ? path.resolve(process.env.GRASSEYE_BROWSER_ACTIVATION_RECEIPT.trim())
+    : defaultReceiptPath();
+  if (!existsSync(receiptPath)) throw new Error(`BROWSER_ACTIVATION_RECEIPT_MISSING:${receiptPath}`);
+  const stat = statSync(receiptPath);
+  if (!stat.isFile()) throw new Error(`BROWSER_ACTIVATION_RECEIPT_NOT_FILE:${receiptPath}`);
+  if ((stat.mode & 0o077) !== 0) throw new Error(`BROWSER_ACTIVATION_RECEIPT_PERMISSION_INVALID:${receiptPath}`);
+  if (typeof process.geteuid === "function" && stat.uid !== process.geteuid()) {
+    throw new Error(`BROWSER_ACTIVATION_RECEIPT_OWNER_INVALID:${receiptPath}`);
+  }
+  const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as BrowserActivationReceipt;
+  if (
+    receipt.schemaVersion !== "grasseye-browser-activation-v2"
+    || receipt.releaseIdentity !== GRASSEYE_BROWSER_RELEASE_IDENTITY
+    || receipt.releaseSequence !== GRASSEYE_BROWSER_RELEASE_SEQUENCE
+    || receipt.releaseSequence < GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE
+    || receipt.minimumAcceptedReleaseSequence !== GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE
+    || receipt.protocolVersion !== GRASSEYE_BROWSER_PROTOCOL_VERSION
+    || receipt.extensionId !== GRASSEYE_BROWSER_EXTENSION_ID
+    || !HASH_PATTERN.test(receipt.extensionTreeSha256)
+    || !HASH_PATTERN.test(receipt.hostSha256)
+    || !path.isAbsolute(receipt.userDataDir)
+    || !path.isAbsolute(receipt.chromeExecutablePath)
+    || !path.isAbsolute(receipt.hostPath)
+    || !path.isAbsolute(receipt.controllerSocketPath)
+    || !receipt.profileRef
+    || !receipt.profileDirectory
+    || !Number.isFinite(receipt.activatedAtUnixMs)
+  ) {
+    throw new Error("BROWSER_ACTIVATION_RECEIPT_IDENTITY_MISMATCH");
+  }
+  return Object.freeze(receipt);
+};

@@ -1,200 +1,322 @@
 ---
-name: "GrassEye Local Browser Session"
-description: "Governs local browser session and screenshot evidence foundation."
-applyTo: "src/lib/browser/**, src/lib/local-runtime/**"
+name: "GrassEye Browser Authority Infrastructure"
+description: "Governs the production exact-target Chrome authority, extension, Native Host, profile enrollment, release identity and fail-closed lifecycle."
+applyTo: "src/lib/browser/**, src/lib/local-runtime/workbench-browser-support.ts, src/lib/local-runtime/workbench-assembly.ts, src/lib/local-runtime/workbench-status.ts, src/lib/local-runtime/workbench.ts, src/app/server.ts, scripts/audit/domains/local-browser-session/**, scripts/acceptance/local-browser-*.ts"
 ---
 
-# GrassEye Local Browser Session
+# GrassEye Browser Authority Infrastructure
 
-status: active
-version: 2026-08-16.1
+status: active  
+version: 2026-08-18.4  
+constitutional objective: `browserSession 未认证` 在生产类型、对象、API、运行态和证据中不可表示。
 
-Browser owns:
-- one operator-authorized local Chrome profile and one BrowserController instance;
-- minting opaque, session-bound `BrowserTargetRef` and generation-bound `BrowserDocumentRef` values;
-- binding navigate, evaluate, click, fill, scroll, screenshot and DOM file-input work to the exact target and document supplied by the owning flow;
-- the private Controller -> owner-only Unix socket -> Native host -> Chrome Native Messaging -> MV3 service worker -> `chrome.debugger` transport;
-- target lifecycle, document-generation invalidation, bounded command deadlines and fail-closed disconnection semantics;
-- waiting, session state and screenshot/file-input foundations.
+## 0. 唯一合法生产语义
 
-Browser does not own:
-- business workflow;
-- AI judgment;
-- evidence truth;
-- business job decisions.
+浏览器数据面只有两个状态：
 
-External jobs and websites may never provide a tab id, window index, target id,
-session id, chat title, selector, marker, concurrency value or browser command.
-Raw Chrome ids never leave `src/lib/browser/**`, never enter task state/evidence,
-and never survive process restart. A stale target or document ref fails closed
-and is reacquired only from an owning business checkpoint.
+```txt
+AUTHORITY_ABSENT
+AUTHENTICATED_AUTHORITY_PRESENT
+```
 
-When an owning plugin acknowledges `takeover`, Browser sends the exact
-`release_target` command, the extension detaches `chrome.debugger` without
-closing the operator's tab, and Controller invalidates the old target/document
-refs. No background task may reacquire that owner target until the same task is
-explicitly resumed. Resume never revives old refs; the next owner action mints
-new refs after exact URL, origin and document verification.
+不存在第三种状态。禁止创建、返回、注入、缓存或展示“已经存在但尚未认证”的 BrowserSession、BrowserController 数据面、TargetSession 或兼容对象。
 
-Page work never activates Chrome, raises a window, uses the system mouse,
-system keyboard, clipboard, native file picker or foreground-tab identity.
-All file input is an exact-target extension command; no physical focus lease or
-OS action transport remains in the active Browser owner.
+认证前允许存在的只有 Browser infrastructure control plane：profile enrollment、process supervisor、listener、Native Host transport candidate、challenge、pending authority candidate。它们没有页面命令接口、没有 target/document ref mint 权、不能注入任何业务 owner。
 
-The Controller does not create a provider-tab pool and does not decide business
-concurrency. AI Input Gateway still owns conversation switching inside exactly
-one physical ChatGPT target. Other jobs may hold their own exact target refs;
-they cannot mutate, inspect, focus, close, or navigate another owner's target.
+`AuthenticatedBrowserAuthority` 必须在 Controller challenge、Extension transcript proof、Controller authority grant、Extension grant ACK 全部成功后才由唯一 `BrowserAuthorityIssuer.commit()` 原子变成 PRESENT。握手任一步失败、Port/Host/Controller/Chrome 断裂、liveness lease 到期、profile/process/release/protocol 身份漂移，第一同步副作用必须是 revoke authority；随后才能 fail pending、写日志、detach、重连或清理。
+
+## 1. 唯一生产链
+
+```txt
+Business owner
+  -> BrowserController（仅在 Authority PRESENT 后由 composition root 构造）
+      -> exact-target BrowserCommandRuntime
+          -> 0600 controller-native.sock
+              -> signed/self-contained Rust Native Host
+                  -> Chrome Native Messaging
+                      -> fixed-id MV3 extension
+                          -> one NativePortActor per port epoch
+                              -> chrome.debugger
+                                  -> exact target + exact document generation
+```
+
+禁止第二 BrowserController、Playwright/CDP 公共旁路、AppleScript/JXA、系统鼠标键盘、clipboard、active-tab/current-page/URL-first fallback、第二 Native Host、第二 localhost/WebSocket transport、load-unpacked 生产链。
+
+## 2. 运行身份
+
+每条生产命令必须同时绑定：
+
+```txt
+releaseIdentity
+protocolVersion
+profileEnrollmentId
+controllerSessionId
+connectionGeneration
+nativePortEpoch
+authorityId
+authorityCertificateHash
+commandId
+sequence
+deadlineAt
+mutationClass
+```
+
+Controller 与 Extension 每个 Port epoch 使用临时 P-256 ECDH，HKDF-SHA256 导出 frame key；command/response 使用 AES-256-GCM，AAD 至少包含 authorityId + generation + portEpoch + sequence。Extension authentication、authority grant、grant ACK、heartbeat 使用同一临时密钥的 HMAC proof。Native Host 不拥有密钥、target、业务状态或 evidence，只转发有界消息并验证外层 release/protocol/caller/profile process identity。
+
+旧 generation、旧 port、旧 authority、旧 permit、旧异步 completion、旧 heartbeat 和迟到 disconnect 在任何状态修改或页面副作用前必须被拒绝。
+
+## 3. Profile 与 Chrome process enrollment
+
+生产必须显式提供并验证：
+
+```txt
+GRASSEYE_CHROME_USER_DATA_DIR
+GRASSEYE_BROWSER_PROFILE_REF
+GRASSEYE_BROWSER_PROFILE_DIRECTORY
+GRASSEYE_CHROME_EXECUTABLE
+fixed extension id = mepfnlhndaiihhfejbbhfehegpbdnipl
+releaseIdentity = grasseye-browser-runtime-2026-08-18-v2
+```
+
+BrowserProcessSupervisor 只启动/连接该专用 Chrome：`--user-data-dir` 与 `--profile-directory` 必须显式出现。Rust Native Host 必须验证 Chrome 传入 caller origin，并在 Unix ancestry 中证明 Host 来源于同一 enrolled Chrome executable/user-data-dir/profile-directory。正确扩展 ID 但错误 profile/process 仍必须 fail closed。
+
+禁止 silent managed default、读取 last_used 后猜 profile、普通个人 Chrome profile、错误 channel/process tree 获得 Authority。
+
+## 4. Extension 与命令安全
+
+- MV3 固定 extension ID、固定 release/protocol、`minimum_chrome_version`。
+- 一个 Native Port 对应一个不可变 `NativePortActor`；禁止全局 mutable `nativePort/authenticatedNonce/lastAcceptedSequence` 作为跨世代真相。
+- extension 只接受当前 actor 当前 authority 的 command permit；异步 completion 只能回原 actor 原 port。
+- `evaluate_target` 仅为 observation；MV3 必须使用 CDP `throwOnSideEffect=true`。mutation 只能走专用命令。
+- URL 在 Controller policy 与 Extension high-privilege end 双重验证；Extension 不接受 `file:`、任意 host 或未批准 HTTP。
+- 普通字符输入使用 `Input.insertText`，不得用平台相关 Meta/Ctrl 猜测 Unicode 输入。
+- file input 只接受 BrowserFileArtifactGrant；raw path 不得成为 wire contract。
+- non-idempotent mutation 发出后若终局不确定，只能 `OUTCOME_UNKNOWN`；transport 永不自动 replay。
+
+## 5. Liveness、失效和恢复
+
+固定默认：
+
+```txt
+heartbeatIntervalMs = 1000
+softDrainAfterMs = 3500
+hardExpiryMs = 5000
+watchdogTickMaxMs = 250
+maxAuthorityAgeMs = 8h
+```
+
+Heartbeat 只能延长已经 commit 的 Authority liveness，永远不能从 ABSENT 创建 Authority。静默半开、Host 假活、event-loop stall、sleep/wake/clock discontinuity 或 authority age 到期都必须撤销当前 Authority。
+
+任一 revoke 同步使所有 target/document refs 与当前 exact-target lease epoch 失效。恢复必须经过全新 Port epoch、全新 challenge、全新 grant+ACK 和新 Authority；旧 target/document ref 永不复活。调用方只能从明确业务 checkpoint 发起新的 `open/acquireTarget`。
+
+## 6. Native Messaging 与消息预算
+
+Chrome Native Messaging 外层必须遵守 4-byte native-endian length framing。内部更严格预算固定为：
+
+```txt
+Host -> Extension control frame <= 256 KiB
+Extension -> Host <= 48 MiB
+Controller <-> Host line <= 64 MiB
+```
+
+控制面不得为未来功能无限放大。大对象必须最终走 content-addressed artifact stream；任何超限/截断/非法 JSON/identity mismatch 都 fail closed。
+
+## 7. 安装与发布
+
+生产 Native Host 是 Rust 自包含预构建二进制。目标机器禁止从源码 build/transpile Native Host，禁止 Node shebang、nvm/Homebrew Node 路径成为 Native Host 运行依赖。
+
+`install.mjs` 只允许调用预构建 `grasseye-browserctl`。browserctl 必须执行：
+
+```txt
+read signed/prebuilt artifact
+-> stage immutable release dir
+-> hash readback
+-> write 0600 connection config
+-> write exact allowed_origins manifest
+-> write activation receipt
+-> atomic rename/fsync
+-> verify installed bytes/config/manifest
+```
+
+生产 extension 使用固定 Chrome Web Store identity；load-unpacked 只能用于开发/真实页面前验，不得成为 production artifact。
+
+## 8. Composition root
+
+`createWorkbenchAssembly()` 必须是 Authority admission gate：
+
+```txt
+resolve explicit profile enrollment
+-> ensure enrolled Chrome process
+-> start Controller listener
+-> complete Extension/Controller mutual auth + grant ACK
+-> AUTHENTICATED_AUTHORITY_PRESENT
+-> only now construct AI Gateway / video / browser-dependent business owners
+-> only now expose HTTP server
+```
+
+因此 production health 不得存在名为 `browserSession` 的 component，不得出现 `transportReady`，不得输出“session not authenticated / wait for authentication”。Authority 缺席时只能报告 `browserAuthority = absent/BLOCKED`；此时浏览器业务 owner 尚未构造或其旧 authority epoch 已失效。
 
 ```apex-law
 {
-  "lawId": "APEX-LOCAL-BROWSER-001-V1",
+  "lawId": "APEX-LOCAL-BROWSER-001-V2",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "local-browser-session",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "The unique BrowserController must bind ordinary page actions to opaque exact target and document identities without foreground focus.",
+  "summary": "The unique Browser owner binds every page action to opaque exact target/document identities and never uses foreground identity or a second browser path.",
   "required": [
-    "One BrowserController mints opaque session-bound BrowserTargetRef and generation-bound BrowserDocumentRef values while raw Chrome ids remain private.",
-    "Navigate, evaluate, click, fill, scroll, screenshot and DOM file-input commands execute only against the supplied exact target and current document generation.",
-    "A navigation or lifecycle change invalidates the prior document ref; stale, foreign or ambiguous refs fail closed without URL-first, first-page or active-tab fallback.",
-    "Plugin takeover detaches chrome.debugger from the exact tab without closing it, invalidates the old refs, blocks automatic reacquisition while the operator owns the tab, and requires fresh exact target resolution after explicit resume.",
-    "Real-Chrome acceptance proves a controlled background target can change while a non-target foreground tab keeps its URL, title, scroll position and input value unchanged."
+    "One BrowserController owns all raw Chrome identities and mints opaque target/document refs only under a committed AuthenticatedBrowserAuthority.",
+    "Every page command binds one exact target and current document generation; navigation/lifecycle invalidates prior document refs.",
+    "Background exact-target work leaves non-target foreground state unchanged.",
+    "Old authority target/document refs never revive after revoke or reconnect."
   ],
   "forbidden": [
-    "a second BrowserController or public Chrome transport",
-    "URL-first, first-page, current-page or active-tab target selection",
-    "raw tabId, windowId, targetId, sessionId or debugger id outside the browser owner",
-    "ordinary page actions activating Chrome or using system mouse and keyboard",
-    "compatibility wrappers, fallback, shadow transports or dual target identity"
-    ,"background target reacquisition while a plugin task remains taken_over"
+    "second BrowserController or browser transport",
+    "active-tab, first-page, current-page or URL-first fallback",
+    "raw Chrome identity outside src/lib/browser",
+    "foreground focus, OS pointer, OS keyboard, clipboard or native picker as page identity"
   ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-browser-001-requirement",
-      "statement": "The unique BrowserController must bind ordinary page actions to opaque exact target and document identities without foreground focus.",
-      "evidenceMode": "real-chrome",
-      "ownerDomain": "local-browser-session"
-    }
-  ]
+  "clauses": [{
+    "clauseId": "apex-local-browser-001-v2-requirement",
+    "statement": "All page actions use one authenticated exact-target authority and opaque target/document identity.",
+    "evidenceMode": "real-chrome",
+    "ownerDomain": "local-browser-session"
+  }]
 }
 ```
 
 ```apex-law
 {
-  "lawId": "APEX-LOCAL-BROWSER-004-V1",
+  "lawId": "APEX-LOCAL-BROWSER-002-V2",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "local-browser-session",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "The unique Browser owner must convert the public function-body evaluation contract into one executable expression exactly once, while page mutations use dedicated exact-target commands.",
-  "required": [
-    "BrowserTargetSession.evaluate accepts a governed JavaScript function body and the exact-target Browser runtime wraps that body into one executable expression exactly once before transport.",
-    "The MV3 service worker executes the already-normalized expression and does not add another function, eval, Function constructor or caller-specific wrapper.",
-    "evaluate_target remains an observation command; generic click, scroll and text input use click_target, scroll_target and text_target, while governed DOM click/fill use click_dom_target and fill_dom_target and file input uses set_file_input_files against the same exact target and current document generation.",
-    "click_dom_target and fill_dom_target each resolve one selector, compare the current element identity with the caller-captured identity, validate the exact receiver and perform the mutation within that same Chrome command; they never consume a previously observed coordinate.",
-    "set_file_input_files resolves the one real enabled file receiver inside an open author shadow root when the governed light-DOM input is only a hidden component proxy, dispatches the approved file selection once, and never treats a later input.files read as component attachment truth because a consuming component may clear the receiver synchronously.",
-    "text_target remains a generic Browser text command; DOM fill cannot compose it with a prior coordinate click and must use the atomic fill_dom_target contract.",
-    "Deterministic acceptance proves top-level return works through the production wrapper, and real-Chrome acceptance proves evaluation and dedicated mutations affect only the controlled background target."
-  ],
-  "forbidden": [
-    "passing a raw function body directly to Runtime.evaluate",
-    "caller-local wrapping, private evaluators, eval or Function constructors",
-    "wrapping the expression again in the Native host or MV3 service worker",
-    "DOM click, scroll, fill or upload mutation hidden inside evaluate_target",
-    "reporting business file attachment success from the Browser command, the hidden proxy, or a later input.files read instead of an owner-observed component postcondition",
-    "using click_target plus text_target as a governed DOM fill compatibility path",
-    "compatibility bridges, fallback evaluation modes or dual evaluation contracts"
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-browser-004-requirement",
-      "statement": "The unique Browser owner must normalize the function-body evaluation contract exactly once and keep page mutation on dedicated exact-target commands.",
-      "evidenceMode": "real-chrome",
-      "ownerDomain": "local-browser-session"
-    }
-  ]
-}
-```
-
-```apex-law
-{
-  "lawId": "APEX-LOCAL-BROWSER-002-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-browser-session",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance",
-  "summary": "Chrome control must use one private authenticated MV3 Native Messaging debugger transport with bounded lifecycle and no startup-owned installation.",
+  "evidenceMode": "law+blueprint+ast+acceptance+model+real-chrome",
+  "summary": "Unauthenticated browserSession is unrepresentable; browser capability exists only after mutual authority commit and is revoked before all teardown side effects.",
   "codePurityLiveness": {
     "externalEntryFiles": [
       "src/lib/browser/chrome-extension/build.mjs",
       "src/lib/browser/chrome-extension/service-worker.ts",
-      "src/lib/browser/chrome-extension/dist/service-worker.js",
-      "src/lib/browser/native-messaging-host/host.mjs"
+      "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
+      "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs"
     ]
   },
   "required": [
-    "The Controller connects through an owner-only Unix socket and memory-only nonce to one Native host, one fixed-id MV3 extension and chrome.debugger.",
-    "Exactly one live BrowserController process may own a dataDir/controller-native.sock endpoint; duplicate startup fails closed without unlinking, replacing or stealing the existing socket.",
-    "Controller transport startup is awaited or surfaced as a terminal readiness failure before any Browser consumer command is admitted; a generic app health response must not claim browser readiness while the transport is unauthenticated.",
-    "Every Native port owns one nonce and one command sequence session. Only messages emitted by the currently registered port may authenticate, reset sequence state or execute commands; a late message from a disconnected or replaced port is ignored before any session mutation. A new current port resets its sequence exactly once on its own controller challenge and then accepts command sequence 1.",
-    "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed. Every transport connection has a monotonic lifecycle generation, and disconnect invalidates every Controller registry/session target and document ref before any later reconnect.",
-    "Transport admission and teardown expose bounded stage diagnostics for listener, Native host socket, extension hello, controller challenge, authentication and disconnect without persisting nonce, cookie, token or raw Chrome identity.",
-    "Release, extension disconnect, debugger detach and tab close remove extension attachment state so a human or another approved debugger can use the tab.",
-    "Dedicated Browser infrastructure install, verify and uninstall scripts own registration; the GrassEye startup entry remains unchanged and never installs or activates browser business infrastructure."
+    "Production data-plane state is exactly AUTHORITY_ABSENT or AUTHENTICATED_AUTHORITY_PRESENT.",
+    "BrowserAuthorityIssuer commits only after challenge, transcript proof, authority grant and Extension grant ACK all match the same release/profile/controller/generation/port epoch.",
+    "Each Native Port has one actor; stale port message/disconnect/completion cannot mutate current authority, sequence or target state.",
+    "Every command carries an authority-bound permit and an authenticated encrypted frame.",
+    "Heartbeat can renew only an existing committed authority; expiry/release/disconnect revokes authority before failing pending work or reconnecting.",
+    "Composition root creates browser-dependent business owners only after authority commit; HTTP server startup is downstream of this gate."
   ],
   "forbidden": [
-    "cookies, storage, password or token permissions",
-    "wildcard Native Messaging allowed_origins",
-    "world-readable socket, nonce or host manifest",
-    "Startup installing the extension, registering the host or starting a business job",
-    "startup unlinking or replacing an active controller-native.sock endpoint",
-    "a second BrowserController process sharing the same dataDir or controller-native.sock",
-    "reporting browser health or mission readiness while the Native transport is not authenticated",
-    "silent CDP or AppleScript/JXA fallback"
-    ,"allowing a retired Native port's delayed challenge, command or response to reset or mutate the current port's authenticated command sequence"
+    "BrowserSession object with authenticated=false, transportReady=false or waiting-for-auth state",
+    "browserSession production health component",
+    "global nativePort/authenticatedNonce/lastAcceptedSequence as cross-port truth",
+    "nonce echo as the complete authentication proof",
+    "old port completion posted to current port",
+    "heartbeat creating authority",
+    "mutation automatic replay after transport uncertainty"
   ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-browser-002-requirement",
-      "statement": "Chrome control must use one private authenticated MV3 Native Messaging debugger transport with bounded lifecycle and no startup-owned installation.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "local-browser-session"
-    }
-  ]
+  "clauses": [{
+    "clauseId": "apex-local-browser-002-v2-requirement",
+    "statement": "Unauthenticated browser capability is structurally impossible and all browser work is authority-bound.",
+    "evidenceMode": "model+acceptance+real-chrome",
+    "ownerDomain": "local-browser-session"
+  }]
 }
 ```
 
 ```apex-law
 {
-  "lawId": "APEX-LOCAL-BROWSER-003-V1",
+  "lawId": "APEX-LOCAL-BROWSER-003-V2",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "local-browser-session",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "Chrome extension exact-target commands are the only page and file-action transport; physical focus and OS action paths are absent.",
+  "summary": "The fixed-id MV3 extension is the only page/file action executor and exposes no physical-focus fallback.",
   "required": [
-    "Navigate, evaluate, click, fill, scroll, screenshot and DOM file-input work execute only through the exact-target MV3 extension transport.",
-    "The public Browser contract and extension protocol expose no native picker, system clipboard, OS pointer, OS keyboard, window activation or focus-target command.",
-    "Retired focus-lease and native-file-picker source files are physically absent."
+    "Navigate, observe, click, fill, scroll, screenshot and file input execute only through the exact-target MV3 transport.",
+    "File input consumes a bounded file artifact grant and exact DOM receiver.",
+    "Retired focus/native-picker/AppleScript/JXA paths remain physically absent."
   ],
   "forbidden": [
-    "PhysicalFocusLease or any replacement focus owner",
-    "native picker, system clipboard, AppleScript/JXA, OS pointer or OS keyboard file transport",
-    "application-wide activation or foreground focus as target identity proof",
-    "a second file-input transport beside set_file_input_files"
+    "focus lease or focus-target command",
+    "native picker or system clipboard",
+    "OS pointer/keyboard page transport",
+    "second file upload path"
   ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-browser-003-requirement",
-      "statement": "The exact-target Chrome extension is the only page and file-action transport, with physical focus and OS action paths physically absent.",
-      "evidenceMode": "real-chrome",
-      "ownerDomain": "local-browser-session"
-    }
-  ]
+  "clauses": [{
+    "clauseId": "apex-local-browser-003-v2-requirement",
+    "statement": "Only the fixed-id authenticated MV3 executor may perform browser page/file actions.",
+    "evidenceMode": "real-chrome",
+    "ownerDomain": "local-browser-session"
+  }]
+}
+```
+
+```apex-law
+{
+  "lawId": "APEX-LOCAL-BROWSER-004-V2",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "local-browser-session",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "summary": "Generic evaluation is side-effect-free observation while every mutation uses a dedicated exact-target command.",
+  "required": [
+    "BrowserTargetSession.evaluate function body is normalized exactly once by Browser owner.",
+    "MV3 Runtime.evaluate for evaluate_target uses throwOnSideEffect=true and cannot mutate page state.",
+    "Dedicated mutation commands perform receiver revalidation and mutation atomically under the same target/document authority.",
+    "Unicode text uses Input.insertText and point click uses CDP input after side-effect-free receiver validation."
+  ],
+  "forbidden": [
+    "generic evaluate mutation",
+    "eval or Function constructor",
+    "synthetic HTMLElement.click as the generic point click executor",
+    "platform-specific Meta/Ctrl guessing for arbitrary text"
+  ],
+  "clauses": [{
+    "clauseId": "apex-local-browser-004-v2-requirement",
+    "statement": "Observation and mutation are mechanically separated at the high-privilege browser executor.",
+    "evidenceMode": "real-chrome",
+    "ownerDomain": "local-browser-session"
+  }]
+}
+```
+
+```apex-law
+{
+  "lawId": "APEX-LOCAL-BROWSER-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "local-browser-session",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+artifact+real-chrome",
+  "summary": "Browser runtime release/profile/install identity is immutable, prebuilt and fail-closed across Chrome and OS evolution.",
+  "required": [
+    "Extension ID, extension version, protocol, release identity, Native Host binary hash, profile enrollment and controller candidate are one release tuple.",
+    "Production Native Host is a self-contained prebuilt Rust binary; target machines never compile/transpile it.",
+    "Native Host caller origin and enrolled Chrome process ancestry are validated before Controller IPC.",
+    "browserctl installs owner-only config/manifest and content-addressed host bytes using atomic write/readback.",
+    "Chrome minimum version and compatibility matrix changes require current-artifact proof before production activation."
+  ],
+  "forbidden": [
+    "Node shebang Native Host",
+    "install-time source transpilation",
+    "silent default profile",
+    "load-unpacked production extension",
+    "mixed release/protocol tuple",
+    "unsigned or unverified production artifact activation"
+  ],
+  "clauses": [{
+    "clauseId": "apex-local-browser-005-v1-requirement",
+    "statement": "Only one immutable verified browser release/profile tuple may receive production authority.",
+    "evidenceMode": "artifact+real-chrome",
+    "ownerDomain": "local-browser-session"
+  }]
 }
 ```

@@ -18,6 +18,7 @@ import {
   type InteractionCommand,
 } from "./service-worker-interaction-commands.js";
 import { createServiceWorkerKeyboard } from "./service-worker-keyboard.js";
+
 declare const chrome: {
   alarms: {
     create(name: string, info: { periodInMinutes?: number; delayInMinutes?: number }): void;
@@ -48,7 +49,6 @@ declare const chrome: {
   };
   windows: {
     get(windowId: number): Promise<{ focused?: boolean }>;
-    update(windowId: number, input: { focused: boolean }): Promise<unknown>;
   };
 };
 
@@ -81,6 +81,38 @@ const attachedTabs = new Set<number>();
 const asRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 
+const allowedHost = (host: string): boolean =>
+  host === "chatgpt.com"
+  || host === "chat.openai.com"
+  || host === "gemini.google.com"
+  || host === "127.0.0.1"
+  || host === "localhost"
+  || host === "amazon.com"
+  || host.endsWith(".amazon.com")
+  || host === "amazon.ae"
+  || host.endsWith(".amazon.ae")
+  || host === "facebook.com"
+  || host.endsWith(".facebook.com");
+
+const assertAllowedUrl = (value: string): URL => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("TARGET_ORIGIN_MISMATCH:invalid target URL");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("TARGET_ORIGIN_MISMATCH:target scheme is not approved");
+  }
+  if (!allowedHost(url.hostname)) {
+    throw new Error("TARGET_ORIGIN_MISMATCH:target host is not approved");
+  }
+  if (url.protocol === "http:" && url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
+    throw new Error("TARGET_ORIGIN_MISMATCH:plain HTTP is allowed only for local test targets");
+  }
+  return url;
+};
+
 const requireTabIdentity = (
   tab: ChromeTab,
 ): { tabId: number; windowId: number } => {
@@ -96,11 +128,6 @@ const ensureAttached = async (tabId: number): Promise<void> => {
     await chrome.debugger.attach({ tabId }, "1.3");
   } catch (error) {
     try {
-      // A Manifest V3 service worker can be restarted while Chrome keeps the
-      // debugger session owned by this extension alive. In that case the
-      // in-memory attachedTabs set is empty even though our own attachment
-      // still exists. Detach-and-reattach recovers only an attachment owned by
-      // this extension; a foreign DevTools/debugger owner remains fail-closed.
       await chrome.debugger.detach({ tabId });
       await chrome.debugger.attach({ tabId }, "1.3");
     } catch {
@@ -125,12 +152,23 @@ const detachAllTabs = async (): Promise<void> => {
   await Promise.all([...attachedTabs].map((tabId) => detachTab(tabId)));
 };
 
-const evaluate = async <T>(tabId: number, expression: string): Promise<T> => {
+const evaluateInternal = async <T>(
+  tabId: number,
+  expression: string,
+  allowSideEffects: boolean,
+): Promise<T> => {
   await ensureAttached(tabId);
   const response = (await chrome.debugger.sendCommand(
     { tabId },
     "Runtime.evaluate",
-    { expression, awaitPromise: true, returnByValue: true, userGesture: true },
+    {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+      userGesture: allowSideEffects,
+      throwOnSideEffect: !allowSideEffects,
+      timeout: 10_000,
+    },
   )) as RuntimeResult;
   if (response.exceptionDetails) {
     throw new Error(
@@ -139,6 +177,12 @@ const evaluate = async <T>(tabId: number, expression: string): Promise<T> => {
   }
   return response.result.value as T;
 };
+
+const observe = <T>(tabId: number, expression: string): Promise<T> =>
+  evaluateInternal<T>(tabId, expression, false);
+
+const mutateEvaluate = <T>(tabId: number, expression: string): Promise<T> =>
+  evaluateInternal<T>(tabId, expression, true);
 
 const readDescriptor = async (
   tabId: number,
@@ -151,7 +195,8 @@ const readDescriptor = async (
     { tabId },
     "Page.getFrameTree",
   )) as FrameTreeResult;
-  const viewport = await evaluate<{
+  assertAllowedUrl(frameTree.frameTree.frame.url);
+  const viewport = await observe<{
     innerWidth: number;
     innerHeight: number;
     deviceScaleFactor: number;
@@ -193,8 +238,11 @@ const sameOrigin = (left: string, right: string): boolean => {
 const acquireTarget = async (
   command: Extract<BrowserWireCommand, { kind: "acquire_target" }>,
 ): Promise<BrowserWireTargetDescriptor> => {
+  assertAllowedUrl(command.url);
   const tabs = (await chrome.tabs.query({})).filter(
-    (tab) => typeof tab.url === "string",
+    (tab) => typeof tab.url === "string" && (() => {
+      try { assertAllowedUrl(tab.url as string); return true; } catch { return false; }
+    })(),
   );
   const excluded = new Set(command.excludedTabIds);
   const exact = tabs.filter(
@@ -214,13 +262,11 @@ const acquireTarget = async (
     command.reusePolicy === "reuse-exact-url" ||
     command.reusePolicy === "bind-existing-exact-url"
   ) {
-    if (exact.length > 1)
-      throw new Error("TARGET_AMBIGUOUS:multiple exact URL tabs");
+    if (exact.length > 1) throw new Error("TARGET_AMBIGUOUS:multiple exact URL tabs");
     chosen = exact[0];
   }
   if (command.reusePolicy === "bind-existing-exact-origin") {
-    if (sameOriginTabs.length > 1)
-      throw new Error("TARGET_AMBIGUOUS:multiple exact origin tabs");
+    if (sameOriginTabs.length > 1) throw new Error("TARGET_AMBIGUOUS:multiple exact origin tabs");
     chosen = sameOriginTabs[0];
   }
   if (!chosen && command.reusePolicy === "bind-existing-exact-url") {
@@ -229,8 +275,7 @@ const acquireTarget = async (
   if (!chosen && command.reusePolicy === "bind-existing-exact-origin") {
     throw new Error("TARGET_NOT_FOUND:exact origin tab is not already open");
   }
-  if (!chosen)
-    chosen = await chrome.tabs.create({ url: command.url, active: false });
+  if (!chosen) chosen = await chrome.tabs.create({ url: command.url, active: false });
   const { tabId } = requireTabIdentity(chosen);
   await waitForTab(tabId);
   return readDescriptor(tabId);
@@ -273,126 +318,96 @@ type PageCommand = Extract<
       | "scroll_target";
   }
 >;
+
 const runClickPageCommand = async (
   command: Extract<PageCommand, { kind: "click_target" }>,
 ): Promise<unknown> => {
   await ensureAttached(command.tabId);
   if (command.button !== "left" || command.clickCount !== 1) {
-    throw new Error(
-      "BROWSER_COMMAND_FAILED:node-bound click supports one approved left click only",
-    );
+    throw new Error("BROWSER_COMMAND_FAILED:node-bound click supports one approved left click only");
   }
   const point = { x: Math.round(command.x), y: Math.round(command.y) };
   if (!Number.isSafeInteger(point.x) || !Number.isSafeInteger(point.y)) {
-    throw new Error(
-      "BROWSER_COMMAND_FAILED:click point must normalize to finite integer coordinates",
-    );
+    throw new Error("BROWSER_COMMAND_FAILED:click point must normalize to finite integer coordinates");
   }
-  const located = asRecord(
-    await chrome.debugger.sendCommand(
-      { tabId: command.tabId },
-      "DOM.getNodeForLocation",
-      {
-        ...point,
-        includeUserAgentShadowDOM: false,
-        ignorePointerEventsNone: false,
-      },
-    ),
-  );
+  const located = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId },
+    "DOM.getNodeForLocation",
+    { ...point, includeUserAgentShadowDOM: false, ignorePointerEventsNone: false },
+  ));
   if (!Number.isInteger(located.backendNodeId)) {
-    throw new Error(
-      "TARGET_NOT_FOUND:click point did not resolve to a DOM node",
-    );
+    throw new Error("TARGET_NOT_FOUND:click point did not resolve to a DOM node");
   }
-  const resolved = asRecord(
-    await chrome.debugger.sendCommand(
-      { tabId: command.tabId },
-      "DOM.resolveNode",
-      { backendNodeId: located.backendNodeId },
-    ),
-  );
+  const resolved = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId },
+    "DOM.resolveNode",
+    { backendNodeId: located.backendNodeId },
+  ));
   const objectId = asRecord(resolved.object).objectId;
   if (typeof objectId !== "string" || !objectId) {
-    throw new Error(
-      "TARGET_NOT_FOUND:click DOM node did not resolve to a runtime object",
-    );
+    throw new Error("TARGET_NOT_FOUND:click DOM node did not resolve to a runtime object");
   }
-  const clickResponse = asRecord(
-    await chrome.debugger.sendCommand(
-      { tabId: command.tabId },
-      "Runtime.callFunctionOn",
-      {
-        objectId,
-        functionDeclaration:
-          "function(){ const owner=this.closest(\"button,a[href],input[type='button'],input[type='submit'],input[type='text'],[role='button'],kat-button\"); if(!owner)return {ok:false}; owner.focus(); owner.click(); return {ok:true}; }",
-        userGesture: true,
-        awaitPromise: true,
-        returnByValue: true,
-      },
-    ),
-  );
-  if (asRecord(asRecord(clickResponse.result).value).ok !== true) {
-    throw new Error(
-      "TARGET_NOT_FOUND:click point did not resolve to an interactive DOM owner",
-    );
+  const validation = asRecord(await chrome.debugger.sendCommand(
+    { tabId: command.tabId },
+    "Runtime.callFunctionOn",
+    {
+      objectId,
+      functionDeclaration:
+        "function(){const owner=this.closest(\"button,a[href],input[type='button'],input[type='submit'],input[type='text'],[role='button'],kat-button\");if(!owner)return {ok:false};const r=owner.getBoundingClientRect();const s=getComputedStyle(owner);return {ok:r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&!owner.disabled};}",
+      awaitPromise: true,
+      returnByValue: true,
+      throwOnSideEffect: true,
+    },
+  ));
+  if (asRecord(asRecord(validation.result).value).ok !== true) {
+    throw new Error("TARGET_NOT_FOUND:click point did not resolve to an interactive DOM owner");
   }
+  await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", {
+    type: "mousePressed", x: point.x, y: point.y, button: "left", clickCount: 1,
+  });
+  await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", {
+    type: "mouseReleased", x: point.x, y: point.y, button: "left", clickCount: 1,
+  });
   return readDescriptor(command.tabId);
 };
 
 const runAtomicDomPageCommand = async (
-  command: Extract<
-    PageCommand,
-    { kind: "click_dom_target" | "fill_dom_target" }
-  >,
+  command: Extract<PageCommand, { kind: "click_dom_target" | "fill_dom_target" }>,
 ): Promise<unknown> => {
   if (command.kind === "click_dom_target") {
-    await evaluate(command.tabId, atomicDomExpression(command));
+    await mutateEvaluate(command.tabId, atomicDomExpression(command));
     return readDescriptor(command.tabId);
   }
   await runAtomicDomFillKeyboardCommand(command, crypto.randomUUID(), {
-    evaluate: <T>(expression: string) => evaluate<T>(command.tabId, expression),
+    evaluate: <T>(expression: string) => mutateEvaluate<T>(command.tabId, expression),
     pressBackspace: async () => {
       const key = keyboard.keyCode("Backspace");
-      await chrome.debugger.sendCommand(
-        { tabId: command.tabId },
-        "Input.dispatchKeyEvent",
-        { type: "keyDown", ...key },
-      );
-      await chrome.debugger.sendCommand(
-        { tabId: command.tabId },
-        "Input.dispatchKeyEvent",
-        { type: "keyUp", ...key },
-      );
+      await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchKeyEvent", { type: "keyDown", ...key });
+      await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchKeyEvent", { type: "keyUp", ...key });
     },
-    typeCharacter: (character: string) =>
-      keyboard.dispatchTypedCharacter(command.tabId, character),
+    typeCharacter: (character: string) => keyboard.dispatchTypedCharacter(command.tabId, character),
   });
   return readDescriptor(command.tabId);
 };
 
 const runPageCommand = async (command: PageCommand): Promise<unknown> => {
   if (command.kind === "navigate_target") {
+    assertAllowedUrl(command.url);
     await ensureAttached(command.tabId);
-    await chrome.debugger.sendCommand(
-      { tabId: command.tabId },
-      "Page.navigate",
-      { url: command.url },
-    );
+    await chrome.debugger.sendCommand({ tabId: command.tabId }, "Page.navigate", { url: command.url });
     await waitForTab(command.tabId);
     return readDescriptor(command.tabId);
   }
-  if (command.kind === "evaluate_target")
-    return evaluate(command.tabId, command.expression);
+  if (command.kind === "evaluate_target") return observe(command.tabId, command.expression);
   if (command.kind === "click_target") return runClickPageCommand(command);
-  if (command.kind === "click_dom_target" || command.kind === "fill_dom_target")
+  if (command.kind === "click_dom_target" || command.kind === "fill_dom_target") {
     return runAtomicDomPageCommand(command);
+  }
   if (command.kind === "move_target") {
     await ensureAttached(command.tabId);
-    await chrome.debugger.sendCommand(
-      { tabId: command.tabId },
-      "Input.dispatchMouseEvent",
-      { type: "mouseMoved", x: command.x, y: command.y },
-    );
+    await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", {
+      type: "mouseMoved", x: command.x, y: command.y,
+    });
     return readDescriptor(command.tabId);
   }
   if (command.kind === "scroll_target") return runScrollPageCommand(interactionRuntime, command);
@@ -431,16 +446,13 @@ configureNativeTransport({
 chrome.runtime.onInstalled.addListener(connectNativeTransport);
 chrome.runtime.onStartup.addListener(connectNativeTransport);
 chrome.debugger.onDetach.addListener((source) => {
-  if (Number.isInteger(source.tabId))
-    attachedTabs.delete(source.tabId as number);
+  if (Number.isInteger(source.tabId)) attachedTabs.delete(source.tabId as number);
 });
 chrome.tabs.onRemoved.addListener((tabId) => {
   attachedTabs.delete(tabId);
 });
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "grasseye-native-reconnect") {
-    handleNativeReconnectAlarm();
-  }
+  if (alarm.name === "grasseye-native-reconnect") handleNativeReconnectAlarm();
 });
 chrome.alarms.create("grasseye-native-reconnect", { periodInMinutes: 0.5 });
 connectNativeTransport();

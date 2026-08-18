@@ -19,8 +19,10 @@ import {
 } from "./xuanxue-ai-production.schema.js";
 import {
   xuanxueAiOutputIntegrityFailure,
-  xuanxueAiOutputRequiresFreshExecution,
 } from "./xuanxue-ai-production-output-integrity.js";
+import {
+  isXuanxueLocalizationProduct,
+} from "./xuanxue-ai-production-localization-contract.js";
 
 export interface XuanxueAiProductionExecutionObserver {
   readonly onAttachmentUploadCompleted?: (input: {
@@ -103,12 +105,79 @@ const isPublicKnowledgePreSubmitAttachmentBlock = (
     && !result.providerProof.forkedFromCheckpointProof;
 };
 
+const record = (value: unknown): Readonly<Record<string, unknown>> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>>
+    : null;
+
+const localizationTranscriptValid = (transcript: string): boolean => {
+  if (!transcript.trim()) return false;
+  const forbidden = new Set([
+    "tool_call",
+    "tool_result",
+    "browser_action",
+    "computer_call",
+    "function_call",
+    "command_execution",
+  ]);
+  for (const line of transcript.trim().split("\n")) {
+    let event: unknown;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      return false;
+    }
+    const eventRecord = record(event);
+    const item = record(eventRecord?.item);
+    const kinds = [
+      eventRecord?.type,
+      eventRecord?.event,
+      item?.type,
+    ].filter((value): value is string => typeof value === "string");
+    if (kinds.some((kind) => forbidden.has(kind))) return false;
+  }
+  return true;
+};
+
+const localizationProviderEvidenceFailure = (
+  result: AiFeedResult,
+  order: XuanxueAiOrderRecord["order"],
+): string | null => {
+  if (!isXuanxueLocalizationProduct(order.productId)) return null;
+  const expected = order.providerExecutionProfile;
+  const identity = result.providerProof.modelIdentityProof;
+  const transcript = result.providerProof.providerTranscriptJsonl;
+  const transcriptHash = result.providerProof.providerTranscriptHash;
+  const actualTranscriptHash = transcript
+    ? `sha256:${createHash("sha256").update(transcript).digest("hex")}`
+    : null;
+  if (
+    !expected
+    || !identity
+    || identity.proofStatus !== "verified"
+    || identity.modelFamily !== expected.model_family
+    || identity.modelDisplayName !== expected.model_label
+    || identity.reasoningEffort !== expected.reasoning_effort
+  ) {
+    return "XUANXUE_AI_PRODUCTION_LOCALIZATION_MODEL_IDENTITY_MISMATCH";
+  }
+  if (
+    !transcript
+    || !transcriptHash
+    || transcriptHash !== actualTranscriptHash
+    || !localizationTranscriptValid(transcript)
+  ) {
+    return "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_TRANSCRIPT_INVALID";
+  }
+  return null;
+};
+
 const terminalStageFromResult = (
   result: AiFeedResult,
   stage: XuanxueAiStageRecord,
-  productId: XuanxueAiOrderRecord["order"]["productId"],
+  order: XuanxueAiOrderRecord["order"],
 ): Pick<XuanxueAiStageRecord, "status" | "failureReason"> => {
-  if (isPublicKnowledgePreSubmitAttachmentBlock(result, stage, productId)) {
+  if (isPublicKnowledgePreSubmitAttachmentBlock(result, stage, order.productId)) {
     return {
       status: "failed",
       failureReason:
@@ -153,20 +222,15 @@ const terminalStageFromResult = (
       failureReason: "XUANXUE_AI_PRODUCTION_OUTPUT_JSON_INVALID",
     };
   }
-  if (productId === "localization_static_review") {
-    const identity = result.providerProof.modelIdentityProof;
-    const transcript = result.providerProof.providerTranscriptJsonl;
-    const transcriptHash = result.providerProof.providerTranscriptHash;
-    const actualTranscriptHash = transcript
-      ? `sha256:${createHash("sha256").update(transcript).digest("hex")}`
-      : null;
-    if (!identity || !transcript || !transcriptHash
-      || transcriptHash !== actualTranscriptHash) {
-      return {
-        status: "recovery_pending",
-        failureReason: "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_EVIDENCE_MISSING",
-      };
-    }
+  const localizationEvidenceFailure = localizationProviderEvidenceFailure(
+    result,
+    order,
+  );
+  if (localizationEvidenceFailure) {
+    return {
+      status: "recovery_pending",
+      failureReason: localizationEvidenceFailure,
+    };
   }
   return { status: "completed", failureReason: null };
 };
@@ -239,7 +303,7 @@ export const persistStageResult = (
   const terminal = terminalStageFromResult(
     result,
     progressedStage,
-    progressedOrder.order.productId,
+    progressedOrder.order,
   );
   return runtime.store.updateStage({
     ...progressedStage,

@@ -4,8 +4,14 @@ import type { MediaProcessingAbilityGroup } from "../../capabilities/media-proce
 import type { createXuanxueAiProductionOrder } from "./xuanxue-ai-production.flow.js";
 import { XuanxueAiProductionCoordinator } from "./xuanxue-ai-production.scheduler.js";
 import { XuanxueAiProductionStore } from "./xuanxue-ai-production.store.js";
-import { startXuanxueAiProductionCloudWorker } from "./xuanxue-ai-production-cloud-worker.js";
+import {
+  startXuanxueAiProductionCloudWorker,
+  type XuanxueAiProductionWorkerHealth,
+} from "./xuanxue-ai-production-cloud-worker.js";
 import type { XuanxueAiProductionCloudWorkerHandle } from "./xuanxue-ai-production-cloud-contract.js";
+import {
+  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+} from "./xuanxue-ai-production-localization-contract.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type { XuanxueAiInterventionRequest } from "./xuanxue-ai-production.schema.js";
 
@@ -22,8 +28,10 @@ const startOwnerCloudWorker = (input: {
   coordinator: XuanxueAiProductionCoordinator;
   aiInputGateway: AiInputGatewayAbilityGroup;
   createOrderRoute: CreateOrderRoute;
+  onStatus: (status: XuanxueAiProductionWorkerHealth) => void;
 }) => startXuanxueAiProductionCloudWorker({
   dataDir: input.dataDir,
+  onStatus: input.onStatus,
   execution: {
     createOrder: (order) => input.createOrderRoute(order, input.runtime),
     executeOrder: (orderId, observer) =>
@@ -40,6 +48,7 @@ const startOwnerCloudWorker = (input: {
 
 type OwnerState = {
   worker: XuanxueAiProductionCloudWorkerHandle | null;
+  workerHealth: XuanxueAiProductionWorkerHealth | null;
   store: XuanxueAiProductionStore | null;
   coordinator: XuanxueAiProductionCoordinator | null;
   interventionRuns: Set<Promise<unknown>>;
@@ -68,6 +77,21 @@ const scheduleInterventionRun = (state: OwnerState, orderId: string): void => {
   run.finally(() => state.interventionRuns.delete(run)).catch(() => undefined);
 };
 
+const startupFailureHealth = (error: unknown): XuanxueAiProductionWorkerHealth => {
+  const reason = error instanceof Error ? error.message : String(error);
+  return {
+    status: /(?:CONTRACT|MANIFEST|PRODUCT_CONTRACT)/iu.test(reason)
+      ? "contract_blocked"
+      : "transient_degraded",
+    contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+    activeCount: 0,
+    lastSuccessfulHeartbeatAt: null,
+    lastErrorCode: reason.split(":").slice(0, 2).join(":"),
+    lastErrorReason: reason.slice(0, 1_000),
+    checkedAt: new Date().toISOString(),
+  };
+};
+
 const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerState): Promise<void> => {
   if (state.store) return;
   state.store = new XuanxueAiProductionStore(dependencies.dataDir);
@@ -79,14 +103,22 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
   };
   state.coordinator = new XuanxueAiProductionCoordinator(runtime);
   if (!process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim()) return;
-  state.worker = await startOwnerCloudWorker({
-    dataDir: dependencies.dataDir,
-    runtime,
-    store: state.store,
-    coordinator: state.coordinator,
-    aiInputGateway: dependencies.aiInputGateway,
-    createOrderRoute: dependencies.createOrderRoute,
-  });
+  try {
+    state.worker = await startOwnerCloudWorker({
+      dataDir: dependencies.dataDir,
+      runtime,
+      store: state.store,
+      coordinator: state.coordinator,
+      aiInputGateway: dependencies.aiInputGateway,
+      createOrderRoute: dependencies.createOrderRoute,
+      onStatus: (status) => {
+        state.workerHealth = status;
+      },
+    });
+  } catch (error) {
+    state.workerHealth = startupFailureHealth(error);
+    throw error;
+  }
 };
 
 const requestOwnerIntervention = (
@@ -126,12 +158,14 @@ export const createXuanxueAiProductionWorkbenchOwner = (
   const dependencies = { dataDir, aiInputGateway, mediaProcessing, createOrderRoute };
   const state: OwnerState = {
     worker: null,
+    workerHealth: null,
     store: null,
     coordinator: null,
     interventionRuns: new Set(),
   };
   return {
     init: () => initializeOwner(dependencies, state),
+    readProductionHealth: () => state.workerHealth,
     readOrderStatus(orderId: string) {
       const ownerStore = requireStore(state);
       const order = ownerStore.readOrder(orderId);

@@ -1,25 +1,26 @@
 import path from "node:path";
 
 import { CurrentChromeBrowserController } from "../browser/current-chrome-browser-controller.js";
-import { createLocalBrowserSessionConfig } from "../browser/local-browser-session.js";
+import { resolveProductionBrowserProfileEnrollment } from "../browser/profile/browser-profile-config.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 
-export function createWorkbenchBrowserController(
+export async function createWorkbenchBrowserController(
   options: GrassEyeWorkbenchOptions,
   dataDir: string,
   runtimeLogger: RuntimeLogger,
-): CurrentChromeBrowserController {
-  const browserSessionConfig = createLocalBrowserSessionConfig({
+): Promise<CurrentChromeBrowserController> {
+  const profileEnrollment = resolveProductionBrowserProfileEnrollment({
     platform: options.platformTarget,
     ...(options.browserProfileDirectory
       ? { profileDirectory: options.browserProfileDirectory }
       : {}),
   });
-  return new CurrentChromeBrowserController({
-    sessionConfig: browserSessionConfig,
+  return CurrentChromeBrowserController.create({
+    profileEnrollment,
     screenshotDir: path.join(dataDir, "browser-captures"),
     dataDir,
     headlessRequested: options.browserHeadless === true,
+    authorityTimeoutMs: 30_000,
   }, runtimeLogger);
 }

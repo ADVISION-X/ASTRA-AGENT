@@ -1,5 +1,4 @@
-import type { LocalBrowserSessionState } from "../../types/local-browser-session.js";
-
+import type { BrowserAuthoritySnapshot } from "./authority/browser-authority-certificate.js";
 import type {
   BrowserDocumentRef,
   BrowserTargetRef,
@@ -54,13 +53,24 @@ type BrowserCaptureResult = {
 
 type BrowserScreenshotProfile = "default" | "observation_lightweight";
 
-type BrowserStateSnapshot = LocalBrowserSessionState & {
-  open: boolean;
+type BrowserStateSnapshot = {
+  browserMode: "real_chrome_persistent" | "fixture" | "unsupported";
+  browserProfileRef: string;
+  browserExecutablePath: string | null;
+  profileStatus: "profile_ready" | "profile_missing" | "profile_locked" | "profile_unavailable" | "login_required" | "logged_in" | "unknown";
+  profileDirectory: string;
+  profileProvisioning: "operator_supplied" | "managed_default";
+  profileVerificationStatus: "operator_verified" | "default_unverified";
+  profileVerificationReason: string | null;
+  loginState: "unknown" | "login_required" | "logged_in" | "review_required";
   currentUrl: string;
+  lastLoginCheckAt: string | null;
+  loginRequiredReason: string | null;
+  reviewRequiredReason: string | null;
+  open: boolean;
   currentTitle: string;
   browserExecutable: string | null;
   exactTargetCount?: number;
-  transportReady?: boolean;
 };
 
 type BrowserGeometrySnapshot = {
@@ -208,7 +218,7 @@ interface BrowserTargetSession {
 interface BrowserController {
   setExecutionAbortSignal?(abortSignal: AbortSignal | null): void;
   getHealth(): { ok: boolean; detail: string };
-  getSessionState(): BrowserStateSnapshot;
+  getAuthoritySnapshot(): BrowserAuthoritySnapshot;
   createTargetSession(ownerId: string): BrowserTargetSession;
   close(): Promise<{
     browserActionId: string;

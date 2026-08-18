@@ -17,9 +17,7 @@ const resolveStartupShellPlatformTarget = (value: string | undefined): GrassEyeP
 
 const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
   const raw = (process.env.GRASSEYE_STARTUP_ONLINE_AI_READINESS_JSON ?? process.env.GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON)?.trim();
-  if (!raw) {
-    return null;
-  }
+  if (!raw) return null;
 
   let parsed: unknown;
   try {
@@ -72,17 +70,12 @@ function startServer(): ReturnType<typeof createServer> {
 }
 
 async function startLocalRuntime(): Promise<void> {
+  // Browser authority is a mandatory runtime dependency. The HTTP server is not
+  // exposed until the composition root has received a current authenticated
+  // authority and has constructed the browser-dependent business owners.
+  await workbench.init();
   const server = startServer();
   process.stdout.write(`GrassEye local workbench listening on ${baseUrl}\n`);
-  try {
-    await workbench.init();
-  } catch (error) {
-    await Promise.allSettled([
-      workbench.shutdown(),
-      new Promise<void>((resolve) => server.close(() => resolve())),
-    ]);
-    throw error;
-  }
   const shutdown = async (): Promise<void> => {
     await workbench.shutdown();
     await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -102,3 +95,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exitCode = 1;
   });
 }
+
+export {
+  createWorkbenchServer,
+  resolveStartupShellPlatformTarget,
+  startLocalRuntime,
+};

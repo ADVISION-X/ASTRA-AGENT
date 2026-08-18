@@ -6,42 +6,97 @@
     "mode": "explicit",
     "bindings": [
       {
-        "lawId": "APEX-LOCAL-BROWSER-001-V1",
-        "clauseId": "apex-local-browser-001-requirement",
-        "checkIds": ["local-browser-session/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+        "lawId": "APEX-LOCAL-BROWSER-001-V2",
+        "clauseId": "apex-local-browser-001-v2-requirement",
+        "checkIds": [
+          "local-browser-session/exact-target-authority",
+          "local-browser-session/retired-path-zero"
+        ],
+        "sourceEvidence": [
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"},
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts", "symbolName": "inspectRetiredBrowserPaths"}
+        ]
       },
       {
-        "lawId": "APEX-LOCAL-BROWSER-002-V1",
-        "clauseId": "apex-local-browser-002-requirement",
-        "checkIds": ["local-browser-session/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+        "lawId": "APEX-LOCAL-BROWSER-002-V2",
+        "clauseId": "apex-local-browser-002-v2-requirement",
+        "checkIds": [
+          "local-browser-session/no-unauth-session-type",
+          "local-browser-session/composition-authority-gate",
+          "local-browser-session/authority-mutual-commit",
+          "local-browser-session/authority-revoke-before-side-effects",
+          "local-browser-session/native-port-actor-generation-fence",
+          "local-browser-session/command-permit-frame-binding",
+          "local-browser-session/authority-liveness"
+        ],
+        "sourceEvidence": [
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
+        ]
       },
       {
-        "lawId": "APEX-LOCAL-BROWSER-003-V1",
-        "clauseId": "apex-local-browser-003-requirement",
-        "checkIds": ["local-browser-session/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+        "lawId": "APEX-LOCAL-BROWSER-003-V2",
+        "clauseId": "apex-local-browser-003-v2-requirement",
+        "checkIds": [
+          "local-browser-session/extension-only-executor",
+          "local-browser-session/file-artifact-grant",
+          "local-browser-session/retired-path-zero"
+        ],
+        "sourceEvidence": [
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"},
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts", "symbolName": "inspectRetiredBrowserPaths"}
+        ]
       },
       {
-        "lawId": "APEX-LOCAL-BROWSER-004-V1",
-        "clauseId": "apex-local-browser-004-requirement",
-        "checkIds": ["local-browser-session/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+        "lawId": "APEX-LOCAL-BROWSER-004-V2",
+        "clauseId": "apex-local-browser-004-v2-requirement",
+        "checkIds": [
+          "local-browser-session/side-effect-free-observation",
+          "local-browser-session/dedicated-mutation-surface"
+        ],
+        "sourceEvidence": [
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
+        ]
+      },
+      {
+        "lawId": "APEX-LOCAL-BROWSER-005-V1",
+        "clauseId": "apex-local-browser-005-v1-requirement",
+        "checkIds": [
+          "local-browser-session/profile-process-enrollment",
+          "local-browser-session/protocol-release-identity",
+          "local-browser-session/rust-native-host-only"
+        ],
+        "sourceEvidence": [
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
+        ]
       },
       {
         "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
         "clauseId": "grasseye-security-privacy-browser-001-requirement",
-        "checkIds": ["local-browser-session/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]
+        "checkIds": [
+          "local-browser-session/extension-only-executor",
+          "local-browser-session/profile-process-enrollment",
+          "local-browser-session/protocol-release-identity"
+        ],
+        "sourceEvidence": [
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
+        ]
       }
     ]
   },
   "blueprintRefs": [
     {
       "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
-      "requiredAnchors": ["## 2. 唯一四跳链路", "## 9. 插件单链与焦点归零", "## 11. Audit owner", "## 13. Security Privacy Ownership"]
+      "requiredAnchors": [
+        "## 1. 终态目标与绝对边界",
+        "## 4. Composition root：认证以后才有业务对象",
+        "## 7. 双向认证与 Authority 原子提交",
+        "## 9. Port Actor 与并发规则",
+        "## 10. Liveness 与撤销顺序",
+        "## 16. Rust Native Host",
+        "## 19. Audit owner",
+        "## 20. Quality / mutant matrix"
+      ]
     }
   ],
-  "description": "Exact target BrowserController and one private MV3 Native Messaging transport with no physical-focus or OS file-action path."
+  "description": "Authenticated Browser Authority infrastructure: exact-target MV3 executor, per-port epoch fencing, self-contained Native Host, explicit Chrome profile/process enrollment, and no representable unauthenticated browser session."
 }

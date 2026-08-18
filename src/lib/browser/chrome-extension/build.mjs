@@ -10,6 +10,7 @@ await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
 for (const name of [
   "protocol",
+  "service-worker-session-crypto",
   "service-worker-command-execution",
   "atomic-dom-command",
   "service-worker-interaction-commands",

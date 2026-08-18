@@ -22,7 +22,7 @@ export type WorkbenchAssembly = {
   options: GrassEyeWorkbenchOptions;
   dataDir: string;
   structuredLogBus: StructuredLogBus;
-  browserController: ReturnType<typeof createWorkbenchBrowserController>;
+  browserController: Awaited<ReturnType<typeof createWorkbenchBrowserController>>;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
   videoDownload: ReturnType<typeof createWorkbenchVideoDownload>;
   mediaProcessing: ReturnType<typeof createWorkbenchMediaProcessing>;
@@ -30,13 +30,27 @@ export type WorkbenchAssembly = {
   runtimeLogger: RuntimeLogger;
 };
 
-export function createWorkbenchAssembly(
+export async function createWorkbenchAssembly(
   options: GrassEyeWorkbenchOptions,
-): WorkbenchAssembly {
+): Promise<WorkbenchAssembly> {
   const dataDir = options.dataDir ?? getDefaultPhase04LocalDataDir();
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   const structuredLogBus = createWorkbenchStructuredLogBus();
-  const browserController = createWorkbenchBrowserController(options, dataDir, runtimeLogger);
+
+  // This is the composition root's hard authorization gate. No browser-dependent
+  // business owner is constructed until the Controller has a live authenticated
+  // BrowserAuthority.
+  const browserController = await createWorkbenchBrowserController(
+    options,
+    dataDir,
+    runtimeLogger,
+  );
+  const authority = browserController.getAuthoritySnapshot();
+  if (authority.state !== "AUTHENTICATED_AUTHORITY_PRESENT") {
+    await browserController.close();
+    throw new Error("BROWSER_AUTHORITY_ABSENT_AT_COMPOSITION_ROOT");
+  }
+
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
   const videoDownload = createWorkbenchVideoDownload(dataDir, browserController, runtimeLogger);
   const mediaProcessing = createWorkbenchMediaProcessing(dataDir, runtimeLogger);

@@ -5,6 +5,9 @@ import {
   type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
 import {
+  xuanxueAiProductionDeviceContractProof,
+} from "./xuanxue-ai-production-cloud-client.js";
+import {
   writeXuanxueAiProductionCloudCredential,
   xuanxueAiProductionCloudCredentialPath,
 } from "./xuanxue-ai-production-cloud-credential.js";
@@ -16,6 +19,9 @@ interface EnrollmentEnvelope {
       readonly device_id?: string;
       readonly device_name?: string;
       readonly max_in_flight?: number;
+      readonly contract_manifest_hash?: string;
+      readonly supported_product_contracts?: Record<string, string>;
+      readonly agent_build_fingerprint?: string;
     };
     readonly credential?: string;
   };
@@ -46,6 +52,7 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
   if (!Number.isInteger(maxInFlight) || maxInFlight < 1 || maxInFlight > 64) {
     throw new Error("XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT_INVALID");
   }
+  const contractProof = xuanxueAiProductionDeviceContractProof();
   const response = await fetch(
     `${serverBaseUrl}/internal/ai-production/devices/enroll`,
     {
@@ -58,6 +65,7 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
         device_name: deviceName,
         capabilities: ["xuanxue_ai_production"],
         max_in_flight: maxInFlight,
+        ...contractProof,
       }),
       signal: AbortSignal.timeout(30_000),
     },
@@ -72,11 +80,14 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
     || !device.device_name
     || !device.max_in_flight
     || !credentialValue
+    || device.contract_manifest_hash !== contractProof.contract_manifest_hash
+    || JSON.stringify(device.supported_product_contracts ?? {})
+      !== JSON.stringify(contractProof.supported_product_contracts)
   ) {
     throw new Error(
       `XUANXUE_AI_PRODUCTION_ENROLLMENT_FAILED:`
       + `${body.error?.code ?? response.status}:`
-      + `${body.error?.message ?? "unknown"}`,
+      + `${body.error?.message ?? "contract proof mismatch"}`,
     );
   }
   const dataDir = path.resolve(

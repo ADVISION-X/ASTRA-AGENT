@@ -219,6 +219,22 @@ const providerTurnMarker = (
   return marker;
 };
 
+const assertLocalizationParentContract = (
+  child: XuanxueAiOrderRecord,
+  parent: XuanxueAiOrderRecord,
+): void => {
+  if (child.order.localizationRole !== "selector_swap") return;
+  if (
+    child.order.productId !== "localization_static_review_selector"
+    || parent.order.productId !== "localization_static_review_selector"
+    || parent.order.localizationRole !== "selector_first"
+    || child.order.contractManifestHash !== parent.order.contractManifestHash
+    || child.order.productContractHash !== parent.order.productContractHash
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_LOCALIZATION_PARENT_CONTRACT_MISMATCH");
+  }
+};
+
 const requireParentConversationProof = (
   runtime: XuanxueAiProductionRuntime,
   record: XuanxueAiOrderRecord,
@@ -233,6 +249,7 @@ const requireParentConversationProof = (
   if (!parentOrder || parentOrder.status !== "completed") {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_ORDER_MISSING");
   }
+  assertLocalizationParentContract(record, parentOrder);
   if (isXuanxueAiRequiredContinuationProduct(record.order.productId)
     && !isAllowedXuanxueConversationParent({
       childProductId: record.order.productId,
@@ -385,9 +402,6 @@ export const buildXuanxueAiFeedInput = async (
     ?? continuationFor(record, definition);
   const taskLabel = prepared.parent?.taskLabel
     ?? labelForStage(record.order.productId, stage.stageId);
-  const conversationScopeRef = record.order.productId === "localization_static_review"
-    ? `${record.order.conversationScopeRef}:${stage.stageId}`
-    : record.order.conversationScopeRef;
   return {
     providerKind: "gpt-web-chat",
     taskIdentity: {
@@ -405,9 +419,8 @@ export const buildXuanxueAiFeedInput = async (
       : stage.material.textPrompt,
     inputRefs: prepared.inputRefs,
     modelName: null,
-    requestedReasoningEffort: record.order.productId === "localization_static_review"
-      ? stage.stageId === "localization_candidate_a" ? "pro" : "high"
-      : null,
+    requestedReasoningEffort:
+      record.order.providerExecutionProfile?.reasoning_effort ?? null,
     timeoutMs: stage.material.timeoutMs,
     maxFileCount:
       stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
@@ -415,7 +428,7 @@ export const buildXuanxueAiFeedInput = async (
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: record.order.orderId,
     roundId: stage.stageId,
-    conversationScopeRef,
+    conversationScopeRef: record.order.conversationScopeRef,
     ...(continuation ? { providerContinuationRef: continuation } : {}),
     ...(prepared.parent?.fork ? { providerForkRef: prepared.parent.fork } : {}),
   };

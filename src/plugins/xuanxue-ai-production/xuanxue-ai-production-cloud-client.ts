@@ -1,9 +1,15 @@
 import {
   XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
   XuanxueAiProductionCloudClaimedJobSchema,
+  XuanxueAiProductionCloudLeaseEnvelopeSchema,
   type XuanxueAiProductionCloudClaimedJob,
   type XuanxueAiProductionCloudCredential,
+  type XuanxueAiProductionCloudLeaseEnvelope,
 } from "./xuanxue-ai-production-cloud-contract.js";
+import {
+  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
+} from "./xuanxue-ai-production-localization-contract.js";
 import type { XuanxueAiProductionResult } from "./xuanxue-ai-production.schema.js";
 import { readFile } from "node:fs/promises";
 
@@ -44,6 +50,17 @@ const baseUrl = (
   credential: XuanxueAiProductionCloudCredential,
 ): string => credential.server_base_url.replace(/\/+$/u, "");
 
+const agentBuildFingerprint = (): string =>
+  process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim()
+  || process.env.npm_package_version?.trim()
+  || "grasseye-localization-contract-v1";
+
+export const xuanxueAiProductionDeviceContractProof = () => ({
+  contract_manifest_hash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  supported_product_contracts: XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
+  agent_build_fingerprint: agentBuildFingerprint(),
+});
+
 async function cloudRequest<T>(
   credential: XuanxueAiProductionCloudCredential,
   pathname: string,
@@ -82,9 +99,70 @@ export async function heartbeatXuanxueAiProductionDevice(
   await cloudRequest(
     credential,
     "/internal/ai-production/devices/heartbeat",
-    { method: "POST", body: "{}" },
+    {
+      method: "POST",
+      body: JSON.stringify(xuanxueAiProductionDeviceContractProof()),
+    },
   );
 }
+
+const claimFailureReason = (error: unknown): string => {
+  if (error && typeof error === "object" && "issues" in error) {
+    try {
+      return JSON.stringify((error as { issues?: unknown }).issues).slice(0, 900);
+    } catch {
+      return "claim schema validation failed";
+    }
+  }
+  return (error instanceof Error ? error.message : String(error)).slice(0, 900);
+};
+
+const reportUnaddressableClaim = (raw: unknown, error: unknown): void => {
+  const record = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? raw as Record<string, unknown>
+    : {};
+  process.stderr.write(`${JSON.stringify({
+    level: "error",
+    owner: "xuanxue-ai-production",
+    code: "XUANXUE_AI_PRODUCTION_CLAIM_ENVELOPE_INVALID",
+    job_id: typeof record.job_id === "string" ? record.job_id : null,
+    product_id: typeof record.product_id === "string" ? record.product_id : null,
+    contract_manifest_hash:
+      typeof record.contract_manifest_hash === "string"
+        ? record.contract_manifest_hash : null,
+    product_contract_hash:
+      typeof record.product_contract_hash === "string"
+        ? record.product_contract_hash : null,
+    reason: claimFailureReason(error),
+    at: new Date().toISOString(),
+  })}\n`);
+};
+
+const nackMalformedClaim = async (
+  credential: XuanxueAiProductionCloudCredential,
+  envelope: XuanxueAiProductionCloudLeaseEnvelope,
+  reason: string,
+): Promise<void> => {
+  await cloudRequest(
+    credential,
+    `/internal/ai-production/jobs/${encodeURIComponent(envelope.job_id)}/failure`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        protocol_version: XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
+        lease_token: envelope.lease_token,
+        lease_version: envelope.lease_version,
+        idempotency_key:
+          `${envelope.job_id}:lease:${envelope.lease_version}:failure:XUANXUE_AI_PRODUCTION_CLAIM_CONTRACT_INVALID`,
+        status: "review_required",
+        code: "XUANXUE_AI_PRODUCTION_CLAIM_CONTRACT_INVALID",
+        reason,
+        recoverable: false,
+        local_order_id: null,
+      }),
+    },
+  );
+};
 
 export async function claimXuanxueAiProductionJobs(
   credential: XuanxueAiProductionCloudCredential,
@@ -101,8 +179,39 @@ export async function claimXuanxueAiProductionJobs(
       }),
     },
   );
-  return (result.jobs ?? []).map((job) =>
-    XuanxueAiProductionCloudClaimedJobSchema.parse(job));
+  const accepted: XuanxueAiProductionCloudClaimedJob[] = [];
+  for (const rawJob of result.jobs ?? []) {
+    const parsed = XuanxueAiProductionCloudClaimedJobSchema.safeParse(rawJob);
+    if (parsed.success) {
+      accepted.push(parsed.data);
+      continue;
+    }
+    const envelope = XuanxueAiProductionCloudLeaseEnvelopeSchema.safeParse(rawJob);
+    const reason = claimFailureReason(parsed.error);
+    if (!envelope.success) {
+      reportUnaddressableClaim(rawJob, parsed.error);
+      continue;
+    }
+    try {
+      await nackMalformedClaim(credential, envelope.data, reason);
+    } catch (nackError) {
+      process.stderr.write(`${JSON.stringify({
+        level: "error",
+        owner: "xuanxue-ai-production",
+        code: "XUANXUE_AI_PRODUCTION_CLAIM_NACK_FAILED",
+        job_id: envelope.data.job_id,
+        product_id: envelope.data.product_id,
+        contract_manifest_hash:
+          envelope.data.contract_manifest_hash ?? null,
+        product_contract_hash:
+          envelope.data.product_contract_hash ?? null,
+        reason: claimFailureReason(nackError),
+        original_schema_reason: reason,
+        at: new Date().toISOString(),
+      })}\n`);
+    }
+  }
+  return accepted;
 }
 
 export async function recoverXuanxueAiProductionJob(
@@ -132,7 +241,6 @@ export async function recoverXuanxueAiProductionJob(
     },
   );
 }
-
 
 export async function downloadXuanxueAiProductionInput(
   credential: XuanxueAiProductionCloudCredential,

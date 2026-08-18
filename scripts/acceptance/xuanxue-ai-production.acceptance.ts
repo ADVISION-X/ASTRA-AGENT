@@ -18,6 +18,10 @@ import { acceptXuanxueAiProductionRecovery } from "./xuanxue-ai-production-recov
 import { acceptXuanxueParentRecovery } from "./xuanxue-ai-production-parent-recovery.js";
 import { acceptXuanxueAiProductionSurface } from "./xuanxue-ai-production-surface-acceptance.js";
 import { acceptXuanxueRestartRecovery } from "./xuanxue-ai-production-restart-recovery.js";
+import {
+  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
+} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
 
 const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
@@ -114,42 +118,85 @@ try {
     qimenParent: qimenFollowupParent,
     qimenParentFinal: qimenFollowupParentFinal,
   });
-  const localization = order(
-    "aiprod_localization_static_review",
-    "localization_static_review",
-    [
-      "localization_candidate_a",
-      "localization_candidate_b",
-      "localization_selector_first",
-      "localization_selector_swap",
-      "localization_consistency",
-    ],
+
+  const candidateA = order(
+    "aiprod_localization_candidate_a",
+    "localization_static_review_candidate",
+    ["localization_candidate"],
+    "candidate_a",
   );
-  assert.equal(localization.frozenSubject.primaryPersonRef, null);
-  assert.deepEqual(localization.frozenSubject.participants, []);
-  createXuanxueAiProductionOrder(runtime, localization);
-  const localizationResult = await executeXuanxueAiProductionOrder(
+  const candidateB = order(
+    "aiprod_localization_candidate_b",
+    "localization_static_review_candidate",
+    ["localization_candidate"],
+    "candidate_b",
+  );
+  const selectorFirst = order(
+    "aiprod_localization_selector_first",
+    "localization_static_review_selector",
+    ["localization_selector"],
+    "selector_first",
+  );
+  const consistency = order(
+    "aiprod_localization_consistency",
+    "localization_static_review_selector",
+    ["localization_selector"],
+    "consistency",
+  );
+
+  for (const localization of [candidateA, candidateB, selectorFirst, consistency]) {
+    assert.equal(localization.frozenSubject.primaryPersonRef, null);
+    assert.deepEqual(localization.frozenSubject.participants, []);
+    assert.equal(localization.contractManifestHash, XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH);
+    createXuanxueAiProductionOrder(runtime, localization);
+    const completed = await executeXuanxueAiProductionOrder(runtime, localization.orderId);
+    assert.equal(completed.status, "completed");
+    assert.equal(completed.stages.length, 1);
+    assert.equal(completed.result?.contractManifestHash, XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH);
+    assert.equal(
+      completed.stages.every((stage) =>
+        Boolean(stage.aiFeedResult?.providerProof.providerTranscriptJsonl)
+        && Boolean(stage.aiFeedResult?.providerProof.modelIdentityProof),
+      ),
+      true,
+    );
+  }
+
+  const selectorFirstRecord = store.readOrder(selectorFirst.orderId)!;
+  const selectorFirstStage = selectorFirstRecord.stages[0]!;
+  const selectorSwapBase = order(
+    "aiprod_localization_selector_swap",
+    "localization_static_review_selector",
+    ["localization_selector"],
+    "selector_swap",
+  );
+  const selectorSwap = {
+    ...selectorSwapBase,
+    conversationParent: {
+      relation: "same_conversation" as const,
+      jobId: selectorFirst.orderId,
+      stageId: "localization_selector" as const,
+      executionId: selectorFirstStage.executionId,
+      rawOutputHash: selectorFirstStage.rawOutputHash as `sha256:${string}`,
+      inputBundleHash: selectorFirst.inputBundleHash,
+      conversationScopeRef: selectorFirst.conversationScopeRef,
+    },
+  };
+  createXuanxueAiProductionOrder(runtime, selectorSwap);
+  const swapCompleted = await executeXuanxueAiProductionOrder(
     runtime,
-    localization.orderId,
+    selectorSwap.orderId,
   );
-  assert.equal(localizationResult.status, "completed");
-  assert.deepEqual(
-    localizationResult.stages.map((stage) => stage.stageId),
-    [
-      "localization_candidate_a",
-      "localization_candidate_b",
-      "localization_selector_first",
-      "localization_selector_swap",
-      "localization_consistency",
-    ],
+  assert.equal(swapCompleted.status, "completed");
+  assert.equal(
+    swapCompleted.stages[0]?.aiFeedResult?.providerProof.sameConversationProof?.parentConversationUrl,
+    selectorFirstStage.aiFeedResult?.providerProof.webChatUrl,
   );
   assert.equal(
-    localizationResult.stages.every((stage) =>
-      Boolean(stage.aiFeedResult?.providerProof.providerTranscriptJsonl)
-      && Boolean(stage.aiFeedResult?.providerProof.modelIdentityProof),
-    ),
-    true,
+    selectorSwap.productContractHash,
+    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_selector.product_contract_hash,
   );
+
   await acceptXuanxueRestartRecovery({
     dataDir,
     gateway,
@@ -158,7 +205,7 @@ try {
   });
   store.close();
   process.stdout.write(
-    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed single-conversation graphs, contaminated-output restart, exact-parent FIFO, parent-conversation replay from cloud material, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",
+    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed product graphs, four single-stage localization contracts, exact selector continuation, contaminated-output restart, exact-parent FIFO, parent-conversation replay, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",
   );
 } finally {
   await rm(dataDir, { recursive: true, force: true });

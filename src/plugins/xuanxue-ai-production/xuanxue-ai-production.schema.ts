@@ -11,6 +11,12 @@ import {
   isXuanxueAiReusableBaseConsumerProduct,
   xuanxueAiRequiredContinuationProfiles,
 } from "./xuanxue-ai-production-conversation-policy.js";
+import {
+  XuanxueLocalizationRoleSchema,
+  XuanxueProviderExecutionProfileSchema,
+  assertXuanxueLocalizationContract,
+  isXuanxueLocalizationProduct,
+} from "./xuanxue-ai-production-localization-contract.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID =
   "xuanxue-ai-production" as const;
@@ -34,7 +40,10 @@ export const XuanxueAiProductIdSchema = z.enum([
   "manual_accuracy_challenge",
   "payment_screenshot_observation",
   "public_knowledge_article_pipeline",
-  "localization_static_review",
+  "localization_report_translation",
+  "localization_article_translation",
+  "localization_static_review_candidate",
+  "localization_static_review_selector",
   "scheduled_quality_reflection",
 ]);
 
@@ -53,11 +62,10 @@ export const XuanxueAiStageIdSchema = z.enum([
   "corpus_research",
   "article_synthesis",
   "article_image_generation",
-  "localization_candidate_a",
-  "localization_candidate_b",
-  "localization_selector_first",
-  "localization_selector_swap",
-  "localization_consistency",
+  "report_translation",
+  "article_translation",
+  "localization_candidate",
+  "localization_selector",
   "scheduled_quality_reflection",
 ]);
 
@@ -137,13 +145,24 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   sourceTaskId: z.string().min(1).max(240),
   productId: XuanxueAiProductIdSchema,
   serviceClass: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
-  triggerKind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection", "localization_static_review"]),
+  triggerKind: z.enum([
+    "user_request",
+    "manual_accuracy_challenge",
+    "scheduled_public_content",
+    "scheduled_quality_reflection",
+    "terminal_localization",
+    "localization_static_review",
+  ]),
   lineageId: z.string().min(1).nullable(),
   reflectionSnapshotRef: z.string().min(1).nullable(),
   reflectionPlanId: z.string().min(1).nullable(),
   inputBundleRef: z.string().min(1).max(500),
-  inputBundleHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-  requestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  inputBundleHash: hashSchema,
+  requestHash: hashSchema,
+  contractManifestHash: hashSchema.nullable(),
+  productContractHash: hashSchema.nullable(),
+  localizationRole: XuanxueLocalizationRoleSchema.nullable(),
+  providerExecutionProfile: XuanxueProviderExecutionProfileSchema.nullable(),
   frozenSubject: XuanxueAiFrozenSubjectSchema,
   conversationScopeRef: z.string().min(1),
   conversationParent: ConversationParentBindingSchema.nullable(),
@@ -152,7 +171,7 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
     stageId: XuanxueAiStageIdSchema,
     executionId: z.string().min(1),
     rawResponseText: z.string(),
-    rawOutputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+    rawOutputHash: hashSchema,
     providerProof: z.record(z.string(), z.unknown()),
     transportWarnings: z.array(z.string()),
   }).strict()).max(5).default([]),
@@ -166,13 +185,29 @@ const inspectContinuationPolicy = (
   order: XuanxueAiStoredOrder,
   context: z.RefinementCtx,
 ): void => {
+  const selectorSwap = order.localizationRole === "selector_swap";
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
-    || isXuanxueAiRequiredContinuationProduct(order.productId);
+    || isXuanxueAiRequiredContinuationProduct(order.productId)
+    || selectorSwap;
   if (continuationRequired !== Boolean(order.conversationParent)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
+      path: ["conversationParent"],
+    });
+  }
+  if (
+    selectorSwap
+    && (
+      order.productId !== "localization_static_review_selector"
+      || order.conversationParent?.relation !== "same_conversation"
+      || order.conversationParent?.stageId !== "localization_selector"
+    )
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SELECTOR_PARENT_INVALID",
       path: ["conversationParent"],
     });
   }
@@ -223,39 +258,105 @@ const inspectContinuationPolicy = (
   }
 };
 
-const inspectLocalizationSubjectPolicy = (
+const inspectLocalizationPolicy = (
   order: XuanxueAiStoredOrder,
   context: z.RefinementCtx,
 ): void => {
-  const isLocalizationProduct = order.productId === "localization_static_review";
-  if (isLocalizationProduct) {
-    if (order.frozenSubject.primaryPersonRef !== null
-      || order.frozenSubject.participants.length !== 0) {
+  const isLocalization = isXuanxueLocalizationProduct(order.productId);
+  if (!isLocalization) {
+    if (
+      order.contractManifestHash !== null
+      || order.productContractHash !== null
+      || order.localizationRole !== null
+      || order.providerExecutionProfile !== null
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SUBJECT_MUST_BE_CONTEXT_ONLY",
-        path: ["frozenSubject"],
+        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN",
+        path: ["localizationRole"],
       });
     }
-    if (order.frozenSubject.privacyOwnerRef !== "localization-catalog") {
+    if (order.frozenSubject.participants.length === 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_OWNER_INVALID",
-        path: ["frozenSubject", "privacyOwnerRef"],
+        message: "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED",
+        path: ["frozenSubject", "participants"],
       });
     }
-    if (order.conversationParent !== null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_PARENT_FORBIDDEN",
-        path: ["conversationParent"],
-      });
-    }
-  } else if (order.frozenSubject.participants.length === 0) {
+    return;
+  }
+  try {
+    assertXuanxueLocalizationContract({
+      productId: order.productId,
+      stageId: order.materials[0]?.stageId ?? "",
+      contractManifestHash: order.contractManifestHash,
+      productContractHash: order.productContractHash,
+      role: order.localizationRole,
+      providerProfile: order.providerExecutionProfile,
+      inputKinds: order.materials[0]?.inputRefs.map((item) => item.kind) ?? [],
+      hasConversationParent: Boolean(order.conversationParent),
+    });
+  } catch (error) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED",
-      path: ["frozenSubject", "participants"],
+      message: error instanceof Error
+        ? error.message
+        : "XUANXUE_AI_PRODUCTION_LOCALIZATION_CONTRACT_INVALID",
+      path: ["localizationRole"],
+    });
+  }
+  if (
+    order.serviceClass !== "localization"
+    || order.materials.length !== 1
+    || order.joinParents.length !== 0
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SINGLE_STAGE_INVALID",
+      path: ["materials"],
+    });
+  }
+  const staticReview =
+    order.productId === "localization_static_review_candidate"
+    || order.productId === "localization_static_review_selector";
+  if (
+    staticReview
+    && (
+      order.triggerKind !== "localization_static_review"
+      || order.frozenSubject.privacyOwnerRef !== "localization-catalog"
+      || order.frozenSubject.primaryPersonRef !== null
+      || order.frozenSubject.participants.length !== 0
+    )
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_STATIC_SUBJECT_INVALID",
+      path: ["frozenSubject"],
+    });
+  }
+  if (
+    (order.productId === "localization_report_translation"
+      || order.productId === "localization_article_translation")
+    && order.triggerKind !== "terminal_localization"
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_TERMINAL_LOCALIZATION_TRIGGER_INVALID",
+      path: ["triggerKind"],
+    });
+  }
+  if (
+    order.productId === "localization_article_translation"
+    && (
+      order.frozenSubject.privacyOwnerRef !== "public-knowledge-content"
+      || order.frozenSubject.primaryPersonRef !== null
+      || order.frozenSubject.participants.length !== 0
+    )
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_ARTICLE_LOCALIZATION_SUBJECT_INVALID",
+      path: ["frozenSubject"],
     });
   }
 };
@@ -263,7 +364,7 @@ const inspectLocalizationSubjectPolicy = (
 export const XuanxueAiProductionOrderSchema =
 XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
   inspectContinuationPolicy(order, context);
-  inspectLocalizationSubjectPolicy(order, context);
+  inspectLocalizationPolicy(order, context);
 });
 
 export type XuanxueAiProductId = z.infer<typeof XuanxueAiProductIdSchema>;
@@ -357,7 +458,6 @@ export interface XuanxueAiGeneratedImageArtifact {
   readonly byteCount: number;
   readonly width: 1200;
   readonly height: 630;
-  /** Local-only path. The cloud worker strips it before publishing. */
   readonly localFilePath?: string;
   readonly checkpointProofRef?: string;
 }
@@ -369,6 +469,9 @@ export interface XuanxueAiProductionResult {
   readonly inputBundleRef: string;
   readonly inputBundleHash: string;
   readonly requestHash: string;
+  readonly contractManifestHash: `sha256:${string}` | null;
+  readonly productContractHash: `sha256:${string}` | null;
+  readonly localizationRole: z.infer<typeof XuanxueLocalizationRoleSchema> | null;
   readonly status: XuanxueAiOrderStatus;
   readonly finalStageId: XuanxueAiStageId;
   readonly stages: readonly {
