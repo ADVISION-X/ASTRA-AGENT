@@ -73,6 +73,7 @@
     "acceptance:workbench-api-boundary": "node --import tsx scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "acceptance:startup-entrypoint": "node --import tsx scripts/acceptance/startup-initialization-health.acceptance.ts",
     "acceptance:xuanxue-ai-production": "node --import tsx scripts/acceptance/xuanxue-ai-production.acceptance.ts",
+    "acceptance:xuanxue-ai-production-localization-contract": "node --import tsx scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
     "acceptance:xuanxue-ai-production:real-chrome": "node --import tsx scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
     "acceptance:xuanxue-ai-production:real-proof-verify": "node --import tsx src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
     "xuanxue-ai-production:cloud:enroll": "node --import tsx scripts/startup/xuanxue-ai-production-cloud-enroll.ts",

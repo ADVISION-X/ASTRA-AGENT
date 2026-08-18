@@ -13,7 +13,16 @@ export const isLawId = (value: string): boolean =>
 
 export const lawIdSchema = z.string().refine(isLawId, "Law id must start with APEX- or GRASSEYE- and use uppercase letters, numbers, or dashes.");
 
-export const clauseEvidenceModeSchema = z.enum(["static", "acceptance", "real-chrome"]);
+export const clauseEvidenceModeSchema = z.enum([
+  "static",
+  "acceptance",
+  "real-chrome",
+  "model+acceptance+real-chrome",
+  "artifact+real-chrome",
+]);
+
+export const evidenceModeIncludesRealChrome = (value: string): boolean =>
+  value.split("+").includes("real-chrome");
 
 export const lawClauseSchema = z
   .object({

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-18T03:24:25.919Z",
+  "generatedAt": "2026-08-18T14:15:22.409Z",
   "status": "FAIL",
-  "inspectorFileCount": 22,
-  "generatedPlanEntryCount": 22,
+  "inspectorFileCount": 23,
+  "generatedPlanEntryCount": 23,
   "inspectedFiles": [
     "scripts/acceptance/audit-truth-coverage.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
@@ -245,6 +245,8 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json",
     "scripts/audit/domains/xuanxue-ai-production/manifest.json",
     "scripts/audit/shared/ast-node-identity.ts",
     "scripts/audit/shared/finding-utils.ts",
@@ -295,6 +297,22 @@
       "filePath": "scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts"
     },
     {
+      "checkId": "audit-truth/inspector-project-usage",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/local-browser-session/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/local-browser-session/inspector.ts uses source-text judgment requireContains(findings, \"local-browser-session/exact-target-authority\", LAW_EXACT, \"src/lib/browser/browser-controller.ts\", controller, [\n    \"BrowserTargetSession\",\n    \"BrowserTargetRef\",\n    \"BrowserDocumentRef\",\n    \"getAuthoritySnapshot\",\n  ]) on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts"
+    },
+    {
       "checkId": "audit-truth/source-text-judgment",
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
@@ -320,14 +338,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:3197c5cd-2493-4bbb-9c38-27b1d7d8e02b",
+      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:7e203a44-5cff-4bc0-b8d6-02a38ab5da1b",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T03:24:17.969Z",
-      "endedAt": "2026-08-18T03:24:25.919Z",
-      "durationMs": 7950,
+      "startedAt": "2026-08-18T14:15:14.310Z",
+      "endedAt": "2026-08-18T14:15:22.408Z",
+      "durationMs": 8098,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -570,6 +588,8 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json",
         "scripts/audit/domains/xuanxue-ai-production/manifest.json",
         "scripts/audit/shared/ast-node-identity.ts",
         "scripts/audit/shared/finding-utils.ts",
@@ -586,7 +606,7 @@
         "scripts/audit/shared/source-files.ts",
         "scripts/audit/shared/source-module-targets.ts"
       ],
-      "findingCount": 6
+      "findingCount": 8
     }
   ],
   "executedChecks": [
@@ -594,19 +614,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:3197c5cd-2493-4bbb-9c38-27b1d7d8e02b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:7e203a44-5cff-4bc0-b8d6-02a38ab5da1b"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:3197c5cd-2493-4bbb-9c38-27b1d7d8e02b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:7e203a44-5cff-4bc0-b8d6-02a38ab5da1b"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:3197c5cd-2493-4bbb-9c38-27b1d7d8e02b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:7e203a44-5cff-4bc0-b8d6-02a38ab5da1b"
     }
   ]
 }

@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-18T03:24:26.055Z",
+  "generatedAt": "2026-08-18T14:15:22.485Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
     "lawId": "APEX-CODE-PURITY-015-V1",
-    "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
-    "message": "scripts/acceptance/xuanxue-ai-production-fixture.ts has an over-line function near line 75.",
+    "filePath": "scripts/acceptance/local-browser-authority-model.acceptance.ts",
+    "message": "scripts/acceptance/local-browser-authority-model.acceptance.ts has an over-line function near line 17.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 232,
-      "endedAt": "2026-08-18T03:23:02.482Z",
+      "durationMs": 217,
+      "endedAt": "2026-08-18T14:13:58.526Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-18T03:23:02.250Z",
+      "startedAt": "2026-08-18T14:13:58.309Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3588,
-      "endedAt": "2026-08-18T03:23:06.071Z",
+      "durationMs": 3556,
+      "endedAt": "2026-08-18T14:14:02.083Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-18T03:23:02.483Z",
+      "startedAt": "2026-08-18T14:13:58.527Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
-      "durationMs": 2,
-      "endedAt": "2026-08-18T03:23:06.076Z",
+      "durationMs": 1,
+      "endedAt": "2026-08-18T14:14:02.088Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-18T03:23:06.074Z",
+      "startedAt": "2026-08-18T14:14:02.087Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 79978,
-      "endedAt": "2026-08-18T03:24:26.054Z",
+      "durationMs": 80395,
+      "endedAt": "2026-08-18T14:15:22.484Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-18T03:23:06.076Z",
+      "startedAt": "2026-08-18T14:14:02.089Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -844,19 +844,6 @@
     },
     {
       "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/local-browser-native-transport.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "APEX-LOCAL-BROWSER-002-V1",
-      "name": "local-browser-native-transport",
-      "ownerId": "local-browser-session",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
       "command": "node --import tsx scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
       "durationMs": 0,
       "endedAt": null,
@@ -1091,6 +1078,19 @@
     },
     {
       "authorityStatus": "sealed",
+      "command": "node --import tsx scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
+      "durationMs": 0,
+      "endedAt": null,
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+      "name": "xuanxue-ai-production-localization-contract",
+      "ownerId": "xuanxue-ai-production-localization-contract",
+      "phase": "acceptance-runner",
+      "startedAt": null,
+      "status": "SKIPPED",
+      "timeoutMs": 300000
+    },
+    {
+      "authorityStatus": "sealed",
       "command": "node --import tsx scripts/acceptance/xuanxue-ai-production.acceptance.ts",
       "durationMs": 0,
       "endedAt": null,
@@ -1169,9 +1169,9 @@
     }
   ],
   "lawCoverage": {
-    "activeLawCount": 239,
-    "activeClauseCount": 240,
-    "boundClauseCount": 240,
+    "activeLawCount": 244,
+    "activeClauseCount": 245,
+    "boundClauseCount": 245,
     "checked": true,
     "uncoveredClauseIds": []
   },
@@ -1196,7 +1196,7 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 4,
+      "findingCount": 54,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
       "status": "FAIL"
     },
@@ -1214,15 +1214,15 @@
     },
     {
       "capabilityDomain": "local-browser-session",
-      "findingCount": 0,
+      "findingCount": 2,
       "reportPath": "scripts/audit/generated/local-browser-session-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "runtime-log-spine",
-      "findingCount": 0,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -1286,8 +1286,14 @@
     },
     {
       "capabilityDomain": "xuanxue-ai-production",
-      "findingCount": 8,
+      "findingCount": 24,
       "reportPath": "scripts/audit/generated/xuanxue-ai-production-report.generated.json",
+      "status": "FAIL"
+    },
+    {
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "findingCount": 4,
+      "reportPath": "scripts/audit/generated/xuanxue-ai-production-localization-contract-report.generated.json",
       "status": "FAIL"
     },
     {
@@ -1298,7 +1304,7 @@
     },
     {
       "capabilityDomain": "audit-truth",
-      "findingCount": 6,
+      "findingCount": 8,
       "reportPath": "scripts/audit/generated/audit-truth-report.generated.json",
       "status": "FAIL"
     },

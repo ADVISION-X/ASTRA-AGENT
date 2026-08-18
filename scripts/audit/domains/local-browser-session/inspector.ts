@@ -491,8 +491,6 @@ const inspectDomainEvaluation = async (
   inspectEvaluationBoundary(findings);
   inspectProfileAndRelease(findings);
   inspectRustHostOnly(findings);
-  findings.push(...inspectRetiredBrowserPaths());
-
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -509,7 +507,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     const evaluation = await inspectDomainEvaluation(context);
     reportJson = evaluation.reportJson;
     return {
-      findings: evaluation.findings,
+      findings: [...evaluation.findings, ...inspectRetiredBrowserPaths()],
       evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
     };
   });

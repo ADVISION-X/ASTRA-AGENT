@@ -11,7 +11,7 @@ import {
   type InspectorFinding,
   type InspectorOutput,
 } from "./inspector-contracts.js";
-import { lawIdSchema } from "./law-contracts.js";
+import { evidenceModeIncludesRealChrome, lawIdSchema } from "./law-contracts.js";
 
 export const inspectorCheckRunReceiptSchema = z.object({
   runId: z.string().min(1),
@@ -195,7 +195,7 @@ const createSessionOutput = (
     }
     const checkRuns = Object.freeze(state.expectedCheckIds.map((checkId) => state.receipts.get(checkId)!));
     const executedChecks = Object.freeze(planEntry.bindings
-      .filter((binding) => binding.evidenceMode !== "real-chrome")
+      .filter((binding) => !evidenceModeIncludesRealChrome(binding.evidenceMode))
       .flatMap((binding) =>
       binding.checkIds.map((checkId) => Object.freeze({
         lawId: binding.lawId,

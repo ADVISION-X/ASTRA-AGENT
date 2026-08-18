@@ -4,6 +4,7 @@ import { basename } from "node:path";
 import type { CommandStep } from "./ci-full-phase-plan.js";
 import { acceptanceLawBindings } from "./ci-acceptance-law-bindings.js";
 import { resolveFromRepo } from "./shared/paths.js";
+import { evidenceModeIncludesRealChrome } from "./shared/law-contracts.js";
 
 type GeneratedPlanLawIndex = {
   entries?: Array<{
@@ -135,7 +136,7 @@ export const buildAcceptanceLeafSkeletons = (
   return Object.freeze(invocations.map<AcceptanceLeafSkeleton | null>((invocation) => {
     const { command, filePath } = invocation;
     const authority = acceptanceAuthority(filePath, generatedPlan);
-    if (authority.evidenceMode === "real-chrome") return null;
+    if (evidenceModeIncludesRealChrome(authority.evidenceMode)) return null;
     return Object.freeze({
       command,
       filePath,
@@ -174,7 +175,7 @@ export const sealAcceptanceLeafSteps = (
       throw new Error(`Acceptance leaf ${skeleton.filePath} does not exist.`);
     }
     const { evidenceMode, lawId, ownerId } = acceptanceAuthority(skeleton.filePath, generatedPlan);
-    if (evidenceMode === "real-chrome") {
+    if (evidenceModeIncludesRealChrome(evidenceMode)) {
       throw new Error(`Acceptance leaf ${skeleton.filePath} cannot execute deferred real-Chrome law ${lawId}.`);
     }
     return [

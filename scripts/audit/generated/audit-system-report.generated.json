@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T03:24:17.960Z",
+  "generatedAt": "2026-08-18T14:15:14.305Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -18,14 +18,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36",
+      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T03:24:07.182Z",
-      "endedAt": "2026-08-18T03:24:17.960Z",
-      "durationMs": 10778,
+      "startedAt": "2026-08-18T14:15:03.647Z",
+      "endedAt": "2026-08-18T14:15:14.305Z",
+      "durationMs": 10658,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -54,6 +54,7 @@
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-type-safety.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+        "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production-localization-contract.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/discover-law-files.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/parse-apex-laws.ts",
@@ -255,15 +256,18 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/ast-node-identity.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/finding-utils.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/law-contracts.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/no-regex.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/paths.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/plugin-intervention-contract-inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/shared/project.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/repo-path-classifier.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/source-files.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/source-module-targets.ts",
+        "/Users/nexgen/Documents/AGENT/src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts",
         "docs/法案辅助文件/GrassEye 执法系统施工图.md",
         "package.json",
         "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
@@ -335,6 +339,8 @@
         "scripts/audit/domains/workbench-api-boundary/inspector.ts",
         "scripts/audit/domains/workbench-api-boundary/manifest.json",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json",
         "scripts/audit/domains/xuanxue-ai-production/manifest.json",
         "scripts/audit/generated/audit-conflicts.generated.json",
         "scripts/audit/generated/audit-plan.generated.json",
@@ -360,61 +366,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:932df06e-4c30-467f-87fc-dd96c8715f36"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a167464d-616e-4152-acfd-3e738aad8900"
     }
   ],
   "inspectedFiles": [
@@ -445,6 +451,7 @@
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-type-safety.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
+    "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production-localization-contract.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/discover-law-files.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/parse-apex-laws.ts",
@@ -646,15 +653,18 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/ast-node-identity.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/finding-utils.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/law-contracts.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/no-regex.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/paths.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/plugin-intervention-contract-inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/shared/project.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/repo-path-classifier.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/source-files.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/source-module-targets.ts",
+    "/Users/nexgen/Documents/AGENT/src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts",
     "docs/法案辅助文件/GrassEye 执法系统施工图.md",
     "package.json",
     "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
@@ -726,6 +736,8 @@
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/manifest.json",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json",
     "scripts/audit/domains/xuanxue-ai-production/manifest.json",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",

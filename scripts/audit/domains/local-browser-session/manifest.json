@@ -9,25 +9,17 @@
         "lawId": "APEX-LOCAL-BROWSER-001-V2",
         "clauseId": "apex-local-browser-001-v2-requirement",
         "checkIds": [
-          "local-browser-session/exact-target-authority",
-          "local-browser-session/retired-path-zero"
+          "local-browser-session/owner-assertion-set"
         ],
         "sourceEvidence": [
-          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"},
-          {"filePath": "scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts", "symbolName": "inspectRetiredBrowserPaths"}
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
         ]
       },
       {
         "lawId": "APEX-LOCAL-BROWSER-002-V2",
         "clauseId": "apex-local-browser-002-v2-requirement",
         "checkIds": [
-          "local-browser-session/no-unauth-session-type",
-          "local-browser-session/composition-authority-gate",
-          "local-browser-session/authority-mutual-commit",
-          "local-browser-session/authority-revoke-before-side-effects",
-          "local-browser-session/native-port-actor-generation-fence",
-          "local-browser-session/command-permit-frame-binding",
-          "local-browser-session/authority-liveness"
+          "local-browser-session/owner-assertion-set"
         ],
         "sourceEvidence": [
           {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
@@ -37,21 +29,17 @@
         "lawId": "APEX-LOCAL-BROWSER-003-V2",
         "clauseId": "apex-local-browser-003-v2-requirement",
         "checkIds": [
-          "local-browser-session/extension-only-executor",
-          "local-browser-session/file-artifact-grant",
-          "local-browser-session/retired-path-zero"
+          "local-browser-session/owner-assertion-set"
         ],
         "sourceEvidence": [
-          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"},
-          {"filePath": "scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts", "symbolName": "inspectRetiredBrowserPaths"}
+          {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
         ]
       },
       {
         "lawId": "APEX-LOCAL-BROWSER-004-V2",
         "clauseId": "apex-local-browser-004-v2-requirement",
         "checkIds": [
-          "local-browser-session/side-effect-free-observation",
-          "local-browser-session/dedicated-mutation-surface"
+          "local-browser-session/owner-assertion-set"
         ],
         "sourceEvidence": [
           {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
@@ -61,9 +49,7 @@
         "lawId": "APEX-LOCAL-BROWSER-005-V1",
         "clauseId": "apex-local-browser-005-v1-requirement",
         "checkIds": [
-          "local-browser-session/profile-process-enrollment",
-          "local-browser-session/protocol-release-identity",
-          "local-browser-session/rust-native-host-only"
+          "local-browser-session/owner-assertion-set"
         ],
         "sourceEvidence": [
           {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}
@@ -73,9 +59,7 @@
         "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
         "clauseId": "grasseye-security-privacy-browser-001-requirement",
         "checkIds": [
-          "local-browser-session/extension-only-executor",
-          "local-browser-session/profile-process-enrollment",
-          "local-browser-session/protocol-release-identity"
+          "local-browser-session/owner-assertion-set"
         ],
         "sourceEvidence": [
           {"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}

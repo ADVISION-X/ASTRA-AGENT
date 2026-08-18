@@ -173,23 +173,50 @@ const deferredAcceptanceUsesGeneratedEvidence = (leafPlan: SourceFile | undefine
     && deferredGuard !== undefined && !hasNameHeuristic;
 };
 
+const isRealChromeEvidenceHelperCall = (condition: import("ts-morph").Node): boolean => {
+  if (!Node.isCallExpression(condition)) return false;
+  const expression = condition.getExpression();
+  const symbol = expression.getSymbol();
+  const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+  return target?.getDeclarations().some((declaration) =>
+    declaration.getSourceFile().getFilePath() === resolveFromRepo("scripts/audit/shared/law-contracts.ts")
+      && ((Node.isFunctionDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome")
+        || (Node.isVariableDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome"))) ?? false;
+};
+
+const helperConditionUsesAuthority = (
+  condition: import("ts-morph").Node,
+  authority: import("ts-morph").Node | undefined,
+): boolean => {
+  if (!Node.isCallExpression(condition)) return false;
+  const argument = condition.getArguments()[0];
+  return Node.isPropertyAccessExpression(argument)
+    && argument.getName() === "evidenceMode"
+    && authority !== undefined
+    && resolvesTo(argument.getExpression(), authority);
+};
+
 const guardDefersGeneratedRealChrome = (
   guard: import("ts-morph").IfStatement,
   authority: import("ts-morph").Node | undefined,
 ): boolean => {
   const condition = guard.getExpression();
-  if (!Node.isBinaryExpression(condition)) return false;
-  const left = condition.getLeft();
-  const right = condition.getRight();
   const thenStatement = guard.getThenStatement();
   const returned = Node.isReturnStatement(thenStatement)
     ? thenStatement.getExpression()
     : thenStatement.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
-  const comparesEvidenceMode = condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
-    && Node.isPropertyAccessExpression(left) && left.getName() === "evidenceMode"
-    && authority !== undefined && resolvesTo(left.getExpression(), authority);
-  return comparesEvidenceMode && Node.isStringLiteral(right)
-    && right.getLiteralText() === "real-chrome" && Node.isNullLiteral(returned);
+  const comparesEvidenceMode = Node.isBinaryExpression(condition)
+    && condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && Node.isPropertyAccessExpression(condition.getLeft())
+    && condition.getLeft().getName() === "evidenceMode"
+    && authority !== undefined && resolvesTo(condition.getLeft().getExpression(), authority);
+  const helperCall = isRealChromeEvidenceHelperCall(condition)
+    && helperConditionUsesAuthority(condition, authority);
+  return Node.isNullLiteral(returned) && (
+    (comparesEvidenceMode && Node.isStringLiteral(condition.getRight())
+      && condition.getRight().getLiteralText() === "real-chrome")
+      || helperCall === true
+  );
 };
 
 const sealerBuildIsFailClosed = (

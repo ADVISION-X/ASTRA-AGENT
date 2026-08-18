@@ -26,7 +26,7 @@ localization_consistency
 ```
 
 ```apex-law
-{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"contract+schema+acceptance","summary":"AGENT consumes the website-owned localization semantic manifest and executes exactly four single-stage localization products; the legacy five-stage localization order is retired."}
+{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"contract+schema+acceptance","summary":"AGENT consumes the website-owned localization semantic manifest and executes exactly four single-stage localization products; the legacy five-stage localization order is retired.","clauses":[{"clauseId":"grasseye-xuanxue-localization-contract-001-requirement","statement":"AGENT consumes the website-owned localization semantic manifest and executes exactly four single-stage localization products; the legacy five-stage localization order is retired.","evidenceMode":"static","ownerDomain":"xuanxue-ai-production-localization-contract"}]}
 ```
 
 ## 1. 四产品七角色
@@ -64,7 +64,7 @@ provider profile hashes
 AGENT 不拥有第二份可独立演化的本地化产品真相。两仓任何 hash 不一致必须阻断生产。
 
 ```apex-law
-{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"hash+claim","summary":"AGENT may mirror but never redefine website localization product contracts; manifest or product hash drift is a startup/claim block, not a recoverable provider error."}
+{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"hash+claim","summary":"AGENT may mirror but never redefine website localization product contracts; manifest or product hash drift is a startup/claim block, not a recoverable provider error.","clauses":[{"clauseId":"grasseye-xuanxue-localization-contract-002-requirement","statement":"AGENT may mirror but never redefine website localization product contracts; manifest or product hash drift is a startup/claim block, not a recoverable provider error.","evidenceMode":"static","ownerDomain":"xuanxue-ai-production-localization-contract"}]}
 ```
 
 ## 3. Enrollment / Heartbeat 是合同握手
@@ -107,7 +107,7 @@ raw job
 NACK 复用原 failure endpoint，不建立第二控制通道。
 
 ```apex-law
-{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"claim+failure","summary":"Malformed leased localization jobs are isolated and NACKed per lease; one poison job cannot abort the batch or enter an expiry/re-lease loop."}
+{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"claim+failure","summary":"Malformed leased localization jobs are isolated and NACKed per lease; one poison job cannot abort the batch or enter an expiry/re-lease loop.","clauses":[{"clauseId":"grasseye-xuanxue-localization-contract-003-requirement","statement":"Malformed leased localization jobs are isolated and NACKed per lease; one poison job cannot abort the batch or enter an expiry/re-lease loop.","evidenceMode":"static","ownerDomain":"xuanxue-ai-production-localization-contract"}]}
 ```
 
 ## 5. 本地 durable order 必须保留 semantic identity
@@ -205,5 +205,5 @@ Workbench `/api/health` 将其作为独立 `xuanxueAiProductionWorker` component
 - 禁止把浏览器插件实现细节写入本法案。
 
 ```apex-law
-{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"static+dynamic-provider","summary":"Localization contract failures are fail-closed identities; runtime compatibility bridges and inferred roles are forbidden."}
+{"lawId":"GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production-localization-contract","enforcementMode":"machine-blocking","evidenceMode":"static+dynamic-provider","summary":"Localization contract failures are fail-closed identities; runtime compatibility bridges and inferred roles are forbidden.","clauses":[{"clauseId":"grasseye-xuanxue-localization-contract-004-requirement","statement":"Localization contract failures are fail-closed identities; runtime compatibility bridges and inferred roles are forbidden.","evidenceMode":"static","ownerDomain":"xuanxue-ai-production-localization-contract"}]}
 ```

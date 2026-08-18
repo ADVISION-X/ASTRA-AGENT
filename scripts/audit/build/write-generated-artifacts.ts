@@ -9,6 +9,7 @@ import type {
 } from "../shared/generated-contracts.js";
 import type { LawSource } from "../shared/law-contracts.js";
 import { generatedDir } from "../shared/paths.js";
+import { evidenceModeIncludesRealChrome } from "../shared/law-contracts.js";
 
 const writeJson = (fileName: string, payload: unknown): void => {
   writeFileSync(resolve(generatedDir, fileName), `${JSON.stringify(payload, null, 2)}\n`);
@@ -63,7 +64,7 @@ const buildStaticCoverageSummary = (
   const coverageByClause = new Map(
     staticCoverage.map((entry) => [`${entry.lawId}::${entry.clauseId}`, entry]),
   );
-  const machineCoverage = staticCoverage.filter((entry) => entry.evidenceMode !== "real-chrome");
+  const machineCoverage = staticCoverage.filter((entry) => !evidenceModeIncludesRealChrome(entry.evidenceMode));
   const executedMachineClauseKeys = new Set(
     machineCoverage
       .filter((entry) => entry.checkIds.every((checkId) =>
@@ -71,7 +72,7 @@ const buildStaticCoverageSummary = (
       .map((entry) => `${entry.lawId}::${entry.clauseId}`),
   );
   const realChromeClauseIds = staticCoverage
-    .filter((entry) => entry.evidenceMode === "real-chrome")
+    .filter((entry) => evidenceModeIncludesRealChrome(entry.evidenceMode))
     .map((entry) => `${entry.lawId}::${entry.clauseId}`);
   const uncoveredMachineClauseIds = machineCoverage
     .map((entry) => `${entry.lawId}::${entry.clauseId}`)

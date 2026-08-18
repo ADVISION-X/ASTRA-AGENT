@@ -71,7 +71,7 @@ const staticClauseCoverageEntrySchema = z
     lawId: lawIdSchema,
     clauseId: z.string().min(1),
     capabilityDomain: z.string().min(1),
-    evidenceMode: z.enum(["static", "acceptance", "real-chrome"]),
+    evidenceMode: clauseEvidenceModeSchema,
     ownerInspectorPath: z.string().min(1),
     checkIds: z.array(z.string().min(1)).min(1),
     sourceEvidence: z.array(sourceEvidenceSchema).min(1),

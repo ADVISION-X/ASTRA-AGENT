@@ -79,11 +79,33 @@ const inspectLegacyReceiptEscape = (
   }
 };
 
+const isRealChromeEvidenceHelperCall = (call: CallExpression): boolean => {
+  const symbol = call.getExpression().getSymbol();
+  const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+  return target?.getDeclarations().some((declaration) =>
+    declaration.getSourceFile().getFilePath() === resolveFromRepo("scripts/audit/shared/law-contracts.ts")
+      && ((Node.isFunctionDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome")
+        || (Node.isVariableDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome"))) ?? false;
+};
+
+const realChromeHelperConditionIsExact = (condition: MorphNode, parameter: MorphNode): boolean => {
+  if (!Node.isPrefixUnaryExpression(condition)
+    || condition.getOperatorToken() !== SyntaxKind.ExclamationToken) return false;
+  const operand = condition.getOperand();
+  if (!Node.isCallExpression(operand) || !isRealChromeEvidenceHelperCall(operand)) return false;
+  const argument = operand.getArguments()[0];
+  return Node.isPropertyAccessExpression(argument)
+    && argument.getName() === "evidenceMode"
+    && resolvesTo(argument.getExpression(), parameter);
+};
+
 const realChromeConditionIsExact = (condition: MorphNode, parameter: MorphNode): boolean => {
-  if (!Node.isBinaryExpression(condition)) return false;
-  const left = condition.getLeft();
-  const right = condition.getRight();
-  return condition.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken
+  const unwrapped = Node.isParenthesizedExpression(condition) ? condition.getExpression() : condition;
+  if (realChromeHelperConditionIsExact(unwrapped, parameter)) return true;
+  if (!Node.isBinaryExpression(unwrapped)) return false;
+  const left = unwrapped.getLeft();
+  const right = unwrapped.getRight();
+  return unwrapped.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken
     && Node.isPropertyAccessExpression(left) && left.getName() === "evidenceMode"
     && resolvesTo(left.getExpression(), parameter)
     && Node.isStringLiteral(right) && right.getLiteralText() === "real-chrome";

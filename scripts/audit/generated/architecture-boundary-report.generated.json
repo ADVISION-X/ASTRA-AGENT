@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T03:23:10.585Z",
+  "generatedAt": "2026-08-18T14:14:06.502Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -371,6 +371,7 @@
     "acceptance:video-download-youtube-production",
     "acceptance:workbench-api-boundary",
     "acceptance:xuanxue-ai-production",
+    "acceptance:xuanxue-ai-production-localization-contract",
     "acceptance:xuanxue-ai-production:real-chrome",
     "acceptance:xuanxue-ai-production:real-proof-verify"
   ],
@@ -387,6 +388,7 @@
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+    "scripts/acceptance/amazon-invoice-upload-real-chrome.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -470,6 +472,8 @@
     "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
     "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
+    "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
+    "scripts/acceptance/local-browser-authority-model.acceptance.ts",
     "scripts/acceptance/local-browser-business-workday.acceptance.ts",
     "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
     "scripts/acceptance/local-browser-native-transport.acceptance.ts",
@@ -500,6 +504,7 @@
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+    "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
     "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
@@ -730,6 +735,7 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
     "scripts/audit/shared/ast-node-identity.ts",
     "scripts/audit/shared/finding-utils.ts",
     "scripts/audit/shared/generated-contracts.ts",
@@ -974,12 +980,16 @@
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
+    "src/lib/browser/authority/browser-authority-certificate.ts",
+    "src/lib/browser/authority/browser-authority-issuer.ts",
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/build.mjs",
     "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
     "src/lib/browser/chrome-extension/dist/protocol.js",
     "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
+    "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
+    "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
     "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
     "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
@@ -987,6 +997,7 @@
     "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
     "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
     "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
+    "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
@@ -994,14 +1005,24 @@
     "src/lib/browser/exact-target/browser-command-contract.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-evaluation-contract.ts",
+    "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
     "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
-    "src/lib/browser/local-browser-session.ts",
-    "src/lib/browser/native-messaging-host/controller-channel.mjs",
-    "src/lib/browser/native-messaging-host/host.mjs",
     "src/lib/browser/native-messaging-host/install.mjs",
+    "src/lib/browser/profile/browser-extension-tree.ts",
+    "src/lib/browser/profile/browser-process-supervisor.ts",
+    "src/lib/browser/profile/browser-profile-config.ts",
+    "src/lib/browser/profile/browser-profile-enrollment.ts",
+    "src/lib/browser/release/browser-activation-receipt.ts",
+    "src/lib/browser/release/browser-release-identity.ts",
+    "src/lib/browser/release/browser-release-security-policy.ts",
+    "src/lib/browser/release/build-browser-runtime.mjs",
+    "src/lib/browser/release/verify-browser-artifact.mjs",
+    "src/lib/browser/transport/browser-command-admission-budget.ts",
+    "src/lib/browser/transport/browser-session-crypto.ts",
+    "src/lib/browser/transport/command-permit.ts",
     "src/lib/local-runtime/contract.ts",
     "src/lib/local-runtime/default-data-dir.ts",
     "src/lib/local-runtime/ids.ts",
@@ -1174,6 +1195,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -1200,21 +1222,20 @@
     "src/types/dom-automation-inputs.ts",
     "src/types/dom-automation.ts",
     "src/types/evidence.ts",
-    "src/types/local-browser-session.ts",
     "src/types/plugin-intervention.ts",
     "src/types/structured-log.ts"
   ],
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b",
+      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T03:23:07.853Z",
-      "endedAt": "2026-08-18T03:23:10.583Z",
-      "durationMs": 2730,
+      "startedAt": "2026-08-18T14:14:03.849Z",
+      "endedAt": "2026-08-18T14:14:06.501Z",
+      "durationMs": 2652,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -1225,6 +1246,7 @@
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-download.acceptance.ts",
+        "scripts/acceptance/amazon-invoice-upload-real-chrome.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
         "scripts/acceptance/amazon-invoice-upload-smoke.ts",
@@ -1308,6 +1330,8 @@
         "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
         "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
         "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
+        "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
+        "scripts/acceptance/local-browser-authority-model.acceptance.ts",
         "scripts/acceptance/local-browser-business-workday.acceptance.ts",
         "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
         "scripts/acceptance/local-browser-native-transport.acceptance.ts",
@@ -1338,6 +1362,7 @@
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture.ts",
         "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+        "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
         "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
@@ -1568,6 +1593,7 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
         "scripts/audit/shared/ast-node-identity.ts",
         "scripts/audit/shared/finding-utils.ts",
         "scripts/audit/shared/generated-contracts.ts",
@@ -1812,12 +1838,16 @@
         "src/capabilities/video-download/runtime/youtube-url.ts",
         "src/capabilities/video-download/schema.ts",
         "src/capabilities/video-download/type-contracts.ts",
+        "src/lib/browser/authority/browser-authority-certificate.ts",
+        "src/lib/browser/authority/browser-authority-issuer.ts",
         "src/lib/browser/browser-controller.ts",
         "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/build.mjs",
         "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
         "src/lib/browser/chrome-extension/dist/protocol.js",
         "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
+        "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
+        "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
         "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
         "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
@@ -1825,6 +1855,7 @@
         "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
         "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
         "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
+        "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
@@ -1832,14 +1863,24 @@
         "src/lib/browser/exact-target/browser-command-contract.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-evaluation-contract.ts",
+        "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
         "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
-        "src/lib/browser/local-browser-session.ts",
-        "src/lib/browser/native-messaging-host/controller-channel.mjs",
-        "src/lib/browser/native-messaging-host/host.mjs",
         "src/lib/browser/native-messaging-host/install.mjs",
+        "src/lib/browser/profile/browser-extension-tree.ts",
+        "src/lib/browser/profile/browser-process-supervisor.ts",
+        "src/lib/browser/profile/browser-profile-config.ts",
+        "src/lib/browser/profile/browser-profile-enrollment.ts",
+        "src/lib/browser/release/browser-activation-receipt.ts",
+        "src/lib/browser/release/browser-release-identity.ts",
+        "src/lib/browser/release/browser-release-security-policy.ts",
+        "src/lib/browser/release/build-browser-runtime.mjs",
+        "src/lib/browser/release/verify-browser-artifact.mjs",
+        "src/lib/browser/transport/browser-command-admission-budget.ts",
+        "src/lib/browser/transport/browser-session-crypto.ts",
+        "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/contract.ts",
         "src/lib/local-runtime/default-data-dir.ts",
         "src/lib/local-runtime/ids.ts",
@@ -2012,6 +2053,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -2038,7 +2080,6 @@
         "src/types/dom-automation-inputs.ts",
         "src/types/dom-automation.ts",
         "src/types/evidence.ts",
-        "src/types/local-browser-session.ts",
         "src/types/plugin-intervention.ts",
         "src/types/structured-log.ts"
       ],
@@ -2050,85 +2091,85 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "APEX-ARCH-012-V1",
       "clauseId": "apex-arch-012-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:a826c70a-f410-4c70-909e-022e74a9a566"
     }
   ]
 }

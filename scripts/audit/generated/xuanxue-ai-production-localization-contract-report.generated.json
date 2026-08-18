@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-08-18T14:15:03.614Z",
+  "capabilityDomain": "xuanxue-ai-production-localization-contract",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+    "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+    "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+    "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1"
+  ],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
+      "message": "Localization contract assertion failed: src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts reintroduced legacy localization_static_review product\n\ntrue !== false\n",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts"
+    },
+    {
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
+      "message": "Localization contract assertion failed: src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts reintroduced legacy localization_static_review product\n\ntrue !== false\n",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts"
+    },
+    {
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
+      "message": "Localization contract assertion failed: src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts reintroduced legacy localization_static_review product\n\ntrue !== false\n",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts"
+    },
+    {
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
+      "message": "Localization contract assertion failed: src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts reintroduced legacy localization_static_review product\n\ntrue !== false\n",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts"
+    }
+  ],
+  "checkRuns": [
+    {
+      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f8c64a73-dadd-452a-a172-e5b893b06bc5",
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "status": "FAIL",
+      "startedAt": "2026-08-18T14:15:03.608Z",
+      "endedAt": "2026-08-18T14:15:03.614Z",
+      "durationMs": 6,
+      "evidenceRefs": [
+        "artifacts/contracts/localization-production-contract.v1.json",
+        "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
+      ],
+      "findingCount": 4
+    }
+  ],
+  "executedChecks": [
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f8c64a73-dadd-452a-a172-e5b893b06bc5"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f8c64a73-dadd-452a-a172-e5b893b06bc5"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f8c64a73-dadd-452a-a172-e5b893b06bc5"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
+      "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f8c64a73-dadd-452a-a172-e5b893b06bc5"
+    }
+  ],
+  "inspectedFiles": [
+    "artifacts/contracts/localization-production-contract.v1.json",
+    "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts"
+  ]
+}

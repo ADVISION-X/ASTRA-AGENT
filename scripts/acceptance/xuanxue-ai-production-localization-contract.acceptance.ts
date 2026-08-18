@@ -44,8 +44,8 @@ assert.equal(
   projection.contract_manifest_hash,
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
 );
-for (const contract of Object.values(XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS)) {
-  assert.equal(projection.products[contract.product_id], contract.product_contract_hash);
+for (const [productId, contract] of Object.entries(XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS)) {
+  assert.equal(projection.products[productId], contract.product_contract_hash);
 }
 
 const cloudClient = readFileSync(

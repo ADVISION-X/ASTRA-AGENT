@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T03:23:06.067Z",
+  "generatedAt": "2026-08-18T14:14:02.080Z",
   "rows": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -268,10 +268,11 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "lawIds": [
-        "APEX-LOCAL-BROWSER-001-V1",
-        "APEX-LOCAL-BROWSER-002-V1",
-        "APEX-LOCAL-BROWSER-003-V1",
-        "APEX-LOCAL-BROWSER-004-V1",
+        "APEX-LOCAL-BROWSER-001-V2",
+        "APEX-LOCAL-BROWSER-002-V2",
+        "APEX-LOCAL-BROWSER-003-V2",
+        "APEX-LOCAL-BROWSER-004-V2",
+        "APEX-LOCAL-BROWSER-005-V1",
         "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
       ]
     },
@@ -381,6 +382,17 @@
         "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
         "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
         "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+      "lawIds": [
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1"
       ]
     },
     {

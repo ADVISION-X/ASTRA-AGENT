@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-18T03:24:25.924Z",
+  "generatedAt": "2026-08-18T14:15:22.413Z",
   "summary": {
-    "activeLawCount": 239,
-    "activeClauseCount": 240,
-    "boundClauseCount": 240,
-    "machineClauseCount": 228,
-    "executedMachineClauseCount": 228,
-    "deferredRealChromeClauseCount": 12,
+    "activeLawCount": 244,
+    "activeClauseCount": 245,
+    "boundClauseCount": 245,
+    "machineClauseCount": 231,
+    "executedMachineClauseCount": 231,
+    "deferredRealChromeClauseCount": 14,
     "realChromeClauseIds": [
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1::grasseye-amazon-invoice-upload-010-requirement",
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1::grasseye-amazon-invoice-upload-011-requirement",
@@ -16,9 +16,11 @@
       "GRASSEYE-DEEP-RESEARCH-059-V1::grasseye-deep-research-059-requirement",
       "APEX-DOM-020-V1::apex-dom-020-requirement",
       "APEX-DOM-021-V1::apex-dom-021-requirement",
-      "APEX-LOCAL-BROWSER-001-V1::apex-local-browser-001-requirement",
-      "APEX-LOCAL-BROWSER-003-V1::apex-local-browser-003-requirement",
-      "APEX-LOCAL-BROWSER-004-V1::apex-local-browser-004-requirement",
+      "APEX-LOCAL-BROWSER-001-V2::apex-local-browser-001-v2-requirement",
+      "APEX-LOCAL-BROWSER-002-V2::apex-local-browser-002-v2-requirement",
+      "APEX-LOCAL-BROWSER-003-V2::apex-local-browser-003-v2-requirement",
+      "APEX-LOCAL-BROWSER-004-V2::apex-local-browser-004-v2-requirement",
+      "APEX-LOCAL-BROWSER-005-V1::apex-local-browser-005-v1-requirement",
       "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5::grasseye-xuanxue-ai-production-001-v5-real-chrome-proof"
     ],
     "uncoveredMachineClauseIds": [],
@@ -2890,8 +2892,8 @@
       "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-001-V1",
-      "clauseId": "apex-local-browser-001-requirement",
+      "lawId": "APEX-LOCAL-BROWSER-001-V2",
+      "clauseId": "apex-local-browser-001-v2-requirement",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -2907,10 +2909,10 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-002-V1",
-      "clauseId": "apex-local-browser-002-requirement",
+      "lawId": "APEX-LOCAL-BROWSER-002-V2",
+      "clauseId": "apex-local-browser-002-v2-requirement",
       "capabilityDomain": "local-browser-session",
-      "evidenceMode": "acceptance",
+      "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
         "local-browser-session/owner-assertion-set"
@@ -2924,8 +2926,8 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-003-V1",
-      "clauseId": "apex-local-browser-003-requirement",
+      "lawId": "APEX-LOCAL-BROWSER-003-V2",
+      "clauseId": "apex-local-browser-003-v2-requirement",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -2941,10 +2943,27 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-004-V1",
-      "clauseId": "apex-local-browser-004-requirement",
+      "lawId": "APEX-LOCAL-BROWSER-004-V2",
+      "clauseId": "apex-local-browser-004-v2-requirement",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "real-chrome",
+      "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
+      "checkIds": [
+        "local-browser-session/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-005-V1",
+      "clauseId": "apex-local-browser-005-v1-requirement",
+      "capabilityDomain": "local-browser-session",
+      "evidenceMode": "artifact+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
         "local-browser-session/owner-assertion-set"
@@ -4103,6 +4122,74 @@
         "sourceEvidenceIndex": 0
       },
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "evidenceMode": "static",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+      "checkIds": [
+        "xuanxue-ai-production-localization-contract/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "evidenceMode": "static",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+      "checkIds": [
+        "xuanxue-ai-production-localization-contract/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "evidenceMode": "static",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+      "checkIds": [
+        "xuanxue-ai-production-localization-contract/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json"
+    },
+    {
+      "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
+      "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "evidenceMode": "static",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+      "checkIds": [
+        "xuanxue-ai-production-localization-contract/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",

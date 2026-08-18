@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T03:23:06.067Z",
+  "generatedAt": "2026-08-18T14:14:02.080Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2861,16 +2861,17 @@
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "executionGroup": "foundation",
       "lawIds": [
-        "APEX-LOCAL-BROWSER-001-V1",
-        "APEX-LOCAL-BROWSER-002-V1",
-        "APEX-LOCAL-BROWSER-003-V1",
-        "APEX-LOCAL-BROWSER-004-V1",
+        "APEX-LOCAL-BROWSER-001-V2",
+        "APEX-LOCAL-BROWSER-002-V2",
+        "APEX-LOCAL-BROWSER-003-V2",
+        "APEX-LOCAL-BROWSER-004-V2",
+        "APEX-LOCAL-BROWSER-005-V1",
         "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
       ],
       "bindings": [
         {
-          "lawId": "APEX-LOCAL-BROWSER-001-V1",
-          "clauseId": "apex-local-browser-001-requirement",
+          "lawId": "APEX-LOCAL-BROWSER-001-V2",
+          "clauseId": "apex-local-browser-001-v2-requirement",
           "checkIds": [
             "local-browser-session/owner-assertion-set"
           ],
@@ -2883,8 +2884,8 @@
           "evidenceMode": "real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-002-V1",
-          "clauseId": "apex-local-browser-002-requirement",
+          "lawId": "APEX-LOCAL-BROWSER-002-V2",
+          "clauseId": "apex-local-browser-002-v2-requirement",
           "checkIds": [
             "local-browser-session/owner-assertion-set"
           ],
@@ -2894,11 +2895,11 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "acceptance"
+          "evidenceMode": "model+acceptance+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-003-V1",
-          "clauseId": "apex-local-browser-003-requirement",
+          "lawId": "APEX-LOCAL-BROWSER-003-V2",
+          "clauseId": "apex-local-browser-003-v2-requirement",
           "checkIds": [
             "local-browser-session/owner-assertion-set"
           ],
@@ -2911,8 +2912,8 @@
           "evidenceMode": "real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-004-V1",
-          "clauseId": "apex-local-browser-004-requirement",
+          "lawId": "APEX-LOCAL-BROWSER-004-V2",
+          "clauseId": "apex-local-browser-004-v2-requirement",
           "checkIds": [
             "local-browser-session/owner-assertion-set"
           ],
@@ -2923,6 +2924,20 @@
             }
           ],
           "evidenceMode": "real-chrome"
+        },
+        {
+          "lawId": "APEX-LOCAL-BROWSER-005-V1",
+          "clauseId": "apex-local-browser-005-v1-requirement",
+          "checkIds": [
+            "local-browser-session/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "artifact+real-chrome"
         },
         {
           "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
@@ -2943,10 +2958,14 @@
         {
           "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
           "requiredAnchors": [
-            "## 2. 唯一四跳链路",
-            "## 9. 插件单链与焦点归零",
-            "## 11. Audit owner",
-            "## 13. Security Privacy Ownership"
+            "## 1. 终态目标与绝对边界",
+            "## 4. Composition root：认证以后才有业务对象",
+            "## 7. 双向认证与 Authority 原子提交",
+            "## 9. Port Actor 与并发规则",
+            "## 10. Liveness 与撤销顺序",
+            "## 16. Rust Native Host",
+            "## 19. Audit owner",
+            "## 20. Quality / mutant matrix"
           ]
         }
       ]
@@ -4074,6 +4093,90 @@
             "## 4. 新增文件",
             "## 14. 审计规则",
             "## 15. 验收测试"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "xuanxue-ai-production-localization-contract",
+      "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1"
+      ],
+      "bindings": [
+        {
+          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+          "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
+          "checkIds": [
+            "xuanxue-ai-production-localization-contract/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "static"
+        },
+        {
+          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
+          "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
+          "checkIds": [
+            "xuanxue-ai-production-localization-contract/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "static"
+        },
+        {
+          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
+          "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
+          "checkIds": [
+            "xuanxue-ai-production-localization-contract/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "static"
+        },
+        {
+          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
+          "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
+          "checkIds": [
+            "xuanxue-ai-production-localization-contract/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "static"
+        }
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye 玄学 AI 本地化生产对接终态施工图.md",
+          "requiredAnchors": [
+            "## 2. 唯一产品图",
+            "## 3. 合同镜像",
+            "## 4. 启动握手",
+            "## 5. Claim",
+            "## 8. Feed",
+            "## 9. Stage 完成门",
+            "## 12. 已废止活动图"
           ]
         }
       ]

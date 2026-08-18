@@ -27,11 +27,12 @@ const splitAuditTruthPath = (repoPath: string): string[] => {
 
 export const isOwnerInspectorRepoPath = (repoPath: string): boolean => {
   const segments = splitAuditTruthPath(repoPath);
-  return segments.length === 5
+  return (segments.length === 5
     && segments[0] === "scripts"
     && segments[1] === "audit"
     && segments[2] === "domains"
-    && segments[4] === "inspector.ts";
+    && segments[4] === "inspector.ts")
+    || repoPath === "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts";
 };
 
 export const isAuditTruthAuditScopeRepoPath = (repoPath: string): boolean => {

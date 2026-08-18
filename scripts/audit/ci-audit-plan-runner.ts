@@ -6,6 +6,7 @@ import { z } from "zod";
 import { loadGeneratedAuditPlan } from "./core/load-audit-plan.js";
 import type { runGeneratedPlan } from "./core/run-generated-plan.js";
 import { resolveFromRepo } from "./shared/paths.js";
+import { evidenceModeIncludesRealChrome } from "./shared/law-contracts.js";
 
 export type PlanRunResult = Awaited<ReturnType<typeof runGeneratedPlan>>;
 
@@ -61,7 +62,7 @@ const orderedGeneratedPlan = (): GeneratedPlanEntry[] => [...loadGeneratedAuditP
 });
 
 const expectedExecutedKeys = (entry: GeneratedPlanEntry): Set<string> => new Set(
-  entry.bindings.filter((binding) => binding.evidenceMode !== "real-chrome").flatMap((binding) =>
+  entry.bindings.filter((binding) => !evidenceModeIncludesRealChrome(binding.evidenceMode)).flatMap((binding) =>
     binding.checkIds.map((checkId) => executedCheckKey({
       lawId: binding.lawId, clauseId: binding.clauseId, checkId,
     }))),

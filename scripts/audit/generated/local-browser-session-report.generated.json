@@ -1,81 +1,119 @@
 {
-  "status": "PASS",
-  "findings": [],
-  "generatedAt": "2026-08-18T03:23:55.142Z",
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "local-browser-session/exact-target-authority",
+      "lawId": "APEX-LOCAL-BROWSER-001-V2",
+      "clauseId": "apex-local-browser-001-v2-requirement",
+      "message": "required production invariant is missing: DOCUMENT_STALE",
+      "severity": "fatal",
+      "filePath": "src/lib/browser/exact-target/browser-command-runtime.ts"
+    },
+    {
+      "checkId": "local-browser-session/composition-authority-gate",
+      "lawId": "APEX-LOCAL-BROWSER-002-V2",
+      "clauseId": "apex-local-browser-002-v2-requirement",
+      "message": "HTTP server must not listen before Workbench authority initialization succeeds",
+      "severity": "fatal",
+      "filePath": "src/app/server.ts"
+    }
+  ],
+  "generatedAt": "2026-08-18T14:14:50.897Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
-    "APEX-LOCAL-BROWSER-001-V1",
-    "APEX-LOCAL-BROWSER-002-V1",
-    "APEX-LOCAL-BROWSER-003-V1",
-    "APEX-LOCAL-BROWSER-004-V1",
+    "APEX-LOCAL-BROWSER-001-V2",
+    "APEX-LOCAL-BROWSER-002-V2",
+    "APEX-LOCAL-BROWSER-003-V2",
+    "APEX-LOCAL-BROWSER-004-V2",
+    "APEX-LOCAL-BROWSER-005-V1",
     "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:244608fd-9ce3-45f3-97ea-567c72d1fc54",
+      "runId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256",
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f6eb3136-5fff-40d1-b284-13db6af67580",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-18T03:23:53.927Z",
-      "endedAt": "2026-08-18T03:23:55.141Z",
-      "durationMs": 1214,
+      "status": "FAIL",
+      "startedAt": "2026-08-18T14:14:50.895Z",
+      "endedAt": "2026-08-18T14:14:50.897Z",
+      "durationMs": 2,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
+        "src/app/server.ts",
+        "src/lib/browser/authority/browser-authority-certificate.ts",
+        "src/lib/browser/authority/browser-authority-issuer.ts",
         "src/lib/browser/browser-controller.ts",
-        "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/manifest.json",
         "src/lib/browser/chrome-extension/protocol.ts",
-        "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
-        "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
-        "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
+        "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
+        "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
         "src/lib/browser/current-chrome-browser-controller.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
-        "src/lib/browser/exact-target/browser-evaluation-contract.ts",
+        "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
+        "src/lib/browser/native-messaging-host/Cargo.toml",
+        "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs",
+        "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
         "src/lib/browser/native-messaging-host/install.mjs",
-        "src/lib/local-runtime/workbench-status.ts"
+        "src/lib/browser/profile/browser-process-supervisor.ts",
+        "src/lib/browser/profile/browser-profile-config.ts",
+        "src/lib/browser/profile/browser-profile-enrollment.ts",
+        "src/lib/browser/release/browser-release-identity.ts",
+        "src/lib/browser/transport/browser-session-crypto.ts",
+        "src/lib/browser/transport/command-permit.ts",
+        "src/lib/local-runtime/workbench-assembly.ts",
+        "src/lib/local-runtime/workbench-browser-support.ts",
+        "src/lib/local-runtime/workbench-status.ts",
+        "src/lib/local-runtime/workbench.ts"
       ],
-      "findingCount": 0
+      "findingCount": 2
     }
   ],
   "executedChecks": [
     {
-      "lawId": "APEX-LOCAL-BROWSER-002-V1",
-      "clauseId": "apex-local-browser-002-requirement",
-      "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:244608fd-9ce3-45f3-97ea-567c72d1fc54"
-    },
-    {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:244608fd-9ce3-45f3-97ea-567c72d1fc54"
+      "checkRunId": "audit-run:3eb155a5-653a-4247-8564-d5dbf2ef5256:check:f6eb3136-5fff-40d1-b284-13db6af67580"
     }
   ],
   "inspectedFiles": [
     "scripts/audit/domains/local-browser-session/inspector.ts",
+    "src/app/server.ts",
+    "src/lib/browser/authority/browser-authority-certificate.ts",
+    "src/lib/browser/authority/browser-authority-issuer.ts",
     "src/lib/browser/browser-controller.ts",
-    "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/manifest.json",
     "src/lib/browser/chrome-extension/protocol.ts",
-    "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
-    "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
-    "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
+    "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
+    "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
     "src/lib/browser/current-chrome-browser-controller.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
-    "src/lib/browser/exact-target/browser-evaluation-contract.ts",
+    "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
+    "src/lib/browser/native-messaging-host/Cargo.toml",
+    "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs",
+    "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
     "src/lib/browser/native-messaging-host/install.mjs",
-    "src/lib/local-runtime/workbench-status.ts"
+    "src/lib/browser/profile/browser-process-supervisor.ts",
+    "src/lib/browser/profile/browser-profile-config.ts",
+    "src/lib/browser/profile/browser-profile-enrollment.ts",
+    "src/lib/browser/release/browser-release-identity.ts",
+    "src/lib/browser/transport/browser-session-crypto.ts",
+    "src/lib/browser/transport/command-permit.ts",
+    "src/lib/local-runtime/workbench-assembly.ts",
+    "src/lib/local-runtime/workbench-browser-support.ts",
+    "src/lib/local-runtime/workbench-status.ts",
+    "src/lib/local-runtime/workbench.ts"
   ]
 }
