@@ -180,6 +180,16 @@ const buildProviderProof = (input: {
   providerKind: input.request.providerKind,
   providerLeaseId: input.providerLeaseId,
   modelName: input.response.modelName ?? input.request.modelName,
+  ...(input.response.modelIdentityProof
+    ? { modelIdentityProof: input.response.modelIdentityProof }
+    : { modelIdentityProof: null }),
+  ...(input.response.providerTranscriptJsonl
+    ? {
+        providerTranscriptJsonl: input.response.providerTranscriptJsonl,
+        providerTranscriptHash: input.response.providerTranscriptHash
+          ?? hashValue(input.response.providerTranscriptJsonl),
+      }
+    : { providerTranscriptJsonl: null, providerTranscriptHash: null }),
   inputHash: input.inputPackage.inputHash,
   outputHash: input.outputHash,
   inputRefs: input.inputPackage.inputRefIds,

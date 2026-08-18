@@ -31,6 +31,9 @@ import { resumeSubmittedWebChatConversation } from "./web-chat-resume.js";
 import {
   readPreSubmitConversationState,
 } from "./web-chat-pre-submit-state.js";
+import {
+  selectWebChatModelAndReasoning,
+} from "./web-chat-model-identity.js";
 
 const submitWebChatPrompt = async (input: {
   browser: BrowserTargetSession;
@@ -74,47 +77,74 @@ type OpenedWebChatConversationInput = {
   forkActionProof?: WebChatForkActionProof | null;
 };
 
-const prepareWebChatConversation = async (
-  input: OpenedWebChatConversationInput,
-): Promise<{
+type PreparedWebChatConversation = {
   previousAssistantCount: number;
   previousUserMessageCount: number;
   previousAnswerText: string | null;
+  modelIdentityProof: AiProviderRawResponse["modelIdentityProof"];
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof;
-}> => {
-  await ensureProviderWorkspaceFocused({
-    ...input,
-    allowAnyProviderTab: false,
-  });
+};
+
+const prepareWebChatAttachments = async (input: {
+  readonly opened: OpenedWebChatConversationInput;
+  readonly modelIdentityProof: AiProviderRawResponse["modelIdentityProof"];
+  readonly phase: string;
+}): Promise<PreparedWebChatConversation> => {
+  const opened = input.opened;
   await assertActiveProviderPage({
-    browser: input.browser,
-    providerUrl: input.providerUrl,
-    phase: "attachment upload",
-    ...(input.context.abortSignal
-      ? { abortSignal: input.context.abortSignal }
+    browser: opened.browser,
+    providerUrl: opened.providerUrl,
+    phase: input.phase,
+    ...(opened.context.abortSignal
+      ? { abortSignal: opened.context.abortSignal }
       : {}),
   });
   const preSubmit = await readPreSubmitConversationState({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
-    providerUrl: input.providerUrl,
+    browser: opened.browser,
+    request: opened.request,
+    context: opened.context,
+    providerUrl: opened.providerUrl,
   });
   const attachmentResult = await attachApprovedWebChatFilesOnce({
-    browser: input.browser,
-    request: input.request,
-    context: input.context,
+    browser: opened.browser,
+    request: opened.request,
+    context: opened.context,
   });
   await ensureProviderWorkspaceFocused({
-    ...input,
+    ...opened,
     allowAnyProviderTab: false,
   });
   return {
     ...preSubmit,
+    modelIdentityProof: input.modelIdentityProof,
     uploadedFiles: attachmentResult.uploadedFiles,
     attachmentUploadProof: attachmentResult.attachmentUploadProof,
   };
+};
+
+const prepareWebChatConversation = async (
+  input: OpenedWebChatConversationInput,
+): Promise<PreparedWebChatConversation> => {
+  await ensureProviderWorkspaceFocused({
+    ...input,
+    allowAnyProviderTab: false,
+  });
+  const modelIdentityProof = input.request.providerKind === "gpt-web-chat"
+    && input.request.requestedReasoningEffort
+    ? await selectWebChatModelAndReasoning({
+      browser: input.browser,
+      providerUrl: input.providerUrl,
+      requestedReasoningEffort: input.request.requestedReasoningEffort,
+    })
+    : undefined;
+  return prepareWebChatAttachments({
+    opened: input,
+    modelIdentityProof,
+    phase: modelIdentityProof
+      ? "pre-submit model identity confirmation"
+      : "attachment upload",
+  });
 };
 
 type CompletedWebChatResponseInput = {
@@ -122,6 +152,50 @@ type CompletedWebChatResponseInput = {
   preSubmit: Awaited<ReturnType<typeof prepareWebChatConversation>>;
   conversation: Awaited<ReturnType<typeof extractWebChatConversation>>;
   submission: Awaited<ReturnType<typeof captureWebChatSubmissionProof>> | null;
+};
+
+const buildProviderTranscript = (
+  input: CompletedWebChatResponseInput,
+  conversationUrl: string | null,
+  finalizedSubmission: Awaited<ReturnType<typeof captureWebChatSubmissionProof>> | null,
+): string => `${JSON.stringify({
+  type: "assistant_message",
+  providerKind: input.opened.request.providerKind,
+  conversationUrl,
+  turnMarker: finalizedSubmission?.turnMarker ?? null,
+  text: input.conversation.answerText,
+})}\n`;
+
+const captureCompletedEvidence = async (input: {
+  readonly completed: CompletedWebChatResponseInput;
+  readonly conversationUrl: string | null;
+  readonly finalizedSubmission: Awaited<ReturnType<typeof captureWebChatSubmissionProof>> | null;
+}): Promise<{
+  readonly providerTranscriptJsonl: string;
+  readonly modelIdentityProof: AiProviderRawResponse["modelIdentityProof"];
+  readonly htmlArtifact: Awaited<ReturnType<typeof captureWebChatResponseArtifacts>>["htmlArtifact"];
+  readonly jsonArtifact: Awaited<ReturnType<typeof captureWebChatResponseArtifacts>>["jsonArtifact"];
+  readonly generatedImage: Awaited<ReturnType<typeof captureChatGptGeneratedImage>>;
+}> => {
+  const providerTranscriptJsonl = buildProviderTranscript(
+    input.completed,
+    input.conversationUrl,
+    input.finalizedSubmission,
+  );
+  const modelIdentityProof = input.completed.preSubmit.modelIdentityProof;
+  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
+    browser: input.completed.opened.browser,
+    request: input.completed.opened.request,
+    context: input.completed.opened.context,
+    answerText: input.completed.conversation.answerText,
+    conversationUrl: input.conversationUrl,
+  });
+  const generatedImage = await captureChatGptGeneratedImage({
+    browser: input.completed.opened.browser,
+    request: input.completed.opened.request,
+    context: input.completed.opened.context,
+  });
+  return { providerTranscriptJsonl, modelIdentityProof, htmlArtifact, jsonArtifact, generatedImage };
 };
 
 const captureFinalizedSubmission = async (
@@ -154,17 +228,10 @@ const buildCompletedWebChatResponse = async (
     finalizedSubmission?.canonicalConversationUrl ??
     input.conversation.extracted.pageUrl ??
     null;
-  const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
-    browser: input.opened.browser,
-    request: input.opened.request,
-    context: input.opened.context,
-    answerText: input.conversation.answerText,
+  const evidence = await captureCompletedEvidence({
+    completed: input,
     conversationUrl,
-  });
-  const generatedImage = await captureChatGptGeneratedImage({
-    browser: input.opened.browser,
-    request: input.opened.request,
-    context: input.opened.context,
+    finalizedSubmission,
   });
   return buildWebChatRawResponse({
     request: input.opened.request,
@@ -174,14 +241,16 @@ const buildCompletedWebChatResponse = async (
     extracted: conversationUrl
       ? { ...input.conversation.extracted, pageUrl: conversationUrl }
       : input.conversation.extracted,
-    answerText: htmlArtifact?.htmlDocument
-      ?? jsonArtifact?.jsonText
+    answerText: evidence.htmlArtifact?.htmlDocument
+      ?? evidence.jsonArtifact?.jsonText
       ?? input.conversation.answerText,
+    modelIdentityProof: evidence.modelIdentityProof,
+    providerTranscriptJsonl: evidence.providerTranscriptJsonl,
     uploadedFiles: input.preSubmit.uploadedFiles,
     attachmentUploadProof: input.preSubmit.attachmentUploadProof,
-    outputRefs: [htmlArtifact?.outputRef, jsonArtifact?.outputRef,
-      generatedImage?.artifactRef].filter((ref): ref is string => Boolean(ref)),
-    outputArtifacts: generatedImage ? [generatedImage] : [],
+    outputRefs: [evidence.htmlArtifact?.outputRef, evidence.jsonArtifact?.outputRef,
+      evidence.generatedImage?.artifactRef].filter((ref): ref is string => Boolean(ref)),
+    outputArtifacts: evidence.generatedImage ? [evidence.generatedImage] : [],
     managedParallelExecution: Boolean(input.opened.context.webChatExecution),
     forkActionProof: input.opened.forkActionProof,
     submissionProof: finalizedSubmission,

@@ -7,6 +7,7 @@ import path from "node:path";
 import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
 import {
   createXuanxueAiProductionOrder,
+  executeXuanxueAiProductionOrder,
   XuanxueAiProductionStore,
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
@@ -22,6 +23,26 @@ const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
 );
 try {
+  const sharedSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
+    "utf8",
+  );
+  assert.ok(
+    sharedSource.indexOf("await selectWebChatModelAndReasoning") >= 0,
+    "GPT Web flow must select the model before preparation",
+  );
+  assert.match(
+    sharedSource,
+    /preSubmit\.modelIdentityProof/u,
+    "completed proof must use the pre-submit model identity read-back",
+  );
+  const modelIdentitySource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts"),
+    "utf8",
+  );
+  assert.match(modelIdentitySource, /selectWebChatModel/u);
+  assert.match(modelIdentitySource, /GPT-5\.6 Sol/u);
+
   const generatedDirectory = path.join(
     dataDir,
     "runtime-data",
@@ -99,6 +120,43 @@ try {
     runtime,
     completedOrderId: hehun.orderId,
   });
+
+  const localization = order(
+    "aiprod_localization_static_review",
+    "localization_static_review",
+    [
+      "localization_candidate_a",
+      "localization_candidate_b",
+      "localization_selector_first",
+      "localization_selector_swap",
+      "localization_consistency",
+    ],
+  );
+  assert.equal(localization.frozenSubject.primaryPersonRef, null);
+  assert.deepEqual(localization.frozenSubject.participants, []);
+  createXuanxueAiProductionOrder(runtime, localization);
+  const localizationResult = await executeXuanxueAiProductionOrder(
+    runtime,
+    localization.orderId,
+  );
+  assert.equal(localizationResult.status, "completed");
+  assert.deepEqual(
+    localizationResult.stages.map((stage) => stage.stageId),
+    [
+      "localization_candidate_a",
+      "localization_candidate_b",
+      "localization_selector_first",
+      "localization_selector_swap",
+      "localization_consistency",
+    ],
+  );
+  assert.equal(
+    localizationResult.stages.every((stage) =>
+      Boolean(stage.aiFeedResult?.providerProof.providerTranscriptJsonl)
+      && Boolean(stage.aiFeedResult?.providerProof.modelIdentityProof),
+    ),
+    true,
+  );
   store.close();
   process.stdout.write(
     "[ACCEPTANCE] xuanxue-ai-production PASS: fixed single-conversation graphs, contaminated-output restart, exact-parent FIFO, parent-conversation replay from cloud material, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",

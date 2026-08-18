@@ -34,6 +34,7 @@ export const XuanxueAiProductIdSchema = z.enum([
   "manual_accuracy_challenge",
   "payment_screenshot_observation",
   "public_knowledge_article_pipeline",
+  "localization_static_review",
   "scheduled_quality_reflection",
 ]);
 
@@ -52,6 +53,11 @@ export const XuanxueAiStageIdSchema = z.enum([
   "corpus_research",
   "article_synthesis",
   "article_image_generation",
+  "localization_candidate_a",
+  "localization_candidate_b",
+  "localization_selector_first",
+  "localization_selector_swap",
+  "localization_consistency",
   "scheduled_quality_reflection",
 ]);
 
@@ -87,7 +93,7 @@ export const XuanxueAiFrozenSubjectSchema = z.object({
   caseRevisionRef: z.string().min(1),
   primaryPersonRef: z.string().min(1).nullable(),
   participantManifestHash: hashSchema,
-  participants: z.array(FrozenParticipantBindingSchema).min(1).max(32),
+  participants: z.array(FrozenParticipantBindingSchema).max(32),
 }).strict();
 
 const ConversationParentBindingSchema = z.object({
@@ -129,8 +135,8 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   sourceProject: z.literal("xuanxue-web"),
   sourceTaskId: z.string().min(1).max(240),
   productId: XuanxueAiProductIdSchema,
-  serviceClass: z.enum(["user_delivery", "public_content", "quality_background"]),
-  triggerKind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection"]),
+  serviceClass: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
+  triggerKind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection", "localization_static_review"]),
   lineageId: z.string().min(1).nullable(),
   reflectionSnapshotRef: z.string().min(1).nullable(),
   reflectionPlanId: z.string().min(1).nullable(),
@@ -148,13 +154,17 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
     rawOutputHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
     providerProof: z.record(z.string(), z.unknown()),
     transportWarnings: z.array(z.string()),
-  }).strict()).max(4).default([]),
-  materials: z.array(XuanxueAiStageMaterialSchema).min(1).max(4),
+  }).strict()).max(5).default([]),
+  materials: z.array(XuanxueAiStageMaterialSchema).min(1).max(5),
   createdAt: z.string().datetime(),
 }).strict();
 
-export const XuanxueAiProductionOrderSchema =
-XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
+type XuanxueAiStoredOrder = z.infer<typeof XuanxueAiStoredProductionOrderSchema>;
+
+const inspectContinuationPolicy = (
+  order: XuanxueAiStoredOrder,
+  context: z.RefinementCtx,
+): void => {
   const continuationRequired =
     order.productId === "manual_accuracy_challenge"
     || isXuanxueAiRequiredContinuationProduct(order.productId);
@@ -210,6 +220,49 @@ XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
       path: ["conversationParent", "relation"],
     });
   }
+};
+
+const inspectLocalizationSubjectPolicy = (
+  order: XuanxueAiStoredOrder,
+  context: z.RefinementCtx,
+): void => {
+  const isLocalizationProduct = order.productId === "localization_static_review";
+  if (isLocalizationProduct) {
+    if (order.frozenSubject.primaryPersonRef !== null
+      || order.frozenSubject.participants.length !== 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SUBJECT_MUST_BE_CONTEXT_ONLY",
+        path: ["frozenSubject"],
+      });
+    }
+    if (order.frozenSubject.privacyOwnerRef !== "localization-catalog") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_OWNER_INVALID",
+        path: ["frozenSubject", "privacyOwnerRef"],
+      });
+    }
+    if (order.conversationParent !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_PARENT_FORBIDDEN",
+        path: ["conversationParent"],
+      });
+    }
+  } else if (order.frozenSubject.participants.length === 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED",
+      path: ["frozenSubject", "participants"],
+    });
+  }
+};
+
+export const XuanxueAiProductionOrderSchema =
+XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
+  inspectContinuationPolicy(order, context);
+  inspectLocalizationSubjectPolicy(order, context);
 });
 
 export type XuanxueAiProductId = z.infer<typeof XuanxueAiProductIdSchema>;

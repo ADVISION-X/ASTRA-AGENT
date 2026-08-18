@@ -35,6 +35,7 @@ import {
 import {
   xuanxueAiOutputIntegrityFailure,
 } from "./xuanxue-ai-production-output-integrity.js";
+import { publicKnowledgeImagePromptBoundary } from "./generated-image-policy.js";
 import { buildTypedJoinInputs } from "./xuanxue-ai-production-typed-join-inputs.js";
 
 export const canonicalXuanxueRawOutputHash = (
@@ -113,11 +114,6 @@ export const initialXuanxueStages = (
     attemptCount: seeded ? 1 : 0,
     material: order.materials[ordinal]!,
     aiFeedResult: seededAccepted ? seededAiResult(seeded!) : null,
-    attachmentUploadProof:
-      seededAccepted
-        ? (seededAiResult(seeded!).providerProof.attachmentUploadProof
-          ?? null) as XuanxueAiStageRecord["attachmentUploadProof"]
-        : null,
     rawResponseText: seededAccepted ? seeded!.rawResponseText : null,
     rawOutputHash: seededAccepted ? seeded!.rawOutputHash : null,
     progressPhase: seededAccepted
@@ -330,12 +326,16 @@ const ensureInputBundleRef = (
   summary: "玄学网站锁定的完整 AI 输入包",
 }, ...inputs];
 
-export const buildXuanxueAiFeedInput = async (
+const prepareStageFeedInputs = async (
   runtime: XuanxueAiProductionRuntime,
   record: XuanxueAiOrderRecord,
   stage: XuanxueAiStageRecord,
   definition: XuanxueAiStageDefinition,
-): Promise<AiFeedInput> => {
+): Promise<{
+  readonly inputRefs: AiFeedInput["inputRefs"];
+  readonly trustedGeneratedFileCount: number;
+  readonly parent: Awaited<ReturnType<typeof parentConversation>>;
+}> => {
   const generated = await Promise.all(
     definition.generatedInputsFrom.map((stageId) =>
       writePriorStageInput(
@@ -358,10 +358,6 @@ export const buildXuanxueAiFeedInput = async (
   )
     ? await parentConversation(runtime, record)
     : null;
-  const continuation = parent?.continuation
-    ?? continuationFor(record, definition);
-  const taskLabel = parent?.taskLabel
-    ?? labelForStage(record.order.productId, stage.stageId);
   const trustedGeneratedFileCount =
     generated.length + joined.length;
   const stageInputs = [
@@ -370,6 +366,23 @@ export const buildXuanxueAiFeedInput = async (
     ...joined,
   ];
   const inputRefs = ensureInputBundleRef(record, stageInputs);
+  return { inputRefs, trustedGeneratedFileCount, parent };
+};
+
+export const buildXuanxueAiFeedInput = async (
+  runtime: XuanxueAiProductionRuntime,
+  record: XuanxueAiOrderRecord,
+  stage: XuanxueAiStageRecord,
+  definition: XuanxueAiStageDefinition,
+): Promise<AiFeedInput> => {
+  const prepared = await prepareStageFeedInputs(runtime, record, stage, definition);
+  const continuation = prepared.parent?.continuation
+    ?? continuationFor(record, definition);
+  const taskLabel = prepared.parent?.taskLabel
+    ?? labelForStage(record.order.productId, stage.stageId);
+  const conversationScopeRef = record.order.productId === "localization_static_review"
+    ? `${record.order.conversationScopeRef}:${stage.stageId}`
+    : record.order.conversationScopeRef;
   return {
     providerKind: "gpt-web-chat",
     taskIdentity: {
@@ -382,18 +395,24 @@ export const buildXuanxueAiFeedInput = async (
     promptContractId: stage.material.promptContractId,
     expectedOutputSchemaRef: stage.material.expectedOutputSchemaRef,
     expectedOutputKind: stage.material.expectedOutputKind,
-    textPrompt: stage.material.textPrompt,
-    inputRefs,
+    textPrompt: stage.material.expectedOutputKind === "generated_image"
+      ? `${stage.material.textPrompt}\n\n${publicKnowledgeImagePromptBoundary}`
+      : stage.material.textPrompt,
+    inputRefs: prepared.inputRefs,
     modelName: null,
+    requestedReasoningEffort: record.order.productId === "localization_static_review"
+      ? stage.stageId === "localization_candidate_a" ? "pro" : "high"
+      : null,
     timeoutMs: stage.material.timeoutMs,
+    maxInputChars: stage.material.maxInputChars,
     maxFileCount:
-      stage.material.maxFileCount + trustedGeneratedFileCount,
+      stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: record.order.orderId,
     roundId: stage.stageId,
-    conversationScopeRef: record.order.conversationScopeRef,
+    conversationScopeRef,
     ...(continuation ? { providerContinuationRef: continuation } : {}),
-    ...(parent?.fork ? { providerForkRef: parent.fork } : {}),
+    ...(prepared.parent?.fork ? { providerForkRef: prepared.parent.fork } : {}),
   };
 };

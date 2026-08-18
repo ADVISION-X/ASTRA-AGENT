@@ -202,6 +202,42 @@ const profiles: Readonly<Record<
     ],
     finalStageId: "article_image_generation",
   },
+  localization_static_review: {
+    productId: "localization_static_review",
+    stages: [
+      {
+        stageId: "localization_candidate_a",
+        dependsOn: [],
+        continuationFrom: null,
+        generatedInputsFrom: [],
+      },
+      {
+        stageId: "localization_candidate_b",
+        dependsOn: [],
+        continuationFrom: null,
+        generatedInputsFrom: [],
+      },
+      {
+        stageId: "localization_selector_first",
+        dependsOn: ["localization_candidate_a", "localization_candidate_b"],
+        continuationFrom: null,
+        generatedInputsFrom: ["localization_candidate_a", "localization_candidate_b"],
+      },
+      {
+        stageId: "localization_selector_swap",
+        dependsOn: ["localization_selector_first"],
+        continuationFrom: "localization_selector_first",
+        generatedInputsFrom: ["localization_selector_first"],
+      },
+      {
+        stageId: "localization_consistency",
+        dependsOn: ["localization_selector_first", "localization_selector_swap"],
+        continuationFrom: null,
+        generatedInputsFrom: ["localization_selector_first", "localization_selector_swap"],
+      },
+    ],
+    finalStageId: "localization_consistency",
+  },
   scheduled_quality_reflection: {
     productId: "scheduled_quality_reflection",
     stages: [{
@@ -226,11 +262,14 @@ const assertSingleConversationStageChain = (
 ): void => {
   for (const [index, stage] of profile.stages.entries()) {
     const previous = profile.stages[index - 1];
-    if (
-      index === 0
-        ? stage.continuationFrom !== null
-        : stage.continuationFrom !== previous?.stageId
-    ) {
+    if (index === 0 && stage.continuationFrom !== null) {
+      throw new Error(
+        `${CONVERSATION_CHAIN_INVALID}:`
+        + `${profile.productId}:${stage.stageId}`,
+      );
+    }
+    if (index > 0 && stage.continuationFrom !== null
+      && stage.continuationFrom !== previous?.stageId) {
       throw new Error(
         `${CONVERSATION_CHAIN_INVALID}:`
         + `${profile.productId}:${stage.stageId}`,

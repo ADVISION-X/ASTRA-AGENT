@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 import {
   XuanxueAiProductIdSchema,
@@ -9,6 +10,17 @@ export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
   "xuanxue-ai-production-v4" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+
+const canonicalJsonValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(canonicalJsonValue);
+  if (typeof value !== "object" || value === null) return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => [key, canonicalJsonValue(entry)]));
+};
+
+const canonicalHash = (value: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(canonicalJsonValue(value))).digest("hex")}`;
 
 const CloudFrozenSubjectSchema = z.object({
   privacy_owner_ref: z.string().min(1),
@@ -27,8 +39,25 @@ const CloudFrozenSubjectSchema = z.object({
     chart_state_hash: hashSchema,
     purpose_code: z.string().min(1),
     authorization_receipt_ref: z.string().min(1),
-  }).strict()).min(1).max(32),
-}).strict();
+  }).strict()).max(32),
+}).strict().superRefine((subject, context) => {
+  const contextOnly = subject.privacy_owner_ref === "localization-catalog"
+    && subject.primary_person_ref === null;
+  if (!contextOnly && subject.participants.length === 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED",
+      path: ["participants"],
+    });
+  }
+  if (contextOnly && subject.participants.length > 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SUBJECT_MUST_BE_CONTEXT_ONLY",
+      path: ["participants"],
+    });
+  }
+});
 
 const CloudConversationParentSchema = z.object({
   relation: z.enum(["same_conversation", "forked_from_checkpoint"]),
@@ -73,6 +102,27 @@ export const XuanxueAiProductionCloudInputSchema = z.object({
   may_issue_instruction: z.boolean().optional(),
 }).strict();
 
+const ProviderInputPreflightReceiptSchema = z.object({
+  schema_version: z.literal("ai-production-provider-input-preflight-receipt.v1"),
+  status: z.literal("verified"),
+  source_task_id: z.string().min(1),
+  product_id: XuanxueAiProductIdSchema,
+  input_bundle_ref: z.string().min(1),
+  input_bundle_hash: hashSchema,
+  stage_id: XuanxueAiStageIdSchema,
+  input_set_hash: hashSchema,
+  files: z.array(z.object({
+    input_id: z.string().min(1), ordinal: z.number().int().nonnegative(),
+    file_name: z.string().min(1), sha256: hashSchema,
+    byte_count: z.number().int().nonnegative(),
+    provider_receipt_ref: z.string().min(1),
+  }).strict()),
+  provider_profile_ref: z.string().min(1),
+  provider_profile_hash: hashSchema,
+  issued_at: z.string().datetime(),
+  receipt_hash: hashSchema,
+}).strict();
+
 const CloudStageMaterialBaseSchema = z.object({
   stage_id: XuanxueAiStageIdSchema,
   instruction_package_id: z.string().min(1),
@@ -81,8 +131,10 @@ const CloudStageMaterialBaseSchema = z.object({
   expected_output_kind: z.enum(["text", "generated_image"]).default("text"),
   task_directive: z.string().min(1),
   timeout_ms: z.number().int().min(60_000).max(3_600_000),
+  max_input_chars: z.number().int().positive(),
   max_file_count: z.number().int().min(0).max(64),
   inputs: z.array(XuanxueAiProductionCloudInputSchema),
+  provider_input_preflight_receipt: ProviderInputPreflightReceiptSchema.optional(),
 });
 
 const ProviderSkillPackageIdentitySchema = z.object({
@@ -165,7 +217,8 @@ const CloudStageMaterialSchema = z.discriminatedUnion("control_plane", [
     exclusion_reason: z.enum([
       "manual_accuracy_challenge", "payment_screenshot_observation",
       "public_knowledge_article_pipeline", "localization_report_translation",
-      "localization_article_translation", "scheduled_quality_reflection",
+      "localization_article_translation", "localization_static_review",
+      "scheduled_quality_reflection",
     ]),
   }).strict(),
 ]);
@@ -183,8 +236,8 @@ const cloudReplayOrderShape = {
   job_id: z.string().min(1),
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
-  service_class: z.enum(["user_delivery", "public_content", "quality_background"]),
-  trigger_kind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection"]),
+  service_class: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
+  trigger_kind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection", "localization_static_review"]),
   lineage_id: z.string().min(1).nullable(),
   reflection_snapshot_ref: z.string().min(1).nullable(),
   reflection_plan_id: z.string().min(1).nullable(),
@@ -193,8 +246,8 @@ const cloudReplayOrderShape = {
   request_hash: hashSchema,
   frozen_subject: CloudFrozenSubjectSchema,
   conversation_scope_ref: z.string().min(1),
-  seeded_stages: z.array(CloudSeededStageSchema).max(4),
-  materials: z.array(CloudStageMaterialSchema).min(1).max(4),
+  seeded_stages: z.array(CloudSeededStageSchema).max(5),
+  materials: z.array(CloudStageMaterialSchema).min(1).max(5),
   created_at: z.string().min(1),
 } as const;
 
@@ -241,8 +294,8 @@ const cloudClaimIdentityShape = {
   idempotency_key: z.string().min(1),
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
-  service_class: z.enum(["user_delivery", "public_content", "quality_background"]),
-  trigger_kind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection"]),
+  service_class: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
+  trigger_kind: z.enum(["user_request", "manual_accuracy_challenge", "scheduled_public_content", "scheduled_quality_reflection", "localization_static_review"]),
   lineage_id: z.string().min(1).nullable(),
   reflection_snapshot_ref: z.string().min(1).nullable(),
   reflection_plan_id: z.string().min(1).nullable(),
@@ -256,10 +309,10 @@ const cloudClaimIdentityShape = {
 const cloudClaimConversationShape = {
   conversation_parent: CloudConversationParentSchema.nullable(),
   join_parents: z.array(CloudJoinParentSchema).max(32),
-  seeded_stages: z.array(CloudSeededStageSchema).max(4).default([]),
+  seeded_stages: z.array(CloudSeededStageSchema).max(5).default([]),
   continuation_parent_replay: CloudParentReplaySchema.nullable(),
   execution_lane: z.literal("supervised_local_gpt_web"),
-  materials: z.array(CloudStageMaterialSchema).min(1).max(4),
+  materials: z.array(CloudStageMaterialSchema).min(1).max(5),
 } as const;
 
 const cloudClaimLeaseShape = {
@@ -301,8 +354,88 @@ const inspectParentReplay = (job: CloudClaimedJobCandidate, context: z.Refinemen
   }
 };
 
+const buildPreflightInputSet = (job: CloudClaimedJobCandidate, material: CloudClaimedJobCandidate["materials"][number]) => ({
+  schema_version: "ai-production-provider-input-preflight-request.v1",
+  source_task_id: job.source_task_id,
+  product_id: job.product_id,
+  input_bundle_ref: job.input_bundle_ref,
+  input_bundle_hash: job.input_bundle_hash,
+  stage_id: material.stage_id,
+  inputs: material.inputs.map(({ input_id, ordinal, file_name, sha256, byte_count, object_ref }) => ({
+    input_id,
+    ordinal,
+    file_name,
+    sha256,
+    byte_count,
+    object_ref,
+  })),
+});
+
+const preflightFilesMatch = (material: CloudClaimedJobCandidate["materials"][number]): boolean => {
+  const receipt = material.provider_input_preflight_receipt;
+  return Boolean(receipt && receipt.files.length === material.inputs.length
+    && material.inputs.every((input, index) => {
+      const file = receipt.files[index];
+      return file?.input_id === input.input_id && file.ordinal === input.ordinal
+        && file.file_name === input.file_name && file.sha256 === input.sha256
+        && file.byte_count === input.byte_count;
+    }));
+};
+
+const inspectMaterialPreflight = (
+  job: CloudClaimedJobCandidate,
+  material: CloudClaimedJobCandidate["materials"][number],
+  context: z.RefinementCtx,
+): void => {
+  const receipt = material.provider_input_preflight_receipt;
+  if (job.product_id === "public_knowledge_article_pipeline" && material.stage_id === "corpus_research" && !receipt) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_REQUIRED", path: ["materials"] });
+    return;
+  }
+  if (!receipt) return;
+  const { receipt_hash: receiptHash, ...receiptBody } = receipt;
+  if (receipt.source_task_id !== job.source_task_id || receipt.product_id !== job.product_id
+    || receipt.input_bundle_ref !== job.input_bundle_ref || receipt.input_bundle_hash !== job.input_bundle_hash
+    || receipt.stage_id !== material.stage_id || receipt.input_set_hash !== canonicalHash(buildPreflightInputSet(job, material))
+    || !preflightFilesMatch(material) || receiptHash !== canonicalHash(receiptBody)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_PREFLIGHT_INVALID", path: ["materials"] });
+  }
+};
+
+const inspectLocalizationOrder = (
+  job: CloudClaimedJobCandidate,
+  context: z.RefinementCtx,
+): void => {
+  if (job.product_id !== "localization_static_review") return;
+  const expected = [
+    "localization_candidate_a",
+    "localization_candidate_b",
+    "localization_selector_first",
+    "localization_selector_swap",
+    "localization_consistency",
+  ];
+  const received = job.materials.map((material) => material.stage_id);
+  if (received.length !== expected.length
+    || received.some((stageId, index) => stageId !== expected[index])
+    || job.conversation_parent !== null
+    || job.join_parents.length !== 0
+    || job.frozen_subject.privacy_owner_ref !== "localization-catalog"
+    || job.frozen_subject.primary_person_ref !== null
+    || job.frozen_subject.participants.length !== 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_ORDER_GRAPH_INVALID",
+      path: ["materials"],
+    });
+  }
+};
+
 export const XuanxueAiProductionCloudClaimedJobSchema = XuanxueAiProductionCloudClaimedJobBaseSchema.superRefine((job, context) => {
   inspectParentReplay(job, context);
+  inspectLocalizationOrder(job, context);
+  for (const material of job.materials) {
+    inspectMaterialPreflight(job, material, context);
+  }
 });
 
 export type XuanxueAiProductionCloudClaimedJob = z.infer<

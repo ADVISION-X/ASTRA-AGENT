@@ -102,6 +102,23 @@ export type WebChatExecutionContext = {
 export type AiProviderRawResponse = {
   rawText: string;
   modelName: string | null;
+  /** Provider-visible model identity and transcript evidence are optional for
+   * legacy products, but required by the localization static-review owner
+   * before a stage may be marked completed. They must come from the live
+   * provider surface, never from the caller's request profile. */
+  modelIdentityProof?: {
+    proofStatus: "verified";
+    modelFamily: string;
+    modelDisplayName: string;
+    modelIdentityStatus: "verified";
+    reasoningEffort: string;
+    observedAt: string;
+    sourceKind: "provider_ui_observation" | "provider_api_response";
+    evidenceRef: string;
+    evidenceHash: `sha256:${string}`;
+  } | null;
+  providerTranscriptJsonl?: string | null;
+  providerTranscriptHash?: `sha256:${string}` | null;
   runtimeName: string;
   transport: "api" | "web-chat";
   webChatUrl: string | null;

@@ -8,7 +8,8 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import {
   acceptancePath, acceptanceSupportPaths, authorityPaths,
   cloudContractPath, cloudCredentialPath, cloudWorkerPath,
-  pluginPaths, profilePath, removedSecondChainPaths, schedulerPath, schemaPath, storePath,
+  gatewayModelIdentityPath, pluginPaths, profilePath, removedSecondChainPaths,
+  schedulerPath, schemaPath, storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 import { collectXuanxueSourceValues, inspectXuanxueLocalIntervention } from "./components/local-intervention-inspector.js";
@@ -168,7 +169,13 @@ const inspectContracts = (
       "manual_accuracy_challenge",
       "payment_screenshot_observation",
       "public_knowledge_article_pipeline",
+      "localization_static_review",
       "scheduled_quality_reflection",
+      "localization_candidate_a",
+      "localization_candidate_b",
+      "localization_selector_first",
+      "localization_selector_swap",
+      "localization_consistency",
       "article_image_generation",
       "chart_interpretation",
       "frozenSubject",
@@ -210,6 +217,33 @@ const inspectContracts = (
       "isXuanxueAiRequiredContinuationProduct",
       "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
       "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID",
+      "localization_candidate_a",
+      "localization_candidate_b",
+      "localization_selector_first",
+      "localization_selector_swap",
+      "localization_consistency",
+    ],
+  });
+  requireValues(findings, {
+    lawId: laws.boundary,
+    checkId: "xuanxue-ai-production/live-model-identity",
+    filePath: gatewayModelIdentityPath,
+    messagePrefix: "Provider model identity capture must contain",
+    values,
+    required: [
+      "captureWebChatModelIdentity",
+      "provider_ui_observation",
+      "reasoningEffort",
+      "GPT-5.6 Sol",
+      "极速",
+      "极高",
+      "data-model-reasoning-effort-slider",
+      "requestedReasoningEffort",
+      "selectWebChatModel",
+      "selectWebChatModelAndReasoning",
+      "selectWebChatReasoningEffort",
+      "locate the visible GPT-5.6 Sol model option",
+      "review_required: provider UI did not expose an unambiguous model identity and reasoning control",
     ],
   });
 };
@@ -252,6 +286,9 @@ const inspectDurability = (
       "a still-hydrating fresh root is a recoverable wait on the same execution id",
       "a stage may replace one proven foreign pre-submit identity only once",
       "a second identity conflict must recover on the replacement execution instead of minting restart:2",
+      "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_EVIDENCE_MISSING",
+      "providerTranscriptJsonl",
+      "modelIdentityProof",
     ],
   });
   requireValues(findings, {
@@ -424,6 +461,14 @@ const inspectAcceptance = (
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
       "article_image_generation",
       "scheduled_quality_reflection",
+      "localization_static_review",
+      "localization_candidate_a",
+      "localization_candidate_b",
+      "localization_selector_first",
+      "localization_selector_swap",
+      "localization_consistency",
+      "providerTranscriptJsonl",
+      "modelIdentityProof",
       "terminalAttachmentGatewayCallCount",
       "a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt",
       "restart recovery must preserve the terminal attachment proof without a second upload attempt",

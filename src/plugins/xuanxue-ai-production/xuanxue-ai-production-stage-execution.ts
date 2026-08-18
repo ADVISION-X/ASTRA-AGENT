@@ -3,6 +3,7 @@ import type {
   AiInputGatewayProgress,
   WebChatAttachmentUploadProof,
 } from "../../capabilities/ai-input-gateway/index.js";
+import { createHash } from "node:crypto";
 import type { XuanxueAiStageDefinition } from "./xuanxue-ai-production.profile.js";
 import {
   buildXuanxueAiFeedInput,
@@ -150,6 +151,21 @@ const terminalStageFromResult = (
       status: "recovery_pending",
       failureReason: "XUANXUE_AI_PRODUCTION_OUTPUT_JSON_INVALID",
     };
+  }
+  if (productId === "localization_static_review") {
+    const identity = result.providerProof.modelIdentityProof;
+    const transcript = result.providerProof.providerTranscriptJsonl;
+    const transcriptHash = result.providerProof.providerTranscriptHash;
+    const actualTranscriptHash = transcript
+      ? `sha256:${createHash("sha256").update(transcript).digest("hex")}`
+      : null;
+    if (!identity || !transcript || !transcriptHash
+      || transcriptHash !== actualTranscriptHash) {
+      return {
+        status: "recovery_pending",
+        failureReason: "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_EVIDENCE_MISSING",
+      };
+    }
   }
   return { status: "completed", failureReason: null };
 };

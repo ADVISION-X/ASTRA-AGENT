@@ -86,12 +86,11 @@ const literalContains = (source: SourceFile, value: string): boolean =>
   [...stringLiterals(source)].some((literal) => literal.includes(value));
 
 const sharedPreparationCallOrderIsValid = (source: SourceFile): boolean => {
-  const initializer = source
-    .getVariableDeclaration("prepareWebChatConversation")
-    ?.getInitializer();
-  const calls = initializer?.getDescendantsOfKind(
-    SyntaxKind.CallExpression,
-  ) ?? [];
+  const initializers = ["prepareWebChatConversation", "prepareWebChatAttachments"]
+    .map((name) => source.getVariableDeclaration(name)?.getInitializer())
+    .filter((initializer): initializer is NonNullable<typeof initializer> => Boolean(initializer));
+  const calls = initializers.flatMap((initializer) => initializer
+    .getDescendantsOfKind(SyntaxKind.CallExpression));
   const position = (name: string): number | null => calls
     .find((call) => {
       const expression = call.getExpression();

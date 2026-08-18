@@ -60,8 +60,19 @@ capacity waiter、请求体/文件 byte ceiling 和第二 attachment graph 全�
 | 定时质量复盘 | 冻结快照 → 独立私有新会话 | `scheduled_quality_reflection` |
 | 付款截图观察 | `payment_screenshot_observation` | 同名阶段 |
 | 公开知识文章 | `corpus_research → article_synthesis → article_image_generation` 同会话 | `article_image_generation` |
+| 本地化静态审校（内部质量产品） | `localization_candidate_a ∥ localization_candidate_b` 两个 fresh 会话 → `localization_selector_first` fresh join → `localization_selector_swap` 同 selector 会话 → `localization_consistency` 独立 fresh 复查 | `localization_consistency` |
 
 Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少一个或顺序错误都在 GPT 前失败。
+本地化静态审校必须是一张完整整单，固定包含上述五个阶段；网站不得拆成 candidate/selector 多张
+cloud job，也不得发送下一阶段指令。该内部质量产品不拥有用户主体：`frozenSubject.primaryPersonRef`
+必须为 `null`、`participants` 必须为空数组，输入身份只由不可变 ContextBundle ref/hash、阶段材料、
+conversation scope 和 cloud lease 绑定。每个真实阶段完成前还必须持久化 provider transcript JSONL/hash
+与 live model identity evidence（family、display name、reasoning effort、evidence hash）；请求中的
+model profile 只是期望，不是证明。
+真实 GPT Web 的固定操作顺序已经由当前页面核验并冻结：打开 composer 的能力按钮，打开模型菜单，选择并读回
+`模型 → GPT-5.6 Sol`；再从可见推理滑块选择并读回 `极速 / 中 / 高 / 极高 / Pro`，其数值映射固定为
+`0 / 1 / 2 / 3 / 4`。本地化 profile 只允许 `candidate_a=Pro`、其余审校阶段=`高`；页面缺少菜单、滑块、模型名、推理标签，或读回值与期望不一致，必须在发送 prompt 前进入 `review_required`。
+这条证据只能来自当前 provider 页面可见的语义角色、标签、当前 URL 与 evidence hash；请求字段、profile 常量、历史聊天标题和 fixture 都不是模型证明。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
 和前序回答文件。零附件阶段因此仍有非空输入证明；上传计数只看带 `filePath` 的真实文件。
 公开知识图片阶段把网站冻结的 `textPrompt` 原样交给 Gateway；插件不追加风格、人物、文字、
@@ -287,6 +298,9 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
 ## Acceptance
 
 - 证明九个网站 AI 产品与三个 private base 内部动作的精确 stage graph。
+- 证明本地化静态审校是一张五阶段整单：A/B 两个 fresh 会话、selector fresh join、selector 同会话复判、独立 consistency 复查；不得出现两个本地化 cloud job 或第二队列。
+- 证明本地化阶段没有 synthetic/person subject，并在完成前保存真实 transcript JSONL/hash 与 live model identity evidence；缺任一项保持 recovery_pending。
+- 证明真实 GPT Web 先完成 `GPT-5.6 Sol` 与推理强度的可见选择/回读（`Pro/极高/高`），再发送 prompt；选择失败或页面证据缺失必须保持 `review_required`，不得使用请求元数据补齐。
 - 证明 BZ05、BZ03、NM01 从同一 base checkpoint 得到彼此不同的真实 child URL，兄弟 child 可并发且问题不互漏。
 - 证明 `fresh | same_conversation | forked_from_checkpoint` 三态均有 provider 动作回执、marker、URL、hash 和 execution/scope 对账；不支持精确 fork 时失败关闭。
 - 证明合婚甲方、乙方私解可独立并发、各自完整上传语料，关系总论使用第三个新会话并带两份原始回答。

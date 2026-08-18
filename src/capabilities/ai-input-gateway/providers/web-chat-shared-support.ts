@@ -117,6 +117,9 @@ export const buildWebChatRawResponse = (input: {
   sourcePageUrlBeforeFeed: string | null;
   extracted: WebChatEvaluation;
   answerText: string;
+  modelIdentityProof?: AiProviderRawResponse["modelIdentityProof"];
+  providerTranscriptJsonl?: string | null;
+  providerTranscriptHash?: `sha256:${string}` | null;
   uploadedFiles?: AiProviderUploadedFileProof[];
   attachmentUploadProof?: WebChatAttachmentUploadProof;
   outputRefs?: string[];
@@ -134,6 +137,9 @@ export const buildWebChatRawResponse = (input: {
   staleConversationHistoryCleanupStatus: null,
   rawText: input.answerText,
   modelName: input.request.modelName,
+  modelIdentityProof: input.modelIdentityProof ?? null,
+  providerTranscriptJsonl: input.providerTranscriptJsonl ?? null,
+  providerTranscriptHash: input.providerTranscriptHash ?? null,
   runtimeName: input.runtimeName,
   transport: "web-chat",
   webChatUrl: input.extracted.pageUrl ?? input.providerUrl,
