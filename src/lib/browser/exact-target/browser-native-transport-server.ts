@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { chmodSync, mkdirSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, rmSync, statSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 
@@ -28,6 +28,17 @@ type BrowserResponseMessage = Extract<BrowserWireMessage, { type: "response" }>;
 
 const wireMutationClass = (value: BrowserMutationClass): BrowserWireMutationClass => value;
 
+export type BrowserTransportLifecycleEvent = {
+  readonly stage:
+    | "listener_ready"
+    | "socket_connected"
+    | "extension_hello"
+    | "authenticated"
+    | "disconnected";
+  readonly generation: number;
+  readonly reason?: string;
+};
+
 export class BrowserNativeTransportServer {
   private readonly pending = new Map<string, PendingCommand>();
   private authenticated = false;
@@ -35,19 +46,60 @@ export class BrowserNativeTransportServer {
   private connectionNonce: string | null = null;
   private nextSequence = 1;
   private server: net.Server | null = null;
+  private socketIdentity: string | null = null;
+  private startupFailure: Error | null = null;
+  private startupPromise: Promise<void> | null = null;
+  private lifecycleGeneration = 0;
 
-  constructor(readonly socketPath: string) {}
+  constructor(
+    readonly socketPath: string,
+    private readonly onLifecycle?: (event: BrowserTransportLifecycleEvent) => void,
+  ) {}
 
   async start(): Promise<void> {
     if (this.server) return;
+    if (this.startupFailure) throw this.startupFailure;
+    if (this.startupPromise) return this.startupPromise;
+    this.startupPromise = this.startInternal();
+    return this.startupPromise;
+  }
+
+  private async startInternal(): Promise<void> {
     mkdirSync(path.dirname(this.socketPath), { recursive: true, mode: 0o700 });
-    rmSync(this.socketPath, { force: true });
-    this.server = net.createServer((socket) => this.accept(socket));
-    await new Promise<void>((resolve, reject) => {
-      this.server!.once("error", reject);
-      this.server!.listen(this.socketPath, () => resolve());
-    });
-    chmodSync(this.socketPath, 0o600);
+    const server = net.createServer((socket) => this.accept(socket));
+    this.server = server;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const onError = (error: Error): void => {
+          if (!settled) {
+            settled = true;
+            reject(error);
+            return;
+          }
+          this.startupFailure = error;
+          this.failPending("TRANSPORT_DISCONNECTED", "controller transport listener failed");
+          this.connection?.destroy(error);
+        };
+        server.once("error", onError);
+        server.listen(this.socketPath, () => {
+          settled = true;
+          resolve();
+        });
+      });
+      chmodSync(this.socketPath, 0o600);
+      this.socketIdentity = this.readSocketIdentity();
+      this.emitLifecycle({ stage: "listener_ready", generation: this.lifecycleGeneration });
+    } catch (error) {
+      this.server = null;
+      const cause = error instanceof Error ? error : new Error(String(error));
+      const errorCode = (error as NodeJS.ErrnoException).code;
+      this.startupFailure = errorCode === "EADDRINUSE"
+        ? new Error("BROWSER_CONTROLLER_ALREADY_OWNED: controller-native.sock is already owned by another BrowserController")
+        : cause;
+      server.close(() => undefined);
+      throw this.startupFailure;
+    }
   }
 
   isReady(): boolean {
@@ -55,8 +107,21 @@ export class BrowserNativeTransportServer {
   }
 
   async waitUntilReady(timeoutMs = 10_000): Promise<void> {
+    if (this.startupFailure) {
+      throw new BrowserTerminalError(
+        "TRANSPORT_DISCONNECTED",
+        `browser controller transport startup failed: ${this.startupFailure.message}`,
+      );
+    }
     const deadline = Date.now() + timeoutMs;
     while (!this.isReady()) {
+      const startupFailure = this.startupFailure as Error | null;
+      if (startupFailure) {
+        throw new BrowserTerminalError(
+          "TRANSPORT_DISCONNECTED",
+          `browser controller transport startup failed: ${startupFailure.message}`,
+        );
+      }
       if (Date.now() >= deadline) {
         throw new BrowserTerminalError(
           "TRANSPORT_DISCONNECTED",
@@ -150,7 +215,10 @@ export class BrowserNativeTransportServer {
       await new Promise<void>((resolve) => this.server!.close(() => resolve()));
       this.server = null;
     }
-    rmSync(this.socketPath, { force: true });
+    if (this.socketIdentity !== null && this.readSocketIdentity() === this.socketIdentity) {
+      rmSync(this.socketPath, { force: true });
+    }
+    this.socketIdentity = null;
   }
 
   private accept(socket: net.Socket): void {
@@ -162,6 +230,9 @@ export class BrowserNativeTransportServer {
     this.authenticated = false;
     this.connectionNonce = randomBytes(32).toString("hex");
     this.nextSequence = 1;
+    this.lifecycleGeneration += 1;
+    const generation = this.lifecycleGeneration;
+    this.emitLifecycle({ stage: "socket_connected", generation });
     let buffer = "";
     socket.setEncoding("utf8");
     socket.on("data", (chunk) => {
@@ -177,7 +248,7 @@ export class BrowserNativeTransportServer {
         buffer = buffer.slice(newline + 1);
         if (!line) continue;
         try {
-          this.onMessage(JSON.parse(line) as unknown);
+          this.onMessage(JSON.parse(line) as unknown, socket);
         } catch {
           socket.destroy(new Error("Native host sent malformed JSON"));
           return;
@@ -185,20 +256,30 @@ export class BrowserNativeTransportServer {
       }
     });
     socket.on("close", () => {
-      if (this.connection === socket) this.connection = null;
+      if (this.connection !== socket) return;
+      this.connection = null;
       this.authenticated = false;
       this.connectionNonce = null;
       this.failPending("TRANSPORT_DISCONNECTED", "Native host disconnected");
+      this.emitLifecycle({
+        stage: "disconnected",
+        generation,
+        reason: "Native host disconnected",
+      });
     });
     socket.on("error", () => undefined);
   }
 
-  private onMessage(value: unknown): void {
+  private onMessage(value: unknown, socket: net.Socket): void {
+    if (this.connection !== socket) return;
     if (!isBrowserWireMessage(value)) {
-      this.connection?.destroy(new Error("invalid browser protocol message"));
+      socket.destroy(new Error("invalid browser protocol message"));
       return;
     }
-    if (value.type === "extension_hello") return this.handleExtensionHello();
+    if (value.type === "extension_hello") {
+      this.emitLifecycle({ stage: "extension_hello", generation: this.lifecycleGeneration });
+      return this.handleExtensionHello();
+    }
     if (value.type === "extension_authenticated") return this.handleExtensionAuthentication(value.nonce);
     if (value.type === "response" && this.authenticated) this.handleResponse(value);
   }
@@ -229,6 +310,7 @@ export class BrowserNativeTransportServer {
       return;
     }
     this.authenticated = true;
+    this.emitLifecycle({ stage: "authenticated", generation: this.lifecycleGeneration });
   }
 
   private handleResponse(value: BrowserResponseMessage): void {
@@ -290,6 +372,19 @@ export class BrowserNativeTransportServer {
         reason,
         pending.mutationClass,
       ));
+    }
+  }
+
+  private emitLifecycle(event: BrowserTransportLifecycleEvent): void {
+    this.onLifecycle?.(event);
+  }
+
+  private readSocketIdentity(): string | null {
+    try {
+      const stat = statSync(this.socketPath);
+      return `${stat.dev}:${stat.ino}`;
+    } catch {
+      return null;
     }
   }
 }

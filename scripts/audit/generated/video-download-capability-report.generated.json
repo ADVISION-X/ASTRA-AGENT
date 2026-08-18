@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:46:21.574Z",
+  "generatedAt": "2026-08-18T03:24:06.519Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -25,14 +25,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af",
+      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a",
       "capabilityDomain": "video-download-capability",
       "checkId": "video-download-capability/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:46:21.477Z",
-      "endedAt": "2026-08-18T01:46:21.573Z",
-      "durationMs": 96,
+      "startedAt": "2026-08-18T03:24:06.440Z",
+      "endedAt": "2026-08-18T03:24:06.518Z",
+      "durationMs": 78,
       "evidenceRefs": [
         "scripts/audit/domains/video-download-capability/inspector.ts",
         "src/capabilities/video-download/ability-group.ts",
@@ -59,103 +59,103 @@
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
       "clauseId": "grasseye-video-download-capability-001-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
       "clauseId": "grasseye-video-download-capability-002-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
       "clauseId": "grasseye-video-download-capability-003-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
       "clauseId": "grasseye-video-download-capability-004-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
       "clauseId": "grasseye-video-download-capability-005-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
       "clauseId": "grasseye-video-download-capability-006-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
       "clauseId": "grasseye-video-download-capability-007-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
       "clauseId": "grasseye-video-download-capability-008-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
       "clauseId": "grasseye-video-download-capability-009-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
       "clauseId": "grasseye-video-download-capability-010-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
       "clauseId": "grasseye-video-download-capability-011-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
       "clauseId": "grasseye-video-download-capability-012-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
       "clauseId": "grasseye-video-download-capability-013-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
       "clauseId": "grasseye-video-download-capability-014-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
       "clauseId": "grasseye-video-download-capability-015-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
       "clauseId": "grasseye-video-download-capability-016-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
       "clauseId": "grasseye-video-download-capability-017-requirement",
       "checkId": "video-download-capability/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:5d0f1a51-468d-4d21-bc00-244f582073af"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:f14b47a9-8986-429e-a917-b0d8020b897a"
     }
   ],
   "inspectedFiles": [

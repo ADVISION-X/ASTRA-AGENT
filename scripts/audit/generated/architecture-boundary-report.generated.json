@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:45:49.212Z",
+  "generatedAt": "2026-08-18T03:23:10.585Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -857,6 +857,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -1161,6 +1162,7 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -1171,6 +1173,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -1204,14 +1207,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8",
+      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:45:46.269Z",
-      "endedAt": "2026-08-18T01:45:49.211Z",
-      "durationMs": 2942,
+      "startedAt": "2026-08-18T03:23:07.853Z",
+      "endedAt": "2026-08-18T03:23:10.583Z",
+      "durationMs": 2730,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -1692,6 +1695,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -1996,6 +2000,7 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -2006,6 +2011,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -2044,85 +2050,85 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "APEX-ARCH-012-V1",
       "clauseId": "apex-arch-012-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:c6ccc54c-a21d-4800-9796-caea6c75511b"
     }
   ]
 }

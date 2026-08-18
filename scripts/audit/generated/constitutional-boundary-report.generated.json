@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:46:36.714Z",
+  "generatedAt": "2026-08-18T03:23:53.900Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -475,6 +475,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -779,6 +780,7 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -789,6 +791,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -840,14 +843,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b",
+      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:48685cc6-cda3-4a98-9705-579844b077f9",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:46:36.572Z",
-      "endedAt": "2026-08-18T01:46:36.711Z",
-      "durationMs": 139,
+      "startedAt": "2026-08-18T03:23:53.765Z",
+      "endedAt": "2026-08-18T03:23:53.900Z",
+      "durationMs": 135,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1322,6 +1325,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -1626,6 +1630,7 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -1636,6 +1641,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -1674,25 +1680,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:48685cc6-cda3-4a98-9705-579844b077f9"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:48685cc6-cda3-4a98-9705-579844b077f9"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:48685cc6-cda3-4a98-9705-579844b077f9"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:48685cc6-cda3-4a98-9705-579844b077f9"
     }
   ]
 }

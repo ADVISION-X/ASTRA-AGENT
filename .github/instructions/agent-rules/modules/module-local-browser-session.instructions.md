@@ -138,8 +138,11 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
   },
   "required": [
     "The Controller connects through an owner-only Unix socket and memory-only nonce to one Native host, one fixed-id MV3 extension and chrome.debugger.",
+    "Exactly one live BrowserController process may own a dataDir/controller-native.sock endpoint; duplicate startup fails closed without unlinking, replacing or stealing the existing socket.",
+    "Controller transport startup is awaited or surfaced as a terminal readiness failure before any Browser consumer command is admitted; a generic app health response must not claim browser readiness while the transport is unauthenticated.",
     "Every Native port owns one nonce and one command sequence session. Only messages emitted by the currently registered port may authenticate, reset sequence state or execute commands; a late message from a disconnected or replaced port is ignored before any session mutation. A new current port resets its sequence exactly once on its own controller challenge and then accepts command sequence 1.",
-    "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed.",
+    "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed. Every transport connection has a monotonic lifecycle generation, and disconnect invalidates every Controller registry/session target and document ref before any later reconnect.",
+    "Transport admission and teardown expose bounded stage diagnostics for listener, Native host socket, extension hello, controller challenge, authentication and disconnect without persisting nonce, cookie, token or raw Chrome identity.",
     "Release, extension disconnect, debugger detach and tab close remove extension attachment state so a human or another approved debugger can use the tab.",
     "Dedicated Browser infrastructure install, verify and uninstall scripts own registration; the GrassEye startup entry remains unchanged and never installs or activates browser business infrastructure."
   ],
@@ -148,6 +151,9 @@ they cannot mutate, inspect, focus, close, or navigate another owner's target.
     "wildcard Native Messaging allowed_origins",
     "world-readable socket, nonce or host manifest",
     "Startup installing the extension, registering the host or starting a business job",
+    "startup unlinking or replacing an active controller-native.sock endpoint",
+    "a second BrowserController process sharing the same dataDir or controller-native.sock",
+    "reporting browser health or mission readiness while the Native transport is not authenticated",
     "silent CDP or AppleScript/JXA fallback"
     ,"allowing a retired Native port's delayed challenge, command or response to reset or mutate the current port's authenticated command sequence"
   ],

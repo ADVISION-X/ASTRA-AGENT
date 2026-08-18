@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:46:22.194Z",
+  "generatedAt": "2026-08-18T03:24:07.156Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -62,23 +62,7 @@
       "checkId": "xuanxue-ai-production/acceptance",
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove ORDER_IDENTITY_CONFLICT.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "message": "Production acceptance must prove payment_screenshot_observation.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove provider citation residue must discard the response and restart once.",
       "severity": "fatal",
       "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
     },
@@ -89,58 +73,18 @@
       "message": "Production acceptance must prove a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted.",
       "severity": "fatal",
       "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove one verified parent attachment must expand the frozen material file limit exactly once.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove terminalAttachmentGatewayCallCount.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove a terminal attachment transport proof must stop automatic factory re-entry after one upload attempt.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove restart recovery must preserve the terminal attachment proof without a second upload attempt.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove a blocked pre-submit attachment set must never create a second provider upload attempt.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
     }
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9",
+      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:896efc08-4fe0-45ff-9585-70db5482b8df",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T01:46:21.796Z",
-      "endedAt": "2026-08-18T01:46:22.193Z",
-      "durationMs": 397,
+      "startedAt": "2026-08-18T03:24:06.687Z",
+      "endedAt": "2026-08-18T03:24:07.156Z",
+      "durationMs": 469,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
@@ -160,6 +104,7 @@
         "src/app/workbench-api-boundary.ts",
         "src/app/workbench-xuanxue-ai-production-client.ts",
         "src/app/workbench-xuanxue-ai-production-routes.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
         "src/mediator/xuanxue-ai-production-route.ts",
@@ -194,7 +139,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
       ],
-      "findingCount": 15
+      "findingCount": 8
     }
   ],
   "executedChecks": [
@@ -202,25 +147,25 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:896efc08-4fe0-45ff-9585-70db5482b8df"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:896efc08-4fe0-45ff-9585-70db5482b8df"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:896efc08-4fe0-45ff-9585-70db5482b8df"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
       "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:896efc08-4fe0-45ff-9585-70db5482b8df"
     }
   ],
   "inspectedFiles": [
@@ -242,6 +187,7 @@
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-xuanxue-ai-production-client.ts",
     "src/app/workbench-xuanxue-ai-production-routes.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
     "src/mediator/xuanxue-ai-production-route.ts",

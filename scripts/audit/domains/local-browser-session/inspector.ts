@@ -17,6 +17,7 @@ const ownerPaths = [
   "src/lib/browser/exact-target/browser-command-runtime.ts",
   "src/lib/browser/exact-target/browser-evaluation-contract.ts",
   "src/lib/browser/exact-target/browser-native-transport-server.ts",
+  "src/lib/local-runtime/workbench-status.ts",
   "src/lib/browser/chrome-extension/service-worker.ts",
   "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
   "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
@@ -36,6 +37,15 @@ const source = (context: InspectorContext, filePath: string): SourceFile | undef
 const stringLiterals = (sources: readonly (SourceFile | undefined)[]): Set<string> =>
   new Set(sources.flatMap((file) => file?.getDescendantsOfKind(SyntaxKind.StringLiteral)
     .map((node) => node.getLiteralText()) ?? []));
+
+const sourceTextValues = (file: SourceFile | undefined): string[] => [
+  ...(file?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []),
+  ...(file?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []),
+  ...(file?.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => node.getLiteralText()) ?? []),
+  ...(file?.getDescendantsOfKind(SyntaxKind.TemplateHead).map((node) => node.getLiteralText()) ?? []),
+  ...(file?.getDescendantsOfKind(SyntaxKind.TemplateMiddle).map((node) => node.getLiteralText()) ?? []),
+  ...(file?.getDescendantsOfKind(SyntaxKind.TemplateTail).map((node) => node.getLiteralText()) ?? []),
+];
 
 const inspectOwnerAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const lawId = "APEX-LOCAL-BROWSER-001-V1";
@@ -63,20 +73,50 @@ const inspectOwnerAst = (context: InspectorContext, findings: InspectorFinding[]
   findings.push(...inspectRetiredBrowserPaths(lawId));
 };
 
-const inspectTransport = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectTransportCore = (
+  findings: InspectorFinding[],
+  files: readonly (SourceFile | undefined)[],
+): void => {
   const lawId = "APEX-LOCAL-BROWSER-002-V1";
   const clauseId = "apex-local-browser-002-requirement";
-  const protocol = source(context, "src/lib/browser/chrome-extension/protocol.ts");
-  const worker = source(context, "src/lib/browser/chrome-extension/service-worker.ts");
-  const transport = source(context, "src/lib/browser/exact-target/browser-native-transport-server.ts");
-  const installer = source(context, "src/lib/browser/native-messaging-host/install.mjs");
-  const ids = new Set([protocol, worker, transport, installer].flatMap((file) => file?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []));
+  const ids = new Set(files.flatMap((file) => file?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []));
   for (const required of ["GRASSEYE_BROWSER_PROTOCOL_VERSION", "GRASSEYE_NATIVE_HOST_NAME", "chrome", "debugger", "nonce", "commandId", "mutationClass"]) {
     if (!ids.has(required)) add(findings, lawId, clauseId, "src/lib/browser/chrome-extension/protocol.ts", `private transport AST is missing ${required}`);
   }
   for (const required of ["installedHostPath", "sourceHostPath", "execPath", "renderInstalledHost"]) {
     if (!ids.has(required)) add(findings, lawId, clauseId, "src/lib/browser/native-messaging-host/install.mjs", `Native host installer AST is missing ${required}`);
   }
+};
+
+const inspectTransportLifecycle = (
+  transport: SourceFile | undefined,
+  commandRuntime: SourceFile | undefined,
+  status: SourceFile | undefined,
+  findings: InspectorFinding[],
+): void => {
+  const lawId = "APEX-LOCAL-BROWSER-002-V1";
+  const clauseId = "apex-local-browser-002-requirement";
+  const files = [transport, commandRuntime, status];
+  const ids = new Set(files.flatMap((file) => file?.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()) ?? []));
+  const startMethod = transport?.getClass("BrowserNativeTransportServer")?.getMethod("start");
+  const startupUnlink = startMethod?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+    Node.isIdentifier(call.getExpression()) && astIdentifierName(call.getExpression()) === "rmSync") ?? false;
+  if (startupUnlink) add(findings, lawId, clauseId, "src/lib/browser/exact-target/browser-native-transport-server.ts", "transport startup must not unlink an existing controller socket");
+  for (const required of ["startupFailure", "startupPromise", "lifecycleGeneration", "emitLifecycle", "readSocketIdentity"]) {
+    if (!ids.has(required)) add(findings, lawId, clauseId, "src/lib/browser/exact-target/browser-native-transport-server.ts", `transport lifecycle AST is missing ${required}`);
+  }
+  for (const required of ["handleTransportLifecycle", "invalidateTransport", "BROWSER_ACTION_FAILED"]) {
+    if (!ids.has(required)) add(findings, lawId, clauseId, "src/lib/browser/exact-target/browser-command-runtime.ts", `Controller disconnect invalidation AST is missing ${required}`);
+  }
+  for (const required of ["transportReady", "not authenticated"]) {
+    const values = sourceTextValues(status);
+    if (![...values].some((value) => value.includes(required))) add(findings, lawId, clauseId, "src/lib/local-runtime/workbench-status.ts", `browser readiness AST is missing ${required}`);
+  }
+};
+
+const inspectTransportManifest = (findings: InspectorFinding[]): void => {
+  const lawId = "APEX-LOCAL-BROWSER-002-V1";
+  const clauseId = "apex-local-browser-002-requirement";
   const manifestPath = "src/lib/browser/chrome-extension/manifest.json";
   if (!existsSync(resolveFromRepo(manifestPath))) {
     add(findings, lawId, clauseId, manifestPath, "MV3 manifest is missing");
@@ -89,6 +129,20 @@ const inspectTransport = (context: InspectorContext, findings: InspectorFinding[
       add(findings, lawId, clauseId, manifestPath, "MV3 manifest requests forbidden secret-bearing permissions");
     }
   }
+};
+
+const inspectTransport = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const files = [
+    source(context, "src/lib/browser/chrome-extension/protocol.ts"),
+    source(context, "src/lib/browser/chrome-extension/service-worker.ts"),
+    source(context, "src/lib/browser/exact-target/browser-native-transport-server.ts"),
+    source(context, "src/lib/browser/exact-target/browser-command-runtime.ts"),
+    source(context, "src/lib/local-runtime/workbench-status.ts"),
+    source(context, "src/lib/browser/native-messaging-host/install.mjs"),
+  ];
+  inspectTransportCore(findings, files);
+  inspectTransportLifecycle(files[2], files[3], files[4], findings);
+  inspectTransportManifest(findings);
 };
 
 const inspectPhysicalActionOwnership = (

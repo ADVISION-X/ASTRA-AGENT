@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:45:44.345Z",
+  "generatedAt": "2026-08-18T03:23:06.067Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -4680,8 +4680,11 @@
       },
       "required": [
         "The Controller connects through an owner-only Unix socket and memory-only nonce to one Native host, one fixed-id MV3 extension and chrome.debugger.",
+        "Exactly one live BrowserController process may own a dataDir/controller-native.sock endpoint; duplicate startup fails closed without unlinking, replacing or stealing the existing socket.",
+        "Controller transport startup is awaited or surfaced as a terminal readiness failure before any Browser consumer command is admitted; a generic app health response must not claim browser readiness while the transport is unauthenticated.",
         "Every Native port owns one nonce and one command sequence session. Only messages emitted by the currently registered port may authenticate, reset sequence state or execute commands; a late message from a disconnected or replaced port is ignored before any session mutation. A new current port resets its sequence exactly once on its own controller challenge and then accepts command sequence 1.",
-        "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed.",
+        "Extension, Native host and Controller versions are checked before admission; disconnect, extension reload, DevTools attachment conflict and target close fail closed. Every transport connection has a monotonic lifecycle generation, and disconnect invalidates every Controller registry/session target and document ref before any later reconnect.",
+        "Transport admission and teardown expose bounded stage diagnostics for listener, Native host socket, extension hello, controller challenge, authentication and disconnect without persisting nonce, cookie, token or raw Chrome identity.",
         "Release, extension disconnect, debugger detach and tab close remove extension attachment state so a human or another approved debugger can use the tab.",
         "Dedicated Browser infrastructure install, verify and uninstall scripts own registration; the GrassEye startup entry remains unchanged and never installs or activates browser business infrastructure."
       ],
@@ -4690,6 +4693,9 @@
         "wildcard Native Messaging allowed_origins",
         "world-readable socket, nonce or host manifest",
         "Startup installing the extension, registering the host or starting a business job",
+        "startup unlinking or replacing an active controller-native.sock endpoint",
+        "a second BrowserController process sharing the same dataDir or controller-native.sock",
+        "reporting browser health or mission readiness while the Native transport is not authenticated",
         "silent CDP or AppleScript/JXA fallback",
         "allowing a retired Native port's delayed challenge, command or response to reset or mutate the current port's authenticated command sequence"
       ],
@@ -6363,7 +6369,7 @@
       "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "The factory executes nine user-result products plus three private-base actions through explicit fresh, same-conversation and provider-verified checkpoint-fork topology.",
+      "summary": "The factory executes nine user-result products, three private-base actions and one internal localization static-review product through explicit fixed graph and provider-verified checkpoint topology.",
       "clauses": [
         {
           "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
@@ -6379,7 +6385,12 @@
         }
       ],
       "required": [
-        "Exactly nine AI product ids and three unpriced private-base action ids enter the protocol.",
+        "Exactly nine user-result product ids, three unpriced private-base action ids and one non-user localization_static_review product enter the protocol.",
+        "localization_static_review is one whole-order five-stage internal quality graph: localization_candidate_a and localization_candidate_b are independent fresh conversations, localization_selector_first is a fresh join receiving both immutable candidate outputs, localization_selector_swap continues that selector conversation, and localization_consistency is an independent fresh recheck receiving both selector outputs.",
+        "The localization static-review product has no person subject or synthetic participant; it binds only the immutable localization ContextBundle ref/hash, conversation scope and lease. User and chart products continue to require real frozen participants.",
+        "A localization stage may complete only with persisted provider transcript JSONL plus hash and live model identity evidence (family, display name, reasoning effort and evidence hash); request metadata alone is never model proof.",
+        "GPT Web localization execution must use the visible composer capability control to open the model menu, visibly select GPT-5.6 Sol, then select and read back the reasoning label from the live slider mapping: 0=极速, 1=中, 2=高, 3=极高, 4=Pro; the requested stage profile is not proof until the provider UI read-back matches.",
+        "Provider UI observation must be limited to visible semantic roles/labels (model menu item, reasoning slider and live page URL); missing, ambiguous or mismatched controls fail closed as review_required before prompt submission, and no request field or hardcoded profile may substitute for the observation.",
         "Only versioned product profiles control dependencies, typed joins, conversation topology and final stage.",
         "BZ05, BZ03 and NM01 begin in distinct provider-verified children forked from one immutable Bazi base checkpoint; no child reuses the base or a sibling conversation.",
         "NM01 naming_author continues its own question_analysis child, NM02 uses a fresh conversation distinct from its source report, and BZ04 continues the selected BZ05 or BZ03 formal parent conversation.",

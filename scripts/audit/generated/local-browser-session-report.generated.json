@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-18T01:46:37.964Z",
+  "generatedAt": "2026-08-18T03:23:55.142Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -13,14 +13,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:6b9b8ab3-9caf-4698-8ffd-cd6a7653d78d",
+      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:244608fd-9ce3-45f3-97ea-567c72d1fc54",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:46:36.737Z",
-      "endedAt": "2026-08-18T01:46:37.964Z",
-      "durationMs": 1227,
+      "startedAt": "2026-08-18T03:23:53.927Z",
+      "endedAt": "2026-08-18T03:23:55.141Z",
+      "durationMs": 1214,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/lib/browser/browser-controller.ts",
@@ -38,7 +38,8 @@
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
-        "src/lib/browser/native-messaging-host/install.mjs"
+        "src/lib/browser/native-messaging-host/install.mjs",
+        "src/lib/local-runtime/workbench-status.ts"
       ],
       "findingCount": 0
     }
@@ -48,13 +49,13 @@
       "lawId": "APEX-LOCAL-BROWSER-002-V1",
       "clauseId": "apex-local-browser-002-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:6b9b8ab3-9caf-4698-8ffd-cd6a7653d78d"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:244608fd-9ce3-45f3-97ea-567c72d1fc54"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:6b9b8ab3-9caf-4698-8ffd-cd6a7653d78d"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:244608fd-9ce3-45f3-97ea-567c72d1fc54"
     }
   ],
   "inspectedFiles": [
@@ -74,6 +75,7 @@
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
-    "src/lib/browser/native-messaging-host/install.mjs"
+    "src/lib/browser/native-messaging-host/install.mjs",
+    "src/lib/local-runtime/workbench-status.ts"
   ]
 }

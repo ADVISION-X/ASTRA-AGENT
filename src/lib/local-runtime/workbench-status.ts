@@ -31,11 +31,16 @@ const readBrowserSessionComponent = (
 ): WorkbenchHealthComponent => {
   try {
     const state = assembly.browserController.getSessionState();
+    const transportReady = state.browserMode === "fixture" || state.transportReady === true;
     return {
       name: "browserSession",
-      ok: true,
-      detail: `Browser session state: ${state.browserMode}`,
-      actionableMessage: null,
+      ok: transportReady,
+      detail: transportReady
+        ? `Browser session state: ${state.browserMode}`
+        : `Browser session transport is not authenticated: ${state.browserMode}`,
+      actionableMessage: transportReady
+        ? null
+        : "Wait for the fixed-id extension and Native Messaging host to authenticate, then retry.",
       ownerResponsible: "Browser",
     };
   } catch (error) {

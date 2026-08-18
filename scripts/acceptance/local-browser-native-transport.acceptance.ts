@@ -11,13 +11,24 @@ import {
   configureNativeTransport,
   connectNativeTransport,
 } from "../../src/lib/browser/chrome-extension/service-worker-native-transport.js";
+import { BrowserCommandRuntime } from "../../src/lib/browser/exact-target/browser-command-runtime.js";
 import { BrowserNativeTransportServer } from "../../src/lib/browser/exact-target/browser-native-transport-server.js";
+import type { BrowserWireTargetDescriptor } from "../../src/lib/browser/chrome-extension/protocol.js";
 
 const execFileAsync = promisify(execFile);
 
 const root = await mkdtemp(path.join(tmpdir(), "grasseye-browser-transport-"));
-const server = new BrowserNativeTransportServer(path.join(root, "controller.sock"));
+const lifecycleStages: string[] = [];
+const server = new BrowserNativeTransportServer(
+  path.join(root, "controller.sock"),
+  (event) => lifecycleStages.push(event.stage),
+);
 await server.start();
+assert.deepEqual(lifecycleStages, ["listener_ready"]);
+const duplicate = new BrowserNativeTransportServer(server.socketPath);
+await assert.rejects(duplicate.start(), /BROWSER_CONTROLLER_ALREADY_OWNED/u);
+assert.deepEqual(lifecycleStages, ["listener_ready"], "duplicate owner must not replace the first listener");
+await duplicate.close();
 const client = net.createConnection(server.socketPath);
 client.setEncoding("utf8");
 let buffer = "";
@@ -36,13 +47,51 @@ const challenge = JSON.parse(lines.shift()!) as { nonce: string };
 assert.equal(challenge.nonce.length, 64);
 client.write(`${JSON.stringify({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "extension_authenticated", nonce: challenge.nonce })}\n`);
 await server.waitUntilReady(500);
+assert.deepEqual(lifecycleStages, ["listener_ready", "socket_connected", "extension_hello", "authenticated"]);
 const pending = server.command<{ observed: string }>({ command: { kind: "inspect_target", tabId: 7 }, mutationClass: "observation" });
 while (lines.length === 0) await new Promise((resolve) => setTimeout(resolve, 5));
 const command = JSON.parse(lines.shift()!) as { commandId: string; sequence: number };
 client.write(`${JSON.stringify({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "response", commandId: command.commandId, sequence: command.sequence, ok: true, result: { observed: "exact" } })}\n`);
 assert.deepEqual((await pending).result, { observed: "exact" });
 client.destroy();
+while (!lifecycleStages.includes("disconnected")) await new Promise((resolve) => setTimeout(resolve, 5));
 await server.close();
+
+const runtimeSocket = path.join(root, "runtime.sock");
+const runtime = new BrowserCommandRuntime("acceptance-controller", runtimeSocket, root);
+while (!(await stat(runtimeSocket).catch(() => null))) await new Promise((resolve) => setTimeout(resolve, 5));
+const descriptor: BrowserWireTargetDescriptor = {
+  tabId: 19,
+  windowId: 2,
+  url: "https://example.test/target",
+  title: "exact target",
+  frameId: "frame-1",
+  loaderId: "loader-1",
+  viewportWidth: 100,
+  viewportHeight: 100,
+  deviceScaleFactor: 1,
+  active: false,
+  windowFocused: false,
+};
+const runtimeTarget = runtime.registry.register("acceptance-owner", descriptor);
+const runtimeClient = net.createConnection(runtimeSocket);
+runtimeClient.setEncoding("utf8");
+let runtimeBuffer = "";
+runtimeClient.on("data", (chunk) => { runtimeBuffer += chunk; });
+await new Promise<void>((resolve) => runtimeClient.once("connect", resolve));
+runtimeClient.write(`${JSON.stringify({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "extension_hello" })}\n`);
+while (!runtimeBuffer.includes("\n")) await new Promise((resolve) => setTimeout(resolve, 5));
+const runtimeChallenge = JSON.parse(runtimeBuffer.slice(0, runtimeBuffer.indexOf("\n"))) as { nonce: string };
+runtimeClient.write(`${JSON.stringify({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "extension_authenticated", nonce: runtimeChallenge.nonce })}\n`);
+await runtime.transport.waitUntilReady(500);
+runtimeClient.destroy();
+while (runtime.isReady()) await new Promise((resolve) => setTimeout(resolve, 5));
+assert.throws(
+  () => runtime.registry.resolve(runtimeTarget.targetRef, runtimeTarget.documentRef),
+  /TARGET_CLOSED/u,
+  "transport disconnect must invalidate every issued target ref",
+);
+await runtime.close();
 
 type NativeListener<T> = (value: T) => void;
 const createFakeNativePort = () => {

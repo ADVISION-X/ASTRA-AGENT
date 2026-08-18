@@ -7,7 +7,7 @@ import { probeExistingWorkbench } from "../startup/lib/service-readiness.mjs";
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   const assembly = {
     browserController: {
-      getSessionState: () => ({ browserMode: "real_chrome_persistent" }),
+      getSessionState: () => ({ browserMode: "real_chrome_persistent", transportReady: true }),
     },
   } as Parameters<typeof getHealthReport>[0];
   const initializing = await getHealthReport(assembly, {

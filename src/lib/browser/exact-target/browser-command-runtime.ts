@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { createId } from "../../local-runtime/ids.js";
-import type { RuntimeLogger } from "../../runtime-logs/index.js";
+import { RuntimeLogEventType, type RuntimeLogger } from "../../runtime-logs/index.js";
 import { runLoggedBrowserValueAction } from "../current-chrome-browser-action-logging.js";
 import type {
   BrowserActionResult,
@@ -54,8 +54,11 @@ export class BrowserCommandRuntime {
     readonly runtimeLogger?: RuntimeLogger,
   ) {
     this.registry = new BrowserTargetRegistry(controllerSessionId);
-    this.transport = new BrowserNativeTransportServer(socketPath);
-    void this.transport.start();
+    this.transport = new BrowserNativeTransportServer(
+      socketPath,
+      (event) => this.handleTransportLifecycle(event),
+    );
+    void this.transport.start().catch(() => undefined);
   }
 
   isReady(): boolean { return this.transport.isReady(); }
@@ -73,6 +76,7 @@ export class BrowserCommandRuntime {
   signal(input?: AbortSignal): AbortSignal | undefined { return input ?? this.executionAbortSignal ?? undefined; }
   async close(): Promise<void> {
     this.registry.invalidateAll();
+    for (const session of this.targetSessions) session.invalidateTransport();
     await this.transport.close();
   }
   capturePath(actionId: string): string { return path.join(this.screenshotDir, `${actionId}.png`); }
@@ -92,6 +96,29 @@ export class BrowserCommandRuntime {
       run: async () => input.run(),
     });
   }
+
+  private handleTransportLifecycle(event: import("./browser-native-transport-server.js").BrowserTransportLifecycleEvent): void {
+    if (event.stage === "disconnected") {
+      this.registry.invalidateAll();
+      for (const session of this.targetSessions) session.invalidateTransport();
+    }
+    this.runtimeLogger?.emit({
+      traceId: `browser-transport-${event.generation}`,
+      level: event.stage === "disconnected" ? "error" : "info",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      eventType: event.stage === "disconnected"
+        ? RuntimeLogEventType.BROWSER_ACTION_FAILED
+        : RuntimeLogEventType.BROWSER_ACTION_RESULT,
+      owner: "browser-session",
+      status: event.stage === "disconnected" ? "failed" : "success",
+      reason: event.reason ?? `transport stage: ${event.stage}`,
+      payload: {
+        actionKind: "native_transport",
+        transportStage: event.stage,
+        connectionGeneration: event.generation,
+      },
+    });
+  }
 }
 
 class ExactBrowserTargetSession implements BrowserTargetSession {
@@ -103,6 +130,10 @@ class ExactBrowserTargetSession implements BrowserTargetSession {
   } | null = null;
   constructor(private readonly runtime: BrowserCommandRuntime, readonly ownerId: string) {}
   getTarget(): ControlledBrowserTarget | null { return this.target ? { ...this.target } : null; }
+  invalidateTransport(): void {
+    this.target = null;
+    this.releasedTargetRequest = null;
+  }
   setExecutionAbortSignal(signal: AbortSignal | null): void { this.runtime.setExecutionAbortSignal(signal); }
   getHealth(): { ok: boolean; detail: string } { return { ok: this.runtime.isReady(), detail: this.runtime.isReady() ? `exact target ready for ${this.ownerId}` : "exact target transport disconnected" }; }
   getSessionState(): import("../browser-controller.js").BrowserStateSnapshot {

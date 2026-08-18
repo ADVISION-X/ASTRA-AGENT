@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:46:48.954Z",
+  "generatedAt": "2026-08-18T03:24:05.745Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,14 +23,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb",
+      "runId": "audit-run:05152b59-64b7-4115-859e-df85a1393403",
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:46:48.894Z",
-      "endedAt": "2026-08-18T01:46:48.953Z",
-      "durationMs": 59,
+      "startedAt": "2026-08-18T03:24:05.687Z",
+      "endedAt": "2026-08-18T03:24:05.745Z",
+      "durationMs": 58,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -505,6 +505,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -809,6 +810,7 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+        "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -819,6 +821,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -857,79 +860,79 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:33cb697f-86be-48ae-8c37-538f07614cfb"
+      "checkRunId": "audit-run:05152b59-64b7-4115-859e-df85a1393403:check:29de7f1c-4943-458a-9ad9-f8b6e8644811"
     }
   ],
   "inspectedFiles": [
@@ -1406,6 +1409,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
@@ -1710,6 +1714,7 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
+    "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
@@ -1720,6 +1725,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",

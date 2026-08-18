@@ -29,10 +29,14 @@ CurrentChromeBrowserController
 ```
 
 - Controller 创建 socket、内存 nonce、session id 和 command correlation。
+- 一个 `dataDir/controller-native.sock` 只能由一个存活 BrowserController 进程拥有；重复启动必须在绑定阶段失败，绝不删除、替换或抢占已存在的 endpoint。
+- Controller transport 启动失败必须成为可观察的 terminal readiness failure；未完成 authenticated handshake 前，Workbench 不得把 browser mission 报为 ready。
 - Native host 只转发有界消息；不保存 target、业务状态、证据或 secret。
 - MV3 worker 只枚举 target、attach/detach debugger、发送 CDP 命令和返回事件。
 - target registry 只在 Controller 进程内把 raw ids 映射为 opaque refs。
-- 任一 hop 断连即失效全部 refs；mutation 已发出但未确认时返回 `OUTCOME_UNKNOWN`，绝不自动重放。
+- 每个 transport 连接拥有递增 lifecycle generation；任一 hop 断连先让 Browser owner 失效全部 registry/session target/document refs，再允许新的 handshake 进入。
+- 旧连接迟到的 close/message 不得修改新连接的认证、序号或 readiness；mutation 已发出但未确认时返回 `OUTCOME_UNKNOWN`，绝不自动重放。
+- listener、Native host socket、extension hello、controller challenge、authenticated、disconnect 都要写入脱敏的 bounded runtime diagnostic。
 
 ## 3. 文件落位
 
@@ -147,11 +151,13 @@ Observation 可以由 owning caller 重新从 checkpoint 发起；任何 mutatio
 - Native host manifest `allowed_origins` 只有固定 extension origin。
 - Native 消息遵守 Chrome 4-byte length framing，并设置 request/response size 上限。
 - Controller、host、extension protocol version 必须完全一致。
+- Controller 只能在 authenticated transport 后报告 ready；startup 不能静默吞掉 socket bind/duplicate-owner 错误。
 - 每次 `connectNative` 返回的 port 是一个独立运输会话。worker 的当前 port 指针先完成换主，
   随后只有来自该指针所指 port 的 challenge/command 才能认证或修改 `lastAcceptedSequence`。
   已断开、被替换或迟到的旧 port 消息必须在 nonce/sequence 状态变更前直接忽略。
 - 当前 port 的 controller challenge 对该 port 精确重置一次序号，首条命令必须是 sequence 1；
   Controller/host 重启后即使旧 port 有迟到 challenge，也不得把新 port 已接受的序号清零。
+- Native host socket 的重复 owner、旧 socket、旧连接 close 和 transport reconnect 必须经过 owner 级 lifecycle generation 处理；不能用启动时无条件 unlink 恢复。
 
 ### 7.1 evaluate 唯一表达式合同
 
@@ -233,6 +239,10 @@ Inspector 使用 ts-morph AST/symbol 证明：
 - Startup 未获得安装或业务职责。
 - exact-target session 调用唯一 `toBrowserEvaluationExpression`；worker 未实现第二包装器。
 - `evaluate_target` 只承载 observation，专用 mutation command 仍绑定同一 target/document。
+- transport startup 不会无条件 unlink endpoint，重复 Controller owner 会 fail closed。
+- transport disconnect 会连动 Browser registry/session 失效，旧连接 close 不会修改当前连接状态。
+- Workbench browser health/readiness 读取真实 authenticated transport 状态，而不是只读取 profile 配置。
+- transport 生命周期诊断只使用允许的 runtime-log spine 字段，不落 nonce、token、cookie 或 raw Chrome id。
 
 ## 12. Acceptance
 
@@ -273,11 +283,14 @@ local-browser-atomic-cutover.acceptance.ts
 5. 关闭 target、extension reload、host/controller exit、DevTools 冲突全部 fail closed。
    Native port 换主后注入旧 port 的迟到 challenge，当前 port 仍从 sequence 1 正常执行；旧消息
    不得触发认证回执、序号归零、乱序错误或 debugger 命令。
-6. 文件输入只通过插件精确 target 命令运行，前台标签和窗口焦点保持不变。
-7. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
-8. 函数体 top-level return 经唯一生产 wrapper 成功返回，且不存在 `Illegal return statement`。
-9. DOM click、DOM fill、file-input mutation 只通过各自专用 exact-target command 完成；identity 改变攻击必须 fail closed。
-10. 前台非目标 tab 在全部场景中保持 URL、title、scroll 和 input marker 不变。
+6. 启动第二个使用同一 `dataDir/controller-native.sock` 的 BrowserController 必须失败，且不能 unlink 或改变第一个 owner 的 socket；旧 socket/旧连接 close 也不能删除新 owner endpoint。
+7. Native transport disconnect 必须使所有已签发 target/document refs 立即失败关闭；重连后只能显式从 owner checkpoint acquire 新 refs。
+8. 未 authenticated 时 `/api/health` 或 mission readiness 不得报告 browser ready；listener-only、profile-only、extension-installed-only 都不算 transport ready。
+9. 文件输入只通过插件精确 target 命令运行，前台标签和窗口焦点保持不变。
+10. mutation 断连只返回 `OUTCOME_UNKNOWN`，不重放。
+11. 函数体 top-level return 经唯一生产 wrapper 成功返回，且不存在 `Illegal return statement`。
+12. DOM click、DOM fill、file-input mutation 只通过各自专用 exact-target command 完成；identity 改变攻击必须 fail closed。
+13. 前台非目标 tab 在全部场景中保持 URL、title、scroll 和 input marker 不变。
 
 `text_target` 只保留为通用 Browser 文本命令，不得与先前坐标 click 拼装成 DOM fill。
 DOM fill 由单个 `fill_dom_target` 对同一已复核 receiver object 完成聚焦、受信任 CDP 键盘清空与逐字输入、

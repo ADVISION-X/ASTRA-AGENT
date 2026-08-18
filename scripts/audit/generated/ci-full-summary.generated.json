@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-18T01:46:41.141Z",
+  "generatedAt": "2026-08-18T03:24:26.055Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
-    "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-    "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
-    "message": "SQLite production ledger must contain a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted.",
+    "lawId": "APEX-CODE-PURITY-015-V1",
+    "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+    "message": "scripts/acceptance/xuanxue-ai-production-fixture.ts has an over-line function near line 75.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 221,
-      "endedAt": "2026-08-18T01:45:15.333Z",
+      "durationMs": 232,
+      "endedAt": "2026-08-18T03:23:02.482Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-18T01:45:15.112Z",
+      "startedAt": "2026-08-18T03:23:02.250Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3565,
-      "endedAt": "2026-08-18T01:45:18.899Z",
+      "durationMs": 3588,
+      "endedAt": "2026-08-18T03:23:06.071Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-18T01:45:15.334Z",
+      "startedAt": "2026-08-18T03:23:02.483Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 2,
-      "endedAt": "2026-08-18T01:45:18.904Z",
+      "endedAt": "2026-08-18T03:23:06.076Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-18T01:45:18.902Z",
+      "startedAt": "2026-08-18T03:23:06.074Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 82236,
-      "endedAt": "2026-08-18T01:46:41.140Z",
+      "durationMs": 79978,
+      "endedAt": "2026-08-18T03:24:26.054Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-18T01:45:18.904Z",
+      "startedAt": "2026-08-18T03:23:06.076Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -1196,9 +1196,9 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 0,
+      "findingCount": 4,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "constitutional-boundary",
@@ -1286,7 +1286,7 @@
     },
     {
       "capabilityDomain": "xuanxue-ai-production",
-      "findingCount": 15,
+      "findingCount": 8,
       "reportPath": "scripts/audit/generated/xuanxue-ai-production-report.generated.json",
       "status": "FAIL"
     },
