@@ -4,7 +4,7 @@ use std::env;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process;
+use std::process::{self, Command};
 use std::thread;
 
 #[cfg(unix)]
@@ -27,6 +27,10 @@ struct HostConfig {
     release_identity: String,
     extension_id: String,
     socket_path: String,
+    profile_ref: String,
+    user_data_dir: String,
+    profile_directory: String,
+    chrome_executable_path: String,
 }
 
 fn fail(code: &str, detail: impl AsRef<str>) -> ! {
@@ -96,8 +100,13 @@ fn load_config() -> HostConfig {
     if config.extension_id != EXTENSION_ID {
         fail("BROWSER_HOST_EXTENSION_ID_MISMATCH", config.extension_id);
     }
-    if !Path::new(&config.socket_path).is_absolute() {
-        fail("BROWSER_HOST_SOCKET_PATH_INVALID", config.socket_path);
+    if config.profile_ref.trim().is_empty() || config.profile_directory.trim().is_empty() {
+        fail("BROWSER_HOST_PROFILE_ENROLLMENT_INVALID", "profileRef/profileDirectory missing");
+    }
+    for candidate in [&config.socket_path, &config.user_data_dir, &config.chrome_executable_path] {
+        if !Path::new(candidate).is_absolute() {
+            fail("BROWSER_HOST_ABSOLUTE_PATH_REQUIRED", candidate);
+        }
     }
     config
 }
@@ -107,6 +116,52 @@ fn assert_caller_origin() {
     if origin != EXPECTED_ORIGIN {
         fail("BROWSER_HOST_CALLER_ORIGIN_MISMATCH", origin);
     }
+}
+
+#[cfg(unix)]
+fn read_process_identity(pid: i32) -> Option<(i32, String)> {
+    let output = Command::new("/bin/ps")
+        .args(["-p", &pid.to_string(), "-o", "ppid=", "-o", "command="])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8(output.stdout).ok()?;
+    let line = text.trim();
+    let mut parts = line.splitn(2, char::is_whitespace);
+    let parent = parts.next()?.trim().parse::<i32>().ok()?;
+    let command = parts.next()?.trim().to_string();
+    Some((parent, command))
+}
+
+#[cfg(unix)]
+fn assert_enrolled_browser_ancestry(config: &HostConfig) {
+    let expected_user_data = format!("--user-data-dir={}", config.user_data_dir);
+    let expected_profile = format!("--profile-directory={}", config.profile_directory);
+    let mut pid = unsafe { libc::getppid() };
+    for _ in 0..8 {
+        if pid <= 1 {
+            break;
+        }
+        let Some((parent, command)) = read_process_identity(pid) else {
+            break;
+        };
+        if command.contains(&config.chrome_executable_path)
+            && command.contains(&expected_user_data)
+            && command.contains(&expected_profile)
+        {
+            return;
+        }
+        pid = parent;
+    }
+    fail(
+        "BROWSER_HOST_PROFILE_PROCESS_ATTESTATION_FAILED",
+        format!(
+            "Native Host caller is not descended from enrolled Chrome process for profile {}",
+            config.profile_ref
+        ),
+    );
 }
 
 fn validate_message_identity(bytes: &[u8]) {
@@ -156,6 +211,7 @@ fn write_native_message(writer: &mut impl Write, bytes: &[u8]) -> io::Result<()>
 
 #[cfg(unix)]
 fn run(config: HostConfig) -> io::Result<()> {
+    assert_enrolled_browser_ancestry(&config);
     let socket_path = Path::new(&config.socket_path);
     assert_owner_only(socket_path, false);
     let stream = UnixStream::connect(socket_path)?;
