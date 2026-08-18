@@ -9,6 +9,7 @@ import {
 import {
   configureNativeTransport,
   connectNativeTransport,
+  handleNativeReconnectAlarm,
 } from "./service-worker-native-transport.js";
 import {
   runInteractionCommand,
@@ -19,7 +20,7 @@ import {
 import { createServiceWorkerKeyboard } from "./service-worker-keyboard.js";
 declare const chrome: {
   alarms: {
-    create(name: string, info: { periodInMinutes: number }): void;
+    create(name: string, info: { periodInMinutes?: number; delayInMinutes?: number }): void;
     onAlarm: { addListener(listener: (alarm: { name: string }) => void): void };
   };
   debugger: {
@@ -437,7 +438,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   attachedTabs.delete(tabId);
 });
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "grasseye-native-reconnect") connectNativeTransport();
+  if (alarm.name === "grasseye-native-reconnect") {
+    handleNativeReconnectAlarm();
+  }
 });
 chrome.alarms.create("grasseye-native-reconnect", { periodInMinutes: 0.5 });
 connectNativeTransport();

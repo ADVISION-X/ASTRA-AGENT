@@ -34,6 +34,8 @@ let authenticatedNonce: string | null = null;
 let lastAcceptedSequence = 0;
 let runCommandHandler: RunCommand | null = null;
 let disconnectHandler: (() => void) | null = null;
+let reconnectAlarmScheduled = false;
+let immediateReconnectAt = 0;
 const commandReceipts = new Map<string, CommandReceipt>();
 
 const resetSession = (): void => {
@@ -133,9 +135,23 @@ export const connectNativeTransport = (): void => {
     void handleMessage(message, port);
   });
   port.onDisconnect.addListener(() => {
+    // Chrome exposes the disconnect cause only through runtime.lastError
+    // while this listener is running. Reading it prevents an unchecked
+    // runtime.lastError in the MV3 service-worker console.
+    const disconnectReason = chrome.runtime.lastError?.message;
+    void disconnectReason;
     if (nativePort === port) nativePort = null;
     resetSession();
     disconnectHandler?.();
+    const now = Date.now();
+    if (runCommandHandler && now >= immediateReconnectAt) {
+      immediateReconnectAt = now + 1_000;
+      connectNativeTransport();
+    }
+    if (runCommandHandler && !nativePort && !reconnectAlarmScheduled) {
+      reconnectAlarmScheduled = true;
+      chrome.alarms.create("grasseye-native-reconnect", { delayInMinutes: 0.5 });
+    }
   });
   port.postMessage({ protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION, type: "extension_hello" });
 };
@@ -146,4 +162,9 @@ export const configureNativeTransport = (input: {
 }): void => {
   runCommandHandler = input.runCommand;
   disconnectHandler = input.onDisconnect;
+};
+
+export const handleNativeReconnectAlarm = (): void => {
+  reconnectAlarmScheduled = false;
+  connectNativeTransport();
 };
