@@ -19,6 +19,9 @@ declare const chrome: {
     connectNative(name: string): NativePort;
     lastError?: { readonly message?: string };
   };
+  alarms: {
+    create(name: string, info: { periodInMinutes?: number; delayInMinutes?: number }): void;
+  };
 };
 
 type RunCommand = (command: BrowserWireCommand, expectedLoaderId?: string) => Promise<unknown>;

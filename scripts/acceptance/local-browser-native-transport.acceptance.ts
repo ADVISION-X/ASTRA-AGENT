@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { execFile, spawn } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -193,6 +193,74 @@ try {
   assert.equal((await stat(installed.hostPath)).mode & 0o100, 0o100);
   assert.equal((await stat(sourceHostPath)).mode, sourceModeBefore);
   assert.equal(JSON.parse((await runInstaller("--verify")).stdout).status, "VERIFIED");
+
+  const hostSocketPath = path.join(installDataDir, "browser-runtime", "controller-native.sock");
+  const nativeHost = spawn(installed.hostPath, [], {
+    env: { ...process.env, HOME: installHome },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const nativeOutput: unknown[] = [];
+  let nativeOutputBuffer = Buffer.alloc(0);
+  nativeHost.stdout.on("data", (chunk: Buffer) => {
+    nativeOutputBuffer = Buffer.concat([nativeOutputBuffer, chunk]);
+    while (nativeOutputBuffer.byteLength >= 4) {
+      const size = nativeOutputBuffer.readUInt32LE(0);
+      if (nativeOutputBuffer.byteLength < 4 + size) break;
+      nativeOutput.push(JSON.parse(nativeOutputBuffer.subarray(4, 4 + size).toString("utf8")));
+      nativeOutputBuffer = nativeOutputBuffer.subarray(4 + size);
+    }
+  });
+  const frameNativeMessage = (message: unknown): Buffer => {
+    const body = Buffer.from(JSON.stringify(message), "utf8");
+    const header = Buffer.alloc(4);
+    header.writeUInt32LE(body.byteLength, 0);
+    return Buffer.concat([header, body]);
+  };
+  nativeHost.stdin.write(frameNativeMessage({
+    protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
+    type: "extension_hello",
+  }));
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  assert.equal(nativeHost.exitCode, null, "Native host must wait while the Controller socket is not ready");
+
+  await mkdir(path.dirname(hostSocketPath), { recursive: true });
+  const controllerServer = net.createServer((socket) => {
+    socket.setEncoding("utf8");
+    let controllerBuffer = "";
+    socket.on("data", (chunk) => {
+      controllerBuffer += chunk;
+      for (;;) {
+        const newline = controllerBuffer.indexOf("\n");
+        if (newline < 0) break;
+        const message = JSON.parse(controllerBuffer.slice(0, newline));
+        controllerBuffer = controllerBuffer.slice(newline + 1);
+        if (message.type === "extension_hello") {
+          socket.write(JSON.stringify({
+            protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
+            type: "controller_challenge",
+            nonce: "native-host-waiting-test-nonce",
+          }) + "\n");
+        }
+      }
+    });
+  });
+  await new Promise<void>((resolve) => controllerServer.listen(hostSocketPath, resolve));
+  while (nativeOutput.length === 0) await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.deepEqual(nativeOutput.shift(), {
+    protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
+    type: "controller_challenge",
+    nonce: "native-host-waiting-test-nonce",
+  });
+  nativeHost.stdin.write(frameNativeMessage({
+    protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
+    type: "extension_authenticated",
+    nonce: "native-host-waiting-test-nonce",
+  }));
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  nativeHost.stdin.end();
+  await new Promise<void>((resolve) => nativeHost.once("close", () => resolve()));
+  await new Promise<void>((resolve) => controllerServer.close(() => resolve()));
+
   assert.equal(JSON.parse((await runInstaller("--uninstall")).stdout).status, "UNINSTALLED");
   await assert.rejects(stat(installed.hostPath));
 } finally {

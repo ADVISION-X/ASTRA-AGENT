@@ -6,7 +6,6 @@ const MAX_RETRY_DELAY_MS = 2_000;
 
 export const connectControllerChannel = (socketPath, handlers) => {
   let socket = null;
-  let buffer = "";
   let closed = false;
   let retryTimer = null;
   let retryDelayMs = INITIAL_RETRY_DELAY_MS;
