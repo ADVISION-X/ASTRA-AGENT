@@ -76,12 +76,7 @@ await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 const address = server.address();
 if (!address || typeof address === "string") throw new Error("REAL_CHROME_FIXTURE_LISTENER_UNAVAILABLE");
 const origin = `http://127.0.0.1:${address.port}`;
-const profileEnrollment = resolveProductionBrowserProfileEnrollment({
-  platform: process.platform,
-  ...(process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY
-    ? { profileDirectory: process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY }
-    : {}),
-});
+const profileEnrollment = resolveProductionBrowserProfileEnrollment({ platform: process.platform });
 const browser = await CurrentChromeBrowserController.create({
   profileEnrollment,
   screenshotDir: path.join(runRoot, "captures"),

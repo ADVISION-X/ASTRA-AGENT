@@ -8,8 +8,11 @@
     "node": ">=20"
   },
   "scripts": {
+    "browser:enroll": "node src/lib/browser/native-messaging-host/install.mjs --enroll-profile",
     "browser:install": "node src/lib/browser/native-messaging-host/install.mjs",
     "browser:verify": "node src/lib/browser/native-messaging-host/install.mjs --verify",
+    "browser:doctor": "node src/lib/browser/native-messaging-host/install.mjs --doctor --read-only",
+    "browser:repair": "node src/lib/browser/native-messaging-host/install.mjs --repair",
     "browser:uninstall": "node src/lib/browser/native-messaging-host/install.mjs --uninstall",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

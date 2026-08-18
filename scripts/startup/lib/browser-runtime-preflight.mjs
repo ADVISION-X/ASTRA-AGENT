@@ -4,13 +4,6 @@ import { spawn } from "node:child_process";
 
 import { verifyBrowserArtifactSet } from "../../../src/lib/browser/release/verify-browser-artifact.mjs";
 
-const REQUIRED_PROFILE_BOOTSTRAP_ENV = [
-  "GRASSEYE_CHROME_USER_DATA_DIR",
-  "GRASSEYE_BROWSER_PROFILE_REF",
-  "GRASSEYE_BROWSER_PROFILE_DIRECTORY",
-  "GRASSEYE_CHROME_EXECUTABLE",
-];
-
 const outputLimit = 16 * 1024;
 
 const boundedAppend = (current, chunk) => {
@@ -30,7 +23,7 @@ const blocked = (code, actionableMessage, extra = {}) => ({
 });
 
 const runBrowserctlVerify = (browserctlPath, rootDir, env) => new Promise((resolve) => {
-  const child = spawn(browserctlPath, ["--verify"], {
+  const child = spawn(browserctlPath, ["--doctor", "--read-only"], {
     cwd: rootDir,
     env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -67,15 +60,6 @@ export const resolveBrowserRuntimeArtifactRoot = (rootDir, platform = process.pl
   path.join(rootDir, "artifacts", "browser-runtime", `${platform}-${architecture}`);
 
 export async function runBrowserRuntimePreflight({ rootDir, env = process.env }) {
-  const missingEnvironmentVariables = REQUIRED_PROFILE_BOOTSTRAP_ENV.filter((name) => !env[name]?.trim());
-  if (missingEnvironmentVariables.length > 0) {
-    return blocked(
-      "BROWSER_PROFILE_ENROLLMENT_MISSING",
-      "Complete the explicit browserctl profile enrollment with the required bootstrap inputs; startup does not install or enroll Browser Runtime.",
-      { missingEnvironmentVariables },
-    );
-  }
-
   const artifactRoot = resolveBrowserRuntimeArtifactRoot(rootDir);
   const artifactManifestPath = path.join(artifactRoot, "browser-artifact-set.json");
   const artifactSignaturePath = path.join(artifactRoot, "browser-artifact-set.sig");

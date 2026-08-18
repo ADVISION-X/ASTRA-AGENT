@@ -37,7 +37,6 @@ const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
 };
 
 const startupShellPlatformTarget = resolveStartupShellPlatformTarget(process.env.GRASSEYE_PLATFORM_TARGET);
-const browserProfileDirectory = process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY?.trim();
 const browserModeMarker = process.env.GRASSEYE_BROWSER_MODE?.trim() || "real_chrome_persistent";
 const platformTarget = startupShellPlatformTarget;
 const defaultDataDir = path.resolve(process.cwd(), ".grasseye-local");
@@ -50,7 +49,6 @@ const workbench = createGrassEyeWorkbenchHandle({
   startupReadiness,
   browserHeadless: process.env.GRASSEYE_BROWSER_HEADLESS === "true",
   ...(process.env.GRASSEYE_REAL_PLATFORM_URL ? { realPlatformUrl: process.env.GRASSEYE_REAL_PLATFORM_URL } : {}),
-  ...(browserProfileDirectory ? { browserProfileDirectory } : {}),
   dataDir: process.env.GRASSEYE_DATA_DIR ?? defaultDataDir,
 });
 

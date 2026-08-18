@@ -326,7 +326,8 @@ const inspectBrowserRuntimePreflight = (context: InspectorContext, findings: Fin
   const metrics = {
     launchImportsPreflight: hasNamedImport(launchSource, "browser-runtime-preflight", "runBrowserRuntimePreflight"),
     preflightCallsArtifactVerifier: hasIdentifier(preflightSource, "verifyBrowserArtifactSet"),
-    preflightCallsBrowserctlVerify: hasStringLiteral(preflightSource, "--verify"),
+    preflightCallsBrowserctlDoctor: hasStringLiteral(preflightSource, "--doctor"),
+    preflightCallsBrowserctlReadOnly: hasStringLiteral(preflightSource, "--read-only"),
     preflightDoesNotInstall: !hasStringLiteral(preflightSource, "--install"),
     preflightDoesNotRepair: !hasStringLiteral(preflightSource, "--repair"),
     preflightDoesNotEnroll: !hasStringLiteral(preflightSource, "--enroll-profile"),
@@ -336,7 +337,7 @@ const inspectBrowserRuntimePreflight = (context: InspectorContext, findings: Fin
       lawId,
       checkId: "startup/browser-runtime-preflight",
       filePath: browserRuntimePreflightPath,
-      message: "Startup must use the single read-only Browser Runtime verifier and must not install, repair or enroll Browser state.",
+      message: "Startup must use the single read-only Browser Runtime doctor and must not install, repair or enroll Browser state.",
       evidence: JSON.stringify(metrics),
     });
   }

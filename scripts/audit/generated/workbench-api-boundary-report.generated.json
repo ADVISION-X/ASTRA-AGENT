@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T14:37:54.822Z",
+  "generatedAt": "2026-08-18T14:47:06.535Z",
   "status": "PASS",
   "findings": [],
   "summary": {
@@ -27,14 +27,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049",
+      "runId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752",
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726",
       "capabilityDomain": "workbench-api-boundary",
       "checkId": "workbench-api-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T14:37:54.663Z",
-      "endedAt": "2026-08-18T14:37:54.822Z",
-      "durationMs": 159,
+      "startedAt": "2026-08-18T14:47:06.377Z",
+      "endedAt": "2026-08-18T14:47:06.535Z",
+      "durationMs": 158,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
         "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md",
@@ -51,49 +51,49 @@
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
       "clauseId": "grasseye-workbench-api-boundary-001-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
       "clauseId": "grasseye-workbench-api-boundary-002-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
       "clauseId": "grasseye-workbench-api-boundary-003-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
       "clauseId": "grasseye-workbench-api-boundary-004-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
       "clauseId": "grasseye-workbench-api-boundary-005-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
       "clauseId": "grasseye-workbench-api-boundary-006-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
       "clauseId": "grasseye-workbench-api-boundary-007-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     },
     {
       "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
       "clauseId": "grasseye-workbench-api-boundary-008-requirement",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:6501884e-f57c-46e7-989d-d7140069f049"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:b3b97880-89bb-4018-8f08-da570599a726"
     }
   ],
   "inspectedFiles": [

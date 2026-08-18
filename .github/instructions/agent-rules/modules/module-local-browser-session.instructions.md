@@ -67,7 +67,7 @@ Controller 与 Extension 每个 Port epoch 使用临时 P-256 ECDH，HKDF-SHA256
 
 ## 3. Profile 与 Chrome process enrollment
 
-生产必须显式提供并验证：
+首次 profile enrollment 必须显式提供并验证：
 
 ```txt
 GRASSEYE_CHROME_USER_DATA_DIR
@@ -77,6 +77,8 @@ GRASSEYE_CHROME_EXECUTABLE
 fixed extension id = mepfnlhndaiihhfejbbhfehegpbdnipl
 releaseIdentity = grasseye-browser-runtime-2026-08-18-v2
 ```
+
+`browserctl enroll-profile` 是唯一 enrollment owner。它必须把上述首次输入写成 owner-only、0600 的 canonical `BrowserProfileEnrollmentReceipt`，其中绑定 profile tuple 与 `Local State` hash。后续生产运行时只读取并验证该 Receipt；`.env.local` 不是长期 runtime truth，缺少首次 enrollment 输入只能阻断 `enroll-profile`，不能制造第二套 profile 真相。
 
 BrowserProcessSupervisor 只启动/连接该专用 Chrome：`--user-data-dir` 与 `--profile-directory` 必须显式出现。Rust Native Host 必须验证 Chrome 传入 caller origin，并在 Unix ancestry 中证明 Host 来源于同一 enrolled Chrome executable/user-data-dir/profile-directory。正确扩展 ID 但错误 profile/process 仍必须 fail closed。
 

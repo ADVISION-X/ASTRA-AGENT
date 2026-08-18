@@ -26,5 +26,4 @@ export type GrassEyeWorkbenchOptions = {
   } | null;
   realPlatformUrl?: string;
   browserHeadless?: boolean;
-  browserProfileDirectory?: string;
 };

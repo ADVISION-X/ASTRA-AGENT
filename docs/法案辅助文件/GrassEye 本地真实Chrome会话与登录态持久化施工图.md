@@ -124,7 +124,7 @@ resolve explicit enrolled profile
 
 ## 5. Profile 与 Chrome process identity
 
-生产环境必须显式注入：
+首次 profile enrollment 必须显式注入：
 
 ```txt
 GRASSEYE_CHROME_USER_DATA_DIR
@@ -132,6 +132,8 @@ GRASSEYE_BROWSER_PROFILE_REF
 GRASSEYE_BROWSER_PROFILE_DIRECTORY
 GRASSEYE_CHROME_EXECUTABLE
 ```
+
+唯一 enrollment owner 是 `browserctl enroll-profile`。它将首次输入固化为 owner-only、0600 的 canonical `BrowserProfileEnrollmentReceipt`；之后 Workbench、Native Host、browserctl install/verify 和 startup preflight 只读取并验证该 Receipt，不能让 `.env.local` 成为第二套长期 runtime truth。
 
 `BrowserProfileEnrollment` 内容寻址绑定：
 
@@ -370,6 +372,15 @@ Host 禁止拥有 authority verdict、target registry、business state、evidenc
 ## 17. browserctl 安装事务
 
 `install.mjs` 只是预构建 `grasseye-browserctl` launcher。目标机器禁止从源码构建 Host。
+
+browserctl 的控制面职责至少包括：
+
+```txt
+enroll-profile  # 首次显式输入 -> canonical enrollment receipt
+install         # Receipt + signed artifact -> installed activation receipt
+verify/doctor   # 只读验证完整 release/profile tuple
+repair          # 显式控制面修复，不由 grasseye:start 触发
+```
 
 browserctl：
 

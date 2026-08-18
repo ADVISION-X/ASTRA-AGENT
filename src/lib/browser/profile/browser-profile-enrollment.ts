@@ -3,6 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import {
+  GRASSEYE_BROWSER_EXTENSION_ID,
+  GRASSEYE_BROWSER_RELEASE_IDENTITY,
+} from "../release/browser-release-identity.js";
+
 export const BROWSER_PROFILE_ENROLLMENT_SCHEMA_VERSION = "grasseye-browser-profile-enrollment-v1" as const;
 
 export const browserProfileEnrollmentReceiptPath = (): string => {
@@ -111,6 +116,12 @@ export const readBrowserProfileEnrollment = (input: Readonly<{
   }
   if (receipt.platform !== input.platform) {
     throw new Error(`BROWSER_PROFILE_ENROLLMENT_PLATFORM_MISMATCH:${receipt.platform}`);
+  }
+  if (
+    receipt.extensionId !== GRASSEYE_BROWSER_EXTENSION_ID
+    || receipt.releaseIdentity !== GRASSEYE_BROWSER_RELEASE_IDENTITY
+  ) {
+    throw new Error("BROWSER_PROFILE_ENROLLMENT_TUPLE_INVALID:release identity mismatch");
   }
   const expected = createBrowserProfileEnrollment({
     platform: receipt.platform,

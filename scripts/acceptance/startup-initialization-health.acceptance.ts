@@ -81,21 +81,9 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
       error ? reject(error) : resolve()));
   }
 
-  const missingEnrollment = await runBrowserRuntimePreflight({
-    rootDir: repoRoot,
-    env: {},
-  });
-  assert.equal(missingEnrollment.status, "BLOCKED");
-  assert.equal(missingEnrollment.code, "BROWSER_PROFILE_ENROLLMENT_MISSING");
-
   const missingArtifact = await runBrowserRuntimePreflight({
     rootDir: repoRoot,
-    env: {
-      GRASSEYE_CHROME_USER_DATA_DIR: "/enrollment/user-data",
-      GRASSEYE_BROWSER_PROFILE_REF: "fixture-profile",
-      GRASSEYE_BROWSER_PROFILE_DIRECTORY: "Profile 1",
-      GRASSEYE_CHROME_EXECUTABLE: "/enrollment/chrome",
-    },
+    env: {},
   });
   assert.equal(missingArtifact.status, "BLOCKED");
   assert.equal(missingArtifact.code, "BROWSERCTL_PREBUILT_BINARY_REQUIRED");

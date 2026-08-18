@@ -26,12 +26,7 @@ const runRoot = await mkdtemp(
 const browserDataDir = path.resolve(
   process.env.GRASSEYE_BROWSER_DATA_DIR?.trim() || ".grasseye-local",
 );
-const profileEnrollment = resolveProductionBrowserProfileEnrollment({
-  platform: process.platform,
-  ...(process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY
-    ? { profileDirectory: process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY }
-    : {}),
-});
+const profileEnrollment = resolveProductionBrowserProfileEnrollment({ platform: process.platform });
 const browser = await CurrentChromeBrowserController.create({
   profileEnrollment,
   screenshotDir: path.join(runRoot, "browser-captures"),

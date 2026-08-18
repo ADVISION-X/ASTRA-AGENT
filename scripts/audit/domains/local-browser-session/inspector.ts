@@ -410,9 +410,7 @@ const inspectProfileAndRelease = (findings: InspectorFinding[]): void => {
   const supervisor = requireFile(findings, "local-browser-session/profile-process-enrollment", LAW_RELEASE, "src/lib/browser/profile/browser-process-supervisor.ts");
   const host = requireFile(findings, "local-browser-session/profile-process-enrollment", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/host/src/main.rs");
   requireContains(findings, "local-browser-session/profile-process-enrollment", LAW_RELEASE, "src/lib/browser/profile/browser-profile-config.ts", config, [
-    'requireEnv("GRASSEYE_CHROME_USER_DATA_DIR")',
-    'requireEnv("GRASSEYE_BROWSER_PROFILE_REF")',
-    'requireEnv("GRASSEYE_CHROME_EXECUTABLE")',
+    "readBrowserProfileEnrollment",
   ]);
   requireContains(findings, "local-browser-session/profile-process-enrollment", LAW_RELEASE, "src/lib/browser/profile/browser-process-supervisor.ts", supervisor, [
     "--user-data-dir=",
@@ -436,6 +434,11 @@ const inspectProfileAndRelease = (findings: InspectorFinding[]): void => {
       add(findings, "local-browser-session/protocol-release-identity", LAW_RELEASE, "src/lib/browser/release/browser-release-identity.ts", `release tuple is not identical across Controller/Extension/Host/browserctl: ${token}`);
     }
   }
+  requireContains(findings, "local-browser-session/profile-process-enrollment", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs", browserctl, [
+    "--enroll-profile",
+    "--doctor",
+    "profile-enrollment.json",
+  ]);
 };
 
 const inspectRustHostOnly = (findings: InspectorFinding[]): void => {

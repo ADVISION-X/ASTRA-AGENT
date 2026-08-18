@@ -136,8 +136,8 @@ fn sha256_file(path: &Path) -> String {
 
 fn sha256_bytes(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    let hex = digest.iter().map(|byte| format!("${byte:02x}")).collect::<String>();
-    format!("sha256:${hex}")
+    let hex = digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+    format!("sha256:{hex}")
 }
 
 fn write_atomic(path: &Path, bytes: &[u8], mode: u32) {
@@ -229,7 +229,7 @@ fn native_manifest_json(host_path: &Path) -> Vec<u8> {
 fn read_profile_enrollment() -> ProfileEnrollmentReceipt {
     let receipt_path = profile_enrollment_receipt_path();
     let bytes = fs::read(&receipt_path).unwrap_or_else(|error| {
-        fail("BROWSER_PROFILE_ENROLLMENT_MISSING", format!("${}: ${error}", receipt_path.display()))
+        fail("BROWSER_PROFILE_ENROLLMENT_MISSING", format!("{}: {error}", receipt_path.display()))
     });
     let receipt: ProfileEnrollmentReceipt = serde_json::from_slice(&bytes)
         .unwrap_or_else(|error| fail("BROWSER_PROFILE_ENROLLMENT_INVALID", error.to_string()));
@@ -283,13 +283,13 @@ fn enroll_profile() {
     let local_state_hash = sha256_file(&local_state_path);
     let identity_material = serde_json::json!({
         "platform": env::consts::OS,
-        "profileRef": profile_ref,
-        "userDataDir": user_data_dir,
-        "profileDirectory": profile_directory,
-        "chromeExecutablePath": chrome_executable_path,
+        "profileRef": profile_ref.clone(),
+        "userDataDir": user_data_dir.clone(),
+        "profileDirectory": profile_directory.clone(),
+        "chromeExecutablePath": chrome_executable_path.clone(),
         "extensionId": EXTENSION_ID,
         "releaseIdentity": RELEASE_IDENTITY,
-        "localStateHash": local_state_hash,
+        "localStateHash": local_state_hash.clone(),
     });
     let receipt = ProfileEnrollmentReceipt {
         schema_version: "grasseye-browser-profile-enrollment-v1".to_string(),
@@ -309,7 +309,7 @@ fn enroll_profile() {
     };
     write_atomic(
         &profile_enrollment_receipt_path(),
-        format!("{}$n", serde_json::to_string_pretty(&receipt).unwrap()).as_bytes(),
+        format!("{}\n", serde_json::to_string_pretty(&receipt).unwrap()).as_bytes(),
         0o600,
     );
     println!("{}", serde_json::json!({
@@ -322,6 +322,7 @@ fn enroll_profile() {
 }
 
 fn install() {
+    let enrollment = enrolled_profile_fields();
     let source_host = resolve_source_host();
     let source_hash = sha256_file(&source_host);
     let host_path = installed_host_path();
@@ -334,7 +335,6 @@ fn install() {
 
     let data_dir = data_dir_from_args();
     let socket_path = data_dir.join("browser-runtime").join("controller-native.sock");
-    let enrollment = enrolled_profile_fields();
     let config = HostConnectionConfig {
         protocol_version: PROTOCOL_VERSION.to_string(),
         release_identity: RELEASE_IDENTITY.to_string(),

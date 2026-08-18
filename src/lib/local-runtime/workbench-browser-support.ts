@@ -11,10 +11,7 @@ export async function createWorkbenchBrowserController(
   runtimeLogger: RuntimeLogger,
 ): Promise<CurrentChromeBrowserController> {
   const profileEnrollment = resolveProductionBrowserProfileEnrollment({
-    platform: options.platformTarget,
-    ...(options.browserProfileDirectory
-      ? { profileDirectory: options.browserProfileDirectory }
-      : {}),
+    platform: process.platform,
   });
   return CurrentChromeBrowserController.create({
     profileEnrollment,

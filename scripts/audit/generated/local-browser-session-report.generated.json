@@ -18,7 +18,7 @@
       "filePath": "src/app/server.ts"
     }
   ],
-  "generatedAt": "2026-08-18T14:37:43.382Z",
+  "generatedAt": "2026-08-18T14:46:55.162Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -31,14 +31,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:7b42acf3-890c-4e7f-9476-9cdba9eead83",
+      "runId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752",
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:3bb364ae-bb95-4e87-874b-aa157be0d3df",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T14:37:43.379Z",
-      "endedAt": "2026-08-18T14:37:43.381Z",
-      "durationMs": 2,
+      "startedAt": "2026-08-18T14:46:55.156Z",
+      "endedAt": "2026-08-18T14:46:55.162Z",
+      "durationMs": 6,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/app/server.ts",
@@ -80,7 +80,7 @@
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
       "clauseId": "grasseye-security-privacy-browser-001-requirement",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:ed67ed81-92a4-4339-9efe-6fb95933ec1b:check:7b42acf3-890c-4e7f-9476-9cdba9eead83"
+      "checkRunId": "audit-run:8e784830-dcd2-44bd-bceb-1cb4f34ac752:check:3bb364ae-bb95-4e87-874b-aa157be0d3df"
     }
   ],
   "inspectedFiles": [
