@@ -185,11 +185,35 @@ const frozenSubject = (
   })),
 });
 
+const conversationParent = (
+  parent: XuanxueAiProductionCloudClaimedJob["conversation_parent"],
+): XuanxueAiProductionOrder["conversationParent"] => parent
+  ? {
+      relation: parent.relation,
+      jobId: parent.job_id,
+      stageId: parent.stage_id,
+      executionId: parent.execution_id,
+      rawOutputHash: parent.raw_output_hash,
+      inputBundleHash: parent.input_bundle_hash,
+      conversationScopeRef: parent.conversation_scope_ref,
+    }
+  : null;
+
+const semanticIdentity = (input: Pick<
+  XuanxueAiProductionCloudClaimedJob,
+  "contract_manifest_hash" | "product_contract_hash" | "localization_role" | "provider_execution_profile"
+>) => ({
+  contractManifestHash: input.contract_manifest_hash,
+  productContractHash: input.product_contract_hash,
+  localizationRole: input.localization_role,
+  providerExecutionProfile: input.provider_execution_profile,
+});
+
 const childOrder = (
   job: XuanxueAiProductionCloudClaimedJob,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-    protocolVersion: "xuanxue-ai-production-v4",
+  protocolVersion: "xuanxue-ai-production-v4",
   orderId: job.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: job.source_task_id,
@@ -202,20 +226,10 @@ const childOrder = (
   inputBundleRef: job.input_bundle_ref,
   inputBundleHash: job.input_bundle_hash,
   requestHash: job.request_hash,
+  ...semanticIdentity(job),
   frozenSubject: frozenSubject(job.frozen_subject),
   conversationScopeRef: job.conversation_scope_ref,
-  conversationParent: job.conversation_parent
-    ? {
-        relation: job.conversation_parent.relation,
-        jobId: job.conversation_parent.job_id,
-        stageId: job.conversation_parent.stage_id,
-        executionId: job.conversation_parent.execution_id,
-        rawOutputHash: job.conversation_parent.raw_output_hash,
-        inputBundleHash: job.conversation_parent.input_bundle_hash,
-        conversationScopeRef:
-          job.conversation_parent.conversation_scope_ref,
-      }
-    : null,
+  conversationParent: conversationParent(job.conversation_parent),
   joinParents: job.join_parents.map((parent) => ({
     participantSlotRef: parent.participant_slot_ref,
     participantRoleCode: parent.participant_role_code,
@@ -238,11 +252,34 @@ type CloudDependencyReplay = CloudParentReplay[
   "dependency_replays"
 ][number];
 
+const replaySemanticIdentity = (
+  replay: CloudParentReplay | CloudDependencyReplay,
+) => ({
+  contractManifestHash: replay.contract_manifest_hash,
+  productContractHash: replay.product_contract_hash,
+  localizationRole: replay.localization_role,
+  providerExecutionProfile: replay.provider_execution_profile,
+});
+
+const replayConversationParent = (
+  parent: CloudParentReplay["conversation_parent"],
+): XuanxueAiProductionOrder["conversationParent"] => parent
+  ? {
+      relation: parent.relation,
+      jobId: parent.job_id,
+      stageId: parent.stage_id,
+      executionId: parent.execution_id,
+      rawOutputHash: parent.raw_output_hash,
+      inputBundleHash: parent.input_bundle_hash,
+      conversationScopeRef: parent.conversation_scope_ref,
+    }
+  : null;
+
 const parentReplayOrder = (
   replay: CloudParentReplay | CloudDependencyReplay,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-    protocolVersion: "xuanxue-ai-production-v4",
+  protocolVersion: "xuanxue-ai-production-v4",
   orderId: replay.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: replay.source_task_id,
@@ -255,20 +292,10 @@ const parentReplayOrder = (
   inputBundleRef: replay.input_bundle_ref,
   inputBundleHash: replay.input_bundle_hash,
   requestHash: replay.request_hash,
+  ...replaySemanticIdentity(replay),
   frozenSubject: frozenSubject(replay.frozen_subject),
   conversationScopeRef: replay.conversation_scope_ref,
-  conversationParent: replay.conversation_parent
-    ? {
-        relation: replay.conversation_parent.relation,
-        jobId: replay.conversation_parent.job_id,
-        stageId: replay.conversation_parent.stage_id,
-        executionId: replay.conversation_parent.execution_id,
-        rawOutputHash: replay.conversation_parent.raw_output_hash,
-        inputBundleHash: replay.conversation_parent.input_bundle_hash,
-        conversationScopeRef:
-          replay.conversation_parent.conversation_scope_ref,
-      }
-    : null,
+  conversationParent: replayConversationParent(replay.conversation_parent),
   joinParents: replay.join_parents.map((parent) => ({
     participantSlotRef: parent.participant_slot_ref,
     participantRoleCode: parent.participant_role_code,
