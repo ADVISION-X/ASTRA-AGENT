@@ -62,28 +62,29 @@ export const runScrollPageCommand = async (
   return runtime.readDescriptor(command.tabId);
 };
 
+const clearFocusedEditable = async (
+  runtime: ServiceWorkerInteractionRuntime,
+  tabId: number,
+): Promise<void> => {
+  const result = asRecord(await runtime.sendCommand(tabId, "Runtime.evaluate", {
+    expression: "(()=>{const el=document.activeElement;if(!el)return {ok:false};if(el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement){el.value='';el.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward',data:null}));return {ok:true};}if(el instanceof HTMLElement&&el.isContentEditable){el.textContent='';el.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward',data:null}));return {ok:true};}return {ok:false};})()",
+    awaitPromise: true,
+    returnByValue: true,
+    userGesture: true,
+  }));
+  if (asRecord(result.result).value && asRecord(asRecord(result.result).value).ok === true) return;
+  throw new Error("TARGET_NOT_FOUND:no focused editable receiver");
+};
+
 const runTextCommand = async (
   runtime: ServiceWorkerInteractionRuntime,
   command: Extract<InteractionCommand, { kind: "text_target" }>,
 ): Promise<unknown> => {
   await runtime.ensureAttached(command.tabId);
   if (command.action === "type-text") {
-    for (const character of command.text ?? "") {
-      await runtime.dispatchTypedCharacter(command.tabId, character);
-    }
+    await runtime.sendCommand(command.tabId, "Input.insertText", { text: command.text ?? "" });
   } else if (command.action === "clear-input") {
-    await runtime.sendCommand(command.tabId, "Input.dispatchKeyEvent", {
-      type: "keyDown", key: "a", code: "KeyA", modifiers: 4,
-    });
-    await runtime.sendCommand(command.tabId, "Input.dispatchKeyEvent", {
-      type: "keyUp", key: "a", code: "KeyA", modifiers: 4,
-    });
-    await runtime.sendCommand(command.tabId, "Input.dispatchKeyEvent", {
-      type: "keyDown", ...runtime.keyCode("Backspace"),
-    });
-    await runtime.sendCommand(command.tabId, "Input.dispatchKeyEvent", {
-      type: "keyUp", ...runtime.keyCode("Backspace"),
-    });
+    await clearFocusedEditable(runtime, command.tabId);
   } else {
     const key = runtime.keyCode(command.key ?? "Enter");
     await runtime.sendCommand(command.tabId, "Input.dispatchKeyEvent", {
@@ -101,6 +102,12 @@ const runFileInputCommand = async (
   command: Extract<InteractionCommand, { kind: "set_file_input_files" }>,
 ): Promise<unknown> => {
   await runtime.ensureAttached(command.tabId);
+  if (!command.fileGrant.grantId || !command.fileGrant.resolvedPath || !command.fileGrant.sha256.startsWith("sha256:")) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
+  if (!Number.isSafeInteger(command.fileGrant.size) || command.fileGrant.size < 0) {
+    throw new Error("BROWSER_FILE_GRANT_INVALID");
+  }
   const root = asRecord(await runtime.sendCommand(command.tabId, "DOM.getDocument", { depth: 0 }));
   const rootNode = asRecord(root.root);
   const proxyNode = asRecord(await runtime.sendCommand(command.tabId, "DOM.querySelector", {
@@ -133,7 +140,8 @@ const runFileInputCommand = async (
     throw new Error("TARGET_NOT_FOUND:real file receiver did not resolve to a DOM node");
   }
   await runtime.sendCommand(command.tabId, "DOM.setFileInputFiles", {
-    nodeId: receiverNode.nodeId, files: [command.filePath],
+    nodeId: receiverNode.nodeId,
+    files: [command.fileGrant.resolvedPath],
   });
   return runtime.readDescriptor(command.tabId);
 };
