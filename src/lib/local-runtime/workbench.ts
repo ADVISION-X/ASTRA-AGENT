@@ -154,7 +154,9 @@ export class GrassEyeWorkbench {
         if (property === "getModeInfo") return () => getModeInfo(self.options);
         if (property === "getHealthReport") return () => self.getHealthReport();
         if (property === "getMissionReadinessReport") return () => self.getMissionReadinessReport();
-        if (property === "getMissionStartPreflight") return () => self.getMissionStartPreflight();
+        if (property === "getMissionStartPreflight") {
+          return (input: unknown) => self.getMissionStartPreflight(input);
+        }
         return (...args: unknown[]) => {
           const handle = self.requireActiveHandle();
           const member = Reflect.get(handle, property) as unknown;
@@ -203,8 +205,8 @@ export class GrassEyeWorkbench {
     };
   }
 
-  private async getMissionStartPreflight(): Promise<WorkbenchPreflightResult> {
-    if (this.assembly) return getMissionStartPreflight(this.assembly, this.options, null);
+  private async getMissionStartPreflight(input: unknown): Promise<WorkbenchPreflightResult> {
+    if (this.assembly) return getMissionStartPreflight(this.assembly, this.options, input);
     const component = authorityAbsentComponent();
     return {
       status: "blocked",
