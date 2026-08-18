@@ -10,7 +10,6 @@ import {
   requireXuanxueStage,
 } from "./xuanxue-ai-production-feed.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
-import { normalizeGeneratedImageResult } from "./xuanxue-ai-production-image-result.js";
 import {
   XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
   type XuanxueAiOrderRecord,
@@ -33,7 +32,7 @@ const nowIso = (): string => new Date().toISOString();
 const RECOVERY_RETRY_DELAY_MS = 1_000;
 const MAX_RECOVERY_RETRY_DELAY_MS = 10_000;
 
-const continuationConversationUnavailable = (
+export const continuationConversationUnavailable = (
   reason: string | null,
 ): boolean => Boolean(
   reason
@@ -41,7 +40,7 @@ const continuationConversationUnavailable = (
     .test(reason)
 );
 
-const waitForRecoveryRetry = async (
+export const waitForRecoveryRetry = async (
   stage: XuanxueAiStageRecord,
 ): Promise<boolean> => {
   const deadline = new Date(stage.createdAt).getTime()
@@ -155,63 +154,6 @@ const terminalStageFromResult = (
   return { status: "completed", failureReason: null };
 };
 
-const hasTerminalAttachmentTransportProof = (
-  stage: XuanxueAiStageRecord,
-): boolean => {
-  const status =
-    stage.aiFeedResult?.providerProof.attachmentUploadProof?.status;
-  return status === "failed" || status === "review_required";
-};
-
-const hasProvenTerminalPreSubmitIdentityConflict = (
-  reason: string | null,
-): boolean => Boolean(
-  reason
-  && /WEB_CHAT_(?:FOREIGN_TURN_REBOUND|FRESH_CONVERSATION_REBOUND|CANONICAL_CONVERSATION_ALREADY_BOUND|TURN_MARKER_AMBIGUOUS)/u
-    .test(reason),
-);
-
-const restartRecoverableStage = (
-  runtime: XuanxueAiProductionRuntime,
-  stage: XuanxueAiStageRecord,
-): XuanxueAiStageRecord => {
-  if (hasTerminalAttachmentTransportProof(stage)) return stage;
-  const terminalGatewayExecution = stage.aiFeedResult?.status === "failed"
-    || stage.aiFeedResult?.status === "review_required";
-  const hasDurableSubmission = Boolean(
-    stage.aiFeedResult?.providerProof.webChatUrl,
-  );
-  const terminalPreSubmitGatewayRequiresFreshExecution =
-    terminalGatewayExecution
-    && !hasDurableSubmission
-    && !stage.supersededExecutionId
-    && hasProvenTerminalPreSubmitIdentityConflict(stage.failureReason);
-  const outputRequiresFreshExecution =
-    xuanxueAiOutputRequiresFreshExecution(stage.failureReason);
-  if (
-    stage.status !== "recovery_pending"
-    || (
-      !terminalPreSubmitGatewayRequiresFreshExecution
-      && !outputRequiresFreshExecution
-    )
-  ) return stage;
-  const restartedAt = nowIso();
-  return runtime.store.updateStage({
-    ...stage,
-    executionId:
-      `${stage.orderId}:${stage.stageId}:restart:${stage.attemptCount + 1}`,
-    supersededExecutionId: stage.executionId,
-    status: "queued",
-    aiFeedResult: null,
-    attachmentUploadProof: null,
-    rawResponseText: null,
-    rawOutputHash: null,
-    progressPhase: "queued",
-    failureReason: null,
-    updatedAt: restartedAt,
-  }, "stage_fresh_execution_restarted");
-};
-
 const progressStatus = (
   phase: AiInputGatewayProgress["phase"],
 ): XuanxueAiStageRecord["status"] => phase === "recovery_pending"
@@ -263,7 +205,7 @@ const persistStageAttachmentUploadProof = (
   }, "stage_attachment_upload_proof");
 };
 
-const persistStageResult = (
+export const persistStageResult = (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
   stage: XuanxueAiStageRecord,
@@ -316,7 +258,7 @@ export const acknowledgeInterventionSafePoint = async (
   }
 };
 
-const executeGatewayStage = async (input: {
+export const executeGatewayStage = async (input: {
   runtime: XuanxueAiProductionRuntime;
   orderId: string;
   stage: XuanxueAiStageRecord;
@@ -353,111 +295,3 @@ const executeGatewayStage = async (input: {
     },
   ),
 );
-
-const executeStage = async (
-  runtime: XuanxueAiProductionRuntime,
-  orderId: string,
-  definition: XuanxueAiStageDefinition,
-  observer?: XuanxueAiProductionExecutionObserver,
-): Promise<XuanxueAiStageRecord> => {
-  const current = runtime.store.readOrder(orderId);
-  if (!current) throw new Error("XUANXUE_AI_PRODUCTION_ORDER_NOT_FOUND");
-  let stage = restartRecoverableStage(
-    runtime,
-    requireXuanxueStage(current, definition.stageId),
-  );
-  if (
-    stage.status === "completed"
-    || hasTerminalAttachmentTransportProof(stage)
-  ) return stage;
-  await acknowledgeInterventionSafePoint(
-    runtime,
-    orderId,
-    `before-stage-feed:${definition.stageId}`,
-  );
-  const feedInput = await buildXuanxueAiFeedInput(
-    runtime,
-    current,
-    stage,
-    definition,
-  );
-  const startedAt = nowIso();
-  stage = runtime.store.updateStage({
-    ...stage,
-    status: "running",
-    attemptCount: stage.attemptCount + 1,
-    failureReason: null,
-    updatedAt: startedAt,
-  }, "stage_started");
-  const gatewayResult = await executeGatewayStage({
-    runtime,
-    orderId,
-    stage,
-    feedInput,
-    ...(observer ? { observer } : {}),
-  });
-  const result = await normalizeGeneratedImageResult(
-    runtime,
-    orderId,
-    stage.stageId,
-    gatewayResult,
-  );
-  const persisted = persistStageResult(runtime, orderId, stage, result);
-  await acknowledgeInterventionSafePoint(
-    runtime,
-    orderId,
-    `after-response-checkpoint:${definition.stageId}`,
-  );
-  return persisted;
-};
-
-export const executeStageUntilSettled = async (
-  runtime: XuanxueAiProductionRuntime,
-  orderId: string,
-  definition: XuanxueAiStageDefinition,
-  observer?: XuanxueAiProductionExecutionObserver,
-): Promise<XuanxueAiStageRecord> => {
-  while (true) {
-    let stage: XuanxueAiStageRecord;
-    try {
-      stage = await executeStage(runtime, orderId, definition, observer);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      if (
-        definition.continuationFrom
-        && continuationConversationUnavailable(reason)
-      ) {
-        const rebuilt =
-          runtime.store.resetOrderForConversationGraphRebuild(
-            orderId,
-            {
-              triggeringStageId: definition.stageId,
-              reason,
-            },
-          );
-        return requireXuanxueStage(rebuilt, definition.stageId);
-      }
-      throw error;
-    }
-    if (
-      definition.continuationFrom
-      && stage.status === "recovery_pending"
-      && continuationConversationUnavailable(stage.failureReason)
-    ) {
-      const rebuilt =
-        runtime.store.resetOrderForConversationGraphRebuild(
-          orderId,
-          {
-            triggeringStageId: definition.stageId,
-            reason: stage.failureReason!,
-          },
-      );
-      return requireXuanxueStage(rebuilt, definition.stageId);
-    }
-    if (hasTerminalAttachmentTransportProof(stage)) return stage;
-    if (
-      stage.status !== "recovery_pending"
-      || !await waitForRecoveryRetry(stage)
-    ) return stage;
-  }
-};

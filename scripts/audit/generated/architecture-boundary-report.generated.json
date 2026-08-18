@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:15:21.477Z",
+  "generatedAt": "2026-08-18T01:45:49.212Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -1171,7 +1171,6 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -1205,14 +1204,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0",
+      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:15:18.836Z",
-      "endedAt": "2026-08-18T01:15:21.476Z",
-      "durationMs": 2640,
+      "startedAt": "2026-08-18T01:45:46.269Z",
+      "endedAt": "2026-08-18T01:45:49.211Z",
+      "durationMs": 2942,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -2007,7 +2006,6 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -2046,85 +2044,85 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "APEX-ARCH-012-V1",
       "clauseId": "apex-arch-012-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:28d24a2f-1bd3-4f6d-9109-9992e891cda0"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:446a1a83-2319-4a39-8e4c-294f75ebc4e8"
     }
   ]
 }

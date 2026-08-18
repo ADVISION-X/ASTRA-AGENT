@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-18T01:13:54.087Z",
+  "generatedAt": "2026-08-18T01:46:41.141Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
-    "lawId": "APEX-CODE-PURITY-017-V1",
-    "filePath": "scripts/audit/core/run-generated-plan-worker.ts",
-    "message": "scripts/audit/core/run-generated-plan-worker.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
+    "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+    "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
+    "message": "SQLite production ledger must contain a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 216,
-      "endedAt": "2026-08-18T01:12:36.837Z",
+      "durationMs": 221,
+      "endedAt": "2026-08-18T01:45:15.333Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-18T01:12:36.621Z",
+      "startedAt": "2026-08-18T01:45:15.112Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3550,
-      "endedAt": "2026-08-18T01:12:40.388Z",
+      "durationMs": 3565,
+      "endedAt": "2026-08-18T01:45:18.899Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-18T01:12:36.838Z",
+      "startedAt": "2026-08-18T01:45:15.334Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 2,
-      "endedAt": "2026-08-18T01:12:40.393Z",
+      "endedAt": "2026-08-18T01:45:18.904Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-18T01:12:40.391Z",
+      "startedAt": "2026-08-18T01:45:18.902Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 73694,
-      "endedAt": "2026-08-18T01:13:54.087Z",
+      "durationMs": 82236,
+      "endedAt": "2026-08-18T01:46:41.140Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-18T01:12:40.393Z",
+      "startedAt": "2026-08-18T01:45:18.904Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -1196,9 +1196,9 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 7,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "constitutional-boundary",
@@ -1214,9 +1214,9 @@
     },
     {
       "capabilityDomain": "local-browser-session",
-      "findingCount": 6,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/local-browser-session-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "runtime-log-spine",
@@ -1286,7 +1286,7 @@
     },
     {
       "capabilityDomain": "xuanxue-ai-production",
-      "findingCount": 20,
+      "findingCount": 15,
       "reportPath": "scripts/audit/generated/xuanxue-ai-production-report.generated.json",
       "status": "FAIL"
     },
@@ -1298,7 +1298,7 @@
     },
     {
       "capabilityDomain": "audit-truth",
-      "findingCount": 5,
+      "findingCount": 6,
       "reportPath": "scripts/audit/generated/audit-truth-report.generated.json",
       "status": "FAIL"
     },

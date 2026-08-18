@@ -18,6 +18,8 @@ const ownerPaths = [
   "src/lib/browser/exact-target/browser-evaluation-contract.ts",
   "src/lib/browser/exact-target/browser-native-transport-server.ts",
   "src/lib/browser/chrome-extension/service-worker.ts",
+  "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
+  "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
   "src/lib/browser/chrome-extension/atomic-dom-command.ts",
   "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
   "src/lib/browser/chrome-extension/protocol.ts",
@@ -30,6 +32,10 @@ const add = (findings: InspectorFinding[], lawId: string, clauseId: string, file
 
 const source = (context: InspectorContext, filePath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(filePath));
+
+const stringLiterals = (sources: readonly (SourceFile | undefined)[]): Set<string> =>
+  new Set(sources.flatMap((file) => file?.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .map((node) => node.getLiteralText()) ?? []));
 
 const inspectOwnerAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const lawId = "APEX-LOCAL-BROWSER-001-V1";
@@ -148,6 +154,8 @@ const inspectRoundedClickCoordinates = (
 
 const inspectWorkerCommandSurface = (
   worker: SourceFile | undefined,
+  interaction: SourceFile | undefined,
+  keyboard: SourceFile | undefined,
   findings: InspectorFinding[],
   lawId: string,
   clauseId: string,
@@ -161,7 +169,7 @@ const inspectWorkerCommandSurface = (
   if (workerHasPrivateEvaluator) {
     add(findings, lawId, clauseId, workerPath, "MV3 evaluate must execute the normalized expression without a private evaluator or second wrapper");
   }
-  const requiredCommands = new Set(worker?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
+  const requiredCommands = stringLiterals([worker, interaction, keyboard]);
   for (const command of ["evaluate_target", "click_target", "click_dom_target", "fill_dom_target", "scroll_target", "text_target", "set_file_input_files"]) {
     if (!requiredCommands.has(command)) add(findings, lawId, clauseId, workerPath, `exact-target command surface is missing ${command}`);
   }
@@ -235,12 +243,14 @@ const inspectAtomicDomCommandSurface = (
 
 const inspectWorkerTargetGuards = (
   worker: SourceFile | undefined,
+  interaction: SourceFile | undefined,
+  keyboard: SourceFile | undefined,
   findings: InspectorFinding[],
   lawId: string,
   clauseId: string,
   workerPath: string,
 ): void => {
-  const requiredCommands = new Set(worker?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
+  const requiredCommands = stringLiterals([worker, interaction, keyboard]);
   const userAgentShadowOptions = worker?.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
     .filter((property) => property.getName() === "includeUserAgentShadowDOM") ?? [];
   if (userAgentShadowOptions.length !== 1 || userAgentShadowOptions[0]?.getInitializer()?.getKind() !== SyntaxKind.FalseKeyword) {
@@ -259,12 +269,14 @@ const inspectWorkerTargetGuards = (
 
 const inspectWorkerRetiredPaths = (
   worker: SourceFile | undefined,
+  interaction: SourceFile | undefined,
+  keyboard: SourceFile | undefined,
   findings: InspectorFinding[],
   lawId: string,
   clauseId: string,
   workerPath: string,
 ): void => {
-  const requiredCommands = new Set(worker?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
+  const requiredCommands = stringLiterals([worker, interaction, keyboard]);
   for (const retired of [
     "function(){ return {ok:this instanceof HTMLInputElement&&this.type==='file'&&this.files?.length===1&&Boolean(this.files[0]?.name)}; }",
     "BROWSER_COMMAND_FAILED:real file receiver did not retain the approved file",
@@ -280,18 +292,22 @@ const inspectWorkerRetiredPaths = (
   inspectRoundedClickCoordinates(worker, findings, lawId, clauseId, workerPath);
 };
 
-const inspectWorkerEvaluationContract = (
-  worker: SourceFile | undefined,
-  atomicDom: SourceFile | undefined,
-  findings: InspectorFinding[],
-  lawId: string,
-  clauseId: string,
-  workerPath: string,
-): void => {
-  inspectWorkerCommandSurface(worker, findings, lawId, clauseId, workerPath);
-  inspectAtomicDomCommandSurface(worker, atomicDom, findings, lawId, clauseId, workerPath);
-  inspectWorkerTargetGuards(worker, findings, lawId, clauseId, workerPath);
-  inspectWorkerRetiredPaths(worker, findings, lawId, clauseId, workerPath);
+type WorkerEvaluationInput = {
+  atomicDom: SourceFile | undefined;
+  clauseId: string;
+  findings: InspectorFinding[];
+  interaction: SourceFile | undefined;
+  keyboard: SourceFile | undefined;
+  lawId: string;
+  worker: SourceFile | undefined;
+  workerPath: string;
+};
+
+const inspectWorkerEvaluationContract = (input: WorkerEvaluationInput): void => {
+  inspectWorkerCommandSurface(input.worker, input.interaction, input.keyboard, input.findings, input.lawId, input.clauseId, input.workerPath);
+  inspectAtomicDomCommandSurface(input.worker, input.atomicDom, input.findings, input.lawId, input.clauseId, input.workerPath);
+  inspectWorkerTargetGuards(input.worker, input.interaction, input.keyboard, input.findings, input.lawId, input.clauseId, input.workerPath);
+  inspectWorkerRetiredPaths(input.worker, input.interaction, input.keyboard, input.findings, input.lawId, input.clauseId, input.workerPath);
 };
 
 const inspectEvaluationContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -300,10 +316,14 @@ const inspectEvaluationContract = (context: InspectorContext, findings: Inspecto
   const runtimePath = "src/lib/browser/exact-target/browser-command-runtime.ts";
   const contractPath = "src/lib/browser/exact-target/browser-evaluation-contract.ts";
   const workerPath = "src/lib/browser/chrome-extension/service-worker.ts";
+  const interactionPath = "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts";
+  const keyboardPath = "src/lib/browser/chrome-extension/service-worker-keyboard.ts";
   const atomicDomPath = "src/lib/browser/chrome-extension/atomic-dom-command.ts";
   const runtime = source(context, runtimePath);
   const contract = source(context, contractPath);
   const worker = source(context, workerPath);
+  const interaction = source(context, interactionPath);
+  const keyboard = source(context, keyboardPath);
   const atomicDom = source(context, atomicDomPath);
   const evaluateMethod = runtime?.getClass("ExactBrowserTargetSession")?.getMethod("evaluate");
   const normalizerCalls = evaluateMethod?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((call) =>
@@ -312,7 +332,9 @@ const inspectEvaluationContract = (context: InspectorContext, findings: Inspecto
   const evaluateLiterals = new Set(evaluateMethod?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText()) ?? []);
   if (!evaluateLiterals.has("observation")) add(findings, lawId, clauseId, runtimePath, "evaluate_target must remain an observation command");
   if (!contract?.getVariableDeclaration("toBrowserEvaluationExpression")) add(findings, lawId, clauseId, contractPath, "the unique function-body evaluation normalizer is missing");
-  inspectWorkerEvaluationContract(worker, atomicDom, findings, lawId, clauseId, workerPath);
+  inspectWorkerEvaluationContract({
+    atomicDom, clauseId, findings, interaction, keyboard, lawId, worker, workerPath,
+  });
 };
 
 const inspectDomainEvaluation = async (

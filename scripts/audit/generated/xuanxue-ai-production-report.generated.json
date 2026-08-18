@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:13:36.013Z",
+  "generatedAt": "2026-08-18T01:46:22.194Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,22 +10,6 @@
   ],
   "status": "FAIL",
   "findings": [
-    {
-      "checkId": "xuanxue-ai-production/no-terminal-attachment-reentry",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Factory flow must define hasTerminalAttachmentTransportProof.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain stage_fresh_execution_restarted.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
     {
       "checkId": "xuanxue-ai-production/durable-ledger",
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
@@ -39,14 +23,6 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "message": "SQLite production ledger must contain a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain hasProvenTerminalPreSubmitIdentityConflict.",
       "severity": "fatal",
       "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
     },
@@ -73,22 +49,6 @@
       "message": "SQLite production ledger must contain a second identity conflict must recover on the replacement execution instead of minting restart:2.",
       "severity": "fatal",
       "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/cloud-capacity",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
-      "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
-      "message": "Cloud claiming must be bounded by stage_attachment_upload_proof.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/local-intervention-contract",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
-      "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
-      "message": "Local whole-order intervention must contain after-response-checkpoint.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts"
     },
     {
       "checkId": "xuanxue-ai-production/acceptance",
@@ -173,14 +133,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:6c39331b-c8e1-4694-b3b0-a4b9ddb241bd",
+      "runId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758",
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T01:13:35.652Z",
-      "endedAt": "2026-08-18T01:13:36.013Z",
-      "durationMs": 361,
+      "startedAt": "2026-08-18T01:46:21.796Z",
+      "endedAt": "2026-08-18T01:46:22.193Z",
+      "durationMs": 397,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
@@ -216,6 +176,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
@@ -233,7 +194,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
       ],
-      "findingCount": 20
+      "findingCount": 15
     }
   ],
   "executedChecks": [
@@ -241,25 +202,25 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:6c39331b-c8e1-4694-b3b0-a4b9ddb241bd"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:6c39331b-c8e1-4694-b3b0-a4b9ddb241bd"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:6c39331b-c8e1-4694-b3b0-a4b9ddb241bd"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
       "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:6c39331b-c8e1-4694-b3b0-a4b9ddb241bd"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:d64cb376-0491-49ac-bbd4-480e6fdeb6b9"
     }
   ],
   "inspectedFiles": [
@@ -297,6 +258,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",

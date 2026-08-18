@@ -274,6 +274,56 @@ const publishOrder = async (
   });
 };
 
+const checkpointAttachmentUpload = async (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+  localOrderId: string | undefined,
+  input: {
+    readonly stageId: string;
+    readonly proof: NonNullable<XuanxueAiOrderRecord["stages"][number]["attachmentUploadProof"]>;
+  },
+): Promise<void> => {
+  try {
+    await checkpointXuanxueAiProductionJob(state.credential, job, {
+      status: "factory_running",
+      ...(localOrderId ? { localOrderId } : {}),
+      attachmentUploadProof: attachmentCheckpoint(input),
+    });
+  } catch (error) {
+    reportWorkerError(
+      "XUANXUE_AI_PRODUCTION_ATTACHMENT_CHECKPOINT_DEFERRED",
+      error,
+    );
+  }
+};
+
+const executeCloudJobStages = async (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+  onLocalOrderId: (orderId: string) => void,
+): Promise<XuanxueAiOrderRecord> => {
+  const staged = await stageXuanxueAiProductionCloudJob(
+    state.dataDir,
+    state.credential,
+    job,
+  );
+  await executeXuanxueAiProductionCloudReplayGraph(state.execution, staged);
+  const created = state.execution.createOrder(staged.order);
+  onLocalOrderId(created.order.orderId);
+  await checkpointXuanxueAiProductionJob(state.credential, job, {
+    status: "factory_running",
+    localOrderId: created.order.orderId,
+  });
+  return heartbeatUntilSettled(
+    state,
+    job,
+    state.execution.executeOrder(created.order.orderId, {
+      onAttachmentUploadCompleted: async ({ stageId, proof }) =>
+        checkpointAttachmentUpload(state, job, created.order.orderId, { stageId, proof }),
+    }),
+  );
+};
+
 const executeCloudJob = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
@@ -283,41 +333,9 @@ const executeCloudJob = async (
     await checkpointXuanxueAiProductionJob(state.credential, job, {
       status: "inputs_downloading",
     });
-    const staged = await stageXuanxueAiProductionCloudJob(
-      state.dataDir,
-      state.credential,
-      job,
-    );
-    await executeXuanxueAiProductionCloudReplayGraph(
-      state.execution,
-      staged,
-    );
-    const created = state.execution.createOrder(staged.order);
-    localOrderId = created.order.orderId;
-    await checkpointXuanxueAiProductionJob(state.credential, job, {
-      status: "factory_running",
-      localOrderId,
+    const terminal = await executeCloudJobStages(state, job, (orderId) => {
+      localOrderId = orderId;
     });
-    const terminal = await heartbeatUntilSettled(
-      state,
-      job,
-      state.execution.executeOrder(localOrderId, {
-        onAttachmentUploadCompleted: async ({ stageId, proof }) => {
-          try {
-            await checkpointXuanxueAiProductionJob(state.credential, job, {
-              status: "factory_running",
-              ...(localOrderId ? { localOrderId } : {}),
-              attachmentUploadProof: attachmentCheckpoint({ stageId, proof }),
-            });
-          } catch (error) {
-            reportWorkerError(
-              "XUANXUE_AI_PRODUCTION_ATTACHMENT_CHECKPOINT_DEFERRED",
-              error,
-            );
-          }
-        },
-      }),
-    );
     await publishOrder(state, job, terminal);
   } catch (error) {
     const reason = safeReason(error);

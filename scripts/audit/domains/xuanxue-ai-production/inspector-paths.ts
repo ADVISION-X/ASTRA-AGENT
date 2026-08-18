@@ -65,6 +65,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
   flowPath,
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
   schedulerPath,

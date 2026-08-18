@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:15:59.515Z",
+  "generatedAt": "2026-08-18T01:46:36.714Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -789,7 +789,6 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -841,14 +840,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:4d1b020e-ed27-4001-b362-7e723028f466",
+      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:15:59.386Z",
-      "endedAt": "2026-08-18T01:15:59.515Z",
-      "durationMs": 129,
+      "startedAt": "2026-08-18T01:46:36.572Z",
+      "endedAt": "2026-08-18T01:46:36.711Z",
+      "durationMs": 139,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1637,7 +1636,6 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -1676,25 +1674,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:4d1b020e-ed27-4001-b362-7e723028f466"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:4d1b020e-ed27-4001-b362-7e723028f466"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:4d1b020e-ed27-4001-b362-7e723028f466"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:4d1b020e-ed27-4001-b362-7e723028f466"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:d25b2570-9cc6-43a8-afcd-dbc9403edd2b"
     }
   ]
 }

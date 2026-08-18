@@ -4,54 +4,8 @@
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/service-readiness.mjs exports probeExistingWorkbench without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"probeExistingWorkbench\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/service-readiness.mjs exports waitForWorkbenchHealth without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"waitForWorkbenchHealth\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper waitForDelay alive only through a dead export subgraph.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"waitForDelay\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper probeHealth alive only through a dead export subgraph.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"probeHealth\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/service-readiness.mjs keeps dead internal declaration subgraph member isWorkbenchHealthReport.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"isWorkbenchHealthReport\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-08-18T01:15:59.383Z",
+  "findings": [],
+  "generatedAt": "2026-08-18T01:46:36.567Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -840,7 +794,6 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -871,68 +824,7 @@
     "src/types/plugin-intervention.ts",
     "src/types/structured-log.ts"
   ],
-  "inventoryItems": [
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "function",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Export probeExistingWorkbench has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "startup-script",
-      "symbolName": "probeExistingWorkbench",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "function",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Export waitForWorkbenchHealth has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "startup-script",
-      "symbolName": "waitForWorkbenchHealth",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "declarationKind": "variable",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Top-level variable waitForDelay is only reachable from a dead exported subgraph and has no live runtime root.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "startup-script",
-      "symbolName": "waitForDelay",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "declarationKind": "function",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Top-level function probeHealth is only reachable from a dead exported subgraph and has no live runtime root.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "startup-script",
-      "symbolName": "probeHealth",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "declarationKind": "function",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Top-level function isWorkbenchHealthReport survives only inside a dead internal declaration subgraph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "startup-script",
-      "symbolName": "isWorkbenchHealthReport",
-      "verificationCommand": "npm run ci:full"
-    }
-  ],
+  "inventoryItems": [],
   "lawIds": [
     "APEX-CODE-PURITY-001-V1",
     "APEX-CODE-PURITY-002-V1",
@@ -1717,95 +1609,37 @@
       "scriptName": "browser:install"
     }
   ],
-  "liveExportCount": 2277,
-  "orphanDeclarationCount": 3,
-  "reachableFileCount": 817,
-  "status": "FAIL",
+  "liveExportCount": 2282,
+  "orphanDeclarationCount": 0,
+  "reachableFileCount": 816,
+  "status": "PASS",
   "unreachableFileCount": 0,
-  "uselessCodeInventory": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs exports probeExistingWorkbench without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs exports waitForWorkbenchHealth without any provable final consumer."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper waitForDelay alive only through a dead export subgraph."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs keeps dead helper probeHealth alive only through a dead export subgraph."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs keeps dead internal declaration subgraph member isWorkbenchHealthReport."
-    }
-  ],
-  "unprovenPublicExports": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs exports probeExistingWorkbench without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/startup/lib/service-readiness.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/service-readiness.mjs exports waitForWorkbenchHealth without any provable final consumer."
-    }
-  ],
+  "uselessCodeInventory": [],
+  "unprovenPublicExports": [],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 2,
+  "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2277,
-    "orphanDeclarationCount": 3,
-    "reachableFileCount": 817,
+    "liveExportCount": 2282,
+    "orphanDeclarationCount": 0,
+    "reachableFileCount": 816,
     "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 5,
-    "zombieExportCount": 2
+    "uselessCodeInventoryCount": 0,
+    "zombieExportCount": 0
   },
   "checkRuns": [
     {
-      "runId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e",
+      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-18T01:15:21.536Z",
-      "endedAt": "2026-08-18T01:15:59.382Z",
-      "durationMs": 37846,
+      "status": "PASS",
+      "startedAt": "2026-08-18T01:45:49.366Z",
+      "endedAt": "2026-08-18T01:46:36.565Z",
+      "durationMs": 47199,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -2594,7 +2428,6 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -2625,7 +2458,7 @@
         "src/types/plugin-intervention.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 5
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -2633,145 +2466,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:f72d2621-1a5a-4a3e-af6c-bca85310a7f6:check:ee5fde8d-d085-409f-94e0-da0cffaec49e"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:5f2b30fd-e24a-4bc1-9008-a6522dd56631"
     }
   ]
 }

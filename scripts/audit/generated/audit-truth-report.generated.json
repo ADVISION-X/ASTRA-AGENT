@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T01:13:53.969Z",
+  "generatedAt": "2026-08-18T01:46:41.044Z",
   "status": "FAIL",
   "inspectorFileCount": 22,
   "generatedPlanEntryCount": 22,
@@ -301,6 +301,14 @@
       "message": "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts uses source-text judgment expression.getText().includes(\"healthReport.status\") on tracked ts-morph text.",
       "severity": "fatal",
       "filePath": "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts"
+    },
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/code-purity/components/zombie-symbol-graph.ts uses source-text judgment node.getText() === importedName on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/code-purity/components/zombie-symbol-graph.ts"
     }
   ],
   "capabilityDomain": "audit-truth",
@@ -312,14 +320,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a",
+      "runId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758",
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:48ad6e25-0b51-4075-a57f-b8b0dd7a6bad",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T01:13:46.360Z",
-      "endedAt": "2026-08-18T01:13:53.969Z",
-      "durationMs": 7609,
+      "startedAt": "2026-08-18T01:46:33.357Z",
+      "endedAt": "2026-08-18T01:46:41.044Z",
+      "durationMs": 7687,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -578,7 +586,7 @@
         "scripts/audit/shared/source-files.ts",
         "scripts/audit/shared/source-module-targets.ts"
       ],
-      "findingCount": 5
+      "findingCount": 6
     }
   ],
   "executedChecks": [
@@ -586,19 +594,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:48ad6e25-0b51-4075-a57f-b8b0dd7a6bad"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:48ad6e25-0b51-4075-a57f-b8b0dd7a6bad"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:ef5eac3e-8dad-4140-8902-85082af0d58a"
+      "checkRunId": "audit-run:56bec808-efbd-4fc2-b37d-78a1d72f9758:check:48ad6e25-0b51-4075-a57f-b8b0dd7a6bad"
     }
   ]
 }

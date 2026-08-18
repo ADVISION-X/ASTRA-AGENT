@@ -1,5 +1,6 @@
-import { Node, type Node as MorphNode } from "ts-morph";
+import { Node, SyntaxKind, type Node as MorphNode } from "ts-morph";
 
+import { collectResolvedModuleBindings } from "../../../shared/source-module-targets.js";
 import { toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import {
@@ -98,10 +99,45 @@ const collectZombieReferenceNodes = (nameNode: MorphNode | undefined): MorphNode
   return nameNode.findReferencesAsNodes().filter((referenceNode) => referenceNode !== nameNode);
 };
 
+const collectCrossFileImportReferences = (
+  governedFiles: readonly GovernedFile[],
+): Map<string, ZombieSymbolReference[]> => {
+  const referencesByTarget = new Map<string, ZombieSymbolReference[]>();
+  for (const governedFile of governedFiles) {
+    const bindings = collectResolvedModuleBindings(governedFile.sourceFile)
+      .filter((binding) => binding.edgeKind === "import"
+        && binding.importedSymbolName !== null
+        && binding.localSymbolName !== null);
+    for (const binding of bindings) {
+    const importedName = binding.localSymbolName;
+    if (!importedName || !binding.importedSymbolName) continue;
+    const importedNodes = governedFile.sourceFile
+      .getDescendantsOfKind(SyntaxKind.Identifier)
+      .filter((node) => node.getText() === importedName);
+    const bindingNode = importedNodes.find((node) => node.getStartLineNumber() === binding.line);
+    const importedSymbol = bindingNode?.getSymbol();
+    const references = importedSymbol
+      ? importedNodes.filter((node) => node.getSymbol() === importedSymbol)
+      : [];
+      const key = `${binding.targetPath}:${binding.importedSymbolName}`;
+      const existing = referencesByTarget.get(key) ?? [];
+      existing.push(...references.map((referenceNode) => ({
+        line: referenceNode.getStartLineNumber(),
+        referencingFile: governedFile.repoPath,
+        sourceText: referenceNode.getText(),
+        usageKind: classifyZombieReferenceUsage(referenceNode),
+      })));
+      referencesByTarget.set(key, existing);
+    }
+  }
+  return referencesByTarget;
+};
+
 export const buildZombieSymbolGraph = (governedFiles: readonly GovernedFile[]): ZombieSymbolGraph => {
   const exportsByFile = new Map<string, ZombieExportSymbol[]>();
   const referencesBySymbol = new Map<string, ZombieSymbolReference[]>();
   const resolutionFailures: ZombieSymbolResolutionFailure[] = [];
+  const crossFileImportReferences = collectCrossFileImportReferences(governedFiles);
 
   for (const governedFile of governedFiles) {
     const fileExports: ZombieExportSymbol[] = [];
@@ -110,12 +146,17 @@ export const buildZombieSymbolGraph = (governedFiles: readonly GovernedFile[]): 
         const exportSymbol = createZombieExportSymbol(governedFile.repoPath, exportName, declaration);
         fileExports.push(exportSymbol);
         try {
-          const references = collectZombieReferenceNodes(exportSymbol.nameNode).map((referenceNode) => ({
+          const references = [
+            ...collectZombieReferenceNodes(exportSymbol.nameNode).map((referenceNode) => ({
             line: referenceNode.getStartLineNumber(),
             referencingFile: toRepoPath(referenceNode.getSourceFile().getFilePath()),
             sourceText: referenceNode.getText(),
             usageKind: classifyZombieReferenceUsage(referenceNode),
-          }));
+            })),
+            ...(crossFileImportReferences.get(
+              `${exportSymbol.declaringFile}:${exportSymbol.exportName}`,
+            ) ?? []),
+          ];
           referencesBySymbol.set(exportSymbol.symbolId, dedupeZombieReferences(references));
         } catch (error) {
           referencesBySymbol.set(exportSymbol.symbolId, []);

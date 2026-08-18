@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-18T01:13:31.999Z",
+  "generatedAt": "2026-08-18T01:46:46.243Z",
   "status": "PASS",
-  "scannedFiles": 436,
+  "scannedFiles": 435,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -407,7 +407,6 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -458,7 +457,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 436,
+    "scannedFiles": 435,
     "emitCallCount": 27,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -469,7 +468,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 432,
+      "scannedFiles": 431,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -478,13 +477,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 331
+      "scannedFiles": 330
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 328,
+      "scannedFiles": 327,
       "metrics": {
         "emitCallCount": 11
       }
@@ -493,13 +492,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 328
+      "scannedFiles": 327
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 332,
+      "scannedFiles": 331,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -514,7 +513,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 332,
+      "scannedFiles": 331,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -591,14 +590,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8",
+      "runId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97",
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1",
       "capabilityDomain": "runtime-log-spine",
       "checkId": "runtime-log-spine/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T01:13:23.880Z",
-      "endedAt": "2026-08-18T01:13:31.998Z",
-      "durationMs": 8118,
+      "startedAt": "2026-08-18T01:46:37.986Z",
+      "endedAt": "2026-08-18T01:46:46.242Z",
+      "durationMs": 8256,
       "evidenceRefs": [
         "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
         "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -1004,7 +1003,6 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
-        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-image-result.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
@@ -1045,133 +1043,133 @@
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "clauseId": "grasseye-runtime-log-spine-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
       "clauseId": "grasseye-runtime-log-spine-002-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
       "clauseId": "grasseye-runtime-log-spine-003-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
       "clauseId": "grasseye-runtime-log-spine-004-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
       "clauseId": "grasseye-runtime-log-spine-005-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "grasseye-runtime-log-spine-006-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
       "clauseId": "grasseye-runtime-log-spine-007-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
       "clauseId": "grasseye-runtime-log-spine-008-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
       "clauseId": "grasseye-runtime-log-spine-009-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "grasseye-runtime-log-spine-010-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
       "clauseId": "grasseye-runtime-log-spine-011-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
       "clauseId": "grasseye-runtime-log-spine-012-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "grasseye-runtime-log-spine-013-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "grasseye-runtime-log-spine-014-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "grasseye-runtime-log-spine-015-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "grasseye-runtime-log-spine-016-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
       "clauseId": "grasseye-runtime-log-spine-017-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
       "clauseId": "grasseye-runtime-log-spine-018-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
       "clauseId": "grasseye-runtime-log-spine-019-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
       "clauseId": "grasseye-runtime-log-spine-020-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
       "clauseId": "grasseye-structured-logging-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
       "clauseId": "grasseye-security-privacy-log-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9c6cedc-0bc8-4c37-8821-a39ce0a1c4e7:check:311cbb4d-9e92-4721-8d70-d5754c5f9ce8"
+      "checkRunId": "audit-run:fb63e32e-0fdf-4ac2-9f29-4856be36cb97:check:29dd0d53-6fc7-4948-ac78-455c6a10dda1"
     }
   ]
 }

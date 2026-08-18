@@ -118,7 +118,11 @@ const acceptRetryRecovery = async ({ runtime, gateway }: RecoveryInput): Promise
   const transientResult = await executeXuanxueAiProductionOrder(runtime, transientOrder.orderId);
   assert.equal(transientResult.status, "completed");
   assert.equal(gateway.requests.length - beforeTransient, 2);
-  assert.equal(new Set(gateway.executionIds.slice(beforeTransient)).size, 1);
+  assert.equal(
+    new Set(gateway.executionIds.slice(beforeTransient)).size,
+    1,
+    "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
+  );
   assert.equal(gateway.supersededExecutionIds.slice(beforeTransient).filter(Boolean).length, 0);
 
   const monitoredOrder = order("aiprod_submitted_monitor_interference", "qimen_professional_answer", ["analysis"]);
@@ -127,7 +131,11 @@ const acceptRetryRecovery = async ({ runtime, gateway }: RecoveryInput): Promise
   const beforeMonitor = gateway.requests.length;
   const monitoredResult = await executeXuanxueAiProductionOrder(runtime, monitoredOrder.orderId);
   assert.equal(monitoredResult.status, "completed");
-  assert.equal(new Set(gateway.executionIds.slice(beforeMonitor)).size, 1);
+  assert.equal(
+    new Set(gateway.executionIds.slice(beforeMonitor)).size,
+    1,
+    "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
+  );
   assert.equal(gateway.supersededExecutionIds.slice(beforeMonitor).filter(Boolean).length, 0);
 
   const contaminatedNaming = order("aiprod_contaminated_naming", "naming_from_existing_bazi_report", ["naming_author"]);
@@ -153,7 +161,11 @@ const acceptIdentityRecovery = async ({ runtime, gateway }: RecoveryInput): Prom
   const beforeFresh = gateway.requests.length;
   const fresh = await executeXuanxueAiProductionOrder(runtime, freshPendingOrder.orderId);
   assert.equal(fresh.status, "completed");
-  assert.equal(new Set(gateway.executionIds.slice(beforeFresh)).size, 1);
+  assert.equal(
+    new Set(gateway.executionIds.slice(beforeFresh)).size,
+    1,
+    "a still-hydrating fresh root is a recoverable wait on the same execution id",
+  );
   assert.equal(gateway.supersededExecutionIds.slice(beforeFresh).filter(Boolean).length, 0);
 
   const boundedOrder = order("aiprod_bounded_pre_submit_identity_replacement", "qimen_professional_answer", ["analysis"]);
@@ -165,6 +177,16 @@ const acceptIdentityRecovery = async ({ runtime, gateway }: RecoveryInput): Prom
   const ids = gateway.executionIds.slice(beforeBounded);
   assert.equal(new Set(ids).size, 2);
   assert.equal(ids[1], ids[2]);
+  assert.equal(
+    ids[1] === ids[2],
+    true,
+    "a second identity conflict must recover on the replacement execution instead of minting restart:2",
+  );
+  assert.equal(
+    gateway.supersededExecutionIds.slice(beforeBounded).filter(Boolean).length,
+    1,
+    "a stage may replace one proven foreign pre-submit identity only once",
+  );
 };
 
 export const acceptXuanxueAiProductionRecovery = async (input: RecoveryInput): Promise<void> => {
