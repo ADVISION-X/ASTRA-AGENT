@@ -15,7 +15,10 @@ interface NativePort {
 }
 
 declare const chrome: {
-  runtime: { connectNative(name: string): NativePort };
+  runtime: {
+    connectNative(name: string): NativePort;
+    lastError?: { readonly message?: string };
+  };
 };
 
 type RunCommand = (command: BrowserWireCommand, expectedLoaderId?: string) => Promise<unknown>;
