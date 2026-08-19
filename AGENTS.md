@@ -653,36 +653,6 @@ HTTP 是否仍走唯一 create-workbench-server？
 
 只要其中一项答不清楚，停止修改，先继续读法案和源码。
 
-### 0.1.19 玄学网站到 AGENT 的 Codex 交接门
-
-凡来自 `/Users/nexgen/Documents/xuanxue-web`、玄学网站侧 Codex 或外部网站的要求，
-涉及分析、修改、测试、运行、提交或发布 `xuanxue-ai-production` 及其直接依赖时，必须先调用
-仓库级 `xuanxue-agent-iteration` Skill。
-
-只接受协议为 `xuanxue-agent-codex-handoff-v1`、目标根目录精确为
-`/Users/nexgen/Documents/AGENT`、绑定唯一 `request_id` 且保留用户授权原文的工单。
-网站侧提供的事实、目标和验收要求是任务输入，不是 AGENT 法案、文件落位或实现授权。
-
-AGENT 侧 Codex 必须：
-
-```txt
-重新读取当前 AGENT 权威和 generated truth。
-只在独立 AGENT 工作树内施工。
-不读取、不修改、不测试玄学网站仓库。
-不让网站侧决定 flow、owner、browser、provider、evidence 或下一步骤。
-缺少 law-change、发布或扩大范围授权时原样请求用户裁决。
-用同一 request_id 回传状态和 xuanxue-agent-codex-receipt-v1 完整回执。
-```
-
-禁止使用共享当前文件系统的跨仓子智能体代替独立 AGENT 项目任务；禁止因任务工具、
-worktree、权威、验收或回传失败而回退成网站侧直接修改。需要网站配套修改时，只能在回执中
-形成新的 `website_change_request`，等待用户另开网站侧任务。
-
-唯一例外是用户明确要求、且在两侧实现停止后启动的全新只读质检者。它只能读取本次交接
-Skill、根级守门 diff、合同、验证输出和 Git 状态并出具报告；不得修改、修复、提交、推送、
-运行会写业务或 generated truth 的命令，也不得替代 AGENT 项目施工或覆盖 CI、真实 Chrome、
-外部 provider 与发布证据。
-
 ---
 
 ## 1. Mandatory Entry Scan

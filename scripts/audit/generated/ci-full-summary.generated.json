@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T19:14:10.572Z",
+  "generatedAt": "2026-08-19T07:10:18.788Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
@@ -13,49 +13,49 @@
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 226,
-      "endedAt": "2026-08-18T19:12:44.330Z",
+      "durationMs": 201,
+      "endedAt": "2026-08-19T07:08:59.895Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-18T19:12:44.104Z",
+      "startedAt": "2026-08-19T07:08:59.694Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3611,
-      "endedAt": "2026-08-18T19:12:47.942Z",
+      "durationMs": 3542,
+      "endedAt": "2026-08-19T07:09:03.438Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-18T19:12:44.331Z",
+      "startedAt": "2026-08-19T07:08:59.896Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
-      "durationMs": 1,
-      "endedAt": "2026-08-18T19:12:47.947Z",
+      "durationMs": 2,
+      "endedAt": "2026-08-19T07:09:03.443Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-18T19:12:47.946Z",
+      "startedAt": "2026-08-19T07:09:03.441Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 82624,
-      "endedAt": "2026-08-18T19:14:10.571Z",
+      "durationMs": 75344,
+      "endedAt": "2026-08-19T07:10:18.787Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-18T19:12:47.947Z",
+      "startedAt": "2026-08-19T07:09:03.443Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
