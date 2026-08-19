@@ -4,11 +4,15 @@ import path from "node:path";
 
 import type {
   AiProviderUploadedFileProof,
+  ProviderExecutionProfileProof,
   WebChatAttachmentUploadProof,
+  WebChatConversationTitleState,
   WebChatForkActionProof,
+  WebChatPageActionProof,
   WebChatSubmissionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import { classifyWebChatFailure } from "../failure-classification.js";
+import type { AiFeedProviderExecutionProfile } from "../schema.js";
 import type { WebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 
 export type WebChatExecutionStatus =
@@ -19,8 +23,11 @@ export type WebChatExecutionStatus =
   | "conversation_canonicalized"
   | "waiting_provider"
   | "response_checkpointed"
+  | "title_finalization_pending"
+  | "title_verified"
   | "recovery_pending"
   | "response_captured"
+  | "finalized"
   | "review_required"
   | "failed";
 
@@ -34,7 +41,7 @@ export type WebChatExecutionFailure = {
 };
 
 export type WebChatExecutionRecord = {
-  schemaVersion: "web-chat-execution-v2";
+  schemaVersion: "web-chat-execution-v3";
   executionId: string;
   attemptId: string;
   status: WebChatExecutionStatus;
@@ -44,6 +51,10 @@ export type WebChatExecutionRecord = {
   submittedPromptHash: string;
   capacitySlot: number | null;
   providerLeaseId: string | null;
+  providerExecutionProfileBinding: AiFeedProviderExecutionProfile | null;
+  providerExecutionProfileProof: ProviderExecutionProfileProof | null;
+  conversationTitle: WebChatConversationTitleState | null;
+  pageActionLedger: WebChatPageActionProof[];
   submission: WebChatSubmissionProof | null;
   uploadedFiles: AiProviderUploadedFileProof[];
   attachmentUploadProof: WebChatAttachmentUploadProof | null;
@@ -74,43 +85,67 @@ const atomicWrite = async (filePath: string, value: WebChatExecutionRecord): Pro
   await rename(tempPath, filePath);
 };
 
+type LegacyWebChatExecutionV2 = Omit<
+  WebChatExecutionRecord,
+  | "schemaVersion"
+  | "providerExecutionProfileBinding"
+  | "providerExecutionProfileProof"
+  | "conversationTitle"
+  | "pageActionLedger"
+> & {
+  schemaVersion: "web-chat-execution-v2";
+  systemChatTitle?: unknown;
+  chatTitleRename?: unknown;
+  submission?: (WebChatSubmissionProof & {
+    systemChatTitle?: unknown;
+    observedAutoChatTitle?: unknown;
+    chatTitleVerifiedAt?: unknown;
+  }) | null;
+};
+
+const migrateV2 = (legacy: LegacyWebChatExecutionV2): WebChatExecutionRecord => {
+  const {
+    systemChatTitle: _retiredTitle,
+    chatTitleRename: _retiredRenameDebt,
+    submission: rawSubmission,
+    ...rest
+  } = legacy;
+  const submission = rawSubmission
+    ? (({
+        systemChatTitle: _retiredSubmissionTitle,
+        observedAutoChatTitle: _retiredObservedTitle,
+        chatTitleVerifiedAt: _retiredTitleVerification,
+        ...proof
+      }) => proof)(rawSubmission)
+    : null;
+  return {
+    ...(rest as Omit<WebChatExecutionRecord, "schemaVersion" | "providerExecutionProfileBinding" | "providerExecutionProfileProof" | "conversationTitle" | "pageActionLedger" | "submission">),
+    schemaVersion: "web-chat-execution-v3",
+    providerExecutionProfileBinding: null,
+    providerExecutionProfileProof: null,
+    conversationTitle: null,
+    pageActionLedger: [],
+    submission,
+  };
+};
+
 export const readWebChatExecution = async (
   dataDir: string,
   executionId: string,
 ): Promise<WebChatExecutionRecord | null> => {
   try {
-    const parsed = JSON.parse(await readFile(statePath(dataDir, executionId), "utf8")) as Partial<WebChatExecutionRecord> & {
-      systemChatTitle?: unknown;
-      chatTitleRename?: unknown;
-      submission?: (WebChatSubmissionProof & {
-        systemChatTitle?: unknown;
-        observedAutoChatTitle?: unknown;
-        chatTitleVerifiedAt?: unknown;
-      }) | null;
-    };
-    if (parsed.schemaVersion !== "web-chat-execution-v2") {
-      throw new Error("review_required: legacy web-chat execution state cannot enter the single-tab named-chat runtime.");
+    const parsed = JSON.parse(
+      await readFile(statePath(dataDir, executionId), "utf8"),
+    ) as WebChatExecutionRecord | LegacyWebChatExecutionV2;
+    if (parsed.schemaVersion === "web-chat-execution-v3") return parsed;
+    if (parsed.schemaVersion === "web-chat-execution-v2") {
+      const migrated = migrateV2(parsed);
+      await atomicWrite(statePath(dataDir, executionId), migrated);
+      return migrated;
     }
-    const {
-      systemChatTitle: _retiredTitle,
-      chatTitleRename: _retiredRenameDebt,
-      submission: rawSubmission,
-      ...record
-    } = parsed;
-    const submission = rawSubmission
-      ? (({
-          systemChatTitle: _retiredSubmissionTitle,
-          observedAutoChatTitle: _retiredObservedTitle,
-          chatTitleVerifiedAt: _retiredTitleVerification,
-          ...proof
-        }) => proof)(rawSubmission)
-      : null;
-    return {
-      ...(record as WebChatExecutionRecord),
-      providerLeaseId: parsed.providerLeaseId ?? null,
-      forkActionProof: parsed.forkActionProof ?? null,
-      submission,
-    };
+    throw new Error(
+      "review_required: unsupported web-chat execution state cannot enter the governed single-tab runtime.",
+    );
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;
@@ -124,6 +159,9 @@ type StartWebChatExecutionInput = {
   providerKind: "gpt-web-chat" | "gemini-web-chat";
   inputHash: string;
   textPrompt: string;
+  providerExecutionProfileBinding?: AiFeedProviderExecutionProfile | null;
+  conversationTitle?: WebChatConversationTitleState | null;
+  createdAt?: string;
 };
 
 type StartWebChatExecutionResult = {
@@ -134,10 +172,7 @@ type StartWebChatExecutionResult = {
 const turnMarkerFor = (input: StartWebChatExecutionInput): string =>
   `GRASSEYE_TURN_${
     createHash("sha256")
-      .update(
-        input.turnIdentitySeed
-        ?? `${input.executionId}\u0000${input.inputHash}`,
-      )
+      .update(input.turnIdentitySeed ?? `${input.executionId}\u0000${input.inputHash}`)
       .digest("hex")
       .slice(0, 32)
   }`;
@@ -157,6 +192,11 @@ const restartUnsubmittedExecution = async (
     submittedPromptHash: hashSubmittedPrompt(input.textPrompt),
     capacitySlot: null,
     providerLeaseId: null,
+    providerExecutionProfileBinding:
+      input.providerExecutionProfileBinding ?? existing.providerExecutionProfileBinding,
+    providerExecutionProfileProof: null,
+    conversationTitle: input.conversationTitle ?? existing.conversationTitle,
+    pageActionLedger: existing.pageActionLedger.slice(-40),
     submission: null,
     uploadedFiles: [],
     attachmentUploadProof: null,
@@ -177,21 +217,13 @@ const TERMINAL_EXECUTION_ERROR_PREFIX =
 const isCleanTransientPreSubmission = (
   existing: WebChatExecutionRecord,
 ): boolean => {
-  const isTerminalStateEcho = (
-    failure: WebChatExecutionFailure,
-  ): boolean =>
-    /^review_required: web-chat execution is terminal:/iu.test(
-      failure.reason,
-    );
+  const isTerminalStateEcho = (failure: WebChatExecutionFailure): boolean =>
+    /^review_required: web-chat execution is terminal:/iu.test(failure.reason);
   const providerFailures = existing.failures.filter(
-    (failure) =>
-      failure.reason !== migrationIdentityRejection
-      && !isTerminalStateEcho(failure),
+    (failure) => failure.reason !== migrationIdentityRejection && !isTerminalStateEcho(failure),
   );
   const rootlessTerminalAttempts = new Set(
-    existing.failures
-      .filter(isTerminalStateEcho)
-      .map((failure) => failure.attemptId),
+    existing.failures.filter(isTerminalStateEcho).map((failure) => failure.attemptId),
   );
   const hasOneBoundedRootlessRecoveryAuthority =
     providerFailures.length === 0
@@ -204,15 +236,9 @@ const isCleanTransientPreSubmission = (
     && !existing.attachmentUploadProof
     && !existing.responseCheckpoint
     && !existing.responseHash
-    && (
-      providerFailures.length > 0
-      || hasOneBoundedRootlessRecoveryAuthority
-    )
+    && (providerFailures.length > 0 || hasOneBoundedRootlessRecoveryAuthority)
     && providerFailures.every((failure) =>
-      classifyWebChatFailure(
-        new Error(failure.reason),
-        false,
-      ) === "recovery_pending")
+      classifyWebChatFailure(new Error(failure.reason), false) === "recovery_pending")
     && existing.failures.every((failure) => (
       providerFailures.includes(failure)
       || failure.reason === migrationIdentityRejection
@@ -224,27 +250,31 @@ const isCleanTransientPreSubmission = (
 const resumePersistedStatus = (
   existing: WebChatExecutionRecord,
 ): StartWebChatExecutionResult | null => {
-  if (
-    existing.status === "submitted_transient"
-    || existing.status === "conversation_canonicalized"
-    || existing.status === "waiting_provider"
-    || existing.status === "response_checkpointed"
-    || existing.status === "review_required"
-  ) {
+  if ([
+    "submitted_transient",
+    "conversation_canonicalized",
+    "waiting_provider",
+    "response_checkpointed",
+    "title_finalization_pending",
+    "title_verified",
+    "review_required",
+  ].includes(existing.status)) {
     if (!existing.submission) {
-      throw new Error("review_required: submitted web-chat execution is missing its durable submission proof.");
+      throw new Error(
+        "review_required: submitted web-chat execution is missing its durable submission proof.",
+      );
     }
     return { record: existing, resume: true };
   }
   if (existing.status === "recovery_pending") {
     return { record: existing, resume: Boolean(existing.submission) };
   }
-  if (existing.status === "response_captured") {
-    throw new Error("review_required: captured web-chat execution must be rehydrated from its persisted raw output.");
+  if (existing.status === "response_captured" || existing.status === "finalized") {
+    throw new Error(
+      "review_required: captured web-chat execution must be rehydrated from its persisted raw output.",
+    );
   }
-  if (existing.status !== "failed") {
-    return { record: existing, resume: false };
-  }
+  if (existing.status !== "failed") return { record: existing, resume: false };
   return null;
 };
 
@@ -256,33 +286,26 @@ const resumeExistingWebChatExecution = async (
   if (
     existing.providerKind !== input.providerKind
     || existing.submittedPromptHash !== expectedSubmittedPromptHash
-  ) {
-    throw new Error(migrationIdentityRejection);
-  }
-  const cleanTransientPreSubmission =
-    isCleanTransientPreSubmission(existing);
+  ) throw new Error(migrationIdentityRejection);
+  const cleanTransientPreSubmission = isCleanTransientPreSubmission(existing);
   if (existing.inputHash !== input.inputHash) {
     if (!cleanTransientPreSubmission) throw new Error(migrationIdentityRejection);
-    return {
-      record: await restartUnsubmittedExecution(input, existing),
-      resume: false,
-    };
+    return { record: await restartUnsubmittedExecution(input, existing), resume: false };
+  }
+  if (input.providerExecutionProfileBinding
+    && existing.providerExecutionProfileBinding
+    && input.providerExecutionProfileBinding.profileHash
+      !== existing.providerExecutionProfileBinding.profileHash) {
+    throw new Error(migrationIdentityRejection);
   }
   const persisted = resumePersistedStatus(existing);
   if (persisted) return persisted;
   if (cleanTransientPreSubmission) {
-    return {
-      record: await restartUnsubmittedExecution(input, existing),
-      resume: false,
-    };
+    return { record: await restartUnsubmittedExecution(input, existing), resume: false };
   }
-  const rootFailure = [...existing.failures]
-    .reverse()
-    .find((failure) =>
-      failure.reason !== migrationIdentityRejection
-      && !/^review_required: web-chat execution is terminal:/iu.test(
-        failure.reason,
-      ));
+  const rootFailure = [...existing.failures].reverse().find((failure) =>
+    failure.reason !== migrationIdentityRejection
+    && !/^review_required: web-chat execution is terminal:/iu.test(failure.reason));
   throw new Error(
     `${TERMINAL_EXECUTION_ERROR_PREFIX} ${existing.status}; root=${
       rootFailure?.reason ?? "unknown terminal provider failure"
@@ -293,19 +316,22 @@ const resumeExistingWebChatExecution = async (
 const createWebChatExecution = async (
   input: StartWebChatExecutionInput,
 ): Promise<StartWebChatExecutionResult> => {
-  const now = new Date().toISOString();
-  const turnMarker = turnMarkerFor(input);
+  const now = input.createdAt ?? new Date().toISOString();
   const record: WebChatExecutionRecord = {
-    schemaVersion: "web-chat-execution-v2",
+    schemaVersion: "web-chat-execution-v3",
     executionId: input.executionId,
     attemptId: `web-chat-attempt:${randomUUID()}`,
     status: "waiting_for_capacity",
     providerKind: input.providerKind,
     inputHash: input.inputHash,
-    turnMarker,
+    turnMarker: turnMarkerFor(input),
     submittedPromptHash: hashSubmittedPrompt(input.textPrompt),
     capacitySlot: null,
     providerLeaseId: null,
+    providerExecutionProfileBinding: input.providerExecutionProfileBinding ?? null,
+    providerExecutionProfileProof: null,
+    conversationTitle: input.conversationTitle ?? null,
+    pageActionLedger: [],
     submission: null,
     uploadedFiles: [],
     attachmentUploadProof: null,
@@ -325,7 +351,7 @@ export const startOrResumeWebChatExecution = async (
 ): Promise<StartWebChatExecutionResult> => {
   const existing = await readWebChatExecution(input.dataDir, input.executionId);
   return existing
-    ? await resumeExistingWebChatExecution(input, existing)
+    ? resumeExistingWebChatExecution(input, existing)
     : createWebChatExecution(input);
 };
 

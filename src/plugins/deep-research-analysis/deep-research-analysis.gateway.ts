@@ -4,6 +4,7 @@ import {
   createRuntimeEvent,
   createRuntimeLogger,
 } from "../../lib/runtime-logs/index.js";
+import { defaultGptWebProviderExecutionProfile } from "../../capabilities/ai-input-gateway/index.js";
 
 import { mapGatewayResult } from "./deep-research-analysis.gateway-result.js";
 import { createDeepResearchTraceContext } from "./deep-research-analysis.logging.js";
@@ -20,7 +21,9 @@ const toAiGatewayInputRef = (ref: DeepResearchGatewayInputRef) => typeof ref ===
   ? { id: ref, kind: "prompt-input", summary: ref }
   : ref;
 
-export const buildGatewaySender = (context: DeepResearchAnalysisContext): DeepResearchGatewaySender => {
+export const buildGatewaySender = (
+  context: DeepResearchAnalysisContext,
+): DeepResearchGatewaySender => {
   if (context.sendPromptPackage) return context.sendPromptPackage;
   const aiInputGateway = context.aiInputGateway;
   if (!aiInputGateway) {
@@ -56,7 +59,14 @@ export const buildGatewaySender = (context: DeepResearchAnalysisContext): DeepRe
     expectedOutputSchemaRef: null,
     textPrompt: promptPackage.promptText,
     inputRefs: promptPackage.inputRefs.map(toAiGatewayInputRef),
-    modelName: context.modelName ?? null,
+    modelName: promptPackage.providerKind === "gpt-web-chat"
+      ? null : context.modelName ?? null,
+    ...(promptPackage.providerKind === "gpt-web-chat" ? {
+      providerExecutionProfile: defaultGptWebProviderExecutionProfile({
+        owner: "deep-research",
+        reasoningTier: "high",
+      }),
+    } : {}),
     timeoutMs: Math.max(context.timeoutMs ?? 0, promptPackage.timeoutMs),
     maxFileCount: promptPackage.maxFileCount,
     requestedBy: "ai-capability",

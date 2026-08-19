@@ -1,7 +1,8 @@
 import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
+import { discoverChatGptConversationViaSearch } from "../providers/gpt-web-conversation-discovery.js";
 
-type CanonicalConversationTarget = {
+ type CanonicalConversationTarget = {
   status:
     | "focused"
     | "click_row"
@@ -28,85 +29,44 @@ const visible = (node) => {
 const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
 const rows = Array.from(document.querySelectorAll("a[href]"))
   .filter((link) => {
-    try {
-      return visible(link)
-        && new URL(link.getAttribute("href") || "", location.href).pathname === targetPath;
-    } catch {
-      return false;
-    }
+    try { return visible(link) && new URL(link.getAttribute("href") || "", location.href).pathname === targetPath; }
+    catch { return false; }
   })
   .map((node) => {
     const rect = node.getBoundingClientRect();
     const centerX = rect.left + Math.min(rect.width / 2, 96);
     const centerY = rect.top + rect.height / 2;
-    return {
-      node,
-      rect,
-      centerX,
-      centerY,
-      actionable: centerY >= 24 && centerY <= innerHeight - 24,
-    };
+    return { node, rect, centerX, centerY, actionable: centerY >= 24 && centerY <= innerHeight - 24 };
   })
-  .sort((left, right) =>
-    Number(right.actionable) - Number(left.actionable)
-    || left.rect.top - right.rect.top
-    || left.rect.left - right.rect.left
-    || left.rect.width - right.rect.width
-    || left.rect.height - right.rect.height
-  );
+  .sort((left, right) => Number(right.actionable) - Number(left.actionable)
+    || left.rect.top - right.rect.top || left.rect.left - right.rect.left
+    || left.rect.width - right.rect.width || left.rect.height - right.rect.height);
 if (location.pathname === targetPath) {
-  return {status: "focused", message: "exact canonical ChatGPT conversation is focused", pageUrl: location.href, markerCount: 0, rowCount: rows.length};
+  return {status:"focused",message:"exact canonical ChatGPT conversation is focused",pageUrl:location.href,markerCount:0,rowCount:rows.length};
 }
 if (rows.length > 0) {
   const selected = rows[0];
-  if (!selected.actionable) {
-    return {
-      status: "scroll_row",
-      message: "all renderings of the exact canonical ChatGPT sidebar route are outside the visible viewport",
-      pageUrl: location.href,
-      markerCount: 0,
-      rowCount: rows.length,
-      targetPoint: {x: Math.max(24, Math.min(innerWidth - 24, selected.centerX)), y: innerHeight / 2},
-      scrollDeltaY: Math.max(-600, Math.min(600, selected.centerY - innerHeight / 2)),
-    };
-  }
-  return {
-    status: "click_row",
-    message: "exact canonical ChatGPT logical sidebar route located by stable geometry order",
-    pageUrl: location.href,
-    markerCount: 0,
-    rowCount: rows.length,
-    targetPoint: {x: selected.centerX, y: selected.centerY},
+  if (!selected.actionable) return {
+    status:"scroll_row",message:"all renderings of the exact canonical ChatGPT sidebar route are outside the visible viewport",
+    pageUrl:location.href,markerCount:0,rowCount:rows.length,
+    targetPoint:{x:Math.max(24,Math.min(innerWidth-24,selected.centerX)),y:innerHeight/2},
+    scrollDeltaY:Math.max(-600,Math.min(600,selected.centerY-innerHeight/2)),
   };
+  return {status:"click_row",message:"exact canonical ChatGPT logical sidebar route located by stable geometry order",pageUrl:location.href,markerCount:0,rowCount:rows.length,targetPoint:{x:selected.centerX,y:selected.centerY}};
 }
 const rateLimitDialogs = Array.from(document.querySelectorAll("[role='dialog']"))
-  .filter((node) => visible(node))
-  .filter((node) => /请求过于频繁|too many requests|temporarily limited/i.test(normalized(node.textContent)));
-const acknowledgements = rateLimitDialogs.flatMap((dialog) =>
-  Array.from(dialog.querySelectorAll("button"))
-    .filter((node) => visible(node))
-    .filter((node) => /^(明白了|got it|understood)$/i.test(normalized(node.getAttribute("aria-label") || node.textContent)))
-);
-if (rateLimitDialogs.length > 1 || acknowledgements.length > 1) {
-  return {status: "review_required", message: "CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS", pageUrl: location.href, markerCount: 0, rowCount: 0};
-}
+  .filter(visible).filter((node) => /请求过于频繁|too many requests|temporarily limited/i.test(normalized(node.textContent)));
+const acknowledgements = rateLimitDialogs.flatMap((dialog) => Array.from(dialog.querySelectorAll("button"))
+  .filter(visible).filter((node) => /^(明白了|got it|understood)$/i.test(normalized(node.getAttribute("aria-label") || node.textContent))));
+if (rateLimitDialogs.length > 1 || acknowledgements.length > 1) return {status:"review_required",message:"CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS",pageUrl:location.href,markerCount:0,rowCount:0};
 if (acknowledgements.length === 1) {
   const rect = acknowledgements[0].getBoundingClientRect();
-  return {
-    status: "ack_rate_limit",
-    message: "ChatGPT rate-limit acknowledgement located",
-    pageUrl: location.href,
-    markerCount: 0,
-    rowCount: 0,
-    targetPoint: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
-  };
+  return {status:"ack_rate_limit",message:"ChatGPT rate-limit acknowledgement located",pageUrl:location.href,markerCount:0,rowCount:0,targetPoint:{x:rect.left+rect.width/2,y:rect.top+rect.height/2}};
 }
-return {status: "pending", message: "waiting for exact canonical ChatGPT sidebar row", pageUrl: location.href, markerCount: 0, rowCount: 0};
+return {status:"pending",message:"waiting for exact canonical ChatGPT sidebar row",pageUrl:location.href,markerCount:0,rowCount:0};
 `;
 
-export const buildCanonicalConversationScript = (input: {
-  targetPath: string;
-}): string =>
+export const buildCanonicalConversationScript = (input: { targetPath: string }): string =>
   CANONICAL_CONVERSATION_SCRIPT.replace("__TARGET_PATH__", JSON.stringify(input.targetPath));
 
 const clickTarget = async (input: {
@@ -114,8 +74,7 @@ const clickTarget = async (input: {
   description: string;
   targetPoint: { x: number; y: number } | undefined;
 }): Promise<void> => {
-  if (!input.targetPoint)
-    throw new Error(`review_required: ${input.description} point missing.`);
+  if (!input.targetPoint) throw new Error(`review_required: ${input.description} point missing.`);
   const clicked = await input.base.click({
     targetLabel: input.description,
     point: input.targetPoint,
@@ -123,10 +82,9 @@ const clickTarget = async (input: {
     button: "left",
     clickCount: 1,
   });
-  if (!clicked.ok)
-    throw new Error(
-      `WEB_CHAT_BOUND_CONVERSATION_NOT_READY: ${input.description} click failed; ${clicked.message}`,
-    );
+  if (!clicked.ok) {
+    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: ${input.description} click failed; ${clicked.message}`);
+  }
 };
 
 const reacquireCanonicalConversationTarget = async (input: {
@@ -141,9 +99,7 @@ const reacquireCanonicalConversationTarget = async (input: {
     ...(input.signal ? { abortSignal: input.signal } : {}),
   });
   if (!acquired.ok) {
-    throw new Error(
-      `WEB_CHAT_BOUND_CONVERSATION_NOT_READY: unique existing ChatGPT provider target could not be reacquired; ${acquired.message}`,
-    );
+    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: unique existing ChatGPT provider target could not be reacquired; ${acquired.message}`);
   }
 };
 
@@ -154,29 +110,24 @@ const pollCanonicalConversationRoute = async (input: {
   timeoutMs?: number;
   signal?: AbortSignal;
 }): Promise<void> => {
-  const deadline =
-    Date.now() + Math.max(1, Math.min(input.timeoutMs ?? 15_000, 15_000));
+  const deadline = Date.now() + Math.max(1, Math.min(input.timeoutMs ?? 15_000, 15_000));
   let last: CanonicalConversationTarget | null = null;
   while (Date.now() < deadline) {
     last = await input.base.evaluate<CanonicalConversationTarget>({
       description: "locate exact canonical ChatGPT conversation row",
-      script: buildCanonicalConversationScript({
-        targetPath: input.targetPath,
-      }),
+      script: buildCanonicalConversationScript({ targetPath: input.targetPath }),
       ...(input.signal ? { abortSignal: input.signal } : {}),
     });
     if (last.status === "focused") return;
-    if (last.status === "review_required")
-      throw new Error(
-        `review_required: ${last.message}; pageUrl=${last.pageUrl}`,
-      );
+    if (last.status === "review_required") {
+      throw new Error(`review_required: ${last.message}; pageUrl=${last.pageUrl}`);
+    }
     if (last.status === "click_row" || last.status === "ack_rate_limit") {
       await clickTarget({
         base: input.base,
-        description:
-          last.status === "click_row"
-            ? "open exact canonical ChatGPT sidebar row"
-            : "acknowledge ChatGPT rate limit before canonical routing",
+        description: last.status === "click_row"
+          ? "open exact canonical ChatGPT sidebar row"
+          : "acknowledge ChatGPT rate limit before canonical routing",
         targetPoint: last.targetPoint,
       });
     } else if (last.status === "scroll_row") {
@@ -192,27 +143,74 @@ const pollCanonicalConversationRoute = async (input: {
     await input.base.wait(500);
   }
   throw new Error(
-    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT conversation is not ready; " +
-      `last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? input.conversationUrl}`,
+    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT conversation is not ready; "
+    + `last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? input.conversationUrl}`,
   );
+};
+
+const verifyCanonicalMarker = async (input: {
+  base: BrowserTargetSession;
+  targetPath: string;
+  turnMarker: string;
+  signal?: AbortSignal;
+}): Promise<void> => {
+  const observed = await input.base.evaluate<{ pageUrl: string; markerCount: number }>({
+    description: "verify exact canonical ChatGPT marker after routing",
+    script: `
+const marker=${JSON.stringify(input.turnMarker)};
+const normalized=(value)=>String(value||"").replace(/\\s+/gu," ").trim();
+const markerCount=Array.from(document.querySelectorAll("[data-testid^='conversation-turn-'][data-turn='user']"))
+ .filter((node)=>normalized(node.textContent).includes(marker)).length;
+return {pageUrl:location.href,markerCount};
+`,
+    ...(input.signal ? { abortSignal: input.signal } : {}),
+  });
+  if (new URL(observed.pageUrl).pathname !== input.targetPath || observed.markerCount !== 1) {
+    throw new Error(
+      `review_required: exact ChatGPT canonical route marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`,
+    );
+  }
 };
 
 export const focusChatGptConversationByCanonicalPath = async (input: {
   base: BrowserTargetSession;
   conversationUrl: string;
+  turnMarker?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
 }): Promise<void> => {
   const targetPath = new URL(input.conversationUrl).pathname;
   if (!/^\/c\/(?!WEB:)[^/]+$/u.test(targetPath)) {
-    throw new Error(
-      `WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=${input.conversationUrl}`,
-    );
+    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=${input.conversationUrl}`);
   }
   if (input.base.getTarget && !input.base.getTarget()) {
     await reacquireCanonicalConversationTarget(input);
   }
-  await pollCanonicalConversationRoute({ ...input, targetPath });
+  try {
+    await pollCanonicalConversationRoute({ ...input, targetPath });
+  } catch (error) {
+    if (!(error instanceof Error)
+      || !error.message.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY")
+      || !input.turnMarker) throw error;
+    await discoverChatGptConversationViaSearch({
+      browser: input.base,
+      canonicalConversationUrl: input.conversationUrl,
+      turnMarker: input.turnMarker,
+    });
+    await pollCanonicalConversationRoute({
+      ...input,
+      targetPath,
+      timeoutMs: Math.min(input.timeoutMs ?? 5_000, 5_000),
+    });
+  }
+  if (input.turnMarker) {
+    await verifyCanonicalMarker({
+      base: input.base,
+      targetPath,
+      turnMarker: input.turnMarker,
+      ...(input.signal ? { signal: input.signal } : {}),
+    });
+  }
 };
 
 const focusGeminiConversation = async (input: {
@@ -221,35 +219,29 @@ const focusGeminiConversation = async (input: {
   turnMarker: string;
   signal?: AbortSignal;
 }): Promise<void> => {
-  const targetUrl =
-    input.submission.canonicalConversationUrl ??
-    input.submission.transientConversationUrl;
+  const targetUrl = input.submission.canonicalConversationUrl
+    ?? input.submission.transientConversationUrl;
   const opened = await input.base.open({
     url: targetUrl,
     title: "resume exact Gemini conversation",
     reusePolicy: "reuse-exact-url",
   });
-  if (!opened.ok)
-    throw new Error(
-      `review_required: exact Gemini conversation could not be opened; ${opened.message}`,
-    );
-  const observed = await input.base.evaluate<{
-    pageUrl: string;
-    markerCount: number;
-  }>({
+  if (!opened.ok) {
+    throw new Error(`review_required: exact Gemini conversation could not be opened; ${opened.message}`);
+  }
+  const observed = await input.base.evaluate<{ pageUrl: string; markerCount: number }>({
     description: "verify exact Gemini conversation marker",
     script: `
-const marker = ${JSON.stringify(input.turnMarker)};
-const nodes = Array.from(document.querySelectorAll("user-query, user-query-content, .user-query-container"));
-const markerCount = nodes.filter((node) => (node.textContent || "").includes(marker)).length;
-return {pageUrl: location.href, markerCount};
+const marker=${JSON.stringify(input.turnMarker)};
+const nodes=Array.from(document.querySelectorAll("user-query,user-query-content,.user-query-container"));
+const markerCount=nodes.filter((node)=>(node.textContent||"").includes(marker)).length;
+return {pageUrl:location.href,markerCount};
 `,
     ...(input.signal ? { abortSignal: input.signal } : {}),
   });
-  if (observed.markerCount !== 1)
-    throw new Error(
-      `review_required: exact Gemini conversation marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`,
-    );
+  if (observed.markerCount !== 1) {
+    throw new Error(`review_required: exact Gemini conversation marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`);
+  }
 };
 
 export const focusBoundWebChatConversation = async (input: {
@@ -263,18 +255,13 @@ export const focusBoundWebChatConversation = async (input: {
   if (input.providerKind === "gpt-web-chat") {
     await focusChatGptConversationByCanonicalPath({
       base: input.base,
-      conversationUrl:
-        input.submission.canonicalConversationUrl ??
-        input.submission.transientConversationUrl,
+      conversationUrl: input.submission.canonicalConversationUrl
+        ?? input.submission.transientConversationUrl,
+      turnMarker: input.turnMarker,
       ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
     });
     return;
   }
-  await focusGeminiConversation({
-    base: input.base,
-    submission: input.submission,
-    turnMarker: input.turnMarker,
-    ...(input.signal ? { signal: input.signal } : {}),
-  });
+  await focusGeminiConversation(input);
 };

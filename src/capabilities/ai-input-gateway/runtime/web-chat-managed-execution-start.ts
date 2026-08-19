@@ -13,9 +13,8 @@ import {
   createSingleTabWebChatBrowser,
   type SingleTabWebChatBrowser,
 } from "./web-chat-single-tab-browser.js";
-import type {
-  ManagedWebChatInput,
-} from "./web-chat-managed-execution.js";
+import type { ManagedWebChatInput } from "./web-chat-managed-execution.js";
+import { buildConversationTitleState } from "./web-chat-conversation-title-policy.js";
 
 export interface ActiveExecutionState {
   record: WebChatExecutionRecord;
@@ -30,12 +29,9 @@ const resolveWebChatProviderKind = (
   input: ManagedWebChatInput,
 ): "gpt-web-chat" | "gemini-web-chat" => {
   if (input.request.providerKind === "gpt-web-chat") return "gpt-web-chat";
-  if (input.request.providerKind === "gemini-web-chat") {
-    return "gemini-web-chat";
-  }
+  if (input.request.providerKind === "gemini-web-chat") return "gemini-web-chat";
   throw new Error(
-    `review_required: provider ${input.request.providerKind} `
-    + "is not a managed web-chat provider.",
+    `review_required: provider ${input.request.providerKind} is not a managed web-chat provider.`,
   );
 };
 
@@ -60,11 +56,7 @@ const prepareActiveBrowser = async (input: {
   singleTabBrowser: SingleTabWebChatBrowser | null;
 }> => {
   if (!input.source.browser) {
-    return {
-      record: input.record,
-      initialMutationLease: null,
-      singleTabBrowser: null,
-    };
+    return { record: input.record, initialMutationLease: null, singleTabBrowser: null };
   }
   let record = input.record;
   let initialMutationLease: WebChatRuntimeLease | null = null;
@@ -106,9 +98,16 @@ export const startActiveExecution = async (input: {
   reportProgress: (phase: string) => Promise<void>;
 }): Promise<ActiveExecutionState> => {
   const executionId = managedExecutionIdFor(input.source, input.inputHash);
+  const createdAt = new Date().toISOString();
+  const conversationTitle = buildConversationTitleState({
+    request: input.source.request,
+    executionId,
+    createdAt,
+  });
   const started = await startOrResumeWebChatExecution({
     dataDir: input.source.dataDir,
     executionId,
+    createdAt,
     turnIdentitySeed: [
       executionId,
       input.source.request.providerKind,
@@ -122,6 +121,9 @@ export const startActiveExecution = async (input: {
     providerKind: resolveWebChatProviderKind(input.source),
     inputHash: input.inputHash,
     textPrompt: input.source.request.textPrompt,
+    providerExecutionProfileBinding:
+      input.source.request.providerExecutionProfile ?? null,
+    conversationTitle,
   });
   let record = started.record;
   await input.reportProgress("waiting_for_capacity");
@@ -140,9 +142,7 @@ export const startActiveExecution = async (input: {
       patch: {
         capacitySlot: capacityLease.slot,
         providerLeaseId: capacityLease.leaseId,
-        status: started.resume
-          ? "waiting_provider"
-          : "waiting_for_submit_slot",
+        status: started.resume ? "waiting_provider" : "waiting_for_submit_slot",
       },
     });
     await input.reportProgress(

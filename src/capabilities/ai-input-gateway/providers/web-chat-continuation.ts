@@ -1,9 +1,7 @@
 import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import {
-  focusChatGptConversationByCanonicalPath,
-} from "../runtime/web-chat-single-tab-routing.js";
+import { focusChatGptConversationByCanonicalPath } from "../runtime/web-chat-single-tab-routing.js";
 
 const CURRENT_URL_SCRIPT = "return {status: 'success', message: 'read current provider URL', pageUrl: location.href};";
 
@@ -22,20 +20,25 @@ const governedContinuationUrl = (request: AiFeedInput): URL => {
   const governed = request.providerKind === "gpt-web-chat"
     && url.protocol === "https:"
     && url.host === "chatgpt.com"
-    && url.pathname.includes("/c/");
-  if (!governed) throw new Error("review_required: provider continuation URL is not a governed ChatGPT conversation URL");
+    && /^\/c\/(?!WEB:)[^/]+$/u.test(url.pathname);
+  if (!governed) {
+    throw new Error("review_required: provider continuation URL is not a governed ChatGPT conversation URL");
+  }
   return url;
 };
 
-export const openGovernedContinuation = async (input: ContinuationInput): Promise<void> => {
+export const openGovernedContinuation = async (
+  input: ContinuationInput,
+): Promise<void> => {
   const requestedUrl = governedContinuationUrl(input.request);
   await focusChatGptConversationByCanonicalPath({
     base: input.browser,
     conversationUrl: requestedUrl.href,
-    timeoutMs: 15_000,
-    ...(input.context.abortSignal
-      ? { signal: input.context.abortSignal }
+    ...(input.request.providerContinuationRef?.priorTurnMarker
+      ? { turnMarker: input.request.providerContinuationRef.priorTurnMarker }
       : {}),
+    timeoutMs: 15_000,
+    ...(input.context.abortSignal ? { signal: input.context.abortSignal } : {}),
   });
   await input.waitForComposer();
   const state = await input.browser.evaluate<{ pageUrl?: string }>({
@@ -44,7 +47,11 @@ export const openGovernedContinuation = async (input: ContinuationInput): Promis
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
   const actualUrl = state.pageUrl ? new URL(state.pageUrl) : null;
-  if (!actualUrl || actualUrl.origin !== requestedUrl.origin || actualUrl.pathname !== requestedUrl.pathname) {
-    throw new Error(`review_required: provider continuation conversation mismatch; requested=${requestedUrl.href}; actual=${state.pageUrl ?? "unknown"}`);
+  if (!actualUrl
+    || actualUrl.origin !== requestedUrl.origin
+    || actualUrl.pathname !== requestedUrl.pathname) {
+    throw new Error(
+      `review_required: provider continuation conversation mismatch; requested=${requestedUrl.href}; actual=${state.pageUrl ?? "unknown"}`,
+    );
   }
 };

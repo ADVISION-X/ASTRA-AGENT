@@ -30,6 +30,8 @@ export type AiInputGatewayProgress = {
     | "submitting"
     | "waiting_provider"
     | "response_checkpointed"
+    | "title_finalization_pending"
+    | "title_verified"
     | "recovery_pending"
     | "response_captured";
   occurredAt: string;

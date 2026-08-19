@@ -53,11 +53,52 @@ const AiFeedInputRefSchema = z.object({
   uploadStatus: z.enum(["pending", "uploading", "completed", "failed"]).optional(),
 }).strict();
 
+export const AiFeedProviderExecutionProfileSchema = z.object({
+  schemaVersion: z.literal("gpt-web-execution-profile.v1"),
+  profileRef: z.string().min(1).max(512),
+  profileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  provider: z.literal("openai-chatgpt-web"),
+  transport: z.literal("gpt-web-chat"),
+  accountCapabilityRef: z.string().min(1).max(512),
+  modelDisplayName: z.string().min(1).max(120),
+  modelFamily: z.string().min(1).max(120),
+  reasoningTier: z.enum([
+    "medium",
+    "high",
+    "extra_high",
+    "pro_standard",
+    "pro_extended",
+  ]),
+  executorIdentityRef: z.string().min(1).max(512),
+  acceptanceRef: z.string().min(1).max(512),
+  acceptanceVersion: z.string().min(1).max(120),
+  sourceProfileRef: z.string().min(1).max(512).nullable(),
+  sourceProfileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).nullable(),
+}).strict();
+
+const ConversationTitleProofSchema = z.object({
+  proofStatus: z.literal("verified"),
+  owner: z.literal("agent_authoritative"),
+  policyVersion: z.literal("gpt-web-title-policy.v1"),
+  sourceMappingVersion: z.literal("gpt-web-title-mapping.v1"),
+  operatorTimeZone: z.literal("Asia/Dubai"),
+  expectedTitle: z.string().min(1).max(80),
+  expectedTitleHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  shortTrace: z.string().regex(/^[A-Z2-9]{6}$/u),
+  previousObservedTitle: z.string().max(160).nullable(),
+  observedTitle: z.string().min(1).max(80),
+  canonicalConversationUrl: z.string().url(),
+  verifiedAt: z.string().datetime(),
+  evidenceRef: z.string().min(1),
+  evidenceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+}).strict();
+
 const AiFeedProviderContinuationRefSchema = z.object({
   priorTaskId: z.string().min(1),
   priorRawOutputHash: z.string().min(1),
   providerPageUrl: z.string().url(),
   priorTurnMarker: z.string().min(1).optional(),
+  priorConversationTitleProof: ConversationTitleProofSchema.optional(),
 }).strict();
 
 const AiFeedProviderForkRefSchema = z.object({
@@ -78,8 +119,11 @@ export const AiFeedInputSchema = z.object({
   expectedOutputKind: z.enum(["text", "generated_image"]).default("text"),
   textPrompt: z.string().min(1),
   inputRefs: z.array(AiFeedInputRefSchema).default([]),
+  // Legacy split controls remain parseable only for non-production / non-GPT fixtures.
+  // Production GPT Web tasks must carry one hash-bound providerExecutionProfile.
   modelName: z.string().min(1).nullable().default(null),
   requestedReasoningEffort: z.enum(["high", "xhigh", "pro"]).nullable().optional(),
+  providerExecutionProfile: AiFeedProviderExecutionProfileSchema.nullable().optional(),
   timeoutMs: z.number().int().positive().default(180_000),
   maxFileCount: z.number().int().nonnegative().default(3),
   requestedBy: z.enum(["ai-capability", "manual-test", "acceptance-test"]),
@@ -104,7 +148,48 @@ export const AiFeedInputSchema = z.object({
       path: ["conversationScopeRef"],
     });
   }
+  const productionGpt = input.providerKind === "gpt-web-chat"
+    && input.requestedBy === "ai-capability";
+  if (productionGpt && !input.providerExecutionProfile) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "AI_INPUT_GATEWAY_GPT_EXECUTION_PROFILE_REQUIRED",
+      path: ["providerExecutionProfile"],
+    });
+  }
+  if (input.providerExecutionProfile && input.providerKind !== "gpt-web-chat") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "AI_INPUT_GATEWAY_GPT_EXECUTION_PROFILE_PROVIDER_MISMATCH",
+      path: ["providerExecutionProfile"],
+    });
+  }
+  if (input.providerExecutionProfile
+    && (input.modelName !== null || input.requestedReasoningEffort != null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "AI_INPUT_GATEWAY_GPT_SPLIT_PROFILE_FORBIDDEN",
+      path: ["providerExecutionProfile"],
+    });
+  }
 });
+
+const ProviderExecutionProfileProofSchema = z.object({
+  proofStatus: z.literal("verified"),
+  profileRef: z.string().min(1),
+  profileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  provider: z.literal("openai-chatgpt-web"),
+  transport: z.literal("gpt-web-chat"),
+  modelDisplayName: z.string().min(1),
+  modelFamily: z.string().min(1),
+  reasoningTier: AiFeedProviderExecutionProfileSchema.shape.reasoningTier,
+  legacyReasoningEffort: z.string().min(1),
+  observedAt: z.string().datetime(),
+  sourceKind: z.literal("provider_ui_observation"),
+  noOp: z.boolean(),
+  evidenceRef: z.string().min(1),
+  evidenceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+}).strict();
 
 const AiFeedProviderProofIdentitySchema = z.object({
   providerKind: AiInputGatewayProviderKindSchema,
@@ -121,6 +206,8 @@ const AiFeedProviderProofIdentitySchema = z.object({
     evidenceRef: z.string().min(1),
     evidenceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
   }).strict().nullable().optional(),
+  providerExecutionProfileProof: ProviderExecutionProfileProofSchema.nullable().optional(),
+  conversationTitleProof: ConversationTitleProofSchema.nullable().optional(),
   providerTranscriptJsonl: z.string().min(1).nullable().optional(),
   providerTranscriptHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).nullable().optional(),
   inputHash: z.string().min(1),
@@ -265,6 +352,7 @@ export const AiFeedResultSchema = z.object({
 export type AiInputGatewayProviderKind = z.infer<typeof AiInputGatewayProviderKindSchema>;
 export type AiInputGatewayChildCapabilityId = z.infer<typeof AiInputGatewayChildCapabilityIdSchema>;
 export type AiTaskLabelKey = z.infer<typeof AiTaskLabelKeySchema>;
+export type AiFeedProviderExecutionProfile = z.infer<typeof AiFeedProviderExecutionProfileSchema>;
 export type AiFeedInput = z.infer<typeof AiFeedInputSchema>;
 export type AiFeedProviderProof = z.infer<typeof AiFeedProviderProofSchema>;
 export type AiFeedResult = z.infer<typeof AiFeedResultSchema>;

@@ -16,6 +16,24 @@ import {
 } from "./web-chat-shared-support.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
 import { readWebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
+import { finalizeWebChatSessionAfterResult } from "./web-chat-session-controller.js";
+
+const legacyIdentityProof = (
+  execution: WebChatExecutionContext,
+): AiProviderRawResponse["modelIdentityProof"] => {
+  const proof = execution.providerExecutionProfileProof;
+  return proof ? {
+    proofStatus: "verified",
+    modelFamily: proof.modelFamily,
+    modelDisplayName: proof.modelDisplayName,
+    modelIdentityStatus: "verified",
+    reasoningEffort: proof.legacyReasoningEffort,
+    observedAt: proof.observedAt,
+    sourceKind: proof.sourceKind,
+    evidenceRef: proof.evidenceRef,
+    evidenceHash: proof.evidenceHash,
+  } : null;
+};
 
 const verifyResumableTurn = async (input: {
   browser: BrowserTargetSession;
@@ -23,29 +41,22 @@ const verifyResumableTurn = async (input: {
 }): Promise<void> => {
   const execution = input.context.webChatExecution;
   if (!execution?.resumeSubmission) {
-    throw new Error(
-      "review_required: durable web-chat submission proof is unavailable for resume.",
-    );
+    throw new Error("review_required: durable web-chat submission proof is unavailable for resume.");
   }
-  const identity = await input.browser.evaluate<{
-    pageUrl: string;
-    promptCount: number;
-  }>({
-    description:
-      "verify exact canonical web-chat conversation marker before resuming provider polling",
+  const identity = await input.browser.evaluate<{ pageUrl: string; markerCount: number }>({
+    description: "verify exact canonical web-chat marker before resuming provider polling",
     script: `
-const nodes = Array.from(document.querySelectorAll("[data-message-author-role='user'], user-query, user-query-content, .user-query-container"));
-const expectedPrompt = String(${JSON.stringify(execution.requestTextPrompt)} || "").replace(/\s+/gu, " ").trim();
-const promptCount = nodes.filter((node) => String(node.textContent || "").replace(/\s+/gu, " ").trim() === expectedPrompt).length;
-return { pageUrl: location.href, promptCount };
+const marker=${JSON.stringify(execution.turnMarker)};
+const normalized=(value)=>String(value||"").replace(/\\s+/gu," ").trim();
+const nodes=Array.from(document.querySelectorAll("[data-testid^='conversation-turn-'][data-turn='user']"));
+const markerCount=nodes.filter((node)=>normalized(node.textContent).includes(marker)).length;
+return {pageUrl:location.href,markerCount};
 `,
-    ...(input.context.abortSignal
-      ? { abortSignal: input.context.abortSignal }
-      : {}),
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
-  if (identity.promptCount !== 1) {
+  if (identity.markerCount !== 1) {
     throw new Error(
-      `review_required: resumable canonical web-chat conversation does not contain exactly one expected prompt; count=${identity.promptCount}; pageUrl=${identity.pageUrl}`,
+      `review_required: resumable canonical web-chat marker mismatch; count=${identity.markerCount}; pageUrl=${identity.pageUrl}`,
     );
   }
 };
@@ -58,9 +69,7 @@ type ResumeConversationInput = {
   runtimeName: string;
 };
 
-type ResumedConversation = Awaited<
-  ReturnType<typeof extractWebChatConversation>
->;
+type ResumedConversation = Awaited<ReturnType<typeof extractWebChatConversation>>;
 
 const readResumedConversation = async (input: {
   requestInput: ResumeConversationInput;
@@ -68,7 +77,7 @@ const readResumedConversation = async (input: {
   submission: WebChatSubmissionProof;
 }): Promise<ResumedConversation> => {
   const checkpointAnswer = input.execution.resumeResponseCheckpoint
-    ? await readWebChatResponseCheckpoint(input.execution.resumeResponseCheckpoint!)
+    ? await readWebChatResponseCheckpoint(input.execution.resumeResponseCheckpoint)
     : null;
   const conversation = checkpointAnswer === null
     ? await extractWebChatConversation({
@@ -88,8 +97,7 @@ const readResumedConversation = async (input: {
   if (!input.execution.resumeResponseCheckpoint) {
     await input.execution.onResponseCaptured({
       answerText: conversation.answerText,
-      pageUrl:
-        conversation.extracted.pageUrl
+      pageUrl: conversation.extracted.pageUrl
         ?? input.submission.canonicalConversationUrl
         ?? input.submission.transientConversationUrl,
     });
@@ -102,9 +110,9 @@ const buildResumedResponse = async (input: {
   execution: WebChatExecutionContext;
   submission: WebChatSubmissionProof;
   conversation: ResumedConversation;
+  conversationTitleProof: AiProviderRawResponse["conversationTitleProof"];
 }): Promise<AiProviderRawResponse> => {
-  const conversationUrl =
-    input.submission.canonicalConversationUrl
+  const conversationUrl = input.submission.canonicalConversationUrl
     ?? input.conversation.extracted.pageUrl
     ?? input.submission.transientConversationUrl;
   const { htmlArtifact, jsonArtifact } = await captureWebChatResponseArtifacts({
@@ -118,14 +126,15 @@ const buildResumedResponse = async (input: {
     providerUrl: input.requestInput.providerUrl,
     sourcePageUrlBeforeFeed: null,
     extracted: { ...input.conversation.extracted, pageUrl: conversationUrl },
-    answerText:
-      htmlArtifact?.htmlDocument
+    answerText: htmlArtifact?.htmlDocument
       ?? jsonArtifact?.jsonText
       ?? input.conversation.answerText,
+    modelIdentityProof: legacyIdentityProof(input.execution),
+    providerExecutionProfileProof: input.execution.providerExecutionProfileProof,
+    conversationTitleProof: input.conversationTitleProof,
     uploadedFiles: input.execution.resumeUploadedFiles,
     ...(input.execution.resumeAttachmentUploadProof
-      ? { attachmentUploadProof: input.execution.resumeAttachmentUploadProof }
-      : {}),
+      ? { attachmentUploadProof: input.execution.resumeAttachmentUploadProof } : {}),
     outputRefs: [
       ...(htmlArtifact ? [htmlArtifact.outputRef] : []),
       ...(jsonArtifact ? [jsonArtifact.outputRef] : []),
@@ -154,11 +163,21 @@ const resumeGeneratedImageConversation = async (
     previousAssistantCount: submission.previousAssistantCount,
     previousUserMessageCount: submission.previousUserMessageCount,
     ...(execution.resumeForkActionProof?.childConversationUrl
-      ? { initialConversationUrl: execution.resumeForkActionProof.childConversationUrl }
-      : {}),
+      ? { initialConversationUrl: execution.resumeForkActionProof.childConversationUrl } : {}),
     requireCanonical: true,
   });
   await execution.onConversationCanonicalized(finalizedSubmission);
+  await execution.onGeneratedImageCheckpointed({
+    outputHash: generatedImage.sha256,
+    pageUrl: finalizedSubmission.canonicalConversationUrl
+      ?? finalizedSubmission.transientConversationUrl,
+  });
+  const conversationTitleProof = await finalizeWebChatSessionAfterResult({
+    browser: input.browser,
+    context: input.context,
+    request: input.request,
+    submission: finalizedSubmission,
+  });
   const conversationUrl = finalizedSubmission.canonicalConversationUrl
     ?? finalizedSubmission.transientConversationUrl;
   const response = buildWebChatRawResponse({
@@ -173,10 +192,12 @@ const resumeGeneratedImageConversation = async (
       pageUrl: conversationUrl,
     },
     answerText: `generated_image:${generatedImage.sha256}`,
+    modelIdentityProof: legacyIdentityProof(execution),
+    providerExecutionProfileProof: execution.providerExecutionProfileProof,
+    conversationTitleProof,
     uploadedFiles: execution.resumeUploadedFiles,
     ...(execution.resumeAttachmentUploadProof
-      ? { attachmentUploadProof: execution.resumeAttachmentUploadProof }
-      : {}),
+      ? { attachmentUploadProof: execution.resumeAttachmentUploadProof } : {}),
     outputRefs: [generatedImage.artifactRef],
     outputArtifacts: [generatedImage],
     managedParallelExecution: true,
@@ -212,28 +233,25 @@ export const resumeSubmittedWebChatConversation = async (
     previousAssistantCount: submission.previousAssistantCount,
     previousUserMessageCount: submission.previousUserMessageCount,
     ...(execution.resumeForkActionProof?.childConversationUrl
-      ? {
-          initialConversationUrl:
-            execution.resumeForkActionProof.childConversationUrl,
-        }
-      : {}),
+      ? { initialConversationUrl: execution.resumeForkActionProof.childConversationUrl } : {}),
     requireCanonical: true,
   });
   await execution.onConversationCanonicalized(finalizedSubmission);
+  const finalSubmission = { ...finalizedSubmission, submittedAt: submission.submittedAt };
+  const conversationTitleProof = await finalizeWebChatSessionAfterResult({
+    browser: input.browser,
+    context: input.context,
+    request: input.request,
+    submission: finalSubmission,
+  });
   const response = await buildResumedResponse({
     requestInput: input,
     execution,
-    submission: {
-      ...finalizedSubmission,
-      submittedAt: submission.submittedAt,
-    },
+    submission: finalSubmission,
     conversation,
+    conversationTitleProof,
   });
-  persistWorkspaceAfterResponse({
-    request: input.request,
-    context: input.context,
-    response,
-  });
+  persistWorkspaceAfterResponse({ request: input.request, context: input.context, response });
   await cleanupProviderWorkspaceAfterResponse({
     browser: input.browser,
     request: input.request,

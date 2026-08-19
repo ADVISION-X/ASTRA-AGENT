@@ -11,13 +11,12 @@ import {
   type AiFeedResult,
   type AiInputGatewayChildCapabilityId,
 } from "./schema.js";
+import { governProductionGptExecutionProfileInput } from "./provider-execution-profile.js";
 import { feedGeminiApiOnce } from "./runtime/feed-gemini-api-once.js";
 import { feedGeminiWebChatOnce } from "./runtime/feed-gemini-web-chat-once.js";
 import { feedGptWebChatOnce } from "./runtime/feed-gpt-web-chat-once.js";
 import { resolveWebChatMaxInFlight } from "./runtime/web-chat-concurrency-lease.js";
-import {
-  recoverCheckpointedWebChatProviderLease,
-} from "./providers/web-chat-checkpoint-response.js";
+import { recoverCheckpointedWebChatProviderLease } from "./providers/web-chat-checkpoint-response.js";
 import { classifyWebChatFailure } from "./failure-classification.js";
 import { createProviderOperatorControl } from "./runtime/provider-operator-control.js";
 
@@ -39,12 +38,12 @@ const executeGeminiApi = (
   request: AiFeedInput,
   signal: AbortSignal | undefined,
 ): Promise<AiFeedResult> => feedGeminiApiOnce({
-    request,
-    dataDir: context.dataDir,
-    ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
-    ...(signal ? { signal } : {}),
-    ...(context.adapters?.["gemini-api"] ? { adapter: context.adapters["gemini-api"] } : {}),
-	  });
+  request,
+  dataDir: context.dataDir,
+  ...(context.runtimeLogger ? { runtimeLogger: context.runtimeLogger } : {}),
+  ...(signal ? { signal } : {}),
+  ...(context.adapters?.["gemini-api"] ? { adapter: context.adapters["gemini-api"] } : {}),
+});
 
 interface WebChatExecutionInput {
   context: AiInputGatewayExecutionContext;
@@ -53,74 +52,46 @@ interface WebChatExecutionInput {
   options: AiInputGatewayExecuteOptions | undefined;
 }
 
-const executeGeminiWebChat = (
-  input: WebChatExecutionInput,
-): Promise<AiFeedResult> => feedGeminiWebChatOnce({
+const executeGeminiWebChat = (input: WebChatExecutionInput): Promise<AiFeedResult> =>
+  feedGeminiWebChatOnce({
     request: input.request,
     dataDir: input.context.dataDir,
-    ...(input.context.runtimeLogger
-      ? { runtimeLogger: input.context.runtimeLogger }
-      : {}),
+    ...(input.context.runtimeLogger ? { runtimeLogger: input.context.runtimeLogger } : {}),
     ...(input.options?.signal ? { signal: input.options.signal } : {}),
-    ...(input.options?.executionId
-      ? { executionId: input.options.executionId }
-      : {}),
+    ...(input.options?.executionId ? { executionId: input.options.executionId } : {}),
     ...(input.options?.supersededExecutionId
-      ? { supersededExecutionId: input.options.supersededExecutionId }
-      : {}),
+      ? { supersededExecutionId: input.options.supersededExecutionId } : {}),
     ...(input.options?.onAttachmentUploadCompleted
-      ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted }
-      : {}),
-    ...(input.options?.onProgress
-      ? { onProgress: input.options.onProgress }
-      : {}),
+      ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted } : {}),
+    ...(input.options?.onProgress ? { onProgress: input.options.onProgress } : {}),
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.context.adapters?.["gemini-web-chat"]
-      ? { adapter: input.context.adapters["gemini-web-chat"] }
-      : {}),
-	  });
+      ? { adapter: input.context.adapters["gemini-web-chat"] } : {}),
+  });
 
-const executeGptWebChat = (
-  input: WebChatExecutionInput,
-): Promise<AiFeedResult> => feedGptWebChatOnce({
+const executeGptWebChat = (input: WebChatExecutionInput): Promise<AiFeedResult> =>
+  feedGptWebChatOnce({
     request: input.request,
     dataDir: input.context.dataDir,
-    ...(input.context.runtimeLogger
-      ? { runtimeLogger: input.context.runtimeLogger }
-      : {}),
+    ...(input.context.runtimeLogger ? { runtimeLogger: input.context.runtimeLogger } : {}),
     ...(input.options?.signal ? { signal: input.options.signal } : {}),
-    ...(input.options?.executionId
-      ? { executionId: input.options.executionId }
-      : {}),
+    ...(input.options?.executionId ? { executionId: input.options.executionId } : {}),
     ...(input.options?.supersededExecutionId
-      ? { supersededExecutionId: input.options.supersededExecutionId }
-      : {}),
+      ? { supersededExecutionId: input.options.supersededExecutionId } : {}),
     ...(input.options?.onAttachmentUploadCompleted
-      ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted }
-      : {}),
-    ...(input.options?.onProgress
-      ? { onProgress: input.options.onProgress }
-      : {}),
+      ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted } : {}),
+    ...(input.options?.onProgress ? { onProgress: input.options.onProgress } : {}),
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.context.adapters?.["gpt-web-chat"]
-      ? { adapter: input.context.adapters["gpt-web-chat"] }
-      : {}),
-	  });
+      ? { adapter: input.context.adapters["gpt-web-chat"] } : {}),
+  });
 
-const executeParsedRequest = (
-  input: WebChatExecutionInput,
-): Promise<AiFeedResult> => {
+const executeParsedRequest = (input: WebChatExecutionInput): Promise<AiFeedResult> => {
   const childCapabilityId = childForProvider(input.request);
   if (childCapabilityId === "feed-gemini-api-once") {
-    return executeGeminiApi(
-      input.context,
-      input.request,
-      input.options?.signal,
-    );
+    return executeGeminiApi(input.context, input.request, input.options?.signal);
   }
-  if (childCapabilityId === "feed-gemini-web-chat-once") {
-    return executeGeminiWebChat(input);
-  }
+  if (childCapabilityId === "feed-gemini-web-chat-once") return executeGeminiWebChat(input);
   return executeGptWebChat(input);
 };
 
@@ -131,52 +102,26 @@ const buildAiInputGatewaySurface = (
   browser: BrowserTargetSession | undefined,
   operatorControl: ProviderOperatorControl,
 ): AiInputGatewayAbilityGroup => ({
-    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
-
-    listChildCapabilityIds(): AiInputGatewayChildCapabilityId[] {
-      return [...CHILD_CAPABILITY_IDS];
-    },
-
-    getRuntimeCapacity(): number {
-      return resolveWebChatMaxInFlight();
-    },
-
-    async releaseProviderTargetForOperator(ownerKey: string): Promise<boolean> {
-      return operatorControl.release(ownerKey);
-    },
-
-    resumeProviderTargetAfterOperator(ownerKey: string): void {
-      operatorControl.resume(ownerKey);
-    },
-
-    close(): Promise<void> {
-      return operatorControl.close();
-    },
-
-    classifyFailure(error, hasDurableSubmission) {
-      return classifyWebChatFailure(error, hasDurableSubmission);
-    },
-
-    recoverCheckpointedProviderLease(input): Promise<string | null> {
-      return recoverCheckpointedWebChatProviderLease({
-        dataDir: context.dataDir,
-        ...input,
-      });
-    },
-
-    async execute(rawInput: unknown, options): Promise<AiFeedResult> {
-      const request = AiFeedInputSchema.parse(rawInput);
-      if (browser && request.providerKind !== "gemini-api") {
-        await operatorControl.waitForRelease(options?.signal);
-      }
-      return executeParsedRequest({
-        context,
-        browser,
-        request,
-        options,
-      });
-    },
-  });
+  abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
+  listChildCapabilityIds: () => [...CHILD_CAPABILITY_IDS],
+  getRuntimeCapacity: () => resolveWebChatMaxInFlight(),
+  releaseProviderTargetForOperator: (ownerKey) => operatorControl.release(ownerKey),
+  resumeProviderTargetAfterOperator: (ownerKey) => operatorControl.resume(ownerKey),
+  close: () => operatorControl.close(),
+  classifyFailure: (error, hasDurableSubmission) =>
+    classifyWebChatFailure(error, hasDurableSubmission),
+  recoverCheckpointedProviderLease: (input) =>
+    recoverCheckpointedWebChatProviderLease({ dataDir: context.dataDir, ...input }),
+  async execute(rawInput: unknown, options): Promise<AiFeedResult> {
+    const request = AiFeedInputSchema.parse(
+      governProductionGptExecutionProfileInput(rawInput),
+    );
+    if (browser && request.providerKind !== "gemini-api") {
+      await operatorControl.waitForRelease(options?.signal);
+    }
+    return executeParsedRequest({ context, browser, request, options });
+  },
+});
 
 export const createAiInputGatewayAbilityGroup = (
   context: AiInputGatewayExecutionContext,

@@ -2,10 +2,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
-import type {
-  InspectorContext,
-  InspectorFinding,
-} from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
 const paths = {
@@ -19,6 +16,8 @@ const paths = {
   identityAcceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
   recoveryAcceptance: "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
   shared: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+  sessionController: "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
+  conversationTitle: "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
   submit: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
   submissionCheckpoint: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   routing: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
@@ -47,8 +46,7 @@ const sourceValues = (files: readonly SourceFile[]): Set<string> =>
       .flatMap((node) => [node.getLiteralText(), ...literalFragments(node.getLiteralText())]),
     ...file.getDescendantsOfKind(SyntaxKind.TemplateTail)
       .flatMap((node) => [node.getLiteralText(), ...literalFragments(node.getLiteralText())]),
-    ...file.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
-      .map((node) => node.getName()),
+    ...file.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((node) => node.getName()),
   ]));
 
 const collectSources = (
@@ -58,14 +56,12 @@ const collectSources = (
 ): RecoverySources | null => {
   const entries = Object.entries(paths).map(([key, repoPath]) => {
     const file = context.project.getSourceFile(resolveFromRepo(repoPath));
-    if (!file) {
-      findings.push(createFinding({
-        checkId: "ai-input-gateway/response-checkpoint-recovery",
-        lawId,
-        filePath: repoPath,
-        message: `Response recovery source ${key} must exist.`,
-      }));
-    }
+    if (!file) findings.push(createFinding({
+      checkId: "ai-input-gateway/response-checkpoint-recovery",
+      lawId,
+      filePath: repoPath,
+      message: `Response recovery source ${key} must exist.`,
+    }));
     return [key, file] as const;
   });
   if (entries.some(([, file]) => !file)) return null;
@@ -107,18 +103,13 @@ const callNames = (source: SourceFile, variableName: string): string[] =>
     .map((call) => call.getExpression().getText()) ?? [];
 
 const submissionOrderIsValid = (sources: RecoverySources): boolean => {
-  const observedCalls = callNames(
-    sources.submissionCheckpoint,
-    "observeSubmittedWebChatTurn",
-  );
+  const observedCalls = callNames(sources.submissionCheckpoint, "observeSubmittedWebChatTurn");
   const capture = observedCalls.indexOf("captureProof");
   const persisted = observedCalls.indexOf("persistObservedSubmission");
   const responseCalls = callNames(sources.shared, "executeWebChatConversation");
-  const checkpointed = responseCalls.findIndex((name) =>
-    name.endsWith("onResponseCaptured"));
+  const checkpointed = responseCalls.findIndex((name) => name.endsWith("onResponseCaptured"));
   const published = responseCalls.indexOf("buildCompletedWebChatResponse");
-  return capture >= 0 && persisted > capture
-    && checkpointed >= 0 && published > checkpointed;
+  return capture >= 0 && persisted > capture && checkpointed >= 0 && published > checkpointed;
 };
 
 const inspectCheckpointAndFailureLedger = (
@@ -140,11 +131,14 @@ const inspectCheckpointAndFailureLedger = (
       "markCheckpointedWebChatResponsePublished",
       "responseCheckpoint",
       "response_checkpointed",
+      "title_finalization_pending",
+      "title_verified",
+      "finalized",
       "providerLeaseId",
       "assertResponseCheckpointRecovery",
-      "checkpoint recovery must finish before browser or provider access",
+      "a production checkpoint must not publish final success before title proof",
     ],
-    message: "Durable checkpoint recovery is missing",
+    message: "Durable checkpoint/title recovery is missing",
   });
   if (!hasCheckpointPatrolShutdownFinally(sources.feedProviderOnce)) {
     findings.push(createFinding({
@@ -154,6 +148,14 @@ const inspectCheckpointAndFailureLedger = (
       message: "Checkpoint patrol must stop in a finally block on every outcome.",
     }));
   }
+  if (sources.feedProviderOnce.getFullText().includes("void providerResponse")) {
+    findings.push(createFinding({
+      checkId: "ai-input-gateway/no-detached-post-processing-chain",
+      lawId,
+      filePath: paths.feedProviderOnce,
+      message: "Checkpoint publication must not detach a second provider post-processing chain.",
+    }));
+  }
   pushMissing({
     findings,
     lawId,
@@ -161,14 +163,8 @@ const inspectCheckpointAndFailureLedger = (
     filePath: paths.executionState,
     values,
     required: [
-      "WebChatExecutionFailure",
-      "occurredAt",
-      "attemptId",
-      "classification",
-      "recoverable",
-      "failures",
-      "; root=",
-      "review_required: web-chat execution is terminal:",
+      "WebChatExecutionFailure", "occurredAt", "attemptId", "classification",
+      "recoverable", "failures", "; root=", "review_required: web-chat execution is terminal:",
     ],
     message: "Traceable bounded failure ledger is missing",
   });
@@ -186,11 +182,7 @@ const inspectCanonicalRecovery = (
     checkId: "ai-input-gateway/fresh-execution-rate-owner-transfer",
     filePath: paths.rateGuard,
     values,
-    required: [
-      "supersededExecutionId",
-      "replacesExactPriorExecution",
-      "xuanxue-ai-production:replacement",
-    ],
+    required: ["supersededExecutionId", "replacesExactPriorExecution", "xuanxue-ai-production:replacement"],
     message: "Exact fresh-execution owner transfer is missing",
   });
   pushMissing({
@@ -202,16 +194,15 @@ const inspectCanonicalRecovery = (
     required: [
       "focusChatGptConversationByCanonicalPath",
       "assertWebChatCanonicalConversationBinding",
-      "scroll_row",
-      "scrollDeltaY",
-      "reuse-exact-url",
+      "scroll_row", "scrollDeltaY", "reuse-exact-url",
       "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=",
       "assertCanonicalConversationOwnership",
       "assertDuplicateCanonicalDomRowsAreOneLogicalRoute",
       "Number(right.actionable) - Number(left.actionable)",
       "left.rect.top - right.rect.top",
+      "discoverChatGptConversationViaSearch",
     ],
-    message: "Exact canonical URL recovery is missing",
+    message: "Exact canonical URL plus bounded discovery recovery is missing",
   });
   if (sources.routing.getFullText().includes("markerCount > 1 || rows.length > 1")) {
     findings.push(createFinding({
@@ -233,36 +224,58 @@ const inspectSubmissionCheckpoint = (
     checkId: "ai-input-gateway/transient-submission-checkpoint",
     lawId,
     filePath: paths.shared,
-    message: "Observed submit proof must persist before response checkpoint and publication.",
+    message: "Observed submit proof must persist before response checkpoint and final publication.",
   }));
 };
 
-const inspectRetiredTitleChain = (
+const inspectIntegratedTitleFinalization = (
   sources: RecoverySources,
+  values: Set<string>,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const forbiddenTitleIdentifiers = [
-    "WebChatTitleRenameState",
-    "renameSubmittedChatGptConversation",
+  pushMissing({
+    findings,
+    lawId,
+    checkId: "ai-input-gateway/integrated-title-finalization",
+    filePath: paths.sessionController,
+    values,
+    required: [
+      "finalizeWebChatSessionAfterResult",
+      "finalizeGptWebConversationTitle",
+      "runExclusivePatrol",
+      "conversationTitle",
+      "canonicalConversationUrl",
+      "turnMarker",
+      "onConversationTitleVerified",
+    ],
+    message: "Integrated title finalization is missing",
+  });
+  const forbidden = [
     "scheduleWebChatTitleHousekeeping",
     "resolveContinuationWebChatSystemTitle",
+    "searchAndOpenNamedConversation",
   ];
   const liveValues = sourceValues([
-    sources.managed,
-    sources.feedProviderOnce,
-    sources.singleTabBrowser,
-    sources.routing,
-    sources.canonicalBinding,
+    sources.managed, sources.feedProviderOnce, sources.singleTabBrowser,
+    sources.routing, sources.canonicalBinding, sources.sessionController,
   ]);
-  const retained = forbiddenTitleIdentifiers.filter((value) => liveValues.has(value));
-  if (retained.length === 0) return;
-  findings.push(createFinding({
-    checkId: "ai-input-gateway/title-chain-retired",
+  const retained = forbidden.filter((value) => liveValues.has(value));
+  if (retained.length > 0) findings.push(createFinding({
+    checkId: "ai-input-gateway/no-second-title-chain",
     lawId,
-    filePath: paths.routing,
-    message: `Provider title chain must remain absent: ${retained.join(", ")}.`,
+    filePath: paths.sessionController,
+    message: `Title finalization must stay inside the Session Controller; second-chain symbols remain: ${retained.join(", ")}.`,
   }));
+  if (sources.routing.getFullText().includes("expectedTitle")
+    || sources.routing.getFullText().includes("systemChatTitle")) {
+    findings.push(createFinding({
+      checkId: "ai-input-gateway/title-not-routing-identity",
+      lawId,
+      filePath: paths.routing,
+      message: "Readable provider titles must never become routing identity.",
+    }));
+  }
 };
 
 export const inspectAiInputGatewayRecovery = (
@@ -276,6 +289,6 @@ export const inspectAiInputGatewayRecovery = (
   inspectCheckpointAndFailureLedger(sources, values, findings, lawId);
   inspectCanonicalRecovery(sources, values, findings, lawId);
   inspectSubmissionCheckpoint(sources, findings, lawId);
-  inspectRetiredTitleChain(sources, findings, lawId);
+  inspectIntegratedTitleFinalization(sources, values, findings, lawId);
   return findings;
 };

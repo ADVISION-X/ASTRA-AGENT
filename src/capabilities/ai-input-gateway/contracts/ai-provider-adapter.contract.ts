@@ -2,6 +2,7 @@ import type { BrowserTargetSession } from "../../../lib/browser/browser-controll
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type {
   AiFeedInput,
+  AiFeedProviderExecutionProfile,
   AiInputGatewayProviderKind,
 } from "../schema.js";
 import type { WebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
@@ -42,6 +43,106 @@ export type WebChatAttachmentUploadProof = {
   reviewRequiredReason: string | null;
 };
 
+export type ProviderExecutionProfileProof = {
+  proofStatus: "verified";
+  profileRef: string;
+  profileHash: `sha256:${string}`;
+  provider: "openai-chatgpt-web";
+  transport: "gpt-web-chat";
+  modelDisplayName: string;
+  modelFamily: string;
+  reasoningTier: AiFeedProviderExecutionProfile["reasoningTier"];
+  legacyReasoningEffort: string;
+  observedAt: string;
+  sourceKind: "provider_ui_observation";
+  noOp: boolean;
+  evidenceRef: string;
+  evidenceHash: `sha256:${string}`;
+};
+
+export type WebChatConversationTitleStatus =
+  | "pending"
+  | "in_progress"
+  | "verified"
+  | "recovery_pending"
+  | "review_required";
+
+export type WebChatConversationTitleState = {
+  owner: "agent_authoritative";
+  policyVersion: "gpt-web-title-policy.v1";
+  sourceMappingVersion: "gpt-web-title-mapping.v1";
+  operatorTimeZone: "Asia/Dubai";
+  expectedTitle: string;
+  expectedTitleHash: `sha256:${string}`;
+  shortTrace: string;
+  status: WebChatConversationTitleStatus;
+  previousObservedTitle: string | null;
+  observedTitle: string | null;
+  canonicalConversationUrl: string | null;
+  attemptCount: number;
+  verifiedAt: string | null;
+  evidenceRef: string | null;
+  evidenceHash: `sha256:${string}` | null;
+};
+
+export type WebChatConversationTitleProof = {
+  proofStatus: "verified";
+  owner: "agent_authoritative";
+  policyVersion: "gpt-web-title-policy.v1";
+  sourceMappingVersion: "gpt-web-title-mapping.v1";
+  operatorTimeZone: "Asia/Dubai";
+  expectedTitle: string;
+  expectedTitleHash: `sha256:${string}`;
+  shortTrace: string;
+  previousObservedTitle: string | null;
+  observedTitle: string;
+  canonicalConversationUrl: string;
+  verifiedAt: string;
+  evidenceRef: string;
+  evidenceHash: `sha256:${string}`;
+};
+
+export type WebChatPageActionId =
+  | "acknowledge_known_rate_limit"
+  | "dismiss_known_search_dialog"
+  | "bind_exact_provider_target"
+  | "establish_clean_fresh_chat"
+  | "focus_exact_continuation"
+  | "fork_exact_checkpoint"
+  | "switch_exact_conversation"
+  | "discover_conversation_via_search"
+  | "observe_execution_profile"
+  | "apply_execution_profile"
+  | "verify_execution_profile"
+  | "stage_approved_attachments"
+  | "focus_exact_composer"
+  | "write_exact_prompt"
+  | "submit_exact_turn"
+  | "poll_exact_assistant_turn"
+  | "checkpoint_text_response"
+  | "checkpoint_generated_image"
+  | "rename_exact_conversation"
+  | "verify_exact_conversation_title"
+  | "cleanup_owned_transient_ui"
+  | "restore_operator_source";
+
+export type WebChatPageActionProof = {
+  actionId: WebChatPageActionId;
+  executionId: string | null;
+  targetRefHash: string | null;
+  documentRefHash: string | null;
+  beforeUrl: string | null;
+  afterUrl: string | null;
+  candidateCount: number | null;
+  semantics: string[];
+  result: "committed" | "no_op" | "recovery_pending" | "review_required";
+  startedAt: string;
+  endedAt: string;
+  allowDocumentChange: boolean;
+  evidenceRef: string;
+  evidenceHash: `sha256:${string}`;
+};
+
 export type WebChatSubmissionProof = {
   executionId?: string;
   turnMarker?: string;
@@ -72,6 +173,9 @@ export type WebChatExecutionContext = {
   requestTextPrompt: string;
   turnMarker: string;
   submittedPromptHash: string;
+  providerExecutionProfileBinding: AiFeedProviderExecutionProfile | null;
+  providerExecutionProfileProof: ProviderExecutionProfileProof | null;
+  conversationTitle: WebChatConversationTitleState | null;
   resumeSubmission: WebChatSubmissionProof | null;
   resumeUploadedFiles: AiProviderUploadedFileProof[];
   resumeAttachmentUploadProof: WebChatAttachmentUploadProof | null;
@@ -81,6 +185,10 @@ export type WebChatExecutionContext = {
   runExclusivePatrol<T>(
     operation: (browser: BrowserTargetSession) => Promise<T>,
   ): Promise<T>;
+  onPageActionCommitted(proof: WebChatPageActionProof): Promise<void>;
+  onProviderExecutionProfileVerified(proof: ProviderExecutionProfileProof): Promise<void>;
+  onConversationTitleFinalizationStarted(canonicalConversationUrl: string): Promise<void>;
+  onConversationTitleVerified(proof: WebChatConversationTitleProof): Promise<void>;
   onSubmissionObserved(input: {
     submission: WebChatSubmissionProof;
     uploadedFiles: AiProviderUploadedFileProof[];
@@ -97,15 +205,15 @@ export type WebChatExecutionContext = {
     answerText: string;
     pageUrl: string;
   }): Promise<WebChatResponseCheckpoint>;
+  onGeneratedImageCheckpointed(input: {
+    outputHash: `sha256:${string}`;
+    pageUrl: string;
+  }): Promise<void>;
 };
 
 export type AiProviderRawResponse = {
   rawText: string;
   modelName: string | null;
-  /** Provider-visible model identity and transcript evidence are optional for
-   * legacy products, but required by the localization static-review owner
-   * before a stage may be marked completed. They must come from the live
-   * provider surface, never from the caller's request profile. */
   modelIdentityProof?: {
     proofStatus: "verified";
     modelFamily: string;
@@ -117,6 +225,8 @@ export type AiProviderRawResponse = {
     evidenceRef: string;
     evidenceHash: `sha256:${string}`;
   } | null;
+  providerExecutionProfileProof?: ProviderExecutionProfileProof | null;
+  conversationTitleProof?: WebChatConversationTitleProof | null;
   providerTranscriptJsonl?: string | null;
   providerTranscriptHash?: `sha256:${string}` | null;
   runtimeName: string;

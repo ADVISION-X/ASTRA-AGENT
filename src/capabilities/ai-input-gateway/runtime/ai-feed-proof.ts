@@ -11,6 +11,7 @@ import {
   type AiFeedResult,
   type AiInputGatewayChildCapabilityId,
 } from "../schema.js";
+import { assertProviderExecutionProfileIntegrity } from "../provider-execution-profile.js";
 import type { AiFeedInputPackage } from "./ai-feed-input-package.js";
 
 const hashValue = (value: string): `sha256:${string}` =>
@@ -161,15 +162,68 @@ const uploadProof = (
   uploadedFileRefs: response.uploadedFiles?.map((file) => file.inputRefId)
     ?? (response.transport === "api" ? inputPackage.uploadableFiles.map((file) => file.id) : []),
   uploadedFiles: response.uploadedFiles ?? [],
-  ...(response.attachmentUploadProof ? { attachmentUploadProof: response.attachmentUploadProof } : {}),
+  attachmentUploadProof: response.attachmentUploadProof,
 });
+
+const assertRequestedProviderExecutionProfile = (input: {
+  request: AiFeedInput;
+  response: AiProviderRawResponse;
+}): void => {
+  const requested = input.request.providerExecutionProfile;
+  if (!requested) return;
+  assertProviderExecutionProfileIntegrity(requested);
+  const observed = input.response.providerExecutionProfileProof;
+  if (!observed) {
+    throw new Error("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISSING");
+  }
+  if (
+    observed.profileRef !== requested.profileRef
+    || observed.profileHash !== requested.profileHash
+    || observed.provider !== requested.provider
+    || observed.transport !== requested.transport
+    || observed.modelDisplayName !== requested.modelDisplayName
+    || observed.modelFamily.toLowerCase() !== requested.modelFamily.toLowerCase()
+    || observed.reasoningTier !== requested.reasoningTier
+  ) {
+    throw new Error("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH");
+  }
+};
+
+const assertConversationTitleProof = (input: {
+  request: AiFeedInput;
+  response: AiProviderRawResponse;
+}): void => {
+  if (!input.request.providerExecutionProfile || input.request.providerKind !== "gpt-web-chat") return;
+  // A same-conversation request may legitimately refer to a legacy parent that
+  // predates the title protocol. All newly created/forked conversations and all
+  // continuations carrying an inherited title proof must finalize the title.
+  const requiresTitle = !input.request.providerContinuationRef
+    || Boolean(input.request.providerContinuationRef.priorConversationTitleProof);
+  if (!requiresTitle) return;
+  const title = input.response.conversationTitleProof;
+  if (!title || title.proofStatus !== "verified") {
+    throw new Error("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING");
+  }
+  const actual = input.response.submissionProof?.canonicalConversationUrl
+    ?? input.response.webChatUrl;
+  if (!actual || new URL(actual).pathname !== new URL(title.canonicalConversationUrl).pathname) {
+    throw new Error("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_URL_MISMATCH");
+  }
+};
+
+const assertGovernedResponseProof = (input: {
+  request: AiFeedInput;
+  response: AiProviderRawResponse;
+}): void => {
+  if (input.response.transport !== "web-chat") return;
+  assertRequestedProviderExecutionProfile(input);
+  assertConversationTitleProof(input);
+};
 
 const buildProviderProof = (input: {
   request: AiFeedInput;
-  childCapabilityId: AiInputGatewayChildCapabilityId;
   inputPackage: AiFeedInputPackage;
   response: AiProviderRawResponse;
-  rawOutputRef: string | null;
   outputHash: string | null;
   startedAt: string;
   endedAt: string;
@@ -180,9 +234,9 @@ const buildProviderProof = (input: {
   providerKind: input.request.providerKind,
   providerLeaseId: input.providerLeaseId,
   modelName: input.response.modelName ?? input.request.modelName,
-  ...(input.response.modelIdentityProof
-    ? { modelIdentityProof: input.response.modelIdentityProof }
-    : { modelIdentityProof: null }),
+  modelIdentityProof: input.response.modelIdentityProof ?? null,
+  providerExecutionProfileProof: input.response.providerExecutionProfileProof ?? null,
+  conversationTitleProof: input.response.conversationTitleProof ?? null,
   ...(input.response.providerTranscriptJsonl
     ? {
         providerTranscriptJsonl: input.response.providerTranscriptJsonl,
@@ -194,10 +248,7 @@ const buildProviderProof = (input: {
   outputHash: input.outputHash,
   inputRefs: input.inputPackage.inputRefIds,
   ...uploadProof(input.inputPackage, input.response),
-  outputRefs: [
-    ...(input.rawOutputRef ? [input.rawOutputRef] : []),
-    ...(input.response.outputRefs ?? []),
-  ],
+  outputRefs: input.response.outputRefs ?? [],
   startedAt: input.startedAt,
   endedAt: input.endedAt,
   durationMs: input.durationMs,
@@ -228,9 +279,7 @@ const assertWebChatConversationProof = (input: {
       ? input.providerProof.sameConversationProof
       : input.providerProof.freshConversationProof;
   if (input.providerProof.conversationMode !== expectedMode || !exactProof) {
-    throw new Error(
-      `AI_INPUT_GATEWAY_CONVERSATION_TOPOLOGY_PROOF_MISSING:${expectedMode}`,
-    );
+    throw new Error(`AI_INPUT_GATEWAY_CONVERSATION_TOPOLOGY_PROOF_MISSING:${expectedMode}`);
   }
 };
 
@@ -245,25 +294,24 @@ const buildSuccessResult = (input: {
   outputKind: "text" | "generated_image";
   outputArtifacts: AiProviderRawResponse["outputArtifacts"];
 }): AiFeedResult => AiFeedResultSchema.parse({
-    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    providerKind: input.request.providerKind,
+  abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
+  childCapabilityId: input.childCapabilityId,
+  providerKind: input.request.providerKind,
   status: "success",
   outputKind: input.outputKind,
   outputArtifacts: input.outputArtifacts ?? [],
-    rawResponseText: input.rawResponseText,
-    transportWarnings: input.transportWarnings,
-    // 兼容旧调用方的同字节投影；运输层不再解析、截取、修复或挑选 JSON。
-    normalizedText: input.rawResponseText,
-    rawOutputRef: input.rawOutputRef,
-    rawOutputHash: input.outputHash,
-    parseStatus: "not_requested",
-    parsedJson: null,
-    schemaValidationStatus: "not_applicable",
-    providerProof: input.providerProof,
-    failureReason: null,
-    reviewRequiredReason: null,
-  });
+  rawResponseText: input.rawResponseText,
+  transportWarnings: input.transportWarnings,
+  normalizedText: input.rawResponseText,
+  rawOutputRef: input.rawOutputRef,
+  rawOutputHash: input.outputHash,
+  parseStatus: "not_requested",
+  parsedJson: null,
+  schemaValidationStatus: "not_applicable",
+  providerProof: input.providerProof,
+  failureReason: null,
+  reviewRequiredReason: null,
+});
 
 export const buildAiFeedSuccess = async (input: {
   dataDir: string;
@@ -279,9 +327,8 @@ export const buildAiFeedSuccess = async (input: {
   if (
     (input.request.expectedOutputKind === "generated_image" && artifacts.length !== 1)
     || (input.request.expectedOutputKind === "text" && artifacts.length !== 0)
-  ) {
-    throw new Error("AI_INPUT_GATEWAY_OUTPUT_KIND_MISMATCH");
-  }
+  ) throw new Error("AI_INPUT_GATEWAY_OUTPUT_KIND_MISMATCH");
+  assertGovernedResponseProof({ request: input.request, response: input.response });
   const rawOutputRef = await writeRawOutput({
     dataDir: input.dataDir,
     childCapabilityId: input.childCapabilityId,
@@ -290,26 +337,30 @@ export const buildAiFeedSuccess = async (input: {
   const outputHash = hashValue(input.response.rawText);
   const endedAt = new Date().toISOString();
   const providerProof = buildProviderProof({
-    ...input,
-    rawOutputRef,
+    request: input.request,
+    inputPackage: input.inputPackage,
+    response: {
+      ...input.response,
+      outputRefs: [rawOutputRef, ...(input.response.outputRefs ?? [])],
+    },
     outputHash,
+    startedAt: input.startedAt,
     endedAt,
     durationMs: Date.parse(endedAt) - Date.parse(input.startedAt),
+    cooldownMs: input.cooldownMs,
+    providerLeaseId: input.providerLeaseId,
   });
-  assertWebChatConversationProof({
-    request: input.request,
-    response: input.response,
-    providerProof,
-  });
+  assertWebChatConversationProof({ request: input.request, response: input.response, providerProof });
   return buildSuccessResult({
-    ...input,
+    request: input.request,
+    childCapabilityId: input.childCapabilityId,
+    providerProof,
     rawOutputRef,
     outputHash,
     rawResponseText: input.response.rawText,
     transportWarnings: input.response.transportWarnings ?? [],
     outputKind: input.request.expectedOutputKind,
     outputArtifacts: input.response.outputArtifacts ?? [],
-    providerProof,
   });
 };
 
@@ -325,7 +376,10 @@ const buildFailureProviderProof = (input: {
 }): AiFeedProviderProof => ({
   providerKind: input.request.providerKind,
   providerLeaseId: input.providerLeaseId ?? null,
-  modelName: input.request.modelName,
+  modelName: input.response?.modelName ?? input.request.modelName,
+  modelIdentityProof: input.response?.modelIdentityProof ?? null,
+  providerExecutionProfileProof: input.response?.providerExecutionProfileProof ?? null,
+  conversationTitleProof: input.response?.conversationTitleProof ?? null,
   inputHash: input.inputPackage.inputHash,
   outputHash: null,
   inputRefs: input.inputPackage.inputRefIds,
@@ -351,24 +405,24 @@ const buildFailureResult = (input: {
   reason: string;
   providerProof: AiFeedProviderProof;
 }): AiFeedResult => AiFeedResultSchema.parse({
-    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    providerKind: input.request.providerKind,
+  abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
+  childCapabilityId: input.childCapabilityId,
+  providerKind: input.request.providerKind,
   status: input.status,
   outputKind: input.request.expectedOutputKind,
   outputArtifacts: [],
-    rawResponseText: null,
-    transportWarnings: input.providerProof.transportWarnings,
-    normalizedText: null,
-    rawOutputRef: null,
-    rawOutputHash: null,
-    parseStatus: input.request.expectedOutputSchemaRef ? "json_invalid" : "not_requested",
-    parsedJson: null,
-    schemaValidationStatus: input.request.expectedOutputSchemaRef ? "invalid" : "not_applicable",
-    providerProof: input.providerProof,
-    failureReason: input.status === "failed" ? input.reason : null,
-    reviewRequiredReason: input.status === "review_required" ? input.reason : null,
-  });
+  rawResponseText: null,
+  transportWarnings: input.providerProof.transportWarnings,
+  normalizedText: null,
+  rawOutputRef: null,
+  rawOutputHash: null,
+  parseStatus: input.request.expectedOutputSchemaRef ? "json_invalid" : "not_requested",
+  parsedJson: null,
+  schemaValidationStatus: input.request.expectedOutputSchemaRef ? "invalid" : "not_applicable",
+  providerProof: input.providerProof,
+  failureReason: input.status === "failed" ? input.reason : null,
+  reviewRequiredReason: input.status === "review_required" ? input.reason : null,
+});
 
 export const buildAiFeedFailure = (input: {
   request: AiFeedInput;
@@ -384,10 +438,10 @@ export const buildAiFeedFailure = (input: {
 }): AiFeedResult => {
   const endedAt = new Date().toISOString();
   return buildFailureResult({
-    ...input,
-    providerProof: buildFailureProviderProof({
-      ...input,
-      endedAt,
-    }),
+    request: input.request,
+    childCapabilityId: input.childCapabilityId,
+    status: input.status,
+    reason: input.reason,
+    providerProof: buildFailureProviderProof({ ...input, endedAt }),
   });
 };

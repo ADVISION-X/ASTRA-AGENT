@@ -39,14 +39,12 @@ export const assertActiveProviderPage = async (input: {
   const readState = (): Promise<{ pageUrl: string; hostMatches: boolean }> =>
     input.browser.evaluate<{ pageUrl: string; hostMatches: boolean }>({
       description: `verify provider page remains active before ${input.phase}`,
-      script: `
-const expectedHost = ${JSON.stringify(expectedHost)};
-return {pageUrl: location.href, hostMatches: location.host === expectedHost};
-`,
+      script: `const expectedHost=${JSON.stringify(expectedHost)};return {pageUrl:location.href,hostMatches:location.host===expectedHost};`,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
   let state = await readState();
-  if (!state.hostMatches && input.phase === "attachment upload" && state.pageUrl.startsWith("chrome-error://")) {
+  if (!state.hostMatches && input.phase === "attachment upload"
+    && state.pageUrl.startsWith("chrome-error://")) {
     const reopened = await input.browser.open({
       url: input.providerUrl,
       title: "recover provider page before attachment upload",
@@ -58,14 +56,14 @@ return {pageUrl: location.href, hostMatches: location.host === expectedHost};
     }
   }
   if (!state.hostMatches) {
-    throw new Error(`review_required: active Chrome tab left provider page before ${input.phase}; pageUrl=${state.pageUrl}`);
+    throw new Error(
+      `review_required: active Chrome tab left provider page before ${input.phase}; pageUrl=${state.pageUrl}`,
+    );
   }
 };
 
 export const requireBrowser = (context: AiProviderAdapterContext): BrowserTargetSession => {
-  if (!context.browser) {
-    throw new Error("Web chat feed requires a governed BrowserTargetSession.");
-  }
+  if (!context.browser) throw new Error("Web chat feed requires a governed BrowserTargetSession.");
   return context.browser;
 };
 
@@ -85,14 +83,10 @@ const normalizedForkProof = (input: {
   submissionProof?: AiProviderRawResponse["submissionProof"];
 }): WebChatForkActionProof | null => {
   if (!input.forkActionProof) return null;
-  if (
-    input.submissionProof
+  if (input.submissionProof
     && input.submissionProof.transientConversationUrl
-      !== input.forkActionProof.childConversationUrl
-  ) {
-    throw new Error(
-      "review_required: CHATGPT_FORK_CHILD_CONVERSATION_DRIFT_BEFORE_SUBMISSION",
-    );
+      !== input.forkActionProof.childConversationUrl) {
+    throw new Error("review_required: CHATGPT_FORK_CHILD_CONVERSATION_DRIFT_BEFORE_SUBMISSION");
   }
   const submittedUrl = input.submissionProof?.canonicalConversationUrl
     ?? input.submissionProof?.transientConversationUrl;
@@ -104,11 +98,12 @@ const normalizedForkProof = (input: {
 const providerTabPolicy = (
   request: AiFeedInput,
   managedParallelExecution: boolean | undefined,
-): Exclude<AiProviderRawResponse["providerTabPolicy"], undefined> => managedParallelExecution
-  ? "single-controlled-tab-named-chat-polling"
-  : resolveWebChatWorkspaceId(request)
-    ? "reuse-single-provider-workspace-tab"
-    : "provider-default-tab-policy";
+): Exclude<AiProviderRawResponse["providerTabPolicy"], undefined> =>
+  managedParallelExecution
+    ? "single-controlled-tab-canonical-route-polling"
+    : resolveWebChatWorkspaceId(request)
+      ? "reuse-single-provider-workspace-tab"
+      : "provider-default-tab-policy";
 
 export const buildWebChatRawResponse = (input: {
   request: AiFeedInput;
@@ -118,6 +113,8 @@ export const buildWebChatRawResponse = (input: {
   extracted: WebChatEvaluation;
   answerText: string;
   modelIdentityProof?: AiProviderRawResponse["modelIdentityProof"];
+  providerExecutionProfileProof?: AiProviderRawResponse["providerExecutionProfileProof"];
+  conversationTitleProof?: AiProviderRawResponse["conversationTitleProof"];
   providerTranscriptJsonl?: string | null;
   providerTranscriptHash?: `sha256:${string}` | null;
   uploadedFiles?: AiProviderUploadedFileProof[];
@@ -127,8 +124,7 @@ export const buildWebChatRawResponse = (input: {
   managedParallelExecution?: boolean;
   forkActionProof?: AiProviderRawResponse["forkActionProof"];
   submissionProof?: AiProviderRawResponse["submissionProof"];
-}): AiProviderRawResponse => {
-  return ({
+}): AiProviderRawResponse => ({
   webChatWorkspaceId: resolveWebChatWorkspaceId(input.request),
   providerTabPolicy: providerTabPolicy(input.request, input.managedParallelExecution),
   providerRecoveryAttemptCount: null,
@@ -136,28 +132,33 @@ export const buildWebChatRawResponse = (input: {
   staleConversationCleanupStatus: null,
   staleConversationHistoryCleanupStatus: null,
   rawText: input.answerText,
-  modelName: input.request.modelName,
+  modelName:
+    input.request.providerExecutionProfile?.modelDisplayName
+    ?? input.request.modelName,
   modelIdentityProof: input.modelIdentityProof ?? null,
+  providerExecutionProfileProof: input.providerExecutionProfileProof ?? null,
+  conversationTitleProof: input.conversationTitleProof ?? null,
   providerTranscriptJsonl: input.providerTranscriptJsonl ?? null,
   providerTranscriptHash: input.providerTranscriptHash ?? null,
   runtimeName: input.runtimeName,
   transport: "web-chat",
   webChatUrl: input.extracted.pageUrl ?? input.providerUrl,
-  continuationActualUrl: input.request.providerContinuationRef ? input.extracted.pageUrl ?? input.providerUrl : null,
+  continuationActualUrl: input.request.providerContinuationRef
+    ? input.extracted.pageUrl ?? input.providerUrl : null,
   continuationVerified: continuationVerified(input),
   forkActionProof: normalizedForkProof(input),
   submissionProof: input.submissionProof ?? null,
   sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
   restoredSourcePage: null,
   uploadedFiles: input.uploadedFiles ?? [],
-  ...(input.attachmentUploadProof ? { attachmentUploadProof: input.attachmentUploadProof } : {}),
+  ...(input.attachmentUploadProof
+    ? { attachmentUploadProof: input.attachmentUploadProof } : {}),
   outputRefs: input.outputRefs ?? [],
   outputArtifacts: input.outputArtifacts ?? [],
   estimatedInputTokens: null,
   estimatedOutputTokens: null,
   tokenEstimateUnavailableReason: "web chat token estimates are unavailable.",
-  });
-};
+});
 
 export const persistWorkspaceAfterResponse = (input: {
   request: AiFeedInput;
@@ -187,7 +188,7 @@ export const cleanupProviderWorkspaceAfterResponse = async (input: {
   response: AiProviderRawResponse;
 }): Promise<void> => {
   if (input.context.webChatExecution) {
-    input.response.staleConversationHistoryCleanupStatus = "not_needed_named_conversation_retained";
+    input.response.staleConversationHistoryCleanupStatus = "not_needed_governed_conversation_retained";
     input.response.staleConversationCleanupStatus = "not_needed_single_controlled_tab";
     return;
   }

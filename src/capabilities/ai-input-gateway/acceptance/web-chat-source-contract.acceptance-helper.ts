@@ -6,6 +6,7 @@ import { decideGeneratedImageAssistantTurn } from "../providers/web-chat-generat
 import { CHATGPT_FRESH_CONVERSATION_SCRIPT } from "../providers/web-chat-fresh-conversation-script.js";
 import { buildClearProvenSubmittedRootDraftScript } from "../providers/web-chat-page-action-scripts.js";
 import { isRoutableWebChatSubmission } from "../runtime/web-chat-single-tab-browser.js";
+import { assertGptWebSessionControllerContracts } from "./web-chat-session-controller.acceptance-helper.js";
 
 const sourceText = (repoPath: string): Promise<string> =>
   readFile(path.join(process.cwd(), repoPath), "utf8");
@@ -19,7 +20,8 @@ const exists = async (repoPath: string): Promise<boolean> => {
   }
 };
 
-const retiredTitlePaths = [
+const retiredImplementationPaths = [
+  "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
   "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
@@ -51,6 +53,15 @@ const sourcePaths = {
   pageActionScripts: "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
   canonicalBinding: "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
   providerOpen: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+  providerExecutionProfile: "src/capabilities/ai-input-gateway/provider-execution-profile.ts",
+  gptExecutionProfile: "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
+  sessionController: "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
+  conversationTitlePolicy: "src/capabilities/ai-input-gateway/runtime/web-chat-conversation-title-policy.ts",
+  conversationTitle: "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+  conversationDiscovery: "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-discovery.ts",
+  pageActionContract: "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
+  checkpointResponse: "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
+  providerProof: "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
 } as const;
 
 type SourceContracts = Record<keyof typeof sourcePaths, string>;
@@ -78,9 +89,9 @@ const assertScriptContracts = (): void => {
 
 const assertRetiredPaths = async (): Promise<void> => {
   assert.deepEqual(
-    await Promise.all(retiredTitlePaths.map(exists)),
-    retiredTitlePaths.map(() => false),
-    "provider title mutation, routing, recovery and acceptance files must be physically absent",
+    await Promise.all(retiredImplementationPaths.map(exists)),
+    retiredImplementationPaths.map(() => false),
+    "retired title/model identity implementations and housekeeping paths must be physically absent",
   );
 };
 
@@ -119,20 +130,26 @@ const assertFreshConversationContract = (sources: SourceContracts): void => {
   assertFreshConversationDraftContract(sources);
 };
 
-const assertRuntimeHasNoTitleBridge = (sources: SourceContracts): void => {
+const assertNoLegacyTitleOrModelBridge = (sources: SourceContracts): void => {
   for (const source of [
     sources.managedExecution,
     sources.managedExecutionStart,
     sources.feedProviderOnce,
     sources.operatorControl,
     sources.singleTabBrowser,
+    sources.sessionController,
   ]) {
     assert.doesNotMatch(
       source,
-      /systemChatTitle|chatTitleRename|renameSubmittedChatGptConversation|TitleHousekeeping/u,
-      "live runtime must not retain a provider-title bridge",
+      /systemChatTitle|chatTitleRename|renameSubmittedChatGptConversation|TitleHousekeeping|web-chat-model-identity/u,
+      "live runtime must not retain the retired title/model bridge",
     );
   }
+  assert.doesNotMatch(
+    sources.gptExecutionProfile,
+    /reasoningSliderIndex|data-model-reasoning-effort-slider/u,
+    "semantic GPT execution profile selection must not depend on a fixed slider index",
+  );
 };
 
 const assertRoutingContract = (sources: SourceContracts): void => {
@@ -140,25 +157,57 @@ const assertRoutingContract = (sources: SourceContracts): void => {
     sources.routing.includes("focusChatGptConversationByCanonicalPath")
       && sources.routing.includes('new URL(link.getAttribute("href")')
       && sources.routing.includes("location.pathname === targetPath")
-      && !sources.routing.includes("markerCount > 1")
+      && sources.routing.includes("turnMarker")
+      && sources.routing.includes("discoverChatGptConversationViaSearch")
       && sources.routing.includes("Number(right.actionable) - Number(left.actionable)")
       && sources.routing.includes("left.rect.top - right.rect.top")
       && sources.routing.includes("scroll exact canonical ChatGPT sidebar row into view")
-      && !sources.routing.includes("textContent) === expectedTitle")
-      && !sources.routing.includes("searchAndOpenNamedConversation"),
+      && !sources.routing.includes("expectedTitle")
+      && !sources.routing.includes("systemChatTitle"),
     true,
-    "GPT routing must bind the exact canonical href and use a deterministic visible click without title search",
+    "GPT routing must bind exact canonical href + unique marker; search may discover but title may never route",
+  );
+};
+
+const assertSessionControllerContract = (sources: SourceContracts): void => {
+  assert.equal(
+    sources.providerExecutionProfile.includes("gpt-web-execution-profile.v1")
+      && sources.providerExecutionProfile.includes("governProductionGptExecutionProfileInput")
+      && sources.providerExecutionProfile.includes("extra_high")
+      && sources.providerExecutionProfile.includes("pro_standard")
+      && sources.providerExecutionProfile.includes("pro_extended")
+      && sources.gptExecutionProfile.includes("enforceGptWebExecutionProfile")
+      && sources.gptExecutionProfile.includes("assertStableWebChatDocument")
+      && sources.sessionController.includes("prepareWebChatSessionForSubmission")
+      && sources.sessionController.includes("finalizeWebChatSessionAfterResult")
+      && sources.conversationTitlePolicy.includes("gpt-web-title-policy.v1")
+      && sources.conversationTitlePolicy.includes("Asia/Dubai")
+      && !sources.conversationTitlePolicy.includes("textPrompt")
+      && sources.conversationTitle.includes("runExclusivePatrol")
+      && sources.conversationTitle.includes("[data-testid^='conversation-turn-'][data-turn='user']")
+      && sources.conversationDiscovery.includes("turnMarker")
+      && sources.conversationDiscovery.includes("targetPath")
+      && sources.pageActionContract.includes("WebChatPageActionProof")
+      && sources.checkpointResponse.includes("title_finalization_pending")
+      && sources.providerProof.includes("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING")
+      && sources.providerProof.includes("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
+    true,
+    "one GPT Web Session Controller must own semantic profile selection, action proof, canonical routing and post-result title finalization",
   );
 };
 
 const assertIdentityAndTargetContracts = (sources: SourceContracts): void => {
   assert.equal(
-    sources.executionState.includes("_retiredRenameDebt")
+    sources.executionState.includes("web-chat-execution-v3")
+      && sources.executionState.includes("_retiredRenameDebt")
       && sources.executionState.includes("_retiredSubmissionTitle")
+      && sources.executionState.includes("providerExecutionProfileBinding")
+      && sources.executionState.includes("conversationTitle")
+      && sources.executionState.includes("pageActionLedger")
       && !sources.executionState.includes("buildHumanReadableSystemChatTitle")
       && !sources.executionState.includes("WebChatTitleRenameState"),
     true,
-    "old JSON title fields may only be ignored while new execution state remains title-free",
+    "v3 execution state must migrate old title fields without reviving the old title chain",
   );
   assert.equal(
     sources.answerEvaluation.includes("visibleProgressClass")
@@ -226,10 +275,12 @@ const assertRestartAndSearchContracts = (sources: SourceContracts): void => {
       && sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS")
       && sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_STILL_VISIBLE")
       && sources.submit.includes("dismissChatGptSearchDialogIfVisible")
+      && sources.conversationDiscovery.includes("dismissChatGptSearchDialogIfVisible")
+      && sources.conversationDiscovery.includes("targetPath")
       && !sources.submit.includes("dismissFloatingMenus")
       && !sources.submit.includes('new KeyboardEvent("keydown"'),
     true,
-    "prompt entry may close only the exact harmless search dialog and never use Escape as universal cleanup",
+    "prompt/search actions may close only the exact harmless search dialog; discovery must still prove canonical path + marker",
   );
 };
 
@@ -277,9 +328,7 @@ const assertGeneratedImageContract = (sources: SourceContracts): void => {
       { role: "assistant" as const, promptMatched: false, substantive: true },
       { role: "user" as const, promptMatched: false, substantive: true },
     ],
-  ]) {
-    assert.equal(decideGeneratedImageAssistantTurn(fixture).status, "review_required");
-  }
+  ]) assert.equal(decideGeneratedImageAssistantTurn(fixture).status, "review_required");
 };
 
 export const assertWebChatSourceContracts = async (): Promise<void> => {
@@ -287,10 +336,12 @@ export const assertWebChatSourceContracts = async (): Promise<void> => {
   const sources = await loadSourceContracts();
   await assertRetiredPaths();
   assertFreshConversationContract(sources);
-  assertRuntimeHasNoTitleBridge(sources);
+  assertNoLegacyTitleOrModelBridge(sources);
   assertRoutingContract(sources);
+  assertSessionControllerContract(sources);
   assertIdentityAndTargetContracts(sources);
   assertRoutableSubmissionContract(sources);
   assertRestartAndSearchContracts(sources);
   assertGeneratedImageContract(sources);
+  assertGptWebSessionControllerContracts();
 };

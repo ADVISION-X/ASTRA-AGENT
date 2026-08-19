@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  AiFeedInput,
-  AiFeedResult,
-  AiTaskLabelKey,
+import {
+  buildGptWebProviderExecutionProfile,
+  defaultGptWebProviderExecutionProfile,
+  type AiFeedInput,
+  type AiFeedResult,
+  type AiTaskLabelKey,
 } from "../../capabilities/ai-input-gateway/index.js";
 import type {
   XuanxueAiProductionProfile,
@@ -32,18 +34,14 @@ import {
   type XuanxueAiStageId,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
-import {
-  xuanxueAiOutputIntegrityFailure,
-} from "./xuanxue-ai-production-output-integrity.js";
+import { xuanxueAiOutputIntegrityFailure } from "./xuanxue-ai-production-output-integrity.js";
 import { publicKnowledgeImagePromptBoundary } from "./generated-image-policy.js";
 import { buildTypedJoinInputs } from "./xuanxue-ai-production-typed-join-inputs.js";
 
 export const canonicalXuanxueRawOutputHash = (
   value: string,
 ): `sha256:${string}` => {
-  const canonical = value.startsWith("sha256:")
-    ? value
-    : `sha256:${value}`;
+  const canonical = value.startsWith("sha256:") ? value : `sha256:${value}`;
   if (!/^sha256:[a-f0-9]{64}$/u.test(canonical)) {
     throw new Error("XUANXUE_AI_PRODUCTION_OUTPUT_HASH_INVALID");
   }
@@ -76,8 +74,7 @@ const seededAiResult = (
   rawResponseText: seeded.rawResponseText,
   transportWarnings: seeded.transportWarnings,
   normalizedText: seeded.rawResponseText,
-  rawOutputRef:
-    (seeded.providerProof.outputRefs as string[] | undefined)?.[0] ?? null,
+  rawOutputRef: (seeded.providerProof.outputRefs as string[] | undefined)?.[0] ?? null,
   rawOutputHash: seeded.rawOutputHash,
   parseStatus: "not_requested",
   parsedJson: null,
@@ -91,9 +88,7 @@ export const initialXuanxueStages = (
   order: XuanxueAiProductionOrder,
   profile: XuanxueAiProductionProfile,
 ): XuanxueAiStageRecord[] => profile.stages.map((definition, ordinal) => {
-  const seeded = order.seededStages.find(
-    (stage) => stage.stageId === definition.stageId,
-  );
+  const seeded = order.seededStages.find((stage) => stage.stageId === definition.stageId);
   const seededFailure = seeded
     ? xuanxueAiOutputIntegrityFailure(seeded.rawResponseText)
     : null;
@@ -108,24 +103,19 @@ export const initialXuanxueStages = (
     supersededExecutionId: seededFailure ? seeded!.executionId : null,
     status: seededAccepted
       ? "completed"
-      : seededFailure
-        ? "recovery_pending"
-        : "queued",
+      : seededFailure ? "recovery_pending" : "queued",
     attemptCount: seeded ? 1 : 0,
     material: order.materials[ordinal]!,
     aiFeedResult: seededAccepted ? seededAiResult(seeded!) : null,
-    attachmentUploadProof:
-      seededAccepted
-        ? (seededAiResult(seeded!).providerProof.attachmentUploadProof
-          ?? null) as XuanxueAiStageRecord["attachmentUploadProof"]
-        : null,
+    attachmentUploadProof: seededAccepted
+      ? (seededAiResult(seeded!).providerProof.attachmentUploadProof
+        ?? null) as XuanxueAiStageRecord["attachmentUploadProof"]
+      : null,
     rawResponseText: seededAccepted ? seeded!.rawResponseText : null,
     rawOutputHash: seededAccepted ? seeded!.rawOutputHash : null,
     progressPhase: seededAccepted
       ? "terminal"
-      : seededFailure
-        ? "recovery_pending"
-        : "queued",
+      : seededFailure ? "recovery_pending" : "queued",
     failureReason: seededFailure,
     createdAt: order.createdAt,
     updatedAt: order.createdAt,
@@ -153,21 +143,16 @@ async function writePriorStageInput(
   fileNamePrefix?: string,
 ) {
   if (!prior.rawResponseText || !prior.rawOutputHash) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_DEPENDENCY_OUTPUT_MISSING:${prior.stageId}`,
-    );
+    throw new Error(`XUANXUE_AI_PRODUCTION_DEPENDENCY_OUTPUT_MISSING:${prior.stageId}`);
   }
   const directory = generatedStageDirectory(runtime, orderId, targetStageId);
   await mkdir(directory, { recursive: true });
   const fileName = `${fileNamePrefix ?? ""}${String(prior.ordinal + 1).padStart(2, "0")}-${prior.stageId}-raw-response.txt`;
   const filePath = path.join(directory, fileName);
   const bytes = Buffer.from(prior.rawResponseText, "utf8");
-  const sha256 =
-    `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
+  const sha256 = `sha256:${createHash("sha256").update(bytes).digest("hex")}` as const;
   if (sha256 !== canonicalXuanxueRawOutputHash(prior.rawOutputHash)) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:${prior.stageId}`,
-    );
+    throw new Error(`XUANXUE_AI_PRODUCTION_DEPENDENCY_HASH_MISMATCH:${prior.stageId}`);
   }
   await writeFile(filePath, bytes);
   return {
@@ -182,6 +167,19 @@ async function writePriorStageInput(
   };
 }
 
+const providerTurnMarker = (proof: AiFeedResult["providerProof"]): string => {
+  const marker = proof.forkedFromCheckpointProof?.childFirstTurnMarker
+    ?? proof.sameConversationProof?.newTurnMarker
+    ?? proof.freshConversationProof?.firstTurnMarker;
+  if (!marker) throw new Error("XUANXUE_AI_PRODUCTION_PROVIDER_TURN_MARKER_MISSING");
+  return marker;
+};
+
+const priorTitleProof = (
+  proof: AiFeedResult["providerProof"],
+): NonNullable<AiFeedInput["providerContinuationRef"]>["priorConversationTitleProof"] | undefined =>
+  proof.conversationTitleProof ?? undefined;
+
 const continuationFor = (
   record: XuanxueAiOrderRecord,
   definition: XuanxueAiStageDefinition,
@@ -189,34 +187,18 @@ const continuationFor = (
   if (!definition.continuationFrom) return undefined;
   const prior = requireXuanxueStage(record, definition.continuationFrom);
   const providerPageUrl = prior.aiFeedResult?.providerProof.webChatUrl;
-  if (
-    prior.status !== "completed"
-    || !prior.rawOutputHash
-    || !providerPageUrl
-  ) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_CONTINUATION_PROOF_MISSING:${prior.stageId}`,
-    );
+  if (prior.status !== "completed" || !prior.rawOutputHash || !providerPageUrl) {
+    throw new Error(`XUANXUE_AI_PRODUCTION_CONTINUATION_PROOF_MISSING:${prior.stageId}`);
   }
   return {
     priorTaskId: prior.executionId,
-    priorRawOutputHash:
-      canonicalXuanxueRawOutputHash(prior.rawOutputHash),
+    priorRawOutputHash: canonicalXuanxueRawOutputHash(prior.rawOutputHash),
     providerPageUrl,
     priorTurnMarker: providerTurnMarker(prior.aiFeedResult!.providerProof),
+    ...(priorTitleProof(prior.aiFeedResult!.providerProof)
+      ? { priorConversationTitleProof: priorTitleProof(prior.aiFeedResult!.providerProof) }
+      : {}),
   };
-};
-
-const providerTurnMarker = (
-  proof: AiFeedResult["providerProof"],
-): string => {
-  const marker = proof.forkedFromCheckpointProof?.childFirstTurnMarker
-    ?? proof.sameConversationProof?.newTurnMarker
-    ?? proof.freshConversationProof?.firstTurnMarker;
-  if (!marker) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PROVIDER_TURN_MARKER_MISSING");
-  }
-  return marker;
 };
 
 const assertLocalizationParentContract = (
@@ -262,14 +244,8 @@ const requireParentConversationProof = (
     assertExactFrozenSubjectMatches(record, parentOrder);
   } else if (isXuanxueAiReusableBaseConsumerProduct(record.order.productId)) {
     const primaryPersonRef = record.order.frozenSubject.primaryPersonRef;
-    if (!primaryPersonRef) {
-      throw new Error("XUANXUE_AI_PRODUCTION_PRIMARY_PERSON_NOT_FROZEN");
-    }
-    assertPersonParentMatches({
-      child: record,
-      parent: parentOrder,
-      personRef: primaryPersonRef,
-    });
+    if (!primaryPersonRef) throw new Error("XUANXUE_AI_PRODUCTION_PRIMARY_PERSON_NOT_FROZEN");
+    assertPersonParentMatches({ child: record, parent: parentOrder, personRef: primaryPersonRef });
   }
   const rebuild = runtime.store.readParentConversationRebuild({
     parentJobId: parentRef.jobId,
@@ -287,12 +263,10 @@ const requireParentConversationProof = (
     ? canonicalXuanxueRawOutputHash(parentStage.rawOutputHash)
     : null;
   const providerPageUrl = parentStage.aiFeedResult?.providerProof.webChatUrl;
-  if (
-    !parentRawOutputHash
+  if (!parentRawOutputHash
     || parentRawOutputHash !== parentRef.rawOutputHash
     || !providerPageUrl
-    || (rebuild && providerPageUrl !== rebuild.providerPageUrl)
-  ) {
+    || (rebuild && providerPageUrl !== rebuild.providerPageUrl)) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
   }
   const parentMarker = providerTurnMarker(parentStage.aiFeedResult!.providerProof);
@@ -323,6 +297,10 @@ const parentConversation = async (
       ? { continuation: {
           ...common,
           priorTurnMarker: proof.parentMarker,
+          ...(proof.parentStage.aiFeedResult?.providerProof.conversationTitleProof
+            ? { priorConversationTitleProof:
+                proof.parentStage.aiFeedResult.providerProof.conversationTitleProof }
+            : {}),
         } }
       : { fork: {
           ...common,
@@ -330,10 +308,7 @@ const parentConversation = async (
           checkpointResponseHash: proof.parentRawOutputHash,
           parentConversationScopeRef: parentRef.conversationScopeRef,
         } }),
-    taskLabel: labelForStage(
-      record.order.productId,
-      record.stages[0]!.stageId,
-    ),
+    taskLabel: labelForStage(record.order.productId, record.stages[0]!.stageId),
   };
 };
 
@@ -358,15 +333,13 @@ const prepareStageFeedInputs = async (
   readonly trustedGeneratedFileCount: number;
   readonly parent: Awaited<ReturnType<typeof parentConversation>>;
 }> => {
-  const generated = await Promise.all(
-    definition.generatedInputsFrom.map((stageId) =>
-      writePriorStageInput(
-        runtime,
-        record.order.orderId,
-        stage.stageId,
-        requireXuanxueStage(record, stageId),
-      )),
-  );
+  const generated = await Promise.all(definition.generatedInputsFrom.map((stageId) =>
+    writePriorStageInput(
+      runtime,
+      record.order.orderId,
+      stage.stageId,
+      requireXuanxueStage(record, stageId),
+    )));
   const joined = await buildTypedJoinInputs({
     runtime,
     record,
@@ -374,21 +347,38 @@ const prepareStageFeedInputs = async (
     writePriorStageInput,
     generatedStageDirectory,
   });
-  const parent = (
-    definition.continuationFrom === null
+  const parent = definition.continuationFrom === null
     && record.order.conversationParent !== null
-  )
     ? await parentConversation(runtime, record)
     : null;
-  const trustedGeneratedFileCount =
-    generated.length + joined.length;
-  const stageInputs = [
-    ...stage.material.inputRefs,
-    ...generated,
-    ...joined,
-  ];
+  const trustedGeneratedFileCount = generated.length + joined.length;
+  const stageInputs = [...stage.material.inputRefs, ...generated, ...joined];
   const inputRefs = ensureInputBundleRef(record, stageInputs);
   return { inputRefs, trustedGeneratedFileCount, parent };
+};
+
+const xuanxueProviderExecutionProfile = (
+  record: XuanxueAiOrderRecord,
+): NonNullable<AiFeedInput["providerExecutionProfile"]> => {
+  const source = record.order.providerExecutionProfile;
+  if (!source) {
+    return defaultGptWebProviderExecutionProfile({
+      owner: "xuanxue-ai-production",
+      reasoningTier: "high",
+    });
+  }
+  return buildGptWebProviderExecutionProfile({
+    profileRef: `agent-normalized:${source.profile_ref}`,
+    accountCapabilityRef: source.account_capability_ref,
+    modelDisplayName: source.model_label,
+    modelFamily: source.model_family,
+    reasoningTier: source.reasoning_effort,
+    executorIdentityRef: source.executor_identity_ref,
+    acceptanceRef: source.ai_acceptance_ref,
+    acceptanceVersion: source.ai_acceptance_version,
+    sourceProfileRef: source.profile_ref,
+    sourceProfileHash: source.profile_hash,
+  });
 };
 
 export const buildXuanxueAiFeedInput = async (
@@ -398,8 +388,7 @@ export const buildXuanxueAiFeedInput = async (
   definition: XuanxueAiStageDefinition,
 ): Promise<AiFeedInput> => {
   const prepared = await prepareStageFeedInputs(runtime, record, stage, definition);
-  const continuation = prepared.parent?.continuation
-    ?? continuationFor(record, definition);
+  const continuation = prepared.parent?.continuation ?? continuationFor(record, definition);
   const taskLabel = prepared.parent?.taskLabel
     ?? labelForStage(record.order.productId, stage.stageId);
   return {
@@ -419,11 +408,9 @@ export const buildXuanxueAiFeedInput = async (
       : stage.material.textPrompt,
     inputRefs: prepared.inputRefs,
     modelName: null,
-    requestedReasoningEffort:
-      record.order.providerExecutionProfile?.reasoning_effort ?? null,
+    providerExecutionProfile: xuanxueProviderExecutionProfile(record),
     timeoutMs: stage.material.timeoutMs,
-    maxFileCount:
-      stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
+    maxFileCount: stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
     requestedBy: "ai-capability",
     missionId: XUANXUE_AI_PRODUCTION_JOB_ID,
     runId: record.order.orderId,

@@ -3,16 +3,34 @@ import { existsSync } from "node:fs";
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import {
+  type InspectorContext,
+  type InspectorFinding,
+  type InspectorOutput,
+  type SessionInspectorOutput,
+} from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import {
-  acceptancePath, acceptanceSupportPaths, authorityPaths,
-  cloudContractPath, cloudCredentialPath, cloudWorkerPath,
-  gatewayModelIdentityPath, pluginPaths, profilePath, removedSecondChainPaths,
-  schedulerPath, schemaPath, storePath,
+  acceptancePath,
+  acceptanceSupportPaths,
+  authorityPaths,
+  cloudContractPath,
+  cloudCredentialPath,
+  cloudWorkerPath,
+  gatewayConversationTitlePath,
+  gatewayExecutionProfilePath,
+  pluginPaths,
+  profilePath,
+  removedSecondChainPaths,
+  schedulerPath,
+  schemaPath,
+  storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
-import { collectXuanxueSourceValues, inspectXuanxueLocalIntervention } from "./components/local-intervention-inspector.js";
+import {
+  collectXuanxueSourceValues,
+  inspectXuanxueLocalIntervention,
+} from "./components/local-intervention-inspector.js";
 
 type Laws = {
   boundary: string;
@@ -82,7 +100,9 @@ const inspectAuthority = (
   }
 };
 
-const sourceContainsDetachedProviderPreflightMarker = (source: SourceFile): boolean => {
+const sourceContainsDetachedProviderPreflightMarker = (
+  sourceFile: SourceFile,
+): boolean => {
   const markers = [
     "provider-input-preflight",
     "provider_input_preflight",
@@ -90,17 +110,17 @@ const sourceContainsDetachedProviderPreflightMarker = (source: SourceFile): bool
     "bytes_base64",
   ];
   const values = [
-    ...source.getDescendantsOfKind(SyntaxKind.Identifier)
+    ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
       .map((node) => String(node.compilerNode.escapedText)),
-    ...source.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
       .map((node) => node.getLiteralText()),
-    ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
+    ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
       .map((node) => node.getLiteralText()),
-    ...source.getDescendantsOfKind(SyntaxKind.TemplateHead)
+    ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead)
       .map((node) => node.getLiteralText()),
-    ...source.getDescendantsOfKind(SyntaxKind.TemplateMiddle)
+    ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle)
       .map((node) => node.getLiteralText()),
-    ...source.getDescendantsOfKind(SyntaxKind.TemplateTail)
+    ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail)
       .map((node) => node.getLiteralText()),
   ];
   return markers.some((marker) => values.some((value) => value.indexOf(marker) >= 0));
@@ -234,26 +254,39 @@ const inspectContracts = (
   requireValues(findings, {
     lawId: laws.boundary,
     checkId: "xuanxue-ai-production/live-model-identity",
-    filePath: gatewayModelIdentityPath,
-    messagePrefix: "Provider model identity capture must contain",
+    filePath: gatewayExecutionProfilePath,
+    messagePrefix: "Provider execution profile control must contain",
     values,
     required: [
-      "captureWebChatModelIdentity",
+      "enforceGptWebExecutionProfile",
       "provider_ui_observation",
-      "reasoningEffort",
+      "providerExecutionProfileProof",
+      "gpt-web-execution-profile.v1",
+      "extra_high",
+      "pro_standard",
+      "pro_extended",
       "GPT-5.6 Sol",
-      "极速",
-      "极高",
-      "data-model-reasoning-effort-slider",
-      "requestedReasoningEffort",
-      "selectWebChatModel",
-      "selectWebChatModelAndReasoning",
-      "selectWebChatReasoningEffort",
-      "locate the visible GPT-5.6 Sol model option",
-      "review_required: provider UI did not expose an unambiguous model identity and reasoning control",
+      "assertStableWebChatDocument",
+      "GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH",
+    ],
+  });
+  requireValues(findings, {
+    lawId: laws.boundary,
+    checkId: "xuanxue-ai-production/conversation-title-finalization",
+    filePath: gatewayConversationTitlePath,
+    messagePrefix: "Provider title finalization must contain",
+    values,
+    required: [
+      "finalizeGptWebConversationTitle",
+      "runExclusivePatrol",
+      "conversationTitleProof",
+      "canonicalConversationUrl",
+      "gpt-web-title-policy.v1",
+      "title_finalization_pending",
     ],
   });
 };
+
 const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
@@ -296,6 +329,8 @@ const inspectDurability = (
       "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_EVIDENCE_MISSING",
       "providerTranscriptJsonl",
       "modelIdentityProof",
+      "providerExecutionProfileProof",
+      "conversationTitleProof",
     ],
   });
   requireValues(findings, {
@@ -321,15 +356,14 @@ const inspectDurability = (
     ],
   });
 };
+
 const inspectPluginBoundaries = (
   findings: InspectorFinding[],
   laws: Laws,
   sources: readonly SourceFile[],
 ): void => {
   const pluginSources = sources.filter((candidate) =>
-    candidate.getFilePath().includes(
-      "/src/plugins/xuanxue-ai-production/",
-    ));
+    candidate.getFilePath().includes("/src/plugins/xuanxue-ai-production/"));
   for (const file of pluginSources) {
     if (file.getDescendantsOfKind(SyntaxKind.VoidExpression).length > 0) {
       findings.push(finding(
@@ -357,6 +391,7 @@ const inspectPluginBoundaries = (
     }
   }
 };
+
 const inspectCloud = (
   findings: InspectorFinding[],
   cloudLaw: string,
@@ -411,27 +446,17 @@ const inspectCloud = (
     filePath: cloudCredentialPath,
     messagePrefix: "Local device credential enforcement must contain",
     values,
-    required: [
-      "XUANXUE_AI_PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID",
-      "0o600",
-    ],
+    required: ["XUANXUE_AI_PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID", "0o600"],
   });
 };
+
 const inspectAcceptance = (
   context: InspectorContext,
   findings: InspectorFinding[],
   durabilityLaw: string,
 ): void => {
-  const acceptance = [
-    acceptancePath,
-    ...acceptanceSupportPaths,
-  ].flatMap((filePath) => {
-    const result = source(
-      context,
-      findings,
-      durabilityLaw,
-      filePath,
-    );
+  const acceptance = [acceptancePath, ...acceptanceSupportPaths].flatMap((filePath) => {
+    const result = source(context, findings, durabilityLaw, filePath);
     return result ? [result] : [];
   });
   if (acceptance.length === 0) return;
@@ -479,6 +504,7 @@ const inspectAcceptance = (
     ],
   });
 };
+
 const inspectDomainEvaluation = async (
   context: InspectorContext,
 ): Promise<Omit<InspectorOutput, "executedChecks">> => {
@@ -512,13 +538,16 @@ const inspectDomainEvaluation = async (
     .filter((file): file is SourceFile => file !== undefined);
   const values = collectXuanxueSourceValues([...sources, ...acceptanceSources]);
   inspectContracts(findings, laws, values);
-  inspectXuanxueRecoveryDurability(
-    context, findings, laws.durability, values,
-  );
+  inspectXuanxueRecoveryDurability(context, findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);
-  inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
+  inspectXuanxueLocalIntervention({
+    context,
+    findings,
+    lawId: laws.intervention,
+    values,
+  });
   inspectAcceptance(context, findings, laws.durability);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
@@ -527,8 +556,13 @@ const inspectDomainEvaluation = async (
     inspectedFiles: [...authorityPaths, ...pluginPaths],
   };
 };
-export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("xuanxue-ai-production requires a runner-owned check session.");
+
+export const inspectDomain = async (
+  context: InspectorContext,
+): Promise<SessionInspectorOutput> => {
+  if (!context.checks) {
+    throw new Error("xuanxue-ai-production requires a runner-owned check session.");
+  }
   let reportJson: unknown;
   let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {

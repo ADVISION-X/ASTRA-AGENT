@@ -4,30 +4,19 @@ export const authorityPaths = [
   "scripts/audit/domains/xuanxue-ai-production/manifest.json",
 ] as const;
 
-export const schemaPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
-export const profilePath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
-export const storePath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
-export const schedulerPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
-export const flowPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts";
-export const cloudContractPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
-export const cloudCredentialPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts";
-export const cloudWorkerPath =
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
-export const gatewayExecutionStatePath =
-  "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
-export const gatewayCanonicalRoutingPath =
-  "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
-export const gatewayModelIdentityPath =
-  "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts";
-export const acceptancePath =
-  "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
+export const schemaPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
+export const profilePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
+export const storePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
+export const schedulerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
+export const flowPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts";
+export const cloudContractPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
+export const cloudCredentialPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts";
+export const cloudWorkerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts";
+export const gatewayExecutionStatePath = "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts";
+export const gatewayCanonicalRoutingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
+export const gatewayExecutionProfilePath = "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts";
+export const gatewayConversationTitlePath = "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts";
+export const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
 
 export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-fixture.ts",
@@ -44,6 +33,7 @@ export const acceptanceSupportPaths = [
 export const removedSecondChainPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
   "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
+  "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
 ] as const;
 
 export const pluginPaths = [
@@ -79,7 +69,10 @@ export const pluginPaths = [
   cloudWorkerPath,
   "src/mediator/xuanxue-ai-production-route.ts",
   "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-  gatewayExecutionStatePath, gatewayCanonicalRoutingPath,
-  gatewayModelIdentityPath,
-  acceptancePath, ...acceptanceSupportPaths,
+  gatewayExecutionStatePath,
+  gatewayCanonicalRoutingPath,
+  gatewayExecutionProfilePath,
+  gatewayConversationTitlePath,
+  acceptancePath,
+  ...acceptanceSupportPaths,
 ] as const;

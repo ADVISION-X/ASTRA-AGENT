@@ -138,8 +138,9 @@ export const ensureProviderWorkspaceFocused = async (input: {
   allowAnyProviderTab?: boolean;
 }): Promise<void> => {
   if (input.context.webChatExecution) {
-    // The managed browser routes the one physical provider tab by exact
-    // system-renamed conversation title and then verifies the prompt marker.
+    // Managed GPT Web routing is owned by the Session Controller and proves the
+    // exact canonical pathname plus immutable logical-turn marker. The readable
+    // title is finalization evidence only and is never a routing identity.
     return;
   }
   const workspaceId = resolveWebChatWorkspaceId(input.request);

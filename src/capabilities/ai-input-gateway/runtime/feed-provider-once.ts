@@ -18,10 +18,7 @@ import {
   buildResumedWebChatInputPackage,
   type AiFeedInputPackage,
 } from "./ai-feed-input-package.js";
-import {
-  buildAiFeedFailure,
-  buildAiFeedSuccess,
-} from "./ai-feed-proof.js";
+import { buildAiFeedFailure, buildAiFeedSuccess } from "./ai-feed-proof.js";
 import { checkAiFeedRateGuard } from "./ai-feed-rate-guard.js";
 import { prepareManagedWebChatExecution } from "./web-chat-managed-execution.js";
 import {
@@ -55,8 +52,7 @@ const uploadedFilesFromError = (error: unknown): AiProviderUploadedFileProof[] =
   const files = (error as { uploadedFiles?: unknown }).uploadedFiles;
   if (!Array.isArray(files)) return [];
   return files.filter((file): file is AiProviderUploadedFileProof => (
-    typeof file === "object"
-    && file !== null
+    typeof file === "object" && file !== null
     && typeof (file as Partial<AiProviderUploadedFileProof>).inputRefId === "string"
     && typeof (file as Partial<AiProviderUploadedFileProof>).step === "number"
     && typeof (file as Partial<AiProviderUploadedFileProof>).fileName === "string"
@@ -65,11 +61,12 @@ const uploadedFilesFromError = (error: unknown): AiProviderUploadedFileProof[] =
   ));
 };
 
-const responseEvidenceFromError = (error: unknown): Partial<AiProviderRawResponse> | undefined => {
+const responseEvidenceFromError = (
+  error: unknown,
+): Partial<AiProviderRawResponse> | undefined => {
   const uploadedFiles = uploadedFilesFromError(error);
   const attachmentUploadProof = typeof error === "object"
-    && error !== null
-    && "attachmentUploadProof" in error
+    && error !== null && "attachmentUploadProof" in error
     ? (error as { attachmentUploadProof?: WebChatAttachmentUploadProof }).attachmentUploadProof
     : undefined;
   return uploadedFiles.length > 0 || attachmentUploadProof
@@ -89,16 +86,16 @@ const buildRateGuardFailure = (input: {
   cooldownMs: number;
   reason: string | null;
 }): AiFeedResult => buildAiFeedFailure({
-    request: input.request,
-    childCapabilityId: input.childCapabilityId,
-    inputPackage: input.inputPackage,
-    startedAt: input.startedAt,
-    transport: input.transport,
-    status: "review_required",
-    reason: input.reason ?? "AI feed rate guard blocked request.",
-    cooldownMs: input.cooldownMs,
-    providerLeaseId: null,
-  });
+  request: input.request,
+  childCapabilityId: input.childCapabilityId,
+  inputPackage: input.inputPackage,
+  startedAt: input.startedAt,
+  transport: input.transport,
+  status: "review_required",
+  reason: input.reason ?? "AI feed rate guard blocked request.",
+  cooldownMs: input.cooldownMs,
+  providerLeaseId: null,
+});
 
 const buildProviderFailure = (input: {
   request: AiFeedInput;
@@ -114,10 +111,7 @@ const buildProviderFailure = (input: {
 }): AiFeedResult => {
   const errorResponse = responseEvidenceFromError(input.error);
   const response = errorResponse || input.response
-    ? {
-        ...(errorResponse ?? {}),
-        ...(input.response ?? {}),
-      }
+    ? { ...(errorResponse ?? {}), ...(input.response ?? {}) }
     : undefined;
   return buildAiFeedFailure({
     request: input.request,
@@ -125,9 +119,7 @@ const buildProviderFailure = (input: {
     inputPackage: input.inputPackage,
     startedAt: input.startedAt,
     transport: input.transport,
-    status: input.classification === "review_required"
-      ? "review_required"
-      : "failed",
+    status: input.classification === "review_required" ? "review_required" : "failed",
     reason: input.error instanceof Error ? input.error.message : String(input.error),
     cooldownMs: input.cooldownMs,
     providerLeaseId: input.providerLeaseId,
@@ -146,11 +138,10 @@ const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
     : {}),
 });
 
-const executeProviderFeed = (
-  input: ExecuteAiFeedOnceInput,
-) => input.adapter.feed(input.request, buildAdapterFeedContext(input));
+const executeProviderFeed = (input: ExecuteAiFeedOnceInput) =>
+  input.adapter.feed(input.request, buildAdapterFeedContext(input));
 
-const buildProviderSuccess = async (input: {
+const buildProviderSuccess = (input: {
   request: AiFeedInput;
   dataDir: string;
   childCapabilityId: AiInputGatewayChildCapabilityId;
@@ -159,24 +150,25 @@ const buildProviderSuccess = async (input: {
   cooldownMs: number;
   response: Awaited<ReturnType<AiProviderAdapter["feed"]>>;
   providerLeaseId: string | null;
-}): Promise<AiFeedResult> => {
-  return buildAiFeedSuccess({
-    dataDir: input.dataDir,
-    request: input.request,
-    childCapabilityId: input.childCapabilityId,
-    inputPackage: input.inputPackage,
-    response: input.response,
-    startedAt: input.startedAt,
-    cooldownMs: input.cooldownMs,
-    providerLeaseId: input.providerLeaseId,
-  });
-};
+}): Promise<AiFeedResult> => buildAiFeedSuccess({
+  dataDir: input.dataDir,
+  request: input.request,
+  childCapabilityId: input.childCapabilityId,
+  inputPackage: input.inputPackage,
+  response: input.response,
+  startedAt: input.startedAt,
+  cooldownMs: input.cooldownMs,
+  providerLeaseId: input.providerLeaseId,
+});
 
 const RESUMABLE_EXECUTION_STATUSES = new Set([
   "submitted_transient",
   "conversation_canonicalized",
   "waiting_provider",
   "response_checkpointed",
+  "title_finalization_pending",
+  "title_verified",
+  "finalized",
   "recovery_pending",
   "response_captured",
   "review_required",
@@ -189,7 +181,7 @@ const waitForCheckpointPublication = async (input: {
   while (input.active()) {
     const recovered = await input.recover();
     if (recovered) return recovered;
-    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
   }
   return new Promise<AiFeedResult>(() => undefined);
 };
@@ -201,10 +193,9 @@ const prepareFeedInputPackage = async (
   resumed: boolean;
   rateGuardAlreadyRecorded: boolean;
 }> => {
-  const persisted =
-    input.transport === "web-chat" && input.executionId
-      ? await readWebChatExecution(input.dataDir, input.executionId)
-      : null;
+  const persisted = input.transport === "web-chat" && input.executionId
+    ? await readWebChatExecution(input.dataDir, input.executionId)
+    : null;
   const resumed = Boolean(
     persisted
     && RESUMABLE_EXECUTION_STATUSES.has(persisted.status)
@@ -234,17 +225,13 @@ interface ManagedProviderInput {
   cooldownMs: number;
 }
 
-type ManagedExecution =
-  Awaited<ReturnType<typeof prepareManagedWebChatExecution>>;
+type ManagedExecution = Awaited<ReturnType<typeof prepareManagedWebChatExecution>>;
 
 const recoverManagedCheckpoint = async (
   input: ManagedProviderInput,
   providerLeaseId: string | null,
 ): Promise<AiFeedResult | null> => {
-  if (
-    input.execution.transport !== "web-chat"
-    || !input.execution.executionId
-  ) return null;
+  if (input.execution.transport !== "web-chat" || !input.execution.executionId) return null;
   const recovered = await recoverCheckpointedWebChatResponse({
     request: input.execution.request,
     dataDir: input.execution.dataDir,
@@ -282,17 +269,11 @@ const raceProviderWithCheckpoint = async (input: {
   let checkpointPatrolActive = true;
   try {
     return await Promise.race([
-      input.providerResponse.then((response) => ({
-        kind: "provider" as const,
-        response,
-      })),
+      input.providerResponse.then((response) => ({ kind: "provider" as const, response })),
       waitForCheckpointPublication({
         active: () => checkpointPatrolActive,
         recover: input.recoverCheckpoint,
-      }).then((result) => ({
-        kind: "checkpoint" as const,
-        result,
-      })),
+      }).then((result) => ({ kind: "checkpoint" as const, result })),
     ]);
   } finally {
     checkpointPatrolActive = false;
@@ -306,25 +287,16 @@ const buildManagedProviderFailure = async (
 ): Promise<AiFeedResult> => {
   let effectiveError = error;
   try {
-    const recovered = await recoverManagedCheckpoint(
-      input,
-      managed?.providerLeaseId ?? null,
-    );
-    if (recovered) {
-      return recovered;
-    }
+    const recovered = await recoverManagedCheckpoint(input, managed?.providerLeaseId ?? null);
+    if (recovered) return recovered;
   } catch (checkpointError) {
     effectiveError = checkpointError;
   }
   const recordedClassification = managed
     ? await managed.markFailure(effectiveError)
     : null;
-  const persisted = !recordedClassification
-    && input.execution.executionId
-    ? await readWebChatExecution(
-        input.execution.dataDir,
-        input.execution.executionId,
-      )
+  const persisted = !recordedClassification && input.execution.executionId
+    ? await readWebChatExecution(input.execution.dataDir, input.execution.executionId)
     : null;
   const classification = recordedClassification
     ?? (persisted?.status === "review_required"
@@ -342,13 +314,7 @@ const buildManagedProviderFailure = async (
     error: effectiveError,
     classification,
     ...(submission
-      ? {
-          response: {
-            webChatUrl:
-              submission.canonicalConversationUrl
-              ?? submission.transientConversationUrl,
-          },
-        }
+      ? { response: { webChatUrl: submission.canonicalConversationUrl ?? submission.transientConversationUrl } }
       : {}),
   });
   const attachmentProof = failure.providerProof.attachmentUploadProof;
@@ -360,16 +326,31 @@ const buildManagedProviderFailure = async (
   return failure;
 };
 
+const completeCheckpointWinnerWithoutSecondChain = async (input: {
+  providerResponse: Promise<AiProviderRawResponse>;
+  managed: ManagedExecution;
+  checkpointResult: AiFeedResult;
+}): Promise<AiFeedResult> => {
+  // The checkpoint protects completed answer bytes, but we never detach a
+  // second post-processing chain. Finish the same provider execution before
+  // returning so title/profile state and leases have one owner.
+  try {
+    const response = await input.providerResponse;
+    await input.managed.markResponse(response.rawText);
+  } catch (error) {
+    await input.managed.markPostProcessingFailure(error);
+    throw error;
+  }
+  return input.checkpointResult;
+};
+
 const executeManagedProvider = async (
   input: ManagedProviderInput,
 ): Promise<AiFeedResult> => {
   let managed: ManagedExecution | null = null;
   try {
-    const recoveredBeforeBrowser =
-      await recoverManagedCheckpoint(input, null);
-    if (recoveredBeforeBrowser) {
-      return recoveredBeforeBrowser;
-    }
+    const recoveredBeforeBrowser = await recoverManagedCheckpoint(input, null);
+    if (recoveredBeforeBrowser) return recoveredBeforeBrowser;
     managed = await prepareManagedWebChatExecution(
       input.execution,
       input.inputPackage.inputHash,
@@ -378,24 +359,18 @@ const executeManagedProvider = async (
       ...input.execution,
       request: managed.request,
       ...(managed.browser ? { browser: managed.browser } : {}),
-      ...(managed.webChatExecution
-        ? { webChatExecution: managed.webChatExecution }
-        : {}),
+      ...(managed.webChatExecution ? { webChatExecution: managed.webChatExecution } : {}),
     });
     const outcome = await raceProviderWithCheckpoint({
       providerResponse,
-      recoverCheckpoint: () =>
-        recoverManagedCheckpoint(input, managed!.providerLeaseId),
+      recoverCheckpoint: () => recoverManagedCheckpoint(input, managed!.providerLeaseId),
     });
     if (outcome.kind === "checkpoint") {
-      const postProcessing = managed;
-      managed = null;
-      void providerResponse
-        .then((response) => postProcessing.markResponse(response.rawText))
-        .catch((error: unknown) =>
-          postProcessing.markPostProcessingFailure(error))
-        .finally(() => postProcessing.release());
-      return outcome.result;
+      return await completeCheckpointWinnerWithoutSecondChain({
+        providerResponse,
+        managed,
+        checkpointResult: outcome.result,
+      });
     }
     const response = outcome.response;
     await managed.markResponse(response.rawText);
@@ -418,19 +393,15 @@ export const executeAiFeedOnce = async (
   input: ExecuteAiFeedOnceInput,
 ): Promise<AiFeedResult> => {
   const startedAt = new Date().toISOString();
-  const {
-    inputPackage,
-    rateGuardAlreadyRecorded,
-  } = await prepareFeedInputPackage(input);
+  const { inputPackage, rateGuardAlreadyRecorded } = await prepareFeedInputPackage(input);
   const rate = rateGuardAlreadyRecorded
-      ? { ok: true as const, cooldownMs: 0, reason: null }
-      : checkAiFeedRateGuard({
+    ? { ok: true as const, cooldownMs: 0, reason: null }
+    : checkAiFeedRateGuard({
         inputHash: inputPackage.inputHash,
         roundId: input.request.roundId,
         transport: input.transport,
         executionId: input.executionId ?? null,
-        supersededExecutionId:
-          input.supersededExecutionId ?? null,
+        supersededExecutionId: input.supersededExecutionId ?? null,
       });
   if (!rate.ok) return buildRateGuardFailure({ ...input, inputPackage, startedAt, ...rate });
   return executeManagedProvider({

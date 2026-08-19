@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 
 import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import type { AiProviderUploadedFileProof, WebChatAttachmentUploadProof, WebChatExecutionContext } from "../contracts/ai-provider-adapter.contract.js";
+import type {
+  AiProviderUploadedFileProof,
+  WebChatAttachmentUploadProof,
+  WebChatExecutionContext,
+  WebChatPageActionProof,
+} from "../contracts/ai-provider-adapter.contract.js";
 import type { AiInputGatewayProgress } from "../contract.js";
 import type { AiFeedInput } from "../schema.js";
 import {
@@ -16,9 +21,7 @@ import {
   type WebChatExecutionFailure,
   type WebChatExecutionRecord,
 } from "./web-chat-execution-state.js";
-import {
-  assertWebChatCanonicalConversationBinding,
-} from "./web-chat-canonical-binding.js";
+import { assertWebChatCanonicalConversationBinding } from "./web-chat-canonical-binding.js";
 import { persistWebChatResponseCheckpoint } from "./web-chat-response-checkpoint.js";
 import type { SingleTabWebChatBrowser } from "./web-chat-single-tab-browser.js";
 import {
@@ -91,7 +94,8 @@ const assertBinding = (
   executionId: input.getRecord().executionId,
   providerKind: input.getRecord().providerKind,
   canonicalConversationUrl: submission.canonicalConversationUrl,
-  continuationConversationUrl: input.source.request.providerContinuationRef?.providerPageUrl ?? null,
+  continuationConversationUrl:
+    input.source.request.providerContinuationRef?.providerPageUrl ?? null,
 });
 
 const buildSubmissionObservedCallback = (
@@ -137,17 +141,84 @@ const buildCanonicalizedCallback = (
   const record = input.getRecord();
   const current = record.submission;
   await update({
-    status: record.responseCheckpoint ? "response_checkpointed" : "conversation_canonicalized",
-    submission: current ? {
-      ...submission,
-      submittedAt: current.submittedAt,
-    } : submission,
+    status: record.responseCheckpoint
+      ? (record.conversationTitle ? "title_finalization_pending" : "response_checkpointed")
+      : "conversation_canonicalized",
+    submission: current ? { ...submission, submittedAt: current.submittedAt } : submission,
     forkActionProof: record.forkActionProof && submission.canonicalConversationUrl ? {
       ...record.forkActionProof,
       childConversationUrl: submission.canonicalConversationUrl,
     } : record.forkActionProof,
   });
 };
+
+const appendPageAction = (
+  record: WebChatExecutionRecord,
+  proof: WebChatPageActionProof,
+): WebChatPageActionProof[] => [...record.pageActionLedger, proof].slice(-50);
+
+const buildGovernanceCallbacks = (
+  input: BuildExecutionContextInput,
+  update: ExecutionUpdater,
+): Pick<
+  WebChatExecutionContext,
+  | "onPageActionCommitted"
+  | "onProviderExecutionProfileVerified"
+  | "onConversationTitleFinalizationStarted"
+  | "onConversationTitleVerified"
+  | "onGeneratedImageCheckpointed"
+> => ({
+  onPageActionCommitted: async (proof) => {
+    await update({ pageActionLedger: appendPageAction(input.getRecord(), proof) });
+  },
+  onProviderExecutionProfileVerified: async (proof) => {
+    const binding = input.getRecord().providerExecutionProfileBinding;
+    if (!binding || binding.profileHash !== proof.profileHash) {
+      throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_PROOF_BINDING_MISMATCH");
+    }
+    await update({ providerExecutionProfileProof: proof });
+  },
+  onConversationTitleFinalizationStarted: async (canonicalConversationUrl) => {
+    const title = input.getRecord().conversationTitle;
+    if (!title) return;
+    await update({
+      status: "title_finalization_pending",
+      conversationTitle: {
+        ...title,
+        status: "in_progress",
+        canonicalConversationUrl,
+        attemptCount: title.attemptCount + 1,
+      },
+    });
+  },
+  onConversationTitleVerified: async (proof) => {
+    const title = input.getRecord().conversationTitle;
+    if (!title || title.expectedTitleHash !== proof.expectedTitleHash) {
+      throw new Error("review_required: CHATGPT_TITLE_PROOF_BINDING_MISMATCH");
+    }
+    await update({
+      status: "title_verified",
+      conversationTitle: {
+        ...title,
+        status: "verified",
+        previousObservedTitle: proof.previousObservedTitle,
+        observedTitle: proof.observedTitle,
+        canonicalConversationUrl: proof.canonicalConversationUrl,
+        verifiedAt: proof.verifiedAt,
+        evidenceRef: proof.evidenceRef,
+        evidenceHash: proof.evidenceHash,
+      },
+    });
+  },
+  onGeneratedImageCheckpointed: async ({ outputHash }) => {
+    const record = input.getRecord();
+    await update({
+      status: record.conversationTitle
+        ? "title_finalization_pending" : "response_checkpointed",
+      responseHash: outputHash,
+    });
+  },
+});
 
 const buildSubmissionCallbacks = (
   input: BuildExecutionContextInput,
@@ -176,8 +247,10 @@ const buildResponseCheckpointCallback = (
       answerText,
       pageUrl,
     });
+    const record = input.getRecord();
     await update({
-      status: "response_checkpointed",
+      status: record.conversationTitle
+        ? "title_finalization_pending" : "response_checkpointed",
       responseCheckpoint: checkpoint,
       responseHash: checkpoint.rawOutputHash,
     });
@@ -186,7 +259,9 @@ const buildResponseCheckpointCallback = (
   },
 });
 
-const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecutionContext => {
+const buildExecutionContext = (
+  input: BuildExecutionContextInput,
+): WebChatExecutionContext => {
   const record = input.getRecord();
   const update = createExecutionUpdater(input);
   return {
@@ -196,6 +271,15 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
     requestTextPrompt: input.source.request.textPrompt,
     turnMarker: record.turnMarker,
     submittedPromptHash: record.submittedPromptHash,
+    get providerExecutionProfileBinding() {
+      return input.getRecord().providerExecutionProfileBinding;
+    },
+    get providerExecutionProfileProof() {
+      return input.getRecord().providerExecutionProfileProof;
+    },
+    get conversationTitle() {
+      return input.getRecord().conversationTitle;
+    },
     resumeSubmission: input.resume ? record.submission : null,
     resumeUploadedFiles: input.resume ? record.uploadedFiles : [],
     resumeAttachmentUploadProof: input.resume ? record.attachmentUploadProof : null,
@@ -204,14 +288,13 @@ const buildExecutionContext = (input: BuildExecutionContextInput): WebChatExecut
     globalBrowser: input.singleTabBrowser?.globalBrowser ?? null,
     runExclusivePatrol: (operation) => {
       if (!input.singleTabBrowser) {
-        throw new Error(
-          "review_required: managed web-chat exclusive patrol is unavailable.",
-        );
+        throw new Error("review_required: managed web-chat exclusive patrol is unavailable.");
       }
       return input.singleTabBrowser.runExclusivePatrol(operation);
     },
     ...buildSubmissionCallbacks(input, update),
     ...buildResponseCheckpointCallback(input, update),
+    ...buildGovernanceCallbacks(input, update),
   };
 };
 
@@ -220,13 +303,16 @@ const markActiveExecutionResponse = async (
   state: ActiveExecutionState,
   rawText: string,
 ): Promise<void> => {
+  const title = state.record.conversationTitle;
+  if (title && title.status !== "verified") {
+    throw new Error("WEB_CHAT_TITLE_FINALIZATION_NOT_READY:provider result cannot finalize without title proof");
+  }
   state.record = await updateWebChatExecution({
     dataDir: input.dataDir,
     record: state.record,
     patch: {
-      status: "response_captured",
-      responseHash:
-        `sha256:${createHash("sha256").update(rawText).digest("hex")}`,
+      status: title ? "finalized" : "response_captured",
+      responseHash: `sha256:${createHash("sha256").update(rawText).digest("hex")}`,
     },
   });
   await reportProgress(input, "response_captured");
@@ -237,19 +323,26 @@ const markActiveExecutionFailure = async (
   state: ActiveExecutionState,
   error: unknown,
 ): Promise<WebChatFailureClassification> => {
-  const classification: WebChatExecutionFailure["classification"] =
-    classifyWebChatFailure(
-      error,
-      Boolean(state.record.submission),
-      state.record.failures.map((failure) => failure.reason),
-    );
+  const classification: WebChatExecutionFailure["classification"] = classifyWebChatFailure(
+    error,
+    Boolean(state.record.submission),
+    state.record.failures.map((failure) => failure.reason),
+  );
   const recoverable = classification === "recovery_pending";
   const reason = webChatFailureReason(error);
+  const title = state.record.conversationTitle;
   state.record = await updateWebChatExecution({
     dataDir: input.dataDir,
     record: state.record,
     patch: {
       status: classification,
+      ...(title && state.record.responseHash ? {
+        conversationTitle: {
+          ...title,
+          status: classification === "review_required"
+            ? "review_required" : "recovery_pending",
+        },
+      } : {}),
       failures: [
         ...(state.record.failures ?? []),
         {
@@ -273,11 +366,14 @@ const markActivePostProcessingFailure = async (
   error: unknown,
 ): Promise<void> => {
   const reason = webChatFailureReason(error);
+  const status = state.record.conversationTitle?.status === "verified"
+    ? "finalized" : state.record.responseCheckpoint
+      ? "title_finalization_pending" : "response_captured";
   state.record = await updateWebChatExecution({
     dataDir: input.dataDir,
     record: state.record,
     patch: {
-      status: "response_captured",
+      status,
       failures: [
         ...(state.record.failures ?? []),
         {
@@ -286,7 +382,7 @@ const markActivePostProcessingFailure = async (
           phase: state.record.status,
           classification: "recovery_pending" as const,
           recoverable: true,
-          reason: `post_processing_after_response_publication: ${reason}`,
+          reason: `post_processing_after_response_checkpoint: ${reason}`,
         },
       ].slice(-20),
     },
@@ -304,9 +400,7 @@ const buildActiveExecution = (
   const webChatExecution = buildExecutionContext({
     source: input,
     getRecord: () => state.record,
-    setRecord: (next) => {
-      state.record = next;
-    },
+    setRecord: (next) => { state.record = next; },
     singleTabBrowser: state.singleTabBrowser,
     resume: state.resume,
     releasePendingSubmission,
@@ -317,12 +411,9 @@ const buildActiveExecution = (
     webChatExecution,
     providerLeaseId: state.capacityLease.leaseId,
     durableSubmission: () => state.record.submission,
-    markResponse: (rawText) =>
-      markActiveExecutionResponse(input, state, rawText),
-    markFailure: (error) =>
-      markActiveExecutionFailure(input, state, error),
-    markPostProcessingFailure: (error) =>
-      markActivePostProcessingFailure(input, state, error),
+    markResponse: (rawText) => markActiveExecutionResponse(input, state, rawText),
+    markFailure: (error) => markActiveExecutionFailure(input, state, error),
+    markPostProcessingFailure: (error) => markActivePostProcessingFailure(input, state, error),
     async release() {
       releasePendingSubmission();
       await state.singleTabBrowser?.releaseInitialMutationLease();
@@ -332,14 +423,19 @@ const buildActiveExecution = (
   };
 };
 
-export const prepareManagedWebChatExecution = async (input: ManagedWebChatInput, inputHash: string): Promise<ManagedWebChatExecution> => {
+export const prepareManagedWebChatExecution = async (
+  input: ManagedWebChatInput,
+  inputHash: string,
+): Promise<ManagedWebChatExecution> => {
   if (input.transport === "web-chat") {
     try {
       return buildActiveExecution(input, await startActiveExecution({
         source: input,
         inputHash,
-        reportProgress: (phase) =>
-          reportProgress(input, phase as AiInputGatewayProgress["phase"]),
+        reportProgress: (phase) => reportProgress(
+          input,
+          phase as AiInputGatewayProgress["phase"],
+        ),
       }));
     } catch (error) {
       const executionId = managedExecutionIdFor(input, inputHash);
