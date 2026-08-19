@@ -1,105 +1,224 @@
 ---
 name: "GrassEye Browser Authority Infrastructure"
-description: "Governs the production exact-target Chrome authority, extension, Native Host, profile enrollment, release identity and fail-closed lifecycle."
-applyTo: "src/lib/browser/**, src/lib/local-runtime/workbench-browser-support.ts, src/lib/local-runtime/workbench-assembly.ts, src/lib/local-runtime/workbench-status.ts, src/lib/local-runtime/workbench.ts, src/app/server.ts, scripts/audit/domains/local-browser-session/**, scripts/acceptance/local-browser-*.ts"
+description: "Governs the single production Chrome authority chain, execution-bound leases, exact target/document identity, Native Messaging transport, managed profile/process identity, release activation, HA handover and cross-repo browser proof."
+applyTo: "src/lib/browser/**,src/lib/local-runtime/workbench-browser-authority-support.ts,src/lib/local-runtime/workbench-assembly.ts,src/lib/local-runtime/workbench-status.ts,src/capabilities/**,src/plugins/**,scripts/audit/domains/local-browser-session/**,scripts/acceptance/local-browser-*.ts,.github/workflows/browser-*.yml"
 ---
 
-# GrassEye Browser Authority Infrastructure
+# GrassEye Browser Authority Infrastructure｜终态法案
 
 status: active  
-version: 2026-08-18.5  
-constitutional objective: `browserSession 未认证` 在生产类型、对象、API、运行态和证据中不可表示。
+version: 2026-08-20.1  
+capabilityDomain: `local-browser-session`  
+constitutional objective: **生产世界中未认证 Browser session / 半成品 BrowserController / 长期 TargetSession 不可表示。**
 
-## 0. 唯一合法生产语义
+本文件原位替代 2026-08-18.5 过渡版本。与本文件冲突的旧法条、旧施工图、旧 API、旧 audit 绑定和旧 generated PASS 均无效；必须迁移引用后物理退出，不得保留兼容桥或第二真相。
 
-浏览器数据面只有两个状态：
+## 0. 生产信任边界与唯一语义
+
+本文的“永远禁止”只在以下生产根信任成立时作机器可验证承诺：
+
+- 运行字节属于已签名、未吊销的 `BrowserArtifactSetIdentity`；
+- 当前 `BrowserActivationTuple` 精确签名、未过期、未被撤销且 release sequence 不低于本机 minimum accepted sequence；
+- OS/kernel/credential store/release signing root 未被判定失陷；
+- Browser Worker、Chrome process、专用 profile、managed policy 与 installed extension tree 完整性读回通过；
+- xuanxue execution writer fence 当前有效。
+
+任一根信任不能证明时，唯一结果是：
 
 ```txt
 AUTHORITY_ABSENT
-AUTHENTICATED_AUTHORITY_PRESENT
++ browser work BLOCKED / not admitted
 ```
 
-不存在第三种状态。禁止创建、返回、注入、缓存或展示“已经存在但尚未认证”的 BrowserSession、BrowserController 数据面、TargetSession 或兼容对象。
-
-认证前允许存在的只有 Browser infrastructure control plane：profile enrollment、process supervisor、listener、Native Host transport candidate、challenge、pending authority candidate。它们没有页面命令接口、没有 target/document ref mint 权、不能注入任何业务 owner。
-
-`AuthenticatedBrowserAuthority` 必须在 Controller challenge、Extension transcript proof、Controller authority grant、Extension grant ACK 全部成功后才由唯一 `BrowserAuthorityIssuer.commit()` 原子变成 PRESENT。握手任一步失败、Port/Host/Controller/Chrome 断裂、liveness lease 到期、profile/process/release/protocol 身份漂移，第一同步副作用必须是 revoke authority；随后才能 fail pending、写日志、detach、重连或清理。
-
-## 1. 唯一生产链
+Browser 数据面只有：
 
 ```txt
-Business owner
-  -> BrowserController（仅在 Authority PRESENT 后由 composition root 构造）
-      -> exact-target BrowserCommandRuntime
-          -> 0600 controller-native.sock
-              -> signed/self-contained Rust Native Host
-                  -> Chrome Native Messaging
-                      -> fixed-id MV3 extension
-                          -> one NativePortActor per port epoch
-                              -> chrome.debugger
-                                  -> exact target + exact document generation
+ABSENT
+PRESENT(AuthenticatedBrowserAuthority)
 ```
 
-禁止第二 BrowserController、Playwright/CDP 公共旁路、AppleScript/JXA、系统鼠标键盘、clipboard、active-tab/current-page/URL-first fallback、第二 Native Host、第二 localhost/WebSocket transport、load-unpacked 生产链。
+连接中、认证中、退避中、修复中、启动中只属于 `BrowserInfrastructureControlState`，都不是 session，也没有页面命令能力。
 
-## 2. 运行身份
-
-每条生产命令必须同时绑定：
+## 1. 唯一生产拓扑
 
 ```txt
-releaseIdentity
-protocolVersion
-profileEnrollmentId
-controllerSessionId
+xuanxue durable ai_production_jobs
+  -> current database execution lease / writer fence
+      -> exactly one elected Browser Worker for that execution
+          -> BrowserAuthorityBroker
+              -> AuthenticatedBrowserAuthorityLease
+                  -> BrowserTargetLeaseManager
+                      -> exact BrowserTargetLease + BrowserDocumentRef
+                          -> BrowserCommandActor
+                              -> AuthenticatedControllerHostChannel
+                                  -> one signed Rust Native Host process
+                                      -> one Chrome Native Messaging Port
+                                          -> fixed-id MV3 NativePortActor
+                                              -> governed CommandRegistry
+                                                  -> chrome.debugger
+                                                      -> exact target / exact document
+```
+
+控制面：
+
+```txt
+browserctl
+  -> InstallVerifier / ManagedPolicyReadback
+  -> BrowserProcessSupervisor
+  -> BrowserInfrastructureSupervisor
+  -> TransportActor + TransportReducer
+  -> TransportAuthenticator
+  -> BrowserAuthorityIssuer
+  -> Repair / Activation / Rollback owner
+```
+
+禁止：第二 Browser transport、第二 Native Host、第二 Controller IPC、Playwright/CDP 公共旁路、AppleScript/JXA、系统鼠标键盘、clipboard、native picker、active-tab/current-page/first-page/URL-first fallback、业务模块自行重连、运行时 capability intersection、永久 legacy bridge。
+
+## 2. Owner 与对象模型
+
+唯一 owner：
+
+| 责任 | owner |
+|---|---|
+| install / verify / doctor / repair / activate / rollback | `browserctl` |
+| 专用 Chrome process/profile | `BrowserProcessSupervisor` |
+| socket/Host/Port/control-state/reconnect | `BrowserInfrastructureSupervisor` + one `TransportActor/Reducer` |
+| authority candidate / commit / revoke | `BrowserAuthorityIssuer` |
+| 业务 authority admission | `BrowserAuthorityBroker` |
+| exact target/document lease | `BrowserTargetLeaseManager` |
+| command queue/permit/send/completion | `BrowserCommandActor` |
+| extension command execution | MV3 `CommandRegistry` |
+| software bytes identity | `BrowserArtifactSetIdentity` |
+| exact runnable combination | `BrowserActivationTuple` |
+| anti-rollback/revocation | `BrowserReleaseSecurityPolicy` |
+| release evidence verdict input | `BrowserReleaseProofManifest` |
+| cloud job/execution/lease/fence/business verdict | `xuanxue-web` AI production owner |
+| browser dynamic proof consumption | xuanxue `DynamicProofController` through the one `AgentRuntimeReceipt` |
+
+生产类型必须体现：
+
+```ts
+type BrowserAuthoritySlot =
+  | { readonly kind: "ABSENT" }
+  | { readonly kind: "PRESENT"; readonly authority: AuthenticatedBrowserAuthority };
+```
+
+禁止生产类型、标识符或正式 API：
+
+```txt
+UnauthenticatedBrowserSession
+LocalBrowserSessionState
+BrowserTargetSession
+BrowserController.createTargetSession
+BrowserStateSnapshot.transportReady
+waitUntilReady
+READY_COMPATIBLE
+```
+
+`BrowserAuthorityBroker` 是业务唯一 Browser 能力入口。业务不得持有 raw Supervisor、raw Transport、raw Controller socket、Native Port、Chrome raw ids 或可跨 authority epoch 长期复用的 target object。
+
+## 3. Infrastructure Control State / Actor / Reducer
+
+唯一控制面状态机：
+
+```ts
+type BrowserInfrastructureControlState =
+  | { readonly kind: "OFFLINE" }
+  | { readonly kind: "VERIFYING_INSTALL"; readonly attempt: number }
+  | { readonly kind: "STARTING_CHROME"; readonly processEpoch: bigint }
+  | { readonly kind: "BINDING_OWNER"; readonly supervisorEpoch: bigint }
+  | { readonly kind: "CONNECTING_HOST"; readonly connectionGeneration: bigint }
+  | { readonly kind: "AUTHENTICATING_TRANSPORT"; readonly nativePortEpoch: bigint }
+  | { readonly kind: "PROBING_CAPABILITIES"; readonly transcriptHash: string }
+  | { readonly kind: "AUTHORITY_AVAILABLE"; readonly authorityRefHash: string; readonly activationTupleHash: string }
+  | { readonly kind: "DRAINING"; readonly reason: string }
+  | { readonly kind: "BACKOFF"; readonly attempt: number; readonly nextProbeAtMonotonicNs: bigint }
+  | { readonly kind: "REPAIR_REQUIRED"; readonly code: BrowserInfrastructureErrorCode }
+  | { readonly kind: "STOPPING" };
+```
+
+socket callback、Port callback、heartbeat、challenge response、command completion、timeout、process exit、activation/update request 只能投递 typed event；只有 `TransportActor/Reducer` 可以改变 control state、sequence、authority slot、current connection、reconnect schedule 或 shutdown。
+
+每个 event 在任何副作用前至少验证：
+
+```txt
+artifactSetHash
+activationTupleHash
+profileEnrollmentHash
+chromeProcessIncarnationHash
+supervisorEpoch
+controllerIncarnation
 connectionGeneration
+hostProcessEpoch
 nativePortEpoch
-authorityId
-authorityCertificateHash
-commandId
-sequence
-deadlineAt
-mutationClass
+authorityEpoch (post-auth only)
+sourceChannelToken
 ```
 
-Controller 与 Extension 每个 Port epoch 使用临时 P-256 ECDH，HKDF-SHA256 导出 frame key；command/response 使用 AES-256-GCM，AAD 至少包含 authorityId + generation + portEpoch + sequence。Extension authentication、authority grant、grant ACK、heartbeat 使用同一临时密钥的 HMAC proof。Native Host 不拥有密钥、target、业务状态或 evidence，只转发有界消息并验证外层 release/protocol/caller/profile process identity。
+## 4. Profile / Chrome Process / Managed Policy
 
-旧 generation、旧 port、旧 authority、旧 permit、旧异步 completion、旧 heartbeat 和迟到 disconnect 在任何状态修改或页面副作用前必须被拒绝。
-
-## 3. Profile 与 Chrome process enrollment
-
-首次 profile enrollment 必须显式提供并验证：
+生产必须使用受管专用 Browser Worker profile。`browserctl enroll-profile` 是唯一 enrollment owner。Enrollment 至少绑定：
 
 ```txt
-GRASSEYE_CHROME_USER_DATA_DIR
-GRASSEYE_BROWSER_PROFILE_REF
-GRASSEYE_BROWSER_PROFILE_DIRECTORY
-GRASSEYE_CHROME_EXECUTABLE
-fixed extension id = mepfnlhndaiihhfejbbhfehegpbdnipl
-releaseIdentity = grasseye-browser-runtime-2026-08-18-v2
+profileRef
+userDataDir
+profileDirectory
+Chrome channel / executable
+profile stable identity hash
+extensionId
+installed extension tree digest
+ExtensionSettings.force_installed readback
+updateUrl readback
+permission/host-permission policy hash
+Controller install identity
 ```
 
-`browserctl enroll-profile` 是唯一 enrollment owner。它必须把上述首次输入写成 owner-only、0600 的 canonical `BrowserProfileEnrollmentReceipt`，其中绑定 profile tuple 与从 `Local State.profile.info_cache[profileDirectory]` 的稳定身份字段（`gaia_id`、`name`、`user_name`）及 profile directory 计算的 `Local State` identity hash；不得把会随 Chrome 正常运行变化的整份 `Local State` 文件字节作为长期 hash。后续生产运行时只读取并验证该 Receipt；`.env.local` 不是长期 runtime truth，缺少首次 enrollment 输入只能阻断 `enroll-profile`，不能制造第二套 profile 真相。
+`BrowserProcessSupervisor` 必须记录批准 Chrome process incarnation/start token/process tree。Native Host 每次启动都必须 attestation 自身 parent Chrome process incarnation，并绑定 enrollment。相同 extension ID 在错误 profile/process 启动时仍不得签发 authority。
 
-BrowserProcessSupervisor 只启动/连接 operator-designated 的 enrolled Chrome Profile；当 GrassEye 启动 Chrome 时，`--user-data-dir` 与 `--profile-directory` 必须显式出现。Rust Native Host 必须验证 Chrome 传入 caller origin，并证明 Host 来源于同一 enrolled Chrome executable/user-data-dir/profile-directory。正确扩展 ID 但错误 profile/process 仍必须 fail closed。
+生产不允许 silent Default、`last_used` 猜测、个人日常 profile、复制 profile/cookie/password、两个 Worker 共用 profile/dataDir。测试例外必须由显式 test artifact/profile 隔离，production bundle 不得引用 fixture authority。
 
-在明确的 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 本机测试模式下，若已有 operator-owned Chrome 进程因单实例复用而没有这两个启动参数，Rust Native Host 可以改用同一精确 Chrome executable 加上 macOS `lsof` 证明该进程实际持有 enrolled `userDataDir/profileDirectory`；生产模式仍只接受显式 ancestry 参数，不能把测试例外带入生产。
+## 5. Transport Authentication / Authority Certificate
 
-允许用户明确 enrollment 的 `Default` 或 `Profile N`；禁止 silent managed default、读取 last_used 后猜 profile、未经过 operator-designated enrollment 的个人 Chrome profile、错误 channel/process tree 获得 Authority。
+认证顺序固定为：
 
-## 4. Extension 与命令安全
+```txt
+verify installed artifact + exact active tuple + release security policy
+-> acquire exclusive controller owner lock
+-> start/verify approved Chrome process
+-> Chrome starts fresh signed Host for one Native Port
+-> Host validates caller origin + process/profile attestation
+-> Host and Controller authenticate local IPC identity
+-> ExtensionHello(extension id/version/artifact digest/port epoch/supported tuple ids)
+-> ControllerChallenge(controller nonce/incarnation/generation/exact tuple/transcript prefix)
+-> ExtensionConfirmation(bind both nonces/port/tuple)
+-> HostAttestation(bind caller/host/process/profile/IPC/full transcript)
+-> CapabilityProbe(command registry/permission/origin/framing)
+-> AUTH_PROOF_COMMITTED
+-> BrowserAuthorityIssuer.commit()
+-> authority slot ABSENT -> PRESENT
+```
 
-- MV3 固定 extension ID、固定 release/protocol、`minimum_chrome_version`。
-- 一个 Native Port 对应一个不可变 `NativePortActor`；禁止全局 mutable `nativePort/authenticatedNonce/lastAcceptedSequence` 作为跨世代真相。
-- extension 只接受当前 actor 当前 authority 的 command permit；异步 completion 只能回原 actor 原 port。
-- `evaluate_target` 仅为 observation；MV3 必须使用 CDP `throwOnSideEffect=true`。mutation 只能走专用命令。
-- URL 在 Controller policy 与 Extension high-privilege end 双重验证；Extension 不接受 `file:`、任意 host 或未批准 HTTP。
-- 普通字符输入使用 `Input.insertText`，不得用平台相关 Meta/Ctrl 猜测 Unicode 输入。
-- file input 只接受 BrowserFileArtifactGrant；raw path 不得成为 wire contract。
-- non-idempotent mutation 发出后若终局不确定，只能 `OUTCOME_UNKNOWN`；transport 永不自动 replay。
+握手任一步失败：authority 保持 ABSENT；整条 Host/Port chain 关闭；不 mint target lease；不领取 Browser writer lane。
 
-## 5. Liveness、失效和恢复
+`BrowserAuthorityCertificateV1` 至少绑定：
 
-固定默认：
+```txt
+authorityRef / authorityEpoch
+artifactSetHash / activationTupleHash / releaseSecurityPolicyHash
+profileEnrollmentHash / chromeProcessIncarnationHash
+controllerIncarnationHash / connectionGeneration / hostProcessEpoch / nativePortEpoch
+extensionId / extensionVersion / protocolRevision
+capabilitySetHash / permissionPolicyHash / originPolicyHash
+livenessPolicyHash / commandAdmissionBudgetHash / artifactStreamBudgetHash
+authTranscriptHash / keyEpoch / livenessLeaseEpoch
+issuedAtMonotonicNs / issuerMac
+```
+
+Certificate 只存在内存，不跨进程恢复，不写 nonce/install secret/raw Chrome id。`commandFrameKey` 对一个 nativePortEpoch 不可变；禁止在线 rekey。
+
+## 6. Liveness / Revoke / Recovery
+
+机器合同默认：
 
 ```txt
 heartbeatIntervalMs = 1000
@@ -109,231 +228,285 @@ watchdogTickMaxMs = 250
 maxAuthorityAgeMs = 8h
 ```
 
-Heartbeat 只能延长已经 commit 的 Authority liveness，永远不能从 ABSENT 创建 Authority。静默半开、Host 假活、event-loop stall、sleep/wake/clock discontinuity 或 authority age 到期都必须撤销当前 Authority。
+Heartbeat 必须由当前 frame key 认证，绑定 authority epoch、lease epoch、严格递增 sequence；它只能续租 PRESENT authority，永远不能 mint authority。
 
-任一 revoke 同步使所有 target/document refs 与当前 exact-target lease epoch 失效。恢复必须经过全新 Port epoch、全新 challenge、全新 grant+ACK 和新 Authority；旧 target/document ref 永不复活。调用方只能从明确业务 checkpoint 发起新的 `open/acquireTarget`。
-
-## 6. Native Messaging 与消息预算
-
-Chrome Native Messaging 外层必须遵守 4-byte native-endian length framing。内部更严格预算固定为：
+任一 Host/Port/Controller/Chrome discontinuity、hard expiry、sleep/wake discontinuity、process/profile/policy/tree/tuple 漂移发生时，第一同步动作必须是：
 
 ```txt
-Host -> Extension control frame <= 256 KiB
-Extension -> Host <= 48 MiB
-Controller <-> Host line <= 64 MiB
+BrowserAuthorityIssuer.revokeCurrent(cause)
+-> authority slot = ABSENT
+-> cancel permits
+-> invalidate all target/document leases
+-> classify in-flight mutations
+-> diagnostics / cleanup / reconnect
 ```
 
-控制面不得为未来功能无限放大。大对象必须最终走 content-addressed artifact stream；任何超限/截断/非法 JSON/identity mismatch 都 fail closed。
+reconnect 的唯一 owner 是 `BrowserInfrastructureSupervisor`，采用 signed retry policy + bounded full jitter。Extension disconnect 只能报告关闭并触发一次 wake-up token；`chrome.alarms` 仅作 worker wake-up 补偿，不拥有退避或认证真相。
 
-## 7. 安装与发布
+Controller IPC 断开后 Host 进程必须退出并关闭 Native Port。禁止旧 Host/Port rebind 新 Controller。
 
-生产 Native Host 是 Rust 自包含预构建二进制。目标机器禁止从源码 build/transpile Native Host，禁止 Node shebang、nvm/Homebrew Node 路径成为 Native Host 运行依赖。
+## 7. Controller Owner Lock / Stale Socket
 
-`install.mjs` 只允许调用预构建 `grasseye-browserctl`。browserctl 必须执行：
+Unix/macOS：先持有 process-lifetime exclusive `flock/fcntl` owner lock，再检查 socket。只有当前进程拿到 owner lock，且 inode/path/uid/mode 证明 endpoint stale 时才允许删除。拿不到锁必须返回 `BROWSER_CONTROLLER_ALREADY_OWNED`，绝不 unlink。
+
+Windows adapter 使用 named mutex + named pipe ACL 的等价语义。socket 文件本身不是认证凭证。
+
+## 8. Authority Lease / Execution Fence / Target Lease
+
+Browser-dependent execution 固定顺序：
 
 ```txt
-verify signed ArtifactSet V2
--> verify browserctl/Host/Extension tree bytes
--> stage immutable release dir
--> hash readback
--> write 0600 connection config
--> write exact allowed_origins manifest
--> write activation receipt
--> atomic rename/fsync
--> verify installed bytes/config/manifest
+read current cloud job
+-> validate current device/job/execution lease + writer fence
+-> acquire AuthenticatedBrowserAuthorityLease from Broker
+-> claim bounded Browser writer lane
+-> acquire exact BrowserTargetLease
+-> execute governed commands
 ```
 
-发布身份只有三层，禁止互相替代：`releaseIdentity` 是 profile 绑定的发布家族身份，
-`releaseSequence` 是家族内单调 anti-rollback 序列，`artifactSetSha256` 是一次具体受签名
-ArtifactSet 的字节身份。ArtifactSet V2 必须绑定 release tuple、source commit、builder identity、
-Host hash、browserctl hash 和 canonical `extensionTreeSha256`。Extension tree 只允许 regular file，
-拒绝 symlink/special file；以排序后的 `{path,size,sha256}` canonical serialization 计算。browserctl
-写出的 activation receipt 必须精确继承 ArtifactSet 的 release tuple、Host hash、extensionTreeSha256
-和 artifactSetSha256；Node 只能在已验证 ArtifactSet、canonical Profile Enrollment 和 receipt 完全一致时
-构造 Browser Authority。旧 ArtifactSet/receipt 不得通过 fallback、字段补全或兼容桥进入新 Runtime。
+`BrowserAuthorityLease` 必须绑定当前 authority certificate 与 cloud execution binding；writer fence 失效时 lease 立即失效。
 
-生产 extension 使用固定 Chrome Web Store identity；load-unpacked 只能用于开发/真实页面前验，不得成为 production artifact。
-
-本地测试模式是明确隔离的非生产模式，只有设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 才可启用。测试模式可以使用 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl` 门禁，但仍必须验证 ArtifactSet 文件哈希、release tuple、Profile Enrollment Receipt、Native Host install/doctor、Authority 握手和 exact-target 约束。所有 Browser Runtime 入口使用同一配置优先级：`shell/process.env > .env.local > .env > production`；默认缺省值必须是 `production`；测试模式不得被生产配置或生产发布物料隐式启用。
-
-## 8. Composition root
-
-`createWorkbenchAssembly()` 必须是 Authority admission gate：
+`BrowserTargetLease` 至少绑定：
 
 ```txt
-resolve explicit profile enrollment
--> ensure enrolled Chrome process
--> start Controller listener
--> complete Extension/Controller mutual auth + grant ACK
--> AUTHENTICATED_AUTHORITY_PRESENT
--> only now construct AI Gateway / video / browser-dependent business owners
--> only now expose HTTP server
+leaseRef
+authorityRef / authorityEpoch
+ownerId
+agentJobRefHash / agentExecutionRefHash
+writerLeaseEpoch / writerFenceHash
+targetRef / documentRef
+originPolicyRef / capabilitySetHash
+lifecycle
 ```
 
-因此 production health 不得存在名为 `browserSession` 的 component，不得出现 `transportReady`，不得输出“session not authenticated / wait for authentication”。Authority 缺席时只能报告 `browserAuthority = absent/BLOCKED`；此时浏览器业务 owner 尚未构造或其旧 authority epoch 已失效。
+navigation committed/document generation change、debugger detach、target close、operator takeover、authority revoke、writer fence失效、activation tuple变化均立即使 lease stale。新 authority 必须重新 acquire exact target/document；不得恢复旧 opaque refs。
+
+生产禁止 `targetSessionsByOwner` 跨 authority epoch cache。
+
+## 9. Command Registry / Permit / Actor / Admission Budget
+
+生产 command 只能来自 versioned `CommandRegistry`；每项 capability 声明：
+
+```txt
+capabilityId + schema version
+request/response schema
+mutationClass
+origin/scheme policy
+payload/field limits
+target/document requirement
+execution fence requirement
+browser-side postcondition
+owner-side business postcondition
+acceptance + real-page evidence
+```
+
+禁止 arbitrary `evaluate(script)`、remote code、`eval`、`new Function`、任意 expression contract。通用观察和 DOM 操作只能走声明式 `BrowserDomIntent`。
+
+`BrowserCommandPermit` 至少绑定：
+
+```txt
+authorityRef / authorityEpoch / certificateHash / activationTupleHash
+replyChannelToken
+capabilityId
+executionBindingHash
+targetLeaseRef / documentRef
+commandId / sequence / monotonic deadline
+mutationClass
+commandFrameMac
+```
+
+每条命令三次硬校验：Admission、Before Send、Completion；completion 必须回原 reply channel / source port token，永不读取“当前全局 Port”投递旧 completion。
+
+`BrowserCommandAdmissionBudgetV1` 是唯一 queue/bytes/stream 预算，至少包含：
+
+```txt
+maxQueuedCommands
+maxQueuedBytes
+maxInflightObservations
+maxInflightMutationsPerTarget = 1
+maxArtifactStreams
+maxArtifactBytes
+fairnessQuantum
+```
+
+Deadline 包含排队时间。超限立即 `BROWSER_BACKPRESSURE`，禁止隐藏排队、无界 cache/stream、持有网站 writer lease无限等待。
+
+## 10. Mutation Intent Journal / OUTCOME_UNKNOWN
+
+所有 mutation 在发送前写 0600 append-only bounded journal：
+
+```txt
+PREPARED(commandId, authorityCertificateHash, executionFenceHash, mutationClass, payloadHash)
+-> fsync
+-> send exact frame
+-> TERMINAL_SUCCESS | TERMINAL_FAILURE | OUTCOME_UNKNOWN
+```
+
+journal 不保存页面正文、输入文本、附件内容、nonce、secret。Controller restart 后无 terminal record 的 mutation 一律 `OUTCOME_UNKNOWN`，transport 永不自动 replay。只有业务 owner 通过真实 postcondition + `OutcomeResolutionReceipt` 可裁决后续恢复。
+
+## 11. Native Messaging Framing / Artifact Stream / File Grant
+
+Chrome outer frame 固定 4-byte unsigned native-endian length + UTF-8 JSON。
+
+内部预算：
+
+```txt
+Host -> Extension control <= 256 KiB
+Extension -> Host control <= 256 KiB
+Extension -> Host artifact chunk <= 4 MiB
+Host -> Extension artifact payload = forbidden
+```
+
+控制帧与 artifact stream 分离，三端常量必须由同一 canonical protocol schema/codegen 生成。
+
+业务协议不得接受 raw path。唯一文件合同 `BrowserFileArtifactGrantV1` 至少绑定：
+
+```txt
+grantRef / authorityEpoch / executionFenceHash
+approvedRootHash / canonicalRealpathHash
+deviceIdHash / inodeHash / byteLength / contentHash
+expiresAtMonotonicNs
+```
+
+Controller 在 grant 签发与命令发送前分别 `open/fstat/hash` readback，拒绝 symlink/root escape/inode-size-hash drift/expiry。Wire 只传 opaque grant/artifact refs，不传 raw/resolved path。artifact stream 使用 owner-only 0600 staging、content hash、total/concurrency/TTL budget、atomic complete marker、确定性销毁。
+
+## 12. MV3 Extension / Rust Host
+
+Extension 顶层同步注册 listener；每 Port 一个不可变 `NativePortActor`。Actor 拥有 port epoch、handshake、authority binding、sequence、bounded receipt cache、liveness；Port 断开后内存真相全部销毁。异步 completion 只能投递原 actor 原 port。
+
+Rust Host 必须自包含、签名/公证；只负责 Native Messaging framing、方向预算、caller/profile/process attestation、authenticated Controller IPC、bounded diagnostics 和 byte forwarding。Host 不保存 target、command receipt、业务队列、evidence 或 secret；Controller IPC 断开立即退出。
+
+## 13. Release Identity / Activation / Anti-Rollback
+
+发布身份永久分层：
+
+1. `BrowserArtifactSetIdentityV1`：软件字节、签名、公证、protocol/registry/policy hashes、toolchain/SBOM/provenance；
+2. `BrowserActivationTupleV1`：Controller/Host/Extension exact runnable combination + capability/policy/budget + Chrome/platform range；
+3. `BrowserReleaseSecurityPolicyV1`：monotonic releaseSequence、minimumAccepted、revoked artifact/tuple、current/previous bounded window；
+4. `BrowserReleaseProofManifestV1`：candidate/governance/audit/real-Chrome/soak/xuanxue cross-repo evidence binding，不改变软件字节。
+
+Runtime 不做 capability intersection，只选择一个签名 exact tuple。
+
+CWS 更新采用有限 current + previous dual-tuple activation window；N+1 extension 可临时同时理解 N/N+1 tuple，但同一时刻只激活一个。回滚切 activation tuple，不依赖把 Chrome 已安装 extension 立即降级。previous 有明确截止与删除门，被 revocation 命中的 artifact/tuple 永不因 previous slot 复活。
+
+Production `extensionVerifiedCrxHash` 不得为 null；Verified CRX Uploads、publisher 强认证/最小成员、permission freeze、managed policy readback 均是发布硬门。
+
+核心 Host/launcher/extension 使用 hermetic/pinned build-once；两个独立 builder 必须复现相同 hash，proof 后禁止同版本重建不同字节。
+
+## 14. Browser Worker HA / Handover
+
+网站请求只持久化 job，不同步依赖单机插件。生产至少一 active + 一 hot-standby Browser Worker，两个 Worker 使用独立机器身份/dataDir/profile/enrollment；每个 Worker 各自仍只有本法规定的一条 Browser 链。
+
+系统唯一选主真相是 xuanxue 已存在的数据库 job/execution lease/fence；Browser 层不得另建 election owner。一个 browser-required execution 同一时刻最多一个 Worker 持当前 writer fence。standby 无 writer fence 时禁止触碰该 job/provider conversation。
+
+Failover：旧 writer lease失效 -> unresolved mutation裁决 -> sealed business checkpoint -> new execution fence -> new authority lease -> fresh target/document -> new authority window。`OUTCOME_UNKNOWN` 未被业务 owner真实裁决前禁止 complete 或隐式重放。
+
+## 15. Cross-Repo Browser Proof
+
+AGENT Browser 只证明低层基础设施身份和动作，不证明报告/上传/翻译/业务成功。
+
+xuanxue 的唯一 `AgentRuntimeReceiptV2` 对 browser-required job 必须内嵌 `AgentBrowserAuthorityProofV2`，它由有序 `AgentBrowserAuthorityWindowProofV2[]` 组成；每 window 绑定 worker fence、authority certificate、profile/process、artifact/tuple/security policy、auth transcript/liveness、generation/port/capability、command sequence 与 action receipt subtree。Window handover 之间不得有浏览器动作。
+
+不得创建第二 AGENT channel、第二 runtime receipt owner 或第二 Dynamic Proof verdict。
+
+## 16. Health / Errors / Metrics
+
+生产 health component 只允许：
+
+```txt
+browserInfrastructure
+browserAuthority
+```
+
+禁止 `browserSession`、`transportReady`、`session not authenticated` / `wait for authentication` 生产语义。
+
+Browser infrastructure error codes 至少覆盖 install/host/origin/extension/tuple/transcript/capability/profile/process/policy/liveness/worker-fence/dual-active/backpressure/file-grant/rollback/revocation/permit/target/document/devtools/outcome-unknown/repair。
+
+绝对零指标：
+
+```txt
+unauthenticated_browser_authority_issued_total
+command_without_valid_authority_total
+stale_event_side_effect_total
+old_completion_to_new_port_total
+non_idempotent_auto_replay_total
+wrong_profile_process_authority_issued_total
+command_after_liveness_expiry_total
+browser_action_during_authority_absence_total
+dual_active_browser_worker_total
+revoked_or_rollback_blocked_tuple_activated_total
+browser_admission_budget_violation_total
+```
+
+运行 SLO：supported-runtime-window authority availability >=99.99%；环境齐备后 authority issuance p99 <=5s；recoverable chain rebuild p99 <=10s；revoke->ABSENT p99 <=10ms；unbounded queue/cache/stream=0。
+
+## 17. 法条
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-BROWSER-001-V2",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-browser-session",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "The unique Browser owner binds every page action to opaque exact target/document identities and never uses foreground identity or a second browser path.",
-  "required": [
-    "One BrowserController owns all raw Chrome identities and mints opaque target/document refs only under a committed AuthenticatedBrowserAuthority.",
-    "Every page command binds one exact target and current document generation; navigation/lifecycle invalidates prior document refs.",
-    "Background exact-target work leaves non-target foreground state unchanged.",
-    "Old authority target/document refs never revive after revoke or reconnect."
-  ],
-  "forbidden": [
-    "second BrowserController or browser transport",
-    "active-tab, first-page, current-page or URL-first fallback",
-    "raw Chrome identity outside src/lib/browser",
-    "foreground focus, OS pointer, OS keyboard, clipboard or native picker as page identity"
-  ],
-  "clauses": [{
-    "clauseId": "apex-local-browser-001-v2-requirement",
-    "statement": "All page actions use one authenticated exact-target authority and opaque target/document identity.",
-    "evidenceMode": "real-chrome",
-    "ownerDomain": "local-browser-session"
-  }]
-}
+{"lawId":"APEX-LOCAL-BROWSER-001-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+model+real-chrome","summary":"Every page action is admitted only through an execution-bound authenticated authority lease and exact target/document lease; foreground identity, raw Chrome identity leakage and a second browser path are impossible.","required":["BrowserAuthorityBroker is the only business Browser entry","every BrowserTargetLease is authority-epoch and execution-fence bound","navigation/lifecycle/authority/fence changes invalidate prior target/document refs","background exact-target work preserves non-target foreground state"],"forbidden":["BrowserTargetSession","BrowserController.createTargetSession","active-tab/current-page/URL-first fallback","raw Chrome ids outside Browser owner","second browser transport or OS interaction fallback"],"clauses":[{"clauseId":"apex-local-browser-001-v2-exact-authority-lease","statement":"All page actions require a current authority lease plus exact target/document lease and stale leases cannot produce side effects.","evidenceMode":"ast+model+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-BROWSER-002-V2",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-browser-session",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+model+real-chrome",
-  "summary": "Unauthenticated browserSession is unrepresentable; browser capability exists only after mutual authority commit and is revoked before all teardown side effects.",
-  "codePurityLiveness": {
-    "externalEntryFiles": [
-      "src/lib/browser/chrome-extension/build.mjs",
-      "src/lib/browser/chrome-extension/service-worker.ts",
-      "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
-      "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs"
-    ]
-  },
-  "required": [
-    "Production data-plane state is exactly AUTHORITY_ABSENT or AUTHENTICATED_AUTHORITY_PRESENT.",
-    "BrowserAuthorityIssuer commits only after challenge, transcript proof, authority grant and Extension grant ACK all match the same release/profile/controller/generation/port epoch.",
-    "Each Native Port has one actor; stale port message/disconnect/completion cannot mutate current authority, sequence or target state.",
-    "Every command carries an authority-bound permit and an authenticated encrypted frame.",
-    "Heartbeat can renew only an existing committed authority; expiry/release/disconnect revokes authority before failing pending work or reconnecting.",
-    "Composition root creates browser-dependent business owners only after authority commit; HTTP server startup is downstream of this gate."
-  ],
-  "forbidden": [
-    "BrowserSession object with authenticated=false, transportReady=false or waiting-for-auth state",
-    "browserSession production health component",
-    "global nativePort/authenticatedNonce/lastAcceptedSequence as cross-port truth",
-    "nonce echo as the complete authentication proof",
-    "old port completion posted to current port",
-    "heartbeat creating authority",
-    "mutation automatic replay after transport uncertainty"
-  ],
-  "clauses": [{
-    "clauseId": "apex-local-browser-002-v2-requirement",
-    "statement": "Unauthenticated browser capability is structurally impossible and all browser work is authority-bound.",
-    "evidenceMode": "model+acceptance+real-chrome",
-    "ownerDomain": "local-browser-session"
-  }]
-}
+{"lawId":"APEX-LOCAL-BROWSER-002-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+model+real-chrome","summary":"Within each Browser Worker, Browser command authority does not exist before authentication proof is atomically committed; any discontinuity revokes before every other side effect.","required":["data plane is only ABSENT or PRESENT","one TransportActor/Reducer owns control mutation","BrowserAuthorityIssuer is the only mint/revoke owner","authenticated heartbeat renews only PRESENT authority","wrong profile/process/policy/tree or liveness expiry keeps authority ABSENT","revoke occurs before callbacks cleanup diagnostics or reconnect"],"forbidden":["UnauthenticatedBrowserSession","transportReady","pre-auth command surface","fire-and-forget startup","Host controller rebind","heartbeat minting authority","online Port rekey"],"clauses":[{"clauseId":"apex-local-browser-002-v2-authority-atomicity","statement":"Authentication proof commit is the only ABSENT-to-PRESENT transition and revoke is the first discontinuity side effect.","evidenceMode":"ast+property+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-BROWSER-003-V2",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-browser-session",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "The fixed-id MV3 extension is the only page/file action executor and exposes no physical-focus fallback.",
-  "required": [
-    "Navigate, observe, click, fill, scroll, screenshot and file input execute only through the exact-target MV3 transport.",
-    "File input consumes a bounded file artifact grant and exact DOM receiver.",
-    "Retired focus/native-picker/AppleScript/JXA paths remain physically absent."
-  ],
-  "forbidden": [
-    "focus lease or focus-target command",
-    "native picker or system clipboard",
-    "OS pointer/keyboard page transport",
-    "second file upload path"
-  ],
-  "clauses": [{
-    "clauseId": "apex-local-browser-003-v2-requirement",
-    "statement": "Only the fixed-id authenticated MV3 executor may perform browser page/file actions.",
-    "evidenceMode": "real-chrome",
-    "ownerDomain": "local-browser-session"
-  }]
-}
+{"lawId":"APEX-LOCAL-BROWSER-003-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome","summary":"The fixed-id MV3 extension plus one self-contained Rust Native Host is the only production page-action chain; each Native Port has one immutable actor and replies never cross port epochs.","required":["one NativePortActor per Port","original source/reply channel captured for async completion","Controller IPC discontinuity terminates Host and Port","production fixture authority is physically unreachable"],"forbidden":["global cross-port auth truth","old completion sent to new Port","second Native Host","Playwright/JXA/AppleScript/system input fallback","load-unpacked production chain"],"clauses":[{"clauseId":"apex-local-browser-003-v2-single-chain","statement":"One authenticated Native Messaging chain owns every production browser side effect and old-port work cannot enter the current chain.","evidenceMode":"ast+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-BROWSER-004-V2",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-browser-session",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "Generic evaluation is side-effect-free observation while every mutation uses a dedicated exact-target command.",
-  "required": [
-    "BrowserTargetSession.evaluate function body is normalized exactly once by Browser owner.",
-    "MV3 Runtime.evaluate for evaluate_target uses throwOnSideEffect=true and cannot mutate page state.",
-    "Dedicated mutation commands perform receiver revalidation and mutation atomically under the same target/document authority.",
-    "Unicode text uses Input.insertText and point click uses CDP input after side-effect-free receiver validation."
-  ],
-  "forbidden": [
-    "generic evaluate mutation",
-    "eval or Function constructor",
-    "synthetic HTMLElement.click as the generic point click executor",
-    "platform-specific Meta/Ctrl guessing for arbitrary text"
-  ],
-  "clauses": [{
-    "clauseId": "apex-local-browser-004-v2-requirement",
-    "statement": "Observation and mutation are mechanically separated at the high-privilege browser executor.",
-    "evidenceMode": "real-chrome",
-    "ownerDomain": "local-browser-session"
-  }]
-}
+{"lawId":"APEX-LOCAL-BROWSER-004-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+schema+ast+fuzz+real-chrome","summary":"Browser commands are versioned governed capabilities with bounded admission and declarative DOM intent; arbitrary evaluation, raw file paths and unbounded queues or streams do not exist in production.","required":["canonical protocol/schema/codegen is the only wire contract","each command binds capability execution fence target/document permit and deadline","control frames are <=256KiB and artifact chunks <=4MiB","mutation intent journal fsyncs PREPARED before send","file actions use TTL authority/fence-bound grants and content-addressed streams"],"forbidden":["evaluate(script)","evaluate_target arbitrary expression","eval/new Function/remote code","raw/resolved path in production wire","unbounded queue/cache/artifact stream","automatic non-idempotent replay"],"clauses":[{"clauseId":"apex-local-browser-004-v2-governed-command-plane","statement":"Only schema-bound capability commands admitted by the current authority/execution/target fences may execute.","evidenceMode":"schema+ast+property+fuzz+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-BROWSER-005-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-browser-session",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+artifact+real-chrome",
-  "summary": "Browser runtime release/profile/install identity is immutable, prebuilt and fail-closed across Chrome and OS evolution.",
-  "required": [
-    "Release identity, monotonic release sequence and ArtifactSet identity are distinct and immutable; ArtifactSet V2 binds the complete Host/browserctl/Extension tree byte set.",
-    "Activation receipt is written only from a verified signed ArtifactSet and exactly matches its artifactSetSha256, release tuple, Host hash and extension tree hash before Node may compose Browser Authority.",
-    "Production Native Host is a self-contained prebuilt Rust binary; target machines never compile/transpile it.",
-    "Native Host caller origin and enrolled Chrome process ancestry are validated before Controller IPC.",
-    "browserctl installs owner-only config/manifest and content-addressed host bytes using atomic write/readback.",
-    "Chrome minimum version and compatibility matrix changes require current-artifact proof before production activation."
-  ],
-  "forbidden": [
-    "Node shebang Native Host",
-    "install-time source transpilation",
-    "silent default profile",
-    "load-unpacked production extension",
-    "mixed release/protocol tuple",
-    "unsigned or unverified production artifact activation"
-  ],
-  "clauses": [{
-    "clauseId": "apex-local-browser-005-v1-requirement",
-    "statement": "Only one immutable verified browser release/profile tuple may receive production authority.",
-    "evidenceMode": "artifact+real-chrome",
-    "ownerDomain": "local-browser-session"
-  }]
-}
+{"lawId":"APEX-LOCAL-BROWSER-005-V1","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+artifact+signature+readback+real-chrome+soak","summary":"Production browser bytes, exact activation, anti-rollback policy and release proof are separate signed identities; a release is usable only when installed bytes/profile/policy/Chrome identity and the exact tuple all read back correctly.","required":["ArtifactSetIdentity ActivationTuple ReleaseSecurityPolicy and ReleaseProofManifest are distinct","minimum release sequence and revocation are monotonic hard gates","Verified CRX hash is non-null in production","current+previous activation window is bounded","core artifacts are hermetic build-once and reproducible by two builders","owner lock and installed identity readback are mandatory"],"forbidden":["capability intersection READY_COMPATIBLE","rollback below minimum sequence","revoked tuple revival","proof-after-rebuild bytes","unsigned/unnotarized production Host","CWS downgrade required for local rollback"],"clauses":[{"clauseId":"apex-local-browser-005-v1-release-identity","statement":"Only one signed exact activation over verified immutable bytes may mint Browser authority.","evidenceMode":"artifact+signature+readback+real-chrome+soak","ownerDomain":"local-browser-session"}]}
 ```
+
+```apex-law
+{"lawId":"APEX-LOCAL-BROWSER-006-V1","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+cross-repo-contract+runtime+fault-injection","summary":"For one browser-required execution at most one Browser Worker may hold the current xuanxue writer fence; failover starts only from a sealed checkpoint with a new fence and every browser action is provable inside an ordered authenticated authority window in the single AgentRuntimeReceipt.","required":["xuanxue database lease/fence is the only election truth","active and standby use independent profiles and identities","handover waits for old fence invalidation and sealed checkpoint","no browser action occurs between authority windows","unresolved OUTCOME_UNKNOWN blocks complete","AgentRuntimeReceipt remains the only runtime receipt owner"],"forbidden":["second Browser election owner","dual active execution","profile copy between workers","implicit mutation replay on failover","second Agent runtime receipt or dynamic verdict"],"clauses":[{"clauseId":"apex-local-browser-006-v1-cross-repo-fence-proof","statement":"Execution fencing, safe handover and ordered authority-window proof jointly prevent dual writers and unprovable browser actions.","evidenceMode":"cross-repo-contract+runtime+fault-injection","ownerDomain":"local-browser-session"}]}
+```
+
+```apex-law
+{"lawId":"GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"static+runtime+artifact","summary":"Browser authority secrets, page content, raw Chrome identities and mutable filesystem paths never become logs or durable proof; local identity keys live only in the OS credential store and file/artifact handling is owner-only, bounded and content-addressed.","forbidden":["nonce/install secret/cookie/token in logs","page body in infrastructure logs","raw tab/window/target/loader id outside Browser owner","install key in config or manifest","raw path wire command","unbounded retained screenshot/attachment artifact"]}
+```
+
+## 18. Machine-blocking check IDs
+
+Browser law coverage must be explicit; the following IDs are independently required and may not be replaced by one broad owner assertion:
+
+```txt
+browser-auth/no-unauth-session-type
+browser-auth/no-transport-ready-boolean
+browser-auth/no-preauth-command-surface
+browser-auth/no-fire-and-forget-startup
+browser-auth/authority-mint-only-after-proof
+browser-auth/revoke-before-side-effects
+browser-auth/no-host-controller-rebind
+browser-auth/original-reply-channel
+browser-auth/exact-activation-tuple
+browser-auth/authority-liveness-lease
+browser-auth/no-command-after-liveness-expiry
+browser-auth/heartbeat-cannot-mint-authority
+browser-auth/production-fixture-zero
+browser-profile/dedicated-production-profile
+browser-profile/process-enrollment-attestation
+browser-profile/force-install-policy-readback
+browser-release/artifact-activation-proof-separation
+browser-release/verified-crx-hard-gate
+browser-release/anti-rollback-and-revocation
+browser-release/reproducible-build-identity
+browser-install/safe-stale-socket-recovery
+browser-cross-repo/authority-proof-v2
+browser-cross-repo/ordered-authority-window-chain
+browser-command/bounded-admission-budget
+browser-file/artifact-grant-no-raw-path
+browser-old-path/retired-zero
+```
+
+所有 P0 check 必须有独立 source evidence、negative/property/mutant 或 runtime evidence。Static Audit 不得冒充真实 Chrome、CWS、OS 更新、HA failover 或 soak。
+
+## 19. 生产封口
+
+任何以下情况继续 BLOCKED：任一 001～006 法条未绑定独立 check、旧 Session/evaluate/raw-path 调用面仍可达、cross-repo Browser Proof V2 未闭合、发布 identity/tuple/security policy 不同源、wrong profile/process 能 mint、dual active 可发生、真实 Chrome故障矩阵或 required soak 不完整、branch protection/required checks/readback 缺失。
+
+只有所有硬门、同 candidate artifact/tuple/proof、真实环境证据和独立审计同时闭合，才允许 `PRODUCTION_APPROVED`。
