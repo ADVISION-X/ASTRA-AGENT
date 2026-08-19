@@ -43,6 +43,9 @@ const requiredFiles = [
   "src/lib/browser/profile/browser-profile-config.ts",
   "src/lib/browser/profile/browser-process-supervisor.ts",
   "src/lib/browser/release/browser-release-identity.ts",
+  "src/lib/browser/release/browser-activation-receipt.ts",
+  "src/lib/browser/release/browser-runtime-env.mjs",
+  "src/lib/browser/release/extension-tree-sha256.mjs",
   "src/lib/browser/transport/browser-session-crypto.ts",
   "src/lib/browser/transport/command-permit.ts",
   "src/lib/browser/exact-target/browser-command-runtime.ts",
@@ -444,6 +447,11 @@ const inspectProfileAndRelease = (findings: InspectorFinding[]): void => {
     "--enroll-profile",
     "--doctor",
     "profile-enrollment.json",
+    "RELEASE_SEQUENCE: u64 = 3",
+  ]);
+  requireContains(findings, "local-browser-session/protocol-release-identity", LAW_RELEASE, "src/lib/browser/release/browser-release-identity.ts", release, [
+    "GRASSEYE_BROWSER_RELEASE_SEQUENCE = 3",
+    "GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 3",
   ]);
 };
 
@@ -455,6 +463,9 @@ const inspectRustHostOnly = (findings: InspectorFinding[]): void => {
   const browserctl = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs");
   const build = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/build-browser-runtime.mjs");
   const verifier = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/verify-browser-artifact.mjs");
+  const receipt = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/browser-activation-receipt.ts");
+  const runtimeEnv = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/browser-runtime-env.mjs");
+  const extensionTree = requireFile(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/extension-tree-sha256.mjs");
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, installPath, installer, [
     "BROWSERCTL_PREBUILT_BINARY_REQUIRED",
     "grasseye-browserctl",
@@ -479,18 +490,41 @@ const inspectRustHostOnly = (findings: InspectorFinding[]): void => {
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs", browserctl, [
     "write_atomic",
     "host_sha256",
+    "artifact_set_sha256",
+    "extension_tree_sha256",
+    "verify_artifact_signature",
     "allowed_origins",
     "stable_local_state_identity_hash",
   ]);
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/build-browser-runtime.mjs", build, [
-    "GRASSEYE_BROWSER_RUNTIME_MODE",
+    "loadBrowserRuntimeEnv",
+    "resolveBrowserRuntimeMode",
     "Apple Development",
     "browser-artifact-set.test-public-key.pem",
+    "grasseye-browser-artifact-set-v2",
+    "treeSha256",
   ]);
   requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/verify-browser-artifact.mjs", verifier, [
-    "GRASSEYE_BROWSER_RUNTIME_MODE",
+    "resolveBrowserRuntimeMode",
     "manifest.artifactMode",
+    "manifest.extension?.treeSha256",
+    "BROWSER_EXTENSION_TREE_ARTIFACT_HASH_MISMATCH",
     "spctl",
+  ]);
+  requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/browser-activation-receipt.ts", receipt, [
+    "artifactSetSha256",
+    "BROWSER_ACTIVATION_RECEIPT_ARTIFACT_MISMATCH",
+    "profileEnrollmentId",
+  ]);
+  requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/browser-runtime-env.mjs", runtimeEnv, [
+    '"production"',
+    ".env.local",
+    ".env",
+  ]);
+  requireContains(findings, "local-browser-session/rust-native-host-only", LAW_RELEASE, "src/lib/browser/release/extension-tree-sha256.mjs", extensionTree, [
+    "BROWSER_EXTENSION_TREE_SYMLINK_FORBIDDEN",
+    "metadata.size",
+    "JSON.stringify({ files })",
   ]);
 };
 

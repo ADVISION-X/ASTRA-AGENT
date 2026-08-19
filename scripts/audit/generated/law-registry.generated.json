@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T16:12:46.336Z",
+  "generatedAt": "2026-08-18T19:12:47.939Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -4736,7 +4736,8 @@
         }
       ],
       "required": [
-        "Extension ID, extension version, protocol, release identity, Native Host binary hash, profile enrollment and controller candidate are one release tuple.",
+        "Release identity, monotonic release sequence and ArtifactSet identity are distinct and immutable; ArtifactSet V2 binds the complete Host/browserctl/Extension tree byte set.",
+        "Activation receipt is written only from a verified signed ArtifactSet and exactly matches its artifactSetSha256, release tuple, Host hash and extension tree hash before Node may compose Browser Authority.",
         "Production Native Host is a self-contained prebuilt Rust binary; target machines never compile/transpile it.",
         "Native Host caller origin and enrolled Chrome process ancestry are validated before Controller IPC.",
         "browserctl installs owner-only config/manifest and content-addressed host bytes using atomic write/readback.",

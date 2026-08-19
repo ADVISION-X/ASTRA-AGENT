@@ -54,7 +54,8 @@ const browserLaw = read(".github/instructions/agent-rules/modules/module-local-b
 assert.match(browserLaw, /operator-designated/u);
 assert.match(browserLaw, /GRASSEYE_BROWSER_RUNTIME_MODE=test/u);
 const artifactBuilder = read("src/lib/browser/release/build-browser-runtime.mjs");
-assert.match(artifactBuilder, /GRASSEYE_BROWSER_RUNTIME_MODE/u);
+assert.match(artifactBuilder, /loadBrowserRuntimeEnv/u);
+assert.match(artifactBuilder, /resolveBrowserRuntimeMode/u);
 assert.match(artifactBuilder, /Apple Development/u);
 const artifactVerifier = read("src/lib/browser/release/verify-browser-artifact.mjs");
 assert.match(artifactVerifier, /manifest\.artifactMode/u);

@@ -156,7 +156,7 @@ Required:
 - Startup probes `GET /api/health`.
 - Before a cold start clears the port, startup must call the single Browser owner read-only preflight.
 - The Browser Runtime preflight may verify enrollment, signed artifact presence, installation and release identity, but must not install, enroll, repair, activate, rollback, compile, or modify Chrome state.
-- A local Browser Runtime test mode is allowed only when `GRASSEYE_BROWSER_RUNTIME_MODE=test` is explicitly present; it may accept Apple Development/Personal Team signatures without `spctl`, but it must still run the same hash, release tuple, enrollment, install/doctor and Authority checks. The default remains production.
+- A local Browser Runtime test mode is allowed only when `GRASSEYE_BROWSER_RUNTIME_MODE=test` is explicitly present; it may accept Apple Development/Personal Team signatures without `spctl`, but it must still run the same ArtifactSet identity, hash, release tuple, enrollment, install/doctor and Authority checks. Startup and every `browser:*` launcher must share `shell/process.env > .env.local > .env > production`; the default remains production.
 - A failed Browser Runtime preflight must stop cold start with a concrete `failureReason` and actionable message; it must not spawn the app server and wait for a secondary `/api/health` fetch failure.
 - Startup fails with a concrete `failureReason` if the health endpoint is not reachable.
 - Opening the browser is downstream of health readiness.

@@ -9,15 +9,6 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
-      "message": "scripts/acceptance/startup-initialization-health.acceptance.ts has an over-line function near line 12.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/startup-initialization-health.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
       "message": "scripts/acceptance/xuanxue-ai-production-fixture.ts has an over-line function near line 384.",
       "severity": "fatal",
       "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
@@ -36,7 +27,7 @@
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
-      "message": "scripts/audit/domains/local-browser-session/inspector.ts has 541 lines and exceeds the active executable source file red line.",
+      "message": "scripts/audit/domains/local-browser-session/inspector.ts has 575 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
       "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "evidence": "{\"owner\":\"audit:local-browser-session\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -45,7 +36,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
-      "message": "scripts/audit/domains/local-browser-session/inspector.ts has an over-line function near line 130.",
+      "message": "scripts/audit/domains/local-browser-session/inspector.ts has an over-line function near line 133.",
       "severity": "fatal",
       "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "evidence": "{\"owner\":\"audit:local-browser-session\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -54,7 +45,7 @@
       "checkId": "code-purity/file-budget-red-line",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
-      "message": "scripts/audit/domains/startup-entrypoint/inspector.ts has 532 lines and exceeds the active executable source file red line.",
+      "message": "scripts/audit/domains/startup-entrypoint/inspector.ts has 533 lines and exceeds the active executable source file red line.",
       "severity": "fatal",
       "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
       "evidence": "{\"owner\":\"audit:startup-entrypoint\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -180,7 +171,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/release/browser-activation-receipt.ts has an over-line function near line 43.",
+      "message": "src/lib/browser/release/browser-activation-receipt.ts has an over-line function near line 46.",
       "severity": "fatal",
       "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
       "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -189,7 +180,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/release/verify-browser-artifact.mjs has an over-line function near line 24.",
+      "message": "src/lib/browser/release/verify-browser-artifact.mjs has an over-line function near line 28.",
       "severity": "fatal",
       "filePath": "src/lib/browser/release/verify-browser-artifact.mjs",
       "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -387,27 +378,9 @@
       "checkId": "code-purity/zombie-file",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/release/browser-activation-receipt.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
       "message": "src/lib/browser/release/browser-release-security-policy.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
       "filePath": "src/lib/browser/release/browser-release-security-policy.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/release/build-browser-runtime.mjs is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/build-browser-runtime.mjs",
       "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
@@ -454,24 +427,6 @@
       "severity": "fatal",
       "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
       "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"BROWSER_AUTHORITY_SOFT_DRAIN_MS\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports GRASSEYE_BROWSER_RELEASE_SEQUENCE without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"GRASSEYE_BROWSER_RELEASE_SEQUENCE\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-export",
@@ -528,7 +483,7 @@
       "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-08-18T16:20:44.691Z",
+  "generatedAt": "2026-08-18T19:13:38.606Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -616,6 +571,7 @@
     "scripts/acceptance/deep-research-subquestion-failure-stop.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
+    "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
     "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
     "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
     "scripts/acceptance/local-browser-authority-model.acceptance.ts",
@@ -1164,7 +1120,9 @@
     "src/lib/browser/release/browser-activation-receipt.ts",
     "src/lib/browser/release/browser-release-identity.ts",
     "src/lib/browser/release/browser-release-security-policy.ts",
+    "src/lib/browser/release/browser-runtime-env.mjs",
     "src/lib/browser/release/build-browser-runtime.mjs",
+    "src/lib/browser/release/extension-tree-sha256.mjs",
     "src/lib/browser/release/verify-browser-artifact.mjs",
     "src/lib/browser/transport/browser-command-admission-budget.ts",
     "src/lib/browser/transport/browser-session-crypto.ts",
@@ -1374,16 +1332,6 @@
   "inventoryItems": [
     {
       "checkId": "code-purity/function-budget",
-      "filePath": "scripts/acceptance/startup-initialization-health.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Function near line 12 breaks function budget: physical line count 79 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
       "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "acceptance",
@@ -1407,7 +1355,7 @@
       "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "audit:local-browser-session",
-      "reason": "active executable source file has 541 lines and exceeds red line 500.",
+      "reason": "active executable source file has 575 lines and exceeds red line 500.",
       "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
       "role": "audit-inspector",
       "verificationCommand": "npm run ci:full"
@@ -1417,7 +1365,7 @@
       "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:local-browser-session",
-      "reason": "Function near line 130 breaks function budget: parameter count 8 exceeds red line 7.",
+      "reason": "Function near line 133 breaks function budget: parameter count 8 exceeds red line 7.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-inspector",
       "verificationCommand": "npm run ci:full"
@@ -1427,7 +1375,7 @@
       "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "audit:startup-entrypoint",
-      "reason": "active executable source file has 532 lines and exceeds red line 500.",
+      "reason": "active executable source file has 533 lines and exceeds red line 500.",
       "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
       "role": "audit-inspector",
       "verificationCommand": "npm run ci:full"
@@ -1567,7 +1515,7 @@
       "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "browser",
-      "reason": "Function near line 43 breaks function budget: cyclomatic complexity 23 exceeds red line 16.",
+      "reason": "Function near line 46 breaks function budget: cyclomatic complexity 33 exceeds red line 16.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "browser-primitive",
       "verificationCommand": "npm run ci:full"
@@ -1577,7 +1525,7 @@
       "filePath": "src/lib/browser/release/verify-browser-artifact.mjs",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "browser",
-      "reason": "Function near line 24 breaks function budget: cyclomatic complexity 32 exceeds red line 16.",
+      "reason": "Function near line 28 breaks function budget: cyclomatic complexity 32 exceeds red line 16.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "browser-primitive",
       "verificationCommand": "npm run ci:full"
@@ -1774,27 +1722,7 @@
     },
     {
       "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
       "filePath": "src/lib/browser/release/browser-release-security-policy.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/release/build-browser-runtime.mjs",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "browser",
       "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
@@ -1858,30 +1786,6 @@
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "browser-primitive",
       "symbolName": "BROWSER_AUTHORITY_SOFT_DRAIN_MS",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Export GRASSEYE_BROWSER_RELEASE_SEQUENCE has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "browser-primitive",
-      "symbolName": "GRASSEYE_BROWSER_RELEASE_SEQUENCE",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Export GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "browser-primitive",
-      "symbolName": "GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -2350,6 +2254,12 @@
     },
     {
       "entryKind": "package-script",
+      "filePath": "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
+      "reason": "package.json script acceptance:local-browser-artifact-contract",
+      "scriptName": "acceptance:local-browser-artifact-contract"
+    },
+    {
+      "entryKind": "package-script",
       "filePath": "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
       "reason": "package.json script acceptance:local-browser-exact-target",
       "scriptName": "acceptance:local-browser-exact-target"
@@ -2737,13 +2647,19 @@
       "filePath": "src/lib/browser/native-messaging-host/install.mjs",
       "reason": "package.json script browser:enroll",
       "scriptName": "browser:enroll"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "src/lib/browser/release/build-browser-runtime.mjs",
+      "reason": "package.json script browser:build",
+      "scriptName": "browser:build"
     }
   ],
-  "liveExportCount": 2350,
+  "liveExportCount": 2358,
   "orphanDeclarationCount": 3,
-  "reachableFileCount": 825,
+  "reachableFileCount": 830,
   "status": "FAIL",
-  "unreachableFileCount": 15,
+  "unreachableFileCount": 13,
   "uselessCodeInventory": [
     {
       "category": "unreachable-file",
@@ -2836,26 +2752,10 @@
     {
       "category": "unreachable-file",
       "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-activation-receipt.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
       "filePath": "src/lib/browser/release/browser-release-security-policy.ts",
       "keepReason": null,
       "lawId": "APEX-CODE-PURITY-017-V1",
       "message": "src/lib/browser/release/browser-release-security-policy.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/release/build-browser-runtime.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/build-browser-runtime.mjs is not reachable from any lawful live entry surface and behaves like a zombie file."
     },
     {
       "category": "unreachable-file",
@@ -2896,22 +2796,6 @@
       "keepReason": null,
       "lawId": "APEX-CODE-PURITY-017-V1",
       "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_SOFT_DRAIN_MS without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports GRASSEYE_BROWSER_RELEASE_SEQUENCE without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE without any provable final consumer."
     },
     {
       "category": "dead-public-export",
@@ -2993,22 +2877,6 @@
       "filePath": "src/lib/browser/release/browser-release-identity.ts",
       "keepReason": null,
       "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports GRASSEYE_BROWSER_RELEASE_SEQUENCE without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
       "message": "src/lib/browser/release/browser-release-identity.ts exports BROWSER_RELEASE_IDENTITY without any provable final consumer."
     },
     {
@@ -3022,28 +2890,28 @@
   ],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 8,
+  "zombieExportCount": 6,
   "zombieSummary": {
     "antiEvasionFindingCount": 3,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2350,
+    "liveExportCount": 2358,
     "orphanDeclarationCount": 3,
-    "reachableFileCount": 825,
-    "unreachableFileCount": 15,
-    "uselessCodeInventoryCount": 26,
-    "zombieExportCount": 8
+    "reachableFileCount": 830,
+    "unreachableFileCount": 13,
+    "uselessCodeInventoryCount": 22,
+    "zombieExportCount": 6
   },
   "checkRuns": [
     {
-      "runId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101",
+      "runId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50",
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-18T16:20:01.823Z",
-      "endedAt": "2026-08-18T16:20:44.690Z",
-      "durationMs": 42867,
+      "startedAt": "2026-08-18T19:12:52.556Z",
+      "endedAt": "2026-08-18T19:13:38.605Z",
+      "durationMs": 46049,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -3131,6 +2999,7 @@
         "scripts/acceptance/deep-research-subquestion-failure-stop.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
         "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
+        "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
         "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
         "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
         "scripts/acceptance/local-browser-authority-model.acceptance.ts",
@@ -3679,7 +3548,9 @@
         "src/lib/browser/release/browser-activation-receipt.ts",
         "src/lib/browser/release/browser-release-identity.ts",
         "src/lib/browser/release/browser-release-security-policy.ts",
+        "src/lib/browser/release/browser-runtime-env.mjs",
         "src/lib/browser/release/build-browser-runtime.mjs",
+        "src/lib/browser/release/extension-tree-sha256.mjs",
         "src/lib/browser/release/verify-browser-artifact.mjs",
         "src/lib/browser/transport/browser-command-admission-budget.ts",
         "src/lib/browser/transport/browser-session-crypto.ts",
@@ -3886,7 +3757,7 @@
         "src/types/plugin-intervention.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 58
+      "findingCount": 53
     }
   ],
   "executedChecks": [
@@ -3894,145 +3765,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:d32b5e54-6a2f-4215-a021-2a890ae48803:check:21a03989-3055-403c-9f72-7dee91674101"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:74077fc1-c913-4d48-8060-7d4d35567e89"
     }
   ]
 }

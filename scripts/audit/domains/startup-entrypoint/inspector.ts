@@ -324,6 +324,7 @@ const inspectBrowserRuntimePreflight = (context: InspectorContext, findings: Fin
   }
 
   const metrics = {
+    launchLoadsSharedBrowserRuntimeEnv: hasNamedImport(launchSource, "browser-runtime-env", "loadBrowserRuntimeEnv"),
     launchImportsPreflight: hasNamedImport(launchSource, "browser-runtime-preflight", "runBrowserRuntimePreflight"),
     preflightCallsArtifactVerifier: hasIdentifier(preflightSource, "verifyBrowserArtifactSet"),
     preflightCallsBrowserctlDoctor: hasStringLiteral(preflightSource, "--doctor"),

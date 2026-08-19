@@ -1,9 +1,12 @@
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine;
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -15,6 +18,10 @@ const RELEASE_IDENTITY: &str = "grasseye-browser-runtime-2026-08-18-v2";
 const EXTENSION_ID: &str = "mepfnlhndaiihhfejbbhfehegpbdnipl";
 const HOST_NAME: &str = "com.grasseye.browser";
 const HOST_BINARY_NAME: &str = "grasseye-browser-host";
+const ARTIFACT_SET_SCHEMA_VERSION: &str = "grasseye-browser-artifact-set-v2";
+const RELEASE_SEQUENCE: u64 = 3;
+const MINIMUM_ACCEPTED_RELEASE_SEQUENCE: u64 = 3;
+const ED25519_SPKI_PREFIX: &[u8] = b"\x30\x2a\x30\x05\x06\x03\x2b\x65\x70\x03\x21\x00";
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,8 +42,12 @@ struct HostConnectionConfig {
 struct ActivationReceipt {
     schema_version: String,
     release_identity: String,
+    release_sequence: u64,
+    minimum_accepted_release_sequence: u64,
     protocol_version: String,
     extension_id: String,
+    extension_tree_sha256: String,
+    artifact_set_sha256: String,
     profile_enrollment_id: String,
     profile_ref: String,
     user_data_dir: String,
@@ -46,6 +57,58 @@ struct ActivationReceipt {
     host_sha256: String,
     controller_socket_path: String,
     activated_at_unix_ms: u128,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ArtifactBinary {
+    path: String,
+    sha256: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ArtifactExtension {
+    path: String,
+    manifest_sha256: String,
+    tree_sha256: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ArtifactSet {
+    schema_version: String,
+    release_identity: String,
+    release_sequence: u64,
+    minimum_accepted_release_sequence: u64,
+    protocol_version: String,
+    extension_id: String,
+    artifact_mode: String,
+    platform_arch: String,
+    source_commit_sha: String,
+    builder_identity: String,
+    host: ArtifactBinary,
+    browserctl: ArtifactBinary,
+    extension: ArtifactExtension,
+}
+
+#[derive(Debug)]
+struct VerifiedArtifactSet {
+    manifest: ArtifactSet,
+    artifact_set_sha256: String,
+    host_path: PathBuf,
+}
+
+#[derive(Debug, Serialize)]
+struct ExtensionTreeFile {
+    path: String,
+    size: u64,
+    sha256: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ExtensionTreeIdentity {
+    files: Vec<ExtensionTreeFile>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -152,6 +215,170 @@ fn sha256_bytes(bytes: &[u8]) -> String {
     format!("sha256:{hex}")
 }
 
+fn artifact_platform_arch() -> String {
+    let platform = if env::consts::OS == "macos" { "darwin" } else { env::consts::OS };
+    format!("{platform}-{}", env::consts::ARCH)
+}
+
+fn artifact_root() -> PathBuf {
+    let executable = env::current_exe()
+        .unwrap_or_else(|error| fail("BROWSERCTL_CURRENT_EXE_FAILED", error.to_string()));
+    let bin_dir = executable.parent()
+        .unwrap_or_else(|| fail("BROWSERCTL_ARTIFACT_ROOT_INVALID", executable.display().to_string()));
+    let root = bin_dir.parent()
+        .unwrap_or_else(|| fail("BROWSERCTL_ARTIFACT_ROOT_INVALID", executable.display().to_string()));
+    if !root.join("browser-artifact-set.json").is_file() {
+        fail("BROWSERCTL_ARTIFACT_ROOT_INVALID", root.display().to_string());
+    }
+    root.to_path_buf()
+}
+
+fn artifact_path(root: &Path, relative: &str) -> PathBuf {
+    let candidate = Path::new(relative);
+    if candidate.is_absolute() || candidate.components().any(|part| !matches!(part, Component::Normal(_))) {
+        fail("BROWSERCTL_ARTIFACT_PATH_INVALID", relative);
+    }
+    root.join(candidate)
+}
+
+fn public_key_bytes_from_pem(pem: &str) -> [u8; 32] {
+    let payload = pem.lines()
+        .filter(|line| !line.starts_with("---"))
+        .collect::<String>();
+    let der = BASE64_STANDARD.decode(payload)
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_PUBLIC_KEY_INVALID", error.to_string()));
+    if der.len() != ED25519_SPKI_PREFIX.len() + 32 || !der.starts_with(ED25519_SPKI_PREFIX) {
+        fail("BROWSER_ARTIFACT_PUBLIC_KEY_INVALID", "expected Ed25519 SPKI public key");
+    }
+    let mut key = [0_u8; 32];
+    key.copy_from_slice(&der[ED25519_SPKI_PREFIX.len()..]);
+    key
+}
+
+fn artifact_public_key(root: &Path, mode: &str) -> String {
+    if mode == "test" {
+        return fs::read_to_string(root.join("browser-artifact-set.test-public-key.pem"))
+            .unwrap_or_else(|error| fail("BROWSER_TEST_RELEASE_PUBLIC_KEY_REQUIRED", error.to_string()));
+    }
+    env::var("GRASSEYE_BROWSER_RELEASE_PUBLIC_KEY_PEM")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| fail("BROWSER_RELEASE_PUBLIC_KEY_REQUIRED", "GRASSEYE_BROWSER_RELEASE_PUBLIC_KEY_PEM"))
+}
+
+fn verify_artifact_signature(root: &Path, manifest_bytes: &[u8], mode: &str) {
+    let signature_bytes = fs::read(root.join("browser-artifact-set.sig"))
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_SIGNATURE_FILES_REQUIRED", error.to_string()));
+    let key = VerifyingKey::from_bytes(&public_key_bytes_from_pem(&artifact_public_key(root, mode)))
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_PUBLIC_KEY_INVALID", error.to_string()));
+    let signature = Signature::from_slice(&signature_bytes)
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_SIGNATURE_INVALID", error.to_string()));
+    key.verify(manifest_bytes, &signature)
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_SIGNATURE_INVALID", error.to_string()));
+}
+
+fn relative_posix_path(root: &Path, candidate: &Path) -> String {
+    let relative = candidate.strip_prefix(root)
+        .unwrap_or_else(|_| fail("BROWSER_EXTENSION_TREE_PATH_INVALID", candidate.display().to_string()));
+    let mut parts = Vec::new();
+    for part in relative.components() {
+        match part {
+            Component::Normal(segment) => parts.push(segment.to_str()
+                .unwrap_or_else(|| fail("BROWSER_EXTENSION_TREE_PATH_INVALID", candidate.display().to_string()))),
+            _ => fail("BROWSER_EXTENSION_TREE_PATH_INVALID", candidate.display().to_string()),
+        }
+    }
+    if parts.is_empty() {
+        fail("BROWSER_EXTENSION_TREE_PATH_INVALID", candidate.display().to_string());
+    }
+    parts.join("/")
+}
+
+fn collect_extension_tree(root: &Path, directory: &Path, files: &mut Vec<ExtensionTreeFile>) {
+    let mut entries = fs::read_dir(directory)
+        .unwrap_or_else(|error| fail("BROWSER_EXTENSION_TREE_READ_FAILED", error.to_string()))
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap_or_else(|error| fail("BROWSER_EXTENSION_TREE_READ_FAILED", error.to_string()));
+    entries.sort_by(|left, right| left.file_name().cmp(&right.file_name()));
+    for entry in entries {
+        let candidate = entry.path();
+        let metadata = fs::symlink_metadata(&candidate)
+            .unwrap_or_else(|error| fail("BROWSER_EXTENSION_TREE_READ_FAILED", error.to_string()));
+        if metadata.file_type().is_symlink() {
+            fail("BROWSER_EXTENSION_TREE_SYMLINK_FORBIDDEN", candidate.display().to_string());
+        }
+        if metadata.is_dir() {
+            collect_extension_tree(root, &candidate, files);
+        } else if metadata.is_file() {
+            files.push(ExtensionTreeFile {
+                path: relative_posix_path(root, &candidate),
+                size: metadata.len(),
+                sha256: sha256_file(&candidate),
+            });
+        } else {
+            fail("BROWSER_EXTENSION_TREE_SPECIAL_FILE_FORBIDDEN", candidate.display().to_string());
+        }
+    }
+}
+
+fn extension_tree_sha256(root: &Path) -> String {
+    let metadata = fs::symlink_metadata(root)
+        .unwrap_or_else(|error| fail("BROWSER_EXTENSION_TREE_ROOT_INVALID", error.to_string()));
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        fail("BROWSER_EXTENSION_TREE_ROOT_INVALID", root.display().to_string());
+    }
+    let mut files = Vec::new();
+    collect_extension_tree(root, root, &mut files);
+    files.sort_by(|left, right| left.path.cmp(&right.path));
+    let canonical = serde_json::to_vec(&ExtensionTreeIdentity { files })
+        .unwrap_or_else(|error| fail("BROWSER_EXTENSION_TREE_SERIALIZATION_FAILED", error.to_string()));
+    sha256_bytes(&canonical)
+}
+
+fn verified_artifact_set() -> VerifiedArtifactSet {
+    let root = artifact_root();
+    let mode = requested_runtime_mode();
+    let manifest_bytes = fs::read(root.join("browser-artifact-set.json"))
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_READ_FAILED", error.to_string()));
+    verify_artifact_signature(&root, &manifest_bytes, &mode);
+    let manifest: ArtifactSet = serde_json::from_slice(&manifest_bytes)
+        .unwrap_or_else(|error| fail("BROWSER_ARTIFACT_INVALID", error.to_string()));
+    if manifest.schema_version != ARTIFACT_SET_SCHEMA_VERSION
+        || manifest.release_identity != RELEASE_IDENTITY
+        || manifest.release_sequence != RELEASE_SEQUENCE
+        || manifest.release_sequence < MINIMUM_ACCEPTED_RELEASE_SEQUENCE
+        || manifest.minimum_accepted_release_sequence != MINIMUM_ACCEPTED_RELEASE_SEQUENCE
+        || manifest.protocol_version != PROTOCOL_VERSION
+        || manifest.extension_id != EXTENSION_ID
+        || manifest.artifact_mode != mode
+        || manifest.platform_arch != artifact_platform_arch()
+        || manifest.source_commit_sha == "UNBOUND"
+        || manifest.builder_identity == "UNBOUND"
+    {
+        fail("BROWSER_ARTIFACT_RELEASE_TUPLE_INVALID", "artifact release tuple does not match browserctl");
+    }
+    let host_path = artifact_path(&root, &manifest.host.path);
+    let browserctl_path = artifact_path(&root, &manifest.browserctl.path);
+    let extension_path = artifact_path(&root, &manifest.extension.path);
+    let current_executable = env::current_exe()
+        .unwrap_or_else(|error| fail("BROWSERCTL_CURRENT_EXE_FAILED", error.to_string()));
+    if sha256_file(&host_path) != manifest.host.sha256
+        || sha256_file(&browserctl_path) != manifest.browserctl.sha256
+        || sha256_file(&current_executable) != manifest.browserctl.sha256
+        || !extension_path.join("manifest.json").is_file()
+        || sha256_file(&extension_path.join("manifest.json")) != manifest.extension.manifest_sha256
+        || extension_tree_sha256(&extension_path) != manifest.extension.tree_sha256
+    {
+        fail("BROWSER_ARTIFACT_HASH_MISMATCH", "artifact bytes do not match signed ArtifactSet");
+    }
+    VerifiedArtifactSet {
+        manifest,
+        artifact_set_sha256: sha256_bytes(&manifest_bytes),
+        host_path,
+    }
+}
+
 fn stable_local_state_identity_hash(local_state_path: &Path, profile_directory: &str) -> String {
     let bytes = fs::read(local_state_path)
         .unwrap_or_else(|error| fail("BROWSER_PROFILE_LOCAL_STATE_READ_FAILED", format!("{}: {error}", local_state_path.display())));
@@ -196,23 +423,6 @@ fn write_atomic(path: &Path, bytes: &[u8], mode: u32) {
     }
 }
 
-fn resolve_source_host() -> PathBuf {
-    if let Ok(value) = env::var("GRASSEYE_BROWSER_HOST_BINARY") {
-        let path = PathBuf::from(value);
-        if path.is_file() {
-            return path;
-        }
-        fail("BROWSERCTL_HOST_BINARY_MISSING", path.display().to_string());
-    }
-    let executable = env::current_exe()
-        .unwrap_or_else(|error| fail("BROWSERCTL_CURRENT_EXE_FAILED", error.to_string()));
-    let sibling = executable.parent().unwrap().join(HOST_BINARY_NAME);
-    if !sibling.is_file() {
-        fail("BROWSERCTL_HOST_BINARY_MISSING", sibling.display().to_string());
-    }
-    sibling
-}
-
 fn data_dir_from_args() -> PathBuf {
     let args: Vec<String> = env::args().collect();
     for window in args.windows(2) {
@@ -225,11 +435,16 @@ fn data_dir_from_args() -> PathBuf {
         .unwrap_or_else(|| env::current_dir().unwrap_or_else(|error| fail("BROWSERCTL_CWD_FAILED", error.to_string())).join(".grasseye-local"))
 }
 
-fn installed_host_path() -> PathBuf {
+fn installed_host_path(artifact_set_sha256: &str) -> PathBuf {
+    let artifact_directory = artifact_set_sha256
+        .strip_prefix("sha256:")
+        .filter(|value| value.len() == 64)
+        .unwrap_or_else(|| fail("BROWSER_ARTIFACT_SET_IDENTITY_INVALID", artifact_set_sha256));
     grass_eye_root()
         .join("browser-runtime")
         .join("releases")
         .join(RELEASE_IDENTITY)
+        .join(artifact_directory)
         .join("bin")
         .join(HOST_BINARY_NAME)
 }
@@ -355,10 +570,10 @@ fn enroll_profile() {
 
 fn install() {
     let enrollment = enrolled_profile_fields();
-    let source_host = resolve_source_host();
-    let source_hash = sha256_file(&source_host);
-    let host_path = installed_host_path();
-    let host_bytes = fs::read(&source_host)
+    let artifact = verified_artifact_set();
+    let source_hash = artifact.manifest.host.sha256.clone();
+    let host_path = installed_host_path(&artifact.artifact_set_sha256);
+    let host_bytes = fs::read(&artifact.host_path)
         .unwrap_or_else(|error| fail("BROWSERCTL_HOST_READ_FAILED", error.to_string()));
     write_atomic(&host_path, &host_bytes, 0o700);
     if sha256_file(&host_path) != source_hash {
@@ -397,9 +612,13 @@ fn install() {
         .as_millis();
     let receipt = ActivationReceipt {
         schema_version: "grasseye-browser-activation-v2".to_string(),
-        release_identity: RELEASE_IDENTITY.to_string(),
-        protocol_version: PROTOCOL_VERSION.to_string(),
-        extension_id: EXTENSION_ID.to_string(),
+        release_identity: artifact.manifest.release_identity.clone(),
+        release_sequence: artifact.manifest.release_sequence,
+        minimum_accepted_release_sequence: artifact.manifest.minimum_accepted_release_sequence,
+        protocol_version: artifact.manifest.protocol_version.clone(),
+        extension_id: artifact.manifest.extension_id.clone(),
+        extension_tree_sha256: artifact.manifest.extension.tree_sha256.clone(),
+        artifact_set_sha256: artifact.artifact_set_sha256.clone(),
         profile_enrollment_id: enrollment.profile_enrollment_id.clone(),
         profile_ref: enrollment.profile_ref,
         user_data_dir: enrollment.user_data_dir,
@@ -420,7 +639,9 @@ fn install() {
         "status": "INSTALLED",
         "releaseIdentity": RELEASE_IDENTITY,
         "protocolVersion": PROTOCOL_VERSION,
+        "releaseSequence": RELEASE_SEQUENCE,
         "extensionId": EXTENSION_ID,
+        "artifactSetSha256": artifact.artifact_set_sha256,
         "profileRef": receipt.profile_ref,
         "hostPath": host_path,
         "hostSha256": source_hash,
@@ -430,7 +651,8 @@ fn install() {
 
 fn verify() {
     let enrollment = enrolled_profile_fields();
-    let host_path = installed_host_path();
+    let artifact = verified_artifact_set();
+    let host_path = installed_host_path(&artifact.artifact_set_sha256);
     if !host_path.is_file() {
         fail("BROWSERCTL_HOST_NOT_INSTALLED", host_path.display().to_string());
     }
@@ -439,11 +661,16 @@ fn verify() {
     let receipt: ActivationReceipt = serde_json::from_slice(&receipt_bytes)
         .unwrap_or_else(|error| fail("BROWSERCTL_ACTIVATION_INVALID", error.to_string()));
     if receipt.schema_version != "grasseye-browser-activation-v2"
-        || receipt.release_identity != RELEASE_IDENTITY
-        || receipt.protocol_version != PROTOCOL_VERSION
-        || receipt.extension_id != EXTENSION_ID
+        || receipt.release_identity != artifact.manifest.release_identity
+        || receipt.release_sequence != artifact.manifest.release_sequence
+        || receipt.minimum_accepted_release_sequence != artifact.manifest.minimum_accepted_release_sequence
+        || receipt.protocol_version != artifact.manifest.protocol_version
+        || receipt.extension_id != artifact.manifest.extension_id
+        || receipt.extension_tree_sha256 != artifact.manifest.extension.tree_sha256
+        || receipt.artifact_set_sha256 != artifact.artifact_set_sha256
         || receipt.profile_enrollment_id != enrollment.profile_enrollment_id
         || receipt.host_path != host_path.to_string_lossy()
+        || receipt.host_sha256 != artifact.manifest.host.sha256
         || receipt.host_sha256 != sha256_file(&host_path)
         || !Path::new(&receipt.user_data_dir).is_absolute()
         || !Path::new(&receipt.chrome_executable_path).is_absolute()
@@ -480,6 +707,8 @@ fn verify() {
         "releaseIdentity": RELEASE_IDENTITY,
         "protocolVersion": PROTOCOL_VERSION,
         "extensionId": EXTENSION_ID,
+        "releaseSequence": artifact.manifest.release_sequence,
+        "artifactSetSha256": artifact.artifact_set_sha256,
         "profileEnrollmentId": enrollment.profile_enrollment_id,
         "profileRef": enrollment.profile_ref,
         "hostSha256": receipt.host_sha256,

@@ -7,7 +7,7 @@ applyTo: "src/lib/browser/**, src/lib/local-runtime/workbench-browser-support.ts
 # GrassEye Browser Authority Infrastructure
 
 status: active  
-version: 2026-08-18.4  
+version: 2026-08-18.5  
 constitutional objective: `browserSession 未认证` 在生产类型、对象、API、运行态和证据中不可表示。
 
 ## 0. 唯一合法生产语义
@@ -132,7 +132,8 @@ Controller <-> Host line <= 64 MiB
 `install.mjs` 只允许调用预构建 `grasseye-browserctl`。browserctl 必须执行：
 
 ```txt
-read signed/prebuilt artifact
+verify signed ArtifactSet V2
+-> verify browserctl/Host/Extension tree bytes
 -> stage immutable release dir
 -> hash readback
 -> write 0600 connection config
@@ -142,9 +143,18 @@ read signed/prebuilt artifact
 -> verify installed bytes/config/manifest
 ```
 
+发布身份只有三层，禁止互相替代：`releaseIdentity` 是 profile 绑定的发布家族身份，
+`releaseSequence` 是家族内单调 anti-rollback 序列，`artifactSetSha256` 是一次具体受签名
+ArtifactSet 的字节身份。ArtifactSet V2 必须绑定 release tuple、source commit、builder identity、
+Host hash、browserctl hash 和 canonical `extensionTreeSha256`。Extension tree 只允许 regular file，
+拒绝 symlink/special file；以排序后的 `{path,size,sha256}` canonical serialization 计算。browserctl
+写出的 activation receipt 必须精确继承 ArtifactSet 的 release tuple、Host hash、extensionTreeSha256
+和 artifactSetSha256；Node 只能在已验证 ArtifactSet、canonical Profile Enrollment 和 receipt 完全一致时
+构造 Browser Authority。旧 ArtifactSet/receipt 不得通过 fallback、字段补全或兼容桥进入新 Runtime。
+
 生产 extension 使用固定 Chrome Web Store identity；load-unpacked 只能用于开发/真实页面前验，不得成为 production artifact。
 
-本地测试模式是明确隔离的非生产模式，只有设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 才可启用。测试模式可以使用 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl` 门禁，但仍必须验证 ArtifactSet 文件哈希、release tuple、Profile Enrollment Receipt、Native Host install/doctor、Authority 握手和 exact-target 约束。默认缺省值必须是 `production`；测试模式不得被生产配置或生产发布物料隐式启用。
+本地测试模式是明确隔离的非生产模式，只有设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 才可启用。测试模式可以使用 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl` 门禁，但仍必须验证 ArtifactSet 文件哈希、release tuple、Profile Enrollment Receipt、Native Host install/doctor、Authority 握手和 exact-target 约束。所有 Browser Runtime 入口使用同一配置优先级：`shell/process.env > .env.local > .env > production`；默认缺省值必须是 `production`；测试模式不得被生产配置或生产发布物料隐式启用。
 
 ## 8. Composition root
 
@@ -304,7 +314,8 @@ resolve explicit profile enrollment
   "evidenceMode": "law+blueprint+ast+acceptance+artifact+real-chrome",
   "summary": "Browser runtime release/profile/install identity is immutable, prebuilt and fail-closed across Chrome and OS evolution.",
   "required": [
-    "Extension ID, extension version, protocol, release identity, Native Host binary hash, profile enrollment and controller candidate are one release tuple.",
+    "Release identity, monotonic release sequence and ArtifactSet identity are distinct and immutable; ArtifactSet V2 binds the complete Host/browserctl/Extension tree byte set.",
+    "Activation receipt is written only from a verified signed ArtifactSet and exactly matches its artifactSetSha256, release tuple, Host hash and extension tree hash before Node may compose Browser Authority.",
     "Production Native Host is a self-contained prebuilt Rust binary; target machines never compile/transpile it.",
     "Native Host caller origin and enrolled Chrome process ancestry are validated before Controller IPC.",
     "browserctl installs owner-only config/manifest and content-addressed host bytes using atomic write/readback.",

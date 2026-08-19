@@ -18,6 +18,7 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/local-browser-exact-target-contract.acceptance.ts", { clauseId: "apex-local-browser-001-v2-requirement", lawId: "APEX-LOCAL-BROWSER-001-V2" }],
   ["scripts/acceptance/local-browser-target-actions.acceptance.ts", { clauseId: "apex-local-browser-001-v2-requirement", lawId: "APEX-LOCAL-BROWSER-001-V2" }],
   ["scripts/acceptance/local-browser-atomic-cutover.acceptance.ts", { clauseId: "apex-local-browser-001-v2-requirement", lawId: "APEX-LOCAL-BROWSER-001-V2" }],
+  ["scripts/acceptance/local-browser-artifact-contract.acceptance.ts", { clauseId: "apex-local-browser-005-v1-requirement", lawId: "APEX-LOCAL-BROWSER-005-V1" }],
   ["scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts", { clauseId: "apex-local-browser-001-v2-requirement", lawId: "APEX-LOCAL-BROWSER-001-V2" }],
   ["scripts/acceptance/local-browser-real-chrome.acceptance.ts", { clauseId: "apex-local-browser-001-v2-requirement", lawId: "APEX-LOCAL-BROWSER-001-V2" }],
   ["scripts/acceptance/local-browser-native-transport.acceptance.ts", { clauseId: "apex-local-browser-002-v2-requirement", lawId: "APEX-LOCAL-BROWSER-002-V2" }],

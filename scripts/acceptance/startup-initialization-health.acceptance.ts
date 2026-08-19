@@ -9,22 +9,24 @@ import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-prefl
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-export async function runStartupInitializationHealthAcceptance(): Promise<void> {
-  const assembly = {
-    browserController: {
-      getAuthoritySnapshot: () => ({
-        state: "AUTHENTICATED_AUTHORITY_PRESENT",
-        authorityId: "fixture-authority",
-        certificateHash: "sha256:fixture-certificate",
-        connectionGeneration: 1,
-        nativePortEpoch: 1,
-        releaseIdentity: "fixture-release",
-        profileEnrollmentId: "fixture-profile",
-        hardExpiresAtMonotonicMs: Number.MAX_SAFE_INTEGER,
-        changedAtMonotonicMs: 1,
-      }),
-    },
-  } as Parameters<typeof getHealthReport>[0];
+const fixtureAssembly = () => ({
+  browserController: {
+    getAuthoritySnapshot: () => ({
+      state: "AUTHENTICATED_AUTHORITY_PRESENT" as const,
+      authorityId: "fixture-authority",
+      certificateHash: "sha256:fixture-certificate",
+      connectionGeneration: 1,
+      nativePortEpoch: 1,
+      releaseIdentity: "fixture-release",
+      profileEnrollmentId: "fixture-profile",
+      hardExpiresAtMonotonicMs: Number.MAX_SAFE_INTEGER,
+      changedAtMonotonicMs: 1,
+    }),
+  },
+}) as Parameters<typeof getHealthReport>[0];
+
+const verifyInitializationHealth = async (): Promise<void> => {
+  const assembly = fixtureAssembly();
   const initializing = await getHealthReport(assembly, {
     status: "initializing",
     failureReason: null,
@@ -46,6 +48,9 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
     true,
   );
 
+};
+
+const verifyHealthProbe = async (): Promise<void> => {
   let status: "degraded" | "healthy" = "degraded";
   const server = createServer((_request, response) => {
     response.writeHead(200, { "content-type": "application/json" });
@@ -81,12 +86,21 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
       error ? reject(error) : resolve()));
   }
 
+};
+
+const verifyMissingArtifactPreflight = async (): Promise<void> => {
   const missingArtifact = await runBrowserRuntimePreflight({
-    rootDir: repoRoot,
+    rootDir: path.join(repoRoot, "tmp", "missing-browser-runtime-fixture"),
     env: {},
   });
   assert.equal(missingArtifact.status, "BLOCKED");
   assert.equal(missingArtifact.code, "BROWSERCTL_PREBUILT_BINARY_REQUIRED");
+};
+
+export async function runStartupInitializationHealthAcceptance(): Promise<void> {
+  await verifyInitializationHealth();
+  await verifyHealthProbe();
+  await verifyMissingArtifactPreflight();
 }
 
 await runStartupInitializationHealthAcceptance();

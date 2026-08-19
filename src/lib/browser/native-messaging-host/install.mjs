@@ -3,9 +3,11 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { loadBrowserRuntimeEnv } from "../release/browser-runtime-env.mjs";
 
 const sourceDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(sourceDir, "../../../..");
+loadBrowserRuntimeEnv(repoRoot);
 const platformArch = `${process.platform}-${process.arch}`;
 const configured = process.env.GRASSEYE_BROWSERCTL_BINARY?.trim();
 const browserctl = configured

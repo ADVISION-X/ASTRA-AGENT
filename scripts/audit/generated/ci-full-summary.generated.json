@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-18T14:38:14.454Z",
+  "generatedAt": "2026-08-18T19:14:10.572Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
     "lawId": "APEX-CODE-PURITY-015-V1",
-    "filePath": "scripts/acceptance/startup-initialization-health.acceptance.ts",
-    "message": "scripts/acceptance/startup-initialization-health.acceptance.ts has an over-line function near line 12.",
+    "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+    "message": "scripts/acceptance/xuanxue-ai-production-fixture.ts has an over-line function near line 384.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 221,
-      "endedAt": "2026-08-18T14:36:49.746Z",
+      "durationMs": 226,
+      "endedAt": "2026-08-18T19:12:44.330Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-18T14:36:49.525Z",
+      "startedAt": "2026-08-18T19:12:44.104Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3566,
-      "endedAt": "2026-08-18T14:36:53.313Z",
+      "durationMs": 3611,
+      "endedAt": "2026-08-18T19:12:47.942Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-18T14:36:49.747Z",
+      "startedAt": "2026-08-18T19:12:44.331Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
-      "durationMs": 2,
-      "endedAt": "2026-08-18T14:36:53.319Z",
+      "durationMs": 1,
+      "endedAt": "2026-08-18T19:12:47.947Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-18T14:36:53.317Z",
+      "startedAt": "2026-08-18T19:12:47.946Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 81134,
-      "endedAt": "2026-08-18T14:38:14.453Z",
+      "durationMs": 82624,
+      "endedAt": "2026-08-18T19:14:10.571Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-18T14:36:53.319Z",
+      "startedAt": "2026-08-18T19:12:47.947Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -1196,7 +1196,7 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 54,
+      "findingCount": 53,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
       "status": "FAIL"
     },
@@ -1214,9 +1214,9 @@
     },
     {
       "capabilityDomain": "local-browser-session",
-      "findingCount": 2,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/local-browser-session-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "runtime-log-spine",

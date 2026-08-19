@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-18T16:02:34.068Z",
+  "generatedAt": "2026-08-18T19:14:02.364Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -18,14 +18,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99",
+      "runId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50",
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-18T16:02:24.433Z",
-      "endedAt": "2026-08-18T16:02:34.068Z",
-      "durationMs": 9635,
+      "startedAt": "2026-08-18T19:13:51.649Z",
+      "endedAt": "2026-08-18T19:14:02.363Z",
+      "durationMs": 10714,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -366,61 +366,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:7b4050bb-39cf-4c5d-bbd6-203845c967ad:check:1a2557e3-14c5-4767-9008-8d95ebea0b99"
+      "checkRunId": "audit-run:c74b120d-b2e3-4891-905b-259ba0edee50:check:017bc189-1035-49c2-90ab-01c13fc549c6"
     }
   ],
   "inspectedFiles": [

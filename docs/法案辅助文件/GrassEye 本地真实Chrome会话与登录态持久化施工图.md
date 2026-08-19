@@ -1,6 +1,6 @@
 # GrassEye Browser Authority 生产施工图
 
-版本：2026-08-18.4  
+版本：2026-08-18.5  
 状态：active construction blueprint  
 权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`
 
@@ -156,7 +156,7 @@ BrowserProcessSupervisor 启动 operator-designated enrolled Chrome 时必须携
 
 ## 6. ReleaseIdentity
 
-当前冻结 tuple：
+当前冻结发布家族 tuple：
 
 ```txt
 protocolVersion = grasseye-browser-v2
@@ -165,7 +165,13 @@ extensionId = mepfnlhndaiihhfejbbhfehegpbdnipl
 extensionVersion = 2.0.0
 nativeHostName = com.grasseye.browser
 minimumChromeVersion = 120
+releaseSequence = 3
+minimumAcceptedReleaseSequence = 3
 ```
+
+`releaseIdentity` 是 Profile Enrollment 绑定的发布家族身份；`releaseSequence` 是该家族内不可回滚序列；
+`artifactSetSha256` 是具体签名 ArtifactSet 的字节身份。本轮保持 releaseIdentity/protocol 为 v2，
+仅将序列提升至 3，因此既拒绝 seq2 Runtime，也不要求重新 enrollment 现有 Default Profile。
 
 Controller、Extension、Host、browserctl、profile enrollment 必须读到同一 tuple。混合版本不进行兼容猜测，直接 fail closed。
 
@@ -387,7 +393,8 @@ repair          # 显式控制面修复，不由 grasseye:start 触发
 browserctl：
 
 ```txt
-resolve prebuilt Host artifact
+verify signed ArtifactSet V2
+-> verify browserctl / Host / canonical Extension tree bytes
 -> stage immutable release dir
 -> sha256 readback
 -> write owner-only connection config
@@ -397,11 +404,21 @@ resolve prebuilt Host artifact
 -> verify installed bytes/config/manifest/profile tuple
 ```
 
+ArtifactSet V2 是唯一发布真相，受签名 manifest 至少包含 release tuple、sourceCommitSha、builderIdentity、
+Host hash、browserctl hash、Extension manifest hash 与 extensionTreeSha256。Extension tree 递归遍历时只允许
+regular file，拒绝 symlink/special file；每个文件生成 `{path,size,sha256}`，路径使用 relative POSIX path，
+按路径排序、canonical serialization 后 SHA-256。
+
+activation receipt 必须从已验证 ArtifactSet 继承 `releaseSequence`、
+`minimumAcceptedReleaseSequence`、`extensionTreeSha256` 和 `artifactSetSha256`。Node Runtime 必须验证
+`Receipt ↔ verified ArtifactSet ↔ current release constants ↔ Profile Enrollment` 全部精确一致；旧 V1
+ArtifactSet 或缺字段 receipt 不得补字段兼容，只能通过显式 repair 替换。
+
 连接 config 与 activation receipt 至少绑定 releaseIdentity、protocolVersion、extensionId、profileRef、userDataDir、profileDirectory、chromeExecutablePath、controller socket path、host path/hash。
 
 生产发布的进一步硬门仍包括代码签名、公证、Verified CRX/CWS identity、SBOM/provenance、anti-rollback/revocation policy 与 same-artifact proof。
 
-本地测试模式只在显式设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 时启用；它允许 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl`，但仍必须验证 ArtifactSet 文件哈希、release tuple、Enrollment Receipt、Native Host doctor、Authority handshake 和 exact-target。缺省模式永远是 production，测试模式不得进入生产发布链。
+本地测试模式只在显式设置 `GRASSEYE_BROWSER_RUNTIME_MODE=test` 时启用；它允许 Apple Development/Personal Team 签名并跳过 macOS 公证与 `spctl`，但仍必须验证 ArtifactSet 文件哈希、release tuple、Enrollment Receipt、Native Host doctor、Authority handshake 和 exact-target。所有 Browser Runtime 入口统一读取 `shell/process.env > .env.local > .env > production`；缺省模式永远是 production，测试模式不得进入生产发布链。
 
 ## 18. 失败语义
 
@@ -484,6 +501,8 @@ Static Audit 不宣称证明真实时序本身；property/model/fuzz、determini
 24. non-idempotent uncertain mutation 自动重放。
 25. second Controller 抢占同一 socket。
 26. proof 后重建同版本不同字节仍获发布准入。
+27. ArtifactSet V1、缺 artifactSetSha256 receipt 或 release sequence 回滚仍获准入。
+28. 任一 Extension regular file 增删改名后 tree identity 不变。
 
 ## 21. 真实 Chrome 证明边界
 

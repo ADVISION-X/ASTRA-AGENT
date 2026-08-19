@@ -4,13 +4,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { extensionTreeIdentity } from "./extension-tree-sha256.mjs";
+import { resolveBrowserRuntimeMode } from "./browser-runtime-env.mjs";
+
 const RELEASE_IDENTITY = "grasseye-browser-runtime-2026-08-18-v2";
-const RELEASE_SEQUENCE = 2;
-const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 2;
+const RELEASE_SEQUENCE = 3;
+const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 3;
 const PROTOCOL_VERSION = "grasseye-browser-v2";
 const EXTENSION_ID = "mepfnlhndaiihhfejbbhfehegpbdnipl";
-const runtimeMode = () => process.env.GRASSEYE_BROWSER_RUNTIME_MODE?.trim() || "production";
-
 const sha256 = async (filePath) =>
   `sha256:${createHash("sha256").update(await readFile(filePath)).digest("hex")}`;
 
@@ -21,12 +22,14 @@ const runRequired = (command, args) => {
   }
 };
 
+export const resolveBrowserRuntimeArtifactRoot = (rootDir, platform = process.platform, architecture = process.arch) =>
+  path.join(rootDir, "artifacts", "browser-runtime", `${platform}-${architecture}`);
+
 export const verifyBrowserArtifactSet = async (artifactRoot) => {
   const root = path.resolve(artifactRoot);
   const manifestPath = path.join(root, "browser-artifact-set.json");
   const signaturePath = path.join(root, "browser-artifact-set.sig");
-  const mode = runtimeMode();
-  if (mode !== "production" && mode !== "test") throw new Error(`BROWSER_RUNTIME_MODE_INVALID:${mode}`);
+  const mode = resolveBrowserRuntimeMode();
   const testPublicKeyPath = path.join(root, "browser-artifact-set.test-public-key.pem");
   const publicKeyPem = mode === "test"
     ? (existsSync(testPublicKeyPath) ? await readFile(testPublicKeyPath, "utf8") : "")
@@ -43,7 +46,7 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
   const platformArch = `${process.platform}-${process.arch}`;
   if (
-    manifest.schemaVersion !== "grasseye-browser-artifact-set-v1"
+    manifest.schemaVersion !== "grasseye-browser-artifact-set-v2"
     || manifest.releaseIdentity !== RELEASE_IDENTITY
     || manifest.releaseSequence !== RELEASE_SEQUENCE
     || manifest.releaseSequence < MINIMUM_ACCEPTED_RELEASE_SEQUENCE
@@ -56,14 +59,16 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
     || manifest.sourceCommitSha === "UNBOUND"
     || typeof manifest.builderIdentity !== "string"
     || manifest.builderIdentity === "UNBOUND"
+    || typeof manifest.extension?.treeSha256 !== "string"
   ) {
     throw new Error("BROWSER_ARTIFACT_RELEASE_TUPLE_INVALID");
   }
 
   const hostPath = path.resolve(root, manifest.host.path);
   const browserctlPath = path.resolve(root, manifest.browserctl.path);
-  const extensionManifestPath = path.resolve(root, manifest.extension.path, "manifest.json");
-  for (const candidate of [hostPath, browserctlPath, extensionManifestPath]) {
+  const extensionPath = path.resolve(root, manifest.extension.path);
+  const extensionManifestPath = path.resolve(extensionPath, "manifest.json");
+  for (const candidate of [hostPath, browserctlPath, extensionPath, extensionManifestPath]) {
     if (!candidate.startsWith(`${root}${path.sep}`) || !existsSync(candidate)) {
       throw new Error(`BROWSER_ARTIFACT_PATH_INVALID:${candidate}`);
     }
@@ -71,6 +76,9 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
   if (await sha256(hostPath) !== manifest.host.sha256) throw new Error("BROWSER_HOST_ARTIFACT_HASH_MISMATCH");
   if (await sha256(browserctlPath) !== manifest.browserctl.sha256) throw new Error("BROWSERCTL_ARTIFACT_HASH_MISMATCH");
   if (await sha256(extensionManifestPath) !== manifest.extension.manifestSha256) throw new Error("BROWSER_EXTENSION_ARTIFACT_HASH_MISMATCH");
+  if ((await extensionTreeIdentity(extensionPath)).sha256 !== manifest.extension.treeSha256) {
+    throw new Error("BROWSER_EXTENSION_TREE_ARTIFACT_HASH_MISMATCH");
+  }
 
   if (process.platform === "darwin") {
     runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", hostPath]);
@@ -85,8 +93,9 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
     manifest,
     manifestPath,
     signaturePath,
+    artifactSetSha256: await sha256(manifestPath),
     hostPath,
     browserctlPath,
-    extensionPath: path.resolve(root, manifest.extension.path),
+    extensionPath,
   });
 };

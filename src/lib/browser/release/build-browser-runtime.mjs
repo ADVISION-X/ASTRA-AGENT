@@ -6,6 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
+import { extensionTreeIdentity } from "./extension-tree-sha256.mjs";
+import { loadBrowserRuntimeEnv, resolveBrowserRuntimeMode } from "./browser-runtime-env.mjs";
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../../..");
 const browserRoot = path.join(repoRoot, "src/lib/browser");
@@ -17,15 +20,13 @@ const binDir = path.join(artifactRoot, "bin");
 const extensionDir = path.join(artifactRoot, "extension");
 
 const RELEASE_IDENTITY = "grasseye-browser-runtime-2026-08-18-v2";
-const RELEASE_SEQUENCE = 2;
-const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 2;
+const RELEASE_SEQUENCE = 3;
+const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 3;
 const PROTOCOL_VERSION = "grasseye-browser-v2";
 const EXTENSION_ID = "mepfnlhndaiihhfejbbhfehegpbdnipl";
 const EXTENSION_VERSION = "2.0.0";
-const runtimeMode = process.env.GRASSEYE_BROWSER_RUNTIME_MODE?.trim() || "production";
-if (runtimeMode !== "production" && runtimeMode !== "test") {
-  throw new Error(`BROWSER_RUNTIME_MODE_INVALID:${runtimeMode}`);
-}
+loadBrowserRuntimeEnv(repoRoot);
+const runtimeMode = resolveBrowserRuntimeMode();
 
 const run = (command, args, cwd) => {
   const result = spawnSync(command, args, {
@@ -102,8 +103,9 @@ if (runtimeMode === "test" && process.platform === "darwin") {
 }
 
 const extensionManifest = path.join(extensionDir, "manifest.json");
+const extensionTree = await extensionTreeIdentity(extensionDir);
 const artifactManifest = {
-  schemaVersion: "grasseye-browser-artifact-set-v1",
+  schemaVersion: "grasseye-browser-artifact-set-v2",
   releaseIdentity: RELEASE_IDENTITY,
   releaseSequence: RELEASE_SEQUENCE,
   minimumAcceptedReleaseSequence: MINIMUM_ACCEPTED_RELEASE_SEQUENCE,
@@ -125,6 +127,7 @@ const artifactManifest = {
   extension: {
     path: path.relative(artifactRoot, extensionDir),
     manifestSha256: await sha256(extensionManifest),
+    treeSha256: extensionTree.sha256,
   },
   productionReleaseRequirements: {
     sourceCommitBound: true,
