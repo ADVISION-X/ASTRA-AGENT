@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-19T07:10:18.788Z",
+  "generatedAt": "2026-08-19T19:56:35.095Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
-    "lawId": "APEX-CODE-PURITY-015-V1",
-    "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
-    "message": "scripts/acceptance/xuanxue-ai-production-fixture.ts has an over-line function near line 384.",
+    "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
+    "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+    "message": "Localization contract assertion failed: src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts reintroduced legacy localization_static_review product\n\ntrue !== false\n",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 201,
-      "endedAt": "2026-08-19T07:08:59.895Z",
+      "durationMs": 269,
+      "endedAt": "2026-08-19T19:54:52.422Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-19T07:08:59.694Z",
+      "startedAt": "2026-08-19T19:54:52.153Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3542,
-      "endedAt": "2026-08-19T07:09:03.438Z",
+      "durationMs": 4411,
+      "endedAt": "2026-08-19T19:54:56.834Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-19T07:08:59.896Z",
+      "startedAt": "2026-08-19T19:54:52.423Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 2,
-      "endedAt": "2026-08-19T07:09:03.443Z",
+      "endedAt": "2026-08-19T19:54:56.842Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-19T07:09:03.441Z",
+      "startedAt": "2026-08-19T19:54:56.840Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 75344,
-      "endedAt": "2026-08-19T07:10:18.787Z",
+      "durationMs": 98251,
+      "endedAt": "2026-08-19T19:56:35.094Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-19T07:09:03.443Z",
+      "startedAt": "2026-08-19T19:54:56.843Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -1196,9 +1196,9 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 53,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "constitutional-boundary",
@@ -1220,9 +1220,9 @@
     },
     {
       "capabilityDomain": "runtime-log-spine",
-      "findingCount": 1,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -1286,9 +1286,9 @@
     },
     {
       "capabilityDomain": "xuanxue-ai-production",
-      "findingCount": 10,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/xuanxue-ai-production-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
@@ -1304,9 +1304,9 @@
     },
     {
       "capabilityDomain": "audit-truth",
-      "findingCount": 8,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/audit-truth-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "runtime-truth",

@@ -353,13 +353,13 @@ const runClickPageCommand = async (
     {
       objectId,
       functionDeclaration:
-        "function(){const owner=this.closest(\"button,a[href],input[type='button'],input[type='submit'],input[type='text'],[role='button'],kat-button\");if(!owner)return {ok:false};const r=owner.getBoundingClientRect();const s=getComputedStyle(owner);return {ok:r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&!owner.disabled};}",
+        "function(x,y){const doc=this.ownerDocument||this;const hit=doc.elementFromPoint(x,y);const owner=hit?.closest(\"button,a[href],input[type='button'],input[type='submit'],input[type='text'],[role='button'],kat-button\");if(!owner)return {ok:false};const r=owner.getBoundingClientRect();const s=getComputedStyle(owner);return {ok:r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&!owner.disabled};}",
+      arguments: [{ value: point.x }, { value: point.y }],
       awaitPromise: true,
       returnByValue: true,
-      throwOnSideEffect: true,
     },
   ));
-  if (asRecord(asRecord(validation.result).value).ok !== true) {
+  if (asRecord(validation).exceptionDetails || asRecord(asRecord(validation.result).value).ok !== true) {
     throw new Error("TARGET_NOT_FOUND:click point did not resolve to an interactive DOM owner");
   }
   await chrome.debugger.sendCommand({ tabId: command.tabId }, "Input.dispatchMouseEvent", {

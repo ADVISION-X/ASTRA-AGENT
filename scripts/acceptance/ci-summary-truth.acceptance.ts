@@ -14,6 +14,7 @@ import { acceptanceLawBindings } from "../audit/ci-acceptance-law-bindings.js";
 import { buildAcceptanceLeafSkeletons } from "../audit/ci-acceptance-leaf-plan.js";
 import { validateGeneratedPlanWorkerResult } from "../audit/ci-audit-plan-runner.js";
 import { buildCiPhasePlan, buildCiPlanSkeleton, typecheckStep } from "../audit/ci-full-phase-plan.js";
+import { evidenceModeIncludesRealChrome } from "../audit/shared/law-contracts.js";
 import { runBinaryVerdictAttacks } from "./audit-binary-verdict.attacks.js";
 import { runControlFlowReachabilityAttacks } from "./audit-control-flow-reachability.attacks.js";
 import { runDeliveryIsolationAttacks } from "./audit-delivery-isolation.attacks.js";
@@ -35,7 +36,7 @@ const generatedPlan = (JSON.parse(readFileSync("scripts/audit/generated/audit-pl
   entries: Array<{ bindings: Array<{ clauseId: string; evidenceMode: string; lawId: string }> }>;
 }).entries;
 const deferredBindings = new Set(generatedPlan.flatMap((entry) => entry.bindings)
-  .filter((binding) => binding.evidenceMode === "real-chrome")
+  .filter((binding) => evidenceModeIncludesRealChrome(binding.evidenceMode))
   .map((binding) => `${binding.lawId}::${binding.clauseId}`));
 const executableBindingPaths = [...acceptanceLawBindings.entries()]
   .filter(([, binding]) => !deferredBindings.has(`${binding.lawId}::${binding.clauseId}`))

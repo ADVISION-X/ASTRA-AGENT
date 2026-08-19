@@ -1,6 +1,6 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, Project, SyntaxKind, type CallExpression, type SourceFile } from "ts-morph";
 
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -97,10 +97,46 @@ const hasCheckpointPatrolShutdownFinally = (source: SourceFile): boolean =>
         && astIdentifierName(assignment.getLeft()) === "checkpointPatrolActive"
         && assignment.getRight().isKind(SyntaxKind.FalseKeyword)) === true);
 
+const callName = (call: CallExpression): string | undefined => {
+  const expression = call.getExpression();
+  if (Node.isIdentifier(expression)) return astIdentifierName(expression);
+  return Node.isPropertyAccessExpression(expression) ? expression.getName() : undefined;
+};
+
 const callNames = (source: SourceFile, variableName: string): string[] =>
   source.getVariableDeclaration(variableName)?.getInitializer()
     ?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? [];
+    .flatMap((call) => callName(call) ?? []) ?? [];
+
+const embeddedCanonicalRoutingSource = (source: SourceFile): SourceFile | null => {
+  const initializer = source.getVariableDeclaration("CANONICAL_CONVERSATION_SCRIPT")
+    ?.getInitializerIfKind(SyntaxKind.NoSubstitutionTemplateLiteral);
+  if (!initializer) return null;
+  return new Project({ useInMemoryFileSystem: true }).createSourceFile(
+    "canonical-conversation-script.ts",
+    `const inspectCanonicalConversation = () => {${initializer.getLiteralText()}};`,
+  );
+};
+
+const subtractionMatches = (
+  source: SourceFile,
+  leftPath: string,
+  rightPath: string,
+): boolean => source.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((binary) => {
+  if (!binary.getOperatorToken().isKind(SyntaxKind.MinusToken)) return false;
+  const left = binary.getLeft();
+  const right = binary.getRight();
+  const leftCall = Node.isCallExpression(left) ? left : null;
+  const rightCall = Node.isCallExpression(right) ? right : null;
+  if (leftCall || rightCall) {
+    return Boolean(leftCall && rightCall
+      && callName(leftCall) === "Number"
+      && callName(rightCall) === "Number"
+      && astExpressionPath(leftCall.getArguments()[0]) === leftPath
+      && astExpressionPath(rightCall.getArguments()[0]) === rightPath);
+  }
+  return astExpressionPath(left) === leftPath && astExpressionPath(right) === rightPath;
+});
 
 const submissionOrderIsValid = (sources: RecoverySources): boolean => {
   const observedCalls = callNames(sources.submissionCheckpoint, "observeSubmittedWebChatTurn");
@@ -148,7 +184,10 @@ const inspectCheckpointAndFailureLedger = (
       message: "Checkpoint patrol must stop in a finally block on every outcome.",
     }));
   }
-  if (sources.feedProviderOnce.getFullText().includes("void providerResponse")) {
+  const detachedProviderResponse = sources.feedProviderOnce
+    .getDescendantsOfKind(SyntaxKind.VoidExpression)
+    .some((expression) => astIdentifierName(expression.getExpression()) === "providerResponse");
+  if (detachedProviderResponse) {
     findings.push(createFinding({
       checkId: "ai-input-gateway/no-detached-post-processing-chain",
       lawId,
@@ -198,13 +237,31 @@ const inspectCanonicalRecovery = (
       "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=",
       "assertCanonicalConversationOwnership",
       "assertDuplicateCanonicalDomRowsAreOneLogicalRoute",
-      "Number(right.actionable) - Number(left.actionable)",
-      "left.rect.top - right.rect.top",
       "discoverChatGptConversationViaSearch",
     ],
     message: "Exact canonical URL plus bounded discovery recovery is missing",
   });
-  if (sources.routing.getFullText().includes("markerCount > 1 || rows.length > 1")) {
+  const routingScript = embeddedCanonicalRoutingSource(sources.routing);
+  const stableRouteOrdering = routingScript
+    && subtractionMatches(routingScript, "right.actionable", "left.actionable")
+    && subtractionMatches(routingScript, "left.rect.top", "right.rect.top");
+  if (!stableRouteOrdering) {
+    findings.push(createFinding({
+      checkId: "ai-input-gateway/canonical-conversation-recovery",
+      lawId,
+      filePath: paths.routing,
+      message: "Exact canonical URL recovery must order duplicate renderings by actionable state and stable geometry.",
+    }));
+  }
+  const rejectsDuplicateRenderings = routingScript?.getDescendantsOfKind(SyntaxKind.BinaryExpression)
+    .some((binary) => {
+      const right = binary.getRight();
+      return binary.getOperatorToken().isKind(SyntaxKind.GreaterThanToken)
+        && ["markerCount", "rows.length"].includes(astExpressionPath(binary.getLeft()) ?? "")
+        && Node.isNumericLiteral(right)
+        && right.getLiteralValue() === 1;
+    }) === true;
+  if (rejectsDuplicateRenderings) {
     findings.push(createFinding({
       checkId: "ai-input-gateway/canonical-dom-rendering-collapse",
       lawId,
@@ -267,8 +324,10 @@ const inspectIntegratedTitleFinalization = (
     filePath: paths.sessionController,
     message: `Title finalization must stay inside the Session Controller; second-chain symbols remain: ${retained.join(", ")}.`,
   }));
-  if (sources.routing.getFullText().includes("expectedTitle")
-    || sources.routing.getFullText().includes("systemChatTitle")) {
+  const routingIdentifiers = new Set(sources.routing
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .map((identifier) => identifier.compilerNode.escapedText.toString()));
+  if (routingIdentifiers.has("expectedTitle") || routingIdentifiers.has("systemChatTitle")) {
     findings.push(createFinding({
       checkId: "ai-input-gateway/title-not-routing-identity",
       lawId,

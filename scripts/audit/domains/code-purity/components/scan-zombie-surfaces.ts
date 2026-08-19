@@ -163,6 +163,7 @@ export const scanZombieSurfaces = (
     namespaceUsage: state.namespaceUsage,
     reachability: state.reachability,
     symbolGraph: state.symbolGraph,
+    generatedOwnerInspectorPaths: new Set(context.generatedPlan.map((entry) => entry.ownerInspectorPath)),
   }, state.zombieLawId);
   const declarationGraph = buildZombieDeclarationLiveGraph({
     governedFiles,

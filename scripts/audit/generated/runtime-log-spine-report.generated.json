@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-19T07:09:57.982Z",
-  "status": "FAIL",
-  "scannedFiles": 451,
+  "generatedAt": "2026-08-19T19:58:40.760Z",
+  "status": "PASS",
+  "scannedFiles": 460,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -74,6 +74,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -82,9 +83,13 @@
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
     "src/capabilities/ai-input-gateway/failure-classification.ts",
     "src/capabilities/ai-input-gateway/index.ts",
+    "src/capabilities/ai-input-gateway/provider-execution-profile.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-discovery.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
@@ -102,8 +107,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
@@ -115,6 +120,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
@@ -136,6 +142,7 @@
     "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-conversation-title-policy.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
@@ -237,18 +244,18 @@
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-evaluation-contract.ts",
     "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
+    "src/lib/browser/exact-target/browser-native-authentication.ts",
+    "src/lib/browser/exact-target/browser-native-command-channel.ts",
     "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
-    "src/lib/browser/profile/browser-extension-tree.ts",
+    "src/lib/browser/exact-target/exact-browser-target-session.ts",
     "src/lib/browser/profile/browser-process-supervisor.ts",
     "src/lib/browser/profile/browser-profile-config.ts",
     "src/lib/browser/profile/browser-profile-enrollment.ts",
     "src/lib/browser/release/browser-activation-receipt.ts",
     "src/lib/browser/release/browser-release-identity.ts",
-    "src/lib/browser/release/browser-release-security-policy.ts",
-    "src/lib/browser/transport/browser-command-admission-budget.ts",
     "src/lib/browser/transport/browser-session-crypto.ts",
     "src/lib/browser/transport/command-permit.ts",
     "src/lib/local-runtime/contract.ts",
@@ -417,6 +424,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
@@ -427,6 +435,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
@@ -471,9 +480,9 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 1,
-    "fatalFindings": 1,
-    "scannedFiles": 451,
+    "totalFindings": 0,
+    "fatalFindings": 0,
+    "scannedFiles": 460,
     "emitCallCount": 27,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -484,7 +493,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 447,
+      "scannedFiles": 456,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -493,13 +502,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 334
+      "scannedFiles": 343
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 331,
+      "scannedFiles": 340,
       "metrics": {
         "emitCallCount": 11
       }
@@ -508,13 +517,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 331
+      "scannedFiles": 340
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335,
+      "scannedFiles": 344,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -529,7 +538,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 335,
+      "scannedFiles": 344,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -554,9 +563,9 @@
     },
     {
       "name": "browser-action-log-contract",
-      "status": "FAIL",
-      "findingCount": 1,
-      "scannedFiles": 44
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 47
     },
     {
       "name": "semantic-metrics-self-audit",
@@ -577,18 +586,7 @@
       "scannedFiles": 1
     }
   ],
-  "findings": [
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "clauseId": "grasseye-runtime-log-spine-014-requirement",
-      "message": "BrowserController actions without caller correlation lack central production logging",
-      "line": 1,
-      "severity": "fatal",
-      "hint": "The Current Chrome driver must centrally emit and persist one started/terminal pair for every uncorrelated browser or DOM action. Missing: controller:runtime-logger-forwarding, controller-runtime:runtime-logger-forwarding, workbench-browser:runtime-logger-injection.",
-      "filePath": "src/lib/browser/current-chrome-browser-action-logging.ts"
-    }
-  ],
+  "findings": [],
   "capabilityDomain": "runtime-log-spine",
   "executionGroup": "foundation",
   "lawIds": [
@@ -617,14 +615,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7",
+      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b",
       "capabilityDomain": "runtime-log-spine",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-19T07:09:50.348Z",
-      "endedAt": "2026-08-19T07:09:57.981Z",
-      "durationMs": 7633,
+      "status": "PASS",
+      "startedAt": "2026-08-19T19:58:30.747Z",
+      "endedAt": "2026-08-19T19:58:40.760Z",
+      "durationMs": 10013,
       "evidenceRefs": [
         "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
         "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -697,6 +695,7 @@
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -705,9 +704,13 @@
         "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
         "src/capabilities/ai-input-gateway/failure-classification.ts",
         "src/capabilities/ai-input-gateway/index.ts",
+        "src/capabilities/ai-input-gateway/provider-execution-profile.ts",
         "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
         "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
         "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-discovery.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
@@ -725,8 +728,8 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
@@ -738,6 +741,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
@@ -759,6 +763,7 @@
         "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-conversation-title-policy.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
@@ -860,18 +865,18 @@
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-evaluation-contract.ts",
         "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
+        "src/lib/browser/exact-target/browser-native-authentication.ts",
+        "src/lib/browser/exact-target/browser-native-command-channel.ts",
         "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
-        "src/lib/browser/profile/browser-extension-tree.ts",
+        "src/lib/browser/exact-target/exact-browser-target-session.ts",
         "src/lib/browser/profile/browser-process-supervisor.ts",
         "src/lib/browser/profile/browser-profile-config.ts",
         "src/lib/browser/profile/browser-profile-enrollment.ts",
         "src/lib/browser/release/browser-activation-receipt.ts",
         "src/lib/browser/release/browser-release-identity.ts",
-        "src/lib/browser/release/browser-release-security-policy.ts",
-        "src/lib/browser/transport/browser-command-admission-budget.ts",
         "src/lib/browser/transport/browser-session-crypto.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/contract.ts",
@@ -1040,6 +1045,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
@@ -1050,6 +1056,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
@@ -1078,7 +1085,7 @@
         "src/types/sharp.d.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 1
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -1086,133 +1093,133 @@
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "clauseId": "grasseye-runtime-log-spine-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
       "clauseId": "grasseye-runtime-log-spine-002-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
       "clauseId": "grasseye-runtime-log-spine-003-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
       "clauseId": "grasseye-runtime-log-spine-004-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
       "clauseId": "grasseye-runtime-log-spine-005-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "grasseye-runtime-log-spine-006-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
       "clauseId": "grasseye-runtime-log-spine-007-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
       "clauseId": "grasseye-runtime-log-spine-008-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
       "clauseId": "grasseye-runtime-log-spine-009-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "grasseye-runtime-log-spine-010-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
       "clauseId": "grasseye-runtime-log-spine-011-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
       "clauseId": "grasseye-runtime-log-spine-012-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "grasseye-runtime-log-spine-013-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "grasseye-runtime-log-spine-014-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "grasseye-runtime-log-spine-015-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "grasseye-runtime-log-spine-016-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
       "clauseId": "grasseye-runtime-log-spine-017-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
       "clauseId": "grasseye-runtime-log-spine-018-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
       "clauseId": "grasseye-runtime-log-spine-019-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
       "clauseId": "grasseye-runtime-log-spine-020-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
       "clauseId": "grasseye-structured-logging-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
       "clauseId": "grasseye-security-privacy-log-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bb7e63b6-4c8c-49c2-9aab-5a11e04ea9e7"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
     }
   ]
 }

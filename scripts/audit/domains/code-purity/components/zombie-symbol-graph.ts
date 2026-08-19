@@ -1,5 +1,6 @@
 import { Node, SyntaxKind, type Node as MorphNode } from "ts-morph";
 
+import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { collectResolvedModuleBindings } from "../../../shared/source-module-targets.js";
 import { toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
@@ -113,7 +114,7 @@ const collectCrossFileImportReferences = (
     if (!importedName || !binding.importedSymbolName) continue;
     const importedNodes = governedFile.sourceFile
       .getDescendantsOfKind(SyntaxKind.Identifier)
-      .filter((node) => node.getText() === importedName);
+      .filter((node) => astIdentifierName(node) === importedName);
     const bindingNode = importedNodes.find((node) => node.getStartLineNumber() === binding.line);
     const importedSymbol = bindingNode?.getSymbol();
     const references = importedSymbol
@@ -124,7 +125,7 @@ const collectCrossFileImportReferences = (
       existing.push(...references.map((referenceNode) => ({
         line: referenceNode.getStartLineNumber(),
         referencingFile: governedFile.repoPath,
-        sourceText: referenceNode.getText(),
+        sourceText: astIdentifierName(referenceNode) ?? "unresolved-identifier",
         usageKind: classifyZombieReferenceUsage(referenceNode),
       })));
       referencesByTarget.set(key, existing);
@@ -150,7 +151,7 @@ export const buildZombieSymbolGraph = (governedFiles: readonly GovernedFile[]): 
             ...collectZombieReferenceNodes(exportSymbol.nameNode).map((referenceNode) => ({
             line: referenceNode.getStartLineNumber(),
             referencingFile: toRepoPath(referenceNode.getSourceFile().getFilePath()),
-            sourceText: referenceNode.getText(),
+            sourceText: astIdentifierName(referenceNode) ?? "unresolved-identifier",
             usageKind: classifyZombieReferenceUsage(referenceNode),
             })),
             ...(crossFileImportReferences.get(

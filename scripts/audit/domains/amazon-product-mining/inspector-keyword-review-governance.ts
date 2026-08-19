@@ -440,7 +440,7 @@ export const inspectKeywordReviewEvidenceSliceDepth = (
     ...missingIdentifiers(evidenceFile, KEYWORD_REVIEW_DEPTH_IDS.evidence),
     ...missingIdentifiers(acceptanceFile, KEYWORD_REVIEW_DEPTH_IDS.acceptance),
     ...(numericConstantAtLeast(evidenceFile, "KEYWORD_REVIEW_MAX_REVIEW_SAMPLES_PER_PRODUCT", 8) ? [] : ["reviewSampleLimitAtLeast8"]),
-    ...(reviewFile.getFullText().includes("maxInputChars") ? ["retiredKeywordReviewPromptGate"] : []),
+    ...(hasIdentifier(reviewFile, "maxInputChars") ? ["retiredKeywordReviewPromptGate"] : []),
   ];
   if (missing.length === 0) return;
   findings.push(createFinding({

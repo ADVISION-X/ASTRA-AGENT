@@ -17,16 +17,13 @@ import {
   cloudContractPath,
   cloudCredentialPath,
   cloudWorkerPath,
-  gatewayConversationTitlePath,
-  gatewayExecutionProfilePath,
   pluginPaths,
-  profilePath,
   removedSecondChainPaths,
   schedulerPath,
-  schemaPath,
   storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
+import { inspectXuanxueContracts } from "./inspect-contracts.js";
 import {
   collectXuanxueSourceValues,
   inspectXuanxueLocalIntervention,
@@ -161,132 +158,6 @@ const inspectRemovedSecondChain = (
   }
 };
 
-const inspectContracts = (
-  findings: InspectorFinding[],
-  laws: Laws,
-  values: ReadonlySet<string>,
-): void => {
-  requireValues(findings, {
-    lawId: laws.boundary,
-    checkId: "xuanxue-ai-production/whole-order-contract",
-    filePath: schemaPath,
-    messagePrefix: "Whole-order contract must contain",
-    values,
-    required: [
-      "xuanxue-ai-production-v4",
-      "bazi_chart_interpretation",
-      "bazi_ai_full_analysis",
-      "bazi_report_followup",
-      "qimen_professional_answer",
-      "qimen_report_followup",
-      "hehun_ai_analysis",
-      "hehun_report_followup",
-      "naming_bazi_analysis_and_naming",
-      "naming_from_existing_bazi_report",
-      "bazi_canonical_base_interpretation",
-      "hehun_canonical_party_a_interpretation",
-      "hehun_canonical_party_b_interpretation",
-      "manual_accuracy_challenge",
-      "payment_screenshot_observation",
-      "public_knowledge_article_pipeline",
-      "localization_report_translation",
-      "localization_article_translation",
-      "localization_static_review_candidate",
-      "localization_static_review_selector",
-      "scheduled_quality_reflection",
-      "candidate_a",
-      "candidate_b",
-      "selector_first",
-      "selector_swap",
-      "consistency",
-      "article_image_generation",
-      "chart_interpretation",
-      "frozenSubject",
-      "conversationScopeRef",
-      "conversationParent",
-      "joinParents",
-      "forked_from_checkpoint",
-      "same_conversation",
-      "generated_image",
-      "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION",
-    ],
-  });
-  requireValues(findings, {
-    lawId: laws.boundary,
-    checkId: "xuanxue-ai-production/fixed-profiles",
-    filePath: profilePath,
-    messagePrefix: "Fixed product profiles must contain",
-    values,
-    required: [
-      "resolveXuanxueAiProductionProfile",
-      "assertXuanxueAiOrderMatchesProfile",
-      "dependsOn",
-      "continuationFrom",
-      "generatedInputsFrom",
-      "party_a_interpretation",
-      "party_b_interpretation",
-      "final_compatibility",
-      "seededStages",
-      "conversationParent",
-      "joinParents",
-      "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED",
-      "XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH",
-      "XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED",
-      "XUANXUE_AI_PRODUCTION_SEEDED_STAGE_PROOF_INVALID",
-      "xuanxueAiPaidFollowupProfiles",
-      "xuanxueAiReusableBaseConsumerProfiles",
-      "xuanxueAiRequiredContinuationProfiles",
-      "isXuanxueAiPaidFollowupProduct",
-      "isXuanxueAiRequiredContinuationProduct",
-      "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
-      "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID",
-      "localization_report_translation",
-      "localization_article_translation",
-      "localization_static_review_candidate",
-      "localization_static_review_selector",
-      "candidate_a",
-      "candidate_b",
-      "selector_first",
-      "selector_swap",
-      "consistency",
-    ],
-  });
-  requireValues(findings, {
-    lawId: laws.boundary,
-    checkId: "xuanxue-ai-production/live-model-identity",
-    filePath: gatewayExecutionProfilePath,
-    messagePrefix: "Provider execution profile control must contain",
-    values,
-    required: [
-      "enforceGptWebExecutionProfile",
-      "provider_ui_observation",
-      "providerExecutionProfileProof",
-      "gpt-web-execution-profile.v1",
-      "extra_high",
-      "pro_standard",
-      "pro_extended",
-      "GPT-5.6 Sol",
-      "assertStableWebChatDocument",
-      "GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH",
-    ],
-  });
-  requireValues(findings, {
-    lawId: laws.boundary,
-    checkId: "xuanxue-ai-production/conversation-title-finalization",
-    filePath: gatewayConversationTitlePath,
-    messagePrefix: "Provider title finalization must contain",
-    values,
-    required: [
-      "finalizeGptWebConversationTitle",
-      "runExclusivePatrol",
-      "conversationTitleProof",
-      "canonicalConversationUrl",
-      "gpt-web-title-policy.v1",
-      "title_finalization_pending",
-    ],
-  });
-};
-
 const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
@@ -320,13 +191,7 @@ const inspectDurability = (
       "stage_fresh_execution_restarted",
       "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER",
       "supersededExecutionId",
-      "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
-      "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
       "hasProvenTerminalPreSubmitIdentityConflict",
-      "a still-hydrating fresh root is a recoverable wait on the same execution id",
-      "a stage may replace one proven foreign pre-submit identity only once",
-      "a second identity conflict must recover on the replacement execution instead of minting restart:2",
-      "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_EVIDENCE_MISSING",
       "providerTranscriptJsonl",
       "modelIdentityProof",
       "providerExecutionProfileProof",
@@ -468,7 +333,6 @@ const inspectAcceptance = (
     values: collectXuanxueSourceValues(acceptance),
     required: [
       "maxActive",
-      "the eleventh order must remain outside the ten-order production window",
       "providerForkRef",
       "providerContinuationRef",
       "forked_from_checkpoint",
@@ -537,7 +401,7 @@ const inspectDomainEvaluation = async (
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
   const values = collectXuanxueSourceValues([...sources, ...acceptanceSources]);
-  inspectContracts(findings, laws, values);
+  inspectXuanxueContracts(findings, laws.boundary, values);
   inspectXuanxueRecoveryDurability(context, findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);

@@ -136,7 +136,7 @@ export const recoverCheckpointedWebChatResponse = async (input: {
     forkActionProof: record.forkActionProof,
     submissionProof: record.submission,
   });
-  provisional.modelIdentityProof = legacyModelIdentityProof(provisional);
+  provisional.modelIdentityProof = legacyModelIdentityProof(provisional) ?? null;
   return { providerLeaseId, response: provisional };
 };
 

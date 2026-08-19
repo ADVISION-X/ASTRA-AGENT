@@ -43,6 +43,39 @@ const defaultReceiptPath = (): string => {
   throw new Error(`BROWSER_ACTIVATION_PLATFORM_UNSUPPORTED:${process.platform}`);
 };
 
+const activationIdentityMatches = (receipt: BrowserActivationReceipt): boolean => [
+  receipt.schemaVersion === "grasseye-browser-activation-v2",
+  receipt.releaseIdentity === GRASSEYE_BROWSER_RELEASE_IDENTITY,
+  receipt.releaseSequence === GRASSEYE_BROWSER_RELEASE_SEQUENCE,
+  receipt.releaseSequence >= GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE,
+  receipt.minimumAcceptedReleaseSequence === GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE,
+  receipt.protocolVersion === GRASSEYE_BROWSER_PROTOCOL_VERSION,
+  receipt.extensionId === GRASSEYE_BROWSER_EXTENSION_ID,
+  HASH_PATTERN.test(receipt.extensionTreeSha256),
+  HASH_PATTERN.test(receipt.artifactSetSha256),
+  HASH_PATTERN.test(receipt.hostSha256),
+  path.isAbsolute(receipt.userDataDir),
+  path.isAbsolute(receipt.chromeExecutablePath),
+  path.isAbsolute(receipt.hostPath),
+  path.isAbsolute(receipt.controllerSocketPath),
+  Boolean(receipt.profileRef), Boolean(receipt.profileEnrollmentId), Boolean(receipt.profileDirectory),
+  Number.isFinite(receipt.activatedAtUnixMs),
+].every(Boolean);
+
+const activationArtifactMatches = (
+  receipt: BrowserActivationReceipt,
+  artifact: VerifiedBrowserArtifactSet,
+): boolean => [
+  receipt.releaseIdentity === artifact.manifest.releaseIdentity,
+  receipt.releaseSequence === artifact.manifest.releaseSequence,
+  receipt.minimumAcceptedReleaseSequence === artifact.manifest.minimumAcceptedReleaseSequence,
+  receipt.protocolVersion === artifact.manifest.protocolVersion,
+  receipt.extensionId === artifact.manifest.extensionId,
+  receipt.extensionTreeSha256 === artifact.manifest.extension.treeSha256,
+  receipt.hostSha256 === artifact.manifest.host.sha256,
+  receipt.artifactSetSha256 === artifact.artifactSetSha256,
+].every(Boolean);
+
 export const readBrowserActivationReceipt = (input: Readonly<{
   artifactSet: VerifiedBrowserArtifactSet;
 }>): BrowserActivationReceipt => {
@@ -57,39 +90,10 @@ export const readBrowserActivationReceipt = (input: Readonly<{
     throw new Error(`BROWSER_ACTIVATION_RECEIPT_OWNER_INVALID:${receiptPath}`);
   }
   const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as BrowserActivationReceipt;
-  if (
-    receipt.schemaVersion !== "grasseye-browser-activation-v2"
-    || receipt.releaseIdentity !== GRASSEYE_BROWSER_RELEASE_IDENTITY
-    || receipt.releaseSequence !== GRASSEYE_BROWSER_RELEASE_SEQUENCE
-    || receipt.releaseSequence < GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE
-    || receipt.minimumAcceptedReleaseSequence !== GRASSEYE_BROWSER_MINIMUM_ACCEPTED_RELEASE_SEQUENCE
-    || receipt.protocolVersion !== GRASSEYE_BROWSER_PROTOCOL_VERSION
-    || receipt.extensionId !== GRASSEYE_BROWSER_EXTENSION_ID
-    || !HASH_PATTERN.test(receipt.extensionTreeSha256)
-    || !HASH_PATTERN.test(receipt.artifactSetSha256)
-    || !HASH_PATTERN.test(receipt.hostSha256)
-    || !path.isAbsolute(receipt.userDataDir)
-    || !path.isAbsolute(receipt.chromeExecutablePath)
-    || !path.isAbsolute(receipt.hostPath)
-    || !path.isAbsolute(receipt.controllerSocketPath)
-    || !receipt.profileRef
-    || !receipt.profileEnrollmentId
-    || !receipt.profileDirectory
-    || !Number.isFinite(receipt.activatedAtUnixMs)
-  ) {
+  if (!activationIdentityMatches(receipt)) {
     throw new Error("BROWSER_ACTIVATION_RECEIPT_IDENTITY_MISMATCH");
   }
-  const artifact = input.artifactSet;
-  if (
-    receipt.releaseIdentity !== artifact.manifest.releaseIdentity
-    || receipt.releaseSequence !== artifact.manifest.releaseSequence
-    || receipt.minimumAcceptedReleaseSequence !== artifact.manifest.minimumAcceptedReleaseSequence
-    || receipt.protocolVersion !== artifact.manifest.protocolVersion
-    || receipt.extensionId !== artifact.manifest.extensionId
-    || receipt.extensionTreeSha256 !== artifact.manifest.extension.treeSha256
-    || receipt.hostSha256 !== artifact.manifest.host.sha256
-    || receipt.artifactSetSha256 !== artifact.artifactSetSha256
-  ) {
+  if (!activationArtifactMatches(receipt, input.artifactSet)) {
     throw new Error("BROWSER_ACTIVATION_RECEIPT_ARTIFACT_MISMATCH");
   }
   return Object.freeze(receipt);

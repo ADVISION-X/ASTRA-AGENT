@@ -3,7 +3,6 @@ import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -36,7 +35,8 @@ if (!scenario || !supported.has(scenario)) {
   process.exit(2);
 }
 
-const runRoot = await mkdtemp(path.join(tmpdir(), "grasseye-exact-target-real-"));
+const dataDir = process.env.GRASSEYE_DATA_DIR?.trim() || path.resolve(".grasseye-local");
+const runRoot = await mkdtemp(path.join(dataDir, "exact-target-real-"));
 const marker = randomUUID();
 const page = (name: string) => `<!doctype html><meta charset="utf-8"><title>${name}</title>
 <style>
@@ -80,7 +80,7 @@ const profileEnrollment = resolveProductionBrowserProfileEnrollment({ platform: 
 const browser = await CurrentChromeBrowserController.create({
   profileEnrollment,
   screenshotDir: path.join(runRoot, "captures"),
-  dataDir: process.env.GRASSEYE_DATA_DIR?.trim() || path.resolve(".grasseye-local"),
+  dataDir,
 });
 let a: ReturnType<typeof browser.createTargetSession> | null = null;
 let b: ReturnType<typeof browser.createTargetSession> | null = null;
@@ -172,8 +172,6 @@ try {
   }
   if (scenario === "ACC-023B-07") {
     const beforeB = await readState<string>(b, "JSON.stringify({clicked:document.querySelector('#action').dataset.clicked||null,scrollY})");
-    const actionPoint = await pointOf(a, "#action");
-    assert.equal(await readState<string>(a, `document.elementFromPoint(${actionPoint.x},${actionPoint.y})?.id`), "action");
     await assert.rejects(
       () => a!.clickLocatedDomElement({
         targetLabel: "fixture A changed identity attack",

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { z } from "zod";
 
 export const AI_INPUT_GATEWAY_ABILITY_GROUP_ID = "ai-input-gateway" as const;
@@ -56,7 +58,8 @@ const AiFeedInputRefSchema = z.object({
 export const AiFeedProviderExecutionProfileSchema = z.object({
   schemaVersion: z.literal("gpt-web-execution-profile.v1"),
   profileRef: z.string().min(1).max(512),
-  profileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  profileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u)
+    .transform((value): `sha256:${string}` => `sha256:${value.slice(7)}`),
   provider: z.literal("openai-chatgpt-web"),
   transport: z.literal("gpt-web-chat"),
   accountCapabilityRef: z.string().min(1).max(512),
@@ -75,6 +78,97 @@ export const AiFeedProviderExecutionProfileSchema = z.object({
   sourceProfileRef: z.string().min(1).max(512).nullable(),
   sourceProfileHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).nullable(),
 }).strict();
+
+export type AiFeedProviderExecutionProfile = z.infer<typeof AiFeedProviderExecutionProfileSchema>;
+export type GptWebReasoningTier = AiFeedProviderExecutionProfile["reasoningTier"];
+
+export const GPT_WEB_EXECUTION_PROFILE_SCHEMA_VERSION =
+  "gpt-web-execution-profile.v1" as const;
+const GPT_WEB_PROVIDER = "openai-chatgpt-web" as const;
+const GPT_WEB_TRANSPORT = "gpt-web-chat" as const;
+
+export const normalizeGptWebReasoningTier = (
+  value: string | null | undefined,
+): GptWebReasoningTier => {
+  const normalized = String(value ?? "high").trim().toLowerCase();
+  if (["medium", "中"].includes(normalized)) return "medium";
+  if (["high", "高"].includes(normalized)) return "high";
+  if (["xhigh", "extra_high", "extra high", "极高"].includes(normalized)) {
+    return "extra_high";
+  }
+  if (["pro", "pro_standard", "pro standard"].includes(normalized)) {
+    return "pro_standard";
+  }
+  if (["pro_extended", "pro extended", "extended pro"].includes(normalized)) {
+    return "pro_extended";
+  }
+  throw new Error(`AI_INPUT_GATEWAY_REASONING_TIER_UNSUPPORTED:${value ?? "null"}`);
+};
+
+const canonicalProfilePayload = (
+  profile: Omit<AiFeedProviderExecutionProfile, "profileHash">,
+): string => JSON.stringify({
+  schemaVersion: profile.schemaVersion,
+  profileRef: profile.profileRef,
+  provider: profile.provider,
+  transport: profile.transport,
+  accountCapabilityRef: profile.accountCapabilityRef,
+  modelDisplayName: profile.modelDisplayName,
+  modelFamily: profile.modelFamily,
+  reasoningTier: profile.reasoningTier,
+  executorIdentityRef: profile.executorIdentityRef,
+  acceptanceRef: profile.acceptanceRef,
+  acceptanceVersion: profile.acceptanceVersion,
+  sourceProfileRef: profile.sourceProfileRef,
+  sourceProfileHash: profile.sourceProfileHash,
+});
+
+export const hashProviderExecutionProfile = (
+  profile: Omit<AiFeedProviderExecutionProfile, "profileHash">,
+): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(canonicalProfilePayload(profile)).digest("hex")}`;
+
+export const buildGptWebProviderExecutionProfile = (input: {
+  profileRef: string;
+  accountCapabilityRef: string;
+  modelDisplayName?: string;
+  modelFamily?: string;
+  reasoningTier?: string | null;
+  executorIdentityRef: string;
+  acceptanceRef: string;
+  acceptanceVersion: string;
+  sourceProfileRef?: string | null;
+  sourceProfileHash?: `sha256:${string}` | null;
+}): AiFeedProviderExecutionProfile => {
+  const payload: Omit<AiFeedProviderExecutionProfile, "profileHash"> = {
+    schemaVersion: GPT_WEB_EXECUTION_PROFILE_SCHEMA_VERSION,
+    profileRef: input.profileRef,
+    provider: GPT_WEB_PROVIDER,
+    transport: GPT_WEB_TRANSPORT,
+    accountCapabilityRef: input.accountCapabilityRef,
+    modelDisplayName: input.modelDisplayName ?? "GPT-5.6 Sol",
+    modelFamily: input.modelFamily ?? "gpt-5.6",
+    reasoningTier: normalizeGptWebReasoningTier(input.reasoningTier),
+    executorIdentityRef: input.executorIdentityRef,
+    acceptanceRef: input.acceptanceRef,
+    acceptanceVersion: input.acceptanceVersion,
+    sourceProfileRef: input.sourceProfileRef ?? null,
+    sourceProfileHash: input.sourceProfileHash ?? null,
+  };
+  return { ...payload, profileHash: hashProviderExecutionProfile(payload) };
+};
+
+export const defaultGptWebProviderExecutionProfile = (input: {
+  owner: "deep-research" | "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai";
+  reasoningTier?: string | null;
+}): AiFeedProviderExecutionProfile => buildGptWebProviderExecutionProfile({
+  profileRef: `agent:${input.owner}:gpt-web-production:v1`,
+  accountCapabilityRef: "agent:gpt-web-chat:supervised-production",
+  reasoningTier: input.reasoningTier ?? "high",
+  executorIdentityRef: "supervised_local_gpt_web",
+  acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+  acceptanceVersion: "2026-08-19.1",
+});
 
 const ConversationTitleProofSchema = z.object({
   proofStatus: z.literal("verified"),
@@ -352,7 +446,6 @@ export const AiFeedResultSchema = z.object({
 export type AiInputGatewayProviderKind = z.infer<typeof AiInputGatewayProviderKindSchema>;
 export type AiInputGatewayChildCapabilityId = z.infer<typeof AiInputGatewayChildCapabilityIdSchema>;
 export type AiTaskLabelKey = z.infer<typeof AiTaskLabelKeySchema>;
-export type AiFeedProviderExecutionProfile = z.infer<typeof AiFeedProviderExecutionProfileSchema>;
 export type AiFeedInput = z.infer<typeof AiFeedInputSchema>;
 export type AiFeedProviderProof = z.infer<typeof AiFeedProviderProofSchema>;
 export type AiFeedResult = z.infer<typeof AiFeedResultSchema>;

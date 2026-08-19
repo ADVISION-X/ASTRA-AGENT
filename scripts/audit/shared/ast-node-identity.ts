@@ -1,4 +1,4 @@
-import { Node, type Node as MorphNode } from "ts-morph";
+import { Node, SyntaxKind, type Node as MorphNode } from "ts-morph";
 
 export const astIdentifierName = (node: MorphNode | undefined): string | undefined =>
   Node.isIdentifier(node) ? node.compilerNode.escapedText.toString() : undefined;
@@ -13,6 +13,7 @@ export const astPropertyName = (node: MorphNode | undefined): string | undefined
 
 export const astExpressionPath = (node: MorphNode | undefined): string | undefined => {
   if (!node) return undefined;
+  if (node.getKind() === SyntaxKind.ThisKeyword) return "this";
   if (Node.isParenthesizedExpression(node) || Node.isAsExpression(node)
     || Node.isTypeAssertion(node) || Node.isNonNullExpression(node)) {
     return astExpressionPath(node.getExpression());

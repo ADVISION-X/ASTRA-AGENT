@@ -5,6 +5,7 @@ import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import {
   classBreaksMemberRedLine,
+  collectOwnFunctionDescendants,
   collectFunctionLikes,
   computeCyclomaticComplexity,
   computeMaxNestingDepth,
@@ -38,8 +39,9 @@ const collectFunctionBudgetReasons = (functionLike: ReturnType<typeof collectFun
     return [];
   }
   const lineCount = functionLike.getEndLineNumber() - functionLike.getStartLineNumber() + 1;
-  const returnCount = body.getDescendantsOfKind(SyntaxKind.ReturnStatement).length;
-  const awaitCount = body.getDescendantsOfKind(SyntaxKind.AwaitExpression).length;
+  const ownDescendants = collectOwnFunctionDescendants(body);
+  const returnCount = ownDescendants.filter((node) => node.getKind() === SyntaxKind.ReturnStatement).length;
+  const awaitCount = ownDescendants.filter((node) => node.getKind() === SyntaxKind.AwaitExpression).length;
   const nestingDepth = computeMaxNestingDepth(body);
   const complexity = computeCyclomaticComplexity(body);
   return [

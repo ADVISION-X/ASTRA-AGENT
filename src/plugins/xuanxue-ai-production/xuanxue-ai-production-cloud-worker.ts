@@ -1,19 +1,11 @@
-import {
-  XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
-  type XuanxueAiOrderRecord,
-} from "./xuanxue-ai-production.schema.js";
+import type { XuanxueAiOrderRecord } from "./xuanxue-ai-production.schema.js";
 import {
   checkpointXuanxueAiProductionJob,
   claimXuanxueAiProductionJobs,
-  completeXuanxueAiProductionJob,
   failXuanxueAiProductionJob,
   heartbeatXuanxueAiProductionDevice,
   heartbeatXuanxueAiProductionJob,
   recoverXuanxueAiProductionJob,
-  uploadXuanxueAiProductionOutputArtifact,
-} from "./xuanxue-ai-production-cloud-client.js";
-import type {
-  XuanxueAiProductionAttachmentCheckpointProof,
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
   XuanxueAiProductionCloudClaimedJob,
@@ -24,6 +16,10 @@ import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
 } from "./xuanxue-ai-production-localization-contract.js";
 import { readXuanxueAiProductionCloudCredential } from "./xuanxue-ai-production-cloud-credential.js";
+import {
+  publishXuanxueAiProductionCloudOrder,
+  toXuanxueAiProductionAttachmentCheckpoint,
+} from "./xuanxue-ai-production-cloud-publication.js";
 import {
   cleanXuanxueAiProductionCloudStaging,
   stageXuanxueAiProductionCloudJob,
@@ -77,8 +73,6 @@ type StagedCloudJob = Awaited<ReturnType<
   typeof stageXuanxueAiProductionCloudJob
 >>;
 
-type ResultStage = NonNullable<XuanxueAiOrderRecord["result"]>["stages"][number];
-
 const currentHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth => ({
   status: state.healthStatus,
   contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
@@ -120,22 +114,6 @@ const markWorkerError = (state: WorkerState, error: unknown): void => {
   state.lastErrorReason = safeReason(error);
   publishHealth(state);
 };
-
-const attachmentCheckpoint = (input: {
-  readonly stageId: string;
-  readonly proof: NonNullable<XuanxueAiOrderRecord["stages"][number]["attachmentUploadProof"]>;
-}): XuanxueAiProductionAttachmentCheckpointProof => ({
-  stage_id: input.stageId,
-  upload_attempt_id: input.proof.uploadAttemptId,
-  status: input.proof.status,
-  expected_count: input.proof.expectedFileCount,
-  detected_count: input.proof.detectedFileCount,
-  current_file_name: [...input.proof.files]
-    .sort((left, right) => left.order - right.order)
-    .at(-1)?.displayFileName ?? null,
-  staging_manifest_hash: input.proof.stagingManifestHash,
-  observed_at: input.proof.endedAt,
-});
 
 const pollIntervalMs = (): number => {
   const value = Number(
@@ -233,104 +211,6 @@ const heartbeatUntilSettled = async (
   return tracked;
 };
 
-const uploadGeneratedImageStage = async (
-  state: WorkerState,
-  job: XuanxueAiProductionCloudClaimedJob,
-  stage: ResultStage,
-): Promise<ResultStage> => {
-  if (stage.outputKind !== "generated_image") return stage;
-  if (!stage.artifact?.localFilePath) {
-    throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_LOCAL_FILE_MISSING");
-  }
-  if (!stage.artifact.checkpointProofRef) {
-    throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_CHECKPOINT_PROOF_MISSING");
-  }
-  const artifactId = `aiart_${job.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-80)}_${stage.artifact.sha256.slice(-16)}`;
-  const uploaded = await uploadXuanxueAiProductionOutputArtifact(
-    state.credential,
-    job,
-    {
-      stageId: "article_image_generation", artifactId,
-      filePath: stage.artifact.localFilePath, sha256: stage.artifact.sha256,
-      originalSha256: stage.artifact.originalSha256,
-      executionId: stage.executionId,
-      providerOutputRef: stage.artifact.providerOutputRef,
-      checkpointProofRef: stage.artifact.checkpointProofRef,
-      byteCount: stage.artifact.byteCount,
-    },
-  );
-  return {
-    ...stage,
-    artifact: {
-      artifactId: uploaded.artifact_id, role: "generated_image",
-      objectRef: uploaded.object_ref, sha256: uploaded.sha256,
-      originalSha256: stage.artifact.originalSha256,
-      providerOutputRef: stage.artifact.providerOutputRef,
-      checkpointProofRef: stage.artifact.checkpointProofRef,
-      mimeType: uploaded.mime_type, byteCount: uploaded.byte_count,
-      width: uploaded.width, height: uploaded.height,
-    },
-  };
-};
-
-const publishOrder = async (
-  state: WorkerState,
-  job: XuanxueAiProductionCloudClaimedJob,
-  record: XuanxueAiOrderRecord,
-): Promise<void> => {
-  for (const stage of record.stages) {
-    if (!stage.attachmentUploadProof) continue;
-    await checkpointXuanxueAiProductionJob(state.credential, job, {
-      status: "factory_running",
-      localOrderId: record.order.orderId,
-      attachmentUploadProof: attachmentCheckpoint({
-        stageId: stage.stageId,
-        proof: stage.attachmentUploadProof,
-      }),
-    });
-  }
-  if (record.status === "completed" && record.result) {
-    const stages = await Promise.all(record.result.stages.map(
-      (stage) => uploadGeneratedImageStage(state, job, stage),
-    ));
-    const publishableResult = { ...record.result, stages };
-    await completeXuanxueAiProductionJob(
-      state.credential,
-      job,
-      publishableResult,
-    );
-    await cleanXuanxueAiProductionCloudStaging(
-      state.dataDir,
-      job.job_id,
-    );
-    return;
-  }
-  const providerInputBlockedBeforeSubmission = record.failureReason?.startsWith(
-    XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
-  ) ?? false;
-  const recoverable = record.status === "recovery_pending"
-    && !providerInputBlockedBeforeSubmission;
-  await failXuanxueAiProductionJob(state.credential, job, {
-    status: recoverable
-      ? "recovery_pending"
-      : record.status === "review_required"
-        ? "review_required"
-        : "failed",
-    code: providerInputBlockedBeforeSubmission
-      ? XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION
-      : recoverable
-      ? "XUANXUE_AI_PRODUCTION_LOCAL_RECOVERY_PENDING"
-      : record.status === "review_required"
-        ? "XUANXUE_AI_PRODUCTION_LOCAL_REVIEW_REQUIRED"
-        : "XUANXUE_AI_PRODUCTION_LOCAL_FAILED",
-    reason:
-      record.failureReason
-      ?? "local factory ended without a complete result",
-    recoverable,
-    localOrderId: record.order.orderId,
-  });
-};
-
 const checkpointAttachmentUpload = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
@@ -344,7 +224,7 @@ const checkpointAttachmentUpload = async (
     await checkpointXuanxueAiProductionJob(state.credential, job, {
       status: "factory_running",
       ...(localOrderId ? { localOrderId } : {}),
-      attachmentUploadProof: attachmentCheckpoint(input),
+      attachmentUploadProof: toXuanxueAiProductionAttachmentCheckpoint(input),
     });
   } catch (error) {
     reportWorkerError(
@@ -393,7 +273,12 @@ const executeCloudJob = async (
     const terminal = await executeCloudJobStages(state, job, (orderId) => {
       localOrderId = orderId;
     });
-    await publishOrder(state, job, terminal);
+    await publishXuanxueAiProductionCloudOrder({
+      credential: state.credential,
+      dataDir: state.dataDir,
+      job,
+      record: terminal,
+    });
   } catch (error) {
     const reason = safeReason(error);
     const recoverable =

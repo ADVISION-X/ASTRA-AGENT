@@ -6,17 +6,13 @@ import type {
   WebChatAttachmentUploadProof,
 } from "../../capabilities/ai-input-gateway/index.js";
 import {
-  isXuanxueAiPaidFollowupProduct,
-  isXuanxueAiRequiredContinuationProduct,
-  isXuanxueAiReusableBaseConsumerProduct,
-  xuanxueAiRequiredContinuationProfiles,
-} from "./xuanxue-ai-production-conversation-policy.js";
-import {
   XuanxueLocalizationRoleSchema,
   XuanxueProviderExecutionProfileSchema,
-  assertXuanxueLocalizationContract,
-  isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
+import {
+  inspectXuanxueContinuationPolicy,
+  inspectXuanxueLocalizationPolicy,
+} from "./xuanxue-ai-production-schema-refinements.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID =
   "xuanxue-ai-production" as const;
@@ -67,6 +63,14 @@ export const XuanxueAiStageIdSchema = z.enum([
   "localization_candidate",
   "localization_selector",
   "scheduled_quality_reflection",
+]);
+
+export const XuanxueAiProductionTriggerKindSchema = z.enum([
+  "user_request",
+  "manual_accuracy_challenge",
+  "scheduled_public_content",
+  "scheduled_quality_reflection",
+  "terminal_localization",
 ]);
 
 const XuanxueAiMaterialRefSchema = z.object({
@@ -145,13 +149,7 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   sourceTaskId: z.string().min(1).max(240),
   productId: XuanxueAiProductIdSchema,
   serviceClass: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
-  triggerKind: z.enum([
-    "user_request",
-    "manual_accuracy_challenge",
-    "scheduled_public_content",
-    "scheduled_quality_reflection",
-    "terminal_localization",
-  ]),
+  triggerKind: XuanxueAiProductionTriggerKindSchema,
   lineageId: z.string().min(1).nullable(),
   reflectionSnapshotRef: z.string().min(1).nullable(),
   reflectionPlanId: z.string().min(1).nullable(),
@@ -178,192 +176,12 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   createdAt: z.string().datetime(),
 }).strict();
 
-type XuanxueAiStoredOrder = z.infer<typeof XuanxueAiStoredProductionOrderSchema>;
-
-const inspectContinuationPolicy = (
-  order: XuanxueAiStoredOrder,
-  context: z.RefinementCtx,
-): void => {
-  const selectorSwap = order.localizationRole === "selector_swap";
-  const continuationRequired =
-    order.productId === "manual_accuracy_challenge"
-    || isXuanxueAiRequiredContinuationProduct(order.productId)
-    || selectorSwap;
-  if (continuationRequired !== Boolean(order.conversationParent)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
-      path: ["conversationParent"],
-    });
-  }
-  if (
-    selectorSwap
-    && (
-      order.productId !== "localization_static_review_selector"
-      || order.conversationParent?.relation !== "same_conversation"
-      || order.conversationParent?.stageId !== "localization_selector"
-    )
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SELECTOR_PARENT_INVALID",
-      path: ["conversationParent"],
-    });
-  }
-  if (
-    isXuanxueAiRequiredContinuationProduct(order.productId)
-    && order.productId !== "bazi_report_followup"
-    && order.conversationParent?.stageId
-      !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
-      path: ["conversationParent", "stageId"],
-    });
-  }
-  if (
-    order.productId === "bazi_report_followup"
-    && order.conversationParent
-    && !["chart_interpretation", "question_analysis"].includes(
-      order.conversationParent.stageId,
-    )
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
-      path: ["conversationParent", "stageId"],
-    });
-  }
-  if (
-    isXuanxueAiReusableBaseConsumerProduct(order.productId)
-    && order.conversationParent?.relation !== "forked_from_checkpoint"
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED",
-      path: ["conversationParent", "relation"],
-    });
-  }
-  if (
-    isXuanxueAiPaidFollowupProduct(order.productId)
-    && order.conversationParent?.relation !== "same_conversation"
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_SAME_CONVERSATION_PARENT_REQUIRED",
-      path: ["conversationParent", "relation"],
-    });
-  }
-};
-
-const inspectLocalizationPolicy = (
-  order: XuanxueAiStoredOrder,
-  context: z.RefinementCtx,
-): void => {
-  const isLocalization = isXuanxueLocalizationProduct(order.productId);
-  if (!isLocalization) {
-    if (
-      order.contractManifestHash !== null
-      || order.productContractHash !== null
-      || order.localizationRole !== null
-      || order.providerExecutionProfile !== null
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN",
-        path: ["localizationRole"],
-      });
-    }
-    if (order.frozenSubject.participants.length === 0) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED",
-        path: ["frozenSubject", "participants"],
-      });
-    }
-    return;
-  }
-  try {
-    assertXuanxueLocalizationContract({
-      productId: order.productId,
-      stageId: order.materials[0]?.stageId ?? "",
-      contractManifestHash: order.contractManifestHash,
-      productContractHash: order.productContractHash,
-      role: order.localizationRole,
-      providerProfile: order.providerExecutionProfile,
-      inputKinds: order.materials[0]?.inputRefs.map((item) => item.kind) ?? [],
-      hasConversationParent: Boolean(order.conversationParent),
-    });
-  } catch (error) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: error instanceof Error
-        ? error.message
-        : "XUANXUE_AI_PRODUCTION_LOCALIZATION_CONTRACT_INVALID",
-      path: ["localizationRole"],
-    });
-  }
-  if (
-    order.serviceClass !== "localization"
-    || order.materials.length !== 1
-    || order.joinParents.length !== 0
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SINGLE_STAGE_INVALID",
-      path: ["materials"],
-    });
-  }
-  const staticReview =
-    order.productId === "localization_static_review_candidate"
-    || order.productId === "localization_static_review_selector";
-  if (
-    staticReview
-    && (
-      order.triggerKind !== "terminal_localization"
-      || order.frozenSubject.privacyOwnerRef !== "localization-catalog"
-      || order.frozenSubject.primaryPersonRef !== null
-      || order.frozenSubject.participants.length !== 0
-    )
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_STATIC_SUBJECT_INVALID",
-      path: ["frozenSubject"],
-    });
-  }
-  if (
-    (order.productId === "localization_report_translation"
-      || order.productId === "localization_article_translation")
-    && order.triggerKind !== "terminal_localization"
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_TERMINAL_LOCALIZATION_TRIGGER_INVALID",
-      path: ["triggerKind"],
-    });
-  }
-  if (
-    order.productId === "localization_article_translation"
-    && (
-      order.frozenSubject.privacyOwnerRef !== "public-knowledge-content"
-      || order.frozenSubject.primaryPersonRef !== null
-      || order.frozenSubject.participants.length !== 0
-    )
-  ) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_ARTICLE_LOCALIZATION_SUBJECT_INVALID",
-      path: ["frozenSubject"],
-    });
-  }
-};
+export type XuanxueAiStoredOrder = z.infer<typeof XuanxueAiStoredProductionOrderSchema>;
 
 export const XuanxueAiProductionOrderSchema =
 XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
-  inspectContinuationPolicy(order, context);
-  inspectLocalizationPolicy(order, context);
+  inspectXuanxueContinuationPolicy(order, context);
+  inspectXuanxueLocalizationPolicy(order, context);
 });
 
 export type XuanxueAiProductId = z.infer<typeof XuanxueAiProductIdSchema>;

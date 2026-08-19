@@ -24,63 +24,68 @@ const isBrowserWireCommandPermit = (value) => {
         && isFiniteNumber(record.deadlineAt)
         && isNonEmptyString(record.permitHash);
 };
+const wireValidators = {
+    extension_hello: (record) => [
+        record.extensionId === GRASSEYE_BROWSER_EXTENSION_ID,
+        record.extensionVersion === GRASSEYE_BROWSER_EXTENSION_VERSION,
+        isNonEmptyString(record.extensionInstanceId),
+        isPositiveSafeInteger(record.nativePortEpoch),
+    ].every(Boolean),
+    controller_challenge: (record) => [
+        isNonEmptyString(record.controllerSessionId),
+        isPositiveSafeInteger(record.connectionGeneration),
+        isPositiveSafeInteger(record.nativePortEpoch),
+        isNonEmptyString(record.challengeId),
+        isBase64(record.nonce, 256),
+        isBase64(record.controllerPublicKey, 512),
+    ].every(Boolean),
+    extension_authenticated: (record) => [
+        isNonEmptyString(record.extensionInstanceId),
+        isPositiveSafeInteger(record.nativePortEpoch),
+        isNonEmptyString(record.challengeId),
+        isBase64(record.nonce, 256),
+        isBase64(record.extensionPublicKey, 512),
+        isBase64(record.transcriptProof, 512),
+    ].every(Boolean),
+    authority_grant: (record) => validateAuthorityGrant(record, record.grantProof),
+    authority_grant_ack: (record) => validateAuthorityGrant(record, record.ackProof),
+    heartbeat: (record) => [
+        isNonEmptyString(record.authorityId),
+        isPositiveSafeInteger(record.connectionGeneration),
+        isPositiveSafeInteger(record.nativePortEpoch),
+        isFiniteNumber(record.monotonicMs),
+        isBase64(record.proof, 512),
+    ].every(Boolean),
+    command_frame: (record) => [
+        isBrowserWireCommandPermit(record.permit),
+        isBase64(record.iv, 128),
+        isBase64(record.ciphertext, GRASSEYE_BROWSER_HOST_TO_EXTENSION_MAX_BYTES * 2),
+    ].every(Boolean),
+    response_frame: (record) => [
+        isNonEmptyString(record.permitHash),
+        isNonEmptyString(record.authorityId),
+        isPositiveSafeInteger(record.connectionGeneration),
+        isPositiveSafeInteger(record.nativePortEpoch),
+        isPositiveSafeInteger(record.sequence),
+        isBase64(record.iv, 128),
+        isBase64(record.ciphertext, GRASSEYE_BROWSER_EXTENSION_TO_HOST_MAX_BYTES * 2),
+    ].every(Boolean),
+};
+function validateAuthorityGrant(record, proof) {
+    return [
+        isNonEmptyString(record.authorityId),
+        isNonEmptyString(record.authorityCertificateHash),
+        isPositiveSafeInteger(record.connectionGeneration),
+        isPositiveSafeInteger(record.nativePortEpoch),
+        isNonEmptyString(record.challengeId),
+        isBase64(proof, 512),
+    ].every(Boolean);
+}
 export const isBrowserWireMessage = (value) => {
     if (!value || typeof value !== "object")
         return false;
     const record = value;
     if (!hasWireIdentity(record) || typeof record.type !== "string")
         return false;
-    if (record.type === "extension_hello") {
-        return record.extensionId === GRASSEYE_BROWSER_EXTENSION_ID
-            && record.extensionVersion === GRASSEYE_BROWSER_EXTENSION_VERSION
-            && isNonEmptyString(record.extensionInstanceId)
-            && isPositiveSafeInteger(record.nativePortEpoch);
-    }
-    if (record.type === "controller_challenge") {
-        return isNonEmptyString(record.controllerSessionId)
-            && isPositiveSafeInteger(record.connectionGeneration)
-            && isPositiveSafeInteger(record.nativePortEpoch)
-            && isNonEmptyString(record.challengeId)
-            && isBase64(record.nonce, 256)
-            && isBase64(record.controllerPublicKey, 512);
-    }
-    if (record.type === "extension_authenticated") {
-        return isNonEmptyString(record.extensionInstanceId)
-            && isPositiveSafeInteger(record.nativePortEpoch)
-            && isNonEmptyString(record.challengeId)
-            && isBase64(record.nonce, 256)
-            && isBase64(record.extensionPublicKey, 512)
-            && isBase64(record.transcriptProof, 512);
-    }
-    if (record.type === "authority_grant" || record.type === "authority_grant_ack") {
-        const proof = record.type === "authority_grant" ? record.grantProof : record.ackProof;
-        return isNonEmptyString(record.authorityId)
-            && isNonEmptyString(record.authorityCertificateHash)
-            && isPositiveSafeInteger(record.connectionGeneration)
-            && isPositiveSafeInteger(record.nativePortEpoch)
-            && isNonEmptyString(record.challengeId)
-            && isBase64(proof, 512);
-    }
-    if (record.type === "heartbeat") {
-        return isNonEmptyString(record.authorityId)
-            && isPositiveSafeInteger(record.connectionGeneration)
-            && isPositiveSafeInteger(record.nativePortEpoch)
-            && isFiniteNumber(record.monotonicMs)
-            && isBase64(record.proof, 512);
-    }
-    if (record.type === "command_frame") {
-        return isBrowserWireCommandPermit(record.permit)
-            && isBase64(record.iv, 128)
-            && isBase64(record.ciphertext, GRASSEYE_BROWSER_HOST_TO_EXTENSION_MAX_BYTES * 2);
-    }
-    if (record.type === "response_frame") {
-        return isNonEmptyString(record.permitHash)
-            && isNonEmptyString(record.authorityId)
-            && isPositiveSafeInteger(record.connectionGeneration)
-            && isPositiveSafeInteger(record.nativePortEpoch)
-            && isPositiveSafeInteger(record.sequence)
-            && isBase64(record.iv, 128)
-            && isBase64(record.ciphertext, GRASSEYE_BROWSER_EXTENSION_TO_HOST_MAX_BYTES * 2);
-    }
-    return false;
+    return wireValidators[record.type]?.(record) ?? false;
 };

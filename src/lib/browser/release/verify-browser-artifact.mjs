@@ -25,6 +25,56 @@ const runRequired = (command, args) => {
 export const resolveBrowserRuntimeArtifactRoot = (rootDir, platform = process.platform, architecture = process.arch) =>
   path.join(rootDir, "artifacts", "browser-runtime", `${platform}-${architecture}`);
 
+const manifestReleaseTupleValid = (manifest, mode) => [
+  manifest.schemaVersion === "grasseye-browser-artifact-set-v2",
+  manifest.releaseIdentity === RELEASE_IDENTITY,
+  manifest.releaseSequence === RELEASE_SEQUENCE,
+  manifest.releaseSequence >= MINIMUM_ACCEPTED_RELEASE_SEQUENCE,
+  manifest.minimumAcceptedReleaseSequence === MINIMUM_ACCEPTED_RELEASE_SEQUENCE,
+  manifest.protocolVersion === PROTOCOL_VERSION,
+  manifest.extensionId === EXTENSION_ID,
+  manifest.artifactMode === mode,
+  manifest.platformArch === `${process.platform}-${process.arch}`,
+  typeof manifest.sourceCommitSha === "string",
+  manifest.sourceCommitSha !== "UNBOUND",
+  typeof manifest.builderIdentity === "string",
+  manifest.builderIdentity !== "UNBOUND",
+  typeof manifest.extension?.treeSha256 === "string",
+].every(Boolean);
+
+const verifyArtifactPaths = (root, manifest) => {
+  const paths = {
+    hostPath: path.resolve(root, manifest.host.path),
+    browserctlPath: path.resolve(root, manifest.browserctl.path),
+    extensionPath: path.resolve(root, manifest.extension.path),
+  };
+  const extensionManifestPath = path.resolve(paths.extensionPath, "manifest.json");
+  for (const candidate of [...Object.values(paths), extensionManifestPath]) {
+    if (!candidate.startsWith(`${root}${path.sep}`) || !existsSync(candidate)) {
+      throw new Error(`BROWSER_ARTIFACT_PATH_INVALID:${candidate}`);
+    }
+  }
+  return { ...paths, extensionManifestPath };
+};
+
+const verifyArtifactHashes = async (manifest, paths) => {
+  if (await sha256(paths.hostPath) !== manifest.host.sha256) throw new Error("BROWSER_HOST_ARTIFACT_HASH_MISMATCH");
+  if (await sha256(paths.browserctlPath) !== manifest.browserctl.sha256) throw new Error("BROWSERCTL_ARTIFACT_HASH_MISMATCH");
+  if (await sha256(paths.extensionManifestPath) !== manifest.extension.manifestSha256) throw new Error("BROWSER_EXTENSION_ARTIFACT_HASH_MISMATCH");
+  if ((await extensionTreeIdentity(paths.extensionPath)).sha256 !== manifest.extension.treeSha256) {
+    throw new Error("BROWSER_EXTENSION_TREE_ARTIFACT_HASH_MISMATCH");
+  }
+};
+
+const verifyPlatformSignatures = (mode, paths) => {
+  if (process.platform !== "darwin") return;
+  runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", paths.hostPath]);
+  runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", paths.browserctlPath]);
+  if (mode !== "production") return;
+  runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", paths.hostPath]);
+  runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", paths.browserctlPath]);
+};
+
 export const verifyBrowserArtifactSet = async (artifactRoot) => {
   const root = path.resolve(artifactRoot);
   const manifestPath = path.join(root, "browser-artifact-set.json");
@@ -44,58 +94,20 @@ export const verifyBrowserArtifactSet = async (artifactRoot) => {
     throw new Error("BROWSER_ARTIFACT_SIGNATURE_INVALID");
   }
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  const platformArch = `${process.platform}-${process.arch}`;
-  if (
-    manifest.schemaVersion !== "grasseye-browser-artifact-set-v2"
-    || manifest.releaseIdentity !== RELEASE_IDENTITY
-    || manifest.releaseSequence !== RELEASE_SEQUENCE
-    || manifest.releaseSequence < MINIMUM_ACCEPTED_RELEASE_SEQUENCE
-    || manifest.minimumAcceptedReleaseSequence !== MINIMUM_ACCEPTED_RELEASE_SEQUENCE
-    || manifest.protocolVersion !== PROTOCOL_VERSION
-    || manifest.extensionId !== EXTENSION_ID
-    || manifest.artifactMode !== mode
-    || manifest.platformArch !== platformArch
-    || typeof manifest.sourceCommitSha !== "string"
-    || manifest.sourceCommitSha === "UNBOUND"
-    || typeof manifest.builderIdentity !== "string"
-    || manifest.builderIdentity === "UNBOUND"
-    || typeof manifest.extension?.treeSha256 !== "string"
-  ) {
+  if (!manifestReleaseTupleValid(manifest, mode)) {
     throw new Error("BROWSER_ARTIFACT_RELEASE_TUPLE_INVALID");
   }
-
-  const hostPath = path.resolve(root, manifest.host.path);
-  const browserctlPath = path.resolve(root, manifest.browserctl.path);
-  const extensionPath = path.resolve(root, manifest.extension.path);
-  const extensionManifestPath = path.resolve(extensionPath, "manifest.json");
-  for (const candidate of [hostPath, browserctlPath, extensionPath, extensionManifestPath]) {
-    if (!candidate.startsWith(`${root}${path.sep}`) || !existsSync(candidate)) {
-      throw new Error(`BROWSER_ARTIFACT_PATH_INVALID:${candidate}`);
-    }
-  }
-  if (await sha256(hostPath) !== manifest.host.sha256) throw new Error("BROWSER_HOST_ARTIFACT_HASH_MISMATCH");
-  if (await sha256(browserctlPath) !== manifest.browserctl.sha256) throw new Error("BROWSERCTL_ARTIFACT_HASH_MISMATCH");
-  if (await sha256(extensionManifestPath) !== manifest.extension.manifestSha256) throw new Error("BROWSER_EXTENSION_ARTIFACT_HASH_MISMATCH");
-  if ((await extensionTreeIdentity(extensionPath)).sha256 !== manifest.extension.treeSha256) {
-    throw new Error("BROWSER_EXTENSION_TREE_ARTIFACT_HASH_MISMATCH");
-  }
-
-  if (process.platform === "darwin") {
-    runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", hostPath]);
-    runRequired("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", browserctlPath]);
-    if (mode === "production") {
-      runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", hostPath]);
-      runRequired("/usr/sbin/spctl", ["--assess", "--type", "execute", "--verbose=2", browserctlPath]);
-    }
-  }
+  const paths = verifyArtifactPaths(root, manifest);
+  await verifyArtifactHashes(manifest, paths);
+  verifyPlatformSignatures(mode, paths);
 
   return Object.freeze({
     manifest,
     manifestPath,
     signaturePath,
     artifactSetSha256: await sha256(manifestPath),
-    hostPath,
-    browserctlPath,
-    extensionPath,
+    hostPath: paths.hostPath,
+    browserctlPath: paths.browserctlPath,
+    extensionPath: paths.extensionPath,
   });
 };

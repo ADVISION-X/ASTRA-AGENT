@@ -184,6 +184,14 @@ const assertContinuationProfile = (
       "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID",
     );
   }
+  assertContinuationStage(order, selectorSwap);
+  assertContinuationRelation(order);
+};
+
+const assertContinuationStage = (
+  order: XuanxueAiProductionOrder,
+  selectorSwap: boolean,
+): void => {
   if (
     selectorSwap
     && (
@@ -215,6 +223,11 @@ const assertContinuationProfile = (
       "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
     );
   }
+};
+
+const assertContinuationRelation = (
+  order: XuanxueAiProductionOrder,
+): void => {
   if (
     isXuanxueAiReusableBaseConsumerProduct(order.productId)
     && order.conversationParent?.relation !== "forked_from_checkpoint"
@@ -348,6 +361,7 @@ const assertLocalizationProfile = (
   assertXuanxueLocalizationContract({
     productId: order.productId,
     stageId: material?.stageId ?? "",
+    triggerKind: order.triggerKind,
     contractManifestHash: order.contractManifestHash,
     productContractHash: order.productContractHash,
     role: order.localizationRole,

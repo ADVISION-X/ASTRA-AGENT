@@ -85,7 +85,7 @@ export const resolveSubmittedDraftOwnerByTurnMarker = async (input: {
     if (!entry.endsWith(".json")) continue;
     const candidate = await readExecutionState(input.dataDir, entry);
     if (
-      candidate.schemaVersion !== "web-chat-execution-v2"
+      candidate.schemaVersion !== "web-chat-execution-v3"
       || candidate.providerKind !== input.providerKind
       || candidate.turnMarker !== input.turnMarker
       || typeof candidate.executionId !== "string"
@@ -136,7 +136,7 @@ export const assertWebChatCanonicalConversationBinding = async (input: {
     if (!entry.endsWith(".json")) continue;
     const candidate = await readExecutionState(input.dataDir, entry);
     if (
-      candidate.schemaVersion !== "web-chat-execution-v2"
+      candidate.schemaVersion !== "web-chat-execution-v3"
       || candidate.executionId === input.executionId
       || candidate.providerKind !== input.providerKind
       || !candidate.submission?.canonicalConversationUrl

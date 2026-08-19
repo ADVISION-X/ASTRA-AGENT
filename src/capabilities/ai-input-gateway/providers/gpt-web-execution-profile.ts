@@ -8,9 +8,8 @@ import type {
 import {
   assertProviderExecutionProfileIntegrity,
   legacyReasoningEffortForProof,
-  type GptWebReasoningTier,
 } from "../provider-execution-profile.js";
-import type { AiFeedInput } from "../schema.js";
+import type { AiFeedInput, GptWebReasoningTier } from "../schema.js";
 import {
   assertStableWebChatDocument,
   recordWebChatPageAction,
@@ -27,7 +26,7 @@ const reasoningLabels: Readonly<Record<GptWebReasoningTier, readonly string[]>> 
   pro_extended: ["Pro Extended", "Extended Pro"],
 };
 
-const MODEL_MENU_CONTROL_SCRIPT = `
+export const GPT_WEB_MODEL_MENU_CONTROL_SCRIPT = `
 const visible = (node) => {
   if (!(node instanceof Element)) return false;
   const rect = node.getBoundingClientRect();
@@ -36,7 +35,7 @@ const visible = (node) => {
     && style.visibility !== "hidden" && Number(style.opacity || "1") > 0;
 };
 const normalize = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
-const knownReasoning = new Set(${JSON.stringify(Object.values(reasoningLabels).flat().map((value) => value.toLowerCase()))});
+const knownReasoning = ${JSON.stringify(Object.values(reasoningLabels).flat().map((value) => value.toLowerCase()))};
 const candidates = Array.from(document.querySelectorAll("main button"))
   .filter(visible)
   .filter((node) => {
@@ -44,19 +43,18 @@ const candidates = Array.from(document.querySelectorAll("main button"))
     const testId = normalize(node.getAttribute("data-testid")).toLowerCase();
     const aria = normalize(node.getAttribute("aria-label")).toLowerCase();
     return testId.includes("model") || aria.includes("model") || aria.includes("reasoning")
-      || knownReasoning.has(text);
+      || knownReasoning.includes(text);
   });
-const unique = Array.from(new Set(candidates));
-if (unique.length !== 1) return {
-  status: unique.length === 0 ? "pending" : "review_required",
-  count: unique.length,
-  semantics: unique.map((node) => normalize(node.textContent || node.getAttribute("aria-label"))).slice(0, 8),
+if (candidates.length !== 1) return {
+  status: candidates.length === 0 ? "pending" : "review_required",
+  count: candidates.length,
+  semantics: candidates.map((node) => normalize(node.textContent || node.getAttribute("aria-label"))).slice(0, 8),
 };
-const rect = unique[0].getBoundingClientRect();
+const rect = candidates[0].getBoundingClientRect();
 return {
   status: "success",
   count: 1,
-  semantics: [normalize(unique[0].textContent || unique[0].getAttribute("aria-label"))],
+  semantics: [normalize(candidates[0].textContent || candidates[0].getAttribute("aria-label"))],
   point: {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2},
 };
 `;
@@ -78,6 +76,14 @@ type ProfileObservation = {
   reasoningTargetPoint?: { x: number; y: number };
   semantics: string[];
 };
+
+type ExecutionProfileInput = {
+  browser: BrowserTargetSession;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  providerUrl: string;
+};
+type RequiredProfile = NonNullable<AiFeedInput["providerExecutionProfile"]>;
 
 const buildProfileObservationScript = (input: {
   modelDisplayName: string;
@@ -136,7 +142,7 @@ const openProfileMenu = async (input: {
 }): Promise<void> => {
   const observed = await input.browser.evaluate<MenuControl>({
     description: "locate unique ChatGPT execution-profile menu control",
-    script: MODEL_MENU_CONTROL_SCRIPT,
+    script: GPT_WEB_MODEL_MENU_CONTROL_SCRIPT,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
   if (observed.status === "review_required") {
@@ -193,12 +199,81 @@ const clickProfileTarget = async (input: {
   await input.browser.wait(200);
 };
 
-export const enforceGptWebExecutionProfile = async (input: {
-  browser: BrowserTargetSession;
-  context: AiProviderAdapterContext;
-  request: AiFeedInput;
-  providerUrl: string;
-}): Promise<ProviderExecutionProfileProof | null> => {
+const applyRequiredProfile = async (
+  input: ExecutionProfileInput,
+  profile: RequiredProfile,
+  initial: ProfileObservation,
+): Promise<{ changed: boolean; observation: ProfileObservation }> => {
+  let observation = initial;
+  let changed = false;
+  if (observation.modelSelected !== profile.modelDisplayName) {
+    if (observation.modelCandidateCount !== 1) {
+      throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_MODEL_UNAVAILABLE_OR_AMBIGUOUS");
+    }
+    await clickProfileTarget({ browser: input.browser, point: observation.modelTargetPoint,
+      label: `select exact ChatGPT model ${profile.modelDisplayName}` });
+    changed = true;
+    await closeProfileMenu(input.browser, input.context);
+    await openProfileMenu(input);
+    observation = await observeProfile(input.browser, input.context, input.request);
+  }
+  if (observation.reasoningSelected !== profile.reasoningTier) {
+    if (observation.reasoningCandidateCount !== 1) {
+      throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_REASONING_UNAVAILABLE_OR_AMBIGUOUS");
+    }
+    await clickProfileTarget({ browser: input.browser, point: observation.reasoningTargetPoint,
+      label: `select exact ChatGPT reasoning tier ${profile.reasoningTier}` });
+    changed = true;
+    await closeProfileMenu(input.browser, input.context);
+    await openProfileMenu(input);
+    observation = await observeProfile(input.browser, input.context, input.request);
+  }
+  return { changed, observation };
+};
+
+const buildExecutionProfileProof = (
+  profile: RequiredProfile,
+  observation: ProfileObservation,
+  changed: boolean,
+): ProviderExecutionProfileProof => {
+  const observedAt = new Date().toISOString();
+  const evidenceHash = hash(JSON.stringify({
+    profileRef: profile.profileRef, profileHash: profile.profileHash,
+    provider: profile.provider, transport: profile.transport,
+    modelDisplayName: profile.modelDisplayName, modelFamily: profile.modelFamily,
+    reasoningTier: profile.reasoningTier, pageUrl: observation.pageUrl, changed, observedAt,
+  }));
+  return {
+    proofStatus: "verified", profileRef: profile.profileRef, profileHash: profile.profileHash,
+    provider: profile.provider, transport: profile.transport, modelDisplayName: profile.modelDisplayName,
+    modelFamily: profile.modelFamily, reasoningTier: profile.reasoningTier,
+    legacyReasoningEffort: legacyReasoningEffortForProof(profile.reasoningTier), observedAt,
+    sourceKind: "provider_ui_observation", noOp: !changed,
+    evidenceRef: `provider-execution-profile:${evidenceHash.slice(7)}`, evidenceHash,
+  };
+};
+
+const persistProfileProof = async (input: {
+  source: ExecutionProfileInput;
+  profile: RequiredProfile;
+  proof: ProviderExecutionProfileProof;
+  observation: ProfileObservation;
+  changed: boolean;
+  startedAt: string;
+  beforeUrl: string;
+}): Promise<void> => {
+  await input.source.context.webChatExecution?.onProviderExecutionProfileVerified(input.proof);
+  await recordWebChatPageAction({
+    browser: input.source.browser, context: input.source.context,
+    actionId: input.changed ? "apply_execution_profile" : "observe_execution_profile",
+    startedAt: input.startedAt, beforeUrl: input.beforeUrl, afterUrl: input.observation.pageUrl,
+    result: input.changed ? "committed" : "no_op",
+    candidateCount: input.observation.modelCandidateCount + input.observation.reasoningCandidateCount,
+    semantics: [input.profile.modelDisplayName, input.profile.reasoningTier],
+  });
+};
+
+export const enforceGptWebExecutionProfile = async (input: ExecutionProfileInput): Promise<ProviderExecutionProfileProof | null> => {
   const profile = input.request.providerExecutionProfile;
   if (input.request.providerKind !== "gpt-web-chat" || !profile) return null;
   assertProviderExecutionProfileIntegrity(profile);
@@ -207,40 +282,12 @@ export const enforceGptWebExecutionProfile = async (input: {
   const beforeUrl = input.browser.getTarget?.()?.url ?? input.providerUrl;
   const documentRef = input.browser.getTarget?.()?.documentRef ?? null;
   await openProfileMenu(input);
-  let observation = await observeProfile(input.browser, input.context, input.request);
-  if (new URL(observation.pageUrl).origin !== providerOrigin) {
+  const initialObservation = await observeProfile(input.browser, input.context, input.request);
+  if (new URL(initialObservation.pageUrl).origin !== providerOrigin) {
     throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_WRONG_PROVIDER_PAGE");
   }
-  let changed = false;
   try {
-    if (observation.modelSelected !== profile.modelDisplayName) {
-      if (observation.modelCandidateCount !== 1) {
-        throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_MODEL_UNAVAILABLE_OR_AMBIGUOUS");
-      }
-      await clickProfileTarget({
-        browser: input.browser,
-        point: observation.modelTargetPoint,
-        label: `select exact ChatGPT model ${profile.modelDisplayName}`,
-      });
-      changed = true;
-      await closeProfileMenu(input.browser, input.context);
-      await openProfileMenu(input);
-      observation = await observeProfile(input.browser, input.context, input.request);
-    }
-    if (observation.reasoningSelected !== profile.reasoningTier) {
-      if (observation.reasoningCandidateCount !== 1) {
-        throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_REASONING_UNAVAILABLE_OR_AMBIGUOUS");
-      }
-      await clickProfileTarget({
-        browser: input.browser,
-        point: observation.reasoningTargetPoint,
-        label: `select exact ChatGPT reasoning tier ${profile.reasoningTier}`,
-      });
-      changed = true;
-      await closeProfileMenu(input.browser, input.context);
-      await openProfileMenu(input);
-      observation = await observeProfile(input.browser, input.context, input.request);
-    }
+    const { changed, observation } = await applyRequiredProfile(input, profile, initialObservation);
     if (
       observation.modelSelected !== profile.modelDisplayName
       || observation.reasoningSelected !== profile.reasoningTier
@@ -252,48 +299,8 @@ export const enforceGptWebExecutionProfile = async (input: {
       expectedDocumentRef: documentRef,
       actionId: "verify_execution_profile",
     });
-    const observedAt = new Date().toISOString();
-    const evidence = JSON.stringify({
-      profileRef: profile.profileRef,
-      profileHash: profile.profileHash,
-      provider: profile.provider,
-      transport: profile.transport,
-      modelDisplayName: profile.modelDisplayName,
-      modelFamily: profile.modelFamily,
-      reasoningTier: profile.reasoningTier,
-      pageUrl: observation.pageUrl,
-      changed,
-      observedAt,
-    });
-    const evidenceHash = hash(evidence);
-    const proof: ProviderExecutionProfileProof = {
-      proofStatus: "verified",
-      profileRef: profile.profileRef,
-      profileHash: profile.profileHash,
-      provider: profile.provider,
-      transport: profile.transport,
-      modelDisplayName: profile.modelDisplayName,
-      modelFamily: profile.modelFamily,
-      reasoningTier: profile.reasoningTier,
-      legacyReasoningEffort: legacyReasoningEffortForProof(profile.reasoningTier),
-      observedAt,
-      sourceKind: "provider_ui_observation",
-      noOp: !changed,
-      evidenceRef: `provider-execution-profile:${evidenceHash.slice(7)}`,
-      evidenceHash,
-    };
-    await input.context.webChatExecution?.onProviderExecutionProfileVerified(proof);
-    await recordWebChatPageAction({
-      browser: input.browser,
-      context: input.context,
-      actionId: changed ? "apply_execution_profile" : "observe_execution_profile",
-      startedAt: start,
-      beforeUrl,
-      afterUrl: observation.pageUrl,
-      result: changed ? "committed" : "no_op",
-      candidateCount: observation.modelCandidateCount + observation.reasoningCandidateCount,
-      semantics: [profile.modelDisplayName, profile.reasoningTier],
-    });
+    const proof = buildExecutionProfileProof(profile, observation, changed);
+    await persistProfileProof({ source: input, profile, proof, observation, changed, startedAt: start, beforeUrl });
     return proof;
   } finally {
     await closeProfileMenu(input.browser, input.context).catch(() => undefined);

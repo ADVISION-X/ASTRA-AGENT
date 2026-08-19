@@ -100,6 +100,48 @@ const fixtureTitleProof = (input: {
   };
 };
 
+const assertPendingTitleCheckpoint = async (input: {
+  dataDir: string;
+  executionId: string;
+  execution: Promise<Awaited<ReturnType<ReturnType<typeof createAiInputGatewayAbilityGroup>["execute"]>>>;
+}): Promise<void> => {
+  const checkpoint = await readWebChatExecution(input.dataDir, input.executionId);
+  assert.equal(
+    checkpoint?.status,
+    "title_finalization_pending",
+    "answer bytes must be durable before the required title finalization completes",
+  );
+  assert.ok(checkpoint?.responseCheckpoint);
+  const premature = await Promise.race([
+    input.execution.then(() => "published" as const),
+    new Promise<"blocked">((resolve) => setTimeout(() => resolve("blocked"), 250)),
+  ]);
+  assert.equal(
+    premature,
+    "blocked",
+    "a production checkpoint must not publish final success before title proof",
+  );
+};
+
+const assertFinalizedCheckpoint = async (input: {
+  dataDir: string;
+  executionId: string;
+  execution: Promise<Awaited<ReturnType<ReturnType<typeof createAiInputGatewayAbilityGroup>["execute"]>>>;
+}): Promise<void> => {
+  const interrupted = await input.execution;
+  assert.equal(interrupted.status, "success");
+  assert.equal(interrupted.normalizedText, answerText);
+  assert.ok(interrupted.providerProof.providerExecutionProfileProof);
+  assert.ok(interrupted.providerProof.conversationTitleProof);
+  const checkpointed = await readWebChatExecution(input.dataDir, input.executionId);
+  assert.equal(checkpointed?.status, "finalized");
+  assert.ok(checkpointed?.responseCheckpoint);
+  assert.equal(
+    await readWebChatResponseCheckpoint(checkpointed.responseCheckpoint!),
+    answerText,
+  );
+};
+
 const captureThenInterruptPostProcessing = async (input: {
   dataDir: string;
   executionId: string;
@@ -143,39 +185,13 @@ const captureThenInterruptPostProcessing = async (input: {
   });
   const execution = gateway.execute(input.request, { executionId: input.executionId });
   await checkpointReached;
-  const checkpointedBeforeTitle = await readWebChatExecution(input.dataDir, input.executionId);
-  assert.equal(
-    checkpointedBeforeTitle?.status,
-    "title_finalization_pending",
-    "answer bytes must be durable before the required title finalization completes",
-  );
-  assert.ok(checkpointedBeforeTitle?.responseCheckpoint);
-  const premature = await Promise.race([
-    execution.then(() => "published" as const),
-    new Promise<"blocked">((resolve) => setTimeout(() => resolve("blocked"), 250)),
-  ]);
-  assert.equal(
-    premature,
-    "blocked",
-    "a production checkpoint must not publish final success before title proof",
-  );
+  await assertPendingTitleCheckpoint({ dataDir: input.dataDir, executionId: input.executionId, execution });
   allowTitle();
   await new Promise<void>((resolve) => setTimeout(resolve, 100));
   const titleVerified = await readWebChatExecution(input.dataDir, input.executionId);
   assert.equal(titleVerified?.conversationTitle?.status, "verified");
   releasePostProcessing();
-  const interrupted = await execution;
-  assert.equal(interrupted.status, "success");
-  assert.equal(interrupted.normalizedText, answerText);
-  assert.ok(interrupted.providerProof.providerExecutionProfileProof);
-  assert.ok(interrupted.providerProof.conversationTitleProof);
-  const checkpointed = await readWebChatExecution(input.dataDir, input.executionId);
-  assert.equal(checkpointed?.status, "finalized");
-  assert.ok(checkpointed?.responseCheckpoint);
-  assert.equal(
-    await readWebChatResponseCheckpoint(checkpointed.responseCheckpoint!),
-    answerText,
-  );
+  await assertFinalizedCheckpoint({ dataDir: input.dataDir, executionId: input.executionId, execution });
 };
 
 const resumeFromCheckpoint = async (input: {

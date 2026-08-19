@@ -16,6 +16,7 @@ export const gatewayExecutionStatePath = "src/capabilities/ai-input-gateway/runt
 export const gatewayCanonicalRoutingPath = "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts";
 export const gatewayExecutionProfilePath = "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts";
 export const gatewayConversationTitlePath = "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts";
+export const gatewaySchemaPath = "src/capabilities/ai-input-gateway/schema.ts";
 export const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
 
 export const acceptanceSupportPaths = [
@@ -28,6 +29,10 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
   "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+  "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
 ] as const;
 
 export const removedSecondChainPaths = [
@@ -73,6 +78,7 @@ export const pluginPaths = [
   gatewayCanonicalRoutingPath,
   gatewayExecutionProfilePath,
   gatewayConversationTitlePath,
+  gatewaySchemaPath,
   acceptancePath,
   ...acceptanceSupportPaths,
 ] as const;

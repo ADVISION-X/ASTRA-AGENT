@@ -1,18 +1,13 @@
 export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
 export {
   AiFeedProviderExecutionProfileSchema,
+  buildGptWebProviderExecutionProfile,
+  defaultGptWebProviderExecutionProfile,
   type AiFeedInput,
   type AiFeedProviderExecutionProfile,
   type AiFeedResult,
   type AiTaskLabelKey,
 } from "./schema.js";
-export {
-  buildGptWebProviderExecutionProfile,
-  defaultGptWebProviderExecutionProfile,
-  governProductionGptExecutionProfileInput,
-  normalizeGptWebReasoningTier,
-  type GptWebReasoningTier,
-} from "./provider-execution-profile.js";
 export type {
   AiProviderAdapter,
   AiProviderAdapterContext,

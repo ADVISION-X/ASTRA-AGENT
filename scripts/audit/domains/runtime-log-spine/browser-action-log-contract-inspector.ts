@@ -31,6 +31,7 @@ const centralLogHelperPath = "src/lib/browser/current-chrome-browser-action-logg
 const currentChromeControllerPath = "src/lib/browser/current-chrome-browser-controller.ts";
 const currentChromeRuntimePath = "src/lib/browser/current-chrome-browser-controller-runtime.ts";
 const exactBrowserRuntimePath = "src/lib/browser/exact-target/browser-command-runtime.ts";
+const exactBrowserTargetSessionPath = "src/lib/browser/exact-target/exact-browser-target-session.ts";
 const workbenchBrowserSupportPath = "src/lib/local-runtime/workbench-browser-support.ts";
 const workbenchAssemblyPath = "src/lib/local-runtime/workbench-assembly.ts";
 const browserControllerPath = "src/lib/browser/browser-controller.ts";
@@ -82,6 +83,7 @@ export const collectBrowserActionLogContractFindings = (context: InspectorContex
       currentChromeControllerPath,
       currentChromeRuntimePath,
       exactBrowserRuntimePath,
+      exactBrowserTargetSessionPath,
       workbenchBrowserSupportPath,
       workbenchAssemblyPath,
     ])].sort(),
@@ -94,6 +96,7 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   const controller = source(currentChromeControllerPath);
   const controllerRuntime = source(currentChromeRuntimePath);
   const exactRuntime = source(exactBrowserRuntimePath);
+  const exactTargetSession = source(exactBrowserTargetSessionPath);
   const browserSupport = source(workbenchBrowserSupportPath);
   const assembly = source(workbenchAssemblyPath);
   const missing: string[] = [];
@@ -109,10 +112,10 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   for (const property of ["capabilityCallId", "beforeHash", "afterHash", "durationMs", "actionResult", "failureClass", "fallbackUsed"]) {
     if (!propertyNames.has(property)) missing.push(`central-field:${property}`);
   }
-  inspectExactRuntimeLogging(controller, controllerRuntime, exactRuntime, missing);
-  const browserConstructor = browserSupport?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
-    symbolHasDeclarationAt(expression.getExpression().getSymbol(), currentChromeControllerPath));
-  if (!browserConstructor?.getArguments().some(isRuntimeLoggerReference)) {
+  inspectExactRuntimeLogging(controller, controllerRuntime, exactRuntime, exactTargetSession, missing);
+  const browserFactoryCall = browserSupport?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+    symbolHasDeclarationAt(call.getExpression().getSymbol(), currentChromeControllerPath));
+  if (!browserFactoryCall?.getArguments().some(isRuntimeLoggerReference)) {
     missing.push("workbench-browser:runtime-logger-injection");
   }
   const assemblyCall = assembly?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
@@ -187,20 +190,23 @@ function inspectExactRuntimeLogging(
   controller: SourceFile | undefined,
   controllerRuntime: SourceFile | undefined,
   exactRuntime: SourceFile | undefined,
+  exactTargetSession: SourceFile | undefined,
   missing: string[],
 ): void {
   const controllerDeclaration = controller?.getClass("CurrentChromeBrowserController");
   if (!controllerDeclaration) missing.push("controller-class:CurrentChromeBrowserController");
-  const controllerConstructor = controllerDeclaration?.getConstructors()[0];
-  const controllerFactoryCall = controllerConstructor?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+  const controllerFactoryCall = controllerDeclaration?.getStaticMethod("create")
+    ?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
     symbolHasDeclarationAt(call.getExpression().getSymbol(), currentChromeRuntimePath));
   if (!controllerFactoryCall?.getArguments().some(isRuntimeLoggerReference)) {
     missing.push("controller:runtime-logger-forwarding");
   }
 
-  const commandRuntimeConstructor = controllerRuntime?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
-    symbolHasDeclarationAt(expression.getExpression().getSymbol(), exactBrowserRuntimePath));
-  if (!commandRuntimeConstructor?.getArguments().some(isRuntimeLoggerReference)) {
+  const commandRuntimeFactoryCall = controllerRuntime?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+    symbolHasDeclarationAt(call.getExpression().getSymbol(), exactBrowserRuntimePath));
+  if (!commandRuntimeFactoryCall?.getArguments().some((argument) =>
+    isRuntimeLoggerReference(argument)
+    || argument.getDescendantsOfKind(SyntaxKind.Identifier).some(isRuntimeLoggerReference))) {
     missing.push("controller-runtime:runtime-logger-forwarding");
   }
 
@@ -216,7 +222,7 @@ function inspectExactRuntimeLogging(
       && declaration.getSymbol()?.getName() === "runLoggedBrowserValueAction"));
   if (!delegatesToCentralHelper) missing.push("exact-runtime:central-log-helper-delegate");
 
-  const targetSession = exactRuntime?.getClass("ExactBrowserTargetSession");
+  const targetSession = exactTargetSession?.getClass("ExactBrowserTargetSession");
   const transportCalls = targetSession?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(isTransportCommandCall) ?? [];
   if (transportCalls.length === 0) missing.push("exact-target-session:transport-command");
   for (const call of transportCalls) {

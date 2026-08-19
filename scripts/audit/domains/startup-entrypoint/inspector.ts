@@ -10,6 +10,7 @@ import {
   initializationTruthPaths,
   inspectInitializationTruth,
 } from "./inspect-initialization-truth.js";
+import { inspectBrowserRuntimePreflight } from "./inspect-browser-runtime-preflight.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -308,40 +309,6 @@ const collectHotMountOrderMetrics = (launchSource: SourceFile) => {
       && browserPreflightStart < coldStartClearStart,
     preparesBeforeStart: preparePortStart !== undefined && startServiceStart !== undefined && preparePortStart < startServiceStart,
   };
-};
-
-const inspectBrowserRuntimePreflight = (context: InspectorContext, findings: Finding[], lawId: string): void => {
-  const launchSource = getProjectSource(context, launchPath);
-  const preflightSource = getProjectSource(context, browserRuntimePreflightPath);
-  if (!launchSource || !preflightSource) {
-    pushFinding(findings, {
-      lawId,
-      checkId: "startup/browser-runtime-preflight-source",
-      filePath: browserRuntimePreflightPath,
-      message: "Startup Browser Runtime preflight sources must be visible to the audit project.",
-    });
-    return;
-  }
-
-  const metrics = {
-    launchLoadsSharedBrowserRuntimeEnv: hasNamedImport(launchSource, "browser-runtime-env", "loadBrowserRuntimeEnv"),
-    launchImportsPreflight: hasNamedImport(launchSource, "browser-runtime-preflight", "runBrowserRuntimePreflight"),
-    preflightCallsArtifactVerifier: hasIdentifier(preflightSource, "verifyBrowserArtifactSet"),
-    preflightCallsBrowserctlDoctor: hasStringLiteral(preflightSource, "--doctor"),
-    preflightCallsBrowserctlReadOnly: hasStringLiteral(preflightSource, "--read-only"),
-    preflightDoesNotInstall: !hasStringLiteral(preflightSource, "--install"),
-    preflightDoesNotRepair: !hasStringLiteral(preflightSource, "--repair"),
-    preflightDoesNotEnroll: !hasStringLiteral(preflightSource, "--enroll-profile"),
-  };
-  if (Object.values(metrics).some((value) => value === false)) {
-    pushFinding(findings, {
-      lawId,
-      checkId: "startup/browser-runtime-preflight",
-      filePath: browserRuntimePreflightPath,
-      message: "Startup must use the single read-only Browser Runtime doctor and must not install, repair or enroll Browser state.",
-      evidence: JSON.stringify(metrics),
-    });
-  }
 };
 
 const hasStringLiteral = (sourceFile: SourceFile, value: string): boolean =>

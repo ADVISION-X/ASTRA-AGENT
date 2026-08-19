@@ -1,6 +1,6 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -24,17 +24,23 @@ const hasIdentifier = (sourceFile: SourceFile, value: string): boolean =>
     .some((identifier) => astIdentifierName(identifier) === value);
 
 const readinessRejectsNonHealthy = (sourceFile: SourceFile): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) =>
-    expression.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken
-    && expression.getText().includes("healthReport.status")
-    && expression.getText().includes("\"healthy\""));
+  sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
+    if (expression.getOperatorToken().getKind() !== SyntaxKind.ExclamationEqualsEqualsToken) {
+      return false;
+    }
+    const leftPath = astExpressionPath(expression.getLeft());
+    const right = expression.getRight();
+    return leftPath === "healthReport.status"
+      && Node.isStringLiteral(right)
+      && right.getLiteralValue() === "healthy";
+  });
 
 const closesServerOnInitializationFailure = (sourceFile: SourceFile): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
     const expression = call.getExpression();
     return Node.isPropertyAccessExpression(expression)
       && expression.getName() === "close"
-      && expression.getExpression().getText() === "server";
+      && astExpressionPath(expression.getExpression()) === "server";
   });
 
 export const inspectInitializationTruth = (

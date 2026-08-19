@@ -1,489 +1,11 @@
 {
-  "antiEvasionFindingCount": 3,
+  "antiEvasionFindingCount": 0,
   "capabilityDomain": "code-purity",
   "commentedOutCodeCount": 0,
   "deadBranchCount": 0,
   "executionGroup": "foundation",
-  "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "scripts/acceptance/xuanxue-ai-production-fixture.ts has an over-line function near line 384.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts has 507 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts",
-      "evidence": "{\"owner\":\"audit:audit-system\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "scripts/audit/domains/local-browser-session/inspector.ts has 575 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-      "evidence": "{\"owner\":\"audit:local-browser-session\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "scripts/audit/domains/local-browser-session/inspector.ts has an over-line function near line 133.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-      "evidence": "{\"owner\":\"audit:local-browser-session\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "scripts/audit/domains/startup-entrypoint/inspector.ts has 533 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-      "evidence": "{\"owner\":\"audit:startup-entrypoint\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "scripts/audit/domains/xuanxue-ai-production/inspector.ts has 548 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-      "evidence": "{\"owner\":\"audit:xuanxue-ai-production\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "scripts/audit/domains/xuanxue-ai-production/inspector.ts has an over-line function near line 144.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-      "evidence": "{\"owner\":\"audit:xuanxue-ai-production\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/protocol.js has an over-line function near line 27.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/protocol.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker.js has an over-line function near line 127.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/chrome-extension/protocol.ts has an over-line function near line 252.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/protocol.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/chrome-extension/service-worker.ts has an over-line function near line 238.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/service-worker.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "src/lib/browser/exact-target/browser-command-runtime.ts has 676 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-command-runtime.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/class-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/exact-target/browser-command-runtime.ts has a class that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-command-runtime.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Split the class into smaller owner-local collaborators or contract objects.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "src/lib/browser/exact-target/browser-native-transport-server.ts has 845 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/exact-target/browser-native-transport-server.ts has an over-line function near line 247.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/exact-target/browser-native-transport-server.ts has an over-line function near line 657.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/class-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/exact-target/browser-native-transport-server.ts has a class that exceeds the object red line.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Split the class into smaller owner-local collaborators or contract objects.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/profile/browser-profile-enrollment.ts has an over-line function near line 113.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/profile/browser-profile-enrollment.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/release/browser-activation-receipt.ts has an over-line function near line 46.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/browser/release/verify-browser-artifact.mjs has an over-line function near line 28.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/verify-browser-artifact.mjs",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/local-runtime/workbench.ts has an over-line function near line 146.",
-      "severity": "fatal",
-      "filePath": "src/lib/local-runtime/workbench.ts",
-      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/lib/local-runtime/workbench.ts has an over-line function near line 149.",
-      "severity": "fatal",
-      "filePath": "src/lib/local-runtime/workbench.ts",
-      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts has an over-line function near line 347.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
-      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts has an over-line function near line 39.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
-      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "clauseId": "apex-code-purity-001-requirement",
-      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts has 558 lines and exceeds the active executable source file red line.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
-      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Split or reduce the file by owner and runtime role until it falls under the red line.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts has an over-line function near line 174.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
-      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts has an over-line function near line 183.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
-      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "apex-code-purity-015-requirement",
-      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts has an over-line function near line 260.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
-      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/no-regex",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "apex-code-purity-018-requirement",
-      "message": "scripts/audit/domains/local-browser-session/inspector.ts contains a regular expression literal in code-purity enforcement scope.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-      "evidence": "/kind:\\s*\"set_file_input_files\"[\\s\\S]{0,300}filePath\\s*:/u"
-    },
-    {
-      "checkId": "code-purity/no-regex",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "apex-code-purity-018-requirement",
-      "message": "scripts/audit/domains/local-browser-session/inspector.ts calls RegExp.test inside code-purity enforcement scope.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-      "evidence": "/kind:\\s*\"set_file_input_files\"[\\s\\S]{0,300}filePath\\s*:/u.test(protocol)"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/acceptance/local-browser-authority-cutover.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/acceptance/local-browser-authority-model.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/local-browser-authority-model.acceptance.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/atomic-dom-command.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/protocol.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/protocol.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker.js is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker.js",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/profile/browser-extension-tree.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/profile/browser-extension-tree.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/release/browser-release-security-policy.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/browser-release-security-policy.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/transport/browser-command-admission-budget.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/transport/browser-command-admission-budget.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts exports inspectDomain without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:xuanxue-ai-production\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"symbolName\":\"inspectDomain\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/dependency-check.mjs exports isMetadataOrMissingFailure without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"startup-script\",\"symbolName\":\"isMetadataOrMissingFailure\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_SOFT_DRAIN_MS without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"BROWSER_AUTHORITY_SOFT_DRAIN_MS\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports BROWSER_RELEASE_IDENTITY without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"BROWSER_RELEASE_IDENTITY\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/transport/command-permit.ts exports sameBrowserCommandPermit without any provable final consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/transport/command-permit.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"browser-primitive\",\"symbolName\":\"sameBrowserCommandPermit\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts keeps dead helper inspectDomainEvaluation alive only through a dead export subgraph.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"audit:xuanxue-ai-production\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"audit-phase\",\"symbolName\":\"inspectDomainEvaluation\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/dependency-check.mjs keeps dead internal declaration subgraph member METADATA_STALE_PREFIX.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"METADATA_STALE_PREFIX\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "scripts/startup/lib/dependency-check.mjs keeps dead helper isMetadataStaleReason alive only through a dead export subgraph.",
-      "severity": "fatal",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"startup\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"startup-script\",\"symbolName\":\"isMetadataStaleReason\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "clauseId": "apex-code-purity-018-requirement",
-      "message": "src/lib/browser/chrome-extension/service-worker-native-transport.ts uses void disconnectReason as a keepalive-looking escape.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
-  "generatedAt": "2026-08-19T07:09:50.175Z",
+  "findings": [],
+  "generatedAt": "2026-08-19T19:58:30.097Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -573,8 +95,6 @@
     "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
     "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
     "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
-    "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
-    "scripts/acceptance/local-browser-authority-model.acceptance.ts",
     "scripts/acceptance/local-browser-business-workday.acceptance.ts",
     "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
     "scripts/acceptance/local-browser-native-transport.acceptance.ts",
@@ -692,6 +212,7 @@
     "scripts/audit/domains/audit-system/binary-verdict-inspector.ts",
     "scripts/audit/domains/audit-system/ci-control-integrity-inspector.ts",
     "scripts/audit/domains/audit-system/ci-entry-order-inspector.ts",
+    "scripts/audit/domains/audit-system/ci-failure-ledger-inspector.ts",
     "scripts/audit/domains/audit-system/ci-integrity-ast.ts",
     "scripts/audit/domains/audit-system/ci-phase-integrity-entry-inspector.ts",
     "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts",
@@ -794,6 +315,9 @@
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
     "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
+    "scripts/audit/domains/local-browser-session/browser-authority-core-inspector.ts",
+    "scripts/audit/domains/local-browser-session/browser-authority-inspector-support.ts",
+    "scripts/audit/domains/local-browser-session/browser-authority-release-inspector.ts",
     "scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts",
     "scripts/audit/domains/local-browser-session/inspector.ts",
     "scripts/audit/domains/media-processing-capability/inspector.ts",
@@ -825,6 +349,7 @@
     "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
     "scripts/audit/domains/runtime-truth/inspector.ts",
+    "scripts/audit/domains/startup-entrypoint/inspect-browser-runtime-preflight.ts",
     "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
@@ -832,6 +357,7 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -936,6 +462,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -944,9 +471,13 @@
     "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
     "src/capabilities/ai-input-gateway/failure-classification.ts",
     "src/capabilities/ai-input-gateway/index.ts",
+    "src/capabilities/ai-input-gateway/provider-execution-profile.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
     "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-discovery.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
@@ -964,8 +495,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
@@ -977,6 +508,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
@@ -998,6 +530,7 @@
     "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+    "src/capabilities/ai-input-gateway/runtime/web-chat-conversation-title-policy.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
@@ -1086,14 +619,6 @@
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/chrome-extension/atomic-dom-command.ts",
     "src/lib/browser/chrome-extension/build.mjs",
-    "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
-    "src/lib/browser/chrome-extension/dist/protocol.js",
-    "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
-    "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
-    "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
-    "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
-    "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
-    "src/lib/browser/chrome-extension/dist/service-worker.js",
     "src/lib/browser/chrome-extension/protocol.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
     "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
@@ -1108,23 +633,23 @@
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-evaluation-contract.ts",
     "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
+    "src/lib/browser/exact-target/browser-native-authentication.ts",
+    "src/lib/browser/exact-target/browser-native-command-channel.ts",
     "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
+    "src/lib/browser/exact-target/exact-browser-target-session.ts",
     "src/lib/browser/native-messaging-host/install.mjs",
-    "src/lib/browser/profile/browser-extension-tree.ts",
     "src/lib/browser/profile/browser-process-supervisor.ts",
     "src/lib/browser/profile/browser-profile-config.ts",
     "src/lib/browser/profile/browser-profile-enrollment.ts",
     "src/lib/browser/release/browser-activation-receipt.ts",
     "src/lib/browser/release/browser-release-identity.ts",
-    "src/lib/browser/release/browser-release-security-policy.ts",
     "src/lib/browser/release/browser-runtime-env.mjs",
     "src/lib/browser/release/build-browser-runtime.mjs",
     "src/lib/browser/release/extension-tree-sha256.mjs",
     "src/lib/browser/release/verify-browser-artifact.mjs",
-    "src/lib/browser/transport/browser-command-admission-budget.ts",
     "src/lib/browser/transport/browser-session-crypto.ts",
     "src/lib/browser/transport/command-permit.ts",
     "src/lib/local-runtime/contract.ts",
@@ -1293,6 +818,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
@@ -1303,6 +829,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
@@ -1329,536 +856,7 @@
     "src/types/plugin-intervention.ts",
     "src/types/structured-log.ts"
   ],
-  "inventoryItems": [
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/acceptance/xuanxue-ai-production-fixture.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "acceptance",
-      "reason": "Function near line 384 breaks function budget: cyclomatic complexity 22 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:audit-system",
-      "reason": "active executable source file has 507 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:local-browser-session",
-      "reason": "active executable source file has 575 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:local-browser-session",
-      "reason": "Function near line 133 breaks function budget: parameter count 8 exceeds red line 7.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:startup-entrypoint",
-      "reason": "active executable source file has 533 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "audit:xuanxue-ai-production",
-      "reason": "active executable source file has 548 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:xuanxue-ai-production",
-      "reason": "Function near line 144 breaks function budget: physical line count 113 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/chrome-extension/dist/protocol.js",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 27 breaks function budget: return branch count 10 exceeds red line 8; cyclomatic complexity 44 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker.js",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 127 breaks function budget: cyclomatic complexity 17 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/chrome-extension/protocol.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 252 breaks function budget: return branch count 10 exceeds red line 8; cyclomatic complexity 44 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/chrome-extension/service-worker.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 238 breaks function budget: cyclomatic complexity 17 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/lib/browser/exact-target/browser-command-runtime.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "browser",
-      "reason": "active executable source file has 676 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/class-budget",
-      "filePath": "src/lib/browser/exact-target/browser-command-runtime.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Class ExactBrowserTargetSession member count 31 exceeds red line 30.",
-      "remediation": "Split the class into smaller owner-local collaborators or contract objects.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "browser",
-      "reason": "active executable source file has 845 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 247 breaks function budget: physical line count 98 exceeds red line 75.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 657 breaks function budget: cyclomatic complexity 21 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/class-budget",
-      "filePath": "src/lib/browser/exact-target/browser-native-transport-server.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Class BrowserNativeTransportServer member count 38 exceeds red line 30.",
-      "remediation": "Split the class into smaller owner-local collaborators or contract objects.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/profile/browser-profile-enrollment.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 113 breaks function budget: cyclomatic complexity 23 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/release/browser-activation-receipt.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 46 breaks function budget: cyclomatic complexity 33 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/browser/release/verify-browser-artifact.mjs",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "browser",
-      "reason": "Function near line 28 breaks function budget: cyclomatic complexity 32 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/local-runtime/workbench.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "local-runtime",
-      "reason": "Function near line 146 breaks function budget: return branch count 12 exceeds red line 8.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/local-runtime/workbench.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "local-runtime",
-      "reason": "Function near line 149 breaks function budget: return branch count 11 exceeds red line 8.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "app-shell",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:xuanxue-ai-production",
-      "reason": "Function near line 347 breaks function budget: cyclomatic complexity 17 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:xuanxue-ai-production",
-      "reason": "Function near line 39 breaks function budget: cyclomatic complexity 18 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/file-budget-red-line",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
-      "lawId": "APEX-CODE-PURITY-001-V1",
-      "owner": "plugin:xuanxue-ai-production",
-      "reason": "active executable source file has 558 lines and exceeds red line 500.",
-      "remediation": "Split or reduce the file by owner and runtime role until it falls under the red line.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:xuanxue-ai-production",
-      "reason": "Function near line 174 breaks function budget: cyclomatic complexity 18 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:xuanxue-ai-production",
-      "reason": "Function near line 183 breaks function budget: physical line count 76 exceeds red line 75; cyclomatic complexity 18 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:xuanxue-ai-production",
-      "reason": "Function near line 260 breaks function budget: physical line count 102 exceeds red line 75; cyclomatic complexity 27 exceeds red line 16.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-schema",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "acceptance",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/local-browser-authority-model.acceptance.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "acceptance",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "acceptance-smoke",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/protocol.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker.js",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/profile/browser-extension-tree.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/release/browser-release-security-policy.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/transport/browser-command-admission-budget.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:xuanxue-ai-production",
-      "reason": "Export inspectDomain has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "symbolName": "inspectDomain",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "function",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Export isMetadataOrMissingFailure has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "startup-script",
-      "symbolName": "isMetadataOrMissingFailure",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Export BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "browser-primitive",
-      "symbolName": "BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Export BROWSER_AUTHORITY_SOFT_DRAIN_MS has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "browser-primitive",
-      "symbolName": "BROWSER_AUTHORITY_SOFT_DRAIN_MS",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Export BROWSER_RELEASE_IDENTITY has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "browser-primitive",
-      "symbolName": "BROWSER_RELEASE_IDENTITY",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/transport/command-permit.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Export sameBrowserCommandPermit has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "browser-primitive",
-      "symbolName": "sameBrowserCommandPermit",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "declarationKind": "variable",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:xuanxue-ai-production",
-      "reason": "Top-level variable inspectDomainEvaluation is only reachable from a dead exported subgraph and has no live runtime root.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "audit-phase",
-      "symbolName": "inspectDomainEvaluation",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "declarationKind": "variable",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Top-level variable METADATA_STALE_PREFIX survives only inside a dead internal declaration subgraph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "startup-script",
-      "symbolName": "METADATA_STALE_PREFIX",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "declarationKind": "function",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "startup",
-      "reason": "Top-level function isMetadataStaleReason is only reachable from a dead exported subgraph and has no live runtime root.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "startup-script",
-      "symbolName": "isMetadataStaleReason",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/void-keepalive-evasion",
-      "filePath": "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
-      "lawId": "APEX-CODE-PURITY-018-V1",
-      "owner": "browser",
-      "reason": "Void expression void disconnectReason looks like a keepalive escape instead of real usage proof.",
-      "remediation": "Delete the void keepalive escape and reconnect the symbol through real runtime or type usage.",
-      "role": "browser-primitive",
-      "verificationCommand": "npm run ci:full"
-    }
-  ],
+  "inventoryItems": [],
   "lawIds": [
     "APEX-CODE-PURITY-001-V1",
     "APEX-CODE-PURITY-002-V1",
@@ -2655,263 +1653,37 @@
       "scriptName": "browser:build"
     }
   ],
-  "liveExportCount": 2358,
-  "orphanDeclarationCount": 3,
-  "reachableFileCount": 830,
-  "status": "FAIL",
-  "unreachableFileCount": 13,
-  "uselessCodeInventory": [
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/acceptance/local-browser-authority-cutover.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/local-browser-authority-model.acceptance.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/acceptance/local-browser-authority-model.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/atomic-dom-command.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/protocol.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/protocol.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/chrome-extension/dist/service-worker.js",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/chrome-extension/dist/service-worker.js is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/profile/browser-extension-tree.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/profile/browser-extension-tree.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/release/browser-release-security-policy.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-security-policy.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "unreachable-file",
-      "checkId": "code-purity/zombie-file",
-      "filePath": "src/lib/browser/transport/browser-command-admission-budget.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/transport/browser-command-admission-budget.ts is not reachable from any lawful live entry surface and behaves like a zombie file."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts exports inspectDomain without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/dependency-check.mjs exports isMetadataOrMissingFailure without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_SOFT_DRAIN_MS without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports BROWSER_RELEASE_IDENTITY without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/transport/command-permit.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/transport/command-permit.ts exports sameBrowserCommandPermit without any provable final consumer."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts keeps dead helper inspectDomainEvaluation alive only through a dead export subgraph."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-internal-declaration-subgraph",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/dependency-check.mjs keeps dead internal declaration subgraph member METADATA_STALE_PREFIX."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/dependency-check.mjs keeps dead helper isMetadataStaleReason alive only through a dead export subgraph."
-    }
-  ],
-  "unprovenPublicExports": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts exports inspectDomain without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/startup/lib/dependency-check.mjs",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "scripts/startup/lib/dependency-check.mjs exports isMetadataOrMissingFailure without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/authority/browser-authority-issuer.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/authority/browser-authority-issuer.ts exports BROWSER_AUTHORITY_SOFT_DRAIN_MS without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/release/browser-release-identity.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/release/browser-release-identity.ts exports BROWSER_RELEASE_IDENTITY without any provable final consumer."
-    },
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/browser/transport/command-permit.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/transport/command-permit.ts exports sameBrowserCommandPermit without any provable final consumer."
-    }
-  ],
+  "liveExportCount": 2427,
+  "orphanDeclarationCount": 0,
+  "reachableFileCount": 848,
+  "status": "PASS",
+  "unreachableFileCount": 0,
+  "uselessCodeInventory": [],
+  "unprovenPublicExports": [],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 6,
+  "zombieExportCount": 0,
   "zombieSummary": {
-    "antiEvasionFindingCount": 3,
+    "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2358,
-    "orphanDeclarationCount": 3,
-    "reachableFileCount": 830,
-    "unreachableFileCount": 13,
-    "uselessCodeInventoryCount": 22,
-    "zombieExportCount": 6
+    "liveExportCount": 2427,
+    "orphanDeclarationCount": 0,
+    "reachableFileCount": 848,
+    "unreachableFileCount": 0,
+    "uselessCodeInventoryCount": 0,
+    "zombieExportCount": 0
   },
   "checkRuns": [
     {
-      "runId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b",
+      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-19T07:09:07.959Z",
-      "endedAt": "2026-08-19T07:09:50.173Z",
-      "durationMs": 42214,
+      "status": "PASS",
+      "startedAt": "2026-08-19T19:57:42.552Z",
+      "endedAt": "2026-08-19T19:58:30.096Z",
+      "durationMs": 47544,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -3001,8 +1773,6 @@
         "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
         "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
         "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
-        "scripts/acceptance/local-browser-authority-cutover.acceptance.ts",
-        "scripts/acceptance/local-browser-authority-model.acceptance.ts",
         "scripts/acceptance/local-browser-business-workday.acceptance.ts",
         "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
         "scripts/acceptance/local-browser-native-transport.acceptance.ts",
@@ -3120,6 +1890,7 @@
         "scripts/audit/domains/audit-system/binary-verdict-inspector.ts",
         "scripts/audit/domains/audit-system/ci-control-integrity-inspector.ts",
         "scripts/audit/domains/audit-system/ci-entry-order-inspector.ts",
+        "scripts/audit/domains/audit-system/ci-failure-ledger-inspector.ts",
         "scripts/audit/domains/audit-system/ci-integrity-ast.ts",
         "scripts/audit/domains/audit-system/ci-phase-integrity-entry-inspector.ts",
         "scripts/audit/domains/audit-system/ci-phase-integrity-inspector.ts",
@@ -3222,6 +1993,9 @@
         "scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
         "scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
         "scripts/audit/domains/local-app-shell/inspector.ts",
+        "scripts/audit/domains/local-browser-session/browser-authority-core-inspector.ts",
+        "scripts/audit/domains/local-browser-session/browser-authority-inspector-support.ts",
+        "scripts/audit/domains/local-browser-session/browser-authority-release-inspector.ts",
         "scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts",
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "scripts/audit/domains/media-processing-capability/inspector.ts",
@@ -3253,6 +2027,7 @@
         "scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
         "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
         "scripts/audit/domains/runtime-truth/inspector.ts",
+        "scripts/audit/domains/startup-entrypoint/inspect-browser-runtime-preflight.ts",
         "scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
@@ -3260,6 +2035,7 @@
         "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
         "scripts/audit/domains/workbench-api-boundary/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -3364,6 +2140,7 @@
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts",
@@ -3372,9 +2149,13 @@
         "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
         "src/capabilities/ai-input-gateway/failure-classification.ts",
         "src/capabilities/ai-input-gateway/index.ts",
+        "src/capabilities/ai-input-gateway/provider-execution-profile.ts",
         "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
         "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
         "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-discovery.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
@@ -3392,8 +2173,8 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
@@ -3405,6 +2186,7 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
@@ -3426,6 +2208,7 @@
         "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-concurrency-lease.ts",
+        "src/capabilities/ai-input-gateway/runtime/web-chat-conversation-title-policy.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
@@ -3514,14 +2297,6 @@
         "src/lib/browser/browser-controller.ts",
         "src/lib/browser/chrome-extension/atomic-dom-command.ts",
         "src/lib/browser/chrome-extension/build.mjs",
-        "src/lib/browser/chrome-extension/dist/atomic-dom-command.js",
-        "src/lib/browser/chrome-extension/dist/protocol.js",
-        "src/lib/browser/chrome-extension/dist/service-worker-command-execution.js",
-        "src/lib/browser/chrome-extension/dist/service-worker-interaction-commands.js",
-        "src/lib/browser/chrome-extension/dist/service-worker-keyboard.js",
-        "src/lib/browser/chrome-extension/dist/service-worker-native-transport.js",
-        "src/lib/browser/chrome-extension/dist/service-worker-session-crypto.js",
-        "src/lib/browser/chrome-extension/dist/service-worker.js",
         "src/lib/browser/chrome-extension/protocol.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
         "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
@@ -3536,23 +2311,23 @@
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-evaluation-contract.ts",
         "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
+        "src/lib/browser/exact-target/browser-native-authentication.ts",
+        "src/lib/browser/exact-target/browser-native-command-channel.ts",
         "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
+        "src/lib/browser/exact-target/exact-browser-target-session.ts",
         "src/lib/browser/native-messaging-host/install.mjs",
-        "src/lib/browser/profile/browser-extension-tree.ts",
         "src/lib/browser/profile/browser-process-supervisor.ts",
         "src/lib/browser/profile/browser-profile-config.ts",
         "src/lib/browser/profile/browser-profile-enrollment.ts",
         "src/lib/browser/release/browser-activation-receipt.ts",
         "src/lib/browser/release/browser-release-identity.ts",
-        "src/lib/browser/release/browser-release-security-policy.ts",
         "src/lib/browser/release/browser-runtime-env.mjs",
         "src/lib/browser/release/build-browser-runtime.mjs",
         "src/lib/browser/release/extension-tree-sha256.mjs",
         "src/lib/browser/release/verify-browser-artifact.mjs",
-        "src/lib/browser/transport/browser-command-admission-budget.ts",
         "src/lib/browser/transport/browser-session-crypto.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/contract.ts",
@@ -3721,6 +2496,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
@@ -3731,6 +2507,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-output-integrity.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-parent-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-seeded-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
@@ -3757,7 +2534,7 @@
         "src/types/plugin-intervention.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 53
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -3765,145 +2542,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:2fbfb1be-327a-4b12-8fd0-72736398696b"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:8527af61-0215-441e-87b6-e4147cdcf9a3"
     }
   ]
 }

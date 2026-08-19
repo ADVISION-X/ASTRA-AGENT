@@ -15,6 +15,7 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 
 const root = process.cwd();
 const projectionPath = path.join(
@@ -24,6 +25,8 @@ const projectionPath = path.join(
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
@@ -48,13 +51,14 @@ const hasStringLiteral = (source: SourceFile, value: string): boolean => source
 
 const hasIdentifier = (source: SourceFile, value: string): boolean => source
   .getDescendantsOfKind(SyntaxKind.Identifier)
-  .some((identifier) => identifier.getSymbol()?.getEscapedName().toString() === value);
+  .some((identifier) => astIdentifierName(identifier) === value);
 
 const hasCall = (source: SourceFile, methodName: string): boolean => source
   .getDescendantsOfKind(SyntaxKind.CallExpression)
   .some((call) => {
     const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression) && expression.getName() === methodName;
+    return (Node.isPropertyAccessExpression(expression) && expression.getName() === methodName)
+      || (Node.isIdentifier(expression) && astIdentifierName(expression) === methodName);
   });
 
 const hasSafeParseOfRawJob = (source: SourceFile): boolean => source

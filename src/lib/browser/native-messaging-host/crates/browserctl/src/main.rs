@@ -217,7 +217,8 @@ fn sha256_bytes(bytes: &[u8]) -> String {
 
 fn artifact_platform_arch() -> String {
     let platform = if env::consts::OS == "macos" { "darwin" } else { env::consts::OS };
-    format!("{platform}-{}", env::consts::ARCH)
+    let architecture = if env::consts::ARCH == "aarch64" { "arm64" } else { env::consts::ARCH };
+    format!("{platform}-{architecture}")
 }
 
 fn artifact_root() -> PathBuf {

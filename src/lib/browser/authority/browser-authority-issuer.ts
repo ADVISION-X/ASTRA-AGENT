@@ -5,8 +5,6 @@ import {
   type BrowserAuthoritySnapshot,
 } from "./browser-authority-certificate.js";
 
-export const BROWSER_AUTHORITY_HEARTBEAT_INTERVAL_MS = 1_000;
-export const BROWSER_AUTHORITY_SOFT_DRAIN_MS = 3_500;
 export const BROWSER_AUTHORITY_HARD_EXPIRY_MS = 5_000;
 export const BROWSER_AUTHORITY_MAX_AGE_MS = 8 * 60 * 60 * 1_000;
 

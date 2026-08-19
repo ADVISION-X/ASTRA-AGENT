@@ -18,7 +18,6 @@ export { getDefaultNpmCommand } from "./dependency-package-utils.mjs";
 
 const MANDATORY_NATIVE_DEPENDENCIES = ["better-sqlite3"];
 const MISSING_PACKAGE_PREFIX = "package_missing: ";
-const METADATA_STALE_PREFIX = "metadata_stale: ";
 const NATIVE_PROBE_TIMEOUT_MS = 20_000;
 
 function debugDependencyCheck(message) {
@@ -29,14 +28,6 @@ function debugDependencyCheck(message) {
 
 function isPackageMissingReason(reason) {
   return reason.startsWith(MISSING_PACKAGE_PREFIX);
-}
-
-function isMetadataStaleReason(reason) {
-  return reason.startsWith(METADATA_STALE_PREFIX);
-}
-
-export function isMetadataOrMissingFailure(reason) {
-  return isPackageMissingReason(reason) || isMetadataStaleReason(reason);
 }
 
 function extractMissingPackageName(reason) {

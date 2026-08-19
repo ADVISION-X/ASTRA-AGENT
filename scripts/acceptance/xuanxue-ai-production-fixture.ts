@@ -381,6 +381,50 @@ export const material = (
   maxFileCount: 8,
 });
 
+const fixtureServiceClass = (
+  productId: XuanxueAiProductionOrder["productId"],
+  localization: boolean,
+): XuanxueAiProductionOrder["serviceClass"] => {
+  if (localization) return "localization";
+  if (productId === "scheduled_quality_reflection") return "quality_background";
+  if (productId === "public_knowledge_article_pipeline") return "public_content";
+  return "user_delivery";
+};
+
+const fixtureTriggerKind = (
+  productId: XuanxueAiProductionOrder["productId"],
+  localization: boolean,
+): XuanxueAiProductionOrder["triggerKind"] => {
+  if (localization) return "terminal_localization";
+  if (productId === "scheduled_quality_reflection") return "scheduled_quality_reflection";
+  if (productId === "public_knowledge_article_pipeline") return "scheduled_public_content";
+  return "user_request";
+};
+
+const fixtureFrozenSubject = (
+  orderId: string,
+  productId: XuanxueAiProductionOrder["productId"],
+  localization: boolean,
+): XuanxueAiProductionOrder["frozenSubject"] => ({
+  privacyOwnerRef: productId === "localization_article_translation" ? "public-knowledge-content" : localization ? "localization-catalog" : `owner:${orderId}`,
+  snapshotRef: `snapshot:${orderId}`,
+  snapshotHash: hash(`snapshot:${orderId}`),
+  caseRevisionRef: `case-revision:${orderId}`,
+  primaryPersonRef: localization ? null : `person:${orderId}`,
+  participantManifestHash: localization ? hash("[]") : hash(`participants:${orderId}`),
+  participants: localization ? [] : [{
+    slotRef: "primary",
+    roleCode: "primary",
+    personRef: `person:${orderId}`,
+    profileVersionRef: `profile:${orderId}:v1`,
+    chartStateRef: `chart:${orderId}`,
+    chartStateVersion: "v1",
+    chartStateHash: hash(`chart:${orderId}`),
+    purposeCode: productId,
+    authorizationReceiptRef: `authorization:${orderId}`,
+  }],
+});
+
 export const order = (
   orderId: string,
   productId: XuanxueAiProductionOrder["productId"],
@@ -396,8 +440,8 @@ export const order = (
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,
   productId,
-  serviceClass: localization ? "localization" : productId === "scheduled_quality_reflection" ? "quality_background" : productId === "public_knowledge_article_pipeline" ? "public_content" : "user_delivery",
-  triggerKind: localization ? "terminal_localization" : productId === "scheduled_quality_reflection" ? "scheduled_quality_reflection" : productId === "public_knowledge_article_pipeline" ? "scheduled_public_content" : "user_request",
+  serviceClass: fixtureServiceClass(productId, localization),
+  triggerKind: fixtureTriggerKind(productId, localization),
   lineageId: productId === "scheduled_quality_reflection" ? `lineage:${orderId}` : null,
   reflectionSnapshotRef: productId === "scheduled_quality_reflection" ? `snapshot:${orderId}` : null,
   reflectionPlanId: productId === "scheduled_quality_reflection" ? `plan:${orderId}` : null,
@@ -408,25 +452,7 @@ export const order = (
   productContractHash: contract?.product_contract_hash ?? null,
   localizationRole: localizationRole ?? null,
   providerExecutionProfile: localizationRole ? expectedLocalizationProviderProfile(localizationRole) : null,
-  frozenSubject: {
-    privacyOwnerRef: productId === "localization_article_translation" ? "public-knowledge-content" : localization ? "localization-catalog" : `owner:${orderId}`,
-    snapshotRef: `snapshot:${orderId}`,
-    snapshotHash: hash(`snapshot:${orderId}`),
-    caseRevisionRef: `case-revision:${orderId}`,
-    primaryPersonRef: localization ? null : `person:${orderId}`,
-    participantManifestHash: localization ? hash("[]") : hash(`participants:${orderId}`),
-    participants: localization ? [] : [{
-      slotRef: "primary",
-      roleCode: "primary",
-      personRef: `person:${orderId}`,
-      profileVersionRef: `profile:${orderId}:v1`,
-      chartStateRef: `chart:${orderId}`,
-      chartStateVersion: "v1",
-      chartStateHash: hash(`chart:${orderId}`),
-      purposeCode: productId,
-      authorizationReceiptRef: `authorization:${orderId}`,
-    }],
-  },
+  frozenSubject: fixtureFrozenSubject(orderId, productId, localization),
   conversationScopeRef: `conversation-scope:${orderId}`,
   conversationParent: null,
   joinParents: [],

@@ -5,7 +5,9 @@ import path from "node:path";
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
   XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
+  assertXuanxueLocalizationContract,
   expectedLocalizationProviderProfile,
+  isExactXuanxueLocalizationProductContractMap,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
 import {
   resolveXuanxueAiProductionProfile,
@@ -47,27 +49,37 @@ assert.equal(
 for (const [productId, contract] of Object.entries(XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS)) {
   assert.equal(projection.products[productId], contract.product_contract_hash);
 }
-
-const cloudClient = readFileSync(
-  path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts"),
-  "utf8",
+assert.equal(
+  isExactXuanxueLocalizationProductContractMap(Object.fromEntries(
+    Object.entries(projection.products).reverse(),
+  )),
+  true,
+  "JSON object field order must not change localization contract identity",
 );
-assert.match(cloudClient, /XuanxueAiProductionCloudClaimedJobSchema\.safeParse/u);
-assert.match(cloudClient, /nackMalformedClaim/u);
 
-const feed = readFileSync(
-  path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts"),
-  "utf8",
-);
-assert.match(feed, /providerExecutionProfile\?\.reasoning_effort/u);
-assert.match(feed, /localizationRole !== "selector_swap"/u);
-
-const stage = readFileSync(
-  path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts"),
-  "utf8",
-);
-assert.match(stage, /XUANXUE_AI_PRODUCTION_LOCALIZATION_MODEL_IDENTITY_MISMATCH/u);
-assert.match(stage, /XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_TRANSCRIPT_INVALID/u);
+const candidateContract = XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_candidate;
+assert.doesNotThrow(() => assertXuanxueLocalizationContract({
+  productId: "localization_static_review_candidate",
+  stageId: candidateContract.stage_id,
+  triggerKind: candidateContract.trigger_kind,
+  contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  productContractHash: candidateContract.product_contract_hash,
+  role: "candidate_a",
+  providerProfile: expectedLocalizationProviderProfile("candidate_a"),
+  inputKinds: candidateContract.required_input_kinds,
+  hasConversationParent: false,
+}));
+assert.throws(() => assertXuanxueLocalizationContract({
+  productId: "localization_static_review_candidate",
+  stageId: candidateContract.stage_id,
+  triggerKind: candidateContract.trigger_kind,
+  contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  productContractHash: candidateContract.product_contract_hash,
+  role: "candidate_a",
+  providerProfile: expectedLocalizationProviderProfile("candidate_a"),
+  inputKinds: candidateContract.required_input_kinds,
+  hasConversationParent: true,
+}), /XUANXUE_AI_PRODUCTION_LOCALIZATION_CONVERSATION_PARENT_INVALID/u);
 
 process.stdout.write(
   "[ACCEPTANCE] localization contract definition PASS: four single-stage products, seven frozen roles, claim isolation, profile-driven feed and evidence gates are declared.\n",

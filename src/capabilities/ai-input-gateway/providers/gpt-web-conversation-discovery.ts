@@ -30,10 +30,12 @@ if(logical.length===0)return{status:"pending",count:0};
 const node=logical[0];const r=node.getBoundingClientRect();return{status:"success",count:logical.length,point:{x:r.left+Math.min(r.width/2,96),y:r.top+r.height/2}};
 `;
 
-type Located = {
-  status: "success" | "pending" | "review_required";
-  count: number;
-  point?: { x: number; y: number };
+type Located = { status: "success" | "pending" | "review_required"; count: number; point?: { x: number; y: number } };
+type DiscoveryInput = {
+  browser: BrowserTargetSession;
+  context?: AiProviderAdapterContext;
+  canonicalConversationUrl: string;
+  turnMarker: string;
 };
 
 const waitLocated = async (input: {
@@ -46,11 +48,8 @@ const waitLocated = async (input: {
   const deadline = Date.now() + input.timeoutMs;
   let last: Located | null = null;
   while (Date.now() < deadline) {
-    last = await input.browser.evaluate<Located>({
-      description: input.description,
-      script: input.script,
-      ...(input.context?.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-    });
+    last = await input.browser.evaluate<Located>({ description: input.description, script: input.script,
+      ...(input.context?.abortSignal ? { abortSignal: input.context.abortSignal } : {}) });
     if (last.status === "review_required") throw new Error(`review_required: ${input.description} ambiguous`);
     if (last.status === "success") return last;
     await input.browser.wait(150);
@@ -58,81 +57,54 @@ const waitLocated = async (input: {
   throw new Error(`WEB_CHAT_SEARCH_RESULT_NOT_READY:${input.description};count=${last?.count ?? 0}`);
 };
 
-export const discoverChatGptConversationViaSearch = async (input: {
-  browser: BrowserTargetSession;
-  context?: AiProviderAdapterContext;
-  canonicalConversationUrl: string;
-  turnMarker: string;
-}): Promise<void> => {
-  const startedAt = new Date().toISOString();
-  const beforeUrl = input.browser.getTarget?.()?.url ?? null;
-  try {
-    await dismissChatGptSearchDialogIfVisible(input.browser, input.context ?? {});
-    const open = await waitLocated({
-      browser: input.browser,
-      ...(input.context ? { context: input.context } : {}),
-      description: "locate unique ChatGPT Search chats control",
-      script: OPEN_SEARCH_SCRIPT,
-      timeoutMs: 2_000,
-    });
-    const opened = await input.browser.click({ targetLabel: "open ChatGPT chat search", point: open.point! });
-    if (!opened.ok) throw new Error("WEB_CHAT_SEARCH_RESULT_NOT_READY:search control click failed");
-    const box = await waitLocated({
-      browser: input.browser,
-      ...(input.context ? { context: input.context } : {}),
-      description: "locate unique ChatGPT Search chats textbox",
-      script: SEARCH_BOX_SCRIPT,
-      timeoutMs: 2_000,
-    });
-    const focused = await input.browser.click({ targetLabel: "focus ChatGPT chat search textbox", point: box.point! });
-    if (!focused.ok) throw new Error("WEB_CHAT_SEARCH_RESULT_NOT_READY:search textbox focus failed");
-    await input.browser.textInput({ targetLabel: "ChatGPT chat search textbox", action: "clear-input" });
-    await input.browser.textInput({
-      targetLabel: "ChatGPT chat search textbox",
-      action: "type-text",
-      text: input.turnMarker,
-    });
-    const targetPath = new URL(input.canonicalConversationUrl).pathname;
-    const result = await waitLocated({
-      browser: input.browser,
-      ...(input.context ? { context: input.context } : {}),
-      description: "locate exact canonical ChatGPT conversation in search results",
-      script: searchResultScript(targetPath),
-      timeoutMs: 5_000,
-    });
-    const clicked = await input.browser.click({
-      targetLabel: "open exact canonical ChatGPT search result",
-      point: result.point!,
-    });
-    if (!clicked.ok) throw new Error("WEB_CHAT_SEARCH_RESULT_NOT_READY:search result click failed");
-    await input.browser.wait(250);
-    const current = await input.browser.evaluate<{ pageUrl: string; markerCount: number }>({
-      description: "verify exact ChatGPT search-discovered conversation",
-      script: `
+const enterConversationSearch = async (input: DiscoveryInput): Promise<void> => {
+  await dismissChatGptSearchDialogIfVisible(input.browser, input.context ?? {});
+  const open = await waitLocated({ browser: input.browser, ...(input.context ? { context: input.context } : {}),
+    description: "locate unique ChatGPT Search chats control", script: OPEN_SEARCH_SCRIPT, timeoutMs: 2_000 });
+  const opened = await input.browser.click({ targetLabel: "open ChatGPT chat search", point: open.point! });
+  if (!opened.ok) throw new Error("WEB_CHAT_SEARCH_RESULT_NOT_READY:search control click failed");
+  const box = await waitLocated({ browser: input.browser, ...(input.context ? { context: input.context } : {}),
+    description: "locate unique ChatGPT Search chats textbox", script: SEARCH_BOX_SCRIPT, timeoutMs: 2_000 });
+  const focused = await input.browser.click({ targetLabel: "focus ChatGPT chat search textbox", point: box.point! });
+  if (!focused.ok) throw new Error("WEB_CHAT_SEARCH_RESULT_NOT_READY:search textbox focus failed");
+  await input.browser.textInput({ targetLabel: "ChatGPT chat search textbox", action: "clear-input" });
+  await input.browser.textInput({ targetLabel: "ChatGPT chat search textbox", action: "type-text", text: input.turnMarker });
+};
+
+const openDiscoveredConversation = async (input: DiscoveryInput) => {
+  const targetPath = new URL(input.canonicalConversationUrl).pathname;
+  const result = await waitLocated({ browser: input.browser, ...(input.context ? { context: input.context } : {}),
+    description: "locate exact canonical ChatGPT conversation in search results",
+    script: searchResultScript(targetPath), timeoutMs: 5_000 });
+  const clicked = await input.browser.click({ targetLabel: "open exact canonical ChatGPT search result", point: result.point! });
+  if (!clicked.ok) throw new Error("WEB_CHAT_SEARCH_RESULT_NOT_READY:search result click failed");
+  await input.browser.wait(250);
+  const current = await input.browser.evaluate<{ pageUrl: string; markerCount: number }>({
+    description: "verify exact ChatGPT search-discovered conversation",
+    script: `
 const marker=${JSON.stringify(input.turnMarker)};
 const normalized=(value)=>String(value||"").replace(/\\s+/gu," ").trim();
 const markerCount=Array.from(document.querySelectorAll("[data-testid^='conversation-turn-'][data-turn='user']"))
  .filter((node)=>normalized(node.textContent).includes(marker)).length;
-return {pageUrl:location.href,markerCount};
-`,
+return {pageUrl:location.href,markerCount};`,
+  });
+  if (new URL(current.pageUrl).pathname !== targetPath || current.markerCount !== 1) {
+    throw new Error("review_required: CHATGPT_SEARCH_DISCOVERY_IDENTITY_MISMATCH");
+  }
+  return { current, result, targetPath };
+};
+
+export const discoverChatGptConversationViaSearch = async (input: DiscoveryInput): Promise<void> => {
+  const startedAt = new Date().toISOString();
+  const beforeUrl = input.browser.getTarget?.()?.url ?? null;
+  try {
+    await enterConversationSearch(input);
+    const { current, result, targetPath } = await openDiscoveredConversation(input);
+    if (input.context?.webChatExecution) await recordWebChatPageAction({
+      browser: input.browser, context: input.context, actionId: "discover_conversation_via_search",
+      startedAt, beforeUrl, afterUrl: current.pageUrl, result: "committed",
+      candidateCount: result.count, semantics: ["turn-marker-search", targetPath], allowDocumentChange: true,
     });
-    if (new URL(current.pageUrl).pathname !== targetPath || current.markerCount !== 1) {
-      throw new Error("review_required: CHATGPT_SEARCH_DISCOVERY_IDENTITY_MISMATCH");
-    }
-    if (input.context?.webChatExecution) {
-      await recordWebChatPageAction({
-        browser: input.browser,
-        context: input.context,
-        actionId: "discover_conversation_via_search",
-        startedAt,
-        beforeUrl,
-        afterUrl: current.pageUrl,
-        result: "committed",
-        candidateCount: result.count,
-        semantics: ["turn-marker-search", targetPath],
-        allowDocumentChange: true,
-      });
-    }
   } finally {
     await dismissChatGptSearchDialogIfVisible(input.browser, input.context ?? {}).catch(() => undefined);
   }

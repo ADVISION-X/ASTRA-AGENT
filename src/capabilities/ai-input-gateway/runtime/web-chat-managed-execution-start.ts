@@ -92,6 +92,31 @@ const prepareActiveBrowser = async (input: {
   }
 };
 
+const startExecutionRecord = async (
+  input: Parameters<typeof startActiveExecution>[0],
+  executionId: string,
+  createdAt: string,
+) => startOrResumeWebChatExecution({
+  dataDir: input.source.dataDir,
+  executionId,
+  createdAt,
+  turnIdentitySeed: [
+    executionId,
+    input.source.request.providerKind,
+    input.source.request.taskIdentity.sourceProject,
+    input.source.request.taskIdentity.taskKind,
+    input.source.request.taskIdentity.sourceTaskId,
+    input.source.request.promptPackageId,
+    input.source.request.promptContractId,
+    input.inputHash,
+  ].join("\u0000"),
+  providerKind: resolveWebChatProviderKind(input.source),
+  inputHash: input.inputHash,
+  textPrompt: input.source.request.textPrompt,
+  providerExecutionProfileBinding: input.source.request.providerExecutionProfile ?? null,
+  conversationTitle: buildConversationTitleState({ request: input.source.request, executionId, createdAt }),
+});
+
 export const startActiveExecution = async (input: {
   source: ManagedWebChatInput;
   inputHash: string;
@@ -99,32 +124,7 @@ export const startActiveExecution = async (input: {
 }): Promise<ActiveExecutionState> => {
   const executionId = managedExecutionIdFor(input.source, input.inputHash);
   const createdAt = new Date().toISOString();
-  const conversationTitle = buildConversationTitleState({
-    request: input.source.request,
-    executionId,
-    createdAt,
-  });
-  const started = await startOrResumeWebChatExecution({
-    dataDir: input.source.dataDir,
-    executionId,
-    createdAt,
-    turnIdentitySeed: [
-      executionId,
-      input.source.request.providerKind,
-      input.source.request.taskIdentity.sourceProject,
-      input.source.request.taskIdentity.taskKind,
-      input.source.request.taskIdentity.sourceTaskId,
-      input.source.request.promptPackageId,
-      input.source.request.promptContractId,
-      input.inputHash,
-    ].join("\u0000"),
-    providerKind: resolveWebChatProviderKind(input.source),
-    inputHash: input.inputHash,
-    textPrompt: input.source.request.textPrompt,
-    providerExecutionProfileBinding:
-      input.source.request.providerExecutionProfile ?? null,
-    conversationTitle,
-  });
+  const started = await startExecutionRecord(input, executionId, createdAt);
   let record = started.record;
   await input.reportProgress("waiting_for_capacity");
   const capacityLease = await acquireWebChatCapacityLease({

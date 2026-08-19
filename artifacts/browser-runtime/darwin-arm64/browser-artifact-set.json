@@ -1,26 +1,27 @@
 {
-  "schemaVersion": "grasseye-browser-artifact-set-v1",
+  "schemaVersion": "grasseye-browser-artifact-set-v2",
   "releaseIdentity": "grasseye-browser-runtime-2026-08-18-v2",
-  "releaseSequence": 2,
-  "minimumAcceptedReleaseSequence": 2,
+  "releaseSequence": 3,
+  "minimumAcceptedReleaseSequence": 3,
   "protocolVersion": "grasseye-browser-v2",
   "extensionId": "mepfnlhndaiihhfejbbhfehegpbdnipl",
   "extensionVersion": "2.0.0",
   "artifactMode": "test",
   "platformArch": "darwin-arm64",
-  "sourceCommitSha": "f4d5b82b618885b1dd52c6623157a780ab4f128d",
-  "builderIdentity": "nexgen-local-test-builder",
+  "sourceCommitSha": "working-candidate-ca0337b1e3971e50307ebab34dd6d2d8394f724a",
+  "builderIdentity": "local-codex-authenticated-builder",
   "host": {
     "path": "bin/grasseye-browser-host",
-    "sha256": "sha256:25e238daa148c661fde4e0377312fe86d30558a0a38c3782fe0d453988c37b88"
+    "sha256": "sha256:8d533c7f6e256a9ba5a0d3fe838d09b826ab41193ff6f38380dcfb0dd57717e9"
   },
   "browserctl": {
     "path": "bin/grasseye-browserctl",
-    "sha256": "sha256:cde8d5e3ea44d22be0a2d1db7e3ee4c11723a72ac7b2c354c2f76d2c2b6e172b"
+    "sha256": "sha256:8860c4de2156bda76892554ca4dbcf1ea5c2da664a3172d8b68a6e89b5a469d6"
   },
   "extension": {
     "path": "extension",
-    "manifestSha256": "sha256:7d797792b78773255fd9646bf1c8a4d8846ad1c38bcd85ad54136e5116ef8152"
+    "manifestSha256": "sha256:7d797792b78773255fd9646bf1c8a4d8846ad1c38bcd85ad54136e5116ef8152",
+    "treeSha256": "sha256:59ea14bbae61e39af13487da504f67d375c251ba568d5cd52f83a14b7fbea55f"
   },
   "productionReleaseRequirements": {
     "sourceCommitBound": true,

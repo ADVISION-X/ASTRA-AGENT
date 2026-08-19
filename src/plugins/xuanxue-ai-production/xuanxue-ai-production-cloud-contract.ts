@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  XuanxueAiProductionTriggerKindSchema,
   XuanxueAiProductIdSchema,
   XuanxueAiStageIdSchema,
 } from "./xuanxue-ai-production.schema.js";
@@ -205,14 +206,6 @@ const CloudSeededStageSchema = z.object({
   transport_warnings: z.array(z.string()),
 }).strict();
 
-const triggerKindSchema = z.enum([
-  "user_request",
-  "manual_accuracy_challenge",
-  "scheduled_public_content",
-  "terminal_localization",
-  "scheduled_quality_reflection",
-]);
-
 const cloudSemanticIdentityShape = {
   contract_manifest_hash: hashSchema.nullable(),
   product_contract_hash: hashSchema.nullable(),
@@ -225,7 +218,7 @@ const cloudReplayOrderShape = {
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
   service_class: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
-  trigger_kind: triggerKindSchema,
+  trigger_kind: XuanxueAiProductionTriggerKindSchema,
   lineage_id: z.string().min(1).nullable(),
   reflection_snapshot_ref: z.string().min(1).nullable(),
   reflection_plan_id: z.string().min(1).nullable(),
@@ -284,7 +277,7 @@ const cloudClaimIdentityShape = {
   source_task_id: z.string().min(1),
   product_id: XuanxueAiProductIdSchema,
   service_class: z.enum(["user_delivery", "public_content", "quality_background", "localization"]),
-  trigger_kind: triggerKindSchema,
+  trigger_kind: XuanxueAiProductionTriggerKindSchema,
   lineage_id: z.string().min(1).nullable(),
   reflection_snapshot_ref: z.string().min(1).nullable(),
   reflection_plan_id: z.string().min(1).nullable(),
@@ -349,25 +342,41 @@ const inspectLocalizationClaim = (
   context: z.RefinementCtx,
 ): void => {
   if (!isXuanxueLocalizationProduct(job.product_id)) {
-    if (
-      job.contract_manifest_hash !== null
-      || job.product_contract_hash !== null
-      || job.localization_role !== null
-      || job.provider_execution_profile !== null
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN",
-        path: ["localization_role"],
-      });
-    }
+    inspectNonLocalizationClaim(job, context);
     return;
   }
+  inspectLocalizationContract(job, context);
+  inspectLocalizationTopology(job, context);
+};
+
+const inspectNonLocalizationClaim = (
+  job: CloudClaimedJobCandidate,
+  context: z.RefinementCtx,
+): void => {
+  if (
+    job.contract_manifest_hash !== null
+    || job.product_contract_hash !== null
+    || job.localization_role !== null
+    || job.provider_execution_profile !== null
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN",
+      path: ["localization_role"],
+    });
+  }
+};
+
+const inspectLocalizationContract = (
+  job: CloudClaimedJobCandidate,
+  context: z.RefinementCtx,
+): void => {
   const material = job.materials[0];
   try {
     assertXuanxueLocalizationContract({
       productId: job.product_id,
       stageId: material?.stage_id ?? "",
+      triggerKind: job.trigger_kind,
       contractManifestHash: job.contract_manifest_hash,
       productContractHash: job.product_contract_hash,
       role: job.localization_role,
@@ -384,6 +393,13 @@ const inspectLocalizationClaim = (
       path: ["localization_role"],
     });
   }
+};
+
+const inspectLocalizationTopology = (
+  job: CloudClaimedJobCandidate,
+  context: z.RefinementCtx,
+): void => {
+  const material = job.materials[0];
   if (
     job.service_class !== "localization"
     || job.materials.length !== 1

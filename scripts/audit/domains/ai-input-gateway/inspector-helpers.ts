@@ -39,7 +39,7 @@ export const requireAiInputGatewaySource = (
 export const identifiers = (source: SourceFile): Set<string> =>
   new Set(
     source.getDescendantsOfKind(SyntaxKind.Identifier)
-      .map((node) => node.getText()),
+      .map((node) => node.compilerNode.escapedText.toString()),
   );
 
 export const stringLiterals = (source: SourceFile): Set<string> =>

@@ -18,7 +18,8 @@ export type XuanxueLocalizationRole = z.infer<typeof XuanxueLocalizationRoleSche
 
 export const XuanxueProviderExecutionProfileSchema = z.object({
   profile_ref: z.string().min(1),
-  profile_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+  profile_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/u)
+    .transform((value): `sha256:${string}` => `sha256:${value.slice(7)}`),
   provider: z.literal("gpt-web-chat"),
   transport: z.literal("web-chat"),
   account_capability_ref: z.literal("agent:gpt-web-chat:localization"),
@@ -36,6 +37,7 @@ export type XuanxueProviderExecutionProfile =
 export const XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS = {
   localization_report_translation: {
     stage_id: "report_translation",
+    trigger_kind: "terminal_localization",
     product_contract_hash:
       "sha256:0ee71cf639a4a98356037f7d77495fded3752e0d694124c46f34a8b30d58bdc5",
     roles: ["report_translation"],
@@ -48,6 +50,7 @@ export const XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS = {
   },
   localization_article_translation: {
     stage_id: "article_translation",
+    trigger_kind: "terminal_localization",
     product_contract_hash:
       "sha256:6137a876e538dbc49106d828f1ba6d9d9c4482f2c35f0dec578303385e8d3354",
     roles: ["article_translation"],
@@ -60,6 +63,7 @@ export const XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS = {
   },
   localization_static_review_candidate: {
     stage_id: "localization_candidate",
+    trigger_kind: "terminal_localization",
     product_contract_hash:
       "sha256:2bdc7a50507354740e748101dbee52a84aeb530adb1eece38a8b697c7431577a",
     roles: ["candidate_a", "candidate_b"],
@@ -67,6 +71,7 @@ export const XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS = {
   },
   localization_static_review_selector: {
     stage_id: "localization_selector",
+    trigger_kind: "terminal_localization",
     product_contract_hash:
       "sha256:9cc85d8b374d98cde912013405d17dc9f90b0487e692842b23afec2eddcb11bd",
     roles: ["selector_first", "selector_swap", "consistency"],
@@ -83,6 +88,20 @@ Readonly<Record<XuanxueLocalizationProductId, string>> = Object.fromEntries(
     ([productId, contract]) => [productId, contract.product_contract_hash],
   ),
 ) as Readonly<Record<XuanxueLocalizationProductId, string>>;
+
+export function isExactXuanxueLocalizationProductContractMap(
+  value: unknown,
+): value is Readonly<Record<XuanxueLocalizationProductId, string>> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const actual = value as Readonly<Record<string, unknown>>;
+  const expectedEntries = Object.entries(
+    XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
+  );
+  return Object.keys(actual).length === expectedEntries.length
+    && expectedEntries.every(
+      ([productId, contractHash]) => actual[productId] === contractHash,
+    );
+}
 
 const profileHashes: Readonly<Record<XuanxueLocalizationRole, `sha256:${string}`>> = {
   candidate_a: "sha256:fadb47c667e7f7dc30029427c22b15044c21adb1d6ab3d87fddf71cf91278c08",
@@ -124,6 +143,7 @@ export function isXuanxueLocalizationProduct(
 export function assertXuanxueLocalizationContract(input: {
   readonly productId: string;
   readonly stageId: string;
+  readonly triggerKind: string;
   readonly contractManifestHash: string | null;
   readonly productContractHash: string | null;
   readonly role: XuanxueLocalizationRole | null;
@@ -139,6 +159,7 @@ export function assertXuanxueLocalizationContract(input: {
     || !input.role
     || !(contract.roles as readonly string[]).includes(input.role)
     || input.stageId !== contract.stage_id
+    || input.triggerKind !== contract.trigger_kind
   ) {
     throw new Error("XUANXUE_AI_PRODUCTION_LOCALIZATION_CONTRACT_IDENTITY_INVALID");
   }

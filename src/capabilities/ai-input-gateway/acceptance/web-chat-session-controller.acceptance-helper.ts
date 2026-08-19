@@ -2,16 +2,18 @@ import assert from "node:assert/strict";
 
 import {
   assertProviderExecutionProfileIntegrity,
-  buildGptWebProviderExecutionProfile,
   governProductionGptExecutionProfileInput,
-  normalizeGptWebReasoningTier,
 } from "../provider-execution-profile.js";
+import {
+  buildGptWebProviderExecutionProfile,
+  normalizeGptWebReasoningTier,
+  type AiFeedInput,
+} from "../schema.js";
 import {
   buildConversationTitleState,
   buildExpectedConversationTitle,
   titleProofFromState,
 } from "../runtime/web-chat-conversation-title-policy.js";
-import type { AiFeedInput } from "../schema.js";
 
 const productionRequest = (overrides: Partial<AiFeedInput> = {}): AiFeedInput => ({
   providerKind: "gpt-web-chat",

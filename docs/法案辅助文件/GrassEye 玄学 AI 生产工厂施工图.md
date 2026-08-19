@@ -60,18 +60,21 @@ capacity waiter、请求体/文件 byte ceiling 和第二 attachment graph 全�
 | 定时质量复盘 | 冻结快照 → 独立私有新会话 | `scheduled_quality_reflection` |
 | 付款截图观察 | `payment_screenshot_observation` | 同名阶段 |
 | 公开知识文章 | `corpus_research → article_synthesis → article_image_generation` 同会话 | `article_image_generation` |
-| 本地化静态审校（内部质量产品） | `localization_candidate_a ∥ localization_candidate_b` 两个 fresh 会话 → `localization_selector_first` fresh join → `localization_selector_swap` 同 selector 会话 → `localization_consistency` 独立 fresh 复查 | `localization_consistency` |
+| 本地化报告翻译 | `localization_report_translation / report_translation` 单阶段 fresh 会话 | `report_translation` |
+| 本地化文章翻译 | `localization_article_translation / article_translation` 单阶段 fresh 会话 | `article_translation` |
+| 本地化静态审校候选 | `localization_static_review_candidate / localization_candidate`；`candidate_a` 与 `candidate_b` 是两张独立单阶段 job | `localization_candidate` |
+| 本地化静态审校选择 | `localization_static_review_selector / localization_selector`；`selector_first`、`selector_swap`、`consistency` 各是一张单阶段 job，仅 `selector_swap` 通过 `conversation_parent` 续接精确 selector-first 会话 | `localization_selector` |
 
 Profile 对材料阶段实行精确集合和精确顺序校验。多一个、少一个或顺序错误都在 GPT 前失败。
-本地化静态审校必须是一张完整整单，固定包含上述五个阶段；网站不得拆成 candidate/selector 多张
-cloud job，也不得发送下一阶段指令。该内部质量产品不拥有用户主体：`frozenSubject.primaryPersonRef`
+本地化只接受网站 semantic manifest 冻结的四种单阶段产品；candidate/selector 的七个角色分别由独立
+cloud job 承载，禁止恢复已退役的 `localization_static_review` 五阶段整单。该内部质量产品不拥有用户主体：`frozenSubject.primaryPersonRef`
 必须为 `null`、`participants` 必须为空数组，输入身份只由不可变 ContextBundle ref/hash、阶段材料、
 conversation scope 和 cloud lease 绑定。每个真实阶段完成前还必须持久化 provider transcript JSONL/hash
 与 live model identity evidence（family、display name、reasoning effort、evidence hash）；请求中的
 model profile 只是期望，不是证明。
 真实 GPT Web 的固定操作顺序已经由当前页面核验并冻结：打开 composer 的能力按钮，打开模型菜单，选择并读回
 `模型 → GPT-5.6 Sol`；再从可见推理滑块选择并读回 `极速 / 中 / 高 / 极高 / Pro`，其数值映射固定为
-`0 / 1 / 2 / 3 / 4`。本地化 profile 只允许 `candidate_a=Pro`、其余审校阶段=`高`；页面缺少菜单、滑块、模型名、推理标签，或读回值与期望不一致，必须在发送 prompt 前进入 `review_required`。
+`0 / 1 / 2 / 3 / 4`。本地化 profile 只允许 `candidate_a=极高(xhigh)`、其余角色=`高(high)`；页面缺少菜单、滑块、模型名、推理标签，或读回值与期望不一致，必须在发送 prompt 前进入 `review_required`。
 这条证据只能来自当前 provider 页面可见的语义角色、标签、当前 URL 与 evidence hash；请求字段、profile 常量、历史聊天标题和 fixture 都不是模型证明。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
 和前序回答文件。零附件阶段因此仍有非空输入证明；上传计数只看带 `filePath` 的真实文件。

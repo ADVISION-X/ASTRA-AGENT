@@ -58,7 +58,7 @@ type PendingHandshake = Readonly<{
 }>;
 
 let runCommandHandler: RunCommand | null = null;
-let disconnectHandler: (() => void) | null = null;
+let disconnectHandler: ((reason?: string) => void) | null = null;
 let activeActor: NativePortActor | null = null;
 let nextPortEpoch = 0;
 let reconnectAlarmScheduled = false;
@@ -354,11 +354,10 @@ class NativePortActor {
 
   private handleDisconnect(): void {
     const disconnectReason = chrome.runtime.lastError?.message;
-    void disconnectReason;
     if (activeActor !== this) return;
     activeActor = null;
     this.closeLocalState();
-    disconnectHandler?.();
+    disconnectHandler?.(disconnectReason);
     scheduleReconnect();
   }
 
@@ -406,7 +405,7 @@ export const connectNativeTransport = (): void => {
 
 export const configureNativeTransport = (input: {
   runCommand: RunCommand;
-  onDisconnect: () => void;
+  onDisconnect: (reason?: string) => void;
 }): void => {
   runCommandHandler = input.runCommand;
   disconnectHandler = input.onDisconnect;

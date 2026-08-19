@@ -170,27 +170,30 @@ const assertRoutingContract = (sources: SourceContracts): void => {
 };
 
 const assertSessionControllerContract = (sources: SourceContracts): void => {
+  const checks = [
+    sources.providerExecutionProfile.includes("gpt-web-execution-profile.v1"),
+    sources.providerExecutionProfile.includes("governProductionGptExecutionProfileInput"),
+    sources.providerExecutionProfile.includes("extra_high"),
+    sources.providerExecutionProfile.includes("pro_standard"),
+    sources.providerExecutionProfile.includes("pro_extended"),
+    sources.gptExecutionProfile.includes("enforceGptWebExecutionProfile"),
+    sources.gptExecutionProfile.includes("assertStableWebChatDocument"),
+    sources.sessionController.includes("prepareWebChatSessionForSubmission"),
+    sources.sessionController.includes("finalizeWebChatSessionAfterResult"),
+    sources.conversationTitlePolicy.includes("gpt-web-title-policy.v1"),
+    sources.conversationTitlePolicy.includes("Asia/Dubai"),
+    !sources.conversationTitlePolicy.includes("textPrompt"),
+    sources.conversationTitle.includes("runExclusivePatrol"),
+    sources.conversationTitle.includes("[data-testid^='conversation-turn-'][data-turn='user']"),
+    sources.conversationDiscovery.includes("turnMarker"),
+    sources.conversationDiscovery.includes("targetPath"),
+    sources.pageActionContract.includes("WebChatPageActionProof"),
+    sources.checkpointResponse.includes("title_finalization_pending"),
+    sources.providerProof.includes("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING"),
+    sources.providerProof.includes("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
+  ];
   assert.equal(
-    sources.providerExecutionProfile.includes("gpt-web-execution-profile.v1")
-      && sources.providerExecutionProfile.includes("governProductionGptExecutionProfileInput")
-      && sources.providerExecutionProfile.includes("extra_high")
-      && sources.providerExecutionProfile.includes("pro_standard")
-      && sources.providerExecutionProfile.includes("pro_extended")
-      && sources.gptExecutionProfile.includes("enforceGptWebExecutionProfile")
-      && sources.gptExecutionProfile.includes("assertStableWebChatDocument")
-      && sources.sessionController.includes("prepareWebChatSessionForSubmission")
-      && sources.sessionController.includes("finalizeWebChatSessionAfterResult")
-      && sources.conversationTitlePolicy.includes("gpt-web-title-policy.v1")
-      && sources.conversationTitlePolicy.includes("Asia/Dubai")
-      && !sources.conversationTitlePolicy.includes("textPrompt")
-      && sources.conversationTitle.includes("runExclusivePatrol")
-      && sources.conversationTitle.includes("[data-testid^='conversation-turn-'][data-turn='user']")
-      && sources.conversationDiscovery.includes("turnMarker")
-      && sources.conversationDiscovery.includes("targetPath")
-      && sources.pageActionContract.includes("WebChatPageActionProof")
-      && sources.checkpointResponse.includes("title_finalization_pending")
-      && sources.providerProof.includes("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING")
-      && sources.providerProof.includes("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
+    checks.every(Boolean),
     true,
     "one GPT Web Session Controller must own semantic profile selection, action proof, canonical routing and post-result title finalization",
   );

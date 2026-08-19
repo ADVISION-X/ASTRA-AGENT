@@ -12,30 +12,39 @@ ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const composer = resolveComposerInput();
 const userCount = document.querySelectorAll('[data-message-author-role="user"]').length;
 const assistantCount = document.querySelectorAll('[data-message-author-role="assistant"]').length;
-const pageUrl = new URL(location.href);
-const isFreshPath = pageUrl.host === "chatgpt.com" && (pageUrl.pathname === "/" || pageUrl.pathname === "");
+const isFreshPath = location.hostname === "chatgpt.com"
+  && (location.pathname === "/" || location.pathname === "");
 const composerText = composer instanceof HTMLElement ? readComposerVisibleText(composer) : "";
-const composerRoot = composer instanceof HTMLElement ? composer.closest("form") : null;
+const composerForms = composer instanceof HTMLElement
+  ? Array.from(document.querySelectorAll("form")).filter((form) =>
+      form.querySelector("div#prompt-textarea[contenteditable='true'][role='textbox']") === composer
+    )
+  : [];
+const composerRoot = composerForms.length === 1 ? composerForms[0] : null;
 const removeAttachmentCount = composerRoot instanceof HTMLElement
-  ? Array.from(composerRoot.querySelectorAll("button")).filter((button) =>
-      /remove file|移除文件|删除文件/i.test(clip(button.getAttribute("aria-label") || button.textContent || ""))
+  ? composerRoot.querySelectorAll(
+      'button[aria-label="Remove file"],button[aria-label="移除文件"],button[aria-label="删除文件"]'
     ).length
   : 0;
 const composerRootText = composerRoot instanceof HTMLElement ? clip(composerRoot.innerText || "") : "";
 const hasPastedTextCard = /已粘贴的文本|在文本字段中显示|pasted text|pasted content/i.test(composerRootText);
-const composerTurnMarkers = Array.from(
-  composerText.matchAll(/\\[INTERNAL_TRANSPORT_MARKER:(GRASSEYE_TURN_[a-f0-9]{32})\\]/gu),
-  (match) => match[1],
-);
-const internalMarkerMentionCount = (
-  composerText.match(/INTERNAL_TRANSPORT_MARKER:/gu) || []
-).length;
-const generating = Array.from(document.querySelectorAll("button")).some((button) =>
-  isVisible(button)
-  && /stop streaming|stop generating|停止生成|停止回应/i.test(clip(
-    button.getAttribute("aria-label") || button.getAttribute("title") || button.textContent || ""
-  ))
-);
+const markerPrefix = "[INTERNAL_TRANSPORT_MARKER:";
+const markerSegments = composerText.split(markerPrefix).slice(1);
+const markerAlphabet = "0123456789abcdef";
+const composerTurnMarkers = markerSegments.map((segment) => {
+  const closingBracket = segment.indexOf("]");
+  const marker = closingBracket >= 0 ? segment.slice(0, closingBracket) : "";
+  const suffix = marker.slice("GRASSEYE_TURN_".length);
+  const exactMarker = marker.startsWith("GRASSEYE_TURN_")
+    && suffix.length === 32
+    && Array.from(suffix).every((character) => markerAlphabet.includes(character));
+  return exactMarker ? marker : null;
+}).filter((marker) => marker !== null);
+const internalMarkerMentionCount = composerText.split("INTERNAL_TRANSPORT_MARKER:").length - 1;
+const generationControls = Array.from(document.querySelectorAll(
+  'button[data-testid="stop-button"],button[aria-label="Stop streaming"],button[aria-label="Stop generating"],button[aria-label="停止生成"],button[aria-label="停止回应"]'
+));
+const generating = generationControls.some(isVisible);
 const isFreshConversation = Boolean(composer)
   && isFreshPath
 ${CHATGPT_FRESH_ZERO_STATE_FIELDS.map((field) => `  && ${field} === 0`).join("\n")}

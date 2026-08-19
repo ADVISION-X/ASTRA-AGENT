@@ -22,23 +22,26 @@ assert.equal(
 );
 assert.equal(expression.match(/\(\(\) => \{/gu)?.length, 1, "the function body must be wrapped exactly once");
 
-const runtime = await readFile("src/lib/browser/exact-target/browser-command-runtime.ts", "utf8");
+const targetSession = await readFile("src/lib/browser/exact-target/exact-browser-target-session.ts", "utf8");
 const worker = await readFile("src/lib/browser/chrome-extension/service-worker.ts", "utf8");
+const interactionCommands = await readFile("src/lib/browser/chrome-extension/service-worker-interaction-commands.ts", "utf8");
+const keyboardCommands = await readFile("src/lib/browser/chrome-extension/service-worker-keyboard.ts", "utf8");
 const atomicDom = await readFile("src/lib/browser/chrome-extension/atomic-dom-command.ts", "utf8");
-assert.equal(runtime.includes("toBrowserEvaluationExpression(input.script)"), true, "exact-target runtime must own evaluation normalization");
+const workerSurface = `${worker}\n${interactionCommands}\n${keyboardCommands}`;
+assert.equal(targetSession.includes("toBrowserEvaluationExpression(input.script)"), true, "exact-target session must own evaluation normalization");
 assert.equal(worker.includes("new Function"), false, "MV3 worker must not add a private evaluator");
 assert.equal(worker.includes("eval("), false, "MV3 worker must execute the normalized expression directly");
 for (const command of ["evaluate_target", "click_target", "click_dom_target", "fill_dom_target", "scroll_target", "text_target", "set_file_input_files"]) {
-  assert.equal(worker.includes(command), true, command);
+  assert.equal(workerSurface.includes(command), true, command);
 }
 for (const atomicSignal of ["TARGET_IDENTITY_CHANGED", "TARGET_VALUE_MISMATCH", "TARGET_COMPONENT_REJECTED", "atomicDomExpression", "atomicDomFillPreparationExpression", "atomicDomFillVerificationExpression"]) {
   assert.equal(`${worker}\n${atomicDom}`.includes(atomicSignal), true, `atomic DOM guard missing: ${atomicSignal}`);
 }
 assert.equal(worker.includes("Input.insertText"), false, "component text entry must not bypass ordered keyboard events");
 for (const keyboardEvent of ["dispatchTypedCharacter", "rawKeyDown", 'type: "char"', 'type: "keyUp"']) {
-  assert.equal(worker.includes(keyboardEvent), true, `ordered keyboard event missing: ${keyboardEvent}`);
+  assert.equal(workerSurface.includes(keyboardEvent), true, `ordered keyboard event missing: ${keyboardEvent}`);
 }
-assert.equal(worker.includes("real file receiver did not retain the approved file"), false, "input.files retention is not component attachment truth");
+assert.equal(workerSurface.includes("real file receiver did not retain the approved file"), false, "input.files retention is not component attachment truth");
 assert.equal(worker.includes("active: false"), true, "background target acquisition must not steal focus");
 
 const launched = await chromium.launch({ headless: true });

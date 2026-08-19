@@ -128,6 +128,15 @@ type Target = {
   point?: { x: number; y: number };
 };
 
+type FinalizationInput = {
+  browser: BrowserTargetSession;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  submission: WebChatSubmissionProof;
+};
+type TitleExecution = NonNullable<AiProviderAdapterContext["webChatExecution"]>;
+type TitleState = NonNullable<TitleExecution["conversationTitle"]>;
+
 const waitTarget = async (input: {
   browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
@@ -163,12 +172,12 @@ const clickTarget = async (input: {
 };
 
 const buildProof = (input: {
-  state: NonNullable<AiProviderAdapterContext["webChatExecution"]>["conversationTitle"];
+  state: TitleState;
   previousObservedTitle: string | null;
   observedTitle: string;
   canonicalConversationUrl: string;
 }): WebChatConversationTitleProof => {
-  const state = input.state!;
+  const state = input.state;
   const verifiedAt = new Date().toISOString();
   const evidence = JSON.stringify({
     owner: state.owner,
@@ -198,12 +207,93 @@ const buildProof = (input: {
   };
 };
 
-export const finalizeGptWebConversationTitle = async (input: {
+const enterExpectedTitle = async (input: {
   browser: BrowserTargetSession;
   context: AiProviderAdapterContext;
+  expectedTitle: string;
+  textbox: Target;
+}): Promise<void> => {
+  if (input.textbox.status === "verified") return;
+  await clickTarget({ browser: input.browser, point: input.textbox.point, label: "focus ChatGPT title textbox" });
+  await input.browser.textInput({ targetLabel: "ChatGPT title textbox", action: "clear-input" });
+  await input.browser.textInput({ targetLabel: "ChatGPT title textbox", action: "type-text", text: input.expectedTitle });
+  const readBack = await waitTarget({
+    browser: input.browser,
+    context: input.context,
+    description: "read back exact ChatGPT title before commit",
+    script: locateTitleTextboxScript(input.expectedTitle),
+    timeoutMs: 2_000,
+  });
+  if (readBack.status !== "verified" || readBack.value !== input.expectedTitle) {
+    throw new Error("review_required: CHATGPT_TITLE_TEXTBOX_READBACK_MISMATCH");
+  }
+  await input.browser.textInput({ targetLabel: "ChatGPT title textbox", action: "press-key", key: "Enter" });
+};
+
+const renameConversationRow = async (input: {
+  browser: BrowserTargetSession;
+  context: AiProviderAdapterContext;
+  expectedTitle: string;
+  path: string;
+  row: Target;
+}): Promise<void> => {
+  if (!input.browser.move || !input.row.rowPoint) throw new Error("review_required: CHATGPT_TITLE_HOVER_UNAVAILABLE");
+  const moved = await input.browser.move({
+    targetLabel: "hover exact owned ChatGPT conversation row",
+    point: input.row.rowPoint,
+  });
+  if (!moved.ok) throw new Error("WEB_CHAT_TITLE_FINALIZATION_NOT_READY:hover did not commit");
+  const options = await waitTarget({ browser: input.browser, context: input.context,
+    description: "locate exact owned ChatGPT row options", script: locateOptionsScript(input.path), timeoutMs: 4_000 });
+  await clickTarget({ browser: input.browser, point: options.point, label: "open exact owned ChatGPT row options" });
+  const rename = await waitTarget({ browser: input.browser, context: input.context,
+    description: "locate unique ChatGPT Rename menu action", script: locateRenameMenuScript, timeoutMs: 3_000 });
+  await clickTarget({ browser: input.browser, point: rename.point, label: "choose ChatGPT Rename action" });
+  const textbox = await waitTarget({ browser: input.browser, context: input.context,
+    description: "locate unique ChatGPT title textbox",
+    script: locateTitleTextboxScript(input.expectedTitle), timeoutMs: 3_000 });
+  await enterExpectedTitle({ browser: input.browser, context: input.context, expectedTitle: input.expectedTitle, textbox });
+};
+
+const runTitleFinalizationPatrol = async (input: {
+  browser: BrowserTargetSession;
+  canonicalUrl: string;
+  context: AiProviderAdapterContext;
+  execution: TitleExecution;
   request: AiFeedInput;
-  submission: WebChatSubmissionProof;
-}): Promise<WebChatConversationTitleProof | null> => {
+  state: TitleState;
+}): Promise<WebChatConversationTitleProof> => {
+  await focusChatGptConversationByCanonicalPath({
+    base: input.browser, conversationUrl: input.canonicalUrl, turnMarker: input.execution.turnMarker,
+    timeoutMs: Math.min(input.request.timeoutMs, 15_000),
+    ...(input.context.abortSignal ? { signal: input.context.abortSignal } : {}),
+  });
+  const expectedDocumentRef = input.browser.getTarget?.()?.documentRef ?? null;
+  const path = new URL(input.canonicalUrl).pathname;
+  const row = await waitTarget({
+    browser: input.browser, context: input.context,
+    description: "locate exact owned ChatGPT conversation row for title finalization",
+    script: locateConversationRowScript({ canonicalPath: path, expectedTitle: input.state.expectedTitle,
+      turnMarker: input.execution.turnMarker }), timeoutMs: 6_000,
+  });
+  assertStableWebChatDocument({ browser: input.browser, expectedDocumentRef, actionId: "rename_exact_conversation" });
+  const previousObservedTitle = row.observedTitle ?? null;
+  if (row.message !== "already_named") {
+    await renameConversationRow({ browser: input.browser, context: input.context,
+      expectedTitle: input.state.expectedTitle, path, row });
+  }
+  assertStableWebChatDocument({ browser: input.browser, expectedDocumentRef, actionId: "verify_exact_conversation_title" });
+  const verified = await waitTarget({
+    browser: input.browser, context: input.context, description: "verify exact ChatGPT title and marker after rename",
+    script: locateConversationRowScript({ canonicalPath: path, expectedTitle: input.state.expectedTitle,
+      turnMarker: input.execution.turnMarker }), timeoutMs: 8_000,
+  });
+  if (verified.message !== "already_named") throw new Error("WEB_CHAT_TITLE_FINALIZATION_NOT_READY:title commit not reflected");
+  return buildProof({ state: input.state, previousObservedTitle,
+    observedTitle: input.state.expectedTitle, canonicalConversationUrl: input.canonicalUrl });
+};
+
+export const finalizeGptWebConversationTitle = async (input: FinalizationInput): Promise<WebChatConversationTitleProof | null> => {
   const execution = input.context.webChatExecution;
   const state = execution?.conversationTitle ?? null;
   if (input.request.providerKind !== "gpt-web-chat" || !execution || !state) return null;
@@ -213,114 +303,9 @@ export const finalizeGptWebConversationTitle = async (input: {
   }
   const startedAt = new Date().toISOString();
   await execution.onConversationTitleFinalizationStarted(canonicalUrl);
-  const proof = await execution.runExclusivePatrol(async (browser) => {
-    await focusChatGptConversationByCanonicalPath({
-      base: browser,
-      conversationUrl: canonicalUrl,
-      turnMarker: execution.turnMarker,
-      timeoutMs: Math.min(input.request.timeoutMs, 15_000),
-      ...(input.context.abortSignal ? { signal: input.context.abortSignal } : {}),
-    });
-    const expectedDocumentRef = browser.getTarget?.()?.documentRef ?? null;
-    const path = new URL(canonicalUrl).pathname;
-    const row = await waitTarget({
-      browser,
-      context: input.context,
-      description: "locate exact owned ChatGPT conversation row for title finalization",
-      script: locateConversationRowScript({
-        canonicalPath: path,
-        expectedTitle: state.expectedTitle,
-        turnMarker: execution.turnMarker,
-      }),
-      timeoutMs: 6_000,
-    });
-    assertStableWebChatDocument({ browser, expectedDocumentRef, actionId: "rename_exact_conversation" });
-    const previousObservedTitle = row.observedTitle ?? null;
-    if (row.message === "already_named") {
-      return buildProof({
-        state,
-        previousObservedTitle,
-        observedTitle: state.expectedTitle,
-        canonicalConversationUrl: canonicalUrl,
-      });
-    }
-    if (!browser.move || !row.rowPoint) {
-      throw new Error("review_required: CHATGPT_TITLE_HOVER_UNAVAILABLE");
-    }
-    const moved = await browser.move({
-      targetLabel: "hover exact owned ChatGPT conversation row",
-      point: row.rowPoint,
-    });
-    if (!moved.ok) throw new Error("WEB_CHAT_TITLE_FINALIZATION_NOT_READY:hover did not commit");
-    const options = await waitTarget({
-      browser,
-      context: input.context,
-      description: "locate exact owned ChatGPT row options",
-      script: locateOptionsScript(path),
-      timeoutMs: 4_000,
-    });
-    await clickTarget({ browser, point: options.point, label: "open exact owned ChatGPT row options" });
-    const rename = await waitTarget({
-      browser,
-      context: input.context,
-      description: "locate unique ChatGPT Rename menu action",
-      script: locateRenameMenuScript,
-      timeoutMs: 3_000,
-    });
-    await clickTarget({ browser, point: rename.point, label: "choose ChatGPT Rename action" });
-    const textbox = await waitTarget({
-      browser,
-      context: input.context,
-      description: "locate unique ChatGPT title textbox",
-      script: locateTitleTextboxScript(state.expectedTitle),
-      timeoutMs: 3_000,
-    });
-    if (textbox.status !== "verified") {
-      await clickTarget({ browser, point: textbox.point, label: "focus ChatGPT title textbox" });
-      await browser.textInput({ targetLabel: "ChatGPT title textbox", action: "clear-input" });
-      await browser.textInput({
-        targetLabel: "ChatGPT title textbox",
-        action: "type-text",
-        text: state.expectedTitle,
-      });
-      const readBack = await waitTarget({
-        browser,
-        context: input.context,
-        description: "read back exact ChatGPT title before commit",
-        script: locateTitleTextboxScript(state.expectedTitle),
-        timeoutMs: 2_000,
-      });
-      if (readBack.status !== "verified" || readBack.value !== state.expectedTitle) {
-        throw new Error("review_required: CHATGPT_TITLE_TEXTBOX_READBACK_MISMATCH");
-      }
-      await browser.textInput({
-        targetLabel: "ChatGPT title textbox",
-        action: "press-key",
-        key: "Enter",
-      });
-    }
-    assertStableWebChatDocument({ browser, expectedDocumentRef, actionId: "verify_exact_conversation_title" });
-    const verified = await waitTarget({
-      browser,
-      context: input.context,
-      description: "verify exact ChatGPT title and marker after rename",
-      script: locateConversationRowScript({
-        canonicalPath: path,
-        expectedTitle: state.expectedTitle,
-        turnMarker: execution.turnMarker,
-      }),
-      timeoutMs: 8_000,
-    });
-    if (verified.message !== "already_named") {
-      throw new Error("WEB_CHAT_TITLE_FINALIZATION_NOT_READY:title commit not reflected");
-    }
-    return buildProof({
-      state,
-      previousObservedTitle,
-      observedTitle: state.expectedTitle,
-      canonicalConversationUrl: canonicalUrl,
-    });
-  });
+  const proof = await execution.runExclusivePatrol((browser) => runTitleFinalizationPatrol({
+    browser, canonicalUrl, context: input.context, execution, request: input.request, state,
+  }));
   await execution.onConversationTitleVerified(proof);
   await recordWebChatPageAction({
     browser: input.browser,

@@ -41,11 +41,3 @@ export const issueBrowserCommandPermit = (input: Readonly<{
     permitHash: `sha256:${createHash("sha256").update(JSON.stringify(unsigned)).digest("hex")}`,
   });
 };
-
-export const sameBrowserCommandPermit = (
-  left: BrowserCommandPermit,
-  right: BrowserCommandPermit,
-): boolean => left.permitHash === right.permitHash
-  && left.authorityId === right.authorityId
-  && left.commandId === right.commandId
-  && left.sequence === right.sequence;

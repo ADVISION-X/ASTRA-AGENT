@@ -146,29 +146,30 @@ export class GrassEyeWorkbench {
   createHandle(): GrassEyeWorkbenchHandle {
     const self = this;
     return new Proxy({} as GrassEyeWorkbenchHandle, {
-      get(_target, property) {
-        if (property === "then") return undefined;
-        if (property === "init") return () => self.init();
-        if (property === "shutdown") return () => self.shutdown();
-        if (property === "getDataDir") {
-          return () => self.assembly?.dataDir
-            ?? self.options.dataDir
-            ?? getDefaultPhase04LocalDataDir();
-        }
-        if (property === "getModeInfo") return () => getModeInfo(self.options);
-        if (property === "getHealthReport") return () => self.getHealthReport();
-        if (property === "getMissionReadinessReport") return () => self.getMissionReadinessReport();
-        if (property === "getMissionStartPreflight") {
-          return (input: unknown) => self.getMissionStartPreflight(input);
-        }
-        return (...args: unknown[]) => {
-          const handle = self.requireActiveHandle();
-          const member = Reflect.get(handle, property) as unknown;
-          if (typeof member !== "function") return member;
-          return Reflect.apply(member, handle, args);
-        };
-      },
+      get: (_target, property) => self.resolveHandleMember(property),
     });
+  }
+
+  private resolveHandleMember(property: string | symbol): unknown {
+    if (property === "then") return undefined;
+    const fixed = new Map<string | symbol, () => unknown>([
+      ["init", () => () => this.init()],
+      ["shutdown", () => () => this.shutdown()],
+      ["getDataDir", () => () => this.assembly?.dataDir
+        ?? this.options.dataDir
+        ?? getDefaultPhase04LocalDataDir()],
+      ["getModeInfo", () => () => getModeInfo(this.options)],
+      ["getHealthReport", () => () => this.getHealthReport()],
+      ["getMissionReadinessReport", () => () => this.getMissionReadinessReport()],
+      ["getMissionStartPreflight", () => (input: unknown) => this.getMissionStartPreflight(input)],
+    ]).get(property);
+    if (fixed) return fixed();
+    return (...args: unknown[]) => {
+      const handle = this.requireActiveHandle();
+      const member = Reflect.get(handle, property) as unknown;
+      if (typeof member !== "function") return member;
+      return Reflect.apply(member, handle, args);
+    };
   }
 
   private requireActiveHandle(): GrassEyeWorkbenchHandle {

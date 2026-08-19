@@ -264,12 +264,11 @@ class NativePortActor {
     }
     handleDisconnect() {
         const disconnectReason = chrome.runtime.lastError?.message;
-        void disconnectReason;
         if (activeActor !== this)
             return;
         activeActor = null;
         this.closeLocalState();
-        disconnectHandler?.();
+        disconnectHandler?.(disconnectReason);
         scheduleReconnect();
     }
     failClosed() {

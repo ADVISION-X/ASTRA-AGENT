@@ -8,6 +8,9 @@ import {
   xuanxueAiProductionDeviceContractProof,
 } from "./xuanxue-ai-production-cloud-client.js";
 import {
+  isExactXuanxueLocalizationProductContractMap,
+} from "./xuanxue-ai-production-localization-contract.js";
+import {
   writeXuanxueAiProductionCloudCredential,
   xuanxueAiProductionCloudCredentialPath,
 } from "./xuanxue-ai-production-cloud-credential.js";
@@ -36,60 +39,70 @@ const required = (name: string): string => {
   return value;
 };
 
-export async function enrollXuanxueAiProductionCloudDevice(input?: {
-  readonly dataDir?: string;
-}): Promise<{ readonly deviceId: string; readonly credentialPath: string }> {
-  const serverBaseUrl = required(
-    "XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL",
-  ).replace(/\/+$/u, "");
-  const deviceName = required("XUANXUE_AI_PRODUCTION_DEVICE_NAME");
-  const enrollmentToken = required(
-    "XUANXUE_AI_PRODUCTION_ENROLLMENT_TOKEN",
-  );
-  const maxInFlight = Number(
-    process.env.XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT ?? "10",
-  );
+const enrollmentConfig = () => {
+  const maxInFlight = Number(process.env.XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT ?? "10");
   if (!Number.isInteger(maxInFlight) || maxInFlight < 1 || maxInFlight > 64) {
     throw new Error("XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT_INVALID");
   }
+  return {
+    serverBaseUrl: required("XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL").replace(/\/+$/u, ""),
+    deviceName: required("XUANXUE_AI_PRODUCTION_DEVICE_NAME"),
+    enrollmentToken: required("XUANXUE_AI_PRODUCTION_ENROLLMENT_TOKEN"),
+    maxInFlight,
+  };
+};
+
+const assertEnrollmentResponse = (input: {
+  response: Response;
+  body: EnrollmentEnvelope;
+  contractProof: ReturnType<typeof xuanxueAiProductionDeviceContractProof>;
+}): { device: NonNullable<NonNullable<EnrollmentEnvelope["data"]>["device"]>; credential: string } => {
+  const device = input.body.data?.device;
+  const credential = input.body.data?.credential;
+  const valid = input.response.ok
+    && input.body.ok === true
+    && Boolean(device?.device_id)
+    && Boolean(device?.device_name)
+    && Boolean(device?.max_in_flight)
+    && Boolean(credential)
+    && device?.contract_manifest_hash === input.contractProof.contract_manifest_hash
+    && isExactXuanxueLocalizationProductContractMap(
+      device?.supported_product_contracts,
+    );
+  if (!valid || !device || !credential) {
+    throw new Error(
+      `XUANXUE_AI_PRODUCTION_ENROLLMENT_FAILED:`
+      + `${input.body.error?.code ?? input.response.status}:`
+      + `${input.body.error?.message ?? "contract proof mismatch"}`,
+    );
+  }
+  return { device, credential };
+};
+
+export async function enrollXuanxueAiProductionCloudDevice(input?: {
+  readonly dataDir?: string;
+}): Promise<{ readonly deviceId: string; readonly credentialPath: string }> {
+  const config = enrollmentConfig();
   const contractProof = xuanxueAiProductionDeviceContractProof();
   const response = await fetch(
-    `${serverBaseUrl}/internal/ai-production/devices/enroll`,
+    `${config.serverBaseUrl}/internal/ai-production/devices/enroll`,
     {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-ai-enrollment-token": enrollmentToken,
+        "x-ai-enrollment-token": config.enrollmentToken,
       },
       body: JSON.stringify({
-        device_name: deviceName,
+        device_name: config.deviceName,
         capabilities: ["xuanxue_ai_production"],
-        max_in_flight: maxInFlight,
+        max_in_flight: config.maxInFlight,
         ...contractProof,
       }),
       signal: AbortSignal.timeout(30_000),
     },
   );
   const body = await response.json() as EnrollmentEnvelope;
-  const device = body.data?.device;
-  const credentialValue = body.data?.credential;
-  if (
-    !response.ok
-    || body.ok !== true
-    || !device?.device_id
-    || !device.device_name
-    || !device.max_in_flight
-    || !credentialValue
-    || device.contract_manifest_hash !== contractProof.contract_manifest_hash
-    || JSON.stringify(device.supported_product_contracts ?? {})
-      !== JSON.stringify(contractProof.supported_product_contracts)
-  ) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_ENROLLMENT_FAILED:`
-      + `${body.error?.code ?? response.status}:`
-      + `${body.error?.message ?? "contract proof mismatch"}`,
-    );
-  }
+  const { device, credential: credentialValue } = assertEnrollmentResponse({ response, body, contractProof });
   const dataDir = path.resolve(
     input?.dataDir
     ?? process.env.GRASSEYE_DATA_DIR
@@ -97,11 +110,11 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
   );
   const credential: XuanxueAiProductionCloudCredential = {
     protocol_version: XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-    server_base_url: serverBaseUrl,
-    device_id: device.device_id,
-    device_name: device.device_name,
+    server_base_url: config.serverBaseUrl,
+    device_id: device.device_id!,
+    device_name: device.device_name!,
     credential: credentialValue,
-    max_in_flight: device.max_in_flight,
+    max_in_flight: device.max_in_flight!,
     enrolled_at: new Date().toISOString(),
   };
   await writeXuanxueAiProductionCloudCredential(dataDir, credential);

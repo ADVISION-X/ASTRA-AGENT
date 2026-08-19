@@ -139,11 +139,16 @@ const scanZombieExportSymbol = (
     reachability: ZombieReachability;
     symbolGraph: ZombieSymbolGraph;
     zombieLawId: string;
+    generatedOwnerInspectorPaths: ReadonlySet<string>;
   },
   exportSymbol: ZombieExportSymbol,
 ): "live" | "skip" | "zombie" => {
   if (isLawfulZombieExport(input.governedFile, exportSymbol.exportName, input.manifest)) {
     return "skip";
+  }
+  if (exportSymbol.exportName === "inspectDomain"
+    && input.generatedOwnerInspectorPaths.has(exportSymbol.exportingFile)) {
+    return "live";
   }
   const referenceState = collectExportReferenceState(exportSymbol, input);
   const isLive = exportSymbol.isTypeOnly
@@ -182,6 +187,7 @@ const scanZombieExports = (
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
     symbolGraph: ZombieSymbolGraph;
+    generatedOwnerInspectorPaths: ReadonlySet<string>;
   },
   antiEvasionLawId: string,
   zombieLawId: string,
@@ -215,6 +221,7 @@ const scanZombieExports = (
           reachability: input.reachability,
           symbolGraph: input.symbolGraph,
           zombieLawId,
+          generatedOwnerInspectorPaths: input.generatedOwnerInspectorPaths,
         },
         exportSymbol,
       );
@@ -239,6 +246,7 @@ export const scanZombieReferenceSurfaces = (
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
     symbolGraph: ZombieSymbolGraph;
+    generatedOwnerInspectorPaths: ReadonlySet<string>;
   },
   zombieLawId: string,
 ): ZombieReferenceSurfaceSummary => {

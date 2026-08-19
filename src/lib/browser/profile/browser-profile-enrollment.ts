@@ -110,6 +110,23 @@ export const createBrowserProfileEnrollment = (input: Readonly<{
   });
 };
 
+const isCompleteProfileEnrollment = (raw: unknown): raw is BrowserProfileEnrollment => {
+  if (!raw || typeof raw !== "object") return false;
+  const receipt = raw as Partial<BrowserProfileEnrollment>;
+  return [
+    receipt.schemaVersion === BROWSER_PROFILE_ENROLLMENT_SCHEMA_VERSION,
+    typeof receipt.profileEnrollmentId === "string",
+    typeof receipt.platform === "string",
+    typeof receipt.profileRef === "string",
+    typeof receipt.userDataDir === "string",
+    typeof receipt.profileDirectory === "string",
+    typeof receipt.chromeExecutablePath === "string",
+    typeof receipt.extensionId === "string",
+    typeof receipt.releaseIdentity === "string",
+    typeof receipt.localStateHash === "string",
+  ].every(Boolean);
+};
+
 export const readBrowserProfileEnrollment = (input: Readonly<{
   platform: string;
 }>): BrowserProfileEnrollment => {
@@ -125,24 +142,10 @@ export const readBrowserProfileEnrollment = (input: Readonly<{
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`BROWSER_PROFILE_ENROLLMENT_INVALID:${reason}`);
   }
-  if (!raw || typeof raw !== "object") {
-    throw new Error("BROWSER_PROFILE_ENROLLMENT_INVALID:receipt must be an object");
-  }
-  const receipt = raw as Partial<BrowserProfileEnrollment>;
-  if (
-    receipt.schemaVersion !== BROWSER_PROFILE_ENROLLMENT_SCHEMA_VERSION
-    || typeof receipt.profileEnrollmentId !== "string"
-    || typeof receipt.platform !== "string"
-    || typeof receipt.profileRef !== "string"
-    || typeof receipt.userDataDir !== "string"
-    || typeof receipt.profileDirectory !== "string"
-    || typeof receipt.chromeExecutablePath !== "string"
-    || typeof receipt.extensionId !== "string"
-    || typeof receipt.releaseIdentity !== "string"
-    || typeof receipt.localStateHash !== "string"
-  ) {
+  if (!isCompleteProfileEnrollment(raw)) {
     throw new Error("BROWSER_PROFILE_ENROLLMENT_INVALID:receipt fields are incomplete");
   }
+  const receipt = raw;
   if (receipt.platform !== platform) {
     throw new Error(`BROWSER_PROFILE_ENROLLMENT_PLATFORM_MISMATCH:${receipt.platform}`);
   }

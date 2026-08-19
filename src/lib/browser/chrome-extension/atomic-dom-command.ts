@@ -140,7 +140,7 @@ if (editor.__grasseyeAtomicFillMarker__ !== ${JSON.stringify(marker)}) {
 ${fillFocusCheck}
 const actual = valueOf(editor);
 if (actual !== ${JSON.stringify(expectedValue)}) {
-  throw new Error("TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text");
+  throw new Error("TARGET_VALUE_MISMATCH:atomic DOM fill did not retain exact approved text:expectedLength=" + ${JSON.stringify(expectedValue.length)} + ":actualLength=" + actual.length);
 }
 if (${JSON.stringify(requireAcceptedState)}) {
   const rejected = [host, editor].some((node) => {

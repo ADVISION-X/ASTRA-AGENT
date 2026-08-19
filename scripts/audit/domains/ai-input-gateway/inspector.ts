@@ -287,7 +287,7 @@ const hasCanonicalResumeGuard = (singleTab: SourceFile): boolean =>
       && Node.isCallExpression(canonicalSubmission)
       && astExpressionPath(canonicalSubmission.getExpression()) === "isRoutableWebChatSubmission"
       && canonicalSubmission.getArguments().length === 1
-      && canonicalSubmission.getArguments()[0]?.getText() === "input.resumeSubmission";
+      && astExpressionPath(canonicalSubmission.getArguments()[0]) === "input.resumeSubmission";
   });
 
 const inspectTransientSubmissionIsNotRoutable = (

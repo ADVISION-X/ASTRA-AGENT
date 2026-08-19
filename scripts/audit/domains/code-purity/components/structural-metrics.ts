@@ -60,9 +60,19 @@ const isSuppressionDirectiveComment = (commentText: string): boolean => {
 export const collectFunctionLikes = (governedFile: GovernedFile): BudgetFunctionNode[] =>
   functionLikeKinds.flatMap((kind) => governedFile.sourceFile.getDescendantsOfKind(kind)) as BudgetFunctionNode[];
 
+export const collectOwnFunctionDescendants = (node: MorphNode): MorphNode[] => {
+  const descendants: MorphNode[] = [];
+  node.forEachChild((child) => {
+    if (Node.isFunctionLikeDeclaration(child)) return;
+    descendants.push(child, ...collectOwnFunctionDescendants(child));
+  });
+  return descendants;
+};
+
 export const computeMaxNestingDepth = (node: MorphNode, depth = 0): number => {
   let maxDepth = depth;
   node.forEachChild((child) => {
+    if (Node.isFunctionLikeDeclaration(child)) return;
     const nextDepth = controlFlowKinds.has(child.getKind()) ? depth + 1 : depth;
     maxDepth = Math.max(maxDepth, computeMaxNestingDepth(child, nextDepth));
   });
@@ -71,7 +81,7 @@ export const computeMaxNestingDepth = (node: MorphNode, depth = 0): number => {
 
 export const computeCyclomaticComplexity = (body: MorphNode): number =>
   1 +
-  body.getDescendants().filter((descendant) => {
+  collectOwnFunctionDescendants(body).filter((descendant) => {
     if (controlFlowKinds.has(descendant.getKind())) {
       return true;
     }

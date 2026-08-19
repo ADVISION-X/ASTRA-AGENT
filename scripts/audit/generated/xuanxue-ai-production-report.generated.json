@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T07:10:01.731Z",
+  "generatedAt": "2026-08-19T19:58:46.099Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -8,111 +8,34 @@
     "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
     "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain a still-hydrating fresh root is a recoverable wait on the same execution id.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain a stage may replace one proven foreign pre-submit identity only once.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain a second identity conflict must recover on the replacement execution instead of minting restart:2.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/durable-ledger",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "SQLite production ledger must contain XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_EVIDENCE_MISSING.",
-      "severity": "fatal",
-      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove the eleventh order must remain outside the ten-order production window.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove payment_screenshot_observation.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    },
-    {
-      "checkId": "xuanxue-ai-production/acceptance",
-      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-      "message": "Production acceptance must prove localization_report_translation.",
-      "severity": "fatal",
-      "filePath": "scripts/acceptance/xuanxue-ai-production.acceptance.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bbf68f85-8cdf-429f-b546-0967e5e8b478",
+      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:582f9967-2e30-4edc-a8a8-c84bcfd5473a",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-19T07:10:01.304Z",
-      "endedAt": "2026-08-19T07:10:01.731Z",
-      "durationMs": 427,
+      "status": "PASS",
+      "startedAt": "2026-08-19T19:58:45.366Z",
+      "endedAt": "2026-08-19T19:58:46.099Z",
+      "durationMs": 733,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
+        "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture.ts",
         "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+        "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
         "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/manifest.json",
@@ -120,9 +43,11 @@
         "src/app/workbench-api-boundary.ts",
         "src/app/workbench-xuanxue-ai-production-client.ts",
         "src/app/workbench-xuanxue-ai-production-routes.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+        "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
         "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+        "src/capabilities/ai-input-gateway/schema.ts",
         "src/mediator/xuanxue-ai-production-route.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
@@ -155,7 +80,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
       ],
-      "findingCount": 10
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -163,39 +88,43 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bbf68f85-8cdf-429f-b546-0967e5e8b478"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:582f9967-2e30-4edc-a8a8-c84bcfd5473a"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bbf68f85-8cdf-429f-b546-0967e5e8b478"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:582f9967-2e30-4edc-a8a8-c84bcfd5473a"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bbf68f85-8cdf-429f-b546-0967e5e8b478"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:582f9967-2e30-4edc-a8a8-c84bcfd5473a"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
       "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:ac0f8e45-3e9f-47c2-815a-dcf0746932c2:check:bbf68f85-8cdf-429f-b546-0967e5e8b478"
+      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:582f9967-2e30-4edc-a8a8-c84bcfd5473a"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
     "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
+    "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+    "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
     "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/manifest.json",
@@ -203,9 +132,11 @@
     "src/app/workbench-api-boundary.ts",
     "src/app/workbench-xuanxue-ai-production-client.ts",
     "src/app/workbench-xuanxue-ai-production-routes.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
     "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
+    "src/capabilities/ai-input-gateway/schema.ts",
     "src/mediator/xuanxue-ai-production-route.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",

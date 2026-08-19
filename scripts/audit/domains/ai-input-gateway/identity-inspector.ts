@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import {
   type AiInputGatewayFinding,
   identifiers,
@@ -75,6 +75,14 @@ const loadFreshIdentitySources = (
 const literalContains = (source: SourceFile, value: string): boolean =>
   [...stringLiterals(source)].some((literal) => literal.includes(value));
 
+const hasPropertyAssignmentPath = (
+  source: SourceFile,
+  propertyName: string,
+  expressionPath: string,
+): boolean => source.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
+  property.getName() === propertyName
+  && astExpressionPath(property.getInitializer()) === expressionPath);
+
 const sharedPreparationCallOrderIsValid = (source: SourceFile): boolean => {
   const initializers = ["prepareWebChatConversation", "prepareWebChatAttachments"]
     .map((name) => source.getVariableDeclaration(name)?.getInitializer())
@@ -99,16 +107,18 @@ const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
     "promptSuffixBoundToExpectedTurn",
     "WEB_CHAT_FOREIGN_TURN_REBOUND",
     "visibleConversationBusy",
-  ].every((value) => sources.promptEvaluation.getFullText().includes(value));
+  ].every((value) => identifiers(sources.promptEvaluation).has(value)
+    || literalContains(sources.promptEvaluation, value));
   const checkpointHasRequiredIdentity = [
     "exact_clean_prompt_and_canonical_conversation",
     "observeSubmittedWebChatTurn",
     "finalizeObservedWebChatSubmission",
-  ].every((value) => sources.checkpoint.getFullText().includes(value));
+  ].every((value) => identifiers(sources.checkpoint).has(value)
+    || literalContains(sources.checkpoint, value));
   return identifiers(sources.canonicalBinding).has("assertWebChatCanonicalConversationBinding")
     && identifiers(sources.canonicalBinding).has("resolveSubmittedDraftOwnerByTurnMarker")
     && identifiers(sources.managedExecution).has("assertBinding")
-    && sources.managedExecution.getFullText().includes("request: input.request")
+    && hasPropertyAssignmentPath(sources.managedExecution, "request", "input.request")
     && identifiers(sources.acceptance).has("assertCanonicalConversationOwnership")
     && identifiers(sources.acceptance)
       .has("assertSubmittedDraftOwnershipRequiresOneCanonicalOwner")
@@ -128,12 +138,11 @@ const freshIdentityCleanupIsValid = (sources: FreshIdentitySources): boolean =>
     sources.freshConversationControl,
     'a[data-testid="create-new-chat-button"][data-sidebar-item="true"]',
   )
-  && sources.freshConversationControl.getFullText().includes("hitAnchor")
-  && sources.freshConversationControl.getFullText().includes("pointerEvents")
+  && literalContains(sources.freshConversationControl, "hitAnchor")
+  && literalContains(sources.freshConversationControl, "pointerEvents")
   && !identifiers(sources.freshConversationControl).has("exactAriaCandidates")
-  && sources.freshConversationControl.getFullText()
-    .includes("clearUniquelyOwnedSubmittedRootDraft")
-  && sources.freshConversation.getFullText().includes("eligibleSubmittedDraftCleanup")
+  && identifiers(sources.freshConversationControl).has("clearUniquelyOwnedSubmittedRootDraft")
+  && literalContains(sources.freshConversation, "eligibleSubmittedDraftCleanup")
   && identifiers(sources.pageActionScripts).has("buildClearProvenSubmittedRootDraftScript")
   && literalContains(sources.freshConversationControl, "protected unknown or unproven draft")
   && literalContains(sources.pageActionScripts, "owned stale draft guard changed before clear");
@@ -162,6 +171,9 @@ const loadSessionControlSources = (
   lawId: string,
 ) => {
   const result = {
+    schema: requireAiInputGatewaySource(
+      context, findings, lawId, P.attachment.schemaPath,
+    ),
     profile: requireAiInputGatewaySource(
       context, findings, lawId, P.sessionControl.providerExecutionProfilePath,
     ),
@@ -211,52 +223,53 @@ const inspectSessionControllerContract = (
 ): void => {
   const s = loadSessionControlSources(context, findings, lawId);
   if (!s) return;
-  const profileText = s.profile.getFullText();
-  const gptProfileText = s.gptProfile.getFullText();
-  const titleText = s.title.getFullText();
-  const titlePolicyText = s.titlePolicy.getFullText();
-  const discoveryText = s.discovery.getFullText();
-  const routingText = s.routing.getFullText();
-  const executionText = s.executionState.getFullText();
-  const checkpointText = s.checkpoint.getFullText();
-  const proofText = s.proof.getFullText();
+  const schemaIds = identifiers(s.schema);
+  const profileIds = identifiers(s.profile);
+  const gptProfileIds = identifiers(s.gptProfile);
+  const titlePolicyIds = identifiers(s.titlePolicy);
+  const titleIds = identifiers(s.title);
+  const discoveryIds = identifiers(s.discovery);
+  const routingIds = identifiers(s.routing);
+  const executionIds = identifiers(s.executionState);
+  const checkpointIds = identifiers(s.checkpoint);
 
   const required = [
-    profileText.includes("gpt-web-execution-profile.v1"),
-    profileText.includes("extra_high"),
-    profileText.includes("pro_standard"),
-    profileText.includes("pro_extended"),
-    identifiers(s.profile).has("governProductionGptExecutionProfileInput"),
-    identifiers(s.gptProfile).has("enforceGptWebExecutionProfile"),
-    identifiers(s.gptProfile).has("assertStableWebChatDocument"),
-    !gptProfileText.includes("reasoningSliderIndex"),
-    !gptProfileText.includes("data-model-reasoning-effort-slider"),
+    literalContains(s.schema, "gpt-web-execution-profile.v1"),
+    literalContains(s.schema, "extra_high"),
+    literalContains(s.schema, "pro_standard"),
+    literalContains(s.schema, "pro_extended"),
+    schemaIds.has("buildGptWebProviderExecutionProfile"),
+    profileIds.has("governProductionGptExecutionProfileInput"),
+    gptProfileIds.has("enforceGptWebExecutionProfile"),
+    gptProfileIds.has("assertStableWebChatDocument"),
+    !gptProfileIds.has("reasoningSliderIndex"),
+    !literalContains(s.gptProfile, "data-model-reasoning-effort-slider"),
     identifiers(s.session).has("prepareWebChatSessionForSubmission"),
     identifiers(s.session).has("finalizeWebChatSessionAfterResult"),
     identifiers(s.pageAction).has("recordWebChatPageAction"),
-    titlePolicyText.includes("Asia/Dubai"),
-    titlePolicyText.includes("gpt-web-title-policy.v1"),
-    !titlePolicyText.includes("textPrompt"),
-    identifiers(s.title).has("finalizeGptWebConversationTitle"),
-    titleText.includes("runExclusivePatrol"),
-    titleText.includes("[data-testid^='conversation-turn-'][data-turn='user']"),
-    titleText.includes("canonicalConversationUrl"),
-    discoveryText.includes("turnMarker"),
-    discoveryText.includes("targetPath"),
-    discoveryText.includes("Search chats"),
-    !routingText.includes("expectedTitle"),
-    !routingText.includes("systemChatTitle"),
-    executionText.includes('schemaVersion: "web-chat-execution-v3"'),
-    executionText.includes("providerExecutionProfileBinding"),
-    executionText.includes("conversationTitle"),
-    executionText.includes("pageActionLedger"),
-    checkpointText.includes("title_finalization_pending"),
-    checkpointText.includes("providerExecutionProfileProof"),
-    proofText.includes("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING"),
-    proofText.includes("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
+    literalContains(s.titlePolicy, "Asia/Dubai"),
+    literalContains(s.titlePolicy, "gpt-web-title-policy.v1"),
+    !titlePolicyIds.has("textPrompt"),
+    titleIds.has("finalizeGptWebConversationTitle"),
+    titleIds.has("runExclusivePatrol"),
+    literalContains(s.title, "[data-testid^='conversation-turn-'][data-turn='user']"),
+    titleIds.has("canonicalConversationUrl"),
+    discoveryIds.has("turnMarker"),
+    discoveryIds.has("targetPath"),
+    literalContains(s.discovery, "Search chats"),
+    !routingIds.has("expectedTitle"),
+    !routingIds.has("systemChatTitle"),
+    literalContains(s.executionState, "web-chat-execution-v3"),
+    executionIds.has("providerExecutionProfileBinding"),
+    executionIds.has("conversationTitle"),
+    executionIds.has("pageActionLedger"),
+    literalContains(s.executionState, "title_finalization_pending"),
+    checkpointIds.has("providerExecutionProfileProof"),
+    literalContains(s.proof, "AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING"),
+    literalContains(s.proof, "AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
     identifiers(s.sessionAcceptance).has("assertGptWebSessionControllerContracts"),
-    s.sessionAcceptance.getFullText().includes("assertPrivacySafeTitle"),
-    s.sessionAcceptance.getFullText().includes("assertContinuationDoesNotFakeLegacyTitleProof"),
+    identifiers(s.sessionAcceptance).has("assertPrivacySafeTitle"),
+    identifiers(s.sessionAcceptance).has("assertContinuationDoesNotFakeLegacyTitleProof"),
   ].every(Boolean);
 
   if (!required) {
@@ -294,12 +307,12 @@ export const inspectCanonicalConversationIdentity = (
     identifiers(canonicalBinding).has("assertWebChatCanonicalConversationBinding"),
     identifiers(canonicalBinding).has("resolveSubmittedDraftOwnerByTurnMarker"),
     identifiers(routing).has("focusChatGptConversationByCanonicalPath"),
-    routing.getFullText().includes("turnMarker"),
+    identifiers(routing).has("turnMarker"),
     identifiers(acceptance).has("assertCanonicalConversationOwnership"),
     identifiers(acceptance).has("assertSubmittedDraftOwnershipRequiresOneCanonicalOwner"),
-    !routing.getFullText().includes("expectedTitle"),
-    !routing.getFullText().includes("systemChatTitle"),
-    executionState.getFullText().includes("web-chat-execution-v3"),
+    !identifiers(routing).has("expectedTitle"),
+    !identifiers(routing).has("systemChatTitle"),
+    literalContains(executionState, "web-chat-execution-v3"),
   ].every(Boolean);
   if (!contract) {
     pushAiInputGatewayFinding(

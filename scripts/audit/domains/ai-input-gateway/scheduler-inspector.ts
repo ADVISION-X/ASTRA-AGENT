@@ -20,7 +20,7 @@ const concurrencyAcceptancePath =
 
 const identifiers = (source: SourceFile): Set<string> => new Set(
   source.getDescendantsOfKind(SyntaxKind.Identifier)
-    .map((node) => node.getText()),
+    .map((node) => node.compilerNode.escapedText.toString()),
 );
 
 const literalTokens = (source: SourceFile): Set<string> => {

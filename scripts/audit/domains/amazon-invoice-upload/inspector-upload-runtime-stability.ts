@@ -35,7 +35,7 @@ export function collectUploadRuntimeStabilityGaps(files: UploadRuntimeStabilityF
   const screenshotLiterals = new Set(files.chromeScreenshotFile
     .getDescendantsOfKind(SyntaxKind.StringLiteral)
     .map((literal) => literal.getLiteralText()));
-  if (!screenshotLiterals.has("screenshot_target") || !screenshotValues.has("BrowserTargetRegistry")) {
+  if (!screenshotLiterals.has("screenshot_target") || !screenshotValues.has("BrowserCommandRuntime")) {
     missing.push("snapshot-deadline-screenshot:exact-target-capture");
   }
   if (screenshotValues.has("activateChrome")) {
