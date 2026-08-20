@@ -1,29 +1,33 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
 import { probeExistingWorkbench } from "../startup/lib/service-readiness.mjs";
 import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-preflight.mjs";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-
-const fixtureAssembly = () => ({
-  browserController: {
-    getAuthoritySnapshot: () => ({
-      state: "AUTHENTICATED_AUTHORITY_PRESENT" as const,
-      authorityId: "fixture-authority",
-      certificateHash: "sha256:fixture-certificate",
-      connectionGeneration: 1,
-      nativePortEpoch: 1,
-      releaseIdentity: "fixture-release",
-      profileEnrollmentId: "fixture-profile",
-      hardExpiresAtMonotonicMs: Number.MAX_SAFE_INTEGER,
-      changedAtMonotonicMs: 1,
-    }),
+const fixtureAssembly = (): Parameters<typeof getHealthReport>[0] => ({
+  browserAuthority: {
+    broker: {
+      currentStatus: () => ({
+        kind: "AVAILABLE" as const,
+        authorityRefHash: "sha256:fixture-authority",
+        certificateHash: "sha256:fixture-certificate",
+        activationTupleHash: "sha256:fixture-activation",
+      }),
+    },
   },
-}) as Parameters<typeof getHealthReport>[0];
+});
+
+const authorityAbsentFixtureAssembly = (): Parameters<typeof getHealthReport>[0] => ({
+  browserAuthority: {
+    broker: {
+      currentStatus: () => ({
+        kind: "UNAVAILABLE" as const,
+        reasonCode: "BROWSER_ACTIVATION_TUPLE_INVALID",
+      }),
+    },
+  },
+});
 
 const verifyInitializationHealth = async (): Promise<void> => {
   const assembly = fixtureAssembly();
@@ -46,6 +50,15 @@ const verifyInitializationHealth = async (): Promise<void> => {
     ready.components.find((component) =>
       component.name === "runtimeInitialization")?.ok,
     true,
+  );
+  const browserBlocked = await getHealthReport(authorityAbsentFixtureAssembly(), {
+    status: "ready",
+    failureReason: null,
+  });
+  assert.equal(browserBlocked.status, "healthy");
+  assert.equal(
+    browserBlocked.components.find((component) => component.name === "browserAuthority")?.ok,
+    false,
   );
 
 };
@@ -88,19 +101,30 @@ const verifyHealthProbe = async (): Promise<void> => {
 
 };
 
-const verifyMissingArtifactPreflight = async (): Promise<void> => {
-  const missingArtifact = await runBrowserRuntimePreflight({
-    rootDir: path.join(repoRoot, "tmp", "missing-browser-runtime-fixture"),
-    env: {},
-  });
-  assert.equal(missingArtifact.status, "BLOCKED");
-  assert.equal(missingArtifact.code, "BROWSERCTL_PREBUILT_BINARY_REQUIRED");
+const verifyInactiveReleaseSlotPreflight = async (): Promise<void> => {
+  const releaseSlot = await runBrowserRuntimePreflight();
+  assert.equal(releaseSlot.status, "BLOCKED");
+  assert.equal(releaseSlot.code, "BROWSER_ACTIVATION_TUPLE_INVALID");
+};
+
+const verifyTestModePreflight = async (): Promise<void> => {
+  const original = process.env.GRASSEYE_BROWSER_RUNTIME_MODE;
+  process.env.GRASSEYE_BROWSER_RUNTIME_MODE = "test";
+  try {
+    const runtimeMode = await runBrowserRuntimePreflight();
+    assert.equal(runtimeMode.status, "BLOCKED");
+    assert.equal(runtimeMode.code, "BROWSER_RUNTIME_MODE_INVALID");
+  } finally {
+    if (original === undefined) delete process.env.GRASSEYE_BROWSER_RUNTIME_MODE;
+    else process.env.GRASSEYE_BROWSER_RUNTIME_MODE = original;
+  }
 };
 
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   await verifyInitializationHealth();
   await verifyHealthProbe();
-  await verifyMissingArtifactPreflight();
+  await verifyInactiveReleaseSlotPreflight();
+  await verifyTestModePreflight();
 }
 
 await runStartupInitializationHealthAcceptance();

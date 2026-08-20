@@ -40,9 +40,10 @@ export const inspectBrowserRuntimePreflight = (
   const metrics = {
     launchLoadsSharedBrowserRuntimeEnv: hasNamedImport(launchSource, "browser-runtime-env", "loadBrowserRuntimeEnv"),
     launchImportsPreflight: hasNamedImport(launchSource, "browser-runtime-preflight", "runBrowserRuntimePreflight"),
-    preflightCallsArtifactVerifier: hasIdentifier(preflightSource, "verifyBrowserArtifactSet"),
-    preflightCallsBrowserctlDoctor: hasStringLiteral(preflightSource, "--doctor"),
-    preflightCallsBrowserctlReadOnly: hasStringLiteral(preflightSource, "--read-only"),
+    preflightImportsReleaseSlotVerifier: hasNamedImport(preflightSource, "verify-artifacts", "verifyBrowserReleaseSlot"),
+    preflightCallsReleaseSlotVerifier: hasIdentifier(preflightSource, "verifyBrowserReleaseSlot"),
+    preflightRejectsTestRuntimeMode: hasNamedImport(preflightSource, "browser-runtime-env", "resolveBrowserRuntimeMode")
+      && hasIdentifier(preflightSource, "resolveBrowserRuntimeMode"),
     preflightDoesNotInstall: !hasStringLiteral(preflightSource, "--install"),
     preflightDoesNotRepair: !hasStringLiteral(preflightSource, "--repair"),
     preflightDoesNotEnroll: !hasStringLiteral(preflightSource, "--enroll-profile"),
@@ -52,7 +53,7 @@ export const inspectBrowserRuntimePreflight = (
     lawId,
     checkId: "startup/browser-runtime-preflight",
     filePath: preflightPath,
-    message: "Startup must use the single read-only Browser Runtime doctor and must not install, repair or enroll Browser state.",
+    message: "Startup must verify the single production Browser release slot, reject test mode, and must not install, repair or enroll Browser state.",
     evidence: JSON.stringify(metrics),
   }));
 };

@@ -158,7 +158,7 @@ async function clearWorkbenchPort() {
   });
 }
 
-async function verifyBrowserRuntime(root) {
+async function verifyBrowserRuntime() {
   const preflightStart = Date.now();
   logEvent(
     "STARTUP",
@@ -167,7 +167,7 @@ async function verifyBrowserRuntime(root) {
     "started",
     "running read-only Browser Runtime preflight",
   );
-  const result = await runBrowserRuntimePreflight({ rootDir: root, env: process.env });
+  const result = await runBrowserRuntimePreflight();
   if (result.status !== "READY") {
     logFail(
       "STARTUP",
@@ -288,7 +288,7 @@ async function performLaunch(flags, root) {
     logStartupReady();
     return undefined;
   }
-  await verifyBrowserRuntime(root);
+  await verifyBrowserRuntime();
   await clearWorkbenchPort();
   const serviceHandle = await startService(root);
   await verifyAppHealth();

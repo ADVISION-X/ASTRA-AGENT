@@ -1,8 +1,8 @@
 export type BrowserRuntimePreflightResult =
   | Readonly<{
       status: "READY";
-      artifactRoot: string;
-      browserctlPath: string;
+      releaseState: "PRESENT";
+      activationPath: string;
     }>
   | Readonly<{
       status: "BLOCKED";
@@ -11,13 +11,4 @@ export type BrowserRuntimePreflightResult =
       missingEnvironmentVariables?: readonly string[];
     }>;
 
-export declare function runBrowserRuntimePreflight(input: {
-  rootDir: string;
-  env?: NodeJS.ProcessEnv;
-}): Promise<BrowserRuntimePreflightResult>;
-
-export declare function resolveBrowserRuntimeArtifactRoot(
-  rootDir: string,
-  platform?: string,
-  architecture?: string,
-): string;
+export declare function runBrowserRuntimePreflight(): Promise<BrowserRuntimePreflightResult>;
