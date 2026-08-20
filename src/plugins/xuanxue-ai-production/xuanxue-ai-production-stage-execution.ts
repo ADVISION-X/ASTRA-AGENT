@@ -23,6 +23,11 @@ import {
 import {
   isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
+import {
+  isXuanxueTerminalMetaphysicsProduct,
+  isXuanxueTerminalMetaphysicsProfile,
+  xuanxueTerminalMetaphysicsProviderProfile,
+} from "./xuanxue-ai-production-terminal-profile.js";
 
 export interface XuanxueAiProductionExecutionObserver {
   readonly onAttachmentUploadCompleted?: (input: {
@@ -172,6 +177,37 @@ const localizationProviderEvidenceFailure = (
   return null;
 };
 
+const terminalMetaphysicsProviderEvidenceFailure = (
+  result: AiFeedResult,
+  order: XuanxueAiOrderRecord["order"],
+): string | null => {
+  if (!isXuanxueTerminalMetaphysicsProduct(order.productId)) return null;
+  const expected = order.providerExecutionProfile as Record<string, unknown> | null;
+  const profileProof = result.providerProof.providerExecutionProfileProof;
+  const identity = result.providerProof.modelIdentityProof;
+  if (!isXuanxueTerminalMetaphysicsProfile(expected)) {
+    return "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH";
+  }
+  if (
+    !profileProof
+    || profileProof.proofStatus !== "verified"
+    || profileProof.provider !== "openai-chatgpt-web"
+    || profileProof.transport !== "gpt-web-chat"
+    || profileProof.modelDisplayName !== xuanxueTerminalMetaphysicsProviderProfile.modelLabel
+    || profileProof.modelFamily !== xuanxueTerminalMetaphysicsProviderProfile.modelFamily
+    || profileProof.reasoningTier !== xuanxueTerminalMetaphysicsProviderProfile.reasoningTier
+    || !identity
+    || identity.proofStatus !== "verified"
+    || identity.modelIdentityStatus !== "verified"
+    || identity.modelDisplayName !== xuanxueTerminalMetaphysicsProviderProfile.modelLabel
+    || identity.modelFamily !== xuanxueTerminalMetaphysicsProviderProfile.modelFamily
+    || identity.reasoningEffort !== xuanxueTerminalMetaphysicsProviderProfile.reasoningUiLabel
+  ) {
+    return "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROVIDER_PROOF_MISMATCH";
+  }
+  return null;
+};
+
 const terminalStageFromResult = (
   result: AiFeedResult,
   stage: XuanxueAiStageRecord,
@@ -226,10 +262,14 @@ const terminalStageFromResult = (
     result,
     order,
   );
-  if (localizationEvidenceFailure) {
+  const terminalMetaphysicsEvidenceFailure = terminalMetaphysicsProviderEvidenceFailure(
+    result,
+    order,
+  );
+  if (localizationEvidenceFailure || terminalMetaphysicsEvidenceFailure) {
     return {
       status: "recovery_pending",
-      failureReason: localizationEvidenceFailure,
+      failureReason: localizationEvidenceFailure ?? terminalMetaphysicsEvidenceFailure,
     };
   }
   return { status: "completed", failureReason: null };

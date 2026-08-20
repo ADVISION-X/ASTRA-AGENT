@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import type {
   AiFeedInput,
   AiFeedResult,
@@ -12,14 +10,18 @@ import type {
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
   XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
-  expectedLocalizationProviderProfile,
   isXuanxueLocalizationProduct,
   type XuanxueLocalizationRole,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
+import {
+  fixtureHash,
+  fixtureModelIdentityProof,
+  fixtureOrderProviderExecutionProfile,
+  fixtureProviderExecutionProfileProof,
+} from "./xuanxue-ai-production-fixture-provider-profile.js";
 import { FixtureGatewayFaults } from "./xuanxue-ai-production-fixture-faults.js";
 
-export const hash = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+export const hash = fixtureHash;
 
 const classifyFixtureWebChatFailure = (
   error: unknown,
@@ -108,33 +110,6 @@ const fixtureAttachmentProof = (
   };
 };
 
-const fixtureModelIdentityProof = (
-  input: AiFeedInput,
-  rawResponseText: string,
-  verifiedAt: string,
-): Pick<AiFeedResult["providerProof"], "modelIdentityProof" | "providerTranscriptJsonl" | "providerTranscriptHash"> => {
-  if (!isXuanxueLocalizationProduct(input.taskIdentity.taskKind)) return {};
-  const transcript = `${JSON.stringify({
-    type: "assistant_message", source: "fixture",
-    task: input.taskIdentity.sourceTaskId, text: rawResponseText,
-  })}\n`;
-  return {
-    modelIdentityProof: {
-      proofStatus: "verified" as const,
-      modelFamily: "gpt-5.6",
-      modelDisplayName: "GPT-5.6 Sol",
-      modelIdentityStatus: "verified" as const,
-      reasoningEffort: input.requestedReasoningEffort === "xhigh" ? "xhigh" : "high",
-      observedAt: verifiedAt,
-      sourceKind: "provider_ui_observation" as const,
-      evidenceRef: `fixture-model-evidence:${input.taskIdentity.sourceTaskId}`,
-      evidenceHash: hash(`fixture-model-evidence:${input.taskIdentity.sourceTaskId}`),
-    },
-    providerTranscriptJsonl: transcript,
-    providerTranscriptHash: hash(transcript),
-  };
-};
-
 const fixtureProviderProof = (
   input: AiFeedInput,
   ordinal: number,
@@ -149,6 +124,7 @@ const fixtureProviderProof = (
   providerLeaseId: `fixture-lease:${ordinal}`,
   modelName: null,
   ...fixtureModelIdentityProof(input, rawResponseText, verifiedAt),
+  ...fixtureProviderExecutionProfileProof(input),
   inputHash: hash(JSON.stringify(input)),
   outputHash: hash(rawResponseText),
   inputRefs: input.inputRefs.map((ref) => ref.id),
@@ -451,7 +427,7 @@ export const order = (
   contractManifestHash: contract ? XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH : null,
   productContractHash: contract?.product_contract_hash ?? null,
   localizationRole: localizationRole ?? null,
-  providerExecutionProfile: localizationRole ? expectedLocalizationProviderProfile(localizationRole) : null,
+  providerExecutionProfile: fixtureOrderProviderExecutionProfile(productId, localizationRole),
   frozenSubject: fixtureFrozenSubject(orderId, productId, localization),
   conversationScopeRef: `conversation-scope:${orderId}`,
   conversationParent: null,

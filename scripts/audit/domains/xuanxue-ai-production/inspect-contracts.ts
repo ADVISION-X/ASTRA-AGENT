@@ -29,6 +29,58 @@ const requireValues = (
   }
 };
 
+const forbidValues = (
+  findings: InspectorFinding[],
+  input: {
+    lawId: string;
+    checkId: string;
+    filePath: string;
+    messagePrefix: string;
+    values: ReadonlySet<string>;
+    forbidden: readonly string[];
+  },
+): void => {
+  for (const forbidden of input.forbidden) {
+    if (!input.values.has(forbidden)) continue;
+    findings.push(createFinding({
+      lawId: input.lawId,
+      checkId: input.checkId,
+      filePath: input.filePath,
+      message: `${input.messagePrefix} ${forbidden}.`,
+    }));
+  }
+};
+
+const inspectTerminalMetaphysicsProfile = (
+  findings: InspectorFinding[],
+  lawId: string,
+  values: ReadonlySet<string>,
+): void => {
+  requireValues(findings, {
+    lawId,
+    checkId: "xuanxue-ai-production/terminal-metaphysics-profile",
+    filePath: schemaPath,
+    messagePrefix: "Terminal metaphysics profile contract must contain",
+    values,
+    required: [
+      "xuanxueTerminalMetaphysicsProviderProfile", "GPT-5.6 Sol", "gpt-5.6",
+      "pro_standard", "Pro", "isXuanxueTerminalMetaphysicsProduct",
+      "isXuanxueTerminalMetaphysicsProfile",
+      "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_REQUIRED",
+      "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH",
+      "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROVIDER_PROOF_MISMATCH",
+    ],
+  });
+  forbidValues(findings, {
+    lawId,
+    checkId: "xuanxue-ai-production/no-retired-terminal-metaphysics-profile",
+    filePath: schemaPath,
+    messagePrefix: "Terminal metaphysics contract must not retain retired profile",
+    values,
+    forbidden: ["GPT-PRO", "pro_extended"],
+  });
+};
+
 const inspectWholeOrderContract = (
   findings: InspectorFinding[],
   lawId: string,
@@ -116,8 +168,14 @@ export const inspectXuanxueContracts = (
   findings: InspectorFinding[],
   boundaryLawId: string,
   values: ReadonlySet<string>,
+  terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
   inspectWholeOrderContract(findings, boundaryLawId, values);
   inspectFixedProfiles(findings, boundaryLawId, values);
   inspectProviderControls(findings, boundaryLawId, values);
+  inspectTerminalMetaphysicsProfile(
+    findings,
+    boundaryLawId,
+    terminalMetaphysicsProfileValues,
+  );
 };

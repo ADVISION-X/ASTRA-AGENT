@@ -20,6 +20,8 @@ import {
   pluginPaths,
   removedSecondChainPaths,
   schedulerPath,
+  schemaPath,
+  schemaRefinementsPath,
   storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
@@ -164,6 +166,7 @@ const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
   values: ReadonlySet<string>,
+  terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
   requireValues(findings, {
     lawId: durabilityLaw,
@@ -430,10 +433,16 @@ const inspectDomainPolicy = (
   laws: Laws,
   sources: SourceFile[],
   values: ReadonlySet<string>,
+  terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
   inspectAuthority(findings, laws.boundary);
   inspectRemovedSecondChain(context, findings, laws.boundary);
-  inspectXuanxueContracts(findings, laws.boundary, values);
+  inspectXuanxueContracts(
+    findings,
+    laws.boundary,
+    values,
+    terminalMetaphysicsProfileValues,
+  );
   inspectXuanxueRecoveryDurability(context, findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
@@ -449,7 +458,10 @@ const inspectDomainEvaluation = async (
   const laws = resolveLaws(context);
   const findings: InspectorFinding[] = [];
   const { sources, values } = collectDomainSources(context, findings, laws.boundary);
-  inspectDomainPolicy(context, findings, laws, sources, values);
+  const terminalMetaphysicsProfileSources = [schemaPath, schemaRefinementsPath, "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts"]
+    .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
+    .filter((file): file is SourceFile => file !== undefined);
+  inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

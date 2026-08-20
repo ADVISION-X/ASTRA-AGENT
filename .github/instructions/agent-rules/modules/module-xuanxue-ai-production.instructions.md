@@ -6,7 +6,7 @@ applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/mediator/xuanxue-ai-prod
 # GrassEye 玄学 AI 生产工厂法案
 
 status: active
-version: 2026-08-16.4
+version: 2026-08-20.1
 capabilityDomain: xuanxue-ai-production
 
 ## 1. 唯一责任
@@ -174,12 +174,14 @@ FIFO 串行车道，即使直接父 job/stage 不同也不得并发写入同一�
   解码复验和 hash 证明，不得私写 sharp 第二实现。网站交付的第三阶段提示词是唯一创意
   指令，AGENT 必须原样运输，不得追加人物、文字、地图、图表、Logo、命盘、风格或候选数量
   等语义限制，也不得建立图像内容红线观察或第二创意裁决。
-- 三类付费报告追问也必须携带固定父身份：八字只接受
-  `bazi_chart_interpretation/chart_interpretation` 或
-  `bazi_ai_full_analysis/question_analysis`，奇门只接受
-  `qimen_professional_answer/analysis`，合婚只接受
-  `hehun_ai_analysis/final_compatibility`。这个父身份是不可猜测的业务血缘，不等于
-  本机当前一定还保存着父 GPT 会话。
+- 三类付费报告追问也必须携带 immediate 固定父身份：八字只接受
+  `bazi_chart_interpretation/chart_interpretation`、
+  `bazi_ai_full_analysis/question_analysis` 或
+  `bazi_report_followup/question_analysis`；奇门只接受
+  `qimen_professional_answer/analysis` 或 `qimen_report_followup/followup`；合婚只接受
+  `hehun_ai_analysis/final_compatibility` 或 `hehun_report_followup/followup`。每一代
+  followup 都只可精确续接其直接父会话；父身份必须绑定 `job_id + stage_id + raw_output_hash + exact webChatUrl`，
+  不可猜测，也不等于本机当前一定还保存着父 GPT 会话。
 - 父身份正确但父本地账本、父 `webChatUrl` 或 provider 会话已经丢失时，不得把用户订单
   变成失败或人工阻断。网站必须随子订单下发 lease-bound
   `continuation_parent_replay`；AGENT 从父产品第一阶段按原冻结主体和原拓扑重放完整父动作图，记录原父
@@ -295,16 +297,17 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "Localization products have no person subject or synthetic participant; they bind only the immutable localization review context ref/hash, conversation scope and lease. User and chart products continue to require real frozen participants.",
     "A localization stage may complete only with persisted provider transcript JSONL plus hash and live model identity evidence (family, display name, reasoning effort and evidence hash); request metadata alone is never model proof.",
     "GPT Web localization execution must use the visible composer capability control to open the model menu, visibly select GPT-5.6 Sol, then select and read back the reasoning label from the live slider mapping: 0=极速, 1=中, 2=高, 3=极高, 4=Pro; the requested stage profile is not proof until the provider UI read-back matches.",
+    "All nine commercial metaphysics products use one hash-bound GPT Web profile: model display GPT-5.6 Sol, family gpt-5.6 and semantic reasoning tier pro_standard. The live provider label Pro is the sole accepted read-back for that tier; account-plan text, GPT-PRO literals, pro_extended literals, slider coordinates and request metadata are not production model proof.",
     "Provider UI observation must be limited to visible semantic roles/labels (model menu item, reasoning slider and live page URL); missing, ambiguous or mismatched controls fail closed as review_required before prompt submission, and no request field or hardcoded profile may substitute for the observation.",
     "Only versioned product profiles control dependencies, typed joins, conversation topology and final stage.",
     "BZ05, BZ03 and NM01 begin in distinct provider-verified children forked from one immutable Bazi base checkpoint; no child reuses the base or a sibling conversation.",
-    "NM01 naming_author continues its own question_analysis child, NM02 uses a fresh conversation distinct from its source report, and BZ04 continues the selected BZ05 or BZ03 formal parent conversation.",
+    "NM01 naming_author continues its own question_analysis child, NM02 uses a fresh conversation distinct from its source report, and BZ04 continues the selected immediate BZ05, BZ03 or BZ04 formal parent conversation.",
     "Hehun party A and party B private bases are isolated and final compatibility uses a third fresh context receiving only the typed participant manifest and verified private-base artifacts.",
     "One target plus any auxiliaries keep one isolated base per person; the author receives only exact participant slots, roles, person/profile/chart identities, hashes and authorization proof.",
     "Business plugins call AI Input Gateway only through its public contract.",
     "Every stage binds the immutable input bundle as a non-file input ref, including zero-attachment stages.",
     "Every provider result records one explicit fresh, same_conversation or forked_from_checkpoint proof; an unsupported or unproved exact fork fails closed.",
-    "Bazi, Qimen and Hehun paid follow-ups bind their fixed parent product, final stage, execution, scope and raw output hash; if the exact GPT Web URL is unavailable, the Agent replays the minimum necessary parent graph and continues only when the rebuilt raw hash is identical."
+    "Bazi, Qimen and Hehun paid follow-ups bind their immediate parent product, final stage, execution, scope, raw output hash and exact webChatUrl: BZ04 accepts BZ05/BZ03/BZ04, QM04 accepts QM03/QM04, and HH03 accepts HH02/HH03. Each recursive positive case must pass, and a blank-chat continuation must fail. If the exact GPT Web URL is unavailable, the Agent replays the minimum necessary parent graph and continues only when the rebuilt raw hash is identical."
   ],
   "forbidden": [
     "website-controlled next action, browser command or per-stage cloud job",
@@ -316,7 +319,8 @@ SQLite 整片丢失，AGENT 也能先重建父订单、再恢复追问。
     "a checkpoint child simulated with a blank chat, base summary, uploaded base transcript, second-model retelling or mutable base tail",
     "a downstream same-conversation stage opening a blank or different GPT conversation",
     "paid follow-up execution outside its exact or fully rebuilt parent conversation",
-    "blank new GPT conversation used as a follow-up fallback"
+    "blank new GPT conversation used as a follow-up fallback",
+    "GPT-PRO or pro_extended as an active metaphysics production profile"
   ],
   "clauses": [
     {

@@ -365,7 +365,7 @@ const assertLocalizationProfile = (
     contractManifestHash: order.contractManifestHash,
     productContractHash: order.productContractHash,
     role: order.localizationRole,
-    providerProfile: order.providerExecutionProfile,
+    providerProfile: order.providerExecutionProfile as never,
     inputKinds: material?.inputRefs.map((item) => item.kind) ?? [],
     hasConversationParent: Boolean(order.conversationParent),
   });

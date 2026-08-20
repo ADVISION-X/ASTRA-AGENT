@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "findings": [],
-  "generatedAt": "2026-08-20T12:41:29.921Z",
+  "generatedAt": "2026-08-20T15:20:04.035Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -15,13 +15,13 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:b4c7b598-675c-43ae-90c5-5f1a33721159",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:0ae3e248-8b84-4cc3-a81d-ce171bad7e3f",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-auth/no-unauth-session-type",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.920Z",
-      "endedAt": "2026-08-20T12:41:29.920Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -78,13 +78,13 @@
       "findingCount": 0
     },
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:852944f8-188d-4cc7-bb68-0f8c48c72e05",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:a0d0d524-b581-4c09-aca0-f752f8f03f2e",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-auth/original-reply-channel",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.920Z",
-      "endedAt": "2026-08-20T12:41:29.920Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -141,13 +141,13 @@
       "findingCount": 0
     },
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:8a90a9c7-5e06-4544-ba43-92e45403fe2b",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:4df54d99-3192-47d5-9ec1-ff75aeeb1231",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-cross-repo/authority-proof-v2",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.921Z",
-      "endedAt": "2026-08-20T12:41:29.921Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -157,13 +157,13 @@
       "findingCount": 0
     },
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:4de1af40-d093-4c95-a053-808ff2eac38b",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:52628e6a-3640-41d9-a72b-da8634e0ac9f",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-file/artifact-grant-no-raw-path",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.920Z",
-      "endedAt": "2026-08-20T12:41:29.920Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -220,13 +220,13 @@
       "findingCount": 0
     },
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:fe93917a-0003-4104-9fd3-85ac0400395a",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:a251a944-8002-4df6-b672-84cad134e4c9",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-old-path/retired-zero",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.920Z",
-      "endedAt": "2026-08-20T12:41:29.920Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -283,13 +283,13 @@
       "findingCount": 0
     },
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:d966e6cb-b93b-4699-90bd-e990ba21804a",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:70ac737a-9e66-466d-9cb4-ae2bc5079f4d",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-privacy/no-owner-boundary-leak",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.920Z",
-      "endedAt": "2026-08-20T12:41:29.920Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -298,13 +298,13 @@
       "findingCount": 0
     },
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:3a6843d5-2664-4985-ad7a-96d954875c43",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:a90a96e3-0863-40c7-96c5-fcc7e3931104",
       "capabilityDomain": "local-browser-session",
       "checkId": "browser-release/artifact-activation-proof-separation",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:41:29.920Z",
-      "endedAt": "2026-08-20T12:41:29.920Z",
+      "startedAt": "2026-08-20T15:20:04.034Z",
+      "endedAt": "2026-08-20T15:20:04.034Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -366,7 +366,7 @@
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
       "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
       "checkId": "browser-privacy/no-owner-boundary-leak",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:d966e6cb-b93b-4699-90bd-e990ba21804a"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:70ac737a-9e66-466d-9cb4-ae2bc5079f4d"
     }
   ],
   "inspectedFiles": [

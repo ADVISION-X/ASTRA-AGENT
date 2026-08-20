@@ -1,11 +1,13 @@
 # GrassEye Browser Authority 生产终态施工图
 
-版本：2026-08-20.1  
+版本：2026-08-20.3<br>
 状态：active final-state blueprint  
 上级权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`  
-目标方案：`xuanxue-web/docs/项目方案/AGENT-插件生产级方案.md`
+目标方案：`docs/项目方案/AGENT-插件生产级实施方案.md`
 
 > 本施工图只投影终态，不描述“可上线阶段”。任何未落地项均为实现缺口，不能用过渡对象、兼容层或第二链路合法化。
+>
+> 2026-08-20.3 补齐终态路径、Health / Errors / Metrics 和 26 项质检投影；不改变上级法案的语义、owner 或发布门。
 
 ## 1. 终态图
 
@@ -42,6 +44,7 @@ browserctl
 
 ```txt
 src/lib/browser/
+  browser-authority-api.ts
   profile/
     browser-profile-config.ts
     browser-profile-state.ts
@@ -50,6 +53,7 @@ src/lib/browser/
     browser-profile-enrollment-receipt.ts
     browser-profile-process-attestation.ts
     managed-policy-readback.ts
+    browser-process-supervisor.ts
   infrastructure/
     browser-infrastructure-supervisor.ts
     browser-control-state.ts
@@ -94,17 +98,35 @@ src/lib/browser/
     browser-file-artifact-grant.schema.json
     browser-capabilities.json
     browser-errors.json
-    generated/**
+    generated/
+      browser-protocol.generated.ts
+  native-messaging-host/
+    Cargo.toml
+    Cargo.lock
+    crates/host/
+      src/generated/browser_protocol.rs
+      **
+    crates/launcher/**
+    crates/browserctl/**
+    crates/platform-macos/**
+    manifests/**
   release/
+    build-artifacts.mjs
+    verify-artifacts.mjs
     browser-artifact-set.schema.json
     browser-activation-tuple.schema.json
     browser-release-proof.schema.json
     browser-release-security-policy.schema.json
     browser-rollback-receipt.schema.json
+    browser-build-inputs.schema.json
+    browser-sbom.schema.json
+    browser-provenance.schema.json
+    browser-previous-activation-snapshot.schema.json
+    pinned-browser-toolchain.json
+    browser-build.config.json
     active-activation.json
-    build-artifacts.mjs
-    verify-artifacts.mjs
   chrome-extension/
+    manifest.json
     service-worker.ts
     native-port-actor.ts
     command-registry.ts
@@ -114,16 +136,43 @@ src/lib/browser/
     dom-intent-runtime.ts
     artifact-stream.ts
     authenticated-heartbeat.ts
-  native-messaging-host/
-    Cargo.toml
-    crates/host/**
-    crates/launcher/**
-    crates/browserctl/**
-    crates/platform-macos/**
-    manifests/**
+scripts/
+  audit/domains/local-browser-session/
+    manifest.json
+    inspector.ts
+    local-browser-26-checks.acceptance.ts
+  acceptance/
+    local-browser-terminal-contract.acceptance.ts
+    local-browser-26-mutants.acceptance.ts
+    local-browser-property-model.acceptance.ts
+    local-browser-real-chrome-terminal.acceptance.ts
 ```
 
 退休并在最终候选物理不可达：`BrowserTargetSession`、`BrowserController.createTargetSession`、`targetSessionsByOwner`、arbitrary evaluate contract、raw-path wire contract、old transport server auth boolean/polling model、Host bridge/rebind、runtime capability intersection、production fixture authority。
+
+### 2.1 施工图与法案的逐项落点
+
+以下表只把现役法案已经定义的对象落到唯一终态路径；它不新建 owner，也不降低法条。
+
+| 法案对象 | 唯一终态路径 |
+| --- | --- |
+| 业务 Browser 入口 | `src/lib/browser/browser-authority-api.ts` → `infrastructure/browser-authority-broker.ts` |
+| control state / issuer / liveness | `src/lib/browser/infrastructure/browser-control-state.ts`、`browser-authority-issuer.ts`、`browser-authority-liveness-lease.ts` |
+| 专用 profile / process | `src/lib/browser/profile/browser-profile-enrollment.ts`、`browser-process-supervisor.ts` |
+| exact target / document / command | `src/lib/browser/exact-target/**` + `transport/command-permit.ts` |
+| 唯一 Host / MV3 传输 | `src/lib/browser/native-messaging-host/**` + `chrome-extension/**` + `transport/**` |
+| artifact / tuple / policy / proof | `src/lib/browser/release/**` |
+| health / errors / metrics | `src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts` 只发布 `browserInfrastructure` / `browserAuthority`；`protocol/browser-errors.json` 是唯一 Browser error-code 合同；运行指标只由 infrastructure supervisor 的有界 telemetry 输出 |
+| 26 项 machine-blocking 质检 | `scripts/audit/domains/local-browser-session/manifest.json` + `inspector.ts`，只通过现有 generated-plan runner 生成收据 |
+| 终态验收 | `scripts/acceptance/local-browser-terminal-contract.acceptance.ts`、`local-browser-26-mutants.acceptance.ts`、`local-browser-property-model.acceptance.ts`、`local-browser-real-chrome-terminal.acceptance.ts`；只证明各自合同，不拥有生产逻辑 |
+
+`BrowserProcessSupervisor` 的唯一目标路径固定为：
+
+```txt
+src/lib/browser/profile/browser-process-supervisor.ts
+```
+
+任何第二个 process supervisor、browser public API、transport、controller 或审计 runner 都是法案违反，不是替代实现。
 
 ## 3. Composition Root
 
@@ -135,8 +184,28 @@ create base runtime
 -> start BrowserInfrastructureSupervisor
 -> create BrowserAuthorityBroker (no raw command surface)
 -> register browser-dependent mission factories
--> expose service health
+-> expose only browserInfrastructure / browserAuthority health
 ```
+
+### 3.1 Health / Errors / Metrics 的终态边界
+
+Health component 只有两个合法值：`browserInfrastructure`、`browserAuthority`。不得恢复
+`browserSession`、`transportReady`、`session not authenticated` 或 `wait for authentication`
+等旧生产语义。
+
+`protocol/browser-errors.json` 必须覆盖 install、host、origin、extension、tuple、transcript、
+capability、profile、process、policy、liveness、worker-fence、dual-active、backpressure、file-grant、
+rollback、revocation、permit、target、document、devtools、outcome-unknown、repair；错误代码不是
+第二状态机，最终 authority 仍只为 `ABSENT` 或 `PRESENT`。
+
+唯一 Browser telemetry 必须证明以下零值：未认证 authority 签发、无有效 authority command、
+stale-event side effect、旧 completion 写入新 port、非幂等自动重放、错误 profile/process 签发、
+liveness 到期后 command、authority 缺失时动作、dual-active worker、被撤销或回退 tuple 激活、
+Browser admission budget 违规。验收同时验证 supported-runtime-window availability ≥99.99%、
+authority issuance p99 ≤5s、recoverable chain rebuild p99 ≤10s、revoke→ABSENT p99 ≤10ms，
+并要求 unbounded queue/cache/stream=0。上述健康、错误与指标只由
+`browser-infrastructure-supervisor.ts` 的 owner 输出；`ACC-032` 的 deterministic terminal
+contract 和 `ACC-036`/`ACC-037` 的 HA/soak receipts 分别验证结构边界和运行读数。
 
 Browser-dependent job admission：
 
@@ -252,7 +321,38 @@ Dynamic Proof 仍是唯一网站动态 verdict；Browser proof 是 receipt 内 e
 
 ## 15. Quality Mapping
 
-26 个独立 checkIds 与法案一一映射，禁止 `owner-assertion-set` 代替 P0。负面类型测试必须证明 Supervisor/ControlState 无 command/createTarget，旧 Session 类型不可导入，revoked lease不能执行。
+26 个独立 checkIds 必须在唯一 `local-browser-session` manifest 中逐项绑定并由同一 inspector 逐项运行；禁止 `owner-assertion-set` 代替 P0，也禁止一个 broad check 代替多个 ID。
+
+```txt
+browser-auth/no-unauth-session-type
+browser-auth/no-transport-ready-boolean
+browser-auth/no-preauth-command-surface
+browser-auth/no-fire-and-forget-startup
+browser-auth/authority-mint-only-after-proof
+browser-auth/revoke-before-side-effects
+browser-auth/no-host-controller-rebind
+browser-auth/original-reply-channel
+browser-auth/exact-activation-tuple
+browser-auth/authority-liveness-lease
+browser-auth/no-command-after-liveness-expiry
+browser-auth/heartbeat-cannot-mint-authority
+browser-auth/production-fixture-zero
+browser-profile/dedicated-production-profile
+browser-profile/process-enrollment-attestation
+browser-profile/force-install-policy-readback
+browser-release/artifact-activation-proof-separation
+browser-release/verified-crx-hard-gate
+browser-release/anti-rollback-and-revocation
+browser-release/reproducible-build-identity
+browser-install/safe-stale-socket-recovery
+browser-cross-repo/authority-proof-v2
+browser-cross-repo/ordered-authority-window-chain
+browser-command/bounded-admission-budget
+browser-file/artifact-grant-no-raw-path
+browser-old-path/retired-zero
+```
+
+每项必须具有自己的 source evidence 和负例、性质、model、mutant 或运行时证据；generated truth 只由现有 builder/runner 生成。负面类型测试必须证明 Supervisor/ControlState 无 command/createTarget，旧 Session 类型不可导入，revoked lease不能执行。
 
 Property/model 必须随机证明 auth failure->ABSENT、disconnect先revoke、stale event零副作用、old completion不跨Port、heartbeat不能mint、wrong process/policy不能mint、budget reject、revoked tuple reject、handover窗口间零动作。
 

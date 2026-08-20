@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   XuanxueAiProductionTriggerKindSchema,
+  XuanxueMetaphysicsProviderExecutionProfileSchema,
   XuanxueAiProductIdSchema,
   XuanxueAiStageIdSchema,
 } from "./xuanxue-ai-production.schema.js";
@@ -11,6 +12,10 @@ import {
   assertXuanxueLocalizationContract,
   isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
+import {
+  isXuanxueTerminalMetaphysicsProduct,
+  isXuanxueTerminalMetaphysicsProfile,
+} from "./xuanxue-ai-production-terminal-profile.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
   "xuanxue-ai-production-v4" as const;
@@ -210,7 +215,10 @@ const cloudSemanticIdentityShape = {
   contract_manifest_hash: hashSchema.nullable(),
   product_contract_hash: hashSchema.nullable(),
   localization_role: XuanxueLocalizationRoleSchema.nullable(),
-  provider_execution_profile: XuanxueProviderExecutionProfileSchema.nullable(),
+  provider_execution_profile: z.union([
+    XuanxueMetaphysicsProviderExecutionProfileSchema,
+    XuanxueProviderExecutionProfileSchema,
+  ]).nullable(),
 } as const;
 
 const cloudReplayOrderShape = {
@@ -357,12 +365,33 @@ const inspectNonLocalizationClaim = (
     job.contract_manifest_hash !== null
     || job.product_contract_hash !== null
     || job.localization_role !== null
-    || job.provider_execution_profile !== null
   ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN",
       path: ["localization_role"],
+    });
+  }
+  const profile = job.provider_execution_profile as Record<string, unknown> | null;
+  if (isXuanxueTerminalMetaphysicsProduct(job.product_id)) {
+    if (!profile) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_REQUIRED",
+        path: ["provider_execution_profile"],
+      });
+    } else if (!isXuanxueTerminalMetaphysicsProfile(profile)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH",
+        path: ["provider_execution_profile"],
+      });
+    }
+  } else if (profile !== null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "XUANXUE_AI_PRODUCTION_UNDECLARED_PROVIDER_PROFILE_FORBIDDEN",
+      path: ["provider_execution_profile"],
     });
   }
 };
@@ -380,7 +409,7 @@ const inspectLocalizationContract = (
       contractManifestHash: job.contract_manifest_hash,
       productContractHash: job.product_contract_hash,
       role: job.localization_role,
-      providerProfile: job.provider_execution_profile,
+      providerProfile: job.provider_execution_profile as never,
       inputKinds: material?.inputs.map((item) => item.kind) ?? [],
       hasConversationParent: Boolean(job.conversation_parent),
     });

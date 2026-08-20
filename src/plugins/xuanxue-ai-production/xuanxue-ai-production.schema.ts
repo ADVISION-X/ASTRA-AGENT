@@ -13,6 +13,9 @@ import {
   inspectXuanxueContinuationPolicy,
   inspectXuanxueLocalizationPolicy,
 } from "./xuanxue-ai-production-schema-refinements.js";
+import {
+  xuanxueTerminalMetaphysicsProviderProfile,
+} from "./xuanxue-ai-production-terminal-profile.js";
 import type { AgentRuntimeReceiptV2 } from "./xuanxue-ai-production-browser-proof.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
@@ -146,10 +149,10 @@ export const XuanxueMetaphysicsProviderExecutionProfileSchema = z.object({
   provider: z.literal("openai-chatgpt-web"),
   transport: z.literal("gpt-web-chat"),
   account_capability_ref: z.string().min(1),
-  model_label: z.literal("GPT-PRO"),
-  model_family: z.literal("GPT-PRO"),
+  model_label: z.literal(xuanxueTerminalMetaphysicsProviderProfile.modelLabel),
+  model_family: z.literal(xuanxueTerminalMetaphysicsProviderProfile.modelFamily),
   model_identity_status: z.literal("verified"),
-  reasoning_effort: z.literal("pro_extended"),
+  reasoning_effort: z.literal(xuanxueTerminalMetaphysicsProviderProfile.reasoningTier),
   executor_identity_ref: z.string().min(1),
   ai_acceptance_ref: z.string().min(1),
   ai_acceptance_version: z.string().min(1),

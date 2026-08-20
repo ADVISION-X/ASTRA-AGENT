@@ -47,13 +47,13 @@ capacity waiter、请求体/文件 byte ceiling 和第二 attachment graph 全�
 | 八字 canonical base（内部） | `base_interpretation` 独立私有会话 | `base_interpretation` |
 | 八字命盘解读 | base checkpoint → 独立无问题 child `chart_interpretation` | `chart_interpretation` |
 | 八字完整分析 | base checkpoint → 独立问题 child `question_analysis` | `question_analysis` |
-| 八字追问 | 父 `bazi_chart_interpretation/chart_interpretation` 或 `bazi_ai_full_analysis/question_analysis` 精确会话 → `question_analysis` | `question_analysis` |
+| 八字追问 | 父 BZ05 `bazi_chart_interpretation/chart_interpretation`、BZ03 `bazi_ai_full_analysis/question_analysis` 或 BZ04 `bazi_report_followup/question_analysis` 的 immediate 精确会话 → `question_analysis` | `question_analysis` |
 | 奇门专业解答 | `analysis` | `analysis` |
-| 奇门追问 | 父 `qimen_professional_answer/analysis` 会话 → `followup` | `followup` |
+| 奇门追问 | 父 QM03 `qimen_professional_answer/analysis` 或 QM04 `qimen_report_followup/followup` 的 immediate 精确会话 → `followup` | `followup` |
 | 合婚 canonical A（内部） | `party_a_interpretation` 独立私有会话 | `party_a_interpretation` |
 | 合婚 canonical B（内部） | `party_b_interpretation` 独立私有会话 | `party_b_interpretation` |
 | 合婚分析 | 两份 canonical 私解 + 双完整命盘 + 全部 READY → 新关系会话 `final_compatibility` | `final_compatibility` |
-| 合婚追问 | 父 `hehun_ai_analysis/final_compatibility` 会话 → `followup` | `followup` |
+| 合婚追问 | 父 HH02 `hehun_ai_analysis/final_compatibility` 或 HH03 `hehun_report_followup/followup` 的 immediate 精确会话 → `followup` | `followup` |
 | 新命盘起名 | 目标 base checkpoint → 项目 child `question_analysis → naming_author`；辅助人物独立 base 经 typed join 加入 author | `naming_author` |
 | 已有报告起名 | 与源报告不同的 fresh `naming_author` | `naming_author` |
 | 人工准确度追问 | 父 job/stage/hash → 原会话 continuation | `manual_accuracy_challenge` |
@@ -74,7 +74,7 @@ conversation scope 和 cloud lease 绑定。每个真实阶段完成前还必须
 model profile 只是期望，不是证明。
 真实 GPT Web 的固定操作顺序已经由当前页面核验并冻结：打开 composer 的能力按钮，打开模型菜单，选择并读回
 `模型 → GPT-5.6 Sol`；再从可见推理滑块选择并读回 `极速 / 中 / 高 / 极高 / Pro`，其数值映射固定为
-`0 / 1 / 2 / 3 / 4`。本地化 profile 只允许 `candidate_a=极高(xhigh)`、其余角色=`高(high)`；页面缺少菜单、滑块、模型名、推理标签，或读回值与期望不一致，必须在发送 prompt 前进入 `review_required`。
+`0 / 1 / 2 / 3 / 4`。九个商业命理产品的唯一 profile 固定为 `model_label=GPT-5.6 Sol`、`model_family=gpt-5.6`、`reasoning_effort=pro_standard`；`pro_standard` 必须由页面可见 `Pro` 标签回读证明。`GPT-PRO`、`pro_extended`、账户套餐文案、坐标或滑块数值都不是生产 profile。本地化 profile 只允许 `candidate_a=极高(xhigh)`、其余角色=`高(high)`；页面缺少菜单、滑块、模型名、推理标签，或读回值与期望不一致，必须在发送 prompt 前进入 `review_required`。
 这条证据只能来自当前 provider 页面可见的语义角色、标签、当前 URL 与 evidence hash；请求字段、profile 常量、历史聊天标题和 fixture 都不是模型证明。
 每个阶段进入 Gateway 时都先携带整单 `inputBundleRef` 作为非文件逻辑身份，再附加真实文件
 和前序回答文件。零附件阶段因此仍有非空输入证明；上传计数只看带 `filePath` 的真实文件。
@@ -308,7 +308,7 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
 - 证明 `fresh | same_conversation | forked_from_checkpoint` 三态均有 provider 动作回执、marker、URL、hash 和 execution/scope 对账；不支持精确 fork 时失败关闭。
 - 证明合婚甲方、乙方私解可独立并发、各自完整上传语料，关系总论使用第三个新会话并带两份原始回答。
 - 证明新命盘起名的 `question_analysis` 与 `naming_author` 共享 NM01 项目 child，而不是 base URL；一个 target 加至少四个辅助人物各有独立 base，author 只收到 typed participant manifest。
-- 证明 NM02 使用与源报告不同的 fresh 会话；BZ04 使用所选 BZ05/BZ03 父分支的同一会话。
+- 证明 NM02 使用与源报告不同的 fresh 会话；BZ04、QM04、HH03 各自可续接允许集合中的 immediate 父会话（BZ05/BZ03/BZ04、QM03/QM04、HH02/HH03），每类递归正例通过，blank-chat continuation 负例失败。
 - 证明同一 stable canonical identity 的重复订单只执行一次，用户问题与关系综合绝不复用。
 - 证明 10 张在制整单时第 11 张等待，释放后才进入。
 - 证明公开知识生产 job 不携带旧 preflight receipt，也不存在独立 preflight route；第一阶段

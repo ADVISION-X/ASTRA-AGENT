@@ -10,6 +10,10 @@ import {
   assertXuanxueLocalizationContract,
   isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
+import {
+  isXuanxueTerminalMetaphysicsProduct,
+  isXuanxueTerminalMetaphysicsProfile,
+} from "./xuanxue-ai-production-terminal-profile.js";
 import type { XuanxueAiStoredOrder } from "./xuanxue-ai-production.schema.js";
 
 const issue = (
@@ -17,21 +21,6 @@ const issue = (
   message: string,
   path: Array<string | number>,
 ): void => context.addIssue({ code: z.ZodIssueCode.custom, message, path });
-
-const terminalMetaphysicsProducts = new Set<string>([
-  "bazi_chart_interpretation",
-  "bazi_ai_full_analysis",
-  "bazi_report_followup",
-  "qimen_professional_answer",
-  "qimen_report_followup",
-  "hehun_ai_analysis",
-  "hehun_report_followup",
-  "naming_bazi_analysis_and_naming",
-  "naming_from_existing_bazi_report",
-  "bazi_canonical_base_interpretation",
-  "hehun_canonical_party_a_interpretation",
-  "hehun_canonical_party_b_interpretation",
-]);
 
 const allowedPaidFollowupParentStages: Readonly<Record<string, readonly string[]>> = {
   bazi_report_followup: ["chart_interpretation", "question_analysis"],
@@ -106,18 +95,11 @@ const exactTerminalProfile = (
 ): void => {
   const profile = order.providerExecutionProfile as Record<string, unknown> | null;
   if (!profile) {
-    issue(context, "XUANXUE_AI_PRODUCTION_GPT_PRO_PROFILE_REQUIRED", ["providerExecutionProfile"]);
+    issue(context, "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_REQUIRED", ["providerExecutionProfile"]);
     return;
   }
-  if (
-    profile.provider !== "openai-chatgpt-web"
-    || profile.transport !== "gpt-web-chat"
-    || profile.model_label !== "GPT-PRO"
-    || profile.model_family !== "GPT-PRO"
-    || profile.model_identity_status !== "verified"
-    || profile.reasoning_effort !== "pro_extended"
-  ) {
-    issue(context, "XUANXUE_AI_PRODUCTION_GPT_PRO_PROFILE_MISMATCH", ["providerExecutionProfile"]);
+  if (!isXuanxueTerminalMetaphysicsProfile(profile)) {
+    issue(context, "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH", ["providerExecutionProfile"]);
   }
 };
 
@@ -132,7 +114,7 @@ const inspectNonLocalizationPolicy = (
   ) {
     issue(context, "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN", ["localizationRole"]);
   }
-  if (terminalMetaphysicsProducts.has(order.productId)) {
+  if (isXuanxueTerminalMetaphysicsProduct(order.productId)) {
     exactTerminalProfile(order, context);
   } else if (order.providerExecutionProfile !== null) {
     issue(context, "XUANXUE_AI_PRODUCTION_UNDECLARED_PROVIDER_PROFILE_FORBIDDEN", ["providerExecutionProfile"]);

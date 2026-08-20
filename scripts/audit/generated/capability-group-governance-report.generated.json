@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T12:43:02.757Z",
+  "generatedAt": "2026-08-20T15:19:26.749Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -107,11 +107,16 @@
     "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
     "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
     "scripts/acceptance/local-browser-business-workday.acceptance.ts",
+    "scripts/acceptance/local-browser-consumer-registry.acceptance.ts",
     "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
     "scripts/acceptance/local-browser-native-transport.acceptance.ts",
+    "scripts/acceptance/local-browser-plan-gates.acceptance.ts",
+    "scripts/acceptance/local-browser-plan-harness.self-test.ts",
     "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
     "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
+    "scripts/acceptance/local-browser-retirement-inventory.acceptance.ts",
     "scripts/acceptance/local-browser-target-actions.acceptance.ts",
+    "scripts/acceptance/local-browser-work-order-receipt.acceptance.ts",
     "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
     "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
     "scripts/acceptance/media-processing-async-route.acceptance.ts",
@@ -133,6 +138,7 @@
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+    "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
     "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
@@ -825,6 +831,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
@@ -845,14 +852,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d",
       "capabilityDomain": "capability-group-governance",
       "checkId": "capability-group-governance/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-20T12:43:02.724Z",
-      "endedAt": "2026-08-20T12:43:02.756Z",
-      "durationMs": 32,
+      "startedAt": "2026-08-20T15:19:26.719Z",
+      "endedAt": "2026-08-20T15:19:26.748Z",
+      "durationMs": 29,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -915,11 +922,16 @@
         "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
         "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
         "scripts/acceptance/local-browser-business-workday.acceptance.ts",
+        "scripts/acceptance/local-browser-consumer-registry.acceptance.ts",
         "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
         "scripts/acceptance/local-browser-native-transport.acceptance.ts",
+        "scripts/acceptance/local-browser-plan-gates.acceptance.ts",
+        "scripts/acceptance/local-browser-plan-harness.self-test.ts",
         "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
         "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
+        "scripts/acceptance/local-browser-retirement-inventory.acceptance.ts",
         "scripts/acceptance/local-browser-target-actions.acceptance.ts",
+        "scripts/acceptance/local-browser-work-order-receipt.acceptance.ts",
         "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
         "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
         "scripts/acceptance/media-processing-async-route.acceptance.ts",
@@ -941,6 +953,7 @@
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture.ts",
         "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
         "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
@@ -1633,6 +1646,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
@@ -1658,49 +1672,49 @@
       "lawId": "APEX-CAPABILITY-GROUP-001-V1",
       "clauseId": "apex-capability-group-001-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-002-V1",
       "clauseId": "apex-capability-group-002-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-003-V1",
       "clauseId": "apex-capability-group-003-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-004-V1",
       "clauseId": "apex-capability-group-004-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-005-V1",
       "clauseId": "apex-capability-group-005-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-006-V1",
       "clauseId": "apex-capability-group-006-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-007-V1",
       "clauseId": "apex-capability-group-007-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-008-V1",
       "clauseId": "apex-capability-group-008-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:f528bb3e-2c4d-4335-b26f-05dca2ec8d0d:check:d23ba538-2839-4f23-9284-f485c4c2ea91"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:73b4e54e-df03-4731-b747-762740f15b9d"
     }
   ]
 }

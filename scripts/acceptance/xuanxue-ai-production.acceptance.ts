@@ -32,20 +32,22 @@ try {
     "utf8",
   );
   assert.ok(
-    sharedSource.indexOf("await selectWebChatModelAndReasoning") >= 0,
-    "GPT Web flow must select the model before preparation",
+    sharedSource.indexOf("const preSubmit = await prepareWebChatConversation(input)")
+      < sharedSource.indexOf("const capturedSubmission = await submitWebChatPrompt({"),
+    "GPT Web flow must prepare the governed profile before submitting the prompt",
   );
   assert.match(
     sharedSource,
     /preSubmit\.modelIdentityProof/u,
     "completed proof must use the pre-submit model identity read-back",
   );
-  const modelIdentitySource = await readFile(
-    path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts"),
+  const profileSelectionSource = await readFile(
+    path.resolve("src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts"),
     "utf8",
   );
-  assert.match(modelIdentitySource, /selectWebChatModel/u);
-  assert.match(modelIdentitySource, /GPT-5\.6 Sol/u);
+  assert.match(profileSelectionSource, /applyRequiredProfile/u);
+  assert.match(profileSelectionSource, /GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH/u);
+  assert.match(profileSelectionSource, /pro_standard/u);
 
   const generatedDirectory = path.join(
     dataDir,
@@ -150,7 +152,7 @@ try {
     assert.equal(localization.contractManifestHash, XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH);
     createXuanxueAiProductionOrder(runtime, localization);
     const completed = await executeXuanxueAiProductionOrder(runtime, localization.orderId);
-    assert.equal(completed.status, "completed");
+    assert.equal(completed.status, "completed", completed.failureReason ?? undefined);
     assert.equal(completed.stages.length, 1);
     assert.equal(completed.result?.contractManifestHash, XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH);
     assert.equal(

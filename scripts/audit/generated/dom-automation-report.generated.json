@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T12:41:39.205Z",
+  "generatedAt": "2026-08-20T15:20:11.688Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -41,14 +41,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297",
+      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-20T12:41:39.110Z",
-      "endedAt": "2026-08-20T12:41:39.201Z",
-      "durationMs": 91,
+      "startedAt": "2026-08-20T15:20:11.627Z",
+      "endedAt": "2026-08-20T15:20:11.685Z",
+      "durationMs": 58,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -111,11 +111,16 @@
         "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
         "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
         "scripts/acceptance/local-browser-business-workday.acceptance.ts",
+        "scripts/acceptance/local-browser-consumer-registry.acceptance.ts",
         "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
         "scripts/acceptance/local-browser-native-transport.acceptance.ts",
+        "scripts/acceptance/local-browser-plan-gates.acceptance.ts",
+        "scripts/acceptance/local-browser-plan-harness.self-test.ts",
         "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
         "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
+        "scripts/acceptance/local-browser-retirement-inventory.acceptance.ts",
         "scripts/acceptance/local-browser-target-actions.acceptance.ts",
+        "scripts/acceptance/local-browser-work-order-receipt.acceptance.ts",
         "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
         "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
         "scripts/acceptance/media-processing-async-route.acceptance.ts",
@@ -137,6 +142,7 @@
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture.ts",
         "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
         "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
@@ -829,6 +835,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
@@ -854,79 +861,79 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:6db9dc5e-6446-44b0-87fe-d2d500f56297"
+      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:ce7cfe61-7d6e-4a9e-8313-b7d2bb999aed"
     }
   ],
   "inspectedFiles": [
@@ -991,11 +998,16 @@
     "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
     "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
     "scripts/acceptance/local-browser-business-workday.acceptance.ts",
+    "scripts/acceptance/local-browser-consumer-registry.acceptance.ts",
     "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
     "scripts/acceptance/local-browser-native-transport.acceptance.ts",
+    "scripts/acceptance/local-browser-plan-gates.acceptance.ts",
+    "scripts/acceptance/local-browser-plan-harness.self-test.ts",
     "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
     "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
+    "scripts/acceptance/local-browser-retirement-inventory.acceptance.ts",
     "scripts/acceptance/local-browser-target-actions.acceptance.ts",
+    "scripts/acceptance/local-browser-work-order-receipt.acceptance.ts",
     "scripts/acceptance/media-optimizer-app-ui.acceptance.ts",
     "scripts/acceptance/media-processing-artifact-proof.acceptance.ts",
     "scripts/acceptance/media-processing-async-route.acceptance.ts",
@@ -1017,6 +1029,7 @@
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+    "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture.ts",
     "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
     "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
@@ -1709,6 +1722,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",

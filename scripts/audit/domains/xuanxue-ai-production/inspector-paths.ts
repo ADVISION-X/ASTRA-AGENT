@@ -5,6 +5,7 @@ export const authorityPaths = [
 ] as const;
 
 export const schemaPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
+export const schemaRefinementsPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts";
 export const profilePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
 export const storePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
 export const schedulerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
@@ -21,6 +22,7 @@ export const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptan
 
 export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+  "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
   "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
   "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
   "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
@@ -43,6 +45,8 @@ export const removedSecondChainPaths = [
 
 export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/index.ts", schemaPath, profilePath, storePath,
+  schemaRefinementsPath,
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts",
   "src/app/workbench-xuanxue-ai-production-routes.ts",
