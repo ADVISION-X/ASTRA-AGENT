@@ -17,6 +17,7 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/local-browser-terminal-contract.acceptance.ts", { clauseId: "apex-local-browser-001-v2-exact-authority-lease", lawId: "APEX-LOCAL-BROWSER-001-V2" }],
   ["scripts/acceptance/local-browser-property-model.acceptance.ts", { clauseId: "apex-local-browser-002-v2-authority-atomicity", lawId: "APEX-LOCAL-BROWSER-002-V2" }],
   ["scripts/acceptance/local-browser-rule-mutants.acceptance.ts", { clauseId: "apex-local-browser-002-v2-authority-atomicity", lawId: "APEX-LOCAL-BROWSER-002-V2" }],
+  ["scripts/acceptance/local-runtime-browser-authority.acceptance.ts", { clauseId: "apex-local-browser-002-v2-authority-atomicity", lawId: "APEX-LOCAL-BROWSER-002-V2" }],
   ["scripts/acceptance/dom-automation-exact-target.acceptance.ts", { clauseId: "apex-dom-020-requirement", lawId: "APEX-DOM-020-V1" }],
   ["scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v3-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V3" }],
   ["scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts", { clauseId: "grasseye-amazon-invoice-upload-015-requirement", lawId: "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1" }],
