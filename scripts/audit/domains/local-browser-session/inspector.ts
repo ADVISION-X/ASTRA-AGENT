@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { Node, SyntaxKind, type MethodDeclaration, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
@@ -53,6 +53,21 @@ const requiredIdentifiers = (rule: Rule, context: InspectorContext, path: string
   return identifiers.flatMap((identifier) => present.has(identifier) ? [] : [report(rule, path, `required AST identifier is missing: ${identifier}`)]);
 };
 const requiredDiskFiles = (rule: Rule, paths: readonly string[]): readonly InspectorFinding[] => paths.flatMap((path) => existsSync(resolveFromRepo(path)) ? [] : [report(rule, path, "required Browser release artifact source is missing")]);
+const requiredMv3ServiceWorker = (rule: Rule, context: InspectorContext): readonly InspectorFinding[] => {
+  const manifestPath = "src/lib/browser/chrome-extension/manifest.json";
+  const sourcePath = "src/lib/browser/chrome-extension/service-worker.ts";
+  if (!existsSync(resolveFromRepo(manifestPath))) return [report(rule, manifestPath, "required MV3 manifest is missing")];
+  const manifest = JSON.parse(readFileSync(resolveFromRepo(manifestPath), "utf8")) as {
+    background?: { service_worker?: unknown };
+    manifest_version?: unknown;
+  };
+  if (manifest.manifest_version !== 3 || manifest.background?.service_worker !== "service-worker.js") {
+    return [report(rule, manifestPath, "MV3 manifest must name only service-worker.js as its background service worker")];
+  }
+  return sourceAt(context, sourcePath) === undefined
+    ? [report(rule, sourcePath, "MV3 manifest service-worker source is missing")]
+    : [];
+};
 const orderedCalls = (rule: Rule, context: InspectorContext, path: string, methodName: string, firstName: string, secondName: string): readonly InspectorFinding[] => {
   const file = sourceAt(context, path);
   const method = file?.getDescendants().find((node): node is MethodDeclaration => Node.isMethodDeclaration(node) && node.getName() === methodName);
@@ -98,6 +113,7 @@ const rules: readonly Rule[] = [
   r("browser-auth/original-reply-channel", laws.chain, (context) => [
     ...requiredIdentifiers(rules[11]!, context, "src/lib/browser/transport/command-permit.ts", ["replyChannelToken", "browserCommandPermitMacPayload"]),
     ...requiredIdentifiers(rules[11]!, context, "src/lib/browser/chrome-extension/command-permit-validator.ts", ["replyChannelToken", "commandPermitKey", "browserCommandPermitMacPayload", "assertExtensionCommandPermit"]),
+    ...requiredMv3ServiceWorker(rules[11]!, context),
   ]),
   r("browser-auth/production-fixture-zero", laws.chain, (context) => forbiddenIdentifiers(rules[12]!, context, ["FixtureBrowserController", "FixtureBrowserAuthority"])),
   r("browser-install/safe-stale-socket-recovery", laws.chain, (context) => requiredIdentifiers(rules[13]!, context, "src/lib/browser/infrastructure/browser-owner-lock.ts", ["BrowserOwnerLock", "EEXIST"])),

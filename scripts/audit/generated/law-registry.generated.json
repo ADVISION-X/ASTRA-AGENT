@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T20:32:59.053Z",
+  "generatedAt": "2026-08-20T21:59:32.089Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -4166,18 +4166,25 @@
           "ownerDomain": "local-browser-session"
         }
       ],
+      "codePurityLiveness": {
+        "externalEntryFiles": [
+          "src/lib/browser/chrome-extension/service-worker.ts"
+        ]
+      },
       "required": [
         "one NativePortActor per Port",
         "original source/reply channel captured for async completion",
         "Controller IPC discontinuity terminates Host and Port",
-        "production fixture authority is physically unreachable"
+        "production fixture authority is physically unreachable",
+        "the exact MV3 manifest service worker is the only law-owned external Browser extension entry"
       ],
       "forbidden": [
         "global cross-port auth truth",
         "old completion sent to new Port",
         "second Native Host",
         "Playwright/JXA/AppleScript/system input fallback",
-        "load-unpacked production chain"
+        "load-unpacked production chain",
+        "package-script or inspector-local liveness substitute for the MV3 manifest entry"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 2

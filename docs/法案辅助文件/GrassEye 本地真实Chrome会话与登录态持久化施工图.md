@@ -175,6 +175,18 @@ src/lib/browser/profile/browser-process-supervisor.ts
 
 任何第二个 process supervisor、browser public API、transport、controller 或审计 runner 都是法案违反，不是替代实现。
 
+### 2.2 MV3 的唯一外部活入口
+
+`src/lib/browser/chrome-extension/manifest.json` 的 `background.service_worker = service-worker.js`
+对应唯一的源码入口 `src/lib/browser/chrome-extension/service-worker.ts`。它不是 package script、
+也不是 inspector 内部白名单：只由 `APEX-LOCAL-BROWSER-003-V2` 的
+`codePurityLiveness.externalEntryFiles` 投影进 generated law registry，再由 Code Purity 的
+symbol graph 向下证明其静态 import 子图。
+
+Browser owner inspector 必须同时确认 MV3 manifest、`service-worker.js` 和
+`service-worker.ts` 三者精确对应。任何第二 service worker、改以 package script 伪造活性、
+或在 inspector 源码另存 exemption 数组，都属于第二链，必须失败。
+
 ## 3. Composition Root
 
 Base Workbench 不以“Chrome 此刻在线”决定进程能否存在。它只构造 Browser infrastructure control plane 与 `BrowserAuthorityBroker`：
