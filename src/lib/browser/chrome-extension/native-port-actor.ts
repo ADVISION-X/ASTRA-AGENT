@@ -143,20 +143,60 @@ const executeCommand = async (context: ActorContext, target: ReturnType<Extensio
   throw new Error("BROWSER_CAPABILITY_REJECTED");
 };
 
-const parseBootstrap = (value: unknown): HostBootstrap | null => isRecord(value) && value.kind === "host-bootstrap" && typeof value.controllerToken === "string" && isRecord(value.proof) ? value as unknown as HostBootstrap : null;
+const isBrowserHash = (value: unknown): value is `sha256:${string}` =>
+  typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+
+const isAuthenticationProof = (value: Record<string, unknown>): value is BrowserAuthenticationProof =>
+  isBrowserHash(value.executionBindingHash)
+  && isBrowserHash(value.authTranscriptHash)
+  && isRecord(value.handshake);
+
+const parseBootstrap = (value: unknown): HostBootstrap | null => {
+  if (!isRecord(value) || value.kind !== "host-bootstrap" || typeof value.controllerToken !== "string") return null;
+  if (!isRecord(value.proof) || !isAuthenticationProof(value.proof)) return null;
+  return { kind: "host-bootstrap", controllerToken: value.controllerToken, proof: value.proof };
+};
+
+const isControllerAuthority = (
+  value: Record<string, unknown>,
+): value is ControllerReady["authority"] => typeof value.authorityRef === "string"
+  && typeof value.authorityEpoch === "number"
+  && isBrowserHash(value.certificateHash)
+  && isBrowserHash(value.activationTupleHash)
+  && isBrowserHash(value.executionBindingHash)
+  && typeof value.commandPermitKey === "string";
+
 const parseControllerReady = (value: unknown): ControllerReady | null => {
   if (!isRecord(value) || value.kind !== "controller-ready" || typeof value.sourceChannelToken !== "string" || !isRecord(value.authority)) return null;
-  const authority = value.authority;
-  if (
-    typeof authority.authorityRef !== "string"
-    || typeof authority.authorityEpoch !== "number"
-    || typeof authority.certificateHash !== "string"
-    || typeof authority.activationTupleHash !== "string"
-    || typeof authority.executionBindingHash !== "string"
-    || typeof authority.commandPermitKey !== "string"
-  ) return null;
-  return value as unknown as ControllerReady;
+  if (!isControllerAuthority(value.authority)) return null;
+  return { kind: "controller-ready", sourceChannelToken: value.sourceChannelToken, authority: value.authority };
 };
-const parseControllerCommand = (value: unknown): ControllerCommand | null => isRecord(value) && value.kind === "controller-command" && typeof value.sourceChannelToken === "string" && isRecord(value.permit) && isRecord(value.command) ? value as unknown as ControllerCommand : null;
+
+const hasStringFields = (value: Record<string, unknown>, fields: readonly string[]): boolean =>
+  fields.every((field) => typeof value[field] === "string");
+
+const isBrowserCommandPermit = (value: Record<string, unknown>): value is BrowserCommandPermit =>
+  hasStringFields(value, [
+    "permitRef", "authorityRef", "certificateHash", "activationTupleHash", "executionBindingHash",
+    "targetLeaseRef", "targetRef", "documentRef", "capabilityId", "commandId", "mutationClass",
+    "deadlineAt", "replyChannelToken", "commandFrameMac",
+  ])
+  && typeof value.authorityEpoch === "number"
+  && typeof value.sequence === "number";
+
+const isBrowserGovernedCommand = (value: Record<string, unknown>): value is BrowserGovernedCommand =>
+  typeof value.kind === "string";
+
+const parseControllerCommand = (value: unknown): ControllerCommand | null => {
+  if (!isRecord(value) || value.kind !== "controller-command" || typeof value.sourceChannelToken !== "string") return null;
+  if (!isRecord(value.permit) || !isBrowserCommandPermit(value.permit)) return null;
+  if (!isRecord(value.command) || !isBrowserGovernedCommand(value.command)) return null;
+  return {
+    kind: "controller-command",
+    sourceChannelToken: value.sourceChannelToken,
+    permit: value.permit,
+    command: value.command,
+  };
+};
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const browserErrorCode = (error: unknown): string => error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message) ? error.message : "BROWSER_HOST_UNAVAILABLE";

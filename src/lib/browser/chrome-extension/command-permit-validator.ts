@@ -41,34 +41,44 @@ export const clearExtensionPermitAuthority = (): void => {
   currentAuthority = null;
 };
 
+const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean => [
+  permit.permitRef,
+  permit.authorityRef,
+  permit.targetLeaseRef,
+  permit.targetRef,
+  permit.documentRef,
+  permit.capabilityId,
+  permit.commandId,
+  permit.replyChannelToken,
+].every(Boolean);
+
+const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => permit.authorityEpoch >= 1
+  && Number.isInteger(permit.sequence)
+  && permit.sequence >= 1
+  && Date.parse(permit.deadlineAt) > Date.now()
+  && isHash(permit.certificateHash)
+  && isHash(permit.activationTupleHash)
+  && isHash(permit.executionBindingHash)
+  && isHash(permit.commandFrameMac);
+
+const hasValidPermitShape = (permit: ExtensionCommandPermit): boolean => hasRequiredPermitReferences(permit)
+  && hasValidPermitMetadata(permit);
+
+const matchesPermitAuthority = (
+  permit: ExtensionCommandPermit,
+  authority: ExtensionPermitAuthorityContext,
+): boolean => permit.authorityRef === authority.authorityRef
+  && permit.authorityEpoch === authority.authorityEpoch
+  && permit.certificateHash === authority.certificateHash
+  && permit.activationTupleHash === authority.activationTupleHash
+  && permit.executionBindingHash === authority.executionBindingHash;
+
 export async function assertExtensionCommandPermit(permit: ExtensionCommandPermit): Promise<void> {
-  if (
-    !permit.permitRef
-    || !permit.authorityRef
-    || !permit.targetLeaseRef
-    || !permit.targetRef
-    || !permit.documentRef
-    || !permit.capabilityId
-    || !permit.commandId
-    || !permit.replyChannelToken
-    || permit.authorityEpoch < 1
-    || !Number.isInteger(permit.sequence)
-    || permit.sequence < 1
-    || Date.parse(permit.deadlineAt) <= Date.now()
-    || !isHash(permit.certificateHash)
-    || !isHash(permit.activationTupleHash)
-    || !isHash(permit.executionBindingHash)
-    || !isHash(permit.commandFrameMac)
-  ) {
+  if (!hasValidPermitShape(permit)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   const authority = currentAuthority;
-  if (!authority
-    || permit.authorityRef !== authority.authorityRef
-    || permit.authorityEpoch !== authority.authorityEpoch
-    || permit.certificateHash !== authority.certificateHash
-    || permit.activationTupleHash !== authority.activationTupleHash
-    || permit.executionBindingHash !== authority.executionBindingHash
+  if (!authority || !matchesPermitAuthority(permit, authority)
     || !await hasValidPermitMac(permit, authority.commandPermitKey)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }

@@ -3,36 +3,49 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 
 type DevToolsRecord = Record<string, unknown>;
+type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
+type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
+type ValueIntent = Exclude<BrowserDomIntent, { kind: "document" | "find" | "click" }>;
 
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
-export const executeRegisteredDomIntent = async (
+const executeFindIntent = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-  intent: BrowserDomIntent,
+  intent: FindIntent,
 ): Promise<unknown> => {
-  if (intent.kind === "document") return documentState(debuggerRuntime, target.tabId);
-  if (intent.kind === "find") {
-    const selector = intent.selector ?? selectorForLocator(intent.locator!);
-    const candidates = await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1);
-    const nodes = intent.textContains === undefined
-      ? candidates
-      : await nodesContainingText(debuggerRuntime, target.tabId, candidates, intent.textContains);
-    if (nodes.length > intent.maxMatches) throw new Error("BROWSER_TARGET_INVALID");
-    return { count: nodes.length };
-  }
-  if (intent.kind === "click") {
-    const nodes = await queryAll(debuggerRuntime, target.tabId, intent.selector, (intent.expectedMatches ?? 1) + 1);
-    const matchingNodes = intent.expectedText === undefined
-      ? nodes
-      : await nodesContainingText(debuggerRuntime, target.tabId, nodes, intent.expectedText);
-    if (matchingNodes.length !== (intent.expectedMatches ?? 1)) throw new Error("BROWSER_TARGET_INVALID");
-    const nodeId = matchingNodes[0];
-    if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
-    const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
-    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
-    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
-    return { clicked: true };
-  }
+  const selector = intent.selector ?? selectorForLocator(intent.locator!);
+  const candidates = await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1);
+  const nodes = intent.textContains === undefined
+    ? candidates
+    : await nodesContainingText(debuggerRuntime, target.tabId, candidates, intent.textContains);
+  if (nodes.length > intent.maxMatches) throw new Error("BROWSER_TARGET_INVALID");
+  return { count: nodes.length };
+};
+
+const executeClickIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ClickIntent,
+): Promise<unknown> => {
+  const expectedMatches = intent.expectedMatches ?? 1;
+  const nodes = await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1);
+  const matchingNodes = intent.expectedText === undefined
+    ? nodes
+    : await nodesContainingText(debuggerRuntime, target.tabId, nodes, intent.expectedText);
+  if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
+  const nodeId = matchingNodes[0];
+  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
+  const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
+  await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
+  await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
+  return { clicked: true };
+};
+
+const executeValueIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ValueIntent,
+): Promise<unknown> => {
   const nodeId = intent.kind === "readText" || intent.kind === "readAttribute"
     ? await nodeForRead(debuggerRuntime, target.tabId, intent)
     : await nodeForSelector(debuggerRuntime, target.tabId, intent.selector, intent.kind === "fill" ? intent.expectedMatches ?? 1 : 1);
@@ -46,6 +59,17 @@ export const executeRegisteredDomIntent = async (
   }
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
   return { filled: true };
+};
+
+export const executeRegisteredDomIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: BrowserDomIntent,
+): Promise<unknown> => {
+  if (intent.kind === "document") return documentState(debuggerRuntime, target.tabId);
+  if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
+  if (intent.kind === "click") return executeClickIntent(debuggerRuntime, target, intent);
+  return executeValueIntent(debuggerRuntime, target, intent);
 };
 
 const nodeForSelector = async (runtime: ExtensionDebuggerRuntime, tabId: number, selector: string, expectedMatches: number): Promise<number> => {
@@ -131,25 +155,53 @@ const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId
   return new DOMParser().parseFromString(outerHtml, "text/html").body.textContent ?? "";
 };
 
+const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unknown>> = {
+  tagName: (node) => stringValue(node.nodeName, "BROWSER_TARGET_INVALID"),
+  type: (node) => attribute(node, "type") ?? "",
+  role: (node) => attribute(node, "role") ?? "",
+  ariaLabel: (node) => attribute(node, "aria-label") ?? "",
+  value: (node) => attribute(node, "value") ?? "",
+  accept: (node) => attribute(node, "accept") ?? "",
+  multiple: (node) => attribute(node, "multiple") !== undefined,
+  connected: () => true,
+  disabled: (node) => attribute(node, "disabled") !== undefined,
+};
+
+const inspectStaticField = (
+  node: DevToolsRecord,
+  field: string,
+  result: Record<string, unknown>,
+): boolean => {
+  const reader = staticFieldReaders[field];
+  if (!reader) return false;
+  result[field] = reader(node);
+  return true;
+};
+
+const inspectGeometryField = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeId: number,
+  field: string,
+  result: Record<string, unknown>,
+): Promise<boolean> => {
+  if (field !== "visible" && field !== "bounds") return false;
+  const box = await boxCenter(runtime, tabId, nodeId).catch(() => null);
+  if (field === "visible") result.visible = box !== null;
+  if (field === "bounds") result.bounds = box;
+  return true;
+};
+
 const inspectNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number, fields: readonly string[]): Promise<Readonly<Record<string, unknown>>> => {
   const node = await describeNode(runtime, tabId, nodeId);
   const result: Record<string, unknown> = {};
   for (const field of fields) {
-    if (field === "tagName") result.tagName = stringValue(node.nodeName, "BROWSER_TARGET_INVALID");
-    if (field === "type") result.type = attribute(node, "type") ?? "";
-    if (field === "role") result.role = attribute(node, "role") ?? "";
-    if (field === "ariaLabel") result.ariaLabel = attribute(node, "aria-label") ?? "";
-    if (field === "text") result.text = await nodeText(runtime, tabId, nodeId);
-    if (field === "value") result.value = attribute(node, "value") ?? "";
-    if (field === "accept") result.accept = attribute(node, "accept") ?? "";
-    if (field === "multiple") result.multiple = attribute(node, "multiple") !== undefined;
-    if (field === "connected") result.connected = true;
-    if (field === "disabled") result.disabled = attribute(node, "disabled") !== undefined;
-    if (field === "visible" || field === "bounds") {
-      const box = await boxCenter(runtime, tabId, nodeId).catch(() => null);
-      if (field === "visible") result.visible = box !== null;
-      if (field === "bounds") result.bounds = box;
+    if (field === "text") {
+      result.text = await nodeText(runtime, tabId, nodeId);
+      continue;
     }
+    if (inspectStaticField(node, field, result)) continue;
+    await inspectGeometryField(runtime, tabId, nodeId, field, result);
   }
   return result;
 };
