@@ -115,6 +115,9 @@ export const publishXuanxueAiProductionCloudOrder = async (input: {
     recoverable,
     localOrderId: input.record.order.orderId,
   });
+  if (!recoverable) {
+    await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
+  }
 };
 
 export { attachmentCheckpoint as toXuanxueAiProductionAttachmentCheckpoint };

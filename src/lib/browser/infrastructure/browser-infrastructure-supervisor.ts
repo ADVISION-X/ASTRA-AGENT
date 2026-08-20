@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
+import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import type {
   BrowserAuthorityBroker,
   BrowserAuthorityStatus,
@@ -40,6 +41,7 @@ type SupervisorInput = Readonly<{
   ownerLockHelperPath: string;
   approvedArtifactRoots: readonly string[];
   fenceValidator: BrowserExecutionFenceValidator;
+  runtimeLogger: RuntimeLogger;
 }>;
 
 /**
@@ -141,6 +143,7 @@ export class BrowserInfrastructureSupervisorImpl implements BrowserInfrastructur
       release: this.input.release,
       expectedHostBinaryHash:
         this.input.release.artifactSet.nativeHostBinaryHash,
+      runtimeLogger: this.input.runtimeLogger,
       acceptingConnections: (): boolean =>
         !this.stopped && this.actor === actor,
       onAuthoritySlotChanged: () => this.publish(),

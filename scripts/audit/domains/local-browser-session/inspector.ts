@@ -10,6 +10,8 @@ import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectBrowserAuthorityCore } from "./browser-authority-core-inspector.js";
 import {
   addBrowserFinding,
+  requireAstFacts,
+  requireAstSource,
   type BrowserLawBinding,
 } from "./browser-authority-inspector-support.js";
 import { inspectBrowserAuthorityRelease } from "./browser-authority-release-inspector.js";
@@ -36,14 +38,21 @@ const laws = {
     lawId: "APEX-LOCAL-BROWSER-005-V1",
     clauseId: "apex-local-browser-005-v1-release-identity",
   },
+  crossRepo: {
+    lawId: "APEX-LOCAL-BROWSER-006-V1",
+    clauseId: "apex-local-browser-006-v1-cross-repo-fence-proof",
+  },
 } as const satisfies Readonly<Record<string, BrowserLawBinding>>;
 
 const requiredFiles = [
   "src/lib/browser/browser-controller.ts",
   "src/lib/browser/current-chrome-browser-controller.ts",
   "src/lib/browser/current-chrome-browser-controller-runtime.ts",
-  "src/lib/browser/authority/browser-authority-certificate.ts",
-  "src/lib/browser/authority/browser-authority-issuer.ts",
+  "src/lib/browser/browser-authority-api.ts",
+  "src/lib/browser/infrastructure/browser-authority-certificate.ts",
+  "src/lib/browser/infrastructure/browser-authority-issuer.ts",
+  "src/lib/browser/infrastructure/browser-authority-broker.ts",
+  "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
   "src/lib/browser/profile/browser-profile-enrollment.ts",
   "src/lib/browser/profile/browser-profile-config.ts",
   "src/lib/browser/profile/browser-process-supervisor.ts",
@@ -51,19 +60,28 @@ const requiredFiles = [
   "src/lib/browser/release/browser-activation-receipt.ts",
   "src/lib/browser/release/browser-runtime-env.mjs",
   "src/lib/browser/release/extension-tree-sha256.mjs",
-  "src/lib/browser/transport/browser-session-crypto.ts",
+  "src/lib/browser/transport/transport-frame-crypto.ts",
   "src/lib/browser/transport/command-permit.ts",
-  "src/lib/browser/exact-target/browser-command-runtime.ts",
+  "src/lib/browser/exact-target/browser-command-actor.ts",
+  "src/lib/browser/exact-target/browser-target-lease.ts",
+  "src/lib/browser/exact-target/browser-target-lease-manager.ts",
   "src/lib/browser/exact-target/browser-command-contract.ts",
-  "src/lib/browser/exact-target/browser-native-transport-server.ts",
   "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
   "src/lib/browser/exact-target/browser-target-ref.ts",
   "src/lib/browser/exact-target/browser-target-registry.ts",
   "src/lib/browser/chrome-extension/manifest.json",
-  "src/lib/browser/chrome-extension/protocol.ts",
+  "src/lib/browser/protocol/browser-protocol.schema.json",
+  "src/lib/browser/protocol/browser-capability-registry.json",
+  "src/lib/browser/protocol/generated/browser-protocol.ts",
+  "src/lib/browser/protocol/generated/browser-protocol-capability-map.ts",
+  "src/lib/browser/protocol/generated/browser-protocol-message-validator.ts",
   "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
+  "src/lib/browser/chrome-extension/service-worker-native-port-actor.ts",
   "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
   "src/lib/browser/chrome-extension/service-worker.ts",
+  "src/lib/browser/transport/transport-actor.ts",
+  "src/lib/browser/transport/transport-authenticator.ts",
+  "src/lib/browser/transport/transport-reducer.ts",
   "src/lib/browser/native-messaging-host/Cargo.toml",
   "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
   "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs",
@@ -75,6 +93,7 @@ const requiredFiles = [
   "src/lib/local-runtime/workbench-status.ts",
   "src/lib/local-runtime/workbench.ts",
   "src/app/server.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts",
 ] as const;
 
 const inspectRequiredFiles = (findings: InspectorFinding[]): void => {
@@ -88,6 +107,55 @@ const inspectRequiredFiles = (findings: InspectorFinding[]): void => {
       "required Browser Authority production file is missing",
     );
   }
+};
+
+const inspectCrossRepoProof = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+): void => {
+  const checkId = "browser-cross-repo/authority-proof-v2";
+  const proofPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts";
+  const proof = requireAstSource(context, findings, checkId, laws.crossRepo, proofPath);
+  if (proof) requireAstFacts({
+    source: proof,
+    findings,
+    checkId,
+    law: laws.crossRepo,
+    filePath: proofPath,
+    identifiers: [
+      "AgentBrowserAuthorityWindowProofV2",
+      "AgentBrowserAuthorityProofV2",
+      "AgentRuntimeReceiptV2",
+      "produceAgentBrowserAuthorityProofV2",
+      "createAgentRuntimeReceiptV2",
+      "windows",
+      "worker_execution_fence_hash",
+      "authority_certificate_hash",
+      "action_receipt_subtree_hash",
+      "no_action_during_authority_absence",
+      "unresolved_outcome_unknown_count",
+    ],
+    strings: [
+      "xuanxue-agent-browser-authority-proof-v2",
+      "xuanxue-agent-runtime-receipt-v2",
+      "CHECKPOINT_HANDOVER",
+      "OUTCOME_UNKNOWN",
+    ],
+  });
+  const facadePath = "src/plugins/xuanxue-ai-production/index.ts";
+  const facade = requireAstSource(context, findings, checkId, laws.crossRepo, facadePath);
+  if (facade) requireAstFacts({
+    source: facade,
+    findings,
+    checkId,
+    law: laws.crossRepo,
+    filePath: facadePath,
+    identifiers: [
+      "createAgentRuntimeReceiptV2",
+      "produceAgentBrowserAuthorityProofV2",
+      "AgentRuntimeReceiptV2",
+    ],
+  });
 };
 
 const inspectDomainEvaluation = (
@@ -106,6 +174,7 @@ const inspectDomainEvaluation = (
   inspectRequiredFiles(findings);
   inspectBrowserAuthorityCore(context, findings, laws);
   inspectBrowserAuthorityRelease(context, findings, laws);
+  inspectCrossRepoProof(context, findings);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -150,27 +219,19 @@ export const inspectDomain = async (
     evidenceRefs: [context.planEntry.ownerInspectorPath, "src/lib/browser/browser-authority-api.ts"],
   }));
   await context.checks.run("browser-cross-repo/authority-proof-v2", async () => ({
-    findings: [
-      addCrossRepoProofFinding(),
+    findings: byClause(laws.crossRepo.lawId, laws.crossRepo.clauseId),
+    evidenceRefs: [
+      context.planEntry.ownerInspectorPath,
+      "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts",
+      "src/plugins/xuanxue-ai-production/index.ts",
     ],
-    evidenceRefs: [context.planEntry.ownerInspectorPath],
   }));
   const reportJson = {
-    status: "FAIL",
+    status: evaluation.findings.length === 0 ? "PASS" : "FAIL",
     findings: [
       ...evaluation.findings,
       ...inspectRetiredBrowserPaths(laws.exact.lawId, laws.exact.clauseId),
-      addCrossRepoProofFinding(),
     ],
   };
   return context.checks.output({ ...(reportJson === undefined ? {} : { reportJson }) });
 };
-
-const addCrossRepoProofFinding = (): InspectorFinding => ({
-  checkId: "browser-cross-repo/authority-proof-v2",
-  lawId: "APEX-LOCAL-BROWSER-006-V1",
-  clauseId: "apex-local-browser-006-v1-cross-repo-fence-proof",
-  severity: "fatal",
-  filePath: "src/plugins/xuanxue-ai-production",
-  message: "Browser Authority Proof V2 has no AGENT producer or single AgentRuntimeReceipt integration.",
-});

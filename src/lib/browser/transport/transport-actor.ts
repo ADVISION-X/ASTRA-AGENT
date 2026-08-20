@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import net from "node:net";
 import path from "node:path";
 
+import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import type { BrowserChromeProcessAttestation } from "../profile/browser-profile-process-attestation.js";
 import type { BrowserManagedPolicyReadbackV1 } from "../profile/managed-policy-readback.js";
 import type { VerifiedBrowserReleaseBinding } from "../release/browser-release-contract.js";
@@ -67,6 +68,7 @@ export class TransportActor {
       managedPolicy: BrowserManagedPolicyReadbackV1;
       release: VerifiedBrowserReleaseBinding;
       expectedHostBinaryHash: `sha256:${string}`;
+      runtimeLogger: RuntimeLogger;
       acceptingConnections(): boolean;
       onAuthoritySlotChanged(): void;
       onDisconnected(reason: string): void;
@@ -113,16 +115,13 @@ export class TransportActor {
         terminate: (reason) => this.terminate(reason),
       },
       this.artifacts,
+      input.runtimeLogger,
     );
   }
 
-  controlState(): BrowserTransportReducerState["controlState"] {
-    return this.runtime.state.controlState;
-  }
+  controlState(): BrowserTransportReducerState["controlState"] { return this.runtime.state.controlState; }
 
-  authoritySlot() {
-    return this.authenticator.issuer.slot();
-  }
+  authoritySlot() { return this.authenticator.issuer.slot(); }
 
   requireAuthority(): AuthenticatedBrowserAuthority {
     return this.authenticator.requireCurrent();

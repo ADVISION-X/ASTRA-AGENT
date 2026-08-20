@@ -1,4 +1,4 @@
-generatedAt: "2026-08-20T10:34:22.670Z"
+generatedAt: "2026-08-20T12:42:58.048Z"
 rows:
   - capabilityDomain: "ai-input-gateway"
     manifestPath: "scripts/audit/domains/ai-input-gateway/manifest.json"
@@ -303,3 +303,4 @@ rows:
       - "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5"
       - "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2"
       - "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1"
+      - "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1"

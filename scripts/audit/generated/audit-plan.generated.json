@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T10:34:22.670Z",
+  "generatedAt": "2026-08-20T12:42:58.048Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -3777,7 +3777,8 @@
         "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
         "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
         "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1"
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
+        "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1"
       ],
       "bindings": [
         {
@@ -3839,6 +3840,20 @@
         {
           "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
           "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
+          "checkIds": [
+            "xuanxue-ai-production/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "acceptance"
+        },
+        {
+          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1",
+          "clauseId": "grasseye-xuanxue-ai-production-005-v1-transient-lifecycle",
           "checkIds": [
             "xuanxue-ai-production/owner-assertion-set"
           ],

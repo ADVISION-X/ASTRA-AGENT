@@ -12,29 +12,14 @@ import { toRepoPath } from "../../shared/paths.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { isAuthorizedRuntimeLogHelperPath } from "./runtime-log-scope.js";
 
-const browserActionMethods: ReadonlySet<string> = new Set([
-  "open",
-  "scroll",
-  "click",
-  "move",
-  "clickLocatedDomElement",
-  "textInput",
-  "evaluate",
-  "setFileInputFiles",
-  "screenshotRegion",
-  "closeTarget",
-  "close",
-]);
+const browserActionMethods: ReadonlySet<string> = new Set(["command"]);
 
 const terminalBrowserEvents = new Set(["BROWSER_ACTION_COMPLETED", "BROWSER_ACTION_FAILED", "BROWSER_ACTION_RESULT"]);
 const centralLogHelperPath = "src/lib/browser/current-chrome-browser-action-logging.ts";
-const currentChromeControllerPath = "src/lib/browser/current-chrome-browser-controller.ts";
-const currentChromeRuntimePath = "src/lib/browser/current-chrome-browser-controller-runtime.ts";
-const exactBrowserRuntimePath = "src/lib/browser/exact-target/browser-command-runtime.ts";
-const exactBrowserTargetSessionPath = "src/lib/browser/exact-target/exact-browser-target-session.ts";
+const browserCommandActorPath = "src/lib/browser/exact-target/browser-command-actor.ts";
 const workbenchBrowserSupportPath = "src/lib/local-runtime/workbench-browser-support.ts";
 const workbenchAssemblyPath = "src/lib/local-runtime/workbench-assembly.ts";
-const browserControllerPath = "src/lib/browser/browser-controller.ts";
+const browserControllerPath = browserCommandActorPath;
 
 export const collectBrowserActionLogContractFindings = (context: InspectorContext): {
   findings: RuntimeLogSpineFinding[];
@@ -59,7 +44,6 @@ export const collectBrowserActionLogContractFindings = (context: InspectorContex
   }
 
   for (const { file, calls } of actionFiles) {
-    if (toRepoPath(file.getFilePath()) === currentChromeControllerPath) continue;
     const governedCalls = calls.filter(hasCallerBrowserActionId);
     if (governedCalls.length === 0) continue;
     const missing = missingGovernedBrowserLogContract(file, governedCalls);
@@ -80,10 +64,7 @@ export const collectBrowserActionLogContractFindings = (context: InspectorContex
     inspectedFiles: [...new Set([
       ...actionFiles.map(({ file }) => toRepoPath(file.getFilePath())),
       centralLogHelperPath,
-      currentChromeControllerPath,
-      currentChromeRuntimePath,
-      exactBrowserRuntimePath,
-      exactBrowserTargetSessionPath,
+      browserCommandActorPath,
       workbenchBrowserSupportPath,
       workbenchAssemblyPath,
     ])].sort(),
@@ -93,10 +74,7 @@ export const collectBrowserActionLogContractFindings = (context: InspectorContex
 function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   const source = (repoPath: string) => context.project.getSourceFiles().find((file) => toRepoPath(file.getFilePath()) === repoPath);
   const helper = source(centralLogHelperPath);
-  const controller = source(currentChromeControllerPath);
-  const controllerRuntime = source(currentChromeRuntimePath);
-  const exactRuntime = source(exactBrowserRuntimePath);
-  const exactTargetSession = source(exactBrowserTargetSessionPath);
+  const browserCommandActor = source(browserCommandActorPath);
   const browserSupport = source(workbenchBrowserSupportPath);
   const assembly = source(workbenchAssemblyPath);
   const missing: string[] = [];
@@ -112,10 +90,26 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   for (const property of ["capabilityCallId", "beforeHash", "afterHash", "durationMs", "actionResult", "failureClass", "fallbackUsed"]) {
     if (!propertyNames.has(property)) missing.push(`central-field:${property}`);
   }
-  inspectExactRuntimeLogging(controller, controllerRuntime, exactRuntime, exactTargetSession, missing);
-  const browserFactoryCall = browserSupport?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
-    symbolHasDeclarationAt(call.getExpression().getSymbol(), currentChromeControllerPath));
-  if (!browserFactoryCall?.getArguments().some(isRuntimeLoggerReference)) {
+  const actorClass = browserCommandActor?.getClass("BrowserCommandActor");
+  const actorCommand = actorClass?.getMethod("command");
+  const actorConstructor = actorClass?.getConstructors()[0];
+  if (!actorClass || !actorCommand) {
+    missing.push("browser-command-actor:command");
+  } else {
+    const delegatesToCentralHelper = actorCommand.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+      symbolDeclarations(call.getExpression().getSymbol()).some((declaration) =>
+        toRepoPath(declaration.getSourceFile().getFilePath()) === centralLogHelperPath
+        && declaration.getSymbol()?.getName() === "runLoggedBrowserValueAction"));
+    if (!delegatesToCentralHelper) missing.push("browser-command-actor:central-log-helper-delegate");
+  }
+  if (!actorConstructor?.getParameters().some((parameter) => parameter.getName() === "runtimeLogger")) {
+    missing.push("browser-command-actor:runtime-logger-injection");
+  }
+  const browserFactoryCall = browserSupport?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
+    expression.getExpression().getText() === "BrowserInfrastructureSupervisorImpl");
+  const browserFactoryInput = browserFactoryCall?.getArguments()[0];
+  if (!Node.isObjectLiteralExpression(browserFactoryInput)
+    || !browserFactoryInput.getProperties().some((property) => property.getName() === "runtimeLogger")) {
     missing.push("workbench-browser:runtime-logger-injection");
   }
   const assemblyCall = assembly?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
@@ -184,68 +178,6 @@ function missingGovernedBrowserLogContract(file: SourceFile, governedCalls: Call
     if (!terminal.some(({ object }) => hasNestedProperty(object, property))) missing.push(property);
   }
   return missing;
-}
-
-function inspectExactRuntimeLogging(
-  controller: SourceFile | undefined,
-  controllerRuntime: SourceFile | undefined,
-  exactRuntime: SourceFile | undefined,
-  exactTargetSession: SourceFile | undefined,
-  missing: string[],
-): void {
-  const controllerDeclaration = controller?.getClass("CurrentChromeBrowserController");
-  if (!controllerDeclaration) missing.push("controller-class:CurrentChromeBrowserController");
-  const controllerFactoryCall = controllerDeclaration?.getStaticMethod("create")
-    ?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
-    symbolHasDeclarationAt(call.getExpression().getSymbol(), currentChromeRuntimePath));
-  if (!controllerFactoryCall?.getArguments().some(isRuntimeLoggerReference)) {
-    missing.push("controller:runtime-logger-forwarding");
-  }
-
-  const commandRuntimeFactoryCall = controllerRuntime?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
-    symbolHasDeclarationAt(call.getExpression().getSymbol(), exactBrowserRuntimePath));
-  if (!commandRuntimeFactoryCall?.getArguments().some((argument) =>
-    isRuntimeLoggerReference(argument)
-    || argument.getDescendantsOfKind(SyntaxKind.Identifier).some(isRuntimeLoggerReference))) {
-    missing.push("controller-runtime:runtime-logger-forwarding");
-  }
-
-  const runtimeDeclaration = exactRuntime?.getClass("BrowserCommandRuntime");
-  if (!runtimeDeclaration) {
-    missing.push("exact-runtime-class:BrowserCommandRuntime");
-    return;
-  }
-  const loggedMethod = runtimeDeclaration.getMethod("logged");
-  const delegatesToCentralHelper = loggedMethod?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    symbolDeclarations(call.getExpression().getSymbol()).some((declaration) =>
-      toRepoPath(declaration.getSourceFile().getFilePath()) === centralLogHelperPath
-      && declaration.getSymbol()?.getName() === "runLoggedBrowserValueAction"));
-  if (!delegatesToCentralHelper) missing.push("exact-runtime:central-log-helper-delegate");
-
-  const targetSession = exactTargetSession?.getClass("ExactBrowserTargetSession");
-  const transportCalls = targetSession?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(isTransportCommandCall) ?? [];
-  if (transportCalls.length === 0) missing.push("exact-target-session:transport-command");
-  for (const call of transportCalls) {
-    const method = call.getFirstAncestor(Node.isMethodDeclaration);
-    if (method?.getName() === "loggedTransportCommand") continue;
-    const enclosingLoggedCall = call.getAncestors().find(isLoggedCall);
-    if (!enclosingLoggedCall) {
-      missing.push(`exact-target-session:unlogged-transport-command:${call.getStartLineNumber()}`);
-    }
-  }
-}
-
-function isLoggedCall(node: Node): boolean {
-  if (!Node.isCallExpression(node)) return false;
-  const expression = node.getExpression();
-  return Node.isPropertyAccessExpression(expression) && expression.getName() === "logged";
-}
-
-function isTransportCommandCall(call: CallExpression): boolean {
-  const expression = call.getExpression();
-  if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "command") return false;
-  const receiver = expression.getExpression();
-  return Node.isPropertyAccessExpression(receiver) && receiver.getName() === "transport";
 }
 
 function calledAuthorizedHelperUsesBrowserActionId(call: CallExpression, expectedExpression: Node): boolean {

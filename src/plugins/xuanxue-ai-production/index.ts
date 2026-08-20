@@ -28,3 +28,10 @@ export type {
   XuanxueAiProductionCloudWorkerHandle,
 } from "./xuanxue-ai-production-cloud-contract.js";
 export { createXuanxueAiProductionWorkbenchOwner } from "./xuanxue-ai-production.workbench-owner.js";
+export {
+  createAgentRuntimeReceiptV2,
+  produceAgentBrowserAuthorityProofV2,
+  type AgentBrowserAuthorityProofV2,
+  type AgentBrowserAuthorityWindowProofV2,
+  type AgentRuntimeReceiptV2,
+} from "./xuanxue-ai-production-browser-proof.js";

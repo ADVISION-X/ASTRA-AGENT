@@ -17,7 +17,7 @@ import {
   GRASSEYE_BROWSER_PROTOCOL_VERSION,
   GRASSEYE_BROWSER_RELEASE_IDENTITY,
   type BrowserWireMessage,
-} from "./browser-native-transport-protocol.js";
+} from "../protocol/generated/browser-protocol.js";
 import { BrowserTerminalError } from "./browser-command-contract.js";
 import type { BrowserNativeConnectionState } from "./browser-native-transport-server.js";
 

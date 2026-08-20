@@ -349,3 +349,11 @@ worker/store/coordinator 状态留在 plugin owner 内，mediator 不保存状�
 - 证明活动数据库只存在 v4 账本，不存在旧协议表、旧订单、迁移消费者或兼容读取路径；v4
   hash 格式或字节身份损坏直接失败关闭，不允许启动修复桥。
 - 审计云端领取只使用剩余容量，生产工厂不存在第二云端执行片区。
+
+## Transient Material Lifecycle
+
+承接 `GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1`。本地目录只有两类：`cloud-staging/<cloud-job>` 保存当前 lease 下载且已 hash/byte 验证的输入；`generated-inputs/<local-order>/<target-stage>` 保存从已持久化 raw response 机械生成的后继附件。二者都不是 canonical material、缓存、历史回放真相或本地 legacy resolver。
+
+`cloud-staging` 仅在 cloud confirmed completion 或同一 job 的可恢复状态已经拥有 durable checkpoint、lease 与重建来源后清理；`generated-inputs` 必须在对应 target stage 的终结处或 order 终结处清理。restart 只能清理无有效 lease 且可从 cloud/SQLite exact 重建的 orphan。无法证明 durable truth、lease 或重建来源时必须保留并报告，不能猜删。
+
+`xuanxue-ai-production-cloud-worker.ts` 调用同一 transient lifecycle；`feed.ts` 与 typed join 只写其 target-stage 目录；`ai-input-gateway` 的 upload attempt staging 维持既有 finally cleanup，插件不得修改或接管。agent stage download 只消费网站 lease-bound canonical object ref，禁止读取或猜测 legacy R2 key。

@@ -45,6 +45,21 @@ naming_from_existing_bazi_report
 }
 ```
 
+```apex-law
+{
+  "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "xuanxue-ai-production",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance",
+  "summary": "The local factory treats cloud-staging and generated-inputs as lease-bound, reconstructible transient bytes; every terminal path cleans them only after durable truth exists, and stage download consumes the cloud canonical material identity without a local legacy-key reader.",
+  "required": ["Cloud staging is hash and byte verified before local use.", "generated-inputs are scoped to one order and target stage and can be rebuilt from durable checkpoints.", "success, failed, review_required, recovery_pending and restart each have an explicit cleanup or retention decision.", "Gateway attachment attempt staging remains owned by ai-input-gateway finally cleanup."],
+  "forbidden": ["long-lived generated input cache", "cleanup daemon or second local lifecycle owner", "local legacy object key resolution", "deleting transient bytes before durable checkpoint and lease facts exist", "changing ai-input-gateway cleanup ownership"],
+  "clauses": [{"clauseId": "grasseye-xuanxue-ai-production-005-v1-transient-lifecycle", "statement": "The plugin owns only its transient material lifecycle and never becomes a second material store, resolver, GC or provider attachment owner.", "evidenceMode": "acceptance", "ownerDomain": "xuanxue-ai-production"}]
+}
+```
+
 可复用基础工作使用三种内部订单，不计入网站 14 个产品：
 
 ```txt

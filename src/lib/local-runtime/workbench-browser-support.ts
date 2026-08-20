@@ -55,7 +55,7 @@ const unavailable = (reasonCode: string): WorkbenchBrowserAuthority => {
 export async function createWorkbenchBrowserAuthority(
   _options: GrassEyeWorkbenchOptions,
   dataDir: string,
-  _runtimeLogger: RuntimeLogger,
+  runtimeLogger: RuntimeLogger,
 ): Promise<WorkbenchBrowserAuthority> {
   const publicKeyPem = process.env.GRASSEYE_BROWSER_RELEASE_PUBLIC_KEY_PEM?.trim();
   if (!publicKeyPem) return unavailable("BROWSER_RELEASE_PUBLIC_KEY_REQUIRED");
@@ -85,6 +85,7 @@ export async function createWorkbenchBrowserAuthority(
           }
         },
       },
+      runtimeLogger,
     });
     const broker = await supervisor.bootstrap();
     let authorityLease: AuthenticatedBrowserAuthorityLease | null = null;

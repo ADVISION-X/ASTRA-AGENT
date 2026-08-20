@@ -7,14 +7,17 @@ import type {
   BrowserOpenResult,
   BrowserTargetSession,
 } from "../browser-controller.js";
-import type { BrowserWireTargetDescriptor } from "../chrome-extension/protocol.js";
+import type {
+  BrowserWireCommand,
+  BrowserWireTargetDescriptor,
+} from "../protocol/generated/browser-protocol.js";
 import type { BrowserNativeTransportServer } from "./browser-native-transport-server.js";
 import { BrowserTerminalError, type BrowserMutationClass } from "./browser-command-contract.js";
 import { toBrowserEvaluationExpression } from "./browser-evaluation-contract.js";
 import type { ControlledBrowserTarget } from "./browser-target-ref.js";
 import type { AuthorityBinding, BrowserCommandRuntime } from "./browser-command-runtime.js";
 
-type TargetedWireCommand = Exclude<import("../chrome-extension/protocol.js").BrowserWireCommand, { kind: "acquire_target" }>;
+type TargetedWireCommand = Exclude<BrowserWireCommand, { kind: "acquire_target" }>;
 type WithoutTab<T> = T extends { tabId: number } ? Omit<T, "tabId"> : never;
 type SessionWireCommand = WithoutTab<TargetedWireCommand>;
 
@@ -420,7 +423,7 @@ export class ExactBrowserTargetSession implements BrowserTargetSession {
     let response: { result: T };
     try {
       response = await this.loggedTransportCommand<T>({
-        command: { ...command, tabId: entry.descriptor.tabId } as import("../chrome-extension/protocol.js").BrowserWireCommand,
+        command: { ...command, tabId: entry.descriptor.tabId } as BrowserWireCommand,
         expectedLoaderId: entry.descriptor.loaderId,
         mutationClass,
         ...(signal ? { abortSignal: signal } : {}),

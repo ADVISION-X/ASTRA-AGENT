@@ -7,7 +7,7 @@ import {
   encryptBrowserFrame,
 } from "../transport/browser-session-crypto.js";
 import {
-  GRASSEYE_BROWSER_HOST_TO_EXTENSION_MAX_BYTES,
+  GRASSEYE_BROWSER_HOST_TO_EXTENSION_CONTROL_MAX_BYTES,
   GRASSEYE_BROWSER_PROTOCOL_VERSION,
   GRASSEYE_BROWSER_RELEASE_IDENTITY,
   type BrowserWireCommand,
@@ -15,7 +15,7 @@ import {
   type BrowserWireMessage,
   type BrowserWireMutationClass,
   type BrowserWireResponsePayload,
-} from "./browser-native-transport-protocol.js";
+} from "../protocol/generated/browser-protocol.js";
 import {
   BrowserTerminalError,
   type BrowserMutationClass,
@@ -161,7 +161,7 @@ export class BrowserNativeCommandChannel {
       JSON.stringify(prepared.frame),
       "utf8",
     );
-    if (frameBytes > GRASSEYE_BROWSER_HOST_TO_EXTENSION_MAX_BYTES) {
+    if (frameBytes > GRASSEYE_BROWSER_HOST_TO_EXTENSION_CONTROL_MAX_BYTES) {
       throw new BrowserTerminalError(
         "TRANSPORT_DISCONNECTED",
         "browser command frame exceeds Host-to-Extension control budget",

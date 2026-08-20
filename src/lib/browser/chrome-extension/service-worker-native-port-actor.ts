@@ -8,12 +8,12 @@ import {
   GRASSEYE_BROWSER_PROTOCOL_VERSION,
   GRASSEYE_BROWSER_RELEASE_IDENTITY,
   isBrowserWireMessage,
+  type BrowserWireCommandPayload,
   type BrowserWireMessage,
+  type BrowserWireResponsePayload,
 } from "../protocol/generated/browser-protocol.js";
 import {
   executeCommand,
-  type BrowserWireCommandPayload,
-  type BrowserWireResponsePayload,
 } from "./service-worker-command-execution.js";
 import { clearStagedBrowserArtifacts } from "./service-worker-interaction-commands.js";
 import {

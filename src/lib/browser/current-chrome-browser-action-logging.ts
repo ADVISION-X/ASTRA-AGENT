@@ -8,6 +8,7 @@ import {
 
 type LoggedBrowserActionInput<T> = {
   runtimeLogger?: RuntimeLogger;
+  browserActionId?: string;
   actionKind: string;
   beforeUrl: string;
   readAfterUrl: () => string;
@@ -21,7 +22,7 @@ export function runLoggedBrowserValueAction<T>(
 ): Promise<T> {
   return runLoggedBrowserAction({
     ...input,
-    browserActionId: `browser:${randomUUID()}`,
+    browserActionId: input.browserActionId ?? `browser:${randomUUID()}`,
   });
 }
 

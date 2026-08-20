@@ -8,12 +8,11 @@ import type {
   BrowserAuthoritySnapshot,
 } from "../authority/browser-authority-certificate.js";
 import {
-  GRASSEYE_BROWSER_CONTROLLER_HOST_MAX_MESSAGE_BYTES,
   GRASSEYE_BROWSER_PROTOCOL_VERSION,
   GRASSEYE_BROWSER_RELEASE_IDENTITY,
   isBrowserWireMessage,
   type BrowserWireMessage,
-} from "./browser-native-transport-protocol.js";
+} from "../protocol/generated/browser-protocol.js";
 import { BrowserTerminalError } from "./browser-command-contract.js";
 import { BrowserNativeAuthentication } from "./browser-native-authentication.js";
 import {
@@ -21,6 +20,8 @@ import {
   type BrowserNativeCommandInput,
 } from "./browser-native-command-channel.js";
 import { type BrowserControllerEphemeralKey } from "../transport/browser-session-crypto.js";
+
+const GRASSEYE_BROWSER_CONTROLLER_HOST_MAX_MESSAGE_BYTES = 64 * 1024 * 1024;
 
 type ChallengeState = Readonly<{
   challengeId: string;

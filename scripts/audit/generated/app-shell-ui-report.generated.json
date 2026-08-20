@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T10:35:19.968Z",
+  "generatedAt": "2026-08-20T12:41:39.095Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,14 +20,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:203e0b56-0c69-4001-a7f7-740cac528aed",
+      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:34ec67ec-de24-413a-b7b3-472a51011336",
       "capabilityDomain": "app-shell-ui",
       "checkId": "app-shell-ui/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-20T10:35:19.871Z",
-      "endedAt": "2026-08-20T10:35:19.967Z",
-      "durationMs": 96,
+      "startedAt": "2026-08-20T12:41:38.959Z",
+      "endedAt": "2026-08-20T12:41:39.095Z",
+      "durationMs": 136,
       "evidenceRefs": [
         "scripts/audit/domains/app-shell-ui/inspector.ts"
       ],
@@ -39,13 +39,13 @@
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
       "clauseId": "grasseye-app-shell-ui-001-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:203e0b56-0c69-4001-a7f7-740cac528aed"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:34ec67ec-de24-413a-b7b3-472a51011336"
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
       "clauseId": "grasseye-app-shell-ui-002-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:203e0b56-0c69-4001-a7f7-740cac528aed"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:34ec67ec-de24-413a-b7b3-472a51011336"
     }
   ],
   "inspectedFiles": [

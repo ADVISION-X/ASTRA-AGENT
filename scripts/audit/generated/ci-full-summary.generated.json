@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-20T10:35:41.861Z",
+  "generatedAt": "2026-08-20T12:42:01.991Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
-    "lawId": "APEX-CODE-PURITY-017-V1",
-    "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-    "message": "src/lib/local-runtime/workbench-browser-support.ts exports createWorkbenchBrowserAuthority without any provable final consumer.",
+    "lawId": "APEX-CODE-PURITY-008-V1",
+    "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+    "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts uses as unknown as near line 11.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 233,
-      "endedAt": "2026-08-20T10:34:18.946Z",
+      "durationMs": 244,
+      "endedAt": "2026-08-20T12:40:35.943Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-20T10:34:18.713Z",
+      "startedAt": "2026-08-20T12:40:35.699Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3726,
-      "endedAt": "2026-08-20T10:34:22.673Z",
+      "durationMs": 3992,
+      "endedAt": "2026-08-20T12:40:39.936Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-20T10:34:18.947Z",
+      "startedAt": "2026-08-20T12:40:35.944Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 2,
-      "endedAt": "2026-08-20T10:34:22.678Z",
+      "endedAt": "2026-08-20T12:40:39.941Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-20T10:34:22.676Z",
+      "startedAt": "2026-08-20T12:40:39.939Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 79182,
-      "endedAt": "2026-08-20T10:35:41.860Z",
+      "durationMs": 82049,
+      "endedAt": "2026-08-20T12:42:01.990Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-20T10:34:22.678Z",
+      "startedAt": "2026-08-20T12:40:39.941Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -805,6 +805,19 @@
     },
     {
       "authorityStatus": "sealed",
+      "command": "node --import tsx src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+      "durationMs": 0,
+      "endedAt": null,
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1",
+      "name": "xuanxue-ai-production-transient-lifecycle",
+      "ownerId": "xuanxue-ai-production",
+      "phase": "acceptance-runner",
+      "startedAt": null,
+      "status": "SKIPPED",
+      "timeoutMs": 300000
+    },
+    {
+      "authorityStatus": "sealed",
       "command": "internal:verifyGeneratedArtifactTruth()",
       "durationMs": 0,
       "endedAt": null,
@@ -818,9 +831,9 @@
     }
   ],
   "lawCoverage": {
-    "activeLawCount": 219,
-    "activeClauseCount": 220,
-    "boundClauseCount": 220,
+    "activeLawCount": 220,
+    "activeClauseCount": 221,
+    "boundClauseCount": 221,
     "checked": true,
     "uncoveredClauseIds": []
   },
@@ -845,7 +858,7 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 7,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
       "status": "FAIL"
     },
@@ -863,15 +876,15 @@
     },
     {
       "capabilityDomain": "local-browser-session",
-      "findingCount": 27,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/local-browser-session-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "runtime-log-spine",
-      "findingCount": 1,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "amazon-invoice-upload",
@@ -881,9 +894,9 @@
     },
     {
       "capabilityDomain": "amazon-product-mining",
-      "findingCount": 0,
+      "findingCount": 4,
       "reportPath": "scripts/audit/generated/amazon-product-mining-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "app-shell-ui",
@@ -947,9 +960,9 @@
     },
     {
       "capabilityDomain": "audit-truth",
-      "findingCount": 0,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/audit-truth-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     }
   ],
   "finalDecision": "FAIL"

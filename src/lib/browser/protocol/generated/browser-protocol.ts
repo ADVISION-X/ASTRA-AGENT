@@ -5,9 +5,7 @@ export const GRASSEYE_BROWSER_RELEASE_IDENTITY =
 export const GRASSEYE_BROWSER_EXTENSION_ID =
   "mepfnlhndaiihhfejbbhfehegpbdnipl" as const;
 export const GRASSEYE_BROWSER_EXTENSION_VERSION = "3.0.0" as const;
-const GRASSEYE_NATIVE_HOST_NAME = "com.grasseye.browser" as const;
 export const GRASSEYE_BROWSER_HOST_TO_EXTENSION_CONTROL_MAX_BYTES = 256 * 1024;
-const GRASSEYE_BROWSER_EXTENSION_TO_HOST_CONTROL_MAX_BYTES = 256 * 1024;
 export const GRASSEYE_BROWSER_ARTIFACT_CHUNK_MAX_BYTES = 4 * 1024 * 1024;
 export const GRASSEYE_BROWSER_CONTROLLER_HOST_CONTROL_MAX_BYTES = 256 * 1024;
 export const GRASSEYE_BROWSER_CAPABILITY_SET_HASH =
@@ -18,10 +16,6 @@ export const GRASSEYE_BROWSER_ORIGIN_POLICY_HASH =
   "sha256:60d573e4c4f97964cf977139388e4a234d7c1524b3e40dff3d8548f28a15217d" as const;
 export const GRASSEYE_BROWSER_LIVENESS_POLICY_HASH =
   "sha256:37f4b7b50901bc8a4350454202c61592df17a2c12dac27e5cdcac24bb7404b06" as const;
-const GRASSEYE_BROWSER_COMMAND_ADMISSION_BUDGET_HASH =
-  "sha256:9a774268a8fa77235a17bbd065da3587bc89c56c05dab08248d1c862f548b162" as const;
-const GRASSEYE_BROWSER_ARTIFACT_STREAM_BUDGET_HASH =
-  "sha256:f2137e38dbb0f8fd0f98a964310ac6417e457114db174211a97a7013feab9255" as const;
 type Hash = `sha256:${string}`;
 export type BrowserWireMutationClass =
   "observation" | "idempotent_mutation" | "non_idempotent_mutation";
@@ -179,7 +173,7 @@ export type BrowserCommandPermit = Readonly<{
   mutationClass: BrowserWireMutationClass;
   permitHash: Hash;
 }>;
-type BrowserWireCommandPayload = Readonly<{
+export type BrowserWireCommandPayload = Readonly<{
   commandId: string;
   mutationClass: BrowserWireMutationClass;
   expectedLoaderId?: string;

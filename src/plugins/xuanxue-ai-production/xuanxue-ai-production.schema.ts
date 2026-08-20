@@ -13,6 +13,7 @@ import {
   inspectXuanxueContinuationPolicy,
   inspectXuanxueLocalizationPolicy,
 } from "./xuanxue-ai-production-schema-refinements.js";
+import type { AgentRuntimeReceiptV2 } from "./xuanxue-ai-production-browser-proof.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
 export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
@@ -313,6 +314,7 @@ export interface XuanxueAiProductionResult {
     readonly transportWarnings: readonly string[];
     readonly artifact?: XuanxueAiGeneratedImageArtifact;
   }[];
+  readonly runtimeReceipt?: AgentRuntimeReceiptV2;
   readonly failureReason: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;

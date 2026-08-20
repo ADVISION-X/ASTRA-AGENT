@@ -1,22 +1,9 @@
 import type {
   BrowserWireCommand,
+  BrowserWireCommandPayload,
   BrowserWireMutationClass,
+  BrowserWireResponsePayload,
 } from "../protocol/generated/browser-protocol.js";
-
-export type BrowserWireCommandPayload = Readonly<{
-  commandId: string;
-  mutationClass: BrowserWireMutationClass;
-  expectedLoaderId?: string;
-  command: BrowserWireCommand;
-}>;
-
-export type BrowserWireResponsePayload = Readonly<{
-  commandId: string;
-  ok: boolean;
-  result?: unknown;
-  errorCode?: string;
-  errorMessage?: string;
-}>;
 
 const errorCode = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error);

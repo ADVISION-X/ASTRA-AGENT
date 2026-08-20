@@ -6,70 +6,16 @@
   "executionGroup": "foundation",
   "findings": [
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/local-runtime/workbench-browser-support.ts exports createWorkbenchBrowserAuthority without any provable final consumer.",
+      "checkId": "code-purity/as-unknown-as",
+      "lawId": "APEX-CODE-PURITY-008-V1",
+      "clauseId": "apex-code-purity-008-requirement",
+      "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts uses as unknown as near line 11.",
       "severity": "fatal",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "evidence": "{\"declarationKind\":\"function\",\"owner\":\"local-runtime\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"app-shell\",\"symbolName\":\"createWorkbenchBrowserAuthority\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_NATIVE_HOST_NAME.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"browser-primitive\",\"symbolName\":\"GRASSEYE_NATIVE_HOST_NAME\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_BROWSER_EXTENSION_TO_HOST_CONTROL_MAX_BYTES.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"browser-primitive\",\"symbolName\":\"GRASSEYE_BROWSER_EXTENSION_TO_HOST_CONTROL_MAX_BYTES\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_BROWSER_COMMAND_ADMISSION_BUDGET_HASH.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"browser-primitive\",\"symbolName\":\"GRASSEYE_BROWSER_COMMAND_ADMISSION_BUDGET_HASH\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_BROWSER_ARTIFACT_STREAM_BUDGET_HASH.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"browser\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"browser-primitive\",\"symbolName\":\"GRASSEYE_BROWSER_ARTIFACT_STREAM_BUDGET_HASH\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level type-alias named BrowserWireCommandPayload.",
-      "severity": "fatal",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "evidence": "{\"declarationKind\":\"type-alias\",\"owner\":\"browser\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"browser-primitive\",\"symbolName\":\"BrowserWireCommandPayload\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "apex-code-purity-017-requirement",
-      "message": "src/lib/local-runtime/workbench-browser-support.ts keeps dead helper unavailable alive only through a dead export subgraph.",
-      "severity": "fatal",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "evidence": "{\"declarationKind\":\"variable\",\"owner\":\"local-runtime\",\"remediation\":\"Delete the declaration or reconnect it to a real runtime-rooted live consumer.\",\"role\":\"app-shell\",\"symbolName\":\"unavailable\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+      "evidence": "{\"owner\":\"plugin:xuanxue-ai-production\",\"remediation\":\"Replace double assertion with schema validation or an explicit narrowing guard.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
-  "generatedAt": "2026-08-20T10:35:10.835Z",
+  "generatedAt": "2026-08-20T12:41:29.248Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -359,6 +305,7 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
@@ -628,7 +575,6 @@
     "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
     "src/lib/browser/exact-target/browser-native-authentication.ts",
     "src/lib/browser/exact-target/browser-native-command-channel.ts",
-    "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
     "src/lib/browser/exact-target/browser-target-lease-file-artifact.ts",
     "src/lib/browser/exact-target/browser-target-lease-interaction.ts",
@@ -822,6 +768,7 @@
     "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
     "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
     "src/plugins/xuanxue-ai-production/index.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
@@ -849,6 +796,8 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
@@ -866,87 +815,13 @@
   ],
   "inventoryItems": [
     {
-      "checkId": "code-purity/zombie-export",
-      "declarationKind": "function",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Export createWorkbenchBrowserAuthority has no final reachable consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "app-shell",
-      "symbolName": "createWorkbenchBrowserAuthority",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Top-level variable GRASSEYE_NATIVE_HOST_NAME has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "browser-primitive",
-      "symbolName": "GRASSEYE_NATIVE_HOST_NAME",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Top-level variable GRASSEYE_BROWSER_EXTENSION_TO_HOST_CONTROL_MAX_BYTES has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "browser-primitive",
-      "symbolName": "GRASSEYE_BROWSER_EXTENSION_TO_HOST_CONTROL_MAX_BYTES",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Top-level variable GRASSEYE_BROWSER_COMMAND_ADMISSION_BUDGET_HASH has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "browser-primitive",
-      "symbolName": "GRASSEYE_BROWSER_COMMAND_ADMISSION_BUDGET_HASH",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "declarationKind": "variable",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Top-level variable GRASSEYE_BROWSER_ARTIFACT_STREAM_BUDGET_HASH has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "browser-primitive",
-      "symbolName": "GRASSEYE_BROWSER_ARTIFACT_STREAM_BUDGET_HASH",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "declarationKind": "type-alias",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "browser",
-      "reason": "Top-level type-alias BrowserWireCommandPayload has no live runtime-rooted reference in the reachable graph.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "browser-primitive",
-      "symbolName": "BrowserWireCommandPayload",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "declarationKind": "variable",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "local-runtime",
-      "reason": "Top-level variable unavailable is only reachable from a dead exported subgraph and has no live runtime root.",
-      "remediation": "Delete the declaration or reconnect it to a real runtime-rooted live consumer.",
-      "role": "app-shell",
-      "symbolName": "unavailable",
+      "checkId": "code-purity/as-unknown-as",
+      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+      "lawId": "APEX-CODE-PURITY-008-V1",
+      "owner": "plugin:xuanxue-ai-production",
+      "reason": "as unknown as appears near line 11.",
+      "remediation": "Replace double assertion with schema validation or an explicit narrowing guard.",
+      "role": "job-step",
       "verificationCommand": "npm run ci:full"
     }
   ],
@@ -1564,105 +1439,45 @@
       "filePath": "src/lib/browser/release/build-browser-runtime.mjs",
       "reason": "package.json script browser:build",
       "scriptName": "browser:build"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+      "reason": "package.json script acceptance:xuanxue-ai-production",
+      "scriptName": "acceptance:xuanxue-ai-production"
     }
   ],
-  "liveExportCount": 2202,
-  "orphanDeclarationCount": 6,
-  "reachableFileCount": 792,
+  "liveExportCount": 2215,
+  "orphanDeclarationCount": 0,
+  "reachableFileCount": 795,
   "status": "FAIL",
   "unreachableFileCount": 0,
-  "uselessCodeInventory": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/local-runtime/workbench-browser-support.ts exports createWorkbenchBrowserAuthority without any provable final consumer."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_NATIVE_HOST_NAME."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_BROWSER_EXTENSION_TO_HOST_CONTROL_MAX_BYTES."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_BROWSER_COMMAND_ADMISSION_BUDGET_HASH."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level variable named GRASSEYE_BROWSER_ARTIFACT_STREAM_BUDGET_HASH."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "src/lib/browser/protocol/generated/browser-protocol.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/browser/protocol/generated/browser-protocol.ts keeps an orphan top-level type-alias named BrowserWireCommandPayload."
-    },
-    {
-      "category": "unused-top-level",
-      "checkId": "code-purity/dead-export-helper-subgraph",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/local-runtime/workbench-browser-support.ts keeps dead helper unavailable alive only through a dead export subgraph."
-    }
-  ],
-  "unprovenPublicExports": [
-    {
-      "category": "dead-public-export",
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
-      "keepReason": null,
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "message": "src/lib/local-runtime/workbench-browser-support.ts exports createWorkbenchBrowserAuthority without any provable final consumer."
-    }
-  ],
+  "uselessCodeInventory": [],
+  "unprovenPublicExports": [],
   "unprovenRegistryEntries": [],
   "unprovenSchemaFields": [],
-  "zombieExportCount": 1,
+  "zombieExportCount": 0,
   "zombieSummary": {
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 2202,
-    "orphanDeclarationCount": 6,
-    "reachableFileCount": 792,
+    "liveExportCount": 2215,
+    "orphanDeclarationCount": 0,
+    "reachableFileCount": 795,
     "unreachableFileCount": 0,
-    "uselessCodeInventoryCount": 7,
-    "zombieExportCount": 1
+    "uselessCodeInventoryCount": 0,
+    "zombieExportCount": 0
   },
   "checkRuns": [
     {
-      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2",
+      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-20T10:34:27.276Z",
-      "endedAt": "2026-08-20T10:35:10.833Z",
-      "durationMs": 43557,
+      "startedAt": "2026-08-20T12:40:44.788Z",
+      "endedAt": "2026-08-20T12:41:29.247Z",
+      "durationMs": 44459,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
@@ -1952,6 +1767,7 @@
         "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
         "scripts/audit/domains/workbench-api-boundary/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
@@ -2221,7 +2037,6 @@
         "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
         "src/lib/browser/exact-target/browser-native-authentication.ts",
         "src/lib/browser/exact-target/browser-native-command-channel.ts",
-        "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
         "src/lib/browser/exact-target/browser-target-lease-file-artifact.ts",
         "src/lib/browser/exact-target/browser-target-lease-interaction.ts",
@@ -2415,6 +2230,7 @@
         "src/plugins/media-processing-artifact/media-processing-artifact.schema.ts",
         "src/plugins/xuanxue-ai-production/generated-image-policy.ts",
         "src/plugins/xuanxue-ai-production/index.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts",
@@ -2442,6 +2258,8 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-typed-join-inputs.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts",
@@ -2457,7 +2275,7 @@
         "src/types/plugin-intervention.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 7
+      "findingCount": 1
     }
   ],
   "executedChecks": [
@@ -2465,145 +2283,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:b604f2bc-3518-44de-93bf-03cf7c811bb2"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:018ddb31-2eea-4b43-adad-96e54d23ac91"
     }
   ]
 }

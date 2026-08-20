@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { performance } from "node:perf_hooks";
 
+import type { RuntimeLogger } from "../../runtime-logs/index.js";
+import { runLoggedBrowserValueAction } from "../current-chrome-browser-action-logging.js";
 import type { AuthenticatedBrowserAuthority } from "../infrastructure/browser-authority-certificate.js";
 import type { BrowserExecutionBinding } from "../browser-authority-api.js";
 import {
@@ -94,6 +96,7 @@ export class BrowserCommandActor {
     dataDir: string,
     private readonly transport: BrowserCommandActorTransport,
     private readonly artifacts: BrowserArtifactStreamReceiver,
+    private readonly runtimeLogger: RuntimeLogger,
   ) {
     this.journal = new BrowserMutationIntentJournal(dataDir);
     this.responses = new BrowserCommandResponseHandler({
@@ -113,7 +116,14 @@ export class BrowserCommandActor {
     try {
       await this.prepareMutationJournal(prepared);
       const response = this.registerPending(prepared);
-      return await this.sendAndAwait<T>(prepared, response);
+      return await runLoggedBrowserValueAction({
+        runtimeLogger: this.runtimeLogger,
+        browserActionId: prepared.commandId,
+        actionKind: prepared.input.command.kind,
+        beforeUrl: prepared.input.executionBinding.executionRef,
+        readAfterUrl: () => prepared.input.executionBinding.executionRef,
+        run: () => this.sendAndAwait<T>(prepared, response),
+      });
     } catch (error) {
       await this.discardPending(prepared.commandId);
       throw error;

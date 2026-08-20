@@ -24,6 +24,10 @@ import {
   cleanXuanxueAiProductionCloudStaging,
   stageXuanxueAiProductionCloudJob,
 } from "./xuanxue-ai-production-cloud-staging.js";
+import {
+  cleanXuanxueAiProductionGeneratedInputs,
+  reconcileXuanxueAiProductionGeneratedInputOrphans,
+} from "./xuanxue-ai-production-transient-lifecycle.js";
 
 interface XuanxueAiProductionExecutionPort {
   createOrder(input: unknown): XuanxueAiOrderRecord;
@@ -279,6 +283,9 @@ const executeCloudJob = async (
       job,
       record: terminal,
     });
+    if (terminal.status === "completed" || terminal.status === "failed" || terminal.status === "review_required") {
+      await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, terminal.order.orderId);
+    }
   } catch (error) {
     const reason = safeReason(error);
     const recoverable =
@@ -294,6 +301,12 @@ const executeCloudJob = async (
         recoverable,
         ...(localOrderId ? { localOrderId } : {}),
       });
+      if (!recoverable) {
+        await cleanXuanxueAiProductionCloudStaging(state.dataDir, job.job_id);
+        if (localOrderId) {
+          await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, localOrderId);
+        }
+      }
     } catch (reportError) {
       reportWorkerError(
         "XUANXUE_AI_PRODUCTION_FAILURE_REPORT_DEFERRED",
@@ -307,7 +320,13 @@ const reconcileDurableLocalOrders = async (
   state: WorkerState,
 ): Promise<void> => {
   await state.execution.repairCompletedCheckpointProviderProofs();
-  for (const record of state.execution.listCloudRecoveryOrders()) {
+  const records = state.execution.listCloudRecoveryOrders();
+  await reconcileXuanxueAiProductionGeneratedInputOrphans(
+    { dataDir: state.dataDir },
+    records,
+    new Set(state.active.keys()),
+  );
+  for (const record of records) {
     const orderId = record.order.orderId;
     if (
       state.reconciledLocalOrders.has(orderId)
@@ -337,6 +356,10 @@ const reconcileDurableLocalOrders = async (
       if (recovered.status === "completed") {
         await cleanXuanxueAiProductionCloudStaging(
           state.dataDir,
+          orderId,
+        );
+        await cleanXuanxueAiProductionGeneratedInputs(
+          { dataDir: state.dataDir },
           orderId,
         );
       }

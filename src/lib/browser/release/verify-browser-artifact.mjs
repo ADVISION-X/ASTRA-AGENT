@@ -7,10 +7,10 @@ import { spawnSync } from "node:child_process";
 import { extensionTreeIdentity } from "./extension-tree-sha256.mjs";
 import { resolveBrowserRuntimeMode } from "./browser-runtime-env.mjs";
 
-const RELEASE_IDENTITY = "grasseye-browser-runtime-2026-08-18-v2";
+const RELEASE_IDENTITY = "grasseye-browser-runtime-2026-08-20-v3";
 const RELEASE_SEQUENCE = 3;
 const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 3;
-const PROTOCOL_VERSION = "grasseye-browser-v2";
+const PROTOCOL_VERSION = "grasseye-browser-v3";
 const EXTENSION_ID = "mepfnlhndaiihhfejbbhfehegpbdnipl";
 const sha256 = async (filePath) =>
   `sha256:${createHash("sha256").update(await readFile(filePath)).digest("hex")}`;

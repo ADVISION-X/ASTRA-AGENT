@@ -24,6 +24,7 @@ import {
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 import { inspectXuanxueContracts } from "./inspect-contracts.js";
+import { inspectTransientLifecycleBehavior } from "./components/transient-material-lifecycle-inspector.js";
 import {
   collectXuanxueSourceValues,
   inspectXuanxueLocalIntervention,
@@ -34,6 +35,7 @@ type Laws = {
   durability: string;
   cloud: string;
   intervention: string;
+  transient: string;
 };
 
 const finding = (
@@ -369,50 +371,85 @@ const inspectAcceptance = (
   });
 };
 
-const inspectDomainEvaluation = async (
+const resolveLaws = (context: InspectorContext): Laws => ({
+  boundary: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5"),
+  durability: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5"),
+  cloud: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2"),
+  intervention: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1"),
+  transient: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1"),
+});
+
+const collectDomainSources = (
   context: InspectorContext,
-): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const laws: Laws = {
-    boundary: selectLawId(
-      context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-    ),
-    durability: selectLawId(
-      context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-    ),
-    cloud: selectLawId(
-      context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
-    ),
-    intervention: selectLawId(
-      context.planEntry.lawIds,
-      "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
-    ),
-  };
-  const findings: InspectorFinding[] = [];
-  inspectAuthority(findings, laws.boundary);
-  inspectRemovedSecondChain(context, findings, laws.boundary);
+  findings: InspectorFinding[],
+  boundaryLaw: string,
+): { sources: SourceFile[]; values: ReadonlySet<string> } => {
   const sources = pluginPaths.flatMap((filePath) => {
-    const result = source(context, findings, laws.boundary, filePath);
+    const result = source(context, findings, boundaryLaw, filePath);
     return result ? [result] : [];
   });
   const acceptanceSources = [acceptancePath, ...acceptanceSupportPaths]
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
-  const values = collectXuanxueSourceValues([...sources, ...acceptanceSources]);
+  return { sources, values: collectXuanxueSourceValues([...sources, ...acceptanceSources]) };
+};
+
+const inspectTransientLifecycleContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+  values: ReadonlySet<string>,
+): void => {
+  requireValues(findings, {
+    lawId,
+    checkId: "xuanxue-ai-production/transient-material-lifecycle",
+    filePath: cloudWorkerPath,
+    messagePrefix: "Transient material lifecycle must contain",
+    values,
+    required: [
+      "cloud-staging", "generated-inputs", "cleanXuanxueAiProductionCloudStaging",
+      "cleanXuanxueAiProductionGeneratedInputs", "recovery_pending",
+      "XUANXUE_AI_PRODUCTION_FAILURE_REPORT_DEFERRED",
+      "reconcileXuanxueAiProductionGeneratedInputOrphans", "canRebuildDerivedInputs",
+    ],
+  });
+  requireValues(findings, {
+    lawId,
+    checkId: "xuanxue-ai-production/transient-material-lifecycle-state-matrix",
+    filePath: "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+    messagePrefix: "Transient lifecycle acceptance must cover",
+    values,
+    required: ["aiprod_completed", "aiprod_failed", "aiprod_review", "aiprod_recovery", "aiprod_unknown", "recovery_pending"],
+  });
+  inspectTransientLifecycleBehavior(context, findings, lawId);
+};
+
+const inspectDomainPolicy = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  laws: Laws,
+  sources: SourceFile[],
+  values: ReadonlySet<string>,
+): void => {
+  inspectAuthority(findings, laws.boundary);
+  inspectRemovedSecondChain(context, findings, laws.boundary);
   inspectXuanxueContracts(findings, laws.boundary, values);
   inspectXuanxueRecoveryDurability(context, findings, laws.durability, values);
   inspectDurability(findings, laws.durability, values);
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);
-  inspectXuanxueLocalIntervention({
-    context,
-    findings,
-    lawId: laws.intervention,
-    values,
-  });
+  inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
+  inspectTransientLifecycleContract(context, findings, laws.transient, values);
   inspectAcceptance(context, findings, laws.durability);
+};
+
+const inspectDomainEvaluation = async (
+  context: InspectorContext,
+): Promise<Omit<InspectorOutput, "executedChecks">> => {
+  const laws = resolveLaws(context);
+  const findings: InspectorFinding[] = [];
+  const { sources, values } = collectDomainSources(context, findings, laws.boundary);
+  inspectDomainPolicy(context, findings, laws, sources, values);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

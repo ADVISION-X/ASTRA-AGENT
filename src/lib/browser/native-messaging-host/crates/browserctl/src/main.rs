@@ -13,8 +13,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
-const PROTOCOL_VERSION: &str = "grasseye-browser-v2";
-const RELEASE_IDENTITY: &str = "grasseye-browser-runtime-2026-08-18-v2";
+const PROTOCOL_VERSION: &str = "grasseye-browser-v3";
+const RELEASE_IDENTITY: &str = "grasseye-browser-runtime-2026-08-20-v3";
 const EXTENSION_ID: &str = "mepfnlhndaiihhfejbbhfehegpbdnipl";
 const HOST_NAME: &str = "com.grasseye.browser";
 const HOST_BINARY_NAME: &str = "grasseye-browser-host";

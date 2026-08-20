@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T10:34:22.670Z",
+  "generatedAt": "2026-08-20T12:42:58.048Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -5973,6 +5973,38 @@
       "blockIndex": 0
     },
     {
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "xuanxue-ai-production",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance",
+      "summary": "The local factory treats cloud-staging and generated-inputs as lease-bound, reconstructible transient bytes; every terminal path cleans them only after durable truth exists, and stage download consumes the cloud canonical material identity without a local legacy-key reader.",
+      "clauses": [
+        {
+          "clauseId": "grasseye-xuanxue-ai-production-005-v1-transient-lifecycle",
+          "statement": "The plugin owns only its transient material lifecycle and never becomes a second material store, resolver, GC or provider attachment owner.",
+          "evidenceMode": "acceptance",
+          "ownerDomain": "xuanxue-ai-production"
+        }
+      ],
+      "required": [
+        "Cloud staging is hash and byte verified before local use.",
+        "generated-inputs are scoped to one order and target stage and can be rebuilt from durable checkpoints.",
+        "success, failed, review_required, recovery_pending and restart each have an explicit cleanup or retention decision.",
+        "Gateway attachment attempt staging remains owned by ai-input-gateway finally cleanup."
+      ],
+      "forbidden": [
+        "long-lived generated input cache",
+        "cleanup daemon or second local lifecycle owner",
+        "local legacy object key resolution",
+        "deleting transient bytes before durable checkpoint and lease facts exist",
+        "changing ai-input-gateway cleanup ownership"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
+      "blockIndex": 1
+    },
+    {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "status": "active",
       "tier": "P0",
@@ -6024,7 +6056,7 @@
         "blank new GPT conversation used as a follow-up fallback"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
@@ -6073,7 +6105,7 @@
         "publishing provider-internal citation residue as a production answer"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
@@ -6104,7 +6136,7 @@
         "secret output in logs, routes or evidence"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 4
     }
   ]
 }

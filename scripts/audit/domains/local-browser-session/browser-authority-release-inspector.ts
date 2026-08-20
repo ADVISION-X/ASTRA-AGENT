@@ -119,12 +119,12 @@ const inspectReleaseTuple = (
 ): void => {
   const checkId = "local-browser-session/protocol-release-identity";
   const releasePath = "src/lib/browser/release/browser-release-identity.ts";
-  const protocolPath = "src/lib/browser/chrome-extension/protocol.ts";
+  const protocolPath = "src/lib/browser/protocol/generated/browser-protocol.ts";
   const release = requireAstSource(context, findings, checkId, laws.release, releasePath);
   const protocol = requireAstSource(context, findings, checkId, laws.release, protocolPath);
   const tuple = [
-    "grasseye-browser-v2",
-    "grasseye-browser-runtime-2026-08-18-v2",
+    "grasseye-browser-v3",
+    "grasseye-browser-runtime-2026-08-20-v3",
     "mepfnlhndaiihhfejbbhfehegpbdnipl",
   ] as const;
   for (const [filePath, source] of [[releasePath, release], [protocolPath, protocol]] as const) {

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-20T10:35:41.718Z",
-  "status": "PASS",
+  "generatedAt": "2026-08-20T12:42:01.698Z",
+  "status": "FAIL",
   "inspectorFileCount": 21,
   "generatedPlanEntryCount": 21,
   "inspectedFiles": [
@@ -212,6 +212,7 @@
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/manifest.json",
     "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
@@ -234,7 +235,16 @@
     "scripts/audit/shared/source-files.ts",
     "scripts/audit/shared/source-module-targets.ts"
   ],
-  "findings": [],
+  "findings": [
+    {
+      "checkId": "audit-truth/source-text-judgment",
+      "lawId": "APEX-AUDIT-TRUTH-001-V1",
+      "clauseId": "apex-audit-truth-001-requirement",
+      "message": "scripts/audit/domains/runtime-log-spine/browser-action-log-contract-inspector.ts uses source-text judgment expression.getExpression().getText() === \"BrowserInfrastructureSupervisorImpl\" on tracked ts-morph text.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/runtime-log-spine/browser-action-log-contract-inspector.ts"
+    }
+  ],
   "capabilityDomain": "audit-truth",
   "executionGroup": "meta",
   "lawIds": [
@@ -244,14 +254,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:0d8bb091-3d50-4ef0-9c1c-52f807fe5e13",
+      "runId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749",
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:ff585860-fe2a-451a-b615-0d1dc51c1173",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-20T10:35:33.204Z",
-      "endedAt": "2026-08-20T10:35:41.717Z",
-      "durationMs": 8513,
+      "status": "FAIL",
+      "startedAt": "2026-08-20T12:41:53.021Z",
+      "endedAt": "2026-08-20T12:42:01.693Z",
+      "durationMs": 8672,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -461,6 +471,7 @@
         "scripts/audit/domains/workbench-api-boundary/inspector.ts",
         "scripts/audit/domains/workbench-api-boundary/manifest.json",
         "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
@@ -483,7 +494,7 @@
         "scripts/audit/shared/source-files.ts",
         "scripts/audit/shared/source-module-targets.ts"
       ],
-      "findingCount": 0
+      "findingCount": 1
     }
   ],
   "executedChecks": [
@@ -491,19 +502,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:0d8bb091-3d50-4ef0-9c1c-52f807fe5e13"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:ff585860-fe2a-451a-b615-0d1dc51c1173"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:0d8bb091-3d50-4ef0-9c1c-52f807fe5e13"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:ff585860-fe2a-451a-b615-0d1dc51c1173"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:0d8bb091-3d50-4ef0-9c1c-52f807fe5e13"
+      "checkRunId": "audit-run:3d9d5391-4aeb-4bf9-94c4-3e0d4f776749:check:ff585860-fe2a-451a-b615-0d1dc51c1173"
     }
   ]
 }

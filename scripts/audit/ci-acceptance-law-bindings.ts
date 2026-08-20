@@ -58,6 +58,7 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts", { clauseId: "apex-ai-input-gateway-004-requirement", lawId: "APEX-AI-INPUT-GATEWAY-004-V1" }],
   ["src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v3-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V3" }],
   ["scripts/acceptance/xuanxue-ai-production.acceptance.ts", { clauseId: "grasseye-xuanxue-ai-production-001-v5-requirement", lawId: "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5" }],
+  ["src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts", { clauseId: "grasseye-xuanxue-ai-production-005-v1-transient-lifecycle", lawId: "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1" }],
   ["scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts", { clauseId: "grasseye-xuanxue-localization-contract-001-requirement", lawId: "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1" }],
   ["scripts/acceptance/xuanxue-ai-production.real-chrome.ts", { clauseId: "grasseye-xuanxue-ai-production-001-v5-real-chrome-proof", lawId: "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5" }],
   ["src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts", { clauseId: "grasseye-xuanxue-ai-production-001-v5-real-chrome-proof", lawId: "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5" }],

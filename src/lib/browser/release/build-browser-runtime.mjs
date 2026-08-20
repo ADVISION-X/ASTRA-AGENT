@@ -20,10 +20,10 @@ const artifactRoot = path.join(repoRoot, "artifacts", "browser-runtime", platfor
 const binDir = path.join(artifactRoot, "bin");
 const extensionDir = path.join(artifactRoot, "extension");
 
-const RELEASE_IDENTITY = "grasseye-browser-runtime-2026-08-18-v2";
+const RELEASE_IDENTITY = "grasseye-browser-runtime-2026-08-20-v3";
 const RELEASE_SEQUENCE = 3;
 const MINIMUM_ACCEPTED_RELEASE_SEQUENCE = 3;
-const PROTOCOL_VERSION = "grasseye-browser-v2";
+const PROTOCOL_VERSION = "grasseye-browser-v3";
 const EXTENSION_ID = "mepfnlhndaiihhfejbbhfehegpbdnipl";
 const EXTENSION_VERSION = "2.0.0";
 loadBrowserRuntimeEnv(repoRoot);
