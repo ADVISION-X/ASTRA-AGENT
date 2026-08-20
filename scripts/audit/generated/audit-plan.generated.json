@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T15:19:22.641Z",
+  "generatedAt": "2026-08-20T20:08:33.826Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2493,7 +2493,15 @@
           "lawId": "APEX-LOCAL-BROWSER-002-V2",
           "clauseId": "apex-local-browser-002-v2-authority-atomicity",
           "checkIds": [
-            "browser-auth/no-unauth-session-type"
+            "browser-auth/no-unauth-session-type",
+            "browser-auth/no-transport-ready-boolean",
+            "browser-auth/no-preauth-command-surface",
+            "browser-auth/no-fire-and-forget-startup",
+            "browser-auth/authority-mint-only-after-proof",
+            "browser-auth/revoke-before-side-effects",
+            "browser-auth/authority-liveness-lease",
+            "browser-auth/no-command-after-liveness-expiry",
+            "browser-auth/heartbeat-cannot-mint-authority"
           ],
           "sourceEvidence": [
             {
@@ -2507,7 +2515,10 @@
           "lawId": "APEX-LOCAL-BROWSER-003-V2",
           "clauseId": "apex-local-browser-003-v2-single-chain",
           "checkIds": [
-            "browser-auth/original-reply-channel"
+            "browser-auth/no-host-controller-rebind",
+            "browser-auth/original-reply-channel",
+            "browser-auth/production-fixture-zero",
+            "browser-install/safe-stale-socket-recovery"
           ],
           "sourceEvidence": [
             {
@@ -2521,6 +2532,7 @@
           "lawId": "APEX-LOCAL-BROWSER-004-V2",
           "clauseId": "apex-local-browser-004-v2-governed-command-plane",
           "checkIds": [
+            "browser-command/bounded-admission-budget",
             "browser-file/artifact-grant-no-raw-path"
           ],
           "sourceEvidence": [
@@ -2535,7 +2547,14 @@
           "lawId": "APEX-LOCAL-BROWSER-005-V1",
           "clauseId": "apex-local-browser-005-v1-release-identity",
           "checkIds": [
-            "browser-release/artifact-activation-proof-separation"
+            "browser-auth/exact-activation-tuple",
+            "browser-profile/dedicated-production-profile",
+            "browser-profile/process-enrollment-attestation",
+            "browser-profile/force-install-policy-readback",
+            "browser-release/artifact-activation-proof-separation",
+            "browser-release/verified-crx-hard-gate",
+            "browser-release/anti-rollback-and-revocation",
+            "browser-release/reproducible-build-identity"
           ],
           "sourceEvidence": [
             {
@@ -2544,6 +2563,21 @@
             }
           ],
           "evidenceMode": "artifact+real-chrome"
+        },
+        {
+          "lawId": "APEX-LOCAL-BROWSER-006-V1",
+          "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
+          "checkIds": [
+            "browser-cross-repo/authority-proof-v2",
+            "browser-cross-repo/ordered-authority-window-chain"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "model+acceptance+real-chrome"
         },
         {
           "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
@@ -2558,20 +2592,6 @@
             }
           ],
           "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-LOCAL-BROWSER-006-V1",
-          "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
-          "checkIds": [
-            "browser-cross-repo/authority-proof-v2"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "model+acceptance+real-chrome"
         }
       ],
       "blueprintRefs": [

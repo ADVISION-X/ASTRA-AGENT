@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T15:19:22.641Z",
+  "generatedAt": "2026-08-20T20:08:33.826Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -76,17 +76,17 @@
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
+      "summary": "Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
       "clauses": [
         {
           "clauseId": "apex-ai-input-gateway-002-requirement",
-          "statement": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
+          "statement": "Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
           "evidenceMode": "acceptance",
           "ownerDomain": "ai-input-gateway"
         }
       ],
       "required": [
-        "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
+        "GPT Web adapters acquire an operator-authorized authenticated Browser authority lease and exactly one controlled physical ChatGPT target at a time; independent tasks live in separately created ChatGPT conversations, never separate browser tabs or a cached legacy session.",
         "The serialized browser-mutation lease covers only bounded page mutations such as fresh-conversation establishment, exact conversation switching, profile control, attachment selection, prompt entry, submission proof, title finalization, DOM capture and cleanup; provider generation wait never holds that lease. Submission and patrol waiters use one SQLite ticket ledger and admitted submissions have priority over ordinary response patrol.",
         "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
         "When a plugin-owned task acknowledges takeover, AI Input Gateway records that exact owner key, releases the single provider target to the operator, and makes all new web-chat executions wait without reacquiring the tab until that same owner explicitly resumes.",
@@ -3899,14 +3899,14 @@
         "scripts/acceptance/**/*.{ts,tsx,js,jsx,mjs}"
       ],
       "required": [
-        "Click invokes clickLocatedDomElement exactly once; the Chrome command resolves one selector, compares the current DOM identity with the captured identity, validates visibility and enabled state, and clicks that same object in one atomic command.",
-        "Fill invokes fillLocatedDomElement exactly once; the Chrome command resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, dispatches the component events, and verifies the exact retained value before returning.",
-        "Upload revalidates a supported light-DOM file input and invokes setFileInputFiles with only the caller-approved path.",
+        "Click invokes exactly one declaration-only BrowserDomIntent click command; the Browser owner resolves one selector, compares the current DOM identity with the captured identity, validates visibility and enabled state, and clicks that same object in one atomic command.",
+        "Fill invokes exactly one declaration-only BrowserDomIntent fill command; the Browser owner resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, and verifies the exact retained value before returning.",
+        "Upload revalidates a supported light-DOM file input and invokes BrowserTargetLease.attachFile with only the caller-approved artifact grant; raw paths never cross the business or Browser wire boundary.",
         "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
         "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
       ],
       "forbidden": [
-        "A DOM child performing a separate BrowserTargetSession.evaluate before or after click/fill mutation",
+        "A DOM child performing arbitrary evaluation before or after click/fill mutation",
         "page mutation through evaluate_target",
         "a caller-local evaluator, point observation followed by coordinate click, split click/clear/text/Tab fill, foreground-focus fallback or compatibility bridge",
         "claiming unsupported deep shadow or frame upload succeeded",
