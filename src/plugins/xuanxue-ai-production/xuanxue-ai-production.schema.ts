@@ -7,16 +7,14 @@ import type {
 } from "../../capabilities/ai-input-gateway/index.js";
 import {
   XuanxueLocalizationRoleSchema,
-  XuanxueProviderExecutionProfileSchema,
+  XuanxueProviderExecutionProfileSchema as XuanxueLocalizationProviderExecutionProfileSchema,
 } from "./xuanxue-ai-production-localization-contract.js";
 import {
   inspectXuanxueContinuationPolicy,
   inspectXuanxueLocalizationPolicy,
 } from "./xuanxue-ai-production-schema-refinements.js";
 
-export const XUANXUE_AI_PRODUCTION_JOB_ID =
-  "xuanxue-ai-production" as const;
-
+export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
 export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
   "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION" as const;
 
@@ -138,9 +136,28 @@ export const XuanxueAiStageMaterialSchema = z.object({
   textPrompt: z.string().min(1),
   inputRefs: z.array(XuanxueAiMaterialRefSchema),
   timeoutMs: z.number().int().min(60_000).max(3_600_000).default(3_600_000),
-  maxInputChars: z.number().int().min(1).max(500_000).optional(),
   maxFileCount: z.number().int().min(0).max(64).default(32),
 }).strict();
+
+export const XuanxueMetaphysicsProviderExecutionProfileSchema = z.object({
+  profile_ref: z.string().min(1),
+  profile_hash: hashSchema.transform((value): `sha256:${string}` => value as `sha256:${string}`),
+  provider: z.literal("openai-chatgpt-web"),
+  transport: z.literal("gpt-web-chat"),
+  account_capability_ref: z.string().min(1),
+  model_label: z.literal("GPT-PRO"),
+  model_family: z.literal("GPT-PRO"),
+  model_identity_status: z.literal("verified"),
+  reasoning_effort: z.literal("pro_extended"),
+  executor_identity_ref: z.string().min(1),
+  ai_acceptance_ref: z.string().min(1),
+  ai_acceptance_version: z.string().min(1),
+}).strict();
+
+const XuanxueStoredProviderExecutionProfileSchema = z.union([
+  XuanxueMetaphysicsProviderExecutionProfileSchema,
+  XuanxueLocalizationProviderExecutionProfileSchema,
+]);
 
 export const XuanxueAiStoredProductionOrderSchema = z.object({
   protocolVersion: z.literal("xuanxue-ai-production-v4"),
@@ -159,7 +176,7 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   contractManifestHash: hashSchema.nullable(),
   productContractHash: hashSchema.nullable(),
   localizationRole: XuanxueLocalizationRoleSchema.nullable(),
-  providerExecutionProfile: XuanxueProviderExecutionProfileSchema.nullable(),
+  providerExecutionProfile: XuanxueStoredProviderExecutionProfileSchema.nullable(),
   frozenSubject: XuanxueAiFrozenSubjectSchema,
   conversationScopeRef: z.string().min(1),
   conversationParent: ConversationParentBindingSchema.nullable(),
@@ -178,18 +195,15 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
 
 export type XuanxueAiStoredOrder = z.infer<typeof XuanxueAiStoredProductionOrderSchema>;
 
-export const XuanxueAiProductionOrderSchema =
-XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
+export const XuanxueAiProductionOrderSchema = XuanxueAiStoredProductionOrderSchema.superRefine((order, context) => {
   inspectXuanxueContinuationPolicy(order, context);
   inspectXuanxueLocalizationPolicy(order, context);
 });
 
 export type XuanxueAiProductId = z.infer<typeof XuanxueAiProductIdSchema>;
 export type XuanxueAiStageId = z.infer<typeof XuanxueAiStageIdSchema>;
-export type XuanxueAiStageMaterial =
-  z.infer<typeof XuanxueAiStageMaterialSchema>;
-export type XuanxueAiProductionOrder =
-  z.infer<typeof XuanxueAiProductionOrderSchema>;
+export type XuanxueAiStageMaterial = z.infer<typeof XuanxueAiStageMaterialSchema>;
+export type XuanxueAiProductionOrder = z.infer<typeof XuanxueAiProductionOrderSchema>;
 
 export type XuanxueAiStageStatus =
   | "queued"
@@ -218,9 +232,7 @@ export const XuanxueAiInterventionRequestSchema = z.object({
   requestId: z.string().min(1).max(240),
 }).strict();
 
-export type XuanxueAiInterventionRequest = z.infer<
-  typeof XuanxueAiInterventionRequestSchema
->;
+export type XuanxueAiInterventionRequest = z.infer<typeof XuanxueAiInterventionRequestSchema>;
 
 export type XuanxueAiInterventionState =
   | "running"
