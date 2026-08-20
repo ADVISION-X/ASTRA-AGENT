@@ -18,12 +18,3 @@ export type BrowserControlledTarget = Readonly<{
   url: string;
   title: string;
 }>;
-
-export const assertCurrentDocument = (
-  target: BrowserControlledTarget,
-  candidate: BrowserDocumentRef,
-): void => {
-  if (target.document.documentRef !== candidate.documentRef || target.document.targetRef !== candidate.targetRef) {
-    throw new Error("BROWSER_DOCUMENT_INVALID");
-  }
-};

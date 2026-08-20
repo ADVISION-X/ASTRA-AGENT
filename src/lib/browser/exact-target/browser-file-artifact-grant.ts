@@ -10,15 +10,3 @@ export type BrowserFileArtifactGrantV1 = Readonly<{
   maxBytes: number;
   expiresAt: string;
 }>;
-
-export type BrowserSealedFileArtifactGrant = Readonly<{
-  publicGrant: BrowserFileArtifactGrantV1;
-  canonicalPath: string;
-  inode: string;
-}>;
-
-export const assertActiveFileGrant = (grant: BrowserFileArtifactGrantV1, now = Date.now()): void => {
-  if (grant.schemaVersion !== "browser-file-artifact-grant-v1" || Date.parse(grant.expiresAt) <= now) {
-    throw new Error("BROWSER_FILE_GRANT_INVALID");
-  }
-};
