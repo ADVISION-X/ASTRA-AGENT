@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "grasseye://browser/protocol/v3",
+  "title": "GrassEye Browser Protocol V3",
+  "type": "object",
+  "required": ["protocolVersion", "releaseIdentity", "type"],
+  "properties": {
+    "protocolVersion": { "const": "grasseye-browser-v3" },
+    "releaseIdentity": { "const": "grasseye-browser-runtime-2026-08-20-v3" },
+    "type": {
+      "enum": [
+        "extension_hello",
+        "controller_challenge",
+        "extension_authenticated",
+        "capability_probe",
+        "capability_probe_ack",
+        "authority_grant",
+        "authority_grant_ack",
+        "heartbeat_probe",
+        "heartbeat",
+        "command_frame",
+        "response_frame"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "x-grasseye-command-permit": {
+    "required": [
+      "authorityRef",
+      "authorityEpoch",
+      "authorityCertificateHash",
+      "activationTupleHash",
+      "replyChannelToken",
+      "capabilityId",
+      "executionBindingHash",
+      "writerFenceHash",
+      "targetLeaseRef",
+      "documentRef",
+      "commandId",
+      "sequence",
+      "deadlineMonotonicMs",
+      "mutationClass",
+      "permitHash"
+    ],
+    "aadIncludesPermitHash": true
+  },
+  "x-grasseye-native-messaging": {
+    "hostToExtensionControlMaxBytes": 262144,
+    "extensionToHostControlMaxBytes": 262144,
+    "extensionToHostArtifactChunkMaxBytes": 4194304,
+    "hostToExtensionArtifactPayload": "forbidden"
+  }
+}

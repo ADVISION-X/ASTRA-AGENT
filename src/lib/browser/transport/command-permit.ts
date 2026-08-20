@@ -1,43 +1,57 @@
 import { createHash } from "node:crypto";
 
-import type { AuthenticatedBrowserAuthority } from "../authority/browser-authority-certificate.js";
+import type { AuthenticatedBrowserAuthority } from "../infrastructure/browser-authority-certificate.js";
+import type { BrowserExecutionBinding } from "../browser-authority-api.js";
+import type {
+  BrowserCapabilityId,
+  BrowserCommandPermit,
+  BrowserWireMutationClass,
+} from "../protocol/generated/browser-protocol.js";
+import type { ReplyChannelToken } from "./reply-channel-token.js";
 
-export type BrowserCommandPermit = Readonly<{
-  authorityId: string;
-  authorityCertificateHash: string;
-  connectionGeneration: number;
-  nativePortEpoch: number;
-  commandId: string;
-  sequence: number;
-  deadlineAt: number;
-  permitHash: string;
-}>;
+const hash = (value: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 
-export const issueBrowserCommandPermit = (input: Readonly<{
+export const hashBrowserExecutionBinding = (
+  binding: BrowserExecutionBinding,
+): `sha256:${string}` => hash(binding);
+
+export const issueBrowserCommandPermit = (input: {
   authority: AuthenticatedBrowserAuthority;
+  activationTupleHash: `sha256:${string}`;
+  replyChannel: ReplyChannelToken;
+  capabilityId: BrowserCapabilityId;
+  executionBinding: BrowserExecutionBinding;
+  targetLeaseRef: string;
+  documentRef: string;
   commandId: string;
   sequence: number;
-  deadlineAt: number;
-}>): BrowserCommandPermit => {
+  deadlineMonotonicMs: number;
+  mutationClass: BrowserWireMutationClass;
+}): BrowserCommandPermit => {
   const certificate = input.authority.certificate;
-  if (!input.commandId) throw new Error("BROWSER_COMMAND_ID_REQUIRED");
-  if (!Number.isSafeInteger(input.sequence) || input.sequence <= 0) {
-    throw new Error("BROWSER_COMMAND_SEQUENCE_INVALID");
-  }
-  if (!Number.isFinite(input.deadlineAt) || input.deadlineAt <= Date.now()) {
-    throw new Error("BROWSER_COMMAND_DEADLINE_INVALID");
-  }
-  const unsigned = {
-    authorityId: certificate.authorityId,
+  const unsigned = Object.freeze({
+    authorityRef: certificate.authorityRef,
+    authorityEpoch: certificate.authorityEpoch,
     authorityCertificateHash: certificate.certificateHash,
-    connectionGeneration: certificate.connectionGeneration,
-    nativePortEpoch: certificate.nativePortEpoch,
+    activationTupleHash: input.activationTupleHash,
+    replyChannelToken: input.replyChannel.value,
+    capabilityId: input.capabilityId,
+    executionBindingHash: hashBrowserExecutionBinding(input.executionBinding),
+    writerFenceHash: input.executionBinding.writerFenceHash,
+    targetLeaseRef: input.targetLeaseRef,
+    documentRef: input.documentRef,
     commandId: input.commandId,
     sequence: input.sequence,
-    deadlineAt: input.deadlineAt,
-  } as const;
-  return Object.freeze({
-    ...unsigned,
-    permitHash: `sha256:${createHash("sha256").update(JSON.stringify(unsigned)).digest("hex")}`,
+    deadlineMonotonicMs: input.deadlineMonotonicMs,
+    mutationClass: input.mutationClass,
   });
+  return Object.freeze({ ...unsigned, permitHash: hash(unsigned) });
+};
+
+export const verifyBrowserCommandPermitHash = (
+  permit: BrowserCommandPermit,
+): boolean => {
+  const { permitHash, ...unsigned } = permit;
+  return hash(unsigned) === permitHash;
 };
