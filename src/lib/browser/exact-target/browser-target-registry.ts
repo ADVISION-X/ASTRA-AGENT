@@ -6,10 +6,10 @@ import type {
   BrowserTargetRef,
   ControlledBrowserTarget,
 } from "./browser-target-ref.js";
-import type { BrowserWireTargetDescriptor } from "../chrome-extension/protocol.js";
+import type { BrowserWireTargetDescriptor } from "../protocol/generated/browser-protocol.js";
 
 interface RegistryEntry {
-  readonly controllerSessionId: string;
+  readonly authorityRef: string;
   readonly ownerId: string;
   readonly targetRef: BrowserTargetRef;
   documentRef: BrowserDocumentRef;
@@ -23,17 +23,13 @@ const opaque = <T extends string>(prefix: string): T =>
   `${prefix}_${randomUUID().replaceAll("-", "")}` as T;
 
 const originOf = (value: string): string => {
-  try {
-    return new URL(value).origin;
-  } catch {
-    return "null";
-  }
+  try { return new URL(value).origin; } catch { return "null"; }
 };
 
 export class BrowserTargetRegistry {
   private readonly entries = new Map<BrowserTargetRef, RegistryEntry>();
 
-  constructor(private readonly controllerSessionId: string) {}
+  constructor(private readonly authorityRef: string) {}
 
   register(
     ownerId: string,
@@ -43,18 +39,18 @@ export class BrowserTargetRegistry {
     if (!Number.isInteger(descriptor.tabId)) {
       throw new BrowserTerminalError("TARGET_NOT_FOUND", "target descriptor has no raw Chrome tab identity");
     }
-    const conflictingEntry = [...this.entries.values()].find((entry) =>
+    const conflict = [...this.entries.values()].find((entry) =>
       entry.lifecycle === "attached" && entry.descriptor.tabId === descriptor.tabId,
     );
-    if (conflictingEntry) {
+    if (conflict) {
       throw new BrowserTerminalError(
         "TARGET_AMBIGUOUS",
-        `Chrome tab ${descriptor.tabId} is already owned by ${conflictingEntry.ownerId}`,
+        `Chrome target is already leased by ${conflict.ownerId}`,
       );
     }
     this.assertAllowedOrigin(allowedOrigin, descriptor.url);
     const entry: RegistryEntry = {
-      controllerSessionId: this.controllerSessionId,
+      authorityRef: this.authorityRef,
       ownerId,
       targetRef: opaque<BrowserTargetRef>("bt"),
       documentRef: opaque<BrowserDocumentRef>("bd"),
@@ -67,15 +63,12 @@ export class BrowserTargetRegistry {
     return this.publicTarget(entry);
   }
 
-  resolve(
-    targetRef: BrowserTargetRef,
-    documentRef?: BrowserDocumentRef,
-  ): RegistryEntry {
+  resolve(targetRef: BrowserTargetRef, documentRef?: BrowserDocumentRef): RegistryEntry {
     const entry = this.entries.get(targetRef);
-    if (!entry || entry.controllerSessionId !== this.controllerSessionId) {
+    if (!entry || entry.authorityRef !== this.authorityRef) {
       throw new BrowserTerminalError(
-        "TARGET_FOREIGN_SESSION",
-        "target ref is unknown to the current controller session",
+        "TARGET_FOREIGN_AUTHORITY",
+        "target ref is unknown to the current browser authority",
       );
     }
     if (entry.lifecycle !== "attached") {
@@ -90,10 +83,7 @@ export class BrowserTargetRegistry {
     return entry;
   }
 
-  updateDocument(
-    targetRef: BrowserTargetRef,
-    descriptor: BrowserWireTargetDescriptor,
-  ): ControlledBrowserTarget {
+  updateDocument(targetRef: BrowserTargetRef, descriptor: BrowserWireTargetDescriptor): ControlledBrowserTarget {
     const entry = this.resolve(targetRef);
     this.assertAllowedOrigin(entry.allowedOrigin, descriptor.url);
     if (descriptor.loaderId !== entry.descriptor.loaderId) {
