@@ -18,15 +18,17 @@ const requiredFlags = [
 ] as const;
 for (const flag of requiredFlags) assert.ok(process.argv.includes(flag), `Missing release identity assertion: ${flag}`);
 
+const enrolledTrust = loadBrowserReleaseSigningTrust();
+assert.equal(enrolledTrust.state, "PRESENT", "A production release signature verifier requires an enrolled public key.");
 assert.throws(() => assertReleaseSignature({
   envelope: { algorithm: "ed25519", keyId: "not-enrolled", signatureBase64: "AA==" },
   payload: "not-enrolled",
+  trust: {
+    schemaVersion: "grasseye.browser.release-signing-trust.v1",
+    state: "ABSENT",
+    reasonCode: "BROWSER_RELEASE_SIGNER_NOT_ENROLLED",
+  },
 }), /BROWSER_RELEASE_SIGNER_NOT_ENROLLED/u);
-assert.deepEqual(loadBrowserReleaseSigningTrust(), {
-  schemaVersion: "grasseye.browser.release-signing-trust.v1",
-  state: "ABSENT",
-  reasonCode: "BROWSER_RELEASE_SIGNER_NOT_ENROLLED",
-});
 
 const pair = generateKeyPairSync("ed25519");
 const publicKeyPem = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
