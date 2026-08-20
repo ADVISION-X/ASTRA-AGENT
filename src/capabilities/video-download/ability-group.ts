@@ -152,6 +152,24 @@ export const createVideoDownloadAbilityGroupFromFilesystem = (input: {
     ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   });
 
+const unavailableBrowserAuthority = async (): Promise<never> => {
+  throw new Error("BROWSER_HOST_UNAVAILABLE");
+};
+
+/**
+ * Browser-dependent video work is not admitted until the owning flow presents
+ * a current Browser authority and exact target. Local Runtime never invents a
+ * page-observation port as a startup fallback.
+ */
+export const createUnavailableVideoDownloadAbilityGroup = (): VideoDownloadAbilityGroup => ({
+  abilityGroupId: VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
+  listChildCapabilityIds: () => [],
+  downloadVideo: unavailableBrowserAuthority,
+  execute: unavailableBrowserAuthority,
+  promoteArtifact: unavailableBrowserAuthority,
+  deleteArtifact: unavailableBrowserAuthority,
+});
+
 export const prepareVideoDownloadRuntimeDependencies = async (): Promise<void> => {
   await resolveYtDlpBinaryPath({ refresh: process.env.GRASSEYE_YT_DLP_AUTO_UPDATE !== "0" });
   await verifyFfprobeAvailable();

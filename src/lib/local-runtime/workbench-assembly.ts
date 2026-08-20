@@ -14,10 +14,9 @@ import {
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import {
   createWorkbenchBrowserAuthority,
-  createUnavailableBrowserObservationPort,
   type WorkbenchBrowserAuthority,
 } from "./workbench-browser-authority-support.js";
-import { createVideoDownloadAbilityGroupFromFilesystem } from "../../capabilities/video-download/index.js";
+import { createUnavailableVideoDownloadAbilityGroup } from "../../capabilities/video-download/index.js";
 import { createWorkbenchAiInputGateway } from "./workbench-ai-gateway-support.js";
 import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
 import { createWorkbenchMediaProcessing } from "./workbench-media-processing-support.js";
@@ -28,7 +27,7 @@ export type WorkbenchAssembly = {
   structuredLogBus: StructuredLogBus;
   browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
-  videoDownload: ReturnType<typeof createVideoDownloadAbilityGroupFromFilesystem>;
+  videoDownload: ReturnType<typeof createUnavailableVideoDownloadAbilityGroup>;
   mediaProcessing: ReturnType<typeof createWorkbenchMediaProcessing>;
   aiInputGateway: ReturnType<typeof createWorkbenchAiInputGateway>;
   runtimeLogger: RuntimeLogger;
@@ -44,11 +43,7 @@ export async function createWorkbenchAssembly(
   const browserAuthority = await createWorkbenchBrowserAuthority(dataDir);
 
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
-  const videoDownload = createVideoDownloadAbilityGroupFromFilesystem({
-    browserMediaSourcePort: createUnavailableBrowserObservationPort(),
-    dataDir,
-    runtimeLogger,
-  });
+  const videoDownload = createUnavailableVideoDownloadAbilityGroup();
   const mediaProcessing = createWorkbenchMediaProcessing(dataDir, runtimeLogger);
   const aiInputGateway = createWorkbenchAiInputGateway(dataDir, runtimeLogger);
 

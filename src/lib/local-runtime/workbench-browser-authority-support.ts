@@ -7,7 +7,6 @@ import {
   BrowserInfrastructureSupervisor,
   type BrowserHealthSnapshot,
 } from "../browser/infrastructure/browser-infrastructure-supervisor.js";
-import type { BrowserMediaSourcePort } from "../../capabilities/video-download/index.js";
 
 export type WorkbenchBrowserAuthority = Readonly<{
   broker: ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>;
@@ -54,8 +53,3 @@ export const createWorkbenchBrowserAuthority = async (dataDir: string): Promise<
     shutdown: () => supervisor.stop(),
   };
 };
-
-export const createUnavailableBrowserObservationPort = (): BrowserMediaSourcePort => ({
-  evaluate: async <T>(): Promise<T> => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
-  evaluateSourcePage: async <T>(): Promise<T> => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
-});

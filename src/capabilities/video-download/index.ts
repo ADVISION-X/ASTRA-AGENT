@@ -1,6 +1,7 @@
 export {
   createVideoDownloadAbilityGroup,
   createVideoDownloadAbilityGroupFromFilesystem,
+  createUnavailableVideoDownloadAbilityGroup,
   prepareVideoDownloadRuntimeDependencies,
   youtubeProductionDisplayTitle,
   youtubeProductionExpectedSubtitleLanguages,

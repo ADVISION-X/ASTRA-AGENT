@@ -7,7 +7,6 @@ import { join, resolve } from "node:path";
 import { Node, Project, SyntaxKind } from "ts-morph";
 
 import { createWorkbenchAssembly } from "../../src/lib/local-runtime/workbench-assembly.js";
-import { createUnavailableBrowserObservationPort } from "../../src/lib/local-runtime/workbench-browser-authority-support.js";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 const retiredPaths = [
@@ -41,13 +40,6 @@ assert.equal(
   "Workbench assembly must receive Browser authority through its Local Runtime support boundary.",
 );
 
-const unavailablePort = createUnavailableBrowserObservationPort();
-await assert.rejects(
-  () => unavailablePort.evaluate({ script: "not-a-command", description: "test only" }),
-  /BROWSER_HOST_UNAVAILABLE/u,
-  "Browser-dependent capability work must fail closed while authority is absent.",
-);
-
 const dataDir = await mkdtemp(join(tmpdir(), "grasseye-local-runtime-browser-authority-"));
 const assembly = await createWorkbenchAssembly({
   dataDir,
@@ -60,6 +52,11 @@ try {
   assert.deepEqual(Object.keys(assembly.browserAuthority.health()).sort(), ["browserAuthority", "browserInfrastructure"]);
   assert.equal(assembly.browserAuthority.health().browserInfrastructure.ok, false, "Unsigned activation must block Browser infrastructure startup.");
   assert.equal(assembly.browserAuthority.health().browserAuthority.ok, false, "Unsigned activation must keep Browser authority absent.");
+  await assert.rejects(
+    () => assembly.videoDownload.execute({} as never),
+    /BROWSER_HOST_UNAVAILABLE/u,
+    "Browser-dependent video work must fail closed while authority is absent.",
+  );
 } finally {
   await assembly.browserAuthority.shutdown();
 }
