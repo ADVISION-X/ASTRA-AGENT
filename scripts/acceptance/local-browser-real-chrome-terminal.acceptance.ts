@@ -7,7 +7,11 @@ import {
   sha256,
   type ReleaseSignatureEnvelope,
 } from "../../src/lib/browser/release/release-identity.js";
-import { parseArguments, readJson, resolveDeliverable } from "./local-browser-plan-harness.self-test.js";
+import {
+  parseBrowserReleaseAcceptanceArguments,
+  readBrowserReleaseDeliverableJson,
+  resolveBrowserReleaseDeliverable,
+} from "../../src/lib/browser/release/browser-release-acceptance-inputs.js";
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 type ArtifactSet = JsonRecord & Readonly<{ artifactSetHash: string }>;
@@ -48,13 +52,13 @@ const terminalChecks = [
   "update_rollback",
 ] as const;
 
-const args = parseArguments(process.argv.slice(2));
+const args = parseBrowserReleaseAcceptanceArguments(process.argv.slice(2));
 const requiredArgument = (name: string): string => {
   const value = args.get(name);
   if (typeof value !== "string") throw new Error(`${name} is required.`);
   return value;
 };
-const recordHash = (uri: string): string => sha256(readFileSync(resolveDeliverable(uri)));
+const recordHash = (uri: string): string => sha256(readFileSync(resolveBrowserReleaseDeliverable(uri)));
 const asRecord = (value: unknown, label: string): JsonRecord => {
   assert.ok(value !== null && typeof value === "object" && !Array.isArray(value), `${label} must be a JSON object.`);
   return value as JsonRecord;
@@ -100,12 +104,12 @@ const main = (): void => {
   assert.equal(args.has("--require-security-policy-hash"), true, "Security-policy identity enforcement is required.");
   assert.equal(args.has("--require-positive-negative-terminal-bounds"), true, "Positive/negative bounded terminal enforcement is required.");
 
-  const artifact = asRecord(readJson<ArtifactSet>(artifactUri), "artifact") as ArtifactSet;
-  const tuple = asRecord(readJson<ActivationTuple>(tupleUri), "tuple") as ActivationTuple;
-  const policy = asRecord(readJson<ReleaseSecurityPolicy>(policyUri), "security policy") as ReleaseSecurityPolicy;
-  const signature = asRecord(readJson<ReleaseIdentitySignature>(signatureUri), "release identity signature") as ReleaseIdentitySignature;
-  const matrix = asRecord(readJson<RealChromeMatrix>(matrixUri), "real Chrome matrix") as RealChromeMatrix;
-  const candidate = asRecord(readJson<ConstructedCandidate>(candidateUri), "constructed candidate") as ConstructedCandidate;
+  const artifact = asRecord(readBrowserReleaseDeliverableJson<ArtifactSet>(artifactUri), "artifact") as ArtifactSet;
+  const tuple = asRecord(readBrowserReleaseDeliverableJson<ActivationTuple>(tupleUri), "tuple") as ActivationTuple;
+  const policy = asRecord(readBrowserReleaseDeliverableJson<ReleaseSecurityPolicy>(policyUri), "security policy") as ReleaseSecurityPolicy;
+  const signature = asRecord(readBrowserReleaseDeliverableJson<ReleaseIdentitySignature>(signatureUri), "release identity signature") as ReleaseIdentitySignature;
+  const matrix = asRecord(readBrowserReleaseDeliverableJson<RealChromeMatrix>(matrixUri), "real Chrome matrix") as RealChromeMatrix;
+  const candidate = asRecord(readBrowserReleaseDeliverableJson<ConstructedCandidate>(candidateUri), "constructed candidate") as ConstructedCandidate;
   const artifactSetHash = nonEmptyString(artifact.artifactSetHash, "artifact.artifactSetHash");
   const candidateHash = nonEmptyString(candidate.candidateHash, "constructed candidate hash");
   const artifactDocumentHash = recordHash(artifactUri);

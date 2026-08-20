@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { BrowserCommandActor, type BrowserCommandPort } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { BrowserMutationIntentJournal } from "../../src/lib/browser/exact-target/browser-mutation-intent-journal.js";
 import { BrowserTargetLeaseManager } from "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
@@ -16,6 +17,21 @@ import { resolveProductionBrowserProfileConfig } from "../../src/lib/browser/pro
 import { createBrowserProfileEnrollment } from "../../src/lib/browser/profile/browser-profile-enrollment.js";
 import { assertExtensionCommandPermit, clearExtensionPermitAuthority, setExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
 import { hashBrowserAuthorityCertificate } from "../../src/lib/browser/infrastructure/browser-authority-certificate.js";
+
+const retiredLegacyAcceptances = [
+  "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
+  "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
+  "scripts/acceptance/local-browser-business-workday.acceptance.ts",
+  "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
+  "scripts/acceptance/local-browser-native-transport.acceptance.ts",
+  "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
+  "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
+  "scripts/acceptance/local-browser-target-actions.acceptance.ts",
+] as const;
+
+for (const retiredPath of retiredLegacyAcceptances) {
+  assert.equal(existsSync(resolve(retiredPath)), false, `Retired Browser acceptance remains: ${retiredPath}`);
+}
 
 const hash = (value: string) => `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
 const activationTupleHash = hash("tuple");
