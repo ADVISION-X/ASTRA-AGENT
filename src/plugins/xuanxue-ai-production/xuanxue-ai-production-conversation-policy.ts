@@ -38,27 +38,21 @@ export const xuanxueAiRequiredContinuationProfiles = {
   ...xuanxueAiReusableBaseConsumerProfiles,
 } as const;
 
-export type XuanxueAiPaidFollowupProductId =
-  keyof typeof xuanxueAiPaidFollowupProfiles;
-export type XuanxueAiRequiredContinuationProductId =
-  keyof typeof xuanxueAiRequiredContinuationProfiles;
-export type XuanxueAiReusableBaseConsumerProductId =
-  keyof typeof xuanxueAiReusableBaseConsumerProfiles;
+export type XuanxueAiPaidFollowupProductId = keyof typeof xuanxueAiPaidFollowupProfiles;
+export type XuanxueAiRequiredContinuationProductId = keyof typeof xuanxueAiRequiredContinuationProfiles;
+export type XuanxueAiReusableBaseConsumerProductId = keyof typeof xuanxueAiReusableBaseConsumerProfiles;
 
 export const isXuanxueAiPaidFollowupProduct = (
   productId: XuanxueAiProductId,
-): productId is XuanxueAiPaidFollowupProductId =>
-  Object.hasOwn(xuanxueAiPaidFollowupProfiles, productId);
+): productId is XuanxueAiPaidFollowupProductId => Object.hasOwn(xuanxueAiPaidFollowupProfiles, productId);
 
 export const isXuanxueAiRequiredContinuationProduct = (
   productId: XuanxueAiProductId,
-): productId is XuanxueAiRequiredContinuationProductId =>
-  Object.hasOwn(xuanxueAiRequiredContinuationProfiles, productId);
+): productId is XuanxueAiRequiredContinuationProductId => Object.hasOwn(xuanxueAiRequiredContinuationProfiles, productId);
 
 export const isXuanxueAiReusableBaseConsumerProduct = (
   productId: XuanxueAiProductId,
-): productId is XuanxueAiReusableBaseConsumerProductId =>
-  Object.hasOwn(xuanxueAiReusableBaseConsumerProfiles, productId);
+): productId is XuanxueAiReusableBaseConsumerProductId => Object.hasOwn(xuanxueAiReusableBaseConsumerProfiles, productId);
 
 export const isAllowedXuanxueConversationParent = (input: {
   childProductId: XuanxueAiProductId;
@@ -72,6 +66,27 @@ export const isAllowedXuanxueConversationParent = (input: {
     ) || (
       input.parentProductId === "bazi_ai_full_analysis"
       && input.parentStageId === "question_analysis"
+    ) || (
+      input.parentProductId === "bazi_report_followup"
+      && input.parentStageId === "question_analysis"
+    );
+  }
+  if (input.childProductId === "qimen_report_followup") {
+    return (
+      input.parentProductId === "qimen_professional_answer"
+      && input.parentStageId === "analysis"
+    ) || (
+      input.parentProductId === "qimen_report_followup"
+      && input.parentStageId === "followup"
+    );
+  }
+  if (input.childProductId === "hehun_report_followup") {
+    return (
+      input.parentProductId === "hehun_ai_analysis"
+      && input.parentStageId === "final_compatibility"
+    ) || (
+      input.parentProductId === "hehun_report_followup"
+      && input.parentStageId === "followup"
     );
   }
   const expected = xuanxueAiRequiredContinuationProfiles[
