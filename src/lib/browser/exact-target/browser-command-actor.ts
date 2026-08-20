@@ -4,7 +4,7 @@ import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
-import type { BrowserMutationIntentJournal } from "./browser-mutation-intent-journal.js";
+import type { BrowserMutationIntentJournal, BrowserMutationJournalEntry } from "./browser-mutation-intent-journal.js";
 
 export type BrowserGovernedCommand =
   | Readonly<{ kind: "navigate"; url: string; title: string }>
@@ -29,6 +29,48 @@ export type BrowserCommandAuthorityGuard = Readonly<{
   assertCurrentAuthority(permit: BrowserCommandPermit): void;
 }>;
 
+type MutationJournalBase = Omit<BrowserMutationJournalEntry, "recordedAt" | "reason" | "state">;
+type DispatchState = { sent: boolean };
+
+const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): void => {
+  assertValidCommandPermit(permit);
+  if (command.kind === "dom-intent") assertBrowserDomIntent(command.intent);
+};
+
+const isMutation = (command: BrowserGovernedCommand): boolean =>
+  command.kind === "file-input"
+  || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "fill"));
+
+const createMutationJournalBase = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): MutationJournalBase | null =>
+  isMutation(command)
+    ? {
+      commandId: permit.commandId,
+      authorityCertificateHash: permit.certificateHash,
+      executionFenceHash: permit.executionBindingHash,
+      mutationClass: "mutation",
+      payloadHash: `sha256:${createHash("sha256").update(JSON.stringify(command)).digest("hex")}`,
+    }
+    : null;
+
+const recordMutation = async (
+  journal: BrowserMutationIntentJournal,
+  entry: MutationJournalBase | null,
+  state: BrowserMutationJournalEntry["state"],
+  reason?: string,
+): Promise<void> => {
+  if (!entry) return;
+  await journal.record({ ...entry, state, recordedAt: new Date().toISOString(), ...(reason === undefined ? {} : { reason }) });
+};
+
+const assertMatchingReply = (permit: BrowserCommandPermit, reply: BrowserCommandReply): void => {
+  if (reply.replyChannelToken !== permit.replyChannelToken || reply.sequence !== permit.sequence) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+};
+
+const failureCode = (entry: MutationJournalBase | null, sent: boolean): "BROWSER_HOST_UNAVAILABLE" | "BROWSER_OUTCOME_UNKNOWN" =>
+  entry !== null && sent ? "BROWSER_OUTCOME_UNKNOWN" : "BROWSER_HOST_UNAVAILABLE";
+
 export class BrowserCommandActor {
   public constructor(
     private readonly budget: BrowserCommandAdmissionBudget,
@@ -38,41 +80,35 @@ export class BrowserCommandActor {
   ) {}
 
   public async execute(permit: BrowserCommandPermit, command: BrowserGovernedCommand): Promise<unknown> {
-    assertValidCommandPermit(permit);
-    if (command.kind === "dom-intent") assertBrowserDomIntent(command.intent);
+    assertAcceptedCommand(permit, command);
     this.authorityGuard.assertCurrentAuthority(permit);
     this.budget.enter();
-    const mutation = command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "fill") || command.kind === "file-input";
-    const journalEntry = mutation ? {
-      commandId: permit.commandId,
-      authorityCertificateHash: permit.certificateHash,
-      executionFenceHash: permit.executionBindingHash,
-      mutationClass: "mutation" as const,
-      payloadHash: `sha256:${createHash("sha256").update(JSON.stringify(command)).digest("hex")}` as const,
-    } : null;
-    let sent = false;
+    const journalEntry = createMutationJournalBase(permit, command);
+    const dispatch: DispatchState = { sent: false };
     try {
-      if (journalEntry) await this.journal.record({ ...journalEntry, state: "PREPARED", recordedAt: new Date().toISOString() });
-      this.authorityGuard.assertCurrentAuthority(permit);
-      if (journalEntry) await this.journal.record({ ...journalEntry, state: "SENT", recordedAt: new Date().toISOString() });
-      sent = true;
-      const reply = await this.port.send(permit, command);
-      if (reply.replyChannelToken !== permit.replyChannelToken || reply.sequence !== permit.sequence) {
-        throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-      }
-      this.authorityGuard.assertCurrentAuthority(permit);
-      if (journalEntry) await this.journal.record({ ...journalEntry, state: "CONFIRMED", recordedAt: new Date().toISOString() });
-      return reply.result;
+      return await this.dispatch(permit, command, journalEntry, dispatch);
     } catch (error) {
-      if (journalEntry) await this.journal.record({
-        ...journalEntry,
-        state: sent ? "OUTCOME_UNKNOWN" : "FAILED",
-        recordedAt: new Date().toISOString(),
-        reason: error instanceof Error ? error.message : "unknown",
-      });
-      throw new Error(mutation && sent ? "BROWSER_OUTCOME_UNKNOWN" : "BROWSER_HOST_UNAVAILABLE", { cause: error });
+      await recordMutation(this.journal, journalEntry, dispatch.sent ? "OUTCOME_UNKNOWN" : "FAILED", error instanceof Error ? error.message : "unknown");
+      throw new Error(failureCode(journalEntry, dispatch.sent), { cause: error });
     } finally {
       this.budget.leave();
     }
+  }
+
+  private async dispatch(
+    permit: BrowserCommandPermit,
+    command: BrowserGovernedCommand,
+    journalEntry: MutationJournalBase | null,
+    dispatch: DispatchState,
+  ): Promise<unknown> {
+    await recordMutation(this.journal, journalEntry, "PREPARED");
+    this.authorityGuard.assertCurrentAuthority(permit);
+    await recordMutation(this.journal, journalEntry, "SENT");
+    dispatch.sent = true;
+    const reply = await this.port.send(permit, command);
+    assertMatchingReply(permit, reply);
+    this.authorityGuard.assertCurrentAuthority(permit);
+    await recordMutation(this.journal, journalEntry, "CONFIRMED");
+    return reply.result;
   }
 }

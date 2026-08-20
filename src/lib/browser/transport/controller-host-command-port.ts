@@ -230,31 +230,50 @@ const matchesToken = (candidate: string, expected: string): boolean => {
 const asBrowserError = (error: unknown): Error => error instanceof Error ? error : new Error("BROWSER_HOST_UNAVAILABLE");
 
 const parseIncomingFrame = (value: unknown): IncomingFrame => {
-  if (!isRecord(value) || typeof value.kind !== "string") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  if (value.kind === "extension-hello" && typeof value.controllerToken === "string" && typeof value.sourceChannelToken === "string" && isRecord(value.proof)) {
-    return value as unknown as ControllerHelloFrame;
-  }
-  if (
-    value.kind === "extension-reply"
-    && typeof value.sourceChannelToken === "string"
-    && typeof value.replyChannelToken === "string"
-    && typeof value.sequence === "number"
-    && (value.errorCode === undefined || typeof value.errorCode === "string")
-  ) {
-    return value as unknown as ExtensionReplyFrame;
-  }
-  if (
-    value.kind === "operator-target-claimed"
-    && typeof value.sourceChannelToken === "string"
-    && isRecord(value.claim)
-    && typeof value.claim.targetRef === "string"
-    && typeof value.claim.documentRef === "string"
-    && typeof value.claim.navigationEpoch === "number"
-    && typeof value.claim.url === "string"
-    && typeof value.claim.title === "string"
-  ) {
-    return value as OperatorTargetClaimFrame;
-  }
+  const frame = parseControllerHello(value) ?? parseExtensionReply(value) ?? parseOperatorTargetClaim(value);
+  if (frame) return frame;
   throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
 };
+
+const parseControllerHello = (value: unknown): ControllerHelloFrame | null => {
+  if (!isRecord(value) || value.kind !== "extension-hello" || typeof value.controllerToken !== "string" || typeof value.sourceChannelToken !== "string") return null;
+  if (!isBrowserAuthenticationProof(value.proof)) return null;
+  return { kind: "extension-hello", controllerToken: value.controllerToken, sourceChannelToken: value.sourceChannelToken, proof: value.proof };
+};
+
+const parseExtensionReply = (value: unknown): ExtensionReplyFrame | null => {
+  if (!isRecord(value) || value.kind !== "extension-reply" || typeof value.sourceChannelToken !== "string" || typeof value.replyChannelToken !== "string" || typeof value.sequence !== "number") return null;
+  if (value.errorCode !== undefined && typeof value.errorCode !== "string") return null;
+  return {
+    kind: "extension-reply",
+    sourceChannelToken: value.sourceChannelToken,
+    replyChannelToken: value.replyChannelToken,
+    sequence: value.sequence,
+    ...(value.result === undefined ? {} : { result: value.result }),
+    ...(value.errorCode === undefined ? {} : { errorCode: value.errorCode }),
+  };
+};
+
+const parseOperatorTargetClaim = (value: unknown): OperatorTargetClaimFrame | null => {
+  if (!isRecord(value) || value.kind !== "operator-target-claimed" || typeof value.sourceChannelToken !== "string" || !isBrowserOperatorTargetClaim(value.claim)) return null;
+  return { kind: "operator-target-claimed", sourceChannelToken: value.sourceChannelToken, claim: value.claim };
+};
+
+const isBrowserAuthenticationProof = (value: unknown): value is BrowserAuthenticationProof =>
+  isRecord(value)
+  && isBrowserHash(value.executionBindingHash)
+  && isRecord(value.handshake)
+  && isBrowserHash(value.authTranscriptHash);
+
+const isBrowserOperatorTargetClaim = (value: unknown): value is BrowserOperatorTargetClaim =>
+  isRecord(value)
+  && typeof value.targetRef === "string"
+  && typeof value.documentRef === "string"
+  && typeof value.navigationEpoch === "number"
+  && typeof value.url === "string"
+  && typeof value.title === "string";
+
+const isBrowserHash = (value: unknown): value is `sha256:${string}` =>
+  typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value);
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
