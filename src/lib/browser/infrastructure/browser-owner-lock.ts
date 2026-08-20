@@ -13,9 +13,13 @@ export class BrowserOwnerLock {
     lockPath: string;
     timeoutMs?: number;
   }): Promise<BrowserOwnerLock> {
-    const helper = spawn(input.helperPath, ["hold-owner-lock", input.lockPath], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const helper = spawn(
+      input.helperPath,
+      ["hold-owner-lock", input.lockPath],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
     const stderr: string[] = [];
     helper.stderr.setEncoding("utf8");
     helper.stderr.on("data", (chunk: string) => stderr.push(chunk));
@@ -26,7 +30,9 @@ export class BrowserOwnerLock {
       const line = await Promise.race([
         once(lines, "line").then(([value]) => String(value)),
         once(helper, "exit").then(() => {
-          throw new Error(stderr.join("") || "BROWSER_CONTROLLER_ALREADY_OWNED");
+          throw new Error(
+            stderr.join("") || "BROWSER_CONTROLLER_ALREADY_OWNED",
+          );
         }),
       ]);
       const ack = JSON.parse(line) as { status?: unknown };

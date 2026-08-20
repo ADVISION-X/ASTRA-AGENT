@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
@@ -12,7 +12,7 @@ import {
 } from "./web-chat-answer-support.js";
 
 type WaitForStableAnswerInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   timeoutMs: number;
   pollIntervalMs: number;

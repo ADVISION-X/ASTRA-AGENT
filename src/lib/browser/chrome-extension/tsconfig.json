@@ -6,5 +6,5 @@
     "noImplicitAny": true,
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["protocol.ts", "service-worker.ts"]
+  "include": ["service-worker.ts"]
 }

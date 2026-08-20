@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { PluginInterventionRequestSchema, type PluginInterventionAction, type PluginInterventionRequest } from "../../types/plugin-intervention.js";
 import { runAmazonProductMiningFlow } from "./amazon-product-mining.flow.js";
@@ -32,7 +32,7 @@ const ACTIVE_AMAZON_MINING_TASKS = new Map<string, Promise<AmazonFlowResult>>();
 
 type AmazonProductMiningRuntimeInput = {
   dataDir: string;
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   aiInputGateway: AiInputGatewayAbilityGroup;
   runtimeLogger: RuntimeLogger;
 };

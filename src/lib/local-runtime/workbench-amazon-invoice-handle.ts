@@ -33,11 +33,11 @@ export const buildAmazonInvoiceHandle = (
 
 const buildAmazonInvoiceMissionHandle = (assembly: WorkbenchAssembly) => ({
   async openAdminInvoicePage(input: Parameters<typeof startAmazonInvoiceAdminOpenTask>[1]) {
-    return runAmazonInvoiceAdminOpenRoute(input, assembly.browserController.createTargetSession("amazon-invoice-upload"));
+    return runAmazonInvoiceAdminOpenRoute(input, await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"));
   },
   async startAmazonInvoiceUploadMission(input: Parameters<typeof runAmazonInvoiceUploadMissionRoute>[0]) {
     return runAmazonInvoiceUploadMissionRoute(input, [
-      assembly.browserController.createTargetSession("amazon-invoice-upload"),
+      await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
       assembly.runtimeLogger,
       assembly.evidenceStore,
     ]);
@@ -50,7 +50,7 @@ const buildAmazonInvoiceTaskHandle = (
 ) => ({
   async startAmazonInvoiceUploadTask(input: Parameters<typeof runAmazonInvoiceUploadTaskRoute>[0]) {
     return runAmazonInvoiceUploadTaskRoute(input, {
-      browser: assembly.browserController.createTargetSession("amazon-invoice-upload"),
+      browser: await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
       runtimeLogger: assembly.runtimeLogger,
       evidenceStore: assembly.evidenceStore,
       dataDir,
@@ -58,7 +58,7 @@ const buildAmazonInvoiceTaskHandle = (
   },
   async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
     return runAmazonInvoiceUploadResumeRoute(input, {
-      browser: assembly.browserController.createTargetSession("amazon-invoice-upload"),
+      browser: await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
       runtimeLogger: assembly.runtimeLogger,
       evidenceStore: assembly.evidenceStore,
       dataDir,
@@ -99,7 +99,7 @@ const buildAmazonInvoiceDownloadHandle = (
 ) => ({
   async startAmazonTaxInvoiceDownloadTask(input: Parameters<typeof runAmazonTaxInvoiceDownloadRoute>[0]) {
     return runAmazonTaxInvoiceDownloadRoute(input, {
-      browser: assembly.browserController.createTargetSession("amazon-invoice-upload"),
+      browser: await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
       runtimeLogger: assembly.runtimeLogger,
       dataDir,
     });

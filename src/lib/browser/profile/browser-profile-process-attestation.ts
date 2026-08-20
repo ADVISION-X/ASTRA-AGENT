@@ -23,29 +23,32 @@ const hash = (value: string): `sha256:${string}` =>
 const chromeVersion = (executable: string): string => {
   const result = spawnSync(executable, ["--version"], { encoding: "utf8" });
   if (result.error || result.status !== 0) {
-    throw new Error("BROWSER_CHROME_PROCESS_IDENTITY_INVALID:version unavailable");
+    throw new Error(
+      "BROWSER_CHROME_PROCESS_IDENTITY_INVALID:version unavailable",
+    );
   }
   return result.stdout.trim();
 };
 
 const processStartToken = (pid: number): string => {
   if (process.platform === "win32") {
-    const result = spawnSync("powershell.exe", [
-      "-NoProfile",
-      "-Command",
-      `(Get-Process -Id ${pid}).StartTime.ToUniversalTime().ToString('O')`,
-    ], { encoding: "utf8" });
+    const result = spawnSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        `(Get-Process -Id ${pid}).StartTime.ToUniversalTime().ToString('O')`,
+      ],
+      { encoding: "utf8" },
+    );
     if (result.error || result.status !== 0) {
       throw new Error("BROWSER_CHROME_PROCESS_IDENTITY_INVALID:start token");
     }
     return result.stdout.trim();
   }
-  const result = spawnSync("/bin/ps", [
-    "-p",
-    String(pid),
-    "-o",
-    "lstart=",
-  ], { encoding: "utf8" });
+  const result = spawnSync("/bin/ps", ["-p", String(pid), "-o", "lstart="], {
+    encoding: "utf8",
+  });
   if (result.error || result.status !== 0 || !result.stdout.trim()) {
     throw new Error("BROWSER_CHROME_PROCESS_IDENTITY_INVALID:start token");
   }
@@ -56,7 +59,9 @@ const findApprovedChromeProcess = (
   enrollment: BrowserProfileEnrollment,
 ): number | null => {
   if (process.platform === "win32") return null;
-  const result = spawnSync("/bin/ps", ["-axo", "pid=,command="], { encoding: "utf8" });
+  const result = spawnSync("/bin/ps", ["-axo", "pid=,command="], {
+    encoding: "utf8",
+  });
   if (result.error || result.status !== 0) return null;
   const userData = `--user-data-dir=${enrollment.userDataDir}`;
   const profile = `--profile-directory=${enrollment.profileDirectory}`;
@@ -65,10 +70,11 @@ const findApprovedChromeProcess = (
     if (!match) continue;
     const command = match[2]!;
     if (
-      command.includes(enrollment.chromeExecutablePath)
-      && command.includes(userData)
-      && command.includes(profile)
-    ) return Number(match[1]);
+      command.includes(enrollment.chromeExecutablePath) &&
+      command.includes(userData) &&
+      command.includes(profile)
+    )
+      return Number(match[1]);
   }
   return null;
 };
@@ -81,15 +87,16 @@ export const browserChromeProcessIncarnationMaterial = (input: {
   profileDirectory: string;
   profileEnrollmentId: string;
   chromeVersion: string;
-}): string => [
-  `pid=${input.pid}`,
-  `processStartToken=${input.processStartToken}`,
-  `chromeExecutablePath=${input.chromeExecutablePath}`,
-  `userDataDir=${input.userDataDir}`,
-  `profileDirectory=${input.profileDirectory}`,
-  `profileEnrollmentId=${input.profileEnrollmentId}`,
-  `chromeVersion=${input.chromeVersion}`,
-].join("\n");
+}): string =>
+  [
+    `pid=${input.pid}`,
+    `processStartToken=${input.processStartToken}`,
+    `chromeExecutablePath=${input.chromeExecutablePath}`,
+    `userDataDir=${input.userDataDir}`,
+    `profileDirectory=${input.profileDirectory}`,
+    `profileEnrollmentId=${input.profileEnrollmentId}`,
+    `chromeVersion=${input.chromeVersion}`,
+  ].join("\n");
 
 export const ensureEnrolledBrowserProcess = async (
   enrollment: BrowserProfileEnrollment,
@@ -98,15 +105,20 @@ export const ensureEnrolledBrowserProcess = async (
   let pid = existing;
   let startedBySupervisor = false;
   if (!pid) {
-    const child = spawn(enrollment.chromeExecutablePath, [
-      `--user-data-dir=${enrollment.userDataDir}`,
-      `--profile-directory=${enrollment.profileDirectory}`,
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--disable-default-apps",
-    ], { detached: true, stdio: "ignore" });
+    const child = spawn(
+      enrollment.chromeExecutablePath,
+      [
+        `--user-data-dir=${enrollment.userDataDir}`,
+        `--profile-directory=${enrollment.profileDirectory}`,
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-default-apps",
+      ],
+      { detached: true, stdio: "ignore" },
+    );
     child.unref();
-    if (!child.pid) throw new Error("BROWSER_CHROME_PROCESS_IDENTITY_INVALID:no pid");
+    if (!child.pid)
+      throw new Error("BROWSER_CHROME_PROCESS_IDENTITY_INVALID:no pid");
     pid = child.pid;
     startedBySupervisor = true;
     await new Promise((resolve) => setTimeout(resolve, 750));

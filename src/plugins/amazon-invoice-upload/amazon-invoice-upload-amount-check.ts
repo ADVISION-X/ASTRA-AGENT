@@ -4,10 +4,13 @@ import { PDFParse } from "pdf-parse";
 
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomSnapshot } from "../../types/dom-automation.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
-import { readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
+import {
+  readSnapshot,
+  taskResult,
+} from "./amazon-invoice-upload-flow-support.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 export type AmazonInvoiceMoney = {
@@ -29,20 +32,14 @@ const PDF_TOTAL_LABELS = [
   "Amount payable",
 ] as const;
 
-const ORDER_TOTAL_LABELS = [
-  "总和",
-  "Total",
-] as const;
-const ORDER_TOTAL_SECTION_LABELS = [
-  "销售收益",
-  "Sales proceeds",
-] as const;
+const ORDER_TOTAL_LABELS = ["总和", "Total"] as const;
+const ORDER_TOTAL_SECTION_LABELS = ["销售收益", "Sales proceeds"] as const;
 const ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT = 240;
 const ORDER_TOTAL_READ_ATTEMPTS = 3;
 const ORDER_TOTAL_READ_RETRY_MS = 1000;
 
 export async function verifyInvoiceAmountBeforeUpload(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
@@ -86,22 +83,31 @@ export async function verifyInvoiceAmountBeforeUpload(
   return null;
 }
 
-async function readOrderDomTotalAmountWithRetry(browser: BrowserTargetSession): Promise<{
+async function readOrderDomTotalAmountWithRetry(
+  browser: BrowserTargetLease,
+): Promise<{
   readonly attempts: number;
   readonly orderAmount: AmazonInvoiceMoney | null;
   readonly snapshot: DomSnapshot;
 }> {
-  let snapshot = await readSnapshot(browser, { maxTextLengthPerNode: ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT });
+  let snapshot = await readSnapshot(browser, {
+    maxTextLengthPerNode: ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT,
+  });
   for (let attempt = 1; attempt <= ORDER_TOTAL_READ_ATTEMPTS; attempt += 1) {
     const orderAmount = extractOrderDomTotalAmount(snapshot);
-    if (orderAmount || attempt === ORDER_TOTAL_READ_ATTEMPTS) return { attempts: attempt, orderAmount, snapshot };
+    if (orderAmount || attempt === ORDER_TOTAL_READ_ATTEMPTS)
+      return { attempts: attempt, orderAmount, snapshot };
     await browser.wait(ORDER_TOTAL_READ_RETRY_MS);
-    snapshot = await readSnapshot(browser, { maxTextLengthPerNode: ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT });
+    snapshot = await readSnapshot(browser, {
+      maxTextLengthPerNode: ORDER_TOTAL_SNAPSHOT_TEXT_LIMIT,
+    });
   }
   return { attempts: ORDER_TOTAL_READ_ATTEMPTS, orderAmount: null, snapshot };
 }
 
-export async function extractInvoicePdfTotalAmount(pdfPath: string): Promise<AmazonInvoiceMoney | null> {
+export async function extractInvoicePdfTotalAmount(
+  pdfPath: string,
+): Promise<AmazonInvoiceMoney | null> {
   let parser: PDFParse | null = null;
   try {
     parser = new PDFParse({ data: readFileSync(pdfPath) });
@@ -126,30 +132,44 @@ export function parsePdfTotalAmount(text: string): AmazonInvoiceMoney | null {
   return moneyMatches(compact).at(-1) ?? null;
 }
 
-export function extractOrderDomTotalAmount(snapshot: DomSnapshot): AmazonInvoiceMoney | null {
+export function extractOrderDomTotalAmount(
+  snapshot: DomSnapshot,
+): AmazonInvoiceMoney | null {
   const rows = [
     ...snapshot.tableRows.map((item) => item.visibleText),
     ...snapshot.roleRows.map((item) => item.visibleText),
     ...snapshot.textBlocks.map((item) => item.visibleText),
   ].map((item) => normalizeText(item ?? ""));
   for (const row of rows) {
-    if (!ORDER_TOTAL_LABELS.some((label) => row.toLowerCase().includes(label.toLowerCase()))) {
+    if (
+      !ORDER_TOTAL_LABELS.some((label) =>
+        row.toLowerCase().includes(label.toLowerCase()),
+      )
+    ) {
       continue;
     }
     const match = moneyMatches(row).at(-1);
     if (match) return match;
   }
   const joinedRows = rows.filter(Boolean).join(" ");
-  return amountAfterLabels(joinedRows, ORDER_TOTAL_LABELS, 260)
-    ?? amountAfterLabels(joinedRows, ORDER_TOTAL_SECTION_LABELS, 700);
+  return (
+    amountAfterLabels(joinedRows, ORDER_TOTAL_LABELS, 260) ??
+    amountAfterLabels(joinedRows, ORDER_TOTAL_SECTION_LABELS, 700)
+  );
 }
 
-function amountAfterLabels(text: string, labels: readonly string[], windowLength: number): AmazonInvoiceMoney | null {
+function amountAfterLabels(
+  text: string,
+  labels: readonly string[],
+  windowLength: number,
+): AmazonInvoiceMoney | null {
   const lower = text.toLowerCase();
   for (const label of labels) {
     const labelIndex = lower.lastIndexOf(label.toLowerCase());
     if (labelIndex < 0) continue;
-    const match = moneyMatches(text.slice(labelIndex, labelIndex + windowLength)).at(-1);
+    const match = moneyMatches(
+      text.slice(labelIndex, labelIndex + windowLength),
+    ).at(-1);
     if (match) return match;
   }
   return null;
@@ -189,13 +209,25 @@ function amountGateFailure(
 }
 
 function moneyMatches(text: string): AmazonInvoiceMoney[] {
-  return Array.from(text.matchAll(/(?:AED\s*)?([0-9][0-9,]*)(?:\.([0-9]{2}))?\s*(?:AED)?/gi))
-    .filter((match) => match[0].toUpperCase().includes("AED") || text.slice(Math.max(0, (match.index ?? 0) - 12), (match.index ?? 0) + 24).toUpperCase().includes("AED"))
+  return Array.from(
+    text.matchAll(/(?:AED\s*)?([0-9][0-9,]*)(?:\.([0-9]{2}))?\s*(?:AED)?/gi),
+  )
+    .filter(
+      (match) =>
+        match[0].toUpperCase().includes("AED") ||
+        text
+          .slice(Math.max(0, (match.index ?? 0) - 12), (match.index ?? 0) + 24)
+          .toUpperCase()
+          .includes("AED"),
+    )
     .map((match) => toMoney(match[1] ?? "", match[2] ?? "00"))
     .filter((money): money is AmazonInvoiceMoney => money !== null);
 }
 
-function toMoney(wholeText: string, centsText: string): AmazonInvoiceMoney | null {
+function toMoney(
+  wholeText: string,
+  centsText: string,
+): AmazonInvoiceMoney | null {
   const whole = Number.parseInt(wholeText.replace(/,/g, ""), 10);
   const cents = Number.parseInt(centsText, 10);
   if (!Number.isFinite(whole) || !Number.isFinite(cents)) return null;
@@ -214,8 +246,17 @@ function normalizeText(text: string): string {
 function normalizePdfText(text: string): string {
   return normalizeText(text)
     .replace(/\bA\s*E\s*D\b/gi, "AED")
-    .replace(/G\s*R\s*O\s*S\s*S\s+A\s*M\s*O\s*U\s*N\s*T\s+P\s*A\s*Y\s*A\s*B\s*L\s*E/gi, "Gross amount payable")
-    .replace(/T\s*O\s*T\s*A\s*L\s+A\s*M\s*O\s*U\s*N\s*T\s+P\s*A\s*Y\s*A\s*B\s*L\s*E/gi, "Total amount payable")
+    .replace(
+      /G\s*R\s*O\s*S\s*S\s+A\s*M\s*O\s*U\s*N\s*T\s+P\s*A\s*Y\s*A\s*B\s*L\s*E/gi,
+      "Gross amount payable",
+    )
+    .replace(
+      /T\s*O\s*T\s*A\s*L\s+A\s*M\s*O\s*U\s*N\s*T\s+P\s*A\s*Y\s*A\s*B\s*L\s*E/gi,
+      "Total amount payable",
+    )
     .replace(/I\s*N\s*V\s*O\s*I\s*C\s*E\s+T\s*O\s*T\s*A\s*L/gi, "Invoice total")
-    .replace(/A\s*M\s*O\s*U\s*N\s*T\s+P\s*A\s*Y\s*A\s*B\s*L\s*E/gi, "Amount payable");
+    .replace(
+      /A\s*M\s*O\s*U\s*N\s*T\s+P\s*A\s*Y\s*A\s*B\s*L\s*E/gi,
+      "Amount payable",
+    );
 }

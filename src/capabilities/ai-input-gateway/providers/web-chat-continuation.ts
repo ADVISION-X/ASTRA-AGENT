@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { focusChatGptConversationByCanonicalPath } from "../runtime/web-chat-single-tab-routing.js";
@@ -6,7 +6,7 @@ import { focusChatGptConversationByCanonicalPath } from "../runtime/web-chat-sin
 const CURRENT_URL_SCRIPT = "return {status: 'success', message: 'read current provider URL', pageUrl: location.href};";
 
 type ContinuationInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeName: string;
   context: AiProviderAdapterContext;
   request: AiFeedInput;

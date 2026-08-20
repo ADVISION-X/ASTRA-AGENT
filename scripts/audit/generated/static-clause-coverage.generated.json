@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-19T19:59:09.109Z",
+  "generatedAt": "2026-08-20T10:35:41.721Z",
   "summary": {
-    "activeLawCount": 244,
-    "activeClauseCount": 245,
-    "boundClauseCount": 245,
-    "machineClauseCount": 231,
-    "executedMachineClauseCount": 231,
+    "activeLawCount": 219,
+    "activeClauseCount": 220,
+    "boundClauseCount": 220,
+    "machineClauseCount": 206,
+    "executedMachineClauseCount": 206,
     "deferredRealChromeClauseCount": 14,
     "realChromeClauseIds": [
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1::grasseye-amazon-invoice-upload-010-requirement",
@@ -13,14 +13,14 @@
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1::grasseye-amazon-invoice-upload-014-requirement",
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1::grasseye-amazon-invoice-upload-016-requirement",
       "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1::grasseye-app-shell-ui-physical-cleanup-001-requirement",
-      "GRASSEYE-DEEP-RESEARCH-059-V1::grasseye-deep-research-059-requirement",
       "APEX-DOM-020-V1::apex-dom-020-requirement",
       "APEX-DOM-021-V1::apex-dom-021-requirement",
-      "APEX-LOCAL-BROWSER-001-V2::apex-local-browser-001-v2-requirement",
-      "APEX-LOCAL-BROWSER-002-V2::apex-local-browser-002-v2-requirement",
-      "APEX-LOCAL-BROWSER-003-V2::apex-local-browser-003-v2-requirement",
-      "APEX-LOCAL-BROWSER-004-V2::apex-local-browser-004-v2-requirement",
-      "APEX-LOCAL-BROWSER-005-V1::apex-local-browser-005-v1-requirement",
+      "APEX-LOCAL-BROWSER-001-V2::apex-local-browser-001-v2-exact-authority-lease",
+      "APEX-LOCAL-BROWSER-002-V2::apex-local-browser-002-v2-authority-atomicity",
+      "APEX-LOCAL-BROWSER-003-V2::apex-local-browser-003-v2-single-chain",
+      "APEX-LOCAL-BROWSER-004-V2::apex-local-browser-004-v2-governed-command-plane",
+      "APEX-LOCAL-BROWSER-005-V1::apex-local-browser-005-v1-release-identity",
+      "APEX-LOCAL-BROWSER-006-V1::apex-local-browser-006-v1-cross-repo-fence-proof",
       "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5::grasseye-xuanxue-ai-production-001-v5-real-chrome-proof"
     ],
     "uncoveredMachineClauseIds": [],
@@ -2068,431 +2068,6 @@
       "manifestPath": "scripts/audit/domains/constitutional-boundary/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
-      "clauseId": "grasseye-deep-research-001-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "static",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
-      "clauseId": "grasseye-deep-research-038-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-039-V1",
-      "clauseId": "grasseye-deep-research-039-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "static",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-040-V1",
-      "clauseId": "grasseye-deep-research-040-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
-      "clauseId": "grasseye-deep-research-041-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
-      "clauseId": "grasseye-deep-research-042-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
-      "clauseId": "grasseye-deep-research-043-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "static",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
-      "clauseId": "grasseye-deep-research-044-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "static",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
-      "clauseId": "grasseye-deep-research-045-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "static",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
-      "clauseId": "grasseye-deep-research-046-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
-      "clauseId": "grasseye-deep-research-047-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
-      "clauseId": "grasseye-deep-research-048-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
-      "clauseId": "grasseye-deep-research-049-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
-      "clauseId": "grasseye-deep-research-050-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-051-V1",
-      "clauseId": "grasseye-deep-research-051-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "static",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-052-V1",
-      "clauseId": "grasseye-deep-research-052-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
-      "clauseId": "grasseye-deep-research-053-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
-      "clauseId": "grasseye-deep-research-054-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
-      "clauseId": "grasseye-deep-research-055-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
-      "clauseId": "grasseye-deep-research-056-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
-      "clauseId": "grasseye-deep-research-057-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
-      "clauseId": "grasseye-deep-research-058-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
-      "clauseId": "grasseye-deep-research-059-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "real-chrome",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
-      "clauseId": "grasseye-deep-research-060-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
-      "clauseId": "grasseye-deep-research-061-requirement",
-      "capabilityDomain": "deep-research-analysis",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "checkIds": [
-        "deep-research-analysis/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json"
-    },
-    {
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "capabilityDomain": "dom-automation",
@@ -2893,12 +2468,12 @@
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-001-V2",
-      "clauseId": "apex-local-browser-001-v2-requirement",
+      "clauseId": "apex-local-browser-001-v2-exact-authority-lease",
       "capabilityDomain": "local-browser-session",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "local-browser-session/owner-assertion-set"
+        "browser-old-path/retired-zero"
       ],
       "sourceEvidence": [
         {
@@ -2910,12 +2485,12 @@
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-002-V2",
-      "clauseId": "apex-local-browser-002-v2-requirement",
+      "clauseId": "apex-local-browser-002-v2-authority-atomicity",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "local-browser-session/owner-assertion-set"
+        "browser-auth/no-unauth-session-type"
       ],
       "sourceEvidence": [
         {
@@ -2927,12 +2502,12 @@
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-003-V2",
-      "clauseId": "apex-local-browser-003-v2-requirement",
+      "clauseId": "apex-local-browser-003-v2-single-chain",
       "capabilityDomain": "local-browser-session",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "local-browser-session/owner-assertion-set"
+        "browser-auth/original-reply-channel"
       ],
       "sourceEvidence": [
         {
@@ -2944,12 +2519,12 @@
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-004-V2",
-      "clauseId": "apex-local-browser-004-v2-requirement",
+      "clauseId": "apex-local-browser-004-v2-governed-command-plane",
       "capabilityDomain": "local-browser-session",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "local-browser-session/owner-assertion-set"
+        "browser-file/artifact-grant-no-raw-path"
       ],
       "sourceEvidence": [
         {
@@ -2961,12 +2536,12 @@
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-005-V1",
-      "clauseId": "apex-local-browser-005-v1-requirement",
+      "clauseId": "apex-local-browser-005-v1-release-identity",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "artifact+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "local-browser-session/owner-assertion-set"
+        "browser-release/artifact-activation-proof-separation"
       ],
       "sourceEvidence": [
         {
@@ -2977,13 +2552,30 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
-      "clauseId": "grasseye-security-privacy-browser-001-requirement",
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
+      "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
       "capabilityDomain": "local-browser-session",
-      "evidenceMode": "acceptance",
+      "evidenceMode": "static",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "local-browser-session/owner-assertion-set"
+        "browser-privacy/no-owner-boundary-leak"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-006-V1",
+      "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
+      "capabilityDomain": "local-browser-session",
+      "evidenceMode": "model+acceptance+real-chrome",
+      "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
+      "checkIds": [
+        "browser-cross-repo/authority-proof-v2"
       ],
       "sourceEvidence": [
         {
@@ -3540,23 +3132,6 @@
         }
       ],
       "manifestPath": "scripts/audit/domains/runtime-log-spine/manifest.json"
-    },
-    {
-      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-      "clauseId": "apex-runtime-truth-001-requirement",
-      "capabilityDomain": "runtime-truth",
-      "evidenceMode": "acceptance",
-      "ownerInspectorPath": "scripts/audit/domains/runtime-truth/inspector.ts",
-      "checkIds": [
-        "runtime-truth/owner-assertion-set"
-      ],
-      "sourceEvidence": [
-        {
-          "filePath": "scripts/audit/domains/runtime-truth/inspector.ts",
-          "symbolName": "inspectDomain"
-        }
-      ],
-      "manifestPath": "scripts/audit/domains/runtime-truth/manifest.json"
     },
     {
       "lawId": "APEX-STARTUP-001-V1",

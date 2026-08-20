@@ -1,15 +1,10 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { containsAnyCaseInsensitive, isPublicCapabilityFacadePath, isPublicPluginFacadePath } from "../../shared/no-regex.js";
+import { isPublicCapabilityFacadePath, isPublicPluginFacadePath } from "../../shared/no-regex.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
-import { inspectDeepResearchCaseReaderUi } from "./components/scan-deep-research-case-reader-ui.js";
-import { inspectDeepResearchCleanRawIndexUi } from "./components/scan-deep-research-clean-raw-index-ui.js";
-import { inspectDeepResearchFormPollingUi } from "./components/scan-deep-research-form-polling-ui.js";
-import { inspectDeepResearchHtmlDeliveryStatusUi } from "./components/scan-deep-research-html-delivery-status-ui.js";
-import { inspectDeepResearchPromptBundleUi } from "./components/scan-deep-research-promptbundle-ui.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -22,9 +17,6 @@ const appShellSidebarPath = "src/app/app-shell/sidebar.ts";
 const appShellCommandBarPath = "src/app/app-shell/command-bar.ts";
 const appShellInspectorPath = "src/app/app-shell/inspector.ts";
 const appShellRuntimeConsolePath = "src/app/app-shell/runtime-console.ts";
-const deepResearchPanelPath = "src/app/workbench-deep-research-panel.ts";
-const deepResearchClientPath = "src/app/workbench-deep-research-client.ts";
-const deepResearchRoutePath = "src/app/workbench-deep-research-routes.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
@@ -97,50 +89,6 @@ const requireMarker = (input: {
   });
 };
 
-const requireImport = (input: {
-  findings: Finding[];
-  lawId: string;
-  filePath: string;
-  symbolName: string;
-  moduleSuffix: string;
-  checkId: string;
-  context: InspectorContext;
-}): void => {
-  const sourceFile = getSourceFile(input.context, input.filePath);
-  const found = sourceFile?.getImportDeclarations().some((declaration) =>
-    declaration.getModuleSpecifierValue().endsWith(input.moduleSuffix)
-    && declaration.getNamedImports().some((namedImport) => namedImport.getName() === input.symbolName),
-  );
-  if (found) return;
-  pushFinding(input.findings, {
-    checkId: input.checkId,
-    lawId: input.lawId,
-    filePath: input.filePath,
-    message: `${input.filePath} must import ${input.symbolName} from ${input.moduleSuffix}.`,
-  });
-};
-
-const requireCall = (input: {
-  findings: Finding[];
-  lawId: string;
-  filePath: string;
-  symbolName: string;
-  checkId: string;
-  context: InspectorContext;
-}): void => {
-  const sourceFile = getSourceFile(input.context, input.filePath);
-  const found = sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
-    call.getExpression().getSymbol()?.getEscapedName().toString() === input.symbolName,
-  );
-  if (found) return;
-  pushFinding(input.findings, {
-    checkId: input.checkId,
-    lawId: input.lawId,
-    filePath: input.filePath,
-    message: `${input.filePath} must call ${input.symbolName}.`,
-  });
-};
-
 const inspectRootSurface = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const pageText = semanticSurface(context, appShellSurfacePaths);
   const clientText = semanticSurface(context, [clientPath]);
@@ -163,87 +111,6 @@ const inspectJobInputs = (context: InspectorContext, findings: Finding[], lawId:
   ];
   for (const fieldName of requiredAmazonFields) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: fieldName, checkId: "local-app-shell/amazon-input" });
-  }
-};
-
-const inspectDeepResearchAppSurface = (
-  context: InspectorContext,
-  findings: Finding[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-  deliveryLawId: string,
-): void => {
-  const pageText = semanticSurface(context, appShellSurfacePaths);
-  requireImport({ context, findings, lawId, filePath: appShellLayoutPath, symbolName: "renderDeepResearchPanel", moduleSuffix: "../workbench-deep-research-panel.js", checkId: "local-app-shell/deep-research-ui-import" });
-  requireImport({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", moduleSuffix: "./workbench-deep-research-routes.js", checkId: "local-app-shell/deep-research-route-import" });
-  requireCall({ context, findings, lawId, filePath: appShellLayoutPath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
-  requireCall({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", checkId: "local-app-shell/deep-research-route-call" });
-  requireMarker({ findings, lawId, filePath: appShellLayoutPath, text: pageText, marker: "data-skill-workspace=\"deep-research-analysis\"", checkId: "local-app-shell/deep-research-surface" });
-  inspectDeepResearchCaseReaderUi({
-    context,
-    findings,
-    inspectedFiles,
-    lawId: deliveryLawId,
-  });
-  inspectDeepResearchPromptBundleUi({
-    context,
-    findings,
-    inspectedFiles,
-    lawId: deliveryLawId,
-  });
-  inspectDeepResearchFormPollingUi({
-    context,
-    findings,
-    inspectedFiles,
-    lawId,
-  });
-  inspectDeepResearchCleanRawIndexUi({
-    context,
-    findings,
-    inspectedFiles,
-    lawId: deliveryLawId,
-  });
-  inspectDeepResearchHtmlDeliveryStatusUi({
-    context,
-    findings,
-    inspectedFiles,
-    lawId: deliveryLawId,
-  });
-};
-
-const inspectDeepResearchAppBoundary = (
-  context: InspectorContext,
-  findings: Finding[],
-  lawId: string,
-): void => {
-  const routeSource = getSourceFile(context, deepResearchRoutePath);
-  const forbiddenImport = routeSource?.getImportDeclarations().find((declaration) =>
-    declaration.getModuleSpecifierValue().includes("plugins/deep-research-analysis"),
-  );
-  if (forbiddenImport) {
-    pushFinding(findings, {
-      checkId: "local-app-shell/deep-research-private-import",
-      lawId,
-      filePath: deepResearchRoutePath,
-      message: "Deep Research app route must call WorkbenchHandle instead of importing plugin code.",
-    });
-  }
-  const appSources = [deepResearchPanelPath, deepResearchClientPath, deepResearchRoutePath]
-    .map((repoPath) => getSourceFile(context, repoPath))
-    .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
-  const promptLikeNode = appSources.flatMap((sourceFile) =>
-    sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).filter((literal) =>
-      containsAnyCaseInsensitive(literal.getLiteralValue(), ["output contract", "return json", "positiveAnalysisPrompt", "falsificationPrompt"]),
-    ).map((literal) => ({ sourceFile, literal })),
-  )[0];
-  if (promptLikeNode) {
-    pushFinding(findings, {
-      checkId: "local-app-shell/deep-research-business-logic",
-      lawId,
-      filePath: getRepoSourcePath(promptLikeNode.sourceFile),
-      message: "Deep Research APP files must not contain business prompt or parser logic.",
-      evidence: Node.isStringLiteral(promptLikeNode.literal) ? promptLikeNode.literal.getLiteralValue() : undefined,
-    });
   }
 };
 
@@ -358,7 +225,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const inputLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-002-V1");
   const statusLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-003-V1");
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-004-V1");
-  const deliveryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-005-V1");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>([
     pagePath,
@@ -370,9 +236,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     appShellCommandBarPath,
     appShellInspectorPath,
     appShellRuntimeConsolePath,
-    deepResearchPanelPath,
-    deepResearchClientPath,
-    deepResearchRoutePath,
     stylesPath,
     serverPath,
     inspectorPath,
@@ -381,10 +244,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectAstProjectAccess(context, findings, boundaryLawId);
   inspectRootSurface(context, findings, surfaceLawId);
   inspectJobInputs(context, findings, inputLawId);
-  inspectDeepResearchAppSurface(context, findings, inspectedFiles, inputLawId, deliveryLawId);
   inspectStatusWindow(context, findings, statusLawId);
   inspectForbiddenPageTerms(context, findings, boundaryLawId);
-  inspectDeepResearchAppBoundary(context, findings, boundaryLawId);
   inspectAppImports(context, findings, boundaryLawId);
   inspectLocalRuntimeImports(context, findings, boundaryLawId);
 

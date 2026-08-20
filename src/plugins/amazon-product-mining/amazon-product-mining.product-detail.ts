@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -73,7 +73,7 @@ const ensureDetailScriptSupportsTwisterState = (script: string): string => {
 const AMAZON_DETAIL_EXTRACT_SCRIPT = ensureDetailScriptSupportsTwisterState(AMAZON_DETAIL_EXTRACT_SCRIPT_SOURCE);
 
 const extractActiveTabJson = async <T>(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   script: string,
   description: string,
   errorCode: string,
@@ -212,7 +212,7 @@ const buildProductDetailRecord = (input: {
   ...buildProductStatus({ raw: input.raw, asin: input.asin, createdAt: input.createdAt }),
 });
 
-const buildBrowserDetailAdapter = (browser: BrowserTargetSession): DetailPageAdapter => ({
+const buildBrowserDetailAdapter = (browser: BrowserTargetLease): DetailPageAdapter => ({
   async extractProductDetail({ productUrl, asin, taskId }) {
     await browser.open({
       url: productUrl,
@@ -239,7 +239,7 @@ const buildBrowserDetailAdapter = (browser: BrowserTargetSession): DetailPageAda
 });
 
 export const runProductDetailExtraction = async (input: {
-  browser?: BrowserTargetSession;
+  browser?: BrowserTargetLease;
   productUrl: string;
   asin: string;
   taskId: string;

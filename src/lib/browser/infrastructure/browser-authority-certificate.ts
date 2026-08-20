@@ -45,7 +45,10 @@ export class AuthenticatedBrowserAuthority {
   }
 
   static issueInternal(
-    input: Omit<BrowserAuthorityCertificateV1, "schemaVersion" | "authorityRef" | "certificateHash">,
+    input: Omit<
+      BrowserAuthorityCertificateV1,
+      "schemaVersion" | "authorityRef" | "certificateHash"
+    >,
   ): AuthenticatedBrowserAuthority {
     const unsigned = Object.freeze({
       schemaVersion: BROWSER_AUTHORITY_CERTIFICATE_SCHEMA_VERSION,
@@ -58,7 +61,3 @@ export class AuthenticatedBrowserAuthority {
     });
   }
 }
-
-export const hashBrowserAuthorityRef = (
-  authority: AuthenticatedBrowserAuthority,
-): `sha256:${string}` => sha256Canonical(authority.certificate.authorityRef);

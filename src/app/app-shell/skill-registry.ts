@@ -3,7 +3,7 @@ export type AppShellSkillStatus = "active" | "disabled" | "planned";
 export type AppShellSkillRegistryItem = {
   id: string;
   label: string;
-  category: "product-mining" | "research" | "content" | "system";
+  category: "product-mining" | "content" | "system";
   description: string;
   route: string;
   status: AppShellSkillStatus;
@@ -51,19 +51,6 @@ export const skillRegistry: AppShellSkillRegistryItem[] = [
     historySurface: "amazon-product-mining-keyword-history",
     detailSurface: "amazon-product-mining-inspector",
     allowedActions: ["Start Task", "Latest", "Export", "Refresh", "Open Package", "Open Master Report", "Open AI Review", "Open Evidence", "Pause", "Cancel", "Takeover", "Resume"],
-    forbiddenActions: [...forbiddenAppShellActionGroups],
-  },
-  {
-    id: "deep-research-analysis",
-    label: "Deep Research Analysis",
-    category: "research",
-    description: "Structured research job flow with durable reports and evidence refs.",
-    route: "/skills/deep-research-analysis",
-    status: "active",
-    primarySurface: "deep-research-workspace",
-    historySurface: "deep-research-history",
-    detailSurface: "deep-research-report-detail",
-    allowedActions: ["Start", "Latest", "Refresh", "Pause", "Cancel", "Takeover", "Resume"],
     forbiddenActions: [...forbiddenAppShellActionGroups],
   },
   {

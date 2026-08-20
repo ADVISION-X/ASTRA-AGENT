@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
 import {
@@ -10,11 +10,17 @@ import {
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
-import type { AmazonInvoiceUploadExecutionContext, AmazonInvoiceUploadTaskResult, AmazonOrderNavigationProof } from "./amazon-invoice-upload.flow.js";
+import type {
+  AmazonInvoiceUploadExecutionContext,
+  AmazonInvoiceUploadTaskResult,
+  AmazonOrderNavigationProof,
+} from "./amazon-invoice-upload.flow.js";
 import { openApprovedOrderDetail } from "./amazon-invoice-upload-order-detail.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 export { uploadApprovedInvoice } from "./amazon-invoice-upload-file-attachment.js";
-type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
+type StepResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult };
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 const UPLOAD_DIALOG_NOT_READY_REASON =
   "Upload invoice entry was clicked, but the upload dialog did not expose a file upload control";
@@ -23,23 +29,30 @@ const UPLOAD_DIALOG_READY_POLL_INTERVAL_MS = 250;
 
 const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });
 
-const stepFailure = <T>(failure: AmazonInvoiceUploadTaskResult): StepResult<T> => ({
+const stepFailure = <T>(
+  failure: AmazonInvoiceUploadTaskResult,
+): StepResult<T> => ({
   ok: false,
   failure,
 });
 
 export async function openOrderDetail(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
 ): Promise<StepResult<AmazonOrderNavigationProof>> {
-  const detail = await openApprovedOrderDetail(browser, runtimeLogger, mission, execution);
+  const detail = await openApprovedOrderDetail(
+    browser,
+    runtimeLogger,
+    mission,
+    execution,
+  );
   return detail.ok ? stepSuccess(detail.proof) : stepFailure(detail.failure);
 }
 
 export async function openUploadInvoiceEntry(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
@@ -53,14 +66,31 @@ export async function openUploadInvoiceEntry(
       stepName: "reuse current upload dialog",
       status: "success",
       snapshot,
-      reason: "The current order upload dialog is already open; do not click the covered page entry again.",
+      reason:
+        "The current order upload dialog is already open; do not click the covered page entry again.",
     });
     return stepSuccess(undefined);
   }
   const uploadEntry = locateUploadInvoiceButton(snapshot);
-  if (!uploadEntry.ok) return uploadInvoiceEntryFailure(runtimeLogger, mission, snapshot, uploadEntry);
-  traceUploadInvoiceEntryLocated(runtimeLogger, mission, snapshot, uploadEntry.element);
-  const clickFailure = await clickUploadInvoiceEntry(browser, runtimeLogger, mission, uploadEntry.element);
+  if (!uploadEntry.ok)
+    return uploadInvoiceEntryFailure(
+      runtimeLogger,
+      mission,
+      snapshot,
+      uploadEntry,
+    );
+  traceUploadInvoiceEntryLocated(
+    runtimeLogger,
+    mission,
+    snapshot,
+    uploadEntry.element,
+  );
+  const clickFailure = await clickUploadInvoiceEntry(
+    browser,
+    runtimeLogger,
+    mission,
+    uploadEntry.element,
+  );
   if (clickFailure) return stepFailure(clickFailure);
   const modalReady = await waitForUploadDialog(browser, runtimeLogger, mission);
   return modalReady ? stepSuccess(undefined) : uploadDialogNotReady(mission);
@@ -94,7 +124,9 @@ function uploadInvoiceEntryFailure(
     snapshot,
     reason: uploadEntry.reason,
   });
-  return stepFailure(locateFailureResult(mission, uploadEntry, "locate upload invoice entry"));
+  return stepFailure(
+    locateFailureResult(mission, uploadEntry, "locate upload invoice entry"),
+  );
 }
 
 function traceUploadInvoiceEntryLocated(
@@ -115,7 +147,7 @@ function traceUploadInvoiceEntryLocated(
 }
 
 async function clickUploadInvoiceEntry(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   element: DomElementRef,
@@ -139,18 +171,24 @@ async function clickUploadInvoiceEntry(
   return null;
 }
 
-function uploadDialogNotReady(mission: AmazonInvoiceUploadMissionInput): StepResult<void> {
-  return stepFailure(taskResult({
-    status: "upload_entry_not_found",
-    reason: `${UPLOAD_DIALOG_NOT_READY_REASON} within ${UPLOAD_DIALOG_READY_TIMEOUT_MS}ms.`,
-    reachedStep: "open upload invoice entry",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    reviewRequired: true,
-  }));
+function uploadDialogNotReady(
+  mission: AmazonInvoiceUploadMissionInput,
+): StepResult<void> {
+  return stepFailure(
+    taskResult({
+      status: "upload_entry_not_found",
+      reason: `${UPLOAD_DIALOG_NOT_READY_REASON} within ${UPLOAD_DIALOG_READY_TIMEOUT_MS}ms.`,
+      reachedStep: "open upload invoice entry",
+      amazonOrderId: mission.amazonOrderId,
+      invoiceNo: mission.invoiceNo,
+      reviewRequired: true,
+    }),
+  );
 }
 
-function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readSnapshot>>): ReturnType<typeof locateOrStatus> {
+function locateUploadInvoiceButton(
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>,
+): ReturnType<typeof locateOrStatus> {
   const zhButton = locateOrStatus({
     snapshot,
     targetKind: "button",
@@ -176,7 +214,7 @@ function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readSnaps
 }
 
 async function waitForUploadDialog(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<boolean> {
@@ -217,11 +255,23 @@ function snapshotHasCurrentUploadDialog(
 ): boolean {
   const currentDialog = snapshot.dialogs.find((dialog) => {
     if (dialog.hidden) return false;
-    const text = `${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""} ${dialog.nearbyText ?? ""}`.toLowerCase();
-    return text.includes(amazonOrderId.toLowerCase())
-      && ["请上传", "上传发票", "upload invoice", "upload your invoice", "invoice or credit note"].some((hint) => text.includes(hint));
+    const text =
+      `${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""} ${dialog.nearbyText ?? ""}`.toLowerCase();
+    return (
+      text.includes(amazonOrderId.toLowerCase()) &&
+      [
+        "请上传",
+        "上传发票",
+        "upload invoice",
+        "upload your invoice",
+        "invoice or credit note",
+      ].some((hint) => text.includes(hint))
+    );
   });
-  return currentDialog !== undefined && snapshot.fileInputs.some((fileInput) => fileInput.disabled !== true);
+  return (
+    currentDialog !== undefined &&
+    snapshot.fileInputs.some((fileInput) => fileInput.disabled !== true)
+  );
 }
 
 export const normalizeSubmitFailure = (

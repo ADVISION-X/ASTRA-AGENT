@@ -33,16 +33,16 @@ export const buildSettingsHandle = (dataDir: string) => ({
   },
 });
 
-const buildAmazonMiningRuntime = (assembly: WorkbenchAssembly, dataDir: string) => ({
+const buildAmazonMiningRuntime = async (assembly: WorkbenchAssembly, dataDir: string) => ({
   dataDir,
-  browser: assembly.browserController.createTargetSession("amazon-product-mining"),
+  browser: await assembly.browserAuthority.acquireTargetLease("amazon-product-mining"),
   aiInputGateway: assembly.aiInputGateway,
   runtimeLogger: assembly.runtimeLogger,
 });
 
 export const buildAmazonMiningHandle = (assembly: WorkbenchAssembly, dataDir: string) => ({
-  startAmazonProductMiningMission(rawInput: unknown) {
-    return runAmazonProductMiningRoute(rawInput, buildAmazonMiningRuntime(assembly, dataDir));
+  async startAmazonProductMiningMission(rawInput: unknown) {
+    return runAmazonProductMiningRoute(rawInput, await buildAmazonMiningRuntime(assembly, dataDir));
   },
   getAmazonProductMiningTaskStatus(taskId: string) {
     return getAmazonProductMiningTaskStatus({ dataDir, taskId });
@@ -60,7 +60,7 @@ export const buildAmazonMiningHandle = (assembly: WorkbenchAssembly, dataDir: st
     return getAmazonProductMiningKeywordReview({ dataDir, reviewId });
   },
   continueInterruptedAmazonProductMiningTasks() {
-    return runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(assembly, dataDir));
+    return runContinueAmazonProductMiningRoute({}, await buildAmazonMiningRuntime(assembly, dataDir));
   },
   ...buildAmazonMiningInterventionHandle(assembly, dataDir),
 });
@@ -73,11 +73,12 @@ const buildAmazonMiningInterventionHandle = (assembly: WorkbenchAssembly, dataDi
   async resumeAmazonProductMining(input: Parameters<typeof runResumeAmazonProductMiningRoute>[0]) {
     const snapshot = runResumeAmazonProductMiningRoute(input, dataDir);
     assembly.aiInputGateway.resumeProviderTargetAfterOperator?.(`amazon-product-mining:${input.taskId}`);
-    runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(assembly, dataDir));
+    void runContinueAmazonProductMiningRoute({}, await buildAmazonMiningRuntime(assembly, dataDir));
     return snapshot;
   },
 });
 
 export const continueInterruptedAmazonMiningForWorkbench = (assembly: WorkbenchAssembly): void => {
-  runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(assembly, assembly.dataDir));
+  void buildAmazonMiningRuntime(assembly, assembly.dataDir).then((runtime) =>
+    runContinueAmazonProductMiningRoute({}, runtime));
 };

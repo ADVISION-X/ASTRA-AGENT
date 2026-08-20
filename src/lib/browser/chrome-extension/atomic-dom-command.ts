@@ -1,11 +1,14 @@
-import type { BrowserWireCommand } from "./protocol.js";
+import type { BrowserWireCommand } from "../protocol/generated/browser-protocol.js";
 
-type AtomicDomCommand = Extract<BrowserWireCommand, { kind: "click_dom_target" | "fill_dom_target" }>;
+type AtomicDomCommand = Extract<
+  BrowserWireCommand,
+  { kind: "click_dom_target" | "fill_dom_target" }
+>;
 
 const commandBindings = (command: AtomicDomCommand): string => `
 const selector = ${JSON.stringify(command.selector)};
 const expected = ${JSON.stringify(command.identity)};
-const expectedText = ${JSON.stringify(command.kind === "click_dom_target" ? command.expectedText ?? "" : "")};
+const expectedText = ${JSON.stringify(command.kind === "click_dom_target" ? (command.expectedText ?? "") : "")};
 const approvedText = ${JSON.stringify(command.kind === "fill_dom_target" ? command.approvedText : "")};
 const clearBeforeType = ${JSON.stringify(command.kind === "fill_dom_target" ? command.clearBeforeType : false)};
 const commandKind = ${JSON.stringify(command.kind)};
@@ -86,7 +89,9 @@ const activeEditor = host.shadowRoot ? host.shadowRoot.activeElement : document.
 if (activeEditor !== editor) throw new Error("TARGET_IDENTITY_CHANGED:atomic DOM fill receiver lost focus");
 `;
 
-export const atomicDomExpression = (command: AtomicDomCommand): string => `(() => {
+export const atomicDomExpression = (
+  command: AtomicDomCommand,
+): string => `(() => {
 ${commandBindings(command)}
 ${identityPrimitives}
 ${exactTargetResolution}
@@ -173,13 +178,36 @@ export const runAtomicDomFillKeyboardCommand = async (
   if (command.clearBeforeType) {
     await driver.pressBackspace();
     expectedValue = "";
-    await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+    await driver.evaluate(
+      atomicDomFillVerificationExpression(
+        command,
+        marker,
+        expectedValue,
+        false,
+      ),
+    );
   }
   for (const character of command.approvedText) {
-    await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+    await driver.evaluate(
+      atomicDomFillVerificationExpression(
+        command,
+        marker,
+        expectedValue,
+        false,
+      ),
+    );
     await driver.typeCharacter(character);
     expectedValue += character;
-    await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, false));
+    await driver.evaluate(
+      atomicDomFillVerificationExpression(
+        command,
+        marker,
+        expectedValue,
+        false,
+      ),
+    );
   }
-  await driver.evaluate(atomicDomFillVerificationExpression(command, marker, expectedValue, true));
+  await driver.evaluate(
+    atomicDomFillVerificationExpression(command, marker, expectedValue, true),
+  );
 };

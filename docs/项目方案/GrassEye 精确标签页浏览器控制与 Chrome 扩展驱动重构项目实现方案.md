@@ -1713,89 +1713,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       "terminal": false
     },
     {
-      "work_order_id": "WO-017",
-      "title": "为 deep-research-analysis 增加插件级干预",
-      "objective": "1+N+1+1 链在 prompt exchange 与汇总边界支持 revisioned pause/cancel/takeover。",
-      "owner": "plugin-deep-research-analysis",
-      "authorization_required": true,
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ],
-      "decision_gates": [
-        "DG-005"
-      ],
-      "depends_on": [
-        "WO-008"
-      ],
-      "parallel_group": "PLUGIN_PARALLEL",
-      "entry_conditions": [
-        "所依赖 capability acceptance 已通过",
-        "WO-001 对该插件的安全点与响应预算有明确值"
-      ],
-      "read_scope": [
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts"
-      ],
-      "create_scope": [
-        "/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts"
-      ],
-      "modify_scope": [
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
-        "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public.ts"
-      ],
-      "retire_or_delete_scope": [],
-      "forbidden_scope": [
-        "中央 intervention dispatcher",
-        "第二 task store",
-        "raw target ID 持久化",
-        "未决 mutation 自动重放"
-      ],
-      "inputs": [
-        "DG-005 对该插件的批准安全点与最大响应预算",
-        "现役插件状态/schema/store/flow/public facade 与 owner-specific checkpoint",
-        "taskId、expectedRevision、reason；BrowserTargetRef 只保存在当前进程，不持久化 raw Chrome ID"
-      ],
-      "actions": [
-        "ACT-017"
-      ],
-      "outputs": [
-        "owner-specific revisioned intervention contract：execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash",
-        "安全点与预算 receipt：1+N+1+1 每个 runPromptExchange send 前；capture 后；persist raw response 后；full-case-file commit 前；HTML report commit 前；已提交 exchange 只等待 provider timeout与persist checkpoint；其他3s",
-        "schema/store migration receipt：record DB executions/interactions 增加 intervention fields；事务校验 interaction count/raw hashes；public contract显式方法",
-        "acceptance cases：pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved"
-      ],
-      "consumer_migration": [
-        "WO-017 public facade 暴露 pause/cancel/takeover/resume(taskId,expectedRevision,reason)；WO-021 只转发",
-        "精确状态迁移：execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash",
-        "视频/页面/AI consumer 文件全部见本工作单 modify_scope；未列文件只读不改"
-      ],
-      "acceptance_ids": [
-        "ACC-017"
-      ],
-      "failure_actions": [
-        "submitted exchange 未持久化 -> review_required/outcome_unknown；绝不生成 compact/fallback chain，raw response/full case file 不删除",
-        "stale expectedRevision 必须拒绝且不改变 task；请求后不得发出下一条新 Browser/AI 命令"
-      ],
-      "stop_conditions": [
-        "任一函数安全点不能在批准预算内收敛",
-        "未决 mutation 被自动重放或 Browser/Route 决定业务状态",
-        "schema迁移无备份、row count/hash或owner-specific recovery"
-      ],
-      "rollback_or_recovery": [
-        "恢复 DB backup但保留新 raw artifacts；按 lastPersistedRawHash resume，不重复 send",
-        "恢复后所有旧 BrowserTargetRef 永久失效，必须从 owning checkpoint重新 acquire并核验页面"
-      ],
-      "handoff_to": [
-        "WO-021"
-      ],
-      "terminal": false
-    },
-    {
       "work_order_id": "WO-019",
       "title": "为 xuanxue-ai-production 建立本地 Workbench 整单干预",
       "objective": "九产品整单只从本地 Workbench 对 order 申请 pause/cancel/takeover/resume；plugin 在 stage checkpoint 安全收敛，并保持父子会话、marker、hash 与云端生产回传完整。",
@@ -1896,144 +1813,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       ],
       "handoff_to": [
         "WO-021"
-      ],
-      "terminal": false
-    },
-    {
-      "work_order_id": "WO-021",
-      "title": "接入逐插件 Handle、Route 与 UI 干预方法",
-      "objective": "通过每个 plugin 的显式 facade 暴露干预；xuanxue-ai-production 固定为专用本地 Workbench 整单入口，其他入口同样只解析和转发 owner contract。",
-      "owner": "app-local-runtime-integration",
-      "authorization_required": true,
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ],
-      "decision_gates": [
-        "DG-005"
-      ],
-      "depends_on": [
-        "WO-010",
-        "WO-011",
-        "WO-012",
-        "WO-013",
-        "WO-014",
-        "WO-017",
-        "WO-019"
-      ],
-      "parallel_group": "SERIAL_INTEGRATION",
-      "entry_conditions": [
-        "每个 plugin public contract 已冻结"
-      ],
-      "read_scope": [
-        "/Users/nexgen/Documents/AGENT/AGENTS.md"
-      ],
-      "create_scope": [
-        "/Users/nexgen/Documents/AGENT/scripts/acceptance/workbench-plugin-intervention-routes.acceptance.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/xuanxue-ai-production-workspace.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-client.ts"
-      ],
-      "modify_scope": [
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-invoice-workspace.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-layout.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-workspace-styles.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/app-shell/skill-registry.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/create-workbench-server.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-listing-edit-read-sync-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-fee-sync-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-mining-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-attachments.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-boot.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-report-sections.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-panel.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-report-view.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-routes.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-home-client.ts",
-        "/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-handle.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-types.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts",
-        "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/amazon-invoice-upload-route.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/amazon-listing-edit-read-sync-route.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/deep-research-analysis-route.ts",
-        "/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts"
-      ],
-      "retire_or_delete_scope": [],
-      "forbidden_scope": [
-        "通用 route bus",
-        "第二 mediator",
-        "业务状态写入 App 或 Local Runtime",
-        "selector/coordinate/raw ID/nextAction ingress"
-      ],
-      "inputs": [
-        "本工作单 modify_scope 中的 57 个现有 mediator/handle/route/client/workspace/API/shell 文件，以及 create_scope 中的 5 个新文件",
-        "xuanxue local-only contract：orderId、expectedRevision、reason、requestId；固定 same-origin API；禁止 stageId 和 browser/AI 动作字段",
-        "维护窗口前提：阻断新 video-download admission 并等待当前 route handler 到达可枚举边界"
-      ],
-      "actions": [
-        "ACT-021"
-      ],
-      "outputs": [
-        "6组显式 route/handle/client/workspace 映射与 negative ingress receipt",
-        "xuanxue 专用本地链：workbench-xuanxue-ai-production-routes.ts -> mediator/xuanxue-ai-production-route.ts 的具名 schema 方法 -> workbench-xuanxue-ai-production-handle.ts -> plugin workbench owner；固定 GET status 与 POST pause/cancel/takeover/resume；API body 仅 expectedRevision/reason/requestId",
-        "xuanxue workspace 只提供整单按钮并只读展示 stage/checkpoint；create-workbench-server 与 API boundary 逐 path allowlist；cloud worker/website 无同名人工入口",
-        "running/ambiguous 项=OUTCOME_UNKNOWN+review_required",
-        "UI 只显示 plugin revision/checkpoint/pendingMutation/recoverability，不拥有业务状态"
-      ],
-      "consumer_migration": [
-        "xuanxue 按顺序：Workbench assembly 注入现役 plugin owner -> narrow handle -> 具名 mediator 方法 -> 专用 routes -> API allowlist -> client -> workspace；不得以通用 action 字符串分发",
-        "xuanxue 固定 paths：GET /api/xuanxue-ai-production/orders/:orderId；POST /api/xuanxue-ai-production/orders/:orderId/pause|cancel|takeover|resume；local same-origin/auth 规则沿用唯一 API Boundary",
-        "route 不得把 map 对象、闭包或读取能力交给 plugin；交接是 App owner 主动调用 plugin 窄合同",
-        "每个命中 plugin 的 App workspace 只调用本 plugin 显式方法；WO-022 验证无中央 dispatcher"
-      ],
-      "acceptance_ids": [
-        "ACC-021"
-      ],
-      "failure_actions": [
-        "xuanxue route 输入含 stageId、selector、coordinate、raw IDs、browserCommand、nextAction 或 cloud intervention 字段即 400/403 且 plugin 零调用",
-        "xuanxue handle/route/client/workspace 任一层缺失，或 cloud worker/website 暴露同名人工入口，即 ACC-021 FAIL",
-        "map 条数、request hash 或 adoption receipt 不一致时保持 admission 关闭，不删除 map、不继续 WO-022",
-        "任一 running/ambiguous 项未转 OUTCOME_UNKNOWN/review_required，或 plugin 反向 import App route，即 ACC-021 FAIL",
-        "任何 route 执行业务步骤/Browser action、保存新业务状态或接受 raw browser command 即阻断"
-      ],
-      "stop_conditions": [
-        "需要第二 server/route system",
-        "API 接受外部 browser command、stage-level control 或 cloud intervention",
-        "UI 充当任务状态真相",
-        "xuanxue local-only 链无法在唯一 Workbench Handle 内闭合"
-      ],
-      "rollback_or_recovery": [
-        "xuanxue local entry 回退必须同时撤销四个专用文件、server 注册、API allowlist 与 shell registry；plugin task records 和 cloud production protocol 保留，不启用 cloud intervention fallback",
-        "handoff 未完成：保持业务停止并回退本工作单；plugin 已接收的 adoption records 按 adoptionKey 幂等保留，不重新下载",
-        "handoff 完成后失败：整体恢复上一 release 并停止 video job；不得在同版本恢复 route map fallback",
-        "其他 plugin 入口可逐文件回退，但业务 task records 始终留在 owning plugin"
-      ],
-      "handoff_to": [
-        "WO-022"
       ],
       "terminal": false
     },
@@ -3249,118 +3028,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       "owner": "plugin-amazon-listing-edit-read-sync",
       "object_type": "file",
       "target": "/Users/nexgen/Documents/AGENT/src/plugins/amazon-listing-edit-read-sync/index.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-086",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-      "operation": "READ",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-087",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-      "operation": "READ",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-088",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts",
-      "operation": "CREATE",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-089",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-090",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-091",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-092",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [],
-      "authority_basis": [
-        "用户新的明确施工授权",
-        "AGENTS.md 与命中域 active law",
-        "WO-001 决策记录"
-      ]
-    },
-    {
-      "operation_id": "OP-093",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
       "operation": "MODIFY",
       "consumer_ids": [],
       "authority_basis": [
@@ -5841,96 +5508,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       ]
     },
     {
-      "operation_id": "OP-288",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-attachments.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-289",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-boot.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-290",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-report-sections.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-291",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-panel.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-292",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-report-view.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-293",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-routes.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
       "operation_id": "OP-295",
       "work_order_id": "WO-021",
       "owner": "app-local-runtime-integration",
@@ -6026,51 +5603,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       "owner": "app-local-runtime-integration",
       "object_type": "file",
       "target": "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-308",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-handle.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-309",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-310",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-types.ts",
       "operation": "MODIFY",
       "consumer_ids": [
         "consumer-explicit-route-handle-ui"
@@ -6206,21 +5738,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       "owner": "app-local-runtime-integration",
       "object_type": "file",
       "target": "/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts",
-      "operation": "MODIFY",
-      "consumer_ids": [
-        "consumer-explicit-route-handle-ui"
-      ],
-      "authority_basis": [
-        "D revision 1 exhaustive consumer denominator",
-        "WO-001 authorization and owning active law"
-      ]
-    },
-    {
-      "operation_id": "OP-322",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "object_type": "file",
-      "target": "/Users/nexgen/Documents/AGENT/src/mediator/deep-research-analysis-route.ts",
       "operation": "MODIFY",
       "consumer_ids": [
         "consumer-explicit-route-handle-ui"
@@ -6981,24 +6498,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       ]
     },
     {
-      "action_id": "ACT-017",
-      "work_order_id": "WO-017",
-      "owner": "plugin-deep-research-analysis",
-      "caller_or_actor": "authorized-work-order-executor",
-      "entrypoint_or_channel": "executePluginTargetFlowAndIntervention",
-      "authorization": "必须取得本工作单新的明确授权；方案本身不授权",
-      "object_scope": "/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
-      "input_contract": "DG-005 对该插件的批准安全点与最大响应预算；现役插件状态/schema/store/flow/public facade 与 owner-specific checkpoint；taskId、expectedRevision、reason；BrowserTargetRef 只保存在当前进程，不持久化 raw Chrome ID",
-      "output_contract": "owner-specific revisioned intervention contract：execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash；安全点与预算 receipt：1+N+1+1 每个 runPromptExchange send 前；capture 后；persist raw response 后；full-case-file commit 前；HTML report commit 前；已提交 exchange 只等待 provider timeout与persist checkpoint；其他3s；schema/store migration receipt：record DB executions/interactions 增加 intervention fields；事务校验 interaction count/raw hashes；public contract显式方法；acceptance cases：pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved",
-      "state_transition": "execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash",
-      "idempotency_or_replay": "expectedRevision CAS；同 requestId 返回同 terminal record；mutation/provider submit不确定时OUTCOME_UNKNOWN/review_required且不重放",
-      "audit_or_receipt": "plugin task event记录taskId、revision、checkpoint、request kind、requestedAt、ackAt、terminal state、opaque target ref/evidence refs；不记录raw Chrome ID",
-      "error_semantics": "submitted exchange 未持久化 -> review_required/outcome_unknown；绝不生成 compact/fallback chain，raw response/full case file 不删除；stale expectedRevision 必须拒绝且不改变 task；请求后不得发出下一条新 Browser/AI 命令；恢复=恢复 DB backup但保留新 raw artifacts；按 lastPersistedRawHash resume，不重复 send",
-      "acceptance_ids": [
-        "ACC-017"
-      ]
-    },
-    {
       "action_id": "ACT-019",
       "work_order_id": "WO-019",
       "owner": "plugin-xuanxue-ai-production",
@@ -7014,23 +6513,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       "error_semantics": "父 hash、seed、marker 或 checkpoint 歧义 -> recovery_pending；本地 take over 不得伪造 provider terminal，也不得重复提交；stale expectedRevision 必须拒绝且不改变 order；请求 ACK 后不得发出下一条新 Browser/AI 命令；local cancel 与 cloud heartbeat/result 竞争时，由 plugin store revision 决定唯一终态；不确定 mutation -> OUTCOME_UNKNOWN/review_required；cloud worker 不重放；任何 cloud payload 出现 pause/cancel/takeover/resume/action/nextAction/stageId 即合同测试 FAIL；恢复=用现有 protocol-cutover backup 整体恢复 schema；append-only event 不改；按父 hash 重建 conversation；回退 local route/handle/client/workspace 时同步关闭 API allowlist；cloud worker 继续现役生产协议，不启用 intervention fallback；恢复后所有旧 BrowserTargetRef 永久失效，必须从 owning checkpoint 重新 acquire 并核验页面",
       "acceptance_ids": [
         "ACC-019"
-      ]
-    },
-    {
-      "action_id": "ACT-021",
-      "work_order_id": "WO-021",
-      "owner": "app-local-runtime-integration",
-      "caller_or_actor": "authorized-work-order-executor",
-      "entrypoint_or_channel": "forwardExplicitPluginIntervention|forwardXuanxueLocalWholeOrderIntervention",
-      "authorization": "必须取得本工作单新的明确授权；方案本身不授权",
-      "object_scope": "/Users/nexgen/Documents/AGENT/AGENTS.md；/Users/nexgen/Documents/AGENT/scripts/acceptance/workbench-plugin-intervention-routes.acceptance.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-routes.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/xuanxue-ai-production-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-client.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-invoice-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-layout.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-workspace-styles.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/skill-registry.ts；/Users/nexgen/Documents/AGENT/src/app/create-workbench-server.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-listing-edit-read-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-fee-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-mining-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-attachments.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-boot.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-report-sections.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-panel.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-report-view.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-input-attachments.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-types.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-invoice-upload-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-listing-edit-read-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/deep-research-analysis-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts",
-      "output_contract": "6组显式 route/handle/client/workspace 映射与 negative ingress receipt；xuanxue 专用本地链：workbench-xuanxue-ai-production-routes.ts -> mediator/xuanxue-ai-production-route.ts 的具名 schema 方法 -> workbench-xuanxue-ai-production-handle.ts -> plugin workbench owner；固定 GET status 与 POST pause/cancel/takeover/resume；API body 仅 expectedRevision/reason/requestId；xuanxue workspace 只提供整单按钮并只读展示 stage/checkpoint；create-workbench-server 与 API boundary 逐 path allowlist；cloud worker/website 无同名人工入口；UI 只显示 plugin revision/checkpoint/pendingMutation/recoverability，不拥有业务状态；六个退役产品栏目保持物理为零",
-      "state_transition": "ROUTE_ADMISSION_OPEN -> FROZEN -> MAP_ENUMERATED -> SNAPSHOTS_ADOPTED -> COUNT_HASH_VERIFIED -> ROUTE_MAP_DELETED -> EXPLICIT_PLUGIN_FORWARDING",
-      "idempotency_or_replay": "每task adoptionKey幂等；handoff ledger与map count/hash一致才删除；running/ambiguous不重放download",
-      "audit_or_receipt": "逐 plugin path/method/revision；xuanxue 记录 local route、orderId、requestId、expectedRevision、HTTP result 与 plugin receipt，不记录 stage mutation/raw ID；video handoff 逐 task 记录 snapshot hash、adoption revision、OUTCOME_UNKNOWN 分类与 map zero",
-      "error_semantics": "xuanxue route 输入含 stageId、selector、coordinate、raw IDs、browserCommand、nextAction 或 cloud intervention 字段即 400/403 且 plugin 零调用；xuanxue handle/route/client/workspace 任一层缺失，或 cloud worker/website 暴露同名人工入口，即 ACC-021 FAIL；map 条数、request hash 或 adoption receipt 不一致时保持 admission 关闭，不删除 map、不继续 WO-022；任一 running/ambiguous 项未转 OUTCOME_UNKNOWN/review_required，或 plugin 反向 import App route，即 ACC-021 FAIL；任何 route 执行业务步骤/Browser action、保存新业务状态或接受 raw browser command 即阻断；恢复=xuanxue local entry 回退必须同时撤销四个专用文件、server 注册、API allowlist 与 shell registry；plugin task records 和 cloud production protocol 保留，不启用 cloud intervention fallback；handoff 未完成：保持业务停止并回退本工作单；plugin 已接收的 adoption records 按 adoptionKey 幂等保留，不重新下载；handoff 完成后失败：整体恢复上一 release 并停止 video job；不得在同版本恢复 route map fallback；其他 plugin 入口可逐文件回退，但业务 task records 始终留在 owning plugin",
-      "acceptance_ids": [
-        "ACC-021"
       ]
     },
     {
@@ -7227,17 +6709,6 @@ DG-006 已由 No Second Chain Gate 裁决为旧链必须归零；DG-007 已由 S
       "proves": "WO-014 owner-specific state CAS、函数级安全点、持久化迁移、OUTCOME_UNKNOWN/review_required、回退与不重放",
       "does_not_prove": "不证明真实Chrome/外部provider或其他plugin",
       "failure_result": "WO-014_INTERVENTION_CONTRACT_FAILED"
-    },
-    {
-      "acceptance_id": "ACC-017",
-      "work_order_id": "WO-017",
-      "evidence_type": "EXAM",
-      "evidence_status": "TO_BE_CREATED_BY_WORK_ORDER",
-      "producer_work_order_id": "WO-017",
-      "command_or_procedure": "node --import tsx /Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts；cases=pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved；function checkpoints=每个1+N+1+1 exchange send前/capture后/persist后；case-file与HTML commit前；migration=record DB intervention fields；interaction count/raw hashes",
-      "proves": "WO-017 owner-specific state CAS、函数级安全点、持久化迁移、OUTCOME_UNKNOWN/review_required、回退与不重放",
-      "does_not_prove": "不证明真实Chrome/外部provider或其他plugin",
-      "failure_result": "WO-017_INTERVENTION_CONTRACT_FAILED"
     },
     {
       "acceptance_id": "ACC-019",
@@ -7617,14 +7088,12 @@ flowchart TD
   WO007["WO-007"] --> WO012["WO-012 迁移 amazon-product-sync"]
   WO007["WO-007"] --> WO013["WO-013 迁移 amazon-product-fee-sync"]
   WO007["WO-007"] --> WO014["WO-014 迁移 amazon-listing-edit-read-sync"]
-  WO008["WO-008"] --> WO017["WO-017 为 deep-research-analysis 增加插件级干预"]
   WO008["WO-008"] --> WO019["WO-019 为 xuanxue-ai-production 建立本地 Workbench 整单干预"]
   WO010["WO-010"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
   WO011["WO-011"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
   WO012["WO-012"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
   WO013["WO-013"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
   WO014["WO-014"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
-  WO017["WO-017"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
   WO019["WO-019"] --> WO021["WO-021 接入逐插件 Handle、Route 与 UI 干预方法"]
   WO003["WO-003"] --> WO022["WO-022 执行单候选原子 cutover 与旧链物理归零"]
   WO006["WO-006"] --> WO022["WO-022 执行单候选原子 cutover 与旧链物理归零"]
@@ -7988,31 +7457,6 @@ flowchart TD
 
 
 
-### WO-017 — 为 deep-research-analysis 增加插件级干预
-
-- 单一结果：1+N+1+1 链在 prompt exchange 与汇总边界支持 revisioned pause/cancel/takeover。
-- Owner：`plugin-deep-research-analysis`
-- 新授权：`true`
-- 决策门：`DG-005`
-- 依赖：`WO-008`
-- 并行组：`PLUGIN_PARALLEL`
-- 进入条件：`所依赖 capability acceptance 已通过`；`WO-001 对该插件的安全点与响应预算有明确值`
-- 读取范围：`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts`；`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts`
-- 创建范围：`/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts`
-- 修改范围：`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts`；`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts`；`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts`；`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts`；`/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public.ts`
-- 退休/删除范围：无
-- 禁止范围：`中央 intervention dispatcher`；`第二 task store`；`raw target ID 持久化`；`未决 mutation 自动重放`
-- 输入：`DG-005 对该插件的批准安全点与最大响应预算`；`现役插件状态/schema/store/flow/public facade 与 owner-specific checkpoint`；`taskId、expectedRevision、reason；BrowserTargetRef 只保存在当前进程，不持久化 raw Chrome ID`
-- 动作合同：`ACT-017`
-- 输出：`owner-specific revisioned intervention contract：execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash`；`安全点与预算 receipt：1+N+1+1 每个 runPromptExchange send 前；capture 后；persist raw response 后；full-case-file commit 前；HTML report commit 前；已提交 exchange 只等待 provider timeout与persist checkpoint；其他3s`；`schema/store migration receipt：record DB executions/interactions 增加 intervention fields；事务校验 interaction count/raw hashes；public contract显式方法`；`acceptance cases：pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved`
-- 消费者交接：`WO-017 public facade 暴露 pause/cancel/takeover/resume(taskId,expectedRevision,reason)；WO-021 只转发`；`精确状态迁移：execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash`；`视频/页面/AI consumer 文件全部见本工作单 modify_scope；未列文件只读不改`
-- 验收：`ACC-017`
-- 失败动作：`submitted exchange 未持久化 -> review_required/outcome_unknown；绝不生成 compact/fallback chain，raw response/full case file 不删除`；`stale expectedRevision 必须拒绝且不改变 task；请求后不得发出下一条新 Browser/AI 命令`
-- 停止条件：`任一函数安全点不能在批准预算内收敛`；`未决 mutation 被自动重放或 Browser/Route 决定业务状态`；`schema迁移无备份、row count/hash或owner-specific recovery`
-- 恢复/回退：`恢复 DB backup但保留新 raw artifacts；按 lastPersistedRawHash resume，不重复 send`；`恢复后所有旧 BrowserTargetRef 永久失效，必须从 owning checkpoint重新 acquire并核验页面`
-- 下一单：`WO-021`
-- 终点：`false`
-
 ### WO-019 — 为 xuanxue-ai-production 建立本地 Workbench 整单干预
 
 - 单一结果：九产品整单只从本地 Workbench 对 order 申请 pause/cancel/takeover/resume；plugin 在 stage checkpoint 安全收敛，并保持父子会话、marker、hash 与云端生产回传完整。
@@ -8048,7 +7492,7 @@ flowchart TD
 - 并行组：`SERIAL_INTEGRATION`
 - 读取范围：`/Users/nexgen/Documents/AGENT/AGENTS.md`
 - 创建范围：`/Users/nexgen/Documents/AGENT/scripts/acceptance/workbench-plugin-intervention-routes.acceptance.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-routes.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/xuanxue-ai-production-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-client.ts`
-- 修改范围：`/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-invoice-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-layout.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-workspace-styles.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/skill-registry.ts`；`/Users/nexgen/Documents/AGENT/src/app/create-workbench-server.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-listing-edit-read-sync-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-fee-sync-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-mining-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-attachments.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-boot.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-report-sections.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-panel.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-report-view.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-handle.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-input-attachments.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-types.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-invoice-upload-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-listing-edit-read-sync-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/deep-research-analysis-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts`
+- 修改范围：`/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-invoice-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-layout.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-workspace-styles.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell.ts`；`/Users/nexgen/Documents/AGENT/src/app/app-shell/skill-registry.ts`；`/Users/nexgen/Documents/AGENT/src/app/create-workbench-server.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts`；`/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-listing-edit-read-sync-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-fee-sync-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-mining-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-client.ts`；`/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts`；`/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-invoice-upload-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-listing-edit-read-sync-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts`；`/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts`
 - 退休/删除范围：无
 - 禁止范围：`通用 route bus`；`第二 mediator`；`业务状态写入 App 或 Local Runtime`；`selector/coordinate/raw ID/nextAction ingress`
 - 动作合同：`ACT-021`
@@ -8404,14 +7848,6 @@ flowchart TD
 
 | ID | 动作 | 类型 | 目标 | consumers |
 |---|---|---|---|---|
-| OP-086 | READ | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts` | — |
-| OP-087 | READ | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts` | — |
-| OP-088 | CREATE | file | `/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts` | — |
-| OP-089 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts` | — |
-| OP-090 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts` | — |
-| OP-091 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts` | — |
-| OP-092 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts` | — |
-| OP-093 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public.ts` | — |
 
 ### WO-019 文件/系统操作（15 项）
 
@@ -8456,12 +7892,6 @@ flowchart TD
 | OP-285 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts` | consumer-explicit-route-handle-ui |
 | OP-286 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts` | consumer-explicit-route-handle-ui |
 | OP-287 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts` | consumer-explicit-route-handle-ui |
-| OP-288 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-attachments.ts` | consumer-explicit-route-handle-ui |
-| OP-289 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-boot.ts` | consumer-explicit-route-handle-ui |
-| OP-290 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-report-sections.ts` | consumer-explicit-route-handle-ui |
-| OP-291 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-panel.ts` | consumer-explicit-route-handle-ui |
-| OP-292 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-report-view.ts` | consumer-explicit-route-handle-ui |
-| OP-293 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-routes.ts` | consumer-explicit-route-handle-ui |
 | OP-295 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts` | consumer-explicit-route-handle-ui |
 | OP-296 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts` | consumer-explicit-route-handle-ui |
 | OP-297 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts` | consumer-explicit-route-handle-ui |
@@ -8469,9 +7899,6 @@ flowchart TD
 | OP-302 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts` | consumer-explicit-route-handle-ui |
 | OP-306 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts` | consumer-explicit-route-handle-ui |
 | OP-307 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts` | consumer-explicit-route-handle-ui |
-| OP-308 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-handle.ts` | consumer-explicit-route-handle-ui |
-| OP-309 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-input-attachments.ts` | consumer-explicit-route-handle-ui |
-| OP-310 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-types.ts` | consumer-explicit-route-handle-ui |
 | OP-311 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts` | consumer-explicit-route-handle-ui |
 | OP-312 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts` | consumer-explicit-route-handle-ui |
 | OP-314 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts` | consumer-explicit-route-handle-ui |
@@ -8481,7 +7908,6 @@ flowchart TD
 | OP-319 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts` | consumer-explicit-route-handle-ui |
 | OP-320 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts` | consumer-explicit-route-handle-ui |
 | OP-321 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts` | consumer-explicit-route-handle-ui |
-| OP-322 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/mediator/deep-research-analysis-route.ts` | consumer-explicit-route-handle-ui |
 | OP-326 | MODIFY | file | `/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts` | consumer-explicit-route-handle-ui |
 | OP-364 | READ | file | `/Users/nexgen/Documents/AGENT/AGENTS.md` | — |
 | OP-368 | CREATE | file | `/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-routes.ts` | consumer-xuanxue-ai-production |
@@ -8723,21 +8149,6 @@ flowchart TD
 
 
 
-### ACT-017 / WO-017
-
-- Owner：`plugin-deep-research-analysis`
-- Actor：`authorized-work-order-executor`
-- 唯一入口：`executePluginTargetFlowAndIntervention`
-- 授权：`必须取得本工作单新的明确授权；方案本身不授权`
-- 对象：`/Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts；/Users/nexgen/Documents/AGENT/src/plugins/deep-research-analysis/deep-research-analysis.public.ts`
-- 输入合同：`DG-005 对该插件的批准安全点与最大响应预算；现役插件状态/schema/store/flow/public facade 与 owner-specific checkpoint；taskId、expectedRevision、reason；BrowserTargetRef 只保存在当前进程，不持久化 raw Chrome ID`
-- 输出合同：`owner-specific revisioned intervention contract：execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash；安全点与预算 receipt：1+N+1+1 每个 runPromptExchange send 前；capture 后；persist raw response 后；full-case-file commit 前；HTML report commit 前；已提交 exchange 只等待 provider timeout与persist checkpoint；其他3s；schema/store migration receipt：record DB executions/interactions 增加 intervention fields；事务校验 interaction count/raw hashes；public contract显式方法；acceptance cases：pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved`
-- 状态迁移：`execution running -> pause_requested|paused|cancel_requested|cancelled|takeover_requested|taken_over|review_required；字段 revision,phase,exchangeId,lastPersistedRawHash`
-- 幂等/重放：`expectedRevision CAS；同 requestId 返回同 terminal record；mutation/provider submit不确定时OUTCOME_UNKNOWN/review_required且不重放`
-- Audit/receipt：`plugin task event记录taskId、revision、checkpoint、request kind、requestedAt、ackAt、terminal state、opaque target ref/evidence refs；不记录raw Chrome ID`
-- 错误语义：`submitted exchange 未持久化 -> review_required/outcome_unknown；绝不生成 compact/fallback chain，raw response/full case file 不删除；stale expectedRevision 必须拒绝且不改变 task；请求后不得发出下一条新 Browser/AI 命令；恢复=恢复 DB backup但保留新 raw artifacts；按 lastPersistedRawHash resume，不重复 send`
-- 验收：`ACC-017`
-
 ### ACT-019 / WO-019
 
 - Owner：`plugin-xuanxue-ai-production`
@@ -8760,7 +8171,7 @@ flowchart TD
 - Actor：`authorized-work-order-executor`
 - 唯一入口：`forwardExplicitPluginIntervention|forwardXuanxueLocalWholeOrderIntervention`
 - 授权：`必须取得本工作单新的明确授权；方案本身不授权`
-- 对象：`/Users/nexgen/Documents/AGENT/AGENTS.md；/Users/nexgen/Documents/AGENT/scripts/acceptance/workbench-plugin-intervention-routes.acceptance.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-routes.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/xuanxue-ai-production-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-client.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-invoice-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-layout.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-workspace-styles.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/skill-registry.ts；/Users/nexgen/Documents/AGENT/src/app/create-workbench-server.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-listing-edit-read-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-fee-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-mining-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-attachments.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-boot.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-client-report-sections.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-panel.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-report-view.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-deep-research-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-input-attachments.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-deep-research-types.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-invoice-upload-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-listing-edit-read-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/deep-research-analysis-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts
+- 对象：`/Users/nexgen/Documents/AGENT/AGENTS.md；/Users/nexgen/Documents/AGENT/scripts/acceptance/workbench-plugin-intervention-routes.acceptance.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-routes.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/xuanxue-ai-production-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-xuanxue-ai-production-client.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-invoice-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/amazon-listing-edit-read-sync-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-layout.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell-workspace-styles.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/app-shell.ts；/Users/nexgen/Documents/AGENT/src/app/app-shell/skill-registry.ts；/Users/nexgen/Documents/AGENT/src/app/create-workbench-server.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts；/Users/nexgen/Documents/AGENT/src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-listing-edit-read-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-fee-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-mining-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-product-sync-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-amazon-routes.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-api-boundary.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-invoice-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-listing-edit-read-sync-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-amazon-product-mining-review-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-client.ts；/Users/nexgen/Documents/AGENT/src/app/workbench-home-skill-map-client.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-invoice-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-amazon-listing-edit-read-sync-support.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-handle.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-marketplace-handles.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench-status.ts；/Users/nexgen/Documents/AGENT/src/lib/local-runtime/workbench.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-invoice-upload-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-listing-edit-read-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-fee-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-mining-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/amazon-product-sync-route.ts；/Users/nexgen/Documents/AGENT/src/mediator/xuanxue-ai-production-route.ts
 - 输出合同：`6组显式 route/handle/client/workspace 映射与 negative ingress receipt；xuanxue 专用本地链：workbench-xuanxue-ai-production-routes.ts -> mediator/xuanxue-ai-production-route.ts 的具名 schema 方法 -> workbench-xuanxue-ai-production-handle.ts -> plugin workbench owner；固定 GET status 与 POST pause/cancel/takeover/resume；API body 仅 expectedRevision/reason/requestId；xuanxue workspace 只提供整单按钮并只读展示 stage/checkpoint；create-workbench-server 与 API boundary 逐 path allowlist；cloud worker/website 无同名人工入口；UI 只显示 plugin revision/checkpoint/pendingMutation/recoverability，不拥有业务状态；六个退役栏目保持物理为零`
 - 状态迁移：`ROUTE_ADMISSION_OPEN -> FROZEN -> MAP_ENUMERATED -> SNAPSHOTS_ADOPTED -> COUNT_HASH_VERIFIED -> ROUTE_MAP_DELETED -> EXPLICIT_PLUGIN_FORWARDING`
 - 幂等/重放：`每task adoptionKey幂等；handoff ledger与map count/hash一致才删除；running/ambiguous不重放download`
@@ -8932,7 +8343,7 @@ flowchart TD
 
 - 类型/状态：`EXAM` / `TO_BE_CREATED_BY_WORK_ORDER`
 - 生产者：`WO-017`
-- 命令或步骤：`node --import tsx /Users/nexgen/Documents/AGENT/scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts；cases=pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved；function checkpoints=每个1+N+1+1 exchange send前/capture后/persist后；case-file与HTML commit前；migration=record DB intervention fields；interaction count/raw hashes`
+cases=pause between subquestions；cancel before final judge；takeover after raw persist；disconnect after send；raw case file preserved；function checkpoints=每个1+N+1+1 exchange send前/capture后/persist后；case-file与HTML commit前；migration=record DB intervention fields；interaction count/raw hashes`
 - 证明：`WO-017 owner-specific state CAS、函数级安全点、持久化迁移、OUTCOME_UNKNOWN/review_required、回退与不重放`
 - 不证明：`不证明真实Chrome/外部provider或其他plugin`
 - 失败结果：`WO-017_INTERVENTION_CONTRACT_FAILED`

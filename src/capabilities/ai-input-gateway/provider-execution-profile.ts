@@ -38,7 +38,7 @@ export const legacyReasoningEffortForProof = (
 
 
 const defaultOwnerForRawTask = (value: Record<string, unknown>):
-  "deep-research" | "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai" => {
+  "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai" => {
   const task = value.taskIdentity && typeof value.taskIdentity === "object"
     ? value.taskIdentity as Record<string, unknown>
     : {};
@@ -48,9 +48,6 @@ const defaultOwnerForRawTask = (value: Record<string, unknown>):
     || labelKey.includes("qimen") || labelKey.includes("hehun")
     || labelKey.includes("naming") || labelKey.includes("seo")) {
     return "xuanxue-ai-production";
-  }
-  if (sourceProject.includes("deep-research") || labelKey === "deep_research") {
-    return "deep-research";
   }
   if (sourceProject.includes("amazon-product-mining")
     || labelKey === "amazon_product_mining") {

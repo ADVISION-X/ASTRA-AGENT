@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import { buildWaitForExactAttachmentCountScript } from "./web-chat-composer-scripts.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
@@ -18,7 +18,7 @@ type ExactAttachmentStateOptions = {
 };
 
 export const readExactAttachmentState = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],
@@ -31,7 +31,7 @@ export const readExactAttachmentState = (
   });
 
 export const clearComposer = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({
@@ -41,7 +41,7 @@ export const clearComposer = (
   });
 
 export const clearProvenSubmittedRootDraft = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   expectedTurnMarker: string,
 ): Promise<WebChatEvaluation> =>
@@ -86,7 +86,7 @@ const buildAttachmentTimeoutError = (input: {
 );
 
 export const waitForExactAttachmentCount = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],

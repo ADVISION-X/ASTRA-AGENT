@@ -1,35 +1,28 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
-import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 import { runAmazonInvoiceUpload } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
-import { runAmazonTaxInvoiceDownload } from "./amazon-tax-invoice-download.flow.js";
 import { listAmazonInvoiceUploadLedgerRecords } from "./amazon-invoice-upload-ledger.js";
-import { AmazonInvoiceUploadMissionInputSchema, AmazonTaxInvoiceDownloadMissionInputSchema } from "./mission.schema.js";
-import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
 import {
-  buildReceivedDownloadTaskRecord,
+  AmazonInvoiceUploadMissionInputSchema,
+} from "./mission.schema.js";
+import type {
+  AmazonInvoiceUploadMissionInput,
+} from "./mission.schema.js";
+import {
   buildReceivedTaskRecord,
   createAmazonInvoiceUploadTaskId,
-  createAmazonTaxInvoiceDownloadTaskId,
-  findLatestDownloadTaskRecord,
   findLatestTaskRecordForInvoice,
-  loadDownloadTaskRecord,
   loadTaskRecord,
   saveApprovedInvoicePdf,
-  saveDownloadTaskRecord,
   saveTaskRecord,
-  updateDownloadTaskRecord,
   updateTaskRecord,
 } from "./amazon-invoice-upload-storage.js";
 import type {
-  AmazonInvoiceUploadPdfFile,
   AmazonInvoiceUploadTaskRecord,
-  AmazonTaxInvoiceDownloadArtifactMetadata,
-  AmazonTaxInvoiceDownloadTaskRecord,
 } from "./amazon-invoice-upload-storage.types.js";
 import {
   AmazonInvoiceUploadAdminOpenInputSchema,
@@ -39,17 +32,21 @@ import {
   type AmazonInvoiceUploadTaskStartInput,
 } from "./amazon-invoice-upload-task-service.types.js";
 import type { AmazonInvoiceUploadLedgerRecord } from "./amazon-invoice-upload-ledger.js";
-import { AmazonInvoiceUploadInterventionStop, awaitAmazonInvoiceUploadSafePoint } from "./amazon-invoice-upload-intervention.js";
+import {
+  AmazonInvoiceUploadInterventionStop,
+  awaitAmazonInvoiceUploadSafePoint,
+} from "./amazon-invoice-upload-intervention.js";
 
 const DEFAULT_ALLOWED_ADMIN_HOSTS = ["localhost", "127.0.0.1"] as const;
 const DEFAULT_UPLOAD_FLOW_TIMEOUT_MS = 300_000;
-const UPLOAD_FLOW_TIMEOUT_REASON_PREFIX = "amazon_invoice_upload_flow_timeout_after_";
+const UPLOAD_FLOW_TIMEOUT_REASON_PREFIX =
+  "amazon_invoice_upload_flow_timeout_after_";
 const AMAZON_INVOICE_RUNTIME_LOG_REF = "runtime-logs/workbench.jsonl";
 
 let activeUploadExecutionId: string | null = null;
 
 export async function startAmazonInvoiceAdminOpenTask(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   rawInput: AmazonInvoiceUploadAdminOpenInput,
   options: { abortSignal?: AbortSignal } = {},
 ): Promise<AmazonInvoiceUploadAdminOpenResult> {
@@ -58,9 +55,10 @@ export async function startAmazonInvoiceAdminOpenTask(
   if (!isAllowedAmazonAdminUrl(adminUrl)) {
     return {
       ok: false,
-      currentUrl: browser.getSessionState().currentUrl,
+      currentUrl: browser.getLeaseState().currentUrl,
       error: "admin_url_not_allowed",
-      failureReason: "Admin URL must target an allowed local development host over http or https.",
+      failureReason:
+        "Admin URL must target an allowed local development host over http or https.",
     };
   }
 
@@ -70,7 +68,7 @@ export async function startAmazonInvoiceAdminOpenTask(
     reusePolicy: "reuse-exact-url",
     ...(options.abortSignal ? { abortSignal: options.abortSignal } : {}),
   });
-  const currentUrl = browser.getSessionState().currentUrl;
+  const currentUrl = browser.getLeaseState().currentUrl;
   if (!openResult.ok) {
     return {
       ok: false,
@@ -89,7 +87,7 @@ export async function startAmazonInvoiceAdminOpenTask(
 }
 
 export async function startAmazonInvoiceUploadMission(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   evidenceStore: ForensicsPersistenceAbilityGroup,
   rawInput: AmazonInvoiceUploadMissionInput,
@@ -101,26 +99,29 @@ export async function startAmazonInvoiceUploadMission(
     executionId,
     mission: input,
     onBusy: () => buildUploadBusyResult(input),
-    action: (abortController) => runAmazonInvoiceUploadWithTerminalGuard({
-      browser,
-      runtimeLogger,
-      evidenceStore,
-      executionId,
-      abortController,
-      mission: input,
-    }),
+    action: (abortController) =>
+      runAmazonInvoiceUploadWithTerminalGuard({
+        browser,
+        runtimeLogger,
+        evidenceStore,
+        executionId,
+        abortController,
+        mission: input,
+      }),
   });
 }
 
 export async function startAmazonInvoiceUploadTask(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeLogger: RuntimeLogger;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   dataDir: string;
   task: AmazonInvoiceUploadTaskStartInput;
   flowTimeoutMs?: number;
 }): Promise<AmazonInvoiceUploadTaskRecord> {
-  const mission = AmazonInvoiceUploadMissionInputSchema.parse(input.task.mission);
+  const mission = AmazonInvoiceUploadMissionInputSchema.parse(
+    input.task.mission,
+  );
   const taskId = createAmazonInvoiceUploadTaskId();
   const approvedPath = saveApprovedInvoicePdf({
     dataDir: input.dataDir,
@@ -130,7 +131,10 @@ export async function startAmazonInvoiceUploadTask(input: {
     file: input.task.invoicePdf,
   });
   const approvedMission = { ...mission, invoicePdfPath: approvedPath };
-  const received = buildReceivedTaskRecord({ taskId, mission: approvedMission });
+  const received = buildReceivedTaskRecord({
+    taskId,
+    mission: approvedMission,
+  });
   saveTaskRecord(input.dataDir, received);
   const uploading = updateTaskRecord(received, {
     status: "uploading",
@@ -144,7 +148,10 @@ export async function startAmazonInvoiceUploadTask(input: {
     executionId,
     mission: approvedMission,
     onBusy: () => {
-      const busy = updateTaskRecord(uploading, buildUploadBusyResult(approvedMission));
+      const busy = updateTaskRecord(
+        uploading,
+        buildUploadBusyResult(approvedMission),
+      );
       saveTaskRecord(input.dataDir, busy);
       return busy;
     },
@@ -157,10 +164,21 @@ export async function startAmazonInvoiceUploadTask(input: {
         taskId,
         abortController,
         mission: approvedMission,
-        safePoint: (checkpoint) => awaitAmazonInvoiceUploadSafePoint(input.dataDir, taskId, checkpoint, async () => {
-          if (input.browser.getTarget?.()) await input.browser.releaseTargetForOperator?.({ reason: `operator takeover for amazon-invoice-upload:${taskId}` });
-        }),
-        ...(input.flowTimeoutMs === undefined ? {} : { flowTimeoutMs: input.flowTimeoutMs }),
+        safePoint: (checkpoint) =>
+          awaitAmazonInvoiceUploadSafePoint(
+            input.dataDir,
+            taskId,
+            checkpoint,
+            async () => {
+              if (input.browser.getTarget?.())
+                await input.browser.releaseTargetForOperator?.({
+                  reason: `operator takeover for amazon-invoice-upload:${taskId}`,
+                });
+            },
+          ),
+        ...(input.flowTimeoutMs === undefined
+          ? {}
+          : { flowTimeoutMs: input.flowTimeoutMs }),
       });
       const completed = updateTaskRecord(uploading, result);
       saveTaskRecord(input.dataDir, completed);
@@ -170,7 +188,7 @@ export async function startAmazonInvoiceUploadTask(input: {
 }
 
 export async function resumeAmazonInvoiceUploadTask(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeLogger: RuntimeLogger;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   dataDir: string;
@@ -190,7 +208,10 @@ export async function resumeAmazonInvoiceUploadTask(input: {
     executionId,
     mission: record.mission,
     onBusy: () => {
-      const busy = updateTaskRecord(resumed, buildUploadBusyResult(record.mission));
+      const busy = updateTaskRecord(
+        resumed,
+        buildUploadBusyResult(record.mission),
+      );
       saveTaskRecord(input.dataDir, busy);
       return busy;
     },
@@ -203,10 +224,21 @@ export async function resumeAmazonInvoiceUploadTask(input: {
         taskId: input.taskId,
         abortController,
         mission: record.mission,
-        safePoint: (checkpoint) => awaitAmazonInvoiceUploadSafePoint(input.dataDir, input.taskId, checkpoint, async () => {
-          if (input.browser.getTarget?.()) await input.browser.releaseTargetForOperator?.({ reason: `operator takeover for amazon-invoice-upload:${input.taskId}` });
-        }),
-        ...(input.flowTimeoutMs === undefined ? {} : { flowTimeoutMs: input.flowTimeoutMs }),
+        safePoint: (checkpoint) =>
+          awaitAmazonInvoiceUploadSafePoint(
+            input.dataDir,
+            input.taskId,
+            checkpoint,
+            async () => {
+              if (input.browser.getTarget?.())
+                await input.browser.releaseTargetForOperator?.({
+                  reason: `operator takeover for amazon-invoice-upload:${input.taskId}`,
+                });
+            },
+          ),
+        ...(input.flowTimeoutMs === undefined
+          ? {}
+          : { flowTimeoutMs: input.flowTimeoutMs }),
       });
       const completed = updateTaskRecord(resumed, result);
       saveTaskRecord(input.dataDir, completed);
@@ -222,7 +254,6 @@ export function getAmazonInvoiceUploadTaskStatus(input: {
   return loadRequiredTaskRecord(input.dataDir, input.taskId);
 }
 
-
 export function getLatestAmazonInvoiceUploadTaskForInvoice(input: {
   dataDir: string;
   amazonOrderId: string;
@@ -237,58 +268,6 @@ export function listAmazonInvoiceUploadLedger(input: {
   return listAmazonInvoiceUploadLedgerRecords(input.dataDir);
 }
 
-export async function startAmazonTaxInvoiceDownloadTask(input: {
-  browser: BrowserTargetSession;
-  runtimeLogger: RuntimeLogger;
-  dataDir: string;
-  mission: AmazonTaxInvoiceDownloadMissionInput;
-}): Promise<AmazonTaxInvoiceDownloadTaskRecord> {
-  const mission = AmazonTaxInvoiceDownloadMissionInputSchema.parse(input.mission);
-  const taskId = createAmazonTaxInvoiceDownloadTaskId();
-  const received = buildReceivedDownloadTaskRecord({ taskId, mission });
-  saveDownloadTaskRecord(input.dataDir, received);
-  const downloading = updateDownloadTaskRecord(received, {
-    status: "downloading",
-    reason: "Amazon tax invoice CSV download started.",
-    reachedStep: "downloading",
-    evidenceStepId: "AID-01",
-  });
-  saveDownloadTaskRecord(input.dataDir, downloading);
-  const result = await runAmazonTaxInvoiceDownload(input.browser, input.runtimeLogger, mission).catch((error: unknown) => ({
-    ok: false,
-    status: "failed" as const,
-    reason: error instanceof Error ? error.message : String(error),
-    reachedStep: "download runtime",
-    evidenceStepId: "AID-01",
-    reviewRequired: true,
-  }));
-  const completed = updateDownloadTaskRecord(downloading, result);
-  saveDownloadTaskRecord(input.dataDir, completed);
-  return completed;
-}
-
-export function getAmazonTaxInvoiceDownloadTaskStatus(input: {
-  dataDir: string;
-  taskId: string;
-}): AmazonTaxInvoiceDownloadTaskRecord {
-  return loadRequiredDownloadTaskRecord(input.dataDir, input.taskId);
-}
-
-export function getLatestAmazonTaxInvoiceDownloadTask(input: {
-  dataDir: string;
-  marketplace?: string;
-  requestId?: string;
-}): AmazonTaxInvoiceDownloadTaskRecord | null {
-  return findLatestDownloadTaskRecord(input);
-}
-
-export function getAmazonTaxInvoiceDownloadArtifact(input: {
-  dataDir: string;
-  taskId: string;
-}): AmazonTaxInvoiceDownloadArtifactMetadata | null {
-  return loadRequiredDownloadTaskRecord(input.dataDir, input.taskId).artifact ?? null;
-}
-
 function isAllowedAmazonAdminUrl(url: URL): boolean {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return false;
@@ -298,28 +277,28 @@ function isAllowedAmazonAdminUrl(url: URL): boolean {
 }
 
 function getAllowedAmazonAdminHosts(): Set<string> {
-  const configuredHosts = process.env.GRASSEYE_AMAZON_ADMIN_ALLOWED_HOSTS
-    ?.split(",")
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean);
-  return new Set(configuredHosts && configuredHosts.length > 0 ? configuredHosts : DEFAULT_ALLOWED_ADMIN_HOSTS);
+  const configuredHosts =
+    process.env.GRASSEYE_AMAZON_ADMIN_ALLOWED_HOSTS?.split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean);
+  return new Set(
+    configuredHosts && configuredHosts.length > 0
+      ? configuredHosts
+      : DEFAULT_ALLOWED_ADMIN_HOSTS,
+  );
 }
-function loadRequiredTaskRecord(dataDir: string, taskId: string): AmazonInvoiceUploadTaskRecord {
+function loadRequiredTaskRecord(
+  dataDir: string,
+  taskId: string,
+): AmazonInvoiceUploadTaskRecord {
   const record = loadTaskRecord(dataDir, taskId);
   if (!record) {
     throw new Error(`Amazon invoice upload task not found: ${taskId}`);
   }
   return record;
 }
-function loadRequiredDownloadTaskRecord(dataDir: string, taskId: string): AmazonTaxInvoiceDownloadTaskRecord {
-  const record = loadDownloadTaskRecord(dataDir, taskId);
-  if (!record) {
-    throw new Error(`Amazon tax invoice download task not found: ${taskId}`);
-  }
-  return record;
-}
 async function runAmazonInvoiceUploadWithTerminalGuard(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeLogger: RuntimeLogger;
   evidenceStore: ForensicsPersistenceAbilityGroup;
   executionId: string;
@@ -333,20 +312,39 @@ async function runAmazonInvoiceUploadWithTerminalGuard(input: {
   let timedOut = false;
   const timeout = setTimeout(() => {
     timedOut = true;
-    input.abortController.abort(new Error(`${UPLOAD_FLOW_TIMEOUT_REASON_PREFIX}${timeoutMs}ms`));
+    input.abortController.abort(
+      new Error(`${UPLOAD_FLOW_TIMEOUT_REASON_PREFIX}${timeoutMs}ms`),
+    );
   }, timeoutMs);
   try {
-    const result = await runAmazonInvoiceUpload(input.browser, input.runtimeLogger, input.mission, {
-      executionId: input.executionId,
-      ...(input.taskId ? { taskId: input.taskId } : {}),
-      abortSignal: input.abortController.signal,
-      evidenceStore: input.evidenceStore,
-      runtimeLogRef: AMAZON_INVOICE_RUNTIME_LOG_REF,
-      ...(input.safePoint ? { safePoint: input.safePoint } : {}),
-    }).catch((error: unknown) => error instanceof AmazonInvoiceUploadInterventionStop
-      ? ({ ok: false, status: "review_required" as const, reason: error.message, reachedStep: "intervention", amazonOrderId: input.mission.amazonOrderId, invoiceNo: input.mission.invoiceNo, reviewRequired: true })
-      : buildUploadFlowFailureResult(input.mission, error));
-    return timedOut ? buildUploadFlowTimeoutResult(input.mission, timeoutMs) : result;
+    const result = await runAmazonInvoiceUpload(
+      input.browser,
+      input.runtimeLogger,
+      input.mission,
+      {
+        executionId: input.executionId,
+        ...(input.taskId ? { taskId: input.taskId } : {}),
+        abortSignal: input.abortController.signal,
+        evidenceStore: input.evidenceStore,
+        runtimeLogRef: AMAZON_INVOICE_RUNTIME_LOG_REF,
+        ...(input.safePoint ? { safePoint: input.safePoint } : {}),
+      },
+    ).catch((error: unknown) =>
+      error instanceof AmazonInvoiceUploadInterventionStop
+        ? {
+            ok: false,
+            status: "review_required" as const,
+            reason: error.message,
+            reachedStep: "intervention",
+            amazonOrderId: input.mission.amazonOrderId,
+            invoiceNo: input.mission.invoiceNo,
+            reviewRequired: true,
+          }
+        : buildUploadFlowFailureResult(input.mission, error),
+    );
+    return timedOut
+      ? buildUploadFlowTimeoutResult(input.mission, timeoutMs)
+      : result;
   } finally {
     clearTimeout(timeout);
   }
@@ -355,7 +353,7 @@ function createUploadExecutionId(taskId: string): string {
   return `amazon-invoice-execution:${randomUUID()}:task:${taskId}`;
 }
 async function withAmazonInvoiceExecutionLease<T>(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   executionId: string;
   mission: AmazonInvoiceUploadMissionInput;
   action: (abortController: AbortController) => Promise<T>;
@@ -368,16 +366,22 @@ async function withAmazonInvoiceExecutionLease<T>(input: {
   try {
     return await input.action(abortController);
   } finally {
-    if (!abortController.signal.aborted) abortController.abort(new Error("amazon_invoice_upload_execution_complete"));
+    if (!abortController.signal.aborted)
+      abortController.abort(
+        new Error("amazon_invoice_upload_execution_complete"),
+      );
     input.browser.setExecutionAbortSignal?.(null);
     activeUploadExecutionId = null;
   }
 }
-function buildUploadBusyResult(mission: AmazonInvoiceUploadMissionInput): AmazonInvoiceUploadTaskResult {
+function buildUploadBusyResult(
+  mission: AmazonInvoiceUploadMissionInput,
+): AmazonInvoiceUploadTaskResult {
   return {
     ok: false,
     status: "review_required",
-    reason: "amazon_invoice_upload_busy: another invoice execution owns the shared browser",
+    reason:
+      "amazon_invoice_upload_busy: another invoice execution owns the shared browser",
     reachedStep: "execution lease",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
@@ -385,11 +389,20 @@ function buildUploadBusyResult(mission: AmazonInvoiceUploadMissionInput): Amazon
   };
 }
 function resolveUploadFlowTimeoutMs(explicitTimeoutMs?: number): number {
-  if (explicitTimeoutMs && Number.isFinite(explicitTimeoutMs) && explicitTimeoutMs > 0) {
+  if (
+    explicitTimeoutMs &&
+    Number.isFinite(explicitTimeoutMs) &&
+    explicitTimeoutMs > 0
+  ) {
     return Math.floor(explicitTimeoutMs);
   }
-  const configured = Number.parseInt(process.env.GRASSEYE_AMAZON_INVOICE_UPLOAD_FLOW_TIMEOUT_MS ?? "", 10);
-  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_UPLOAD_FLOW_TIMEOUT_MS;
+  const configured = Number.parseInt(
+    process.env.GRASSEYE_AMAZON_INVOICE_UPLOAD_FLOW_TIMEOUT_MS ?? "",
+    10,
+  );
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_UPLOAD_FLOW_TIMEOUT_MS;
 }
 function buildUploadFlowTimeoutResult(
   mission: AmazonInvoiceUploadMissionInput,
@@ -421,5 +434,7 @@ function buildUploadFlowFailureResult(
 }
 function sanitizeFailureReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  return message.replace(/\/[^\s"'<>]+/g, "[path]").slice(0, 240) || "unknown_error";
+  return (
+    message.replace(/\/[^\s"'<>]+/g, "[path]").slice(0, 240) || "unknown_error"
+  );
 }

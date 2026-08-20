@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T19:58:59.495Z",
+  "generatedAt": "2026-08-20T10:35:33.197Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -14,18 +14,27 @@
     "APEX-AUDIT-009-V1",
     "APEX-AUDIT-010-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "audit-system/runner-source",
+      "lawId": "APEX-AUDIT-006-V1",
+      "clauseId": "apex-audit-006-requirement",
+      "message": "local-browser-session must execute its complete owner assertion set exactly once inside one runner-signed runAll callback; repeated work and post-hoc or hollow receipt paths are forbidden.",
+      "severity": "fatal",
+      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts"
+    }
+  ],
   "checkRuns": [
     {
-      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20",
+      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-19T19:58:46.251Z",
-      "endedAt": "2026-08-19T19:58:59.495Z",
-      "durationMs": 13244,
+      "status": "FAIL",
+      "startedAt": "2026-08-20T10:35:21.826Z",
+      "endedAt": "2026-08-20T10:35:33.197Z",
+      "durationMs": 11371,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -40,7 +49,6 @@
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-code-purity.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-code-topology.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-constitutional-boundary.instructions.md",
-        "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-forensics-persistence-capability.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
@@ -175,32 +183,6 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/code-purity/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/constitutional-boundary/inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/deep-research-boundary-inspectors.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-format-shell-boundary.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-html-uses-raw-final-answer.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-no-system-generated-confidence.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-promptbundle-business-sovereignty.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-promptbundle-field-consistency.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/inspect-dom-boundaries.ts",
@@ -209,12 +191,6 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/inspect-dom-runtime-guards.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/deep-research-ui-ast.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-case-reader-ui.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-clean-raw-index-ui.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-form-polling-ui.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-core-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-inspector-support.ts",
@@ -249,7 +225,6 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-truth/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-browser-runtime-preflight.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspector.ts",
@@ -322,8 +297,6 @@
         "scripts/audit/domains/code-purity/manifest.json",
         "scripts/audit/domains/constitutional-boundary/inspector.ts",
         "scripts/audit/domains/constitutional-boundary/manifest.json",
-        "scripts/audit/domains/deep-research-analysis/inspector.ts",
-        "scripts/audit/domains/deep-research-analysis/manifest.json",
         "scripts/audit/domains/dom-automation/inspector.ts",
         "scripts/audit/domains/dom-automation/manifest.json",
         "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
@@ -336,8 +309,6 @@
         "scripts/audit/domains/media-processing-capability/manifest.json",
         "scripts/audit/domains/runtime-log-spine/inspector.ts",
         "scripts/audit/domains/runtime-log-spine/manifest.json",
-        "scripts/audit/domains/runtime-truth/inspector.ts",
-        "scripts/audit/domains/runtime-truth/manifest.json",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/audit/domains/startup-entrypoint/manifest.json",
         "scripts/audit/domains/video-download-capability/inspector.ts",
@@ -364,7 +335,7 @@
         "scripts/audit/shared/paths.ts",
         "scripts/audit/shared/project.ts"
       ],
-      "findingCount": 0
+      "findingCount": 1
     }
   ],
   "executedChecks": [
@@ -372,61 +343,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:63326461-b81d-4b96-a9aa-40d120abaa20"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:95cfdf91-283e-460d-a1b3-3df94021d331"
     }
   ],
   "inspectedFiles": [
@@ -443,7 +414,6 @@
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-code-purity.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-code-topology.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-constitutional-boundary.instructions.md",
-    "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-forensics-persistence-capability.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
@@ -578,32 +548,6 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/code-purity/components/zombie-type-runtime-classifier.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/code-purity/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/constitutional-boundary/inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/deep-research-ast-facts.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/deep-research-boundary-inspectors.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/html-owner-inspectors.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-analysis-output-cleanliness.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-business-html-full-process-reviewability.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-deleted-non-primary-paths.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-promptbundle-input.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-final-adjudication-raw-sovereignty.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-format-shell-boundary.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-full-case-file-sovereignty.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-html-artifact-capture-chain.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-html-report-promptbundle-input.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-html-uses-raw-final-answer.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-input-attachment-every-ai-feed.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-no-system-generated-confidence.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-per-subquestion-promptbundle-uniqueness.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-prompt-bundle-sovereignty.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-promptbundle-business-sovereignty.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-promptbundle-field-consistency.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-raw-interaction-persistence.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-runtime-shell-only.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-single-chain-sovereignty.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-single-path-vocabulary.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-source-parse-diagnostics.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/components/scan-web-chat-prompt-submit-verification.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/deep-research-analysis/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/inspect-dom-boundaries.ts",
@@ -612,12 +556,6 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/components/inspect-dom-runtime-guards.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/deep-research-ui-ast.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-case-reader-ui.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-clean-raw-index-ui.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-form-polling-ui.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-html-delivery-status-ui.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/components/scan-deep-research-promptbundle-ui.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-core-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-inspector-support.ts",
@@ -652,7 +590,6 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-truth/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-browser-runtime-preflight.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspector.ts",
@@ -725,8 +662,6 @@
     "scripts/audit/domains/code-purity/manifest.json",
     "scripts/audit/domains/constitutional-boundary/inspector.ts",
     "scripts/audit/domains/constitutional-boundary/manifest.json",
-    "scripts/audit/domains/deep-research-analysis/inspector.ts",
-    "scripts/audit/domains/deep-research-analysis/manifest.json",
     "scripts/audit/domains/dom-automation/inspector.ts",
     "scripts/audit/domains/dom-automation/manifest.json",
     "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
@@ -739,8 +674,6 @@
     "scripts/audit/domains/media-processing-capability/manifest.json",
     "scripts/audit/domains/runtime-log-spine/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/manifest.json",
-    "scripts/audit/domains/runtime-truth/inspector.ts",
-    "scripts/audit/domains/runtime-truth/manifest.json",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/audit/domains/startup-entrypoint/manifest.json",
     "scripts/audit/domains/video-download-capability/inspector.ts",

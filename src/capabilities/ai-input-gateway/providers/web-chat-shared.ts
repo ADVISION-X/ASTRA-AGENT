@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
@@ -34,7 +34,7 @@ import {
 } from "./web-chat-session-controller.js";
 
 const submitWebChatPrompt = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
@@ -64,7 +64,7 @@ const submitWebChatPrompt = async (input: {
 };
 
 type OpenedWebChatConversationInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;

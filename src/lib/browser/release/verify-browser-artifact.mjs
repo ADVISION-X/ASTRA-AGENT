@@ -22,9 +22,6 @@ const runRequired = (command, args) => {
   }
 };
 
-export const resolveBrowserRuntimeArtifactRoot = (rootDir, platform = process.platform, architecture = process.arch) =>
-  path.join(rootDir, "artifacts", "browser-runtime", `${platform}-${architecture}`);
-
 const manifestReleaseTupleValid = (manifest, mode) => [
   manifest.schemaVersion === "grasseye-browser-artifact-set-v2",
   manifest.releaseIdentity === RELEASE_IDENTITY,

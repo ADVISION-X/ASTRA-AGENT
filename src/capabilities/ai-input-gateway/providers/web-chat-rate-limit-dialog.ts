@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -58,7 +58,7 @@ const classifyBlockingDialog = (text) => {
 `;
 
 export const isChatGptRateLimitDialogVisible = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
 }): Promise<boolean> => {
   const detected = await input.browser.evaluate<{ kind: string; text: string } | null>({
@@ -82,7 +82,7 @@ return match;
 };
 
 export const acknowledgeChatGptRateLimitDialogIfVisible = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
 }): Promise<string | null> => {
   const target = await input.browser.evaluate<{
@@ -149,7 +149,7 @@ const sharedAcknowledgementWatchers = new Map<
 >();
 
 type AcknowledgementWatcherInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };

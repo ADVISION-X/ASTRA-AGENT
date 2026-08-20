@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T19:57:37.661Z",
+  "generatedAt": "2026-08-20T10:34:22.670Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -3364,493 +3364,6 @@
       "blockIndex": 3
     },
     {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "Deep Research Analysis must live as one explicit job flow under src/plugins/deep-research-analysis and must not become a universal agent, planner, or mission loop.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-001-requirement",
-          "statement": "Deep Research Analysis must live as one explicit job flow under src/plugins/deep-research-analysis and must not become a universal agent, planner, or mission loop.",
-          "evidenceMode": "static",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 0
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs+acceptance",
-      "summary": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-038-requirement",
-          "statement": "Deep Research has exactly one valid execution chain: decompose -> analyze N -> build full case file -> final adjudication -> business HTML report -> export. No legacy, fallback, optional, parallel, or compatibility execution chain may remain in the primary system.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 1
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-039-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast",
-      "summary": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-039-requirement",
-          "statement": "Any file, function, type, inspector, acceptance, UI section, export kind, or prompt that exists only for a non-primary Deep Research path must be physically deleted.",
-          "evidenceMode": "static",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 2
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-040-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+fs+acceptance",
-      "summary": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-040-requirement",
-          "statement": "Final adjudication must receive the full case file. Structured records may exist only as navigation and index data; they must not replace raw AI prompts and raw AI responses.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 3
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "prompt+ast+export",
-      "summary": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-041-requirement",
-          "statement": "The only final presentation artifact of Deep Research is business-report.html. PPT, deck outline, local PPT, and AI PPT artifacts are not part of the primary Deep Research system.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 4
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast+ui",
-      "summary": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-042-requirement",
-          "statement": "Deep Research implementation must not introduce or retain compatibility vocabulary for execution branching: legacy, fallback, optional, degrade, localFallback, compat, oldFlow, v1/v2 dual flow, lite, compact. If a concept is not part of the unique chain, it must not exist.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 5
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast",
-      "summary": "The decomposition AI must generate one question-specific promptBundle for every sub-question, and N-stage runtime must use the promptBundle attached to that exact sub-question.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-043-requirement",
-          "statement": "The decomposition AI must generate one question-specific promptBundle for every sub-question, and N-stage runtime must use the promptBundle attached to that exact sub-question.",
-          "evidenceMode": "static",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 6
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+prompt",
-      "summary": "Runtime may add only transport, persistence, safety, and formatting shell constraints. Runtime must not hard-code domain-specific business analysis instructions, final adjudication logic, or HTML report content strategy.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-044-requirement",
-          "statement": "Runtime may add only transport, persistence, safety, and formatting shell constraints. Runtime must not hard-code domain-specific business analysis instructions, final adjudication logic, or HTML report content strategy.",
-          "evidenceMode": "static",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 7
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast",
-      "summary": "N-stage analysis must render from subQuestion.promptBundle, final adjudication must render from finalAdjudicationPromptBundle, and HTML report generation must render from htmlReportPromptBundle. Any hard-coded prompt that replaces promptBundle business instructions is forbidden.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-045-requirement",
-          "statement": "N-stage analysis must render from subQuestion.promptBundle, final adjudication must render from finalAdjudicationPromptBundle, and HTML report generation must render from htmlReportPromptBundle. Any hard-coded prompt that replaces promptBundle business instructions is forbidden.",
-          "evidenceMode": "static",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 8
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+prompt+acceptance",
-      "summary": "Final adjudication must receive structuredIndex, fullCaseFile, fullCaseFileMarkdown, and finalAdjudicationPromptBundle. HTML report must receive rawFinalAnswerText, fullCaseFile, fullCaseFileMarkdown, and htmlReportPromptBundle. Runtime must not reduce inputs to structured summaries.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-046-requirement",
-          "statement": "Final adjudication must receive structuredIndex, fullCaseFile, fullCaseFileMarkdown, and finalAdjudicationPromptBundle. HTML report must receive rawFinalAnswerText, fullCaseFile, fullCaseFileMarkdown, and htmlReportPromptBundle. Runtime must not reduce inputs to structured summaries.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 9
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast+acceptance",
-      "summary": "All previous Deep Research modes not matching the promptBundle-driven 1+N+1+1 chain must be physically deleted. No compatibility, fallback, optional, legacy, local fallback, compact, lite, or dual-path implementation may remain.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-047-requirement",
-          "statement": "All previous Deep Research modes not matching the promptBundle-driven 1+N+1+1 chain must be physically deleted. No compatibility, fallback, optional, legacy, local fallback, compact, lite, or dual-path implementation may remain.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 10
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+prompt+ui",
-      "summary": "Deep Research business prompts must be generated by the first AI ResearchPlan. Runtime may append only minimal format, persistence, safety, and transport shell constraints. Runtime must not hard-code domain-specific analysis, final adjudication, or report content instructions.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-048-requirement",
-          "statement": "Deep Research business prompts must be generated by the first AI ResearchPlan. Runtime may append only minimal format, persistence, safety, and transport shell constraints. Runtime must not hard-code domain-specific analysis, final adjudication, or report content instructions.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 11
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+prompt+acceptance",
-      "summary": "Runtime format shell may define storage envelopes and artifact requirements. Runtime format shell must not define business conclusion fields such as confidence, finalVerdict, rankedConclusions, directAnswer, investmentThesis, trainingFramework, or other domain-specific structures. If such structures are needed, they must come from AI-generated promptBundle.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-049-requirement",
-          "statement": "Runtime format shell may define storage envelopes and artifact requirements. Runtime format shell must not define business conclusion fields such as confidence, finalVerdict, rankedConclusions, directAnswer, investmentThesis, trainingFramework, or other domain-specific structures. If such structures are needed, they must come from AI-generated promptBundle.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 12
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast+export",
-      "summary": "Final adjudication primary artifact is rawFinalAnswerText. Runtime must not convert final adjudication into a fixed summary/confidence schema. Runtime must not invent confidence, summary, verdict, ranking, or references. Parsed JSON may exist only as a secondary index and must never replace rawFinalAnswerText.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-050-requirement",
-          "statement": "Final adjudication primary artifact is rawFinalAnswerText. Runtime must not convert final adjudication into a fixed summary/confidence schema. Runtime must not invent confidence, summary, verdict, ranking, or references. Parsed JSON may exist only as a secondary index and must never replace rawFinalAnswerText.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 13
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-051-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast+prompt",
-      "summary": "PromptBundle schema and decomposition prompt must use one field name for supplemental guidance. The canonical field is supplementalContent. optionalContent is forbidden and must be physically removed.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-051-requirement",
-          "statement": "PromptBundle schema and decomposition prompt must use one field name for supplemental guidance. The canonical field is supplementalContent. optionalContent is forbidden and must be physically removed.",
-          "evidenceMode": "static",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 14
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-052-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "fs+ast+acceptance",
-      "summary": "Deep Research must not retain parallel old prompt formats, finalReport schemas, fallback parsers, optional content aliases, or compatibility input paths. The system is binary: the current chain exists; old modes do not exist.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-052-requirement",
-          "statement": "Deep Research must not retain parallel old prompt formats, finalReport schemas, fallback parsers, optional content aliases, or compatibility input paths. The system is binary: the current chain exists; old modes do not exist.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 15
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+ui+acceptance",
-      "summary": "The Deep Research App page must be a case reader, not only a final report viewer. It must expose ResearchPlan, per-subQuestion promptBundle, rendered prompt, clean answer, index view, raw AI response, full case file, final raw adjudication, and primary HTML report delivery.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-053-requirement",
-          "statement": "The Deep Research App page must be a case reader, not only a final report viewer. It must expose ResearchPlan, per-subQuestion promptBundle, rendered prompt, clean answer, index view, raw AI response, full case file, final raw adjudication, and primary HTML report delivery.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 16
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ui+acceptance",
-      "summary": "Every persisted subQuestion promptBundle must be visible in the App report reader. The UI must not hide promptBundle behind only full-case-file downloads.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-054-requirement",
-          "statement": "Every persisted subQuestion promptBundle must be visible in the App report reader. The UI must not hide promptBundle behind only full-case-file downloads.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 17
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+ui+acceptance",
-      "summary": "The App UI must display clean answer, raw AI response, and parsed/index data as separate views. The UI must not label answerText as Summary. The UI must not merge raw response and parsed index into one business-looking answer.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-055-requirement",
-          "statement": "The App UI must display clean answer, raw AI response, and parsed/index data as separate views. The UI must not label answerText as Summary. The UI must not merge raw response and parsed index into one business-looking answer.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 18
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ui+export+acceptance",
-      "summary": "The App UI must show primary business HTML report delivery status, sourceKind, fileHash, fileSize, and failure/review reason when missing. HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-056-requirement",
-          "statement": "The App UI must show primary business HTML report delivery status, sourceKind, fileHash, fileSize, and failure/review reason when missing. HTML generation failure must be visible as a delivery failure, not hidden behind a generic report missing message.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 19
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "prompt+ast+acceptance+export",
-      "summary": "The primary business-report.html must be a human-reviewable full-process case report: after the summary answer it must expose the forensics process, place the final conclusion near the end of the report body, and include the N-stage questions and answers after the conclusion. This is a presentation trace contract, not a runtime-owned business conclusion schema.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-057-requirement",
-          "statement": "The primary business-report.html must be a human-reviewable full-process case report: after the summary answer it must expose the forensics process, place the final conclusion near the end of the report body, and include the N-stage questions and answers after the conclusion. This is a presentation trace contract, not a runtime-owned business conclusion schema.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 20
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "schema+ast+ui+acceptance",
-      "summary": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-058-requirement",
-          "statement": "User local files added on the Deep Research App page must become governed inputAttachments, must be persisted in the full case file attachment manifest, and must be included in every Deep Research AI send through the existing AI Input Gateway attachment path.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 21
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+chrome",
-      "summary": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-059-requirement",
-          "statement": "Deep Research web-chat sends must prove the exact prompt is present before submit using untruncated composer text, prompt prefix, prompt suffix, and normalized length or a provider pasted-text card; send-button readiness alone is not prompt proof.",
-          "evidenceMode": "real-chrome",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 22
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "prompt+ast+acceptance+export",
-      "summary": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-060-requirement",
-          "statement": "business-report.html must be bound to the same full case file job, must cite each N-stage answer by persisted response hash, and must preserve at least 80 percent of the N-stage answer material in the N-stage appendix.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 23
-    },
-    {
-      "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "deep-research-analysis",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+acceptance+real-provider",
-      "summary": "Deep Research owns revisioned execution intervention at every prompt exchange and artifact commit boundary.",
-      "clauses": [
-        {
-          "clauseId": "grasseye-deep-research-061-requirement",
-          "statement": "Deep Research owns revisioned execution intervention at every prompt exchange and artifact commit boundary.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "deep-research-analysis"
-        }
-      ],
-      "required": [
-        "Execution records persist revision, intervention state, reason, phase, exchange identity and last persisted raw hash.",
-        "Named pause, cancel, takeover and resume use expectedRevision CAS.",
-        "An exchange already submitted waits only for provider timeout and raw-response persistence; uncertain outcome becomes review_required without resend.",
-        "Full case file and HTML commits stop at plugin-owned safe points without deleting raw material."
-      ],
-      "forbidden": [
-        "compact or fallback research chain",
-        "generic intervention dispatcher",
-        "duplicate prompt send",
-        "route-owned execution state"
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
-      "blockIndex": 24
-    },
-    {
       "lawId": "APEX-DOM-001-V1",
       "status": "active",
       "tier": "P0",
@@ -4575,27 +4088,28 @@
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "The unique Browser owner binds every page action to opaque exact target/document identities and never uses foreground identity or a second browser path.",
+      "evidenceMode": "law+blueprint+ast+model+real-chrome",
+      "summary": "Every page action is admitted only through an execution-bound authenticated authority lease and exact target/document lease; foreground identity, raw Chrome identity leakage and a second browser path are impossible.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-001-v2-requirement",
-          "statement": "All page actions use one authenticated exact-target authority and opaque target/document identity.",
-          "evidenceMode": "real-chrome",
+          "clauseId": "apex-local-browser-001-v2-exact-authority-lease",
+          "statement": "All page actions require a current authority lease plus exact target/document lease and stale leases cannot produce side effects.",
+          "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
       "required": [
-        "One BrowserController owns all raw Chrome identities and mints opaque target/document refs only under a committed AuthenticatedBrowserAuthority.",
-        "Every page command binds one exact target and current document generation; navigation/lifecycle invalidates prior document refs.",
-        "Background exact-target work leaves non-target foreground state unchanged.",
-        "Old authority target/document refs never revive after revoke or reconnect."
+        "BrowserAuthorityBroker is the only business Browser entry",
+        "every BrowserTargetLease is authority-epoch and execution-fence bound",
+        "navigation/lifecycle/authority/fence changes invalidate prior target/document refs",
+        "background exact-target work preserves non-target foreground state"
       ],
       "forbidden": [
-        "second BrowserController or browser transport",
-        "active-tab, first-page, current-page or URL-first fallback",
-        "raw Chrome identity outside src/lib/browser",
-        "foreground focus, OS pointer, OS keyboard, clipboard or native picker as page identity"
+        "BrowserTargetSession",
+        "BrowserController.createTargetSession",
+        "active-tab/current-page/URL-first fallback",
+        "raw Chrome ids outside Browser owner",
+        "second browser transport or OS interaction fallback"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 0
@@ -4606,40 +4120,32 @@
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+model+real-chrome",
-      "summary": "Unauthenticated browserSession is unrepresentable; browser capability exists only after mutual authority commit and is revoked before all teardown side effects.",
+      "evidenceMode": "law+blueprint+ast+model+real-chrome",
+      "summary": "Within each Browser Worker, Browser command authority does not exist before authentication proof is atomically committed; any discontinuity revokes before every other side effect.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-002-v2-requirement",
-          "statement": "Unauthenticated browser capability is structurally impossible and all browser work is authority-bound.",
+          "clauseId": "apex-local-browser-002-v2-authority-atomicity",
+          "statement": "Authentication proof commit is the only ABSENT-to-PRESENT transition and revoke is the first discontinuity side effect.",
           "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
-      "codePurityLiveness": {
-        "externalEntryFiles": [
-          "src/lib/browser/chrome-extension/build.mjs",
-          "src/lib/browser/chrome-extension/service-worker.ts",
-          "src/lib/browser/native-messaging-host/crates/host/src/main.rs",
-          "src/lib/browser/native-messaging-host/crates/browserctl/src/main.rs"
-        ]
-      },
       "required": [
-        "Production data-plane state is exactly AUTHORITY_ABSENT or AUTHENTICATED_AUTHORITY_PRESENT.",
-        "BrowserAuthorityIssuer commits only after challenge, transcript proof, authority grant and Extension grant ACK all match the same release/profile/controller/generation/port epoch.",
-        "Each Native Port has one actor; stale port message/disconnect/completion cannot mutate current authority, sequence or target state.",
-        "Every command carries an authority-bound permit and an authenticated encrypted frame.",
-        "Heartbeat can renew only an existing committed authority; expiry/release/disconnect revokes authority before failing pending work or reconnecting.",
-        "Composition root creates browser-dependent business owners only after authority commit; HTTP server startup is downstream of this gate."
+        "data plane is only ABSENT or PRESENT",
+        "one TransportActor/Reducer owns control mutation",
+        "BrowserAuthorityIssuer is the only mint/revoke owner",
+        "authenticated heartbeat renews only PRESENT authority",
+        "wrong profile/process/policy/tree or liveness expiry keeps authority ABSENT",
+        "revoke occurs before callbacks cleanup diagnostics or reconnect"
       ],
       "forbidden": [
-        "BrowserSession object with authenticated=false, transportReady=false or waiting-for-auth state",
-        "browserSession production health component",
-        "global nativePort/authenticatedNonce/lastAcceptedSequence as cross-port truth",
-        "nonce echo as the complete authentication proof",
-        "old port completion posted to current port",
-        "heartbeat creating authority",
-        "mutation automatic replay after transport uncertainty"
+        "UnauthenticatedBrowserSession",
+        "transportReady",
+        "pre-auth command surface",
+        "fire-and-forget startup",
+        "Host controller rebind",
+        "heartbeat minting authority",
+        "online Port rekey"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 1
@@ -4651,25 +4157,27 @@
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "The fixed-id MV3 extension is the only page/file action executor and exposes no physical-focus fallback.",
+      "summary": "The fixed-id MV3 extension plus one self-contained Rust Native Host is the only production page-action chain; each Native Port has one immutable actor and replies never cross port epochs.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-003-v2-requirement",
-          "statement": "Only the fixed-id authenticated MV3 executor may perform browser page/file actions.",
-          "evidenceMode": "real-chrome",
+          "clauseId": "apex-local-browser-003-v2-single-chain",
+          "statement": "One authenticated Native Messaging chain owns every production browser side effect and old-port work cannot enter the current chain.",
+          "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
       "required": [
-        "Navigate, observe, click, fill, scroll, screenshot and file input execute only through the exact-target MV3 transport.",
-        "File input consumes a bounded file artifact grant and exact DOM receiver.",
-        "Retired focus/native-picker/AppleScript/JXA paths remain physically absent."
+        "one NativePortActor per Port",
+        "original source/reply channel captured for async completion",
+        "Controller IPC discontinuity terminates Host and Port",
+        "production fixture authority is physically unreachable"
       ],
       "forbidden": [
-        "focus lease or focus-target command",
-        "native picker or system clipboard",
-        "OS pointer/keyboard page transport",
-        "second file upload path"
+        "global cross-port auth truth",
+        "old completion sent to new Port",
+        "second Native Host",
+        "Playwright/JXA/AppleScript/system input fallback",
+        "load-unpacked production chain"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 2
@@ -4680,27 +4188,30 @@
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "Generic evaluation is side-effect-free observation while every mutation uses a dedicated exact-target command.",
+      "evidenceMode": "law+schema+ast+fuzz+real-chrome",
+      "summary": "Browser commands are versioned governed capabilities with bounded admission and declarative DOM intent; arbitrary evaluation, raw file paths and unbounded queues or streams do not exist in production.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-004-v2-requirement",
-          "statement": "Observation and mutation are mechanically separated at the high-privilege browser executor.",
-          "evidenceMode": "real-chrome",
+          "clauseId": "apex-local-browser-004-v2-governed-command-plane",
+          "statement": "Only schema-bound capability commands admitted by the current authority/execution/target fences may execute.",
+          "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
       "required": [
-        "BrowserTargetSession.evaluate function body is normalized exactly once by Browser owner.",
-        "MV3 Runtime.evaluate for evaluate_target uses throwOnSideEffect=true and cannot mutate page state.",
-        "Dedicated mutation commands perform receiver revalidation and mutation atomically under the same target/document authority.",
-        "Unicode text uses Input.insertText and point click uses CDP input after side-effect-free receiver validation."
+        "canonical protocol/schema/codegen is the only wire contract",
+        "each command binds capability execution fence target/document permit and deadline",
+        "control frames are <=256KiB and artifact chunks <=4MiB",
+        "mutation intent journal fsyncs PREPARED before send",
+        "file actions use TTL authority/fence-bound grants and content-addressed streams"
       ],
       "forbidden": [
-        "generic evaluate mutation",
-        "eval or Function constructor",
-        "synthetic HTMLElement.click as the generic point click executor",
-        "platform-specific Meta/Ctrl guessing for arbitrary text"
+        "evaluate(script)",
+        "evaluate_target arbitrary expression",
+        "eval/new Function/remote code",
+        "raw/resolved path in production wire",
+        "unbounded queue/cache/artifact stream",
+        "automatic non-idempotent replay"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 3
@@ -4711,34 +4222,68 @@
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance+artifact+real-chrome",
-      "summary": "Browser runtime release/profile/install identity is immutable, prebuilt and fail-closed across Chrome and OS evolution.",
+      "evidenceMode": "law+artifact+signature+readback+real-chrome+soak",
+      "summary": "Production browser bytes, exact activation, anti-rollback policy and release proof are separate signed identities; a release is usable only when installed bytes/profile/policy/Chrome identity and the exact tuple all read back correctly.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-005-v1-requirement",
-          "statement": "Only one immutable verified browser release/profile tuple may receive production authority.",
+          "clauseId": "apex-local-browser-005-v1-release-identity",
+          "statement": "Only one signed exact activation over verified immutable bytes may mint Browser authority.",
           "evidenceMode": "artifact+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
       "required": [
-        "Release identity, monotonic release sequence and ArtifactSet identity are distinct and immutable; ArtifactSet V2 binds the complete Host/browserctl/Extension tree byte set.",
-        "Activation receipt is written only from a verified signed ArtifactSet and exactly matches its artifactSetSha256, release tuple, Host hash and extension tree hash before Node may compose Browser Authority.",
-        "Production Native Host is a self-contained prebuilt Rust binary; target machines never compile/transpile it.",
-        "Native Host caller origin and enrolled Chrome process ancestry are validated before Controller IPC.",
-        "browserctl installs owner-only config/manifest and content-addressed host bytes using atomic write/readback.",
-        "Chrome minimum version and compatibility matrix changes require current-artifact proof before production activation."
+        "ArtifactSetIdentity ActivationTuple ReleaseSecurityPolicy and ReleaseProofManifest are distinct",
+        "minimum release sequence and revocation are monotonic hard gates",
+        "Verified CRX hash is non-null in production",
+        "current+previous activation window is bounded",
+        "core artifacts are hermetic build-once and reproducible by two builders",
+        "owner lock and installed identity readback are mandatory"
       ],
       "forbidden": [
-        "Node shebang Native Host",
-        "install-time source transpilation",
-        "silent default profile",
-        "load-unpacked production extension",
-        "mixed release/protocol tuple",
-        "unsigned or unverified production artifact activation"
+        "capability intersection READY_COMPATIBLE",
+        "rollback below minimum sequence",
+        "revoked tuple revival",
+        "proof-after-rebuild bytes",
+        "unsigned/unnotarized production Host",
+        "CWS downgrade required for local rollback"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-browser-session",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+cross-repo-contract+runtime+fault-injection",
+      "summary": "For one browser-required execution at most one Browser Worker may hold the current xuanxue writer fence; failover starts only from a sealed checkpoint with a new fence and every browser action is provable inside an ordered authenticated authority window in the single AgentRuntimeReceipt.",
+      "clauses": [
+        {
+          "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
+          "statement": "Execution fencing, safe handover and ordered authority-window proof jointly prevent dual writers and unprovable browser actions.",
+          "evidenceMode": "model+acceptance+real-chrome",
+          "ownerDomain": "local-browser-session"
+        }
+      ],
+      "required": [
+        "xuanxue database lease/fence is the only election truth",
+        "active and standby use independent profiles and identities",
+        "handover waits for old fence invalidation and sealed checkpoint",
+        "no browser action occurs between authority windows",
+        "unresolved OUTCOME_UNKNOWN blocks complete",
+        "AgentRuntimeReceipt remains the only runtime receipt owner"
+      ],
+      "forbidden": [
+        "second Browser election owner",
+        "dual active execution",
+        "profile copy between workers",
+        "implicit mutation replay on failover",
+        "second Agent runtime receipt or dynamic verdict"
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
+      "blockIndex": 5
     },
     {
       "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
@@ -4969,25 +4514,6 @@
       "blockIndex": 9
     },
     {
-      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "runtime-truth",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+runtime-contract",
-      "summary": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
-      "clauses": [
-        {
-          "clauseId": "apex-runtime-truth-001-requirement",
-          "statement": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
-          "evidenceMode": "acceptance",
-          "ownerDomain": "runtime-truth"
-        }
-      ],
-      "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 0
-    },
-    {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "status": "active",
       "tier": "P0",
@@ -5004,7 +4530,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 1
+      "blockIndex": 0
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
@@ -5023,7 +4549,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 2
+      "blockIndex": 1
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
@@ -5042,7 +4568,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 3
+      "blockIndex": 2
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
@@ -5061,7 +4587,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 4
+      "blockIndex": 3
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
@@ -5080,7 +4606,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 5
+      "blockIndex": 4
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
@@ -5099,7 +4625,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 6
+      "blockIndex": 5
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
@@ -5118,7 +4644,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 7
+      "blockIndex": 6
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
@@ -5137,7 +4663,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 8
+      "blockIndex": 7
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
@@ -5156,7 +4682,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 9
+      "blockIndex": 8
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
@@ -5175,7 +4701,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 10
+      "blockIndex": 9
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
@@ -5194,7 +4720,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 11
+      "blockIndex": 10
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
@@ -5213,7 +4739,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 12
+      "blockIndex": 11
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
@@ -5232,7 +4758,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 13
+      "blockIndex": 12
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
@@ -5251,7 +4777,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 14
+      "blockIndex": 13
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
@@ -5270,7 +4796,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 15
+      "blockIndex": 14
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
@@ -5289,7 +4815,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 16
+      "blockIndex": 15
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
@@ -5308,7 +4834,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 17
+      "blockIndex": 16
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
@@ -5327,7 +4853,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 18
+      "blockIndex": 17
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
@@ -5346,7 +4872,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 19
+      "blockIndex": 18
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
@@ -5365,7 +4891,7 @@
         }
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-runtime-log-spine.instructions.md",
-      "blockIndex": 20
+      "blockIndex": 19
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
@@ -5387,18 +4913,18 @@
       "blockIndex": 0
     },
     {
-      "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+real-chrome",
-      "summary": "Browser session infrastructure must keep cookies, local storage, session storage, passwords, and tokens opaque and outside evidence persistence.",
+      "summary": "Browser authority infrastructure must keep credentials, raw browser identities, page content and mutable filesystem paths opaque and outside logs, durable proof and the wire protocol.",
       "clauses": [
         {
-          "clauseId": "grasseye-security-privacy-browser-001-requirement",
-          "statement": "Browser control must not read or persist cookies, localStorage, sessionStorage, passwords, or tokens and must keep session profiles separate from evidence storage.",
-          "evidenceMode": "acceptance",
+          "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
+          "statement": "Browser control must not read or persist credentials, raw browser identities, page content or raw file paths outside the Browser owner, and must keep profiles separate from evidence storage.",
+          "evidenceMode": "static",
           "ownerDomain": "local-browser-session"
         }
       ],
@@ -6199,7 +5725,7 @@
         "Method wildcard route admission.",
         "Path prefix admission without exact method+path rule.",
         "External access to health, mode, settings, AI provider config, or debug routes unless explicitly authorized.",
-        "External website calling deep research, product mining, video download, or browser-control routes without dedicated law authorization."
+        "External website calling product mining, video download, or browser-control routes without dedicated law authorization."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
       "blockIndex": 3

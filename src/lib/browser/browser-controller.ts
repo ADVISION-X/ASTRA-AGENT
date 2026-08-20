@@ -57,7 +57,14 @@ type BrowserStateSnapshot = {
   browserMode: "real_chrome_persistent" | "fixture" | "unsupported";
   browserProfileRef: string;
   browserExecutablePath: string | null;
-  profileStatus: "profile_ready" | "profile_missing" | "profile_locked" | "profile_unavailable" | "login_required" | "logged_in" | "unknown";
+  profileStatus:
+    | "profile_ready"
+    | "profile_missing"
+    | "profile_locked"
+    | "profile_unavailable"
+    | "login_required"
+    | "logged_in"
+    | "unknown";
   profileDirectory: string;
   profileProvisioning: "operator_supplied" | "managed_default";
   profileVerificationStatus: "operator_verified" | "default_unverified";

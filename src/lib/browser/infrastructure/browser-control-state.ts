@@ -41,10 +41,18 @@ export type BrowserInfrastructureControlState =
       activationTupleHash: string;
     }>
   | Readonly<{ kind: "DRAINING"; reason: string }>
-  | Readonly<{ kind: "BACKOFF"; attempt: number; nextProbeAtMonotonicMs: number }>
+  | Readonly<{
+      kind: "BACKOFF";
+      attempt: number;
+      nextProbeAtMonotonicMs: number;
+    }>
   | Readonly<{ kind: "REPAIR_REQUIRED"; code: BrowserInfrastructureErrorCode }>
   | Readonly<{ kind: "STOPPING" }>;
 
 export type BrowserAuthoritySlot<T> =
-  | Readonly<{ kind: "ABSENT"; reasonCode: string; changedAtMonotonicMs: number }>
+  | Readonly<{
+      kind: "ABSENT";
+      reasonCode: string;
+      changedAtMonotonicMs: number;
+    }>
   | Readonly<{ kind: "PRESENT"; authority: T; changedAtMonotonicMs: number }>;

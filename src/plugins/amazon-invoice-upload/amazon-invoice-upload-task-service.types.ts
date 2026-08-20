@@ -7,11 +7,15 @@ import {
 } from "./mission.schema.js";
 import type { AmazonInvoiceUploadPdfFile } from "./amazon-invoice-upload-storage.types.js";
 
-export const AmazonInvoiceUploadAdminOpenInputSchema = z.object({
-  adminUrl: z.string().url(),
-}).strict();
+export const AmazonInvoiceUploadAdminOpenInputSchema = z
+  .object({
+    adminUrl: z.string().url(),
+  })
+  .strict();
 
-export type AmazonInvoiceUploadAdminOpenInput = z.infer<typeof AmazonInvoiceUploadAdminOpenInputSchema>;
+export type AmazonInvoiceUploadAdminOpenInput = z.infer<
+  typeof AmazonInvoiceUploadAdminOpenInputSchema
+>;
 
 export type AmazonInvoiceUploadAdminOpenResult = {
   ok: boolean;
@@ -38,15 +42,21 @@ export type AmazonInvoiceUploadTaskStartInput = {
   invoicePdf: AmazonInvoiceUploadPdfFile;
 };
 
-export const AmazonInvoiceUploadTaskStartInputSchema = z.object({
-  mission: AmazonInvoiceUploadMissionInputSchema,
-  invoicePdf: z.object({
-    filename: z.string().min(1),
-    mimeType: z.string().min(1),
-    bytes: z.instanceof(Buffer),
-  }).strict(),
-}).strict();
+export const AmazonInvoiceUploadTaskStartInputSchema = z
+  .object({
+    mission: AmazonInvoiceUploadMissionInputSchema,
+    invoicePdf: z
+      .object({
+        filename: z.string().min(1),
+        mimeType: z.string().min(1),
+        bytes: z.instanceof(Buffer),
+      })
+      .strict(),
+  })
+  .strict();
 
-export const AmazonInvoiceUploadResumeInputSchema = z.object({
-  taskId: z.string().trim().min(1),
-}).strict();
+export const AmazonInvoiceUploadResumeInputSchema = z
+  .object({
+    taskId: z.string().trim().min(1),
+  })
+  .strict();

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   WebChatForkActionProof,
@@ -82,7 +82,7 @@ const transientBranchChildConversationUrl = (value: string): string => {
 };
 
 const observeCheckpoint = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<ForkCheckpointObservation> => browser.evaluate<ForkCheckpointObservation>({
   description: "verify exact ChatGPT fork checkpoint",
@@ -148,7 +148,7 @@ const inspectCheckpointAssistant = (
 };
 
 type ForkRuntimeInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   waitForComposer: () => Promise<void>;

@@ -11,7 +11,6 @@ export type RuntimeLogOwner =
   | "startup-entrypoint"
   | "amazon-invoice-upload"
   | "amazon-product-mining"
-  | "deep-research-analysis"
   | "dom-automation"
   | "unknown";
 

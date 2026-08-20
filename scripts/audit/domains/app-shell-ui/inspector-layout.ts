@@ -1,6 +1,5 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -81,41 +80,11 @@ const requireNamedImport = (input: {
   }));
 };
 
-const requireArrayExportedIdentifier = (input: {
-  checkId: string;
-  findings: InspectorFinding[];
-  lawId: string;
-  repoPath: string;
-  sourceFile: SourceFile | undefined;
-  arrayName: string;
-  symbolName: string;
-}): void => {
-  const initializer = input.sourceFile
-    ?.getVariableDeclaration(input.arrayName)
-    ?.getInitializer();
-  const arrayExpression = initializer?.asKind(SyntaxKind.AsExpression)
-    ?.getExpression()
-    .asKind(SyntaxKind.ArrayLiteralExpression)
-    ?? initializer?.asKind(SyntaxKind.ArrayLiteralExpression);
-  const found = arrayExpression?.getElements().some((element) =>
-    Node.isIdentifier(element) && astIdentifierName(element) === input.symbolName,
-  );
-  if (found) return;
-  input.findings.push(createFinding({
-    checkId: input.checkId,
-    lawId: input.lawId,
-    filePath: input.repoPath,
-    message: `${input.arrayName} must export ${input.symbolName} into the rendered App Shell client script.`,
-  }));
-};
-
 const paths = {
   amazonHistory: "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
   amazonWorkspace: "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
   appShell: "src/app/app-shell/app-shell.ts",
   client: "src/app/workbench-home-client.ts",
-  deepResearchPanel: "src/app/workbench-deep-research-panel.ts",
-  deepResearchClient: "src/app/workbench-deep-research-client-boot.ts",
   home: "src/app/workbench-home-page.ts",
   inspector: "src/app/app-shell/inspector.ts",
   layout: "src/app/app-shell/app-shell-layout.ts",
@@ -136,8 +105,6 @@ type AppShellLayoutSources = {
   amazonWorkspace: SourceFile | undefined;
   appShell: SourceFile | undefined;
   client: SourceFile | undefined;
-  deepResearchPanel: SourceFile | undefined;
-  deepResearchClient: SourceFile | undefined;
   home: SourceFile | undefined;
   inspector: SourceFile | undefined;
   layout: SourceFile | undefined;
@@ -151,8 +118,6 @@ const loadAppShellLayoutSources = (context: InspectorContext): AppShellLayoutSou
   amazonWorkspace: sourcePath(context, paths.amazonWorkspace),
   appShell: sourcePath(context, paths.appShell),
   client: sourcePath(context, paths.client),
-  deepResearchPanel: sourcePath(context, paths.deepResearchPanel),
-  deepResearchClient: sourcePath(context, paths.deepResearchClient),
   home: sourcePath(context, paths.home),
   inspector: sourcePath(context, paths.inspector),
   layout: sourcePath(context, paths.layout),
@@ -234,14 +199,6 @@ const inspectStructureTokens = (
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-marketplace-filter", "app-shell-ui/marketplace-filter"],
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-empty-panel", "app-shell-ui/amazon-empty-history-panel"],
     [paths.amazonHistory, sources.amazonHistory, "data-amazon-product-mining-review-table-shell", "app-shell-ui/amazon-history-table-visibility"],
-    [paths.deepResearchPanel, sources.deepResearchPanel, "data-deep-research-page-nav", "app-shell-ui/deep-research-level2-page-nav"],
-    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="reader"', "app-shell-ui/deep-research-reader-surface"],
-    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="library"', "app-shell-ui/deep-research-library-surface"],
-    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="new"', "app-shell-ui/deep-research-new-surface"],
-    [paths.deepResearchPanel, sources.deepResearchPanel, 'data-deep-research-surface="case"', "app-shell-ui/deep-research-case-surface"],
-    [paths.deepResearchClient, sources.deepResearchClient, "showDeepResearchPage", "app-shell-ui/deep-research-page-client"],
-    [paths.deepResearchClient, sources.deepResearchClient, "openDeepResearchInspector", "app-shell-ui/deep-research-inspector-client"],
-    [paths.deepResearchClient, sources.deepResearchClient, "shouldOpenDeepResearchInspector", "app-shell-ui/deep-research-explicit-inspector"],
     [paths.appShell, sources.appShell, "inspector-collapsed", "app-shell-ui/inspector-closed-by-default"],
     [paths.client, sources.client, "openInspector", "app-shell-ui/client-inspector"],
     [paths.client, sources.client, "resetInspectorForSkill", "app-shell-ui/client-inspector-reset"],
@@ -263,13 +220,4 @@ export const inspectAppShellLayout = (
   inspectLayoutImports(findings, lawId, sources);
   inspectStyleTokens(findings, lawId, sources.styleFiles);
   inspectStructureTokens(findings, lawId, sources);
-  requireArrayExportedIdentifier({
-    findings,
-    lawId,
-    sourceFile: sources.deepResearchClient,
-    repoPath: paths.deepResearchClient,
-    arrayName: "deepResearchClientBootFunctions",
-    symbolName: "shouldOpenDeepResearchInspector",
-    checkId: "app-shell-ui/deep-research-inspector-gate-exported",
-  });
 };

@@ -3,7 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -202,7 +202,7 @@ const waitForDownloadedBusinessHtml = async (input: {
 };
 
 const waitBeforeHtmlArtifactRetry = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   attempt: number,
 ): Promise<void> => {
   const delayMs = HTML_ARTIFACT_CAPTURE_RETRY_DELAYS_MS[
@@ -212,7 +212,7 @@ const waitBeforeHtmlArtifactRetry = async (
 };
 
 const clickLocatedChatGptHtmlArtifactControl = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   located: ClickEvaluation,
   targetLabel: string,
 ): Promise<ClickEvaluation> => {
@@ -230,7 +230,7 @@ const clickLocatedChatGptHtmlArtifactControl = async (
 };
 
 const locatePrimaryChatGptHtmlArtifactEntry = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluate<ClickEvaluation>({
@@ -262,7 +262,7 @@ return {
   });
 
 const clickPrimaryChatGptHtmlArtifactEntry = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   clickLocatedChatGptHtmlArtifactControl(
@@ -272,7 +272,7 @@ const clickPrimaryChatGptHtmlArtifactEntry = async (
   );
 
 const locateSecondaryChatGptPreviewDownload = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluate<ClickEvaluation>({
@@ -298,7 +298,7 @@ return {
   });
 
 const clickSecondaryChatGptPreviewDownload = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   clickLocatedChatGptHtmlArtifactControl(
@@ -308,7 +308,7 @@ const clickSecondaryChatGptPreviewDownload = async (
   );
 
 const readActiveHtmlDocument = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<CapturedHtmlArtifact | null> => {
   const captured = await browser.evaluate<{
@@ -338,7 +338,7 @@ return {htmlDocument, pageUrl: location.href};
 };
 
 const reopenConversation = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   conversationUrl: string;
 }): Promise<void> => {
   await input.browser.open({
@@ -350,7 +350,7 @@ const reopenConversation = async (input: {
 };
 
 const captureViaPrimaryEntry = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   startedAtMs: number;
   deadlineMs: number;
@@ -374,7 +374,7 @@ const captureViaPrimaryEntry = async (input: {
 };
 
 const captureViaSecondaryDownload = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   startedAtMs: number;
   deadlineMs: number;
@@ -390,7 +390,7 @@ const captureViaSecondaryDownload = async (input: {
 };
 
 export const captureChatGptBusinessHtmlArtifact = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   conversationUrl: string | null;

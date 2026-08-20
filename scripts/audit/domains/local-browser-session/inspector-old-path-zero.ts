@@ -25,7 +25,7 @@ export const retiredBrowserPaths = [
 
 export const inspectRetiredBrowserPaths = (
   lawId = "APEX-LOCAL-BROWSER-001-V2",
-  clauseId = "apex-local-browser-001-v2-requirement",
+  clauseId = "apex-local-browser-001-v2-exact-authority-lease",
 ): InspectorFinding[] =>
   retiredBrowserPaths.flatMap((filePath) => existsSync(resolveFromRepo(filePath))
     ? [createFinding({

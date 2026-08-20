@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
@@ -33,7 +33,7 @@ export const resolveManagedGptPollIntervalMs = (
 };
 
 export const acknowledgeWebChatRateLimitIfVisible = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 }): Promise<void> => {
@@ -50,7 +50,7 @@ export const acknowledgeWebChatRateLimitIfVisible = async (input: {
 const responseTimeoutMs = (request: AiFeedInput): number => request.timeoutMs;
 
 export const extractWebChatConversation = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;

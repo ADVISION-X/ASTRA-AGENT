@@ -1,7 +1,4 @@
-import { existsSync, statSync } from "node:fs";
-import { extname, resolve } from "node:path";
-
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { DOM_SCHEMAS } from "../schema.js";
 import type { DomActionResult } from "../../../types/dom-automation.js";
 import type { UploadApprovedFileInput } from "../../../types/dom-automation-inputs.js";
@@ -14,43 +11,29 @@ import {
 import { captureDomEvidenceRef } from "./dom-evidence.js";
 import { assertDomTargetBinding } from "./dom-target-binding.js";
 
-function validateApprovedUploadRequest(input: UploadApprovedFileInput): DomActionResult | { approvedPath: string } {
-  const approvedPath = resolve(input.approvedFilePath);
-  const taskPath = resolve(input.approvedTaskFilePath);
-  const extension = extname(approvedPath).toLowerCase();
-  if (approvedPath !== taskPath) {
-    return buildDomReviewRequiredResult(
-      "approved file path does not match task payload",
-      "DOM upload refuses arbitrary file paths.",
-    );
-  }
-  if (!existsSync(approvedPath) || !statSync(approvedPath).isFile()) {
-    return buildDomFailureResult("approved file does not exist");
-  }
-  if (!input.allowedExtensions.includes(extension)) {
-    return buildDomReviewRequiredResult(
-      "approved file extension is not allowed",
-      "Approved file upload only allows task-listed extensions.",
-    );
-  }
+function validateApprovedUploadRequest(
+  input: UploadApprovedFileInput,
+): DomActionResult | undefined {
   if (input.elementRef.targetKind !== "file-input") {
     return buildDomReviewRequiredResult(
       "upload target is not a located file input",
       "Real upload is limited to located input[type=file].",
     );
   }
-  return { approvedPath };
+  return undefined;
 }
 
 function buildDomUploadOutcome(
-  uploadResult: Awaited<ReturnType<BrowserTargetSession["setFileInputFiles"]>>,
+  uploadResult: Awaited<ReturnType<BrowserTargetLease["setFileInputArtifact"]>>,
   beforeEvidenceRef: string,
   afterEvidenceRef: string,
 ): DomActionResult {
   return buildDomActionOutcome(
     {
       status: uploadResult.ok ? "success" : "failed",
-      message: uploadResult.ok ? "approved file selection dispatched once to one real file input receiver" : uploadResult.message,
+      message: uploadResult.ok
+        ? "approved file selection dispatched once to one real file input receiver"
+        : uploadResult.message,
     },
     beforeEvidenceRef,
     afterEvidenceRef,
@@ -58,32 +41,40 @@ function buildDomUploadOutcome(
 }
 
 export async function uploadApprovedFileOnce(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   rawInput: UploadApprovedFileInput,
 ): Promise<DomActionResult> {
-  const input = DOM_SCHEMAS.UploadApprovedFileInput.parse(rawInput) as UploadApprovedFileInput;
+  const input = DOM_SCHEMAS.UploadApprovedFileInput.parse(
+    rawInput,
+  ) as UploadApprovedFileInput;
   assertDomTargetBinding(browser, input.elementRef);
   const validated = validateApprovedUploadRequest(input);
-  if ("ok" in validated) {
+  if (validated) {
     return validated;
   }
 
-  const beforeEvidenceRef = await captureDomEvidenceRef(browser, "dom-upload-before");
+  const beforeEvidenceRef = await captureDomEvidenceRef(
+    browser,
+    "dom-upload-before",
+  );
   if (!beforeEvidenceRef) {
     return buildDomReviewRequiredResult(
       "before-upload evidence capture failed",
       "DOM upload requires evidence before setting a file.",
     );
   }
-  const uploadResult = await browser.setFileInputFiles({
+  const uploadResult = await browser.setFileInputArtifact({
     elementRef: {
       selector: input.elementRef.selector,
       targetKind: "file-input",
     },
-    filePath: validated.approvedPath,
+    grant: input.fileArtifactGrant,
     description: "set approved file on located file input",
   });
-  const afterEvidenceRef = await captureDomEvidenceRef(browser, "dom-upload-after");
+  const afterEvidenceRef = await captureDomEvidenceRef(
+    browser,
+    "dom-upload-after",
+  );
   if (!afterEvidenceRef) {
     return buildDomActionResult({
       ok: false,
@@ -93,5 +84,9 @@ export async function uploadApprovedFileOnce(
     });
   }
 
-  return buildDomUploadOutcome(uploadResult, beforeEvidenceRef, afterEvidenceRef);
+  return buildDomUploadOutcome(
+    uploadResult,
+    beforeEvidenceRef,
+    afterEvidenceRef,
+  );
 }

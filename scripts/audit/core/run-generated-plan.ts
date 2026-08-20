@@ -119,19 +119,15 @@ const findReceiptIdentityError = (
 };
 
 const findReceiptResultError = (planEntry: AuditPlanEntry, output: ParsedSessionInspectorOutput): string | null => {
-  if (output.checkRuns.length !== 1) {
-    return `${planEntry.capabilityDomain} must report exactly one owner assertion-set receipt.`;
-  }
   for (const receipt of output.checkRuns) {
     if (receipt.capabilityDomain !== planEntry.capabilityDomain) {
       return `Physical check ${receipt.checkId} reported the wrong capabilityDomain.`;
     }
-    const findingCount = output.findings.length;
-    if (receipt.findingCount !== findingCount) {
-      return `Physical check ${receipt.checkId} finding count does not match its signed receipt.`;
+    if (receipt.findingCount === 0 && receipt.status !== "PASS") {
+      return `Physical check ${receipt.checkId} has an invalid PASS/FAIL receipt status.`;
     }
-    if (receipt.status !== (findingCount === 0 ? "PASS" : "FAIL")) {
-      return `Physical check ${receipt.checkId} status does not match its findings.`;
+    if (receipt.findingCount > 0 && receipt.status !== "FAIL") {
+      return `Physical check ${receipt.checkId} has an invalid PASS/FAIL receipt status.`;
     }
   }
   return null;

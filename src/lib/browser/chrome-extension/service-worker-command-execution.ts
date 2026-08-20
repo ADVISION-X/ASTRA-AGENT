@@ -1,8 +1,22 @@
 import type {
   BrowserWireCommand,
-  BrowserWireCommandPayload,
-  BrowserWireResponsePayload,
-} from "./protocol.js";
+  BrowserWireMutationClass,
+} from "../protocol/generated/browser-protocol.js";
+
+export type BrowserWireCommandPayload = Readonly<{
+  commandId: string;
+  mutationClass: BrowserWireMutationClass;
+  expectedLoaderId?: string;
+  command: BrowserWireCommand;
+}>;
+
+export type BrowserWireResponsePayload = Readonly<{
+  commandId: string;
+  ok: boolean;
+  result?: unknown;
+  errorCode?: string;
+  errorMessage?: string;
+}>;
 
 const errorCode = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error);
@@ -13,12 +27,15 @@ const errorCode = (error: unknown): string => {
 export async function executeCommand(
   input: Readonly<{
     payload: BrowserWireCommandPayload;
-    deadlineAt: number;
+    deadlineMonotonicMs: number;
   }>,
-  run: (command: BrowserWireCommand, expectedLoaderId?: string) => Promise<unknown>,
+  run: (
+    command: BrowserWireCommand,
+    expectedLoaderId?: string,
+  ) => Promise<unknown>,
 ): Promise<BrowserWireResponsePayload> {
   const message = input.payload;
-  if (Date.now() > input.deadlineAt) {
+  if (performance.timeOrigin + performance.now() > input.deadlineMonotonicMs) {
     return {
       commandId: message.commandId,
       ok: false,

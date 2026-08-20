@@ -389,13 +389,12 @@ Plugin 禁止：
 
 每个 plugin root 必须在 `scripts/audit/config/plugin-status.json` 恰好登记一次。只有 `active` plugin 可以进入默认 runtime/UI 和 `ci:full` acceptance。
 
-当前登记的 5 个 active plugin：
+当前登记的 4 个 active plugin：
 
 | Plugin | 功能 | 绝对边界 |
 | --- | --- | --- |
 | `amazon-invoice-upload` | Seller Central 税务发票 CSV 下载、获准 PDF 上传、金额核对、提交/复核和 ledger | 只能上传 caller-approved PDF；不得把 CSV 当发票；敏感最终提交默认保留人工门 |
 | `amazon-product-mining` | 关键词生成与去重、搜索页/详情页/评论取证、资料包/PDF/AI handoff | 只产证据包，不做最终选品、采购、利润或投资裁决 |
-| `deep-research-analysis` | 唯一 `1+N+1+1` 研究链：拆题、N 路分析、full case file、最终裁决、业务 HTML | 不得有 legacy/fallback/compact/双链；原始 AI 回答和完整 case file 不得被摘要替代 |
 | `media-processing-artifact` | 把单次媒体处理能力包装成有 schema/result/evidence 的 job | 不在 job 内复制 ffmpeg/sharp 算法，不建第二媒体处理链 |
 | `xuanxue-ai-production` | 玄学网站九个 AI 产品整单领取、固定动作图、真实 checkpoint 分叉、持久化生产窗口与整单回传 | 网站只发整单和收结果；工厂只走 AI Input Gateway；禁止通用 planner、影子队列和逐阶段网站遥控 |
 
@@ -621,14 +620,7 @@ package.json: ci:full
 
 以下是 2026-07-28 只读核对发现的架构差异。未来 Codex 必须先重新验证它们是否仍存在。
 
-1. **Deep Research 命名/拓扑不是标准模板**
-
-   - 标准新 job 模板要求 `<job-id>.flow.ts` 和 `index.ts`。
-   - 当前 Deep Research 的实际主执行入口是 `deep-research-analysis.analysis-runner.ts`，public facade 是 `deep-research-analysis.public.ts`。
-   - 它仍是一个 active plugin 和一条受治理主链，但物理命名不同。
-   - 结论：新 job 仍使用标准模板；不得复制此命名差异，也不得未经专项授权顺手改 Deep Research。
-
-2. **施工图可能落后于代码**
+1. **施工图可能落后于代码**
 
    - 部分早期施工图仍只列最早的 job、UI surface 或旧阶段快照。
    - 结论：施工图用于找路，不用于证明当前代码完整；必须同时核对 active law、plugin-status、Skill Registry、routes、public facades、generated plan 和真实源码。

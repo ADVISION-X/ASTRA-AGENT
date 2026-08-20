@@ -1,11 +1,11 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 export const restoreAfterWebChatFeed = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   providerUrl: string;
   request: AiFeedInput;

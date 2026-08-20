@@ -12,7 +12,10 @@ import {
   type RuntimeLogger,
 } from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
-import { createWorkbenchBrowserController } from "./workbench-browser-support.js";
+import {
+  createWorkbenchBrowserAuthority,
+  type WorkbenchBrowserAuthority,
+} from "./workbench-browser-support.js";
 import { createWorkbenchAiInputGateway } from "./workbench-ai-gateway-support.js";
 import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
 import { createWorkbenchMediaProcessing } from "./workbench-media-processing-support.js";
@@ -22,7 +25,7 @@ export type WorkbenchAssembly = {
   options: GrassEyeWorkbenchOptions;
   dataDir: string;
   structuredLogBus: StructuredLogBus;
-  browserController: Awaited<ReturnType<typeof createWorkbenchBrowserController>>;
+  browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
   videoDownload: ReturnType<typeof createWorkbenchVideoDownload>;
   mediaProcessing: ReturnType<typeof createWorkbenchMediaProcessing>;
@@ -37,30 +40,28 @@ export async function createWorkbenchAssembly(
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   const structuredLogBus = createWorkbenchStructuredLogBus();
 
-  // This is the composition root's hard authorization gate. No browser-dependent
-  // business owner is constructed until the Controller has a live authenticated
-  // BrowserAuthority.
-  const browserController = await createWorkbenchBrowserController(
+  const browserAuthority = await createWorkbenchBrowserAuthority(
     options,
     dataDir,
     runtimeLogger,
   );
-  const authority = browserController.getAuthoritySnapshot();
-  if (authority.state !== "AUTHENTICATED_AUTHORITY_PRESENT") {
-    await browserController.close();
-    throw new Error("BROWSER_AUTHORITY_ABSENT_AT_COMPOSITION_ROOT");
-  }
+  const aiBrowser = await browserAuthority.tryAcquireTargetLease(
+    "ai-input-gateway:single-provider-target",
+  );
+  const videoBrowser = await browserAuthority.tryAcquireTargetLease(
+    "video-download:source-page",
+  );
 
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
-  const videoDownload = createWorkbenchVideoDownload(dataDir, browserController, runtimeLogger);
+  const videoDownload = createWorkbenchVideoDownload(dataDir, videoBrowser, runtimeLogger);
   const mediaProcessing = createWorkbenchMediaProcessing(dataDir, runtimeLogger);
-  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, browserController, runtimeLogger);
+  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, aiBrowser, runtimeLogger);
 
   return {
     options,
     dataDir,
     structuredLogBus,
-    browserController,
+    browserAuthority,
     evidenceStore,
     videoDownload,
     mediaProcessing,

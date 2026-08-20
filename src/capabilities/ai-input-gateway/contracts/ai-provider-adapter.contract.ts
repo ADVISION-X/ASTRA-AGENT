@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type {
   AiFeedInput,
@@ -181,9 +181,9 @@ export type WebChatExecutionContext = {
   resumeAttachmentUploadProof: WebChatAttachmentUploadProof | null;
   resumeResponseCheckpoint: WebChatResponseCheckpoint | null;
   resumeForkActionProof: WebChatForkActionProof | null;
-  globalBrowser: BrowserTargetSession | null;
+  globalBrowser: BrowserTargetLease | null;
   runExclusivePatrol<T>(
-    operation: (browser: BrowserTargetSession) => Promise<T>,
+    operation: (browser: BrowserTargetLease) => Promise<T>,
   ): Promise<T>;
   onPageActionCommitted(proof: WebChatPageActionProof): Promise<void>;
   onProviderExecutionProfileVerified(proof: ProviderExecutionProfileProof): Promise<void>;
@@ -267,7 +267,7 @@ export type AiProviderRawResponse = {
 
 export type AiProviderAdapterContext = {
   dataDir: string;
-  browser?: BrowserTargetSession;
+  browser?: BrowserTargetLease;
   runtimeLogger?: RuntimeLogger;
   abortSignal?: AbortSignal;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;

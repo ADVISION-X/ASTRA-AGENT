@@ -48,10 +48,3 @@ export const issueBrowserCommandPermit = (input: {
   });
   return Object.freeze({ ...unsigned, permitHash: hash(unsigned) });
 };
-
-export const verifyBrowserCommandPermitHash = (
-  permit: BrowserCommandPermit,
-): boolean => {
-  const { permitHash, ...unsigned } = permit;
-  return hash(unsigned) === permitHash;
-};

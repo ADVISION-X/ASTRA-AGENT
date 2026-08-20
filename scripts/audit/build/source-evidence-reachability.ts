@@ -45,12 +45,12 @@ export const ownerAssertionRoots = (project: Project, manifest: ManifestSource):
   if (!inspectDomain || !contextParameter) return [];
   const signedCallbacks = inspectDomain.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
     const callee = call.getExpression();
-    if (!Node.isPropertyAccessExpression(callee) || callee.getName() !== "runAll") return [];
+    if (!Node.isPropertyAccessExpression(callee) || !["run", "runAll"].includes(callee.getName())) return [];
     const checks = callee.getExpression();
     const receiver = Node.isPropertyAccessExpression(checks) && checks.getName() === "checks"
       ? checks.getExpression()
       : undefined;
-    const callback = call.getArguments()[0];
+    const callback = call.getArguments()[callee.getName() === "run" ? 1 : 0];
     const isSignedCall = (receiver?.getSymbol()?.getDeclarations().includes(contextParameter) ?? false)
       && call.getFirstAncestor(Node.isFunctionLikeDeclaration) === inspectDomain
       && Node.isAwaitExpression(call.getParent())
@@ -58,7 +58,7 @@ export const ownerAssertionRoots = (project: Project, manifest: ManifestSource):
       && (Node.isArrowFunction(callback) || Node.isFunctionExpression(callback));
     return isSignedCall ? [callback] : [];
   });
-  return signedCallbacks.length === 1 ? [inspectDomain, signedCallbacks[0]!] : [];
+  return signedCallbacks.length > 0 ? [inspectDomain, ...signedCallbacks] : [];
 };
 
 const callDeclarations = (call: MorphNode): MorphNode[] => {
@@ -297,8 +297,8 @@ export const sourceEvidenceIsReachable = (
   const targets = new Set(targetDeclarations.map(declarationKey));
   if (targets.size === 0) return false;
   const roots = ownerAssertionRoots(project, manifest);
-  if (roots.length !== 2) return false;
+  if (roots.length < 2) return false;
   if (targets.has(declarationKey(roots[0]!))) return true;
   return sourceEvidenceProducesFinding(project, targetDeclarations)
-    && ownerFindingsCarrySourceEvidence(roots[1]!, targets);
+    && roots.slice(1).some((root) => ownerFindingsCarrySourceEvidence(root, targets));
 };

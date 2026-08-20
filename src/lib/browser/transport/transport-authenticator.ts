@@ -27,27 +27,18 @@ import {
 } from "./transport-frame-crypto.js";
 import {
   browserAuthorityGrantTranscript,
-  browserExtensionAuthTranscript,
   browserHeartbeatTranscript,
   sha256BrowserTranscript,
 } from "./transport-transcript.js";
+import {
+  capabilityProbeTranscript,
+  extensionAuthenticationTranscript,
+} from "./transport-authenticator-transcripts.js";
 import type { AuthenticatedControllerHostIdentity } from "./raw-controller-host-channel.js";
 
-const monotonicEpochMs = (): number => performance.timeOrigin + performance.now();
-const capabilityProbeTranscript = (input: {
-  probeId: string;
-  nativePortEpoch: number;
-  activationTupleHash: string;
-  capabilitySetHash: string;
-  permissionPolicyHash: string;
-  originPolicyHash: string;
-  maxControlFrameBytes: number;
-  debuggerAvailable?: boolean;
-}): string => Object.entries(input)
-  .map(([key, value]) => `${key}=${String(value)}`)
-  .join("\n");
-
-type ChallengeState = Readonly<{
+const monotonicEpochMs = (): number =>
+  performance.timeOrigin + performance.now();
+export type ChallengeState = Readonly<{
   challengeId: string;
   controllerNonce: string;
   extensionNonce: string | null;
@@ -73,24 +64,40 @@ export type BrowserAuthenticatedTransportContext = {
 export class TransportAuthenticator {
   readonly issuer = new BrowserAuthorityIssuer();
 
-  constructor(private readonly input: {
-    controllerIncarnationHash: `sha256:${string}`;
-    profileEnrollmentHash: `sha256:${string}`;
-    chromeProcess: BrowserChromeProcessAttestation;
-    managedPolicy: BrowserManagedPolicyReadbackV1;
-    release: VerifiedBrowserReleaseBinding;
-    onAuthorityCommitted(authority: AuthenticatedBrowserAuthority): void;
-    onAuthorityRevoked(reason: string): void;
-  }) {}
+  constructor(
+    private readonly input: {
+      controllerIncarnationHash: `sha256:${string}`;
+      profileEnrollmentHash: `sha256:${string}`;
+      chromeProcess: BrowserChromeProcessAttestation;
+      managedPolicy: BrowserManagedPolicyReadbackV1;
+      release: VerifiedBrowserReleaseBinding;
+      onAuthorityCommitted(authority: AuthenticatedBrowserAuthority): void;
+      onAuthorityRevoked(reason: string): void;
+    },
+  ) {}
 
-  handle(message: BrowserWireMessage, connection: BrowserAuthenticatedTransportContext): boolean {
+  handle(
+    message: BrowserWireMessage,
+    connection: BrowserAuthenticatedTransportContext,
+  ): boolean {
     switch (message.type) {
-      case "extension_hello": this.handleHello(message, connection); return true;
-      case "extension_authenticated": this.handleExtensionAuthenticated(message, connection); return true;
-      case "capability_probe_ack": this.handleCapabilityProbeAck(message, connection); return true;
-      case "authority_grant_ack": this.handleGrantAck(message, connection); return true;
-      case "heartbeat": this.handleHeartbeat(message, connection); return true;
-      default: return false;
+      case "extension_hello":
+        this.handleHello(message, connection);
+        return true;
+      case "extension_authenticated":
+        this.handleExtensionAuthenticated(message, connection);
+        return true;
+      case "capability_probe_ack":
+        this.handleCapabilityProbeAck(message, connection);
+        return true;
+      case "authority_grant_ack":
+        this.handleGrantAck(message, connection);
+        return true;
+      case "heartbeat":
+        this.handleHeartbeat(message, connection);
+        return true;
+      default:
+        return false;
     }
   }
 
@@ -113,7 +120,10 @@ export class TransportAuthenticator {
       releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
       type: "heartbeat_probe",
       ...probe,
-      proof: browserTranscriptProof(frameKey, browserHeartbeatTranscript(probe)),
+      proof: browserTranscriptProof(
+        frameKey,
+        browserHeartbeatTranscript(probe),
+      ),
     });
   }
 
@@ -131,21 +141,28 @@ export class TransportAuthenticator {
     message: Extract<BrowserWireMessage, { type: "extension_hello" }>,
     connection: BrowserAuthenticatedTransportContext,
   ): void {
-    if (connection.challenge || connection.pendingAuthority || connection.authorityCommitted) {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:duplicate extension hello");
+    if (
+      connection.challenge ||
+      connection.pendingAuthority ||
+      connection.authorityCommitted
+    ) {
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:duplicate extension hello",
+      );
       return;
     }
     const tuple = this.input.release.activationTuple;
     if (
-      message.extensionId !== GRASSEYE_BROWSER_EXTENSION_ID
-      || message.extensionVersion !== GRASSEYE_BROWSER_EXTENSION_VERSION
-      || message.extensionArtifactDigest !== tuple.extensionArtifactDigest
-      || !message.supportedActivationTupleIds.includes(tuple.tupleId)
-      || message.capabilitySetHash !== tuple.capabilitySetHash
-      || message.permissionPolicyHash !== tuple.permissionPolicyHash
-      || message.originPolicyHash !== GRASSEYE_BROWSER_ORIGIN_POLICY_HASH
-      || this.input.managedPolicy.permissionPolicyHash !== message.permissionPolicyHash
-      || this.input.managedPolicy.originPolicyHash !== message.originPolicyHash
+      message.extensionId !== GRASSEYE_BROWSER_EXTENSION_ID ||
+      message.extensionVersion !== GRASSEYE_BROWSER_EXTENSION_VERSION ||
+      message.extensionArtifactDigest !== tuple.extensionArtifactDigest ||
+      !message.supportedActivationTupleIds.includes(tuple.tupleId) ||
+      message.capabilitySetHash !== tuple.capabilitySetHash ||
+      message.permissionPolicyHash !== tuple.permissionPolicyHash ||
+      message.originPolicyHash !== GRASSEYE_BROWSER_ORIGIN_POLICY_HASH ||
+      this.input.managedPolicy.permissionPolicyHash !==
+        message.permissionPolicyHash ||
+      this.input.managedPolicy.originPolicyHash !== message.originPolicyHash
     ) {
       connection.terminate("BROWSER_EXTENSION_ARTIFACT_MISMATCH");
       return;
@@ -182,49 +199,29 @@ export class TransportAuthenticator {
     message: Extract<BrowserWireMessage, { type: "extension_authenticated" }>,
     connection: BrowserAuthenticatedTransportContext,
   ): void {
-    const challenge = connection.challenge;
-    if (!challenge || connection.frameKey || connection.pendingAuthority || connection.authorityCommitted) {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:authentication outside challenge window");
-      return;
-    }
-    if (
-      message.challengeId !== challenge.challengeId
-      || message.nativePortEpoch !== connection.nativePortEpoch
-      || message.extensionInstanceId !== challenge.hello.extensionInstanceId
-    ) {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:extension binding mismatch");
-      return;
-    }
-    let frameKey: Buffer;
-    try {
-      frameKey = challenge.ephemeral.computeSharedSecret(
-        message.extensionPublicKey,
-        challenge.controllerNonce,
-      );
-    } catch {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:extension public key");
-      return;
-    }
-    const transcript = browserExtensionAuthTranscript({
+    const challenge = this.extensionChallengeOrTerminate(message, connection);
+    if (!challenge) return;
+    const frameKey = this.deriveExtensionFrameKey(message, challenge, connection);
+    if (!frameKey) return;
+    const transcript = extensionAuthenticationTranscript({
+      message,
+      challenge,
+      connection,
       protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
       releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
       controllerIncarnationHash: this.input.controllerIncarnationHash,
-      connectionGeneration: connection.connectionGeneration,
-      nativePortEpoch: connection.nativePortEpoch,
-      challengeId: challenge.challengeId,
-      controllerNonce: challenge.controllerNonce,
-      extensionNonce: message.extensionNonce,
-      controllerPublicKey: challenge.ephemeral.publicKeyBase64,
-      extensionPublicKey: message.extensionPublicKey,
-      extensionInstanceId: message.extensionInstanceId,
-      extensionArtifactDigest: challenge.hello.extensionArtifactDigest,
       activationTupleHash: this.input.release.activationTupleHash,
-      capabilitySetHash: challenge.hello.capabilitySetHash,
-      permissionPolicyHash: challenge.hello.permissionPolicyHash,
-      originPolicyHash: challenge.hello.originPolicyHash,
     });
-    if (!verifyBrowserTranscriptProof(frameKey, transcript, message.transcriptProof)) {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:extension proof mismatch");
+    if (
+      !verifyBrowserTranscriptProof(
+        frameKey,
+        transcript,
+        message.transcriptProof,
+      )
+    ) {
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:extension proof mismatch",
+      );
       return;
     }
     connection.frameKey = frameKey;
@@ -249,8 +246,58 @@ export class TransportAuthenticator {
       releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
       type: "capability_probe",
       ...probeInput,
-      proof: browserTranscriptProof(frameKey, capabilityProbeTranscript(probeInput)),
+      proof: browserTranscriptProof(
+        frameKey,
+        capabilityProbeTranscript(probeInput),
+      ),
     });
+  }
+
+  private extensionChallengeOrTerminate(
+    message: Extract<BrowserWireMessage, { type: "extension_authenticated" }>,
+    connection: BrowserAuthenticatedTransportContext,
+  ): ChallengeState | null {
+    const challenge = connection.challenge;
+    if (
+      !challenge ||
+      connection.frameKey ||
+      connection.pendingAuthority ||
+      connection.authorityCommitted
+    ) {
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:authentication outside challenge window",
+      );
+      return null;
+    }
+    if (
+      message.challengeId !== challenge.challengeId ||
+      message.nativePortEpoch !== connection.nativePortEpoch ||
+      message.extensionInstanceId !== challenge.hello.extensionInstanceId
+    ) {
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:extension binding mismatch",
+      );
+      return null;
+    }
+    return challenge;
+  }
+
+  private deriveExtensionFrameKey(
+    message: Extract<BrowserWireMessage, { type: "extension_authenticated" }>,
+    challenge: ChallengeState,
+    connection: BrowserAuthenticatedTransportContext,
+  ): Buffer | null {
+    try {
+      return challenge.ephemeral.computeSharedSecret(
+        message.extensionPublicKey,
+        challenge.controllerNonce,
+      );
+    } catch {
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:extension public key",
+      );
+      return null;
+    }
   }
 
   private handleCapabilityProbeAck(
@@ -259,7 +306,12 @@ export class TransportAuthenticator {
   ): void {
     const challenge = connection.challenge;
     const frameKey = connection.frameKey;
-    if (!challenge?.probeId || !challenge.authTranscriptHash || !frameKey || connection.pendingAuthority) {
+    if (
+      !challenge?.probeId ||
+      !challenge.authTranscriptHash ||
+      !frameKey ||
+      connection.pendingAuthority
+    ) {
       connection.terminate("BROWSER_CAPABILITY_PROBE_FAILED:unexpected ack");
       return;
     }
@@ -274,14 +326,17 @@ export class TransportAuthenticator {
       debuggerAvailable: message.debuggerAvailable,
     };
     if (
-      message.probeId !== challenge.probeId
-      || message.nativePortEpoch !== connection.nativePortEpoch
-      || message.capabilitySetHash !== this.input.release.activationTuple.capabilitySetHash
-      || message.permissionPolicyHash !== this.input.release.activationTuple.permissionPolicyHash
-      || message.originPolicyHash !== GRASSEYE_BROWSER_ORIGIN_POLICY_HASH
-      || message.debuggerAvailable !== true
-      || message.maxControlFrameBytes !== GRASSEYE_BROWSER_CONTROLLER_HOST_CONTROL_MAX_BYTES
-      || !verifyBrowserTranscriptProof(
+      message.probeId !== challenge.probeId ||
+      message.nativePortEpoch !== connection.nativePortEpoch ||
+      message.capabilitySetHash !==
+        this.input.release.activationTuple.capabilitySetHash ||
+      message.permissionPolicyHash !==
+        this.input.release.activationTuple.permissionPolicyHash ||
+      message.originPolicyHash !== GRASSEYE_BROWSER_ORIGIN_POLICY_HASH ||
+      message.debuggerAvailable !== true ||
+      message.maxControlFrameBytes !==
+        GRASSEYE_BROWSER_CONTROLLER_HOST_CONTROL_MAX_BYTES ||
+      !verifyBrowserTranscriptProof(
         frameKey,
         capabilityProbeTranscript(probeInput),
         message.proof,
@@ -305,7 +360,8 @@ export class TransportAuthenticator {
       activationTupleHash: this.input.release.activationTupleHash,
       releaseSecurityPolicyHash: this.input.release.releaseSecurityPolicyHash,
       profileEnrollmentHash: this.input.profileEnrollmentHash,
-      chromeProcessIncarnationHash: this.input.chromeProcess.chromeProcessIncarnationHash,
+      chromeProcessIncarnationHash:
+        this.input.chromeProcess.chromeProcessIncarnationHash,
       controllerIncarnationHash: this.input.controllerIncarnationHash,
       connectionGeneration: connection.connectionGeneration,
       hostProcessEpoch: connection.hostIdentity.hostProcessEpoch,
@@ -355,8 +411,15 @@ export class TransportAuthenticator {
     const challenge = connection.challenge;
     const candidate = connection.pendingAuthority;
     const frameKey = connection.frameKey;
-    if (!challenge || !candidate || !frameKey || connection.authorityCommitted) {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:grant ack outside pending window");
+    if (
+      !challenge ||
+      !candidate ||
+      !frameKey ||
+      connection.authorityCommitted
+    ) {
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:grant ack outside pending window",
+      );
       return;
     }
     const certificate = candidate.certificate;
@@ -370,16 +433,18 @@ export class TransportAuthenticator {
       livenessLeaseEpoch: certificate.livenessLeaseEpoch,
     });
     if (
-      message.authorityRef !== certificate.authorityRef
-      || message.authorityEpoch !== certificate.authorityEpoch
-      || message.authorityCertificateHash !== certificate.certificateHash
-      || message.connectionGeneration !== certificate.connectionGeneration
-      || message.nativePortEpoch !== certificate.nativePortEpoch
-      || message.challengeId !== challenge.challengeId
-      || message.livenessLeaseEpoch !== certificate.livenessLeaseEpoch
-      || !verifyBrowserTranscriptProof(frameKey, transcript, message.ackProof)
+      message.authorityRef !== certificate.authorityRef ||
+      message.authorityEpoch !== certificate.authorityEpoch ||
+      message.authorityCertificateHash !== certificate.certificateHash ||
+      message.connectionGeneration !== certificate.connectionGeneration ||
+      message.nativePortEpoch !== certificate.nativePortEpoch ||
+      message.challengeId !== challenge.challengeId ||
+      message.livenessLeaseEpoch !== certificate.livenessLeaseEpoch ||
+      !verifyBrowserTranscriptProof(frameKey, transcript, message.ackProof)
     ) {
-      connection.terminate("BROWSER_AUTH_TRANSCRIPT_INVALID:grant ack mismatch");
+      connection.terminate(
+        "BROWSER_AUTH_TRANSCRIPT_INVALID:grant ack mismatch",
+      );
       return;
     }
     const authority = this.issuer.commit(candidate);
@@ -395,21 +460,25 @@ export class TransportAuthenticator {
   ): void {
     const frameKey = connection.frameKey;
     if (!frameKey || !connection.authorityCommitted) {
-      connection.terminate("BROWSER_AUTHORITY_LIVENESS_EXPIRED:heartbeat without authority");
+      connection.terminate(
+        "BROWSER_AUTHORITY_LIVENESS_EXPIRED:heartbeat without authority",
+      );
       return;
     }
     const current = this.issuer.requireCurrent().certificate;
     const transcript = browserHeartbeatTranscript(message);
     if (
-      message.authorityRef !== current.authorityRef
-      || message.authorityEpoch !== current.authorityEpoch
-      || message.livenessLeaseEpoch !== current.livenessLeaseEpoch
-      || message.connectionGeneration !== current.connectionGeneration
-      || message.nativePortEpoch !== current.nativePortEpoch
-      || message.heartbeatSequence !== connection.heartbeatSequence + 1
-      || !verifyBrowserTranscriptProof(frameKey, transcript, message.proof)
+      message.authorityRef !== current.authorityRef ||
+      message.authorityEpoch !== current.authorityEpoch ||
+      message.livenessLeaseEpoch !== current.livenessLeaseEpoch ||
+      message.connectionGeneration !== current.connectionGeneration ||
+      message.nativePortEpoch !== current.nativePortEpoch ||
+      message.heartbeatSequence !== connection.heartbeatSequence + 1 ||
+      !verifyBrowserTranscriptProof(frameKey, transcript, message.proof)
     ) {
-      connection.terminate("BROWSER_AUTHORITY_LIVENESS_EXPIRED:heartbeat invalid");
+      connection.terminate(
+        "BROWSER_AUTHORITY_LIVENESS_EXPIRED:heartbeat invalid",
+      );
       return;
     }
     connection.heartbeatSequence = message.heartbeatSequence;

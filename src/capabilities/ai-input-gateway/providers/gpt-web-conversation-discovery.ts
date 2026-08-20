@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hygiene.js";
 import { recordWebChatPageAction } from "./web-chat-page-action-contract.js";
@@ -32,14 +32,14 @@ const node=logical[0];const r=node.getBoundingClientRect();return{status:"succes
 
 type Located = { status: "success" | "pending" | "review_required"; count: number; point?: { x: number; y: number } };
 type DiscoveryInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context?: AiProviderAdapterContext;
   canonicalConversationUrl: string;
   turnMarker: string;
 };
 
 const waitLocated = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context?: AiProviderAdapterContext;
   description: string;
   script: string;

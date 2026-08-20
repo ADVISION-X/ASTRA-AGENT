@@ -1,6 +1,6 @@
 import type {
-  BrowserTargetSession,
-} from "../../../lib/browser/browser-controller.js";
+  BrowserTargetLease,
+} from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
 } from "../contracts/ai-provider-adapter.contract.js";
@@ -40,7 +40,7 @@ const assertStableContinuationHistory = (
 };
 
 export const readPreSubmitConversationState = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;

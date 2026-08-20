@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T19:57:37.661Z",
+  "generatedAt": "2026-08-20T10:34:22.670Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2039,401 +2039,6 @@
       ]
     },
     {
-      "capabilityDomain": "deep-research-analysis",
-      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json",
-      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-      "executionGroup": "domain",
-      "lawIds": [
-        "GRASSEYE-DEEP-RESEARCH-001-V1",
-        "GRASSEYE-DEEP-RESEARCH-038-V1",
-        "GRASSEYE-DEEP-RESEARCH-039-V1",
-        "GRASSEYE-DEEP-RESEARCH-040-V1",
-        "GRASSEYE-DEEP-RESEARCH-041-V1",
-        "GRASSEYE-DEEP-RESEARCH-042-V1",
-        "GRASSEYE-DEEP-RESEARCH-043-V1",
-        "GRASSEYE-DEEP-RESEARCH-044-V1",
-        "GRASSEYE-DEEP-RESEARCH-045-V1",
-        "GRASSEYE-DEEP-RESEARCH-046-V1",
-        "GRASSEYE-DEEP-RESEARCH-047-V1",
-        "GRASSEYE-DEEP-RESEARCH-048-V1",
-        "GRASSEYE-DEEP-RESEARCH-049-V1",
-        "GRASSEYE-DEEP-RESEARCH-050-V1",
-        "GRASSEYE-DEEP-RESEARCH-051-V1",
-        "GRASSEYE-DEEP-RESEARCH-052-V1",
-        "GRASSEYE-DEEP-RESEARCH-053-V1",
-        "GRASSEYE-DEEP-RESEARCH-054-V1",
-        "GRASSEYE-DEEP-RESEARCH-055-V1",
-        "GRASSEYE-DEEP-RESEARCH-056-V1",
-        "GRASSEYE-DEEP-RESEARCH-057-V1",
-        "GRASSEYE-DEEP-RESEARCH-058-V1",
-        "GRASSEYE-DEEP-RESEARCH-059-V1",
-        "GRASSEYE-DEEP-RESEARCH-060-V1",
-        "GRASSEYE-DEEP-RESEARCH-061-V1"
-      ],
-      "bindings": [
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
-          "clauseId": "grasseye-deep-research-001-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
-          "clauseId": "grasseye-deep-research-038-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-039-V1",
-          "clauseId": "grasseye-deep-research-039-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-040-V1",
-          "clauseId": "grasseye-deep-research-040-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
-          "clauseId": "grasseye-deep-research-041-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-042-V1",
-          "clauseId": "grasseye-deep-research-042-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
-          "clauseId": "grasseye-deep-research-043-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
-          "clauseId": "grasseye-deep-research-044-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
-          "clauseId": "grasseye-deep-research-045-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
-          "clauseId": "grasseye-deep-research-046-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-047-V1",
-          "clauseId": "grasseye-deep-research-047-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
-          "clauseId": "grasseye-deep-research-048-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
-          "clauseId": "grasseye-deep-research-049-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
-          "clauseId": "grasseye-deep-research-050-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-051-V1",
-          "clauseId": "grasseye-deep-research-051-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-052-V1",
-          "clauseId": "grasseye-deep-research-052-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
-          "clauseId": "grasseye-deep-research-053-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
-          "clauseId": "grasseye-deep-research-054-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
-          "clauseId": "grasseye-deep-research-055-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
-          "clauseId": "grasseye-deep-research-056-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
-          "clauseId": "grasseye-deep-research-057-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
-          "clauseId": "grasseye-deep-research-058-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-059-V1",
-          "clauseId": "grasseye-deep-research-059-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "real-chrome"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-060-V1",
-          "clauseId": "grasseye-deep-research-060-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
-          "clauseId": "grasseye-deep-research-061-requirement",
-          "checkIds": [
-            "deep-research-analysis/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        }
-      ],
-      "blueprintRefs": [
-        {
-          "filePath": "docs/法案辅助文件/GrassEye Deep Research Analysis Job Flow 施工图.md",
-          "requiredAnchors": [
-            "## 唯一流程",
-            "## AST 解析护栏",
-            "## 验收"
-          ]
-        }
-      ]
-    },
-    {
       "capabilityDomain": "dom-automation",
       "manifestPath": "scripts/audit/domains/dom-automation/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
@@ -2866,14 +2471,15 @@
         "APEX-LOCAL-BROWSER-003-V2",
         "APEX-LOCAL-BROWSER-004-V2",
         "APEX-LOCAL-BROWSER-005-V1",
-        "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1"
+        "APEX-LOCAL-BROWSER-006-V1",
+        "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2"
       ],
       "bindings": [
         {
           "lawId": "APEX-LOCAL-BROWSER-001-V2",
-          "clauseId": "apex-local-browser-001-v2-requirement",
+          "clauseId": "apex-local-browser-001-v2-exact-authority-lease",
           "checkIds": [
-            "local-browser-session/owner-assertion-set"
+            "browser-old-path/retired-zero"
           ],
           "sourceEvidence": [
             {
@@ -2881,13 +2487,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "real-chrome"
+          "evidenceMode": "model+acceptance+real-chrome"
         },
         {
           "lawId": "APEX-LOCAL-BROWSER-002-V2",
-          "clauseId": "apex-local-browser-002-v2-requirement",
+          "clauseId": "apex-local-browser-002-v2-authority-atomicity",
           "checkIds": [
-            "local-browser-session/owner-assertion-set"
+            "browser-auth/no-unauth-session-type"
           ],
           "sourceEvidence": [
             {
@@ -2899,9 +2505,9 @@
         },
         {
           "lawId": "APEX-LOCAL-BROWSER-003-V2",
-          "clauseId": "apex-local-browser-003-v2-requirement",
+          "clauseId": "apex-local-browser-003-v2-single-chain",
           "checkIds": [
-            "local-browser-session/owner-assertion-set"
+            "browser-auth/original-reply-channel"
           ],
           "sourceEvidence": [
             {
@@ -2909,13 +2515,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "real-chrome"
+          "evidenceMode": "model+acceptance+real-chrome"
         },
         {
           "lawId": "APEX-LOCAL-BROWSER-004-V2",
-          "clauseId": "apex-local-browser-004-v2-requirement",
+          "clauseId": "apex-local-browser-004-v2-governed-command-plane",
           "checkIds": [
-            "local-browser-session/owner-assertion-set"
+            "browser-file/artifact-grant-no-raw-path"
           ],
           "sourceEvidence": [
             {
@@ -2923,13 +2529,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "real-chrome"
+          "evidenceMode": "model+acceptance+real-chrome"
         },
         {
           "lawId": "APEX-LOCAL-BROWSER-005-V1",
-          "clauseId": "apex-local-browser-005-v1-requirement",
+          "clauseId": "apex-local-browser-005-v1-release-identity",
           "checkIds": [
-            "local-browser-session/owner-assertion-set"
+            "browser-release/artifact-activation-proof-separation"
           ],
           "sourceEvidence": [
             {
@@ -2940,10 +2546,10 @@
           "evidenceMode": "artifact+real-chrome"
         },
         {
-          "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
-          "clauseId": "grasseye-security-privacy-browser-001-requirement",
+          "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
+          "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
           "checkIds": [
-            "local-browser-session/owner-assertion-set"
+            "browser-privacy/no-owner-boundary-leak"
           ],
           "sourceEvidence": [
             {
@@ -2951,21 +2557,36 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "acceptance"
+          "evidenceMode": "static"
+        },
+        {
+          "lawId": "APEX-LOCAL-BROWSER-006-V1",
+          "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
+          "checkIds": [
+            "browser-cross-repo/authority-proof-v2"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "model+acceptance+real-chrome"
         }
       ],
       "blueprintRefs": [
         {
           "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
           "requiredAnchors": [
-            "## 1. 终态目标与绝对边界",
-            "## 4. Composition root：认证以后才有业务对象",
-            "## 7. 双向认证与 Authority 原子提交",
-            "## 9. Port Actor 与并发规则",
-            "## 10. Liveness 与撤销顺序",
-            "## 16. Rust Native Host",
-            "## 19. Audit owner",
-            "## 20. Quality / mutant matrix"
+            "## 1. 终态图",
+            "## 3. Composition Root",
+            "## 5. Authentication Commit",
+            "## 6. Liveness",
+            "## 9. Native Messaging / Artifact Stream",
+            "## 10. Profile / Process / Policy",
+            "## 14. Cross-Repo Proof",
+            "## 15. Quality Mapping",
+            "## 16. Real Chrome / Release Gate"
           ]
         }
       ]
@@ -3493,40 +3114,6 @@
             "## 8. Inspector 施工",
             "## 9. Acceptance 测试",
             "## 13. Structured Logging And Privacy Ownership"
-          ]
-        }
-      ]
-    },
-    {
-      "capabilityDomain": "runtime-truth",
-      "manifestPath": "scripts/audit/domains/runtime-truth/manifest.json",
-      "ownerInspectorPath": "scripts/audit/domains/runtime-truth/inspector.ts",
-      "executionGroup": "meta",
-      "lawIds": [
-        "APEX-RUNTIME-TRUTH-001-V1"
-      ],
-      "bindings": [
-        {
-          "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-          "clauseId": "apex-runtime-truth-001-requirement",
-          "checkIds": [
-            "runtime-truth/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-truth/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        }
-      ],
-      "blueprintRefs": [
-        {
-          "filePath": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
-          "requiredAnchors": [
-            "## CI 真绿硬边界链路",
-            "## Runtime Evidence Truth 链路"
           ]
         }
       ]

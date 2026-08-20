@@ -276,7 +276,7 @@ export interface XuanxueAiStageRecord {
   readonly updatedAt: string;
 }
 
-export interface XuanxueAiGeneratedImageArtifact {
+interface XuanxueAiGeneratedImageArtifact {
   readonly artifactId: string;
   readonly role: "generated_image";
   readonly objectRef: string;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T19:58:44.181Z",
+  "generatedAt": "2026-08-20T10:35:20.064Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,14 +13,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:330d55f0-be05-44bb-9337-1330d3367dc3",
+      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:05580585-a56f-46a4-92b5-5a6c44e341bc",
       "capabilityDomain": "local-app-shell",
       "checkId": "local-app-shell/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-19T19:58:44.065Z",
-      "endedAt": "2026-08-19T19:58:44.180Z",
-      "durationMs": 115,
+      "startedAt": "2026-08-20T10:35:20.048Z",
+      "endedAt": "2026-08-20T10:35:20.064Z",
+      "durationMs": 16,
       "evidenceRefs": [
         "scripts/audit/domains/local-app-shell/inspector.ts",
         "src/app/app-shell/amazon-invoice-workspace.ts",
@@ -31,17 +31,6 @@
         "src/app/app-shell/runtime-console.ts",
         "src/app/app-shell/sidebar.ts",
         "src/app/create-workbench-server.ts",
-        "src/app/workbench-deep-research-case-reader-styles.ts",
-        "src/app/workbench-deep-research-client-boot.ts",
-        "src/app/workbench-deep-research-client-case-reader.ts",
-        "src/app/workbench-deep-research-client-contracts.ts",
-        "src/app/workbench-deep-research-client-delivery-sections.ts",
-        "src/app/workbench-deep-research-client-report-sections.ts",
-        "src/app/workbench-deep-research-client-shared.ts",
-        "src/app/workbench-deep-research-client.ts",
-        "src/app/workbench-deep-research-panel.ts",
-        "src/app/workbench-deep-research-report-view.ts",
-        "src/app/workbench-deep-research-routes.ts",
         "src/app/workbench-home-client.ts",
         "src/app/workbench-home-page.ts",
         "src/app/workbench-home-styles.ts"
@@ -54,31 +43,31 @@
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
       "clauseId": "apex-local-app-shell-001-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:330d55f0-be05-44bb-9337-1330d3367dc3"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:05580585-a56f-46a4-92b5-5a6c44e341bc"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
       "clauseId": "apex-local-app-shell-002-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:330d55f0-be05-44bb-9337-1330d3367dc3"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:05580585-a56f-46a4-92b5-5a6c44e341bc"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
       "clauseId": "apex-local-app-shell-003-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:330d55f0-be05-44bb-9337-1330d3367dc3"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:05580585-a56f-46a4-92b5-5a6c44e341bc"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
       "clauseId": "apex-local-app-shell-004-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:330d55f0-be05-44bb-9337-1330d3367dc3"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:05580585-a56f-46a4-92b5-5a6c44e341bc"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
       "clauseId": "apex-local-app-shell-005-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:330d55f0-be05-44bb-9337-1330d3367dc3"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:05580585-a56f-46a4-92b5-5a6c44e341bc"
     }
   ],
   "inspectedFiles": [
@@ -91,17 +80,6 @@
     "src/app/app-shell/runtime-console.ts",
     "src/app/app-shell/sidebar.ts",
     "src/app/create-workbench-server.ts",
-    "src/app/workbench-deep-research-case-reader-styles.ts",
-    "src/app/workbench-deep-research-client-boot.ts",
-    "src/app/workbench-deep-research-client-case-reader.ts",
-    "src/app/workbench-deep-research-client-contracts.ts",
-    "src/app/workbench-deep-research-client-delivery-sections.ts",
-    "src/app/workbench-deep-research-client-report-sections.ts",
-    "src/app/workbench-deep-research-client-shared.ts",
-    "src/app/workbench-deep-research-client.ts",
-    "src/app/workbench-deep-research-panel.ts",
-    "src/app/workbench-deep-research-report-view.ts",
-    "src/app/workbench-deep-research-routes.ts",
     "src/app/workbench-home-client.ts",
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-styles.ts"

@@ -1,13 +1,13 @@
 # Runtime Log Spine Quality Report
 
-Status: PASS
+Status: FAIL
 
 ## Summary
 
-- Total findings: 0
-- Fatal findings: 0
-- Scanned files: 460
-- Emit calls: 27
+- Total findings: 1
+- Fatal findings: 1
+- Scanned files: 466
+- Emit calls: 19
 - Console violations: 0
 - Failure events without class: 0
 - Stage coverage: 100%
@@ -26,13 +26,15 @@ Status: PASS
 | redaction | PASS | 0 |
 | debug-bundle | PASS | 0 |
 | ai-log-contract | PASS | 0 |
-| browser-action-log-contract | PASS | 0 |
+| browser-action-log-contract | FAIL | 1 |
 | semantic-metrics-self-audit | PASS | 0 |
 | anti-fake-inspector | PASS | 0 |
 
 ## Fatal Findings
 
-No fatal findings.
+| Law | File | Line | Message | Hint |
+|---|---|---:|---|---|
+| GRASSEYE-RUNTIME-LOG-SPINE-014-V1 | src/lib/browser/current-chrome-browser-action-logging.ts | 1 | BrowserController actions without caller correlation lack central production logging | The Current Chrome driver must centrally emit and persist one started/terminal pair for every uncorrelated browser or DOM action. Missing: workbench-browser:runtime-logger-injection, workbench-assembly:runtime-logger-wiring. |
 
 ## Coverage
 

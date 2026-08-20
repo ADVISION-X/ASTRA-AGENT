@@ -206,8 +206,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 ## Runtime Evidence Truth 链路
 
 1. completed 结果必须由 runtime contract 本身携带证据字段，而不是依赖调用者脑补。
-2. Deep Research completed 至少要绑定最终报告证据与 record hash 证据。
-3. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。
+2. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。
 
 ## Code Purity 生产级终局肃清链路
 

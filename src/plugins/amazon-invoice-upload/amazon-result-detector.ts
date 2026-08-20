@@ -24,4 +24,5 @@ const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
   "failed",
 ] as const;
 
-export type AmazonInvoiceUploadStatus = (typeof AMAZON_INVOICE_UPLOAD_STATUS_VALUES)[number];
+export type AmazonInvoiceUploadStatus =
+  (typeof AMAZON_INVOICE_UPLOAD_STATUS_VALUES)[number];

@@ -183,7 +183,6 @@ type SkillRegistryItem = {
 
 ```txt
 amazon-product-mining
-deep-research-analysis
 invoice-manager
 tax-document-assistant
 ```
@@ -701,7 +700,6 @@ Exception Detail
 ### Phase 4：多技能接入
 
 ```txt
-Deep Research
 Invoice / Tax / Finance Skills
 ```
 

@@ -215,6 +215,5 @@ Forbidden:
 
 Required:
 
-- Completed Deep Research Analysis surfaces must prioritize final report summary, persisted sub-question / positive / falsification counts, export artifact refs, and evidence hashes.
 - Raw JSON may remain available only as a collapsed audit/debug view.
 - Timeline responses that contain records must expose enough overview data for the app shell to avoid false `0` counts after refresh.

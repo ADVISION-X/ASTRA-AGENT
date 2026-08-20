@@ -33,15 +33,19 @@ export type ClickDomElementInput = {
 
 export type UploadApprovedFileInput = {
   elementRef: DomElementRef;
-  approvedFilePath: string;
-  approvedTaskFilePath: string;
-  allowedExtensions: string[];
+  fileArtifactGrant: import("../lib/browser/exact-target/browser-file-artifact-grant.js").BrowserFileArtifactGrantV1;
   uploadPurpose: string;
 };
 
 export type VerifyDomStateInput = {
   snapshot: import("./dom-automation.js").DomSnapshot;
-  expectedStates: Array<"file-selected" | "success-message" | "error-message" | "login-required" | "captcha-or-2fa-required">;
+  expectedStates: Array<
+    | "file-selected"
+    | "success-message"
+    | "error-message"
+    | "login-required"
+    | "captcha-or-2fa-required"
+  >;
   successHints?: string[] | undefined;
   failureHints?: string[] | undefined;
 };

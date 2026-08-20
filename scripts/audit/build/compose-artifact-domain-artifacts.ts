@@ -117,15 +117,14 @@ const validateCheckEvidence = (
   manifest: ManifestSource,
   project: Project,
 ): void => {
-  const expectedCheckId = `${manifest.capabilityDomain}/owner-assertion-set`;
   const declaredCheckIds = uniqueSorted(manifest.coverage.bindings.flatMap((binding) => binding.checkIds));
-  if (declaredCheckIds.length === 1 && declaredCheckIds[0] === expectedCheckId
-    && ownerAssertionRoots(project, manifest).length === 2) return;
+  const roots = ownerAssertionRoots(project, manifest);
+  if (declaredCheckIds.length > 0 && roots.length === declaredCheckIds.length + 1) return;
   conflicts.push({
     kind: "missing-check-evidence",
     capabilityDomain: manifest.capabilityDomain,
     filePath: manifest.manifestPath,
-    message: `${manifest.capabilityDomain} must bind exactly one ${expectedCheckId} physical check and execute it through context.checks.runAll().`,
+    message: `${manifest.capabilityDomain} must bind each physical check to exactly one runner-signed context.checks.run() or runAll() callback.`,
   });
 };
 

@@ -47,7 +47,7 @@
 
 - 用户已物理删除 `pick3-is-blind-eval`、`lottery-ticket-plan`、`video-download-artifact`、`amazon-product-sync`、`amazon-product-fee-sync`、`amazon-listing-edit-read-sync` 六个不再使用的产品栏目；本项目不得恢复其 App、Mediator、Plugin、法案、施工图、验收或审计入口。
 - `video-download` capability 继续作为通用平台视频下载能力保留；它不等于已退役的 `video-download-artifact` 产品。
-- 逐插件干预现役分母固定为 4：`amazon-invoice-upload`、`amazon-product-mining`、`deep-research-analysis`、`xuanxue-ai-production`。
+- 逐插件干预现役分母固定为 3：`amazon-invoice-upload`、`amazon-product-mining`、`xuanxue-ai-production`。
 
 ## DG-006 — 原子退休
 

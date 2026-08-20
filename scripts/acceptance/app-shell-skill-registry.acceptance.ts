@@ -6,7 +6,6 @@ const sidebar = readFileSync("src/app/app-shell/sidebar.ts", "utf8");
 
 for (const requiredId of [
   'id: "amazon-product-mining"',
-  'id: "deep-research-analysis"',
 ]) {
   assert(registry.includes(requiredId), `Skill Registry must include ${requiredId}.`);
 }

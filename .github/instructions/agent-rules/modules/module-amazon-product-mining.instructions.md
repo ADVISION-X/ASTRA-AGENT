@@ -154,7 +154,6 @@ User Requirement
 业务流程禁止放入：
 
 - 其他 plugin 的业务实现
-- `src/plugins/deep-research-analysis/**`
 - `src/capabilities/**`
 - `src/mediator/**`
 - `src/lib/local-runtime/**`
@@ -170,7 +169,6 @@ User Requirement
 - 通用 Agent 漂移
 - AI planner 漂移
 - 能力组业务化漂移
-- Deep Research 子流程漂移
 - 其他 plugin 复用错位漂移
 
 ## [GRASSEYE-AMAZON-PRODUCT-MINING-002-V1] Single Fixed Flow
@@ -1278,7 +1276,7 @@ App 可保存最近 taskId，
 
 - Amazon 产品挖掘所有 `promptContractId` 以 `amazon-product-mining-` 开头的 GPT Web Chat 请求，完成响应捕获后必须关闭 provider tab，避免旧 GPT 页面残留干扰 current active tab。
 - `promptContractId` 以 `amazon-product-mining-` 开头且 GPT Web Chat 已捕获有效输出时，`restoredSourcePage=false` 必须保留在 provider proof，但不得阻断后续 Amazon 挖掘流程。
-- 该连续性例外只适用于 Amazon 产品挖掘 prompt contract；Deep Research、invoice upload 或其他能力仍必须对 source restoration failure fail closed。
+- 该连续性例外只适用于 Amazon 产品挖掘 prompt contract；invoice upload 或其他能力仍必须对 source restoration failure fail closed。
 - 该例外不得新增 fallback、第二 provider、第二导出链路或手工 repack。
 - Acceptance 必须同时证明 Amazon contract 可继续、非 Amazon contract 仍进入 `review_required`，并以 AST 证明 Amazon GPT provider tab 收口路径存在。
 
@@ -1381,7 +1379,7 @@ App 可保存最近 taskId，
 - pause/cancel/takeover ACK 后不得启动下一条 Browser/AI 命令；已提交的外部副作用只等待 owning checkpoint，结果歧义进入 `OUTCOME_UNKNOWN` / `review_required` 且不重放。
 - Acceptance 与 AST audit 必须证明：自动续跑不覆盖既有证据、stale revision 零写入、暂停状态不自动恢复、App 不拥有状态、无第二 flow 或人工重包。
 
-## [GRASSEYE-AMAZON-PRODUCT-MINING-025-V1] Keyword Full Package Deep Research Handoff Governance
+## [GRASSEYE-AMAZON-PRODUCT-MINING-025-V1] Keyword Full Package AI Handoff Governance
 
 ```apex-law
 {
@@ -1506,10 +1504,6 @@ App 可保存最近 taskId，
 - Agent 生成没有原始证据支撑的数据包
 
 ## 6. Relationship To Existing Systems
-
-### 与 Deep Research Analysis 的关系
-
-Amazon 产品挖掘学习 Deep Research 的原则：单一流程、全量原始记录、结构化索引不可替代 raw evidence、最终报告基于完整案卷、禁止 legacy / fallback / lite package。但 Amazon 产品挖掘不是 Deep Research 的子流程。
 
 ### 与能力组的关系
 

@@ -6,7 +6,6 @@ import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
 import { buildAmazonInvoiceHandle } from "./workbench-amazon-invoice-handle.js";
 import { buildApiBoundaryLogHandle } from "./workbench-api-boundary-log.js";
 import { createWorkbenchAssembly, type WorkbenchAssembly } from "./workbench-assembly.js";
-import { buildDeepResearchAnalysisHandle } from "./workbench-deep-research-handle.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
   buildAmazonMiningHandle,
@@ -53,7 +52,6 @@ const buildWorkbenchHandle = (
     ...buildSettingsHandle(dataDir),
     ...buildAmazonInvoiceHandle(assembly, dataDir),
     ...buildAmazonMiningHandle(assembly, dataDir),
-    ...buildDeepResearchAnalysisHandle(assembly, dataDir),
     ...buildXuanxueAiProductionHandle(xuanxueAiProduction),
   };
 };
@@ -124,7 +122,7 @@ export class GrassEyeWorkbench {
         await xuanxueAiProduction.shutdown().catch(() => undefined);
       }
       if (assembly) {
-        await assembly.browserController.close().catch(() => undefined);
+        await assembly.browserAuthority.shutdown().catch(() => undefined);
       }
       this.assembly = null;
       this.xuanxueAiProduction = null;
@@ -140,7 +138,7 @@ export class GrassEyeWorkbench {
     this.xuanxueAiProduction = null;
     this.assembly = null;
     await xuanxue?.shutdown().catch(() => undefined);
-    await assembly?.browserController.close().catch(() => undefined);
+    await assembly?.browserAuthority.shutdown().catch(() => undefined);
   }
 
   createHandle(): GrassEyeWorkbenchHandle {

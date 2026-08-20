@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -62,7 +62,7 @@ const normalizeSearchProductUrl = (productUrl: string): string => {
 };
 
 const evaluateSearchResultSlice = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   keyword: string;
   startIndex: number;
 }): Promise<{ items: ExtractedItem[]; rawText: string | null; totalCards: number }> => {
@@ -93,7 +93,7 @@ const evaluateSearchResultSlice = async (input: {
 };
 
 const collectBrowserSearchItems = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   keyword: string;
 }): Promise<{ extractedItems: ExtractedItem[]; rawVisibleTextSnapshot: string }> => {
   const extractedItems: ExtractedItem[] = [];
@@ -168,7 +168,7 @@ const mapExtractedSearchItems = (input: {
   }));
 };
 
-const buildBrowserSearchAdapter = (browser: BrowserTargetSession, marketplace: string): SearchPageAdapter => ({
+const buildBrowserSearchAdapter = (browser: BrowserTargetLease, marketplace: string): SearchPageAdapter => ({
   async extractSearchResults({ keyword, keywordId, taskId }) {
     const searchUrl = `https://www.${marketplace}/s?k=${encodeURIComponent(keyword)}`;
     await browser.open({
@@ -194,7 +194,7 @@ const buildBrowserSearchAdapter = (browser: BrowserTargetSession, marketplace: s
 });
 
 export const runAmazonSearch = async (input: {
-  browser?: BrowserTargetSession;
+  browser?: BrowserTargetLease;
   marketplace: string;
   keywordId: string;
   keyword: string;

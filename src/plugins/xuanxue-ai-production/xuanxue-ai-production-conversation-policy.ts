@@ -54,41 +54,47 @@ export const isXuanxueAiReusableBaseConsumerProduct = (
   productId: XuanxueAiProductId,
 ): productId is XuanxueAiReusableBaseConsumerProductId => Object.hasOwn(xuanxueAiReusableBaseConsumerProfiles, productId);
 
-export const isAllowedXuanxueConversationParent = (input: {
+type ConversationParentInput = {
   childProductId: XuanxueAiProductId;
   parentProductId: XuanxueAiProductId;
   parentStageId: XuanxueAiStageId;
-}): boolean => {
-  if (input.childProductId === "bazi_report_followup") {
-    return (
-      input.parentProductId === "bazi_chart_interpretation"
-      && input.parentStageId === "chart_interpretation"
-    ) || (
-      input.parentProductId === "bazi_ai_full_analysis"
-      && input.parentStageId === "question_analysis"
-    ) || (
-      input.parentProductId === "bazi_report_followup"
-      && input.parentStageId === "question_analysis"
-    );
-  }
-  if (input.childProductId === "qimen_report_followup") {
-    return (
-      input.parentProductId === "qimen_professional_answer"
-      && input.parentStageId === "analysis"
-    ) || (
-      input.parentProductId === "qimen_report_followup"
-      && input.parentStageId === "followup"
-    );
-  }
-  if (input.childProductId === "hehun_report_followup") {
-    return (
-      input.parentProductId === "hehun_ai_analysis"
-      && input.parentStageId === "final_compatibility"
-    ) || (
-      input.parentProductId === "hehun_report_followup"
-      && input.parentStageId === "followup"
-    );
-  }
+};
+
+const isAllowedBaziConversationParent = (
+  input: ConversationParentInput,
+): boolean =>
+  (input.parentProductId === "bazi_chart_interpretation" &&
+    input.parentStageId === "chart_interpretation") ||
+  (input.parentProductId === "bazi_ai_full_analysis" &&
+    input.parentStageId === "question_analysis") ||
+  (input.parentProductId === "bazi_report_followup" &&
+    input.parentStageId === "question_analysis");
+
+const isAllowedQimenConversationParent = (
+  input: ConversationParentInput,
+): boolean =>
+  (input.parentProductId === "qimen_professional_answer" &&
+    input.parentStageId === "analysis") ||
+  (input.parentProductId === "qimen_report_followup" &&
+    input.parentStageId === "followup");
+
+const isAllowedHehunConversationParent = (
+  input: ConversationParentInput,
+): boolean =>
+  (input.parentProductId === "hehun_ai_analysis" &&
+    input.parentStageId === "final_compatibility") ||
+  (input.parentProductId === "hehun_report_followup" &&
+    input.parentStageId === "followup");
+
+export const isAllowedXuanxueConversationParent = (
+  input: ConversationParentInput,
+): boolean => {
+  if (input.childProductId === "bazi_report_followup")
+    return isAllowedBaziConversationParent(input);
+  if (input.childProductId === "qimen_report_followup")
+    return isAllowedQimenConversationParent(input);
+  if (input.childProductId === "hehun_report_followup")
+    return isAllowedHehunConversationParent(input);
   const expected = xuanxueAiRequiredContinuationProfiles[
     input.childProductId as XuanxueAiRequiredContinuationProductId
   ];

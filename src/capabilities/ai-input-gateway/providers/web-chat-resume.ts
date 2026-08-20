@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
@@ -36,7 +36,7 @@ const legacyIdentityProof = (
 };
 
 const verifyResumableTurn = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
 }): Promise<void> => {
   const execution = input.context.webChatExecution;
@@ -62,7 +62,7 @@ return {pageUrl:location.href,markerCount};
 };
 
 type ResumeConversationInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;

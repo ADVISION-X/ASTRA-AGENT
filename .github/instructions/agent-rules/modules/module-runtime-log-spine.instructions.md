@@ -31,41 +31,6 @@ Runtime Log Spine 是 GrassEye 的运行神经系统。
 审计时：机器可以证明关键路径没有静默黑洞。
 ```
 
-```apex-law
-{
-  "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "runtime-truth",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "ast+runtime-contract",
-  "summary": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
-  "clauses": [
-    {
-      "clauseId": "apex-runtime-truth-001-requirement",
-      "statement": "Any completed runtime contract must require evidence-carrying fields instead of allowing completion with null or missing proof.",
-      "evidenceMode": "acceptance",
-      "ownerDomain": "runtime-truth"
-    }
-  ]
-}
-```
-
-## Runtime Completed Evidence Truth
-
-Completed is a proof-bearing terminal state, not a loose UI label.
-
-Required:
-
-- a completed Deep Research result contract must not allow completed output with null final report evidence or empty record-hash proof by default
-- runtime-truth inspection must block completed contracts that can represent success without evidence
-
-Forbidden:
-
-- nullable completed evidence fields with null defaults masquerading as lawful completion
-- completed status contracts that contain only counters and timestamps but no evidence-bearing field
-- declaring completed when the contract still permits missing final raw or missing promoted video proof
-
 日志闭环是稳定闭环的前提。没有日志闭环，就没有自动化稳定性。
 
 ---

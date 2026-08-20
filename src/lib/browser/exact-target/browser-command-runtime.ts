@@ -1,11 +1,17 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { RuntimeLogEventType, type RuntimeLogger } from "../../runtime-logs/index.js";
+import {
+  RuntimeLogEventType,
+  type RuntimeLogger,
+} from "../../runtime-logs/index.js";
 import type { AuthenticatedBrowserAuthority } from "../authority/browser-authority-certificate.js";
 import type { BrowserProfileEnrollment } from "../profile/browser-profile-enrollment.js";
 import { runLoggedBrowserValueAction } from "../current-chrome-browser-action-logging.js";
-import type { BrowserActionResult, BrowserTargetSession } from "../browser-controller.js";
+import type {
+  BrowserActionResult,
+  BrowserTargetSession,
+} from "../browser-controller.js";
 import { BrowserNativeTransportServer } from "./browser-native-transport-server.js";
 import { BrowserTerminalError } from "./browser-command-contract.js";
 import { issueBrowserFileArtifactGrant } from "./browser-file-artifact-grant.js";
@@ -20,18 +26,24 @@ export type AuthorityBinding = Readonly<{
   certificateHash: string;
 }>;
 
-const authorityBindingOf = (authority: AuthenticatedBrowserAuthority): AuthorityBinding => Object.freeze({
-  authorityId: authority.certificate.authorityId,
-  connectionGeneration: authority.certificate.connectionGeneration,
-  nativePortEpoch: authority.certificate.nativePortEpoch,
-  certificateHash: authority.certificate.certificateHash,
-});
+const authorityBindingOf = (
+  authority: AuthenticatedBrowserAuthority,
+): AuthorityBinding =>
+  Object.freeze({
+    authorityId: authority.certificate.authorityId,
+    connectionGeneration: authority.certificate.connectionGeneration,
+    nativePortEpoch: authority.certificate.nativePortEpoch,
+    certificateHash: authority.certificate.certificateHash,
+  });
 
 export class BrowserCommandRuntime {
   readonly registry: BrowserTargetRegistry;
   readonly transport: BrowserNativeTransportServer;
   private readonly targetSessions = new Set<ExactBrowserTargetSession>();
-  private readonly targetSessionsByOwner = new Map<string, ExactBrowserTargetSession>();
+  private readonly targetSessionsByOwner = new Map<
+    string,
+    ExactBrowserTargetSession
+  >();
   private executionAbortSignal: AbortSignal | null = null;
 
   private constructor(
@@ -51,15 +63,17 @@ export class BrowserCommandRuntime {
     );
   }
 
-  static async create(input: Readonly<{
-    controllerSessionId: string;
-    socketPath: string;
-    screenshotDir: string;
-    profileEnrollment: BrowserProfileEnrollment;
-    approvedFileRoots: readonly string[];
-    runtimeLogger?: RuntimeLogger;
-    authorityTimeoutMs?: number;
-  }>): Promise<BrowserCommandRuntime> {
+  static async create(
+    input: Readonly<{
+      controllerSessionId: string;
+      socketPath: string;
+      screenshotDir: string;
+      profileEnrollment: BrowserProfileEnrollment;
+      approvedFileRoots: readonly string[];
+      runtimeLogger?: RuntimeLogger;
+      authorityTimeoutMs?: number;
+    }>,
+  ): Promise<BrowserCommandRuntime> {
     const runtime = new BrowserCommandRuntime(
       input.controllerSessionId,
       input.socketPath,
@@ -68,22 +82,29 @@ export class BrowserCommandRuntime {
       input.approvedFileRoots,
       input.runtimeLogger,
     );
-    await runtime.transport.waitForAuthority(input.authorityTimeoutMs ?? 30_000);
+    await runtime.transport.waitForAuthority(
+      input.authorityTimeoutMs ?? 30_000,
+    );
     return runtime;
   }
 
   targetCount(): number {
-    return [...this.targetSessions].filter((value) => value.getTarget()?.lifecycle === "attached").length;
+    return [...this.targetSessions].filter(
+      (value) => value.getTarget()?.lifecycle === "attached",
+    ).length;
   }
 
-  authoritySnapshot() { return this.transport.authoritySnapshot(); }
+  authoritySnapshot() {
+    return this.transport.authoritySnapshot();
+  }
 
   setExecutionAbortSignal(signal: AbortSignal | null): void {
     this.executionAbortSignal = signal;
   }
 
   createTargetSession(ownerId: string): BrowserTargetSession {
-    if (!ownerId.trim()) throw new Error("Browser target session requires an owner id");
+    if (!ownerId.trim())
+      throw new Error("Browser target session requires an owner id");
     this.transport.requireAuthority();
     const existing = this.targetSessionsByOwner.get(ownerId);
     if (existing) {
@@ -100,10 +121,10 @@ export class BrowserCommandRuntime {
   assertAuthority(binding: AuthorityBinding): void {
     const current = this.transport.requireAuthority().certificate;
     if (
-      current.authorityId !== binding.authorityId
-      || current.certificateHash !== binding.certificateHash
-      || current.connectionGeneration !== binding.connectionGeneration
-      || current.nativePortEpoch !== binding.nativePortEpoch
+      current.authorityId !== binding.authorityId ||
+      current.certificateHash !== binding.certificateHash ||
+      current.connectionGeneration !== binding.connectionGeneration ||
+      current.nativePortEpoch !== binding.nativePortEpoch
     ) {
       throw new BrowserTerminalError(
         "TRANSPORT_DISCONNECTED",
@@ -171,12 +192,15 @@ export class BrowserCommandRuntime {
     });
   }
 
-  private handleTransportLifecycle(event: import("./browser-native-transport-server.js").BrowserTransportLifecycleEvent): void {
+  private handleTransportLifecycle(
+    event: import("./browser-native-transport-server.js").BrowserTransportLifecycleEvent,
+  ): void {
     if (event.stage === "authority_revoked" || event.stage === "disconnected") {
       this.registry.invalidateAll();
       for (const session of this.targetSessions) session.invalidateAuthority();
     }
-    const failed = event.stage === "authority_revoked" || event.stage === "disconnected";
+    const failed =
+      event.stage === "authority_revoked" || event.stage === "disconnected";
     this.runtimeLogger?.emit({
       traceId: `browser-authority-${event.generation}`,
       level: failed ? "error" : "info",

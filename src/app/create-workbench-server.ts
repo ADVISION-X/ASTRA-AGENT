@@ -5,7 +5,6 @@ import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-han
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
 import { handleAmazonProductMiningRequest } from "./workbench-amazon-product-mining-routes.js";
 import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from "./workbench-api-boundary.js";
-import { handleDeepResearchRequest } from "./workbench-deep-research-routes.js";
 import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
@@ -161,9 +160,6 @@ const handleKnownWorkbenchApiRequest = async (input: {
   url: URL;
 }): Promise<boolean> => {
   if (await handleWorkbenchMetaRequest(input)) {
-    return true;
-  }
-  if (await handleDeepResearchRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
   if (await handleAmazonRequest(input.request, input.response, input.workbench, input.url)) {

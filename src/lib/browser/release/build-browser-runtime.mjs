@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 
 import { extensionTreeIdentity } from "./extension-tree-sha256.mjs";
 import { loadBrowserRuntimeEnv, resolveBrowserRuntimeMode } from "./browser-runtime-env.mjs";
+import { buildChromeExtension } from "../chrome-extension/build.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../../..");
@@ -87,7 +88,9 @@ await mkdir(extensionDir, { recursive: true });
 
 // Release build happens once in the controlled builder, never on the production machine.
 run("cargo", ["build", "--release", "--workspace", "--manifest-path", path.join(nativeRoot, "Cargo.toml")], repoRoot);
-run(process.execPath, [path.join(extensionRoot, "build.mjs")], repoRoot);
+const sourceFlagIndex = process.argv.indexOf("--service-worker-source");
+const serviceWorkerSource = sourceFlagIndex >= 0 ? process.argv[sourceFlagIndex + 1] : undefined;
+await buildChromeExtension({ serviceWorkerSource });
 
 const cargoReleaseDir = path.join(nativeRoot, "target", "release");
 const hostSource = path.join(cargoReleaseDir, executableName("grasseye-browser-host"));

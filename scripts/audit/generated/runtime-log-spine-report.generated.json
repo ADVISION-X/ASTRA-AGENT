@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-19T19:58:40.760Z",
-  "status": "PASS",
-  "scannedFiles": 460,
+  "generatedAt": "2026-08-20T10:35:18.615Z",
+  "status": "FAIL",
+  "scannedFiles": 466,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -25,7 +25,6 @@
     "src/app/app-shell/skill-registry.ts",
     "src/app/app-shell/xuanxue-ai-production-workspace.ts",
     "src/app/create-workbench-server.ts",
-    "src/app/deep-research-intervention-client.ts",
     "src/app/server.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts",
     "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
@@ -36,23 +35,6 @@
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
-    "src/app/workbench-deep-research-case-reader-styles.ts",
-    "src/app/workbench-deep-research-client-attachments.ts",
-    "src/app/workbench-deep-research-client-boot.ts",
-    "src/app/workbench-deep-research-client-case-reader.ts",
-    "src/app/workbench-deep-research-client-contracts.ts",
-    "src/app/workbench-deep-research-client-delivery-sections.ts",
-    "src/app/workbench-deep-research-client-report-sections.ts",
-    "src/app/workbench-deep-research-client-shared.ts",
-    "src/app/workbench-deep-research-client.ts",
-    "src/app/workbench-deep-research-field-help.ts",
-    "src/app/workbench-deep-research-history-view.ts",
-    "src/app/workbench-deep-research-intervention-routes.ts",
-    "src/app/workbench-deep-research-panel.ts",
-    "src/app/workbench-deep-research-report-styles.ts",
-    "src/app/workbench-deep-research-report-view.ts",
-    "src/app/workbench-deep-research-routes.ts",
-    "src/app/workbench-deep-research-styles.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",
@@ -228,36 +210,85 @@
     "src/capabilities/video-download/type-contracts.ts",
     "src/lib/browser/authority/browser-authority-certificate.ts",
     "src/lib/browser/authority/browser-authority-issuer.ts",
+    "src/lib/browser/browser-authority-api.ts",
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/chrome-extension/atomic-dom-command.ts",
-    "src/lib/browser/chrome-extension/protocol.ts",
+    "src/lib/browser/chrome-extension/service-worker-click-command.ts",
     "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+    "src/lib/browser/chrome-extension/service-worker-contracts.ts",
     "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
     "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
+    "src/lib/browser/chrome-extension/service-worker-native-port-actor.ts",
+    "src/lib/browser/chrome-extension/service-worker-native-transport-auth.ts",
     "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
+    "src/lib/browser/chrome-extension/service-worker-origin-policy.ts",
     "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
     "src/lib/browser/current-chrome-browser-controller-runtime.ts",
     "src/lib/browser/current-chrome-browser-controller.ts",
+    "src/lib/browser/exact-target/browser-artifact-stream.ts",
+    "src/lib/browser/exact-target/browser-command-actor.ts",
     "src/lib/browser/exact-target/browser-command-contract.ts",
+    "src/lib/browser/exact-target/browser-command-response-handler.ts",
     "src/lib/browser/exact-target/browser-command-runtime.ts",
     "src/lib/browser/exact-target/browser-evaluation-contract.ts",
     "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
+    "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
     "src/lib/browser/exact-target/browser-native-authentication.ts",
     "src/lib/browser/exact-target/browser-native-command-channel.ts",
     "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
     "src/lib/browser/exact-target/browser-native-transport-server.ts",
+    "src/lib/browser/exact-target/browser-target-lease-file-artifact.ts",
+    "src/lib/browser/exact-target/browser-target-lease-interaction.ts",
+    "src/lib/browser/exact-target/browser-target-lease-manager.ts",
+    "src/lib/browser/exact-target/browser-target-lease-observation.ts",
+    "src/lib/browser/exact-target/browser-target-lease-open.ts",
+    "src/lib/browser/exact-target/browser-target-lease-state.ts",
+    "src/lib/browser/exact-target/browser-target-lease-terminal.ts",
+    "src/lib/browser/exact-target/browser-target-lease.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
     "src/lib/browser/exact-target/browser-target-registry.ts",
     "src/lib/browser/exact-target/exact-browser-target-session.ts",
+    "src/lib/browser/infrastructure/authenticated-browser-authority-lease.ts",
+    "src/lib/browser/infrastructure/browser-authority-broker.ts",
+    "src/lib/browser/infrastructure/browser-authority-certificate.ts",
+    "src/lib/browser/infrastructure/browser-authority-issuer.ts",
+    "src/lib/browser/infrastructure/browser-authority-liveness-lease.ts",
+    "src/lib/browser/infrastructure/browser-control-state.ts",
+    "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
+    "src/lib/browser/infrastructure/browser-install-identity.ts",
+    "src/lib/browser/infrastructure/browser-owner-lock.ts",
     "src/lib/browser/profile/browser-process-supervisor.ts",
     "src/lib/browser/profile/browser-profile-config.ts",
     "src/lib/browser/profile/browser-profile-enrollment.ts",
+    "src/lib/browser/profile/browser-profile-process-attestation.ts",
+    "src/lib/browser/profile/managed-policy-readback.ts",
+    "src/lib/browser/protocol/browser-protocol-identity.ts",
+    "src/lib/browser/protocol/generated/browser-protocol-capability-map.ts",
+    "src/lib/browser/protocol/generated/browser-protocol-message-validator.ts",
+    "src/lib/browser/protocol/generated/browser-protocol.ts",
     "src/lib/browser/release/browser-activation-receipt.ts",
+    "src/lib/browser/release/browser-release-binding-loader.ts",
+    "src/lib/browser/release/browser-release-contract.ts",
     "src/lib/browser/release/browser-release-identity.ts",
+    "src/lib/browser/transport/authenticated-controller-host-channel.ts",
+    "src/lib/browser/transport/browser-command-admission-budget.ts",
     "src/lib/browser/transport/browser-session-crypto.ts",
     "src/lib/browser/transport/command-permit.ts",
+    "src/lib/browser/transport/raw-controller-host-channel.ts",
+    "src/lib/browser/transport/reply-channel-token.ts",
+    "src/lib/browser/transport/transport-actor-authority.ts",
+    "src/lib/browser/transport/transport-actor-inbound.ts",
+    "src/lib/browser/transport/transport-actor-lifecycle.ts",
+    "src/lib/browser/transport/transport-actor-runtime.ts",
+    "src/lib/browser/transport/transport-actor.ts",
+    "src/lib/browser/transport/transport-authenticator-transcripts.ts",
+    "src/lib/browser/transport/transport-authenticator.ts",
+    "src/lib/browser/transport/transport-event.ts",
+    "src/lib/browser/transport/transport-frame-crypto.ts",
+    "src/lib/browser/transport/transport-reducer.ts",
+    "src/lib/browser/transport/transport-transcript.ts",
     "src/lib/local-runtime/contract.ts",
     "src/lib/local-runtime/default-data-dir.ts",
     "src/lib/local-runtime/ids.ts",
@@ -270,8 +301,6 @@
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
     "src/lib/local-runtime/workbench-browser-support.ts",
-    "src/lib/local-runtime/workbench-deep-research-handle.ts",
-    "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -309,7 +338,6 @@
     "src/lib/storage/storage-port.ts",
     "src/mediator/amazon-invoice-upload-route.ts",
     "src/mediator/amazon-product-mining-route.ts",
-    "src/mediator/deep-research-analysis-route.ts",
     "src/mediator/media-processing-artifact-route.ts",
     "src/mediator/xuanxue-ai-production-route.ts",
     "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
@@ -323,6 +351,7 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-intervention.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail-readiness.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
@@ -333,9 +362,15 @@
     "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-actions.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-constants.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-navigation.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-report.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-types.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
+    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-task-service.ts",
     "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
@@ -385,35 +420,6 @@
     "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
     "src/plugins/amazon-product-mining/index.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-artifact.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.gateway.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.intervention.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-capture-stage.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-persist-stage.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
-    "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
     "src/plugins/media-processing-artifact/index.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
     "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
@@ -464,26 +470,26 @@
     "src/types/sharp.d.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 27,
+  "emitCallCount": 19,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
   "missingTraceContractCount": 0,
-  "catchBranchCount": 3,
+  "catchBranchCount": 0,
   "catchBranchWithoutLogCount": 0,
-  "failureBranchCount": 22,
+  "failureBranchCount": 2,
   "failureWithoutClassCount": 0,
-  "stageStartCount": 19,
-  "stageTerminalCount": 15,
+  "stageStartCount": 1,
+  "stageTerminalCount": 2,
   "stagePairViolationCount": 0,
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 0,
-    "fatalFindings": 0,
-    "scannedFiles": 460,
-    "emitCallCount": 27,
+    "totalFindings": 1,
+    "fatalFindings": 1,
+    "scannedFiles": 466,
+    "emitCallCount": 19,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -493,7 +499,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 456,
+      "scannedFiles": 462,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -502,28 +508,28 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 343
+      "scannedFiles": 319
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 340,
+      "scannedFiles": 317,
       "metrics": {
-        "emitCallCount": 11
+        "emitCallCount": 5
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 340
+      "scannedFiles": 317
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 344,
+      "scannedFiles": 320,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -532,13 +538,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 17
+      "scannedFiles": 10
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 344,
+      "scannedFiles": 320,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -563,20 +569,20 @@
     },
     {
       "name": "browser-action-log-contract",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 47
+      "status": "FAIL",
+      "findingCount": 1,
+      "scannedFiles": 36
     },
     {
       "name": "semantic-metrics-self-audit",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 17,
+      "scannedFiles": 10,
       "metrics": {
-        "emitCallCount": 27,
-        "stageStartCount": 19,
-        "stageTerminalCount": 15,
-        "failureBranchCount": 22
+        "emitCallCount": 19,
+        "stageStartCount": 1,
+        "stageTerminalCount": 2,
+        "failureBranchCount": 2
       }
     },
     {
@@ -586,7 +592,18 @@
       "scannedFiles": 1
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "checkId": "runtime-log-spine/browser-action-log-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+      "clauseId": "grasseye-runtime-log-spine-014-requirement",
+      "message": "BrowserController actions without caller correlation lack central production logging",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "The Current Chrome driver must centrally emit and persist one started/terminal pair for every uncorrelated browser or DOM action. Missing: workbench-browser:runtime-logger-injection, workbench-assembly:runtime-logger-wiring.",
+      "filePath": "src/lib/browser/current-chrome-browser-action-logging.ts"
+    }
+  ],
   "capabilityDomain": "runtime-log-spine",
   "executionGroup": "foundation",
   "lawIds": [
@@ -615,14 +632,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b",
+      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671",
       "capabilityDomain": "runtime-log-spine",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-19T19:58:30.747Z",
-      "endedAt": "2026-08-19T19:58:40.760Z",
-      "durationMs": 10013,
+      "status": "FAIL",
+      "startedAt": "2026-08-20T10:35:11.374Z",
+      "endedAt": "2026-08-20T10:35:18.615Z",
+      "durationMs": 7241,
       "evidenceRefs": [
         "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
         "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -646,7 +663,6 @@
         "src/app/app-shell/skill-registry.ts",
         "src/app/app-shell/xuanxue-ai-production-workspace.ts",
         "src/app/create-workbench-server.ts",
-        "src/app/deep-research-intervention-client.ts",
         "src/app/server.ts",
         "src/app/skills/amazon-product-mining/amazon-product-mining-inspector.ts",
         "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
@@ -657,23 +673,6 @@
         "src/app/workbench-amazon-product-mining-routes.ts",
         "src/app/workbench-amazon-routes.ts",
         "src/app/workbench-api-boundary.ts",
-        "src/app/workbench-deep-research-case-reader-styles.ts",
-        "src/app/workbench-deep-research-client-attachments.ts",
-        "src/app/workbench-deep-research-client-boot.ts",
-        "src/app/workbench-deep-research-client-case-reader.ts",
-        "src/app/workbench-deep-research-client-contracts.ts",
-        "src/app/workbench-deep-research-client-delivery-sections.ts",
-        "src/app/workbench-deep-research-client-report-sections.ts",
-        "src/app/workbench-deep-research-client-shared.ts",
-        "src/app/workbench-deep-research-client.ts",
-        "src/app/workbench-deep-research-field-help.ts",
-        "src/app/workbench-deep-research-history-view.ts",
-        "src/app/workbench-deep-research-intervention-routes.ts",
-        "src/app/workbench-deep-research-panel.ts",
-        "src/app/workbench-deep-research-report-styles.ts",
-        "src/app/workbench-deep-research-report-view.ts",
-        "src/app/workbench-deep-research-routes.ts",
-        "src/app/workbench-deep-research-styles.ts",
         "src/app/workbench-home-amazon-invoice-client.ts",
         "src/app/workbench-home-amazon-product-mining-review-client.ts",
         "src/app/workbench-home-client.ts",
@@ -849,36 +848,85 @@
         "src/capabilities/video-download/type-contracts.ts",
         "src/lib/browser/authority/browser-authority-certificate.ts",
         "src/lib/browser/authority/browser-authority-issuer.ts",
+        "src/lib/browser/browser-authority-api.ts",
         "src/lib/browser/browser-controller.ts",
         "src/lib/browser/chrome-extension/atomic-dom-command.ts",
-        "src/lib/browser/chrome-extension/protocol.ts",
+        "src/lib/browser/chrome-extension/service-worker-click-command.ts",
         "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
+        "src/lib/browser/chrome-extension/service-worker-contracts.ts",
         "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
         "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
+        "src/lib/browser/chrome-extension/service-worker-native-port-actor.ts",
+        "src/lib/browser/chrome-extension/service-worker-native-transport-auth.ts",
         "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
+        "src/lib/browser/chrome-extension/service-worker-origin-policy.ts",
         "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
         "src/lib/browser/current-chrome-browser-controller-runtime.ts",
         "src/lib/browser/current-chrome-browser-controller.ts",
+        "src/lib/browser/exact-target/browser-artifact-stream.ts",
+        "src/lib/browser/exact-target/browser-command-actor.ts",
         "src/lib/browser/exact-target/browser-command-contract.ts",
+        "src/lib/browser/exact-target/browser-command-response-handler.ts",
         "src/lib/browser/exact-target/browser-command-runtime.ts",
         "src/lib/browser/exact-target/browser-evaluation-contract.ts",
         "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
+        "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
         "src/lib/browser/exact-target/browser-native-authentication.ts",
         "src/lib/browser/exact-target/browser-native-command-channel.ts",
         "src/lib/browser/exact-target/browser-native-transport-protocol.ts",
         "src/lib/browser/exact-target/browser-native-transport-server.ts",
+        "src/lib/browser/exact-target/browser-target-lease-file-artifact.ts",
+        "src/lib/browser/exact-target/browser-target-lease-interaction.ts",
+        "src/lib/browser/exact-target/browser-target-lease-manager.ts",
+        "src/lib/browser/exact-target/browser-target-lease-observation.ts",
+        "src/lib/browser/exact-target/browser-target-lease-open.ts",
+        "src/lib/browser/exact-target/browser-target-lease-state.ts",
+        "src/lib/browser/exact-target/browser-target-lease-terminal.ts",
+        "src/lib/browser/exact-target/browser-target-lease.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
         "src/lib/browser/exact-target/browser-target-registry.ts",
         "src/lib/browser/exact-target/exact-browser-target-session.ts",
+        "src/lib/browser/infrastructure/authenticated-browser-authority-lease.ts",
+        "src/lib/browser/infrastructure/browser-authority-broker.ts",
+        "src/lib/browser/infrastructure/browser-authority-certificate.ts",
+        "src/lib/browser/infrastructure/browser-authority-issuer.ts",
+        "src/lib/browser/infrastructure/browser-authority-liveness-lease.ts",
+        "src/lib/browser/infrastructure/browser-control-state.ts",
+        "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
+        "src/lib/browser/infrastructure/browser-install-identity.ts",
+        "src/lib/browser/infrastructure/browser-owner-lock.ts",
         "src/lib/browser/profile/browser-process-supervisor.ts",
         "src/lib/browser/profile/browser-profile-config.ts",
         "src/lib/browser/profile/browser-profile-enrollment.ts",
+        "src/lib/browser/profile/browser-profile-process-attestation.ts",
+        "src/lib/browser/profile/managed-policy-readback.ts",
+        "src/lib/browser/protocol/browser-protocol-identity.ts",
+        "src/lib/browser/protocol/generated/browser-protocol-capability-map.ts",
+        "src/lib/browser/protocol/generated/browser-protocol-message-validator.ts",
+        "src/lib/browser/protocol/generated/browser-protocol.ts",
         "src/lib/browser/release/browser-activation-receipt.ts",
+        "src/lib/browser/release/browser-release-binding-loader.ts",
+        "src/lib/browser/release/browser-release-contract.ts",
         "src/lib/browser/release/browser-release-identity.ts",
+        "src/lib/browser/transport/authenticated-controller-host-channel.ts",
+        "src/lib/browser/transport/browser-command-admission-budget.ts",
         "src/lib/browser/transport/browser-session-crypto.ts",
         "src/lib/browser/transport/command-permit.ts",
+        "src/lib/browser/transport/raw-controller-host-channel.ts",
+        "src/lib/browser/transport/reply-channel-token.ts",
+        "src/lib/browser/transport/transport-actor-authority.ts",
+        "src/lib/browser/transport/transport-actor-inbound.ts",
+        "src/lib/browser/transport/transport-actor-lifecycle.ts",
+        "src/lib/browser/transport/transport-actor-runtime.ts",
+        "src/lib/browser/transport/transport-actor.ts",
+        "src/lib/browser/transport/transport-authenticator-transcripts.ts",
+        "src/lib/browser/transport/transport-authenticator.ts",
+        "src/lib/browser/transport/transport-event.ts",
+        "src/lib/browser/transport/transport-frame-crypto.ts",
+        "src/lib/browser/transport/transport-reducer.ts",
+        "src/lib/browser/transport/transport-transcript.ts",
         "src/lib/local-runtime/contract.ts",
         "src/lib/local-runtime/default-data-dir.ts",
         "src/lib/local-runtime/ids.ts",
@@ -891,8 +939,6 @@
         "src/lib/local-runtime/workbench-api-boundary-log.ts",
         "src/lib/local-runtime/workbench-assembly.ts",
         "src/lib/local-runtime/workbench-browser-support.ts",
-        "src/lib/local-runtime/workbench-deep-research-handle.ts",
-        "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
         "src/lib/local-runtime/workbench-evidence-support.ts",
         "src/lib/local-runtime/workbench-handle.ts",
         "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -930,7 +976,6 @@
         "src/lib/storage/storage-port.ts",
         "src/mediator/amazon-invoice-upload-route.ts",
         "src/mediator/amazon-product-mining-route.ts",
-        "src/mediator/deep-research-analysis-route.ts",
         "src/mediator/media-processing-artifact-route.ts",
         "src/mediator/xuanxue-ai-production-route.ts",
         "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
@@ -944,6 +989,7 @@
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-intervention.ts",
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail-readiness.ts",
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
@@ -954,9 +1000,15 @@
         "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
         "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-actions.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-constants.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-navigation.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-report.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-types.ts",
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
+        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-task-service.ts",
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
         "src/plugins/amazon-invoice-upload/index.ts",
         "src/plugins/amazon-invoice-upload/mission.schema.ts",
@@ -1006,35 +1058,6 @@
         "src/plugins/amazon-product-mining/amazon-product-mining.storage-support.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
         "src/plugins/amazon-product-mining/index.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.analysis-finalization.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.analysis-runner.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.analysis-sub-questions.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.export-artifact.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.export-artifacts.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.full-case-file.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.gateway-result.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.gateway.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.html-report-contract.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.html-report-stage.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.input-attachments.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.intervention.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.parser-support.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-bundle-shell.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-capture-stage.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange-persist-stage.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.prompt-exchange.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.public-contracts.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.public-report-support.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.record-db-mappers.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.record-interaction-ops.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",
-        "src/plugins/deep-research-analysis/deep-research-analysis.structured-index.ts",
         "src/plugins/media-processing-artifact/index.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.flow.ts",
         "src/plugins/media-processing-artifact/media-processing-artifact.result.ts",
@@ -1085,7 +1108,7 @@
         "src/types/sharp.d.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 0
+      "findingCount": 1
     }
   ],
   "executedChecks": [
@@ -1093,133 +1116,133 @@
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "clauseId": "grasseye-runtime-log-spine-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
       "clauseId": "grasseye-runtime-log-spine-002-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
       "clauseId": "grasseye-runtime-log-spine-003-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
       "clauseId": "grasseye-runtime-log-spine-004-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
       "clauseId": "grasseye-runtime-log-spine-005-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "grasseye-runtime-log-spine-006-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
       "clauseId": "grasseye-runtime-log-spine-007-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
       "clauseId": "grasseye-runtime-log-spine-008-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
       "clauseId": "grasseye-runtime-log-spine-009-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "grasseye-runtime-log-spine-010-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
       "clauseId": "grasseye-runtime-log-spine-011-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
       "clauseId": "grasseye-runtime-log-spine-012-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "grasseye-runtime-log-spine-013-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "grasseye-runtime-log-spine-014-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "grasseye-runtime-log-spine-015-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "grasseye-runtime-log-spine-016-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
       "clauseId": "grasseye-runtime-log-spine-017-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
       "clauseId": "grasseye-runtime-log-spine-018-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
       "clauseId": "grasseye-runtime-log-spine-019-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
       "clauseId": "grasseye-runtime-log-spine-020-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
       "clauseId": "grasseye-structured-logging-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
       "clauseId": "grasseye-security-privacy-log-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:a3c2a5d2-bf2e-4db8-9ad0-f22381e44a3b"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:74ceb247-dc53-421a-8a5b-e673829ce671"
     }
   ]
 }

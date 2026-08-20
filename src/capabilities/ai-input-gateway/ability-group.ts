@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type {
   AiInputGatewayAbilityGroup,
   AiInputGatewayExecuteOptions,
@@ -47,7 +47,7 @@ const executeGeminiApi = (
 
 interface WebChatExecutionInput {
   context: AiInputGatewayExecutionContext;
-  browser: BrowserTargetSession | undefined;
+  browser: BrowserTargetLease | undefined;
   request: AiFeedInput;
   options: AiInputGatewayExecuteOptions | undefined;
 }
@@ -99,7 +99,7 @@ type ProviderOperatorControl = ReturnType<typeof createProviderOperatorControl>;
 
 const buildAiInputGatewaySurface = (
   context: AiInputGatewayExecutionContext,
-  browser: BrowserTargetSession | undefined,
+  browser: BrowserTargetLease | undefined,
   operatorControl: ProviderOperatorControl,
 ): AiInputGatewayAbilityGroup => ({
   abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
@@ -125,7 +125,7 @@ const buildAiInputGatewaySurface = (
 
 export const createAiInputGatewayAbilityGroup = (
   context: AiInputGatewayExecutionContext,
-  browser?: BrowserTargetSession,
+  browser?: BrowserTargetLease,
 ): AiInputGatewayAbilityGroup => {
   const operatorControl = createProviderOperatorControl(browser);
   return buildAiInputGatewaySurface(context, browser, operatorControl);

@@ -21,7 +21,7 @@ const resolvesToDeclaration = (node: Node, declaration: Node): boolean => {
 
 const isContextChecksCall = (
   call: CallExpression,
-  method: "output" | "runAll",
+  method: "output" | "run" | "runAll",
   contextParameter: ParameterDeclaration,
 ): boolean => {
   const callee = call.getExpression();
@@ -136,10 +136,9 @@ const pushOwnerRegistrationFindings = (
   const source = context.project.getSourceFile(resolveFromRepo(entry.ownerInspectorPath));
   if (!source) return;
   const physicalIds = [...new Set(entry.bindings.flatMap((binding) => binding.checkIds))].sort();
-  const requiredId = `${entry.capabilityDomain}/owner-assertion-set`;
-  if (physicalIds.length !== 1 || physicalIds[0] !== requiredId) findings.push(createFinding({
+  if (physicalIds.length === 0) findings.push(createFinding({
     checkId: "audit-system/runner-source", lawId, filePath: entry.ownerInspectorPath,
-    message: `${entry.capabilityDomain} must expose exactly one manifest-owned physical receipt identity ${requiredId}.`,
+    message: `${entry.capabilityDomain} must expose at least one manifest-owned physical receipt identity.`,
     evidence: JSON.stringify({ physicalCheckIds: physicalIds }),
   }));
   const inspectDomain = source.getFunction("inspectDomain")

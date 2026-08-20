@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T19:58:41.072Z",
+  "generatedAt": "2026-08-20T10:35:18.859Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,18 +20,179 @@
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
     "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "amazon-invoice-upload/download-flow-step-id",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "Download flow must cite Evidence Map step AID-09.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/download-flow-step-id",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "Download flow must cite Evidence Map step AID-11.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/download-flow-dom-trace",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "Download flow must call recordAmazonDomStepTrace.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/download-flow-manual-required",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "Download flow must expose manual_required gates.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/current-request-row-gate",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "Download flow must reject rows that are not proven to be the current requested CSV report.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "AID-07 must read the latest Seller Central tax invoice row state before deciding whether a request is already pending.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
+      "message": "AID-07 must not skip requesting CSV because the latest row or snapshot is already downloadable; downloadable may be an old report.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-timeout-2000.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-poll-200.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-window-limit-8.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-window-deadline.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-window-remaining-wait.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-window-remaining-snapshot-timeout.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
+      "message": "Amazon invoice upload stability guard missing: order-detail-readiness-wait-call.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "message": "Amazon invoice upload stability guard missing: snapshot-deadline-order-detail:structured-exception.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "message": "Amazon invoice upload stability guard missing: single-order-navigation:readiness-owner-call.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "message": "Amazon invoice upload stability guard missing: single-order-navigation:truthful-observation-start.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
+      "message": "Amazon invoice upload stability guard missing: single-order-navigation:observation-window-identity.",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/exact-target-technical-integrity",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
+      "message": "order-detail observation exceptions must return a distinct technical_failure branch",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    },
+    {
+      "checkId": "amazon-invoice-upload/exact-target-technical-integrity",
+      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
+      "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
+      "message": "technical observation failure must fail closed as review_required before later upload actions",
+      "severity": "fatal",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
+    }
+  ],
   "checkRuns": [
     {
-      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660",
+      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68",
       "capabilityDomain": "amazon-invoice-upload",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-19T19:58:40.775Z",
-      "endedAt": "2026-08-19T19:58:41.071Z",
-      "durationMs": 296,
+      "status": "FAIL",
+      "startedAt": "2026-08-20T10:35:18.630Z",
+      "endedAt": "2026-08-20T10:35:18.858Z",
+      "durationMs": 228,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
         "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
@@ -78,7 +239,7 @@
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
         "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
       ],
-      "findingCount": 0
+      "findingCount": 20
     }
   ],
   "executedChecks": [
@@ -86,73 +247,73 @@
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
       "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
       "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
       "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
       "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
       "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
       "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
       "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
       "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
       "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
       "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
       "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     },
     {
       "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
       "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:59de08a0-e4dc-4ab6-8c3a-c88b24d0b660"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:33cb1e24-e4c9-4fd0-b0f3-c274ae1eda68"
     }
   ],
   "inspectedFiles": [

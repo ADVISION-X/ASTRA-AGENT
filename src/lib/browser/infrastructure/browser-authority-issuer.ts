@@ -45,7 +45,10 @@ export class BrowserAuthorityIssuer {
       throw new Error("BROWSER_AUTHORITY_ALREADY_PENDING_OR_PRESENT");
     }
     const now = performance.now();
-    const authorityEpoch = Math.max(this.authorityEpoch + 1, input.authorityEpoch);
+    const authorityEpoch = Math.max(
+      this.authorityEpoch + 1,
+      input.authorityEpoch,
+    );
     const candidate = AuthenticatedBrowserAuthority.issueInternal({
       ...input,
       authorityEpoch,
@@ -57,10 +60,15 @@ export class BrowserAuthorityIssuer {
     return candidate;
   }
 
-  commit(candidate: AuthenticatedBrowserAuthority): AuthenticatedBrowserAuthority {
+  commit(
+    candidate: AuthenticatedBrowserAuthority,
+  ): AuthenticatedBrowserAuthority {
     if (this.current) throw new Error("BROWSER_AUTHORITY_ALREADY_PRESENT");
-    if (!this.pending
-      || this.pending.certificate.certificateHash !== candidate.certificate.certificateHash) {
+    if (
+      !this.pending ||
+      this.pending.certificate.certificateHash !==
+        candidate.certificate.certificateHash
+    ) {
       throw new Error("BROWSER_AUTHORITY_PENDING_CANDIDATE_MISMATCH");
     }
     const now = performance.now();
@@ -102,12 +110,14 @@ export class BrowserAuthorityIssuer {
     const authority = this.requireCurrent();
     const currentLease = this.currentLivenessLease();
     if (
-      authority.certificate.authorityRef !== input.authorityRef
-      || authority.certificate.authorityEpoch !== input.authorityEpoch
-      || currentLease.leaseEpoch !== input.leaseEpoch
-      || input.heartbeatSequence !== this.lastHeartbeatSequence + 1
+      authority.certificate.authorityRef !== input.authorityRef ||
+      authority.certificate.authorityEpoch !== input.authorityEpoch ||
+      currentLease.leaseEpoch !== input.leaseEpoch ||
+      input.heartbeatSequence !== this.lastHeartbeatSequence + 1
     ) {
-      throw new BrowserAuthorityAbsentError("stale heartbeat cannot renew browser authority");
+      throw new BrowserAuthorityAbsentError(
+        "stale heartbeat cannot renew browser authority",
+      );
     }
     this.lastHeartbeatSequence = input.heartbeatSequence;
     this.liveness = issueBrowserAuthorityLivenessLease({
@@ -130,14 +140,13 @@ export class BrowserAuthorityIssuer {
     this.absentReason = reason || "BROWSER_AUTHORITY_REVOKED";
   }
 
-  isCurrent(input: {
-    authorityRef: string;
-    authorityEpoch: number;
-  }): boolean {
+  isCurrent(input: { authorityRef: string; authorityEpoch: number }): boolean {
     try {
       const current = this.requireCurrent().certificate;
-      return current.authorityRef === input.authorityRef
-        && current.authorityEpoch === input.authorityEpoch;
+      return (
+        current.authorityRef === input.authorityRef &&
+        current.authorityEpoch === input.authorityEpoch
+      );
     } catch {
       return false;
     }
@@ -162,8 +171,8 @@ export class BrowserAuthorityIssuer {
     if (!this.current || !this.liveness) return;
     const now = performance.now();
     if (
-      now >= this.current.certificate.maxAgeDeadlineMonotonicMs
-      || isBrowserAuthorityLivenessLeaseExpired(this.liveness, now)
+      now >= this.current.certificate.maxAgeDeadlineMonotonicMs ||
+      isBrowserAuthorityLivenessLeaseExpired(this.liveness, now)
     ) {
       this.revoke(reason);
     }

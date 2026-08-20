@@ -15,26 +15,34 @@ import {
 } from "../protocol/generated/browser-protocol.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { issueBrowserCommandPermit } from "../transport/command-permit.js";
-import { decryptBrowserFrame, encryptBrowserFrame } from "../transport/transport-frame-crypto.js";
+import { encryptBrowserFrame } from "../transport/transport-frame-crypto.js";
 import type { ReplyChannelToken } from "../transport/reply-channel-token.js";
 import type { BrowserArtifactStreamReceiver } from "./browser-artifact-stream.js";
 import { BrowserMutationIntentJournal } from "./browser-mutation-intent-journal.js";
 import { BrowserTerminalError } from "./browser-command-contract.js";
+import { BrowserCommandResponseHandler } from "./browser-command-response-handler.js";
 
-const monotonicEpochMs = (): number => performance.timeOrigin + performance.now();
+const monotonicEpochMs = (): number =>
+  performance.timeOrigin + performance.now();
 const hashPayload = (value: unknown): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 
 export type BrowserCommandActorTransport = {
   requireAuthority(): AuthenticatedBrowserAuthority;
   requireFrameKey(authority: AuthenticatedBrowserAuthority): Buffer;
-  currentReplyChannel(authority: AuthenticatedBrowserAuthority): ReplyChannelToken;
-  isCurrent(input: { authorityRef: string; authorityEpoch: number; replyChannelToken: string }): boolean;
+  currentReplyChannel(
+    authority: AuthenticatedBrowserAuthority,
+  ): ReplyChannelToken;
+  isCurrent(input: {
+    authorityRef: string;
+    authorityEpoch: number;
+    replyChannelToken: string;
+  }): boolean;
   send(message: BrowserWireMessage): void;
   terminate(reason: string): void;
 };
 
-type PendingCommand = {
+export type PendingCommand = {
   commandId: string;
   permitHash: `sha256:${string}`;
   authorityRef: string;
@@ -51,10 +59,35 @@ type PendingCommand = {
   releaseAdmission(): void;
 };
 
+type BrowserCommandInput = Readonly<{
+  executionBinding: BrowserExecutionBinding;
+  targetLeaseRef: string;
+  documentRef: string;
+  command: BrowserWireCommand;
+  expectedLoaderId?: string;
+  mutationClass: BrowserWireMutationClass;
+  timeoutMs?: number;
+  abortSignal?: AbortSignal;
+}>;
+
+type PreparedBrowserCommand = Readonly<{
+  input: BrowserCommandInput;
+  timeoutMs: number;
+  authority: AuthenticatedBrowserAuthority;
+  commandId: string;
+  sequence: number;
+  wirePayload: Readonly<Record<string, unknown>>;
+  requestPayloadHash: `sha256:${string}`;
+  permit: ReturnType<typeof issueBrowserCommandPermit>;
+  frame: BrowserWireMessage;
+  releaseAdmission: () => void;
+}>;
+
 export class BrowserCommandActor {
   private readonly pending = new Map<string, PendingCommand>();
   private readonly admission = new BrowserCommandAdmissionBudget();
   private readonly journal: BrowserMutationIntentJournal;
+  private readonly responses: BrowserCommandResponseHandler;
   private nextSequence = 1;
 
   constructor(
@@ -63,18 +96,53 @@ export class BrowserCommandActor {
     private readonly artifacts: BrowserArtifactStreamReceiver,
   ) {
     this.journal = new BrowserMutationIntentJournal(dataDir);
+    this.responses = new BrowserCommandResponseHandler({
+      pending: this.pending,
+      transport,
+      artifacts,
+      journal: this.journal,
+    });
   }
 
-  async command<T>(input: {
-    executionBinding: BrowserExecutionBinding;
-    targetLeaseRef: string;
-    documentRef: string;
-    command: BrowserWireCommand;
-    expectedLoaderId?: string;
-    mutationClass: BrowserWireMutationClass;
-    timeoutMs?: number;
-    abortSignal?: AbortSignal;
-  }): Promise<{ commandId: string; result: T }> {
+  async command<T>(
+    input: BrowserCommandInput,
+  ): Promise<{ commandId: string; result: T }> {
+    const prepared = this.prepareCommand(input);
+    const abort = (): void => this.abort(prepared.commandId);
+    input.abortSignal?.addEventListener("abort", abort, { once: true });
+    try {
+      await this.prepareMutationJournal(prepared);
+      const response = this.registerPending(prepared);
+      return await this.sendAndAwait<T>(prepared, response);
+    } catch (error) {
+      await this.discardPending(prepared.commandId);
+      throw error;
+    } finally {
+      input.abortSignal?.removeEventListener("abort", abort);
+    }
+  }
+
+  private prepareCommand(input: BrowserCommandInput): PreparedBrowserCommand {
+    const identity = this.commandIdentity(input);
+    const wirePayload = this.commandPayload(input, identity.commandId);
+    const releaseAdmission = this.admit(input, identity.commandId, wirePayload);
+    try {
+      return this.frameCommand(input, identity, wirePayload, releaseAdmission);
+    } catch (error) {
+      releaseAdmission();
+      throw error;
+    }
+  }
+
+  private commandIdentity(input: BrowserCommandInput): Readonly<{
+    authority: AuthenticatedBrowserAuthority;
+    frameKey: Buffer;
+    reply: ReplyChannelToken;
+    commandId: string;
+    sequence: number;
+    timeoutMs: number;
+    deadlineMonotonicMs: number;
+  }> {
     const timeoutMs = input.timeoutMs ?? 10_000;
     const authority = this.transport.requireAuthority();
     const frameKey = this.transport.requireFrameKey(authority);
@@ -82,213 +150,204 @@ export class BrowserCommandActor {
     const commandId = randomUUID();
     const sequence = this.nextSequence++;
     const deadlineMonotonicMs = monotonicEpochMs() + timeoutMs;
-    const wirePayload = Object.freeze({
+    return Object.freeze({
+      authority,
+      frameKey,
+      reply,
+      commandId,
+      sequence,
+      timeoutMs,
+      deadlineMonotonicMs,
+    });
+  }
+
+  private commandPayload(
+    input: BrowserCommandInput,
+    commandId: string,
+  ): Readonly<Record<string, unknown>> {
+    return Object.freeze({
       commandId,
       mutationClass: input.mutationClass,
-      ...(input.expectedLoaderId ? { expectedLoaderId: input.expectedLoaderId } : {}),
+      ...(input.expectedLoaderId
+        ? { expectedLoaderId: input.expectedLoaderId }
+        : {}),
       command: input.command,
     });
-    const requestPayloadHash = hashPayload(wirePayload);
-    const releaseAdmission = this.admission.admit({
-      commandId,
-      targetLeaseRef: input.targetLeaseRef,
-      mutationClass: input.mutationClass,
-      payloadBytes: Buffer.byteLength(JSON.stringify(wirePayload), "utf8"),
-      deadlineMonotonicMs,
-    }, monotonicEpochMs());
+  }
 
+  private admit(
+    input: BrowserCommandInput,
+    commandId: string,
+    wirePayload: Readonly<Record<string, unknown>>,
+  ): () => void {
+    return this.admission.admit(
+      {
+        commandId,
+        targetLeaseRef: input.targetLeaseRef,
+        mutationClass: input.mutationClass,
+        payloadBytes: Buffer.byteLength(JSON.stringify(wirePayload), "utf8"),
+        deadlineMonotonicMs: monotonicEpochMs() + (input.timeoutMs ?? 10_000),
+      },
+      monotonicEpochMs(),
+    );
+  }
+
+  private frameCommand(
+    input: BrowserCommandInput,
+    identity: ReturnType<BrowserCommandActor["commandIdentity"]>,
+    wirePayload: Readonly<Record<string, unknown>>,
+    releaseAdmission: () => void,
+  ): PreparedBrowserCommand {
     const permit = issueBrowserCommandPermit({
-      authority,
-      activationTupleHash: authority.certificate.activationTupleHash,
-      replyChannel: reply,
+      authority: identity.authority,
+      activationTupleHash: identity.authority.certificate.activationTupleHash,
+      replyChannel: identity.reply,
       capabilityId: capabilityIdForCommand(input.command),
       executionBinding: input.executionBinding,
       targetLeaseRef: input.targetLeaseRef,
       documentRef: input.documentRef,
-      commandId,
-      sequence,
-      deadlineMonotonicMs,
+      commandId: identity.commandId,
+      sequence: identity.sequence,
+      deadlineMonotonicMs: identity.deadlineMonotonicMs,
       mutationClass: input.mutationClass,
     });
-    const encrypted = encryptBrowserFrame(frameKey, {
-      authorityRef: permit.authorityRef,
-      authorityEpoch: permit.authorityEpoch,
-      replyChannelToken: permit.replyChannelToken,
-      sequence: permit.sequence,
-      permitHash: permit.permitHash,
-    }, wirePayload);
-    const frame: BrowserWireMessage = {
-      protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
-      releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
-      type: "command_frame",
-      permit,
-      ...encrypted,
-    };
-    if (Buffer.byteLength(JSON.stringify(frame), "utf8") > GRASSEYE_BROWSER_HOST_TO_EXTENSION_CONTROL_MAX_BYTES) {
-      releaseAdmission();
+    const frame = this.encryptedFrame(identity.frameKey, permit, {
+      ...wirePayload,
+    });
+    if (
+      Buffer.byteLength(JSON.stringify(frame), "utf8") >
+      GRASSEYE_BROWSER_HOST_TO_EXTENSION_CONTROL_MAX_BYTES
+    ) {
       throw new BrowserTerminalError(
         "BROWSER_BACKPRESSURE",
         "browser command control frame exceeds 256KiB",
         input.mutationClass,
       );
     }
+    return Object.freeze({
+      input,
+      timeoutMs: identity.timeoutMs,
+      authority: identity.authority,
+      commandId: identity.commandId,
+      sequence: identity.sequence,
+      wirePayload,
+      requestPayloadHash: hashPayload(wirePayload),
+      permit,
+      frame,
+      releaseAdmission,
+    });
+  }
 
-    if (input.mutationClass !== "observation") {
-      await this.journal.prepare({
-        commandId,
-        authorityCertificateHash: authority.certificate.certificateHash,
-        executionFenceHash: input.executionBinding.writerFenceHash,
-        mutationClass: input.mutationClass,
-        payload: wirePayload,
-      });
-    }
-
-    const response = new Promise<unknown>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        const pending = this.pending.get(commandId);
-        if (!pending) return;
-        this.pending.delete(commandId);
-        pending.releaseAdmission();
-        void this.recordUncertain(pending);
-        reject(new BrowserTerminalError(
-          input.mutationClass === "non_idempotent_mutation" ? "OUTCOME_UNKNOWN" : "COMMAND_TIMEOUT",
-          `command ${commandId} deadline elapsed`,
-          input.mutationClass,
-        ));
-      }, timeoutMs);
-      this.pending.set(commandId, {
-        commandId,
-        permitHash: permit.permitHash,
+  private encryptedFrame(
+    frameKey: Buffer,
+    permit: ReturnType<typeof issueBrowserCommandPermit>,
+    wirePayload: Readonly<Record<string, unknown>>,
+  ): BrowserWireMessage {
+    const encrypted = encryptBrowserFrame(
+      frameKey,
+      {
         authorityRef: permit.authorityRef,
         authorityEpoch: permit.authorityEpoch,
-        authorityCertificateHash: permit.authorityCertificateHash,
         replyChannelToken: permit.replyChannelToken,
-        sequence,
-        mutationClass: input.mutationClass,
-        executionFenceHash: input.executionBinding.writerFenceHash,
-        requestPayloadHash,
+        sequence: permit.sequence,
+        permitHash: permit.permitHash,
+      },
+      wirePayload,
+    );
+    return {
+      protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
+      releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
+      type: "command_frame",
+      permit,
+      ...encrypted,
+    };
+  }
+
+  private async prepareMutationJournal(
+    prepared: PreparedBrowserCommand,
+  ): Promise<void> {
+    if (prepared.input.mutationClass === "observation") return;
+    await this.journal.prepare({
+      commandId: prepared.commandId,
+      authorityCertificateHash: prepared.authority.certificate.certificateHash,
+      executionFenceHash: prepared.input.executionBinding.writerFenceHash,
+      mutationClass: prepared.input.mutationClass,
+      payload: prepared.wirePayload,
+    });
+  }
+
+  private registerPending(prepared: PreparedBrowserCommand): Promise<unknown> {
+    return new Promise<unknown>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        const pending = this.pending.get(prepared.commandId);
+        if (!pending) return;
+        this.pending.delete(prepared.commandId);
+        pending.releaseAdmission();
+        void this.recordUncertain(pending);
+        reject(
+          new BrowserTerminalError(
+            prepared.input.mutationClass === "non_idempotent_mutation"
+              ? "OUTCOME_UNKNOWN"
+              : "COMMAND_TIMEOUT",
+            `command ${prepared.commandId} deadline elapsed`,
+            prepared.input.mutationClass,
+          ),
+        );
+      }, prepared.timeoutMs);
+      this.pending.set(prepared.commandId, {
+        commandId: prepared.commandId,
+        permitHash: prepared.permit.permitHash,
+        authorityRef: prepared.permit.authorityRef,
+        authorityEpoch: prepared.permit.authorityEpoch,
+        authorityCertificateHash: prepared.permit.authorityCertificateHash,
+        replyChannelToken: prepared.permit.replyChannelToken,
+        sequence: prepared.sequence,
+        mutationClass: prepared.input.mutationClass,
+        executionFenceHash: prepared.input.executionBinding.writerFenceHash,
+        requestPayloadHash: prepared.requestPayloadHash,
         resolve,
         reject,
         timeout,
-        releaseAdmission,
+        releaseAdmission: prepared.releaseAdmission,
       });
     });
+  }
 
-    const abort = (): void => this.abort(commandId);
-    input.abortSignal?.addEventListener("abort", abort, { once: true });
-    try {
-      if (!this.transport.isCurrent({
-        authorityRef: permit.authorityRef,
-        authorityEpoch: permit.authorityEpoch,
-        replyChannelToken: permit.replyChannelToken,
-      })) {
-        throw new BrowserTerminalError(
-          "TRANSPORT_DISCONNECTED",
-          "command authority changed before send",
-          input.mutationClass,
-        );
-      }
-      this.transport.send(frame);
-      return { commandId, result: await response as T };
-    } catch (error) {
-      const pending = this.pending.get(commandId);
-      if (pending) {
-        this.pending.delete(commandId);
-        clearTimeout(pending.timeout);
-        pending.releaseAdmission();
-        await this.recordUncertain(pending);
-      }
-      throw error;
-    } finally {
-      input.abortSignal?.removeEventListener("abort", abort);
+  private async sendAndAwait<T>(
+    prepared: PreparedBrowserCommand,
+    response: Promise<unknown>,
+  ): Promise<{ commandId: string; result: T }> {
+    if (
+      !this.transport.isCurrent({
+        authorityRef: prepared.permit.authorityRef,
+        authorityEpoch: prepared.permit.authorityEpoch,
+        replyChannelToken: prepared.permit.replyChannelToken,
+      })
+    ) {
+      throw new BrowserTerminalError(
+        "TRANSPORT_DISCONNECTED",
+        "command authority changed before send",
+        prepared.input.mutationClass,
+      );
     }
+    this.transport.send(prepared.frame);
+    return { commandId: prepared.commandId, result: (await response) as T };
+  }
+
+  private async discardPending(commandId: string): Promise<void> {
+    const pending = this.pending.get(commandId);
+    if (!pending) return;
+    this.pending.delete(commandId);
+    clearTimeout(pending.timeout);
+    pending.releaseAdmission();
+    await this.recordUncertain(pending);
   }
 
   async handleResponse(
     value: Extract<BrowserWireMessage, { type: "response_frame" }>,
     frameKey: Buffer,
   ): Promise<void> {
-    const pending = [...this.pending.values()]
-      .find((item) => item.permitHash === value.permitHash);
-    if (!pending) return;
-    if (
-      value.replyChannelToken !== pending.replyChannelToken
-      || value.authorityRef !== pending.authorityRef
-      || value.authorityEpoch !== pending.authorityEpoch
-      || value.sequence !== pending.sequence
-      || !this.transport.isCurrent({
-        authorityRef: pending.authorityRef,
-        authorityEpoch: pending.authorityEpoch,
-        replyChannelToken: pending.replyChannelToken,
-      })
-    ) {
-      this.rejectAndTerminate(pending, "browser response binding mismatch");
-      return;
-    }
-
-    let response: BrowserWireResponsePayload;
-    try {
-      response = decryptBrowserFrame<BrowserWireResponsePayload>(frameKey, {
-        authorityRef: pending.authorityRef,
-        authorityEpoch: pending.authorityEpoch,
-        replyChannelToken: pending.replyChannelToken,
-        sequence: pending.sequence,
-        permitHash: pending.permitHash,
-      }, value);
-    } catch {
-      this.rejectAndTerminate(pending, "browser response frame authentication failed");
-      return;
-    }
-    if (response.commandId !== pending.commandId) {
-      this.rejectAndTerminate(pending, "browser response command id mismatch");
-      return;
-    }
-
-    clearTimeout(pending.timeout);
-    this.pending.delete(pending.commandId);
-    pending.releaseAdmission();
-    if (response.ok) {
-      if (pending.mutationClass !== "observation") {
-        await this.recordTerminal(pending, "TERMINAL_SUCCESS");
-      }
-      const result = response.result as {
-        artifactRef?: unknown;
-        contentHash?: unknown;
-        byteLength?: unknown;
-      } | undefined;
-      if (
-        result
-        && typeof result.artifactRef === "string"
-        && typeof result.contentHash === "string"
-        && typeof result.byteLength === "number"
-      ) {
-        const receipt = await this.artifacts.finalize({
-          artifactRef: result.artifactRef,
-          contentHash: result.contentHash as `sha256:${string}`,
-          byteLength: result.byteLength,
-        });
-        pending.resolve({ ...result, artifactReceipt: receipt });
-      } else {
-        pending.resolve(response.result);
-      }
-      return;
-    }
-
-    if (pending.mutationClass !== "observation") {
-      await this.recordTerminal(
-        pending,
-        pending.mutationClass === "non_idempotent_mutation"
-          ? "OUTCOME_UNKNOWN"
-          : "TERMINAL_FAILURE",
-      );
-    }
-    pending.reject(new BrowserTerminalError(
-      pending.mutationClass === "non_idempotent_mutation"
-        ? "OUTCOME_UNKNOWN"
-        : "TRANSPORT_DISCONNECTED",
-      response.errorMessage ?? response.errorCode ?? "browser command failed",
-      pending.mutationClass,
-    ));
+    await this.responses.handleResponse(value, frameKey);
   }
 
   failPending(reason: string): void {
@@ -296,18 +355,22 @@ export class BrowserCommandActor {
       clearTimeout(pending.timeout);
       pending.releaseAdmission();
       void this.recordUncertain(pending);
-      pending.reject(new BrowserTerminalError(
-        pending.mutationClass === "non_idempotent_mutation"
-          ? "OUTCOME_UNKNOWN"
-          : "TRANSPORT_DISCONNECTED",
-        reason,
-        pending.mutationClass,
-      ));
+      pending.reject(
+        new BrowserTerminalError(
+          pending.mutationClass === "non_idempotent_mutation"
+            ? "OUTCOME_UNKNOWN"
+            : "TRANSPORT_DISCONNECTED",
+          reason,
+          pending.mutationClass,
+        ),
+      );
     }
     this.pending.clear();
   }
 
-  resetSequence(): void { this.nextSequence = 1; }
+  resetSequence(): void {
+    this.nextSequence = 1;
+  }
 
   private abort(commandId: string): void {
     const pending = this.pending.get(commandId);
@@ -316,28 +379,15 @@ export class BrowserCommandActor {
     this.pending.delete(commandId);
     pending.releaseAdmission();
     void this.recordUncertain(pending);
-    pending.reject(new BrowserTerminalError(
-      pending.mutationClass === "non_idempotent_mutation"
-        ? "OUTCOME_UNKNOWN"
-        : "COMMAND_TIMEOUT",
-      "browser command aborted",
-      pending.mutationClass,
-    ));
-  }
-
-  private rejectAndTerminate(pending: PendingCommand, reason: string): void {
-    clearTimeout(pending.timeout);
-    this.pending.delete(pending.commandId);
-    pending.releaseAdmission();
-    void this.recordUncertain(pending);
-    pending.reject(new BrowserTerminalError(
-      pending.mutationClass === "non_idempotent_mutation"
-        ? "OUTCOME_UNKNOWN"
-        : "TRANSPORT_DISCONNECTED",
-      reason,
-      pending.mutationClass,
-    ));
-    this.transport.terminate(reason);
+    pending.reject(
+      new BrowserTerminalError(
+        pending.mutationClass === "non_idempotent_mutation"
+          ? "OUTCOME_UNKNOWN"
+          : "COMMAND_TIMEOUT",
+        "browser command aborted",
+        pending.mutationClass,
+      ),
+    );
   }
 
   private recordTerminal(
@@ -357,15 +407,18 @@ export class BrowserCommandActor {
 
   private recordUncertain(pending: PendingCommand): Promise<void> {
     if (pending.mutationClass === "observation") return Promise.resolve();
-    return this.journal.terminal({
-      commandId: pending.commandId,
-      authorityCertificateHash: pending.authorityCertificateHash,
-      executionFenceHash: pending.executionFenceHash,
-      mutationClass: pending.mutationClass,
-      payloadHash: pending.requestPayloadHash,
-      state: pending.mutationClass === "non_idempotent_mutation"
-        ? "OUTCOME_UNKNOWN"
-        : "TERMINAL_FAILURE",
-    }).catch(() => undefined);
+    return this.journal
+      .terminal({
+        commandId: pending.commandId,
+        authorityCertificateHash: pending.authorityCertificateHash,
+        executionFenceHash: pending.executionFenceHash,
+        mutationClass: pending.mutationClass,
+        payloadHash: pending.requestPayloadHash,
+        state:
+          pending.mutationClass === "non_idempotent_mutation"
+            ? "OUTCOME_UNKNOWN"
+            : "TERMINAL_FAILURE",
+      })
+      .catch(() => undefined);
   }
 }

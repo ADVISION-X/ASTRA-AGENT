@@ -320,7 +320,7 @@ export const inspectAmazonWebChatRestoreContinuity = (
       && !fileIncludesText(runtimeFile, "buildRestoreFailure")
     : false;
 
-  if (openOk && sharedOk && recoveryOk && runtimeOk && acceptanceFile && fileIncludesText(acceptanceFile, "deep-research.final-adjudication-v1")) {
+  if (openOk && sharedOk && recoveryOk && runtimeOk && acceptanceFile && fileIncludesText(acceptanceFile, "generic.acceptance-v1")) {
     return;
   }
 

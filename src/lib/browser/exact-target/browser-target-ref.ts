@@ -1,6 +1,12 @@
-import type { BrowserDocumentRef, BrowserTargetRef } from "../../../types/browser-target.js";
+import type {
+  BrowserDocumentRef,
+  BrowserTargetRef,
+} from "../../../types/browser-target.js";
 
-export type { BrowserDocumentRef, BrowserTargetRef } from "../../../types/browser-target.js";
+export type {
+  BrowserDocumentRef,
+  BrowserTargetRef,
+} from "../../../types/browser-target.js";
 
 export interface ControlledBrowserTarget {
   readonly targetRef: BrowserTargetRef;

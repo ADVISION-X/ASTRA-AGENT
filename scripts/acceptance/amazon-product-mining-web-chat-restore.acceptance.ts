@@ -160,7 +160,7 @@ try {
 
   await new Promise((resolve) => setTimeout(resolve, 2_050));
 
-  const nonAmazonResult = await abilityGroup.execute(createRequest("deep-research.final-adjudication-v1"));
+  const nonAmazonResult = await abilityGroup.execute(createRequest("generic.acceptance-v1"));
 
   assert.equal(
     nonAmazonResult.status,

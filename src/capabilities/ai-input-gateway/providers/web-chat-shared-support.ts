@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   AiProviderRawResponse,
@@ -16,7 +16,7 @@ import {
 } from "./web-chat-workspace.js";
 
 export const readActivePageUrl = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
 ): Promise<string | null> => {
   try {
     const state = await browser.evaluate<{ pageUrl: string }>({
@@ -25,12 +25,12 @@ export const readActivePageUrl = async (
     });
     return state.pageUrl || null;
   } catch {
-    return browser.getSessionState().currentUrl || null;
+    return browser.getLeaseState().currentUrl || null;
   }
 };
 
 export const assertActiveProviderPage = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   providerUrl: string;
   abortSignal?: AbortSignal;
   phase: string;
@@ -62,8 +62,8 @@ export const assertActiveProviderPage = async (input: {
   }
 };
 
-export const requireBrowser = (context: AiProviderAdapterContext): BrowserTargetSession => {
-  if (!context.browser) throw new Error("Web chat feed requires a governed BrowserTargetSession.");
+export const requireBrowser = (context: AiProviderAdapterContext): BrowserTargetLease => {
+  if (!context.browser) throw new Error("Web chat feed requires a governed BrowserTargetLease.");
   return context.browser;
 };
 
@@ -182,7 +182,7 @@ export const persistWorkspaceAfterResponse = (input: {
 };
 
 export const cleanupProviderWorkspaceAfterResponse = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   response: AiProviderRawResponse;

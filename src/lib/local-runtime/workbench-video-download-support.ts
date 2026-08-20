@@ -2,7 +2,7 @@ import {
   createVideoDownloadAbilityGroupFromFilesystem,
   type BrowserMediaSourcePort,
 } from "../../capabilities/video-download/index.js";
-import type { BrowserController, BrowserTargetSession } from "../browser/browser-controller.js";
+import type { BrowserController, BrowserTargetLease } from "../browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 
 const allowedSourcePageProbeDescriptions = new Set([
@@ -17,7 +17,7 @@ const assertAllowedProbe = (description: string, script: string): void => {
 };
 
 const bindSourceTarget = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   sourcePageUrl: string,
   abortSignal?: AbortSignal,
 ): Promise<void> => {
@@ -32,7 +32,7 @@ const bindSourceTarget = async (
 };
 
 export const createWorkbenchBrowserMediaSourcePort = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
 ): BrowserMediaSourcePort => ({
   evaluate: (input) => browser.evaluate(input),
   async evaluateSourcePage<T>(input: {

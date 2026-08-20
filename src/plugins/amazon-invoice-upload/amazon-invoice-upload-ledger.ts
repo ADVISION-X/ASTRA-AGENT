@@ -21,7 +21,12 @@ export type AmazonInvoiceUploadLedgerRecord = {
 };
 
 const ledgerDbPath = (dataDir: string): string =>
-  path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", "amazon_invoice_upload_ledger.sqlite");
+  path.join(
+    dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+    "amazon_invoice_upload_ledger.sqlite",
+  );
 
 const taskRootPath = (dataDir: string): string =>
   path.join(dataDir, "plugin-tasks", "amazon-invoice-upload");
@@ -47,18 +52,31 @@ function openLedgerDb(dataDir: string): Database.Database {
   )`);
   ensureLedgerColumn(db, "runtime_log_ref", "TEXT");
   ensureLedgerColumn(db, "navigation_evidence_ref", "TEXT");
-  db.exec("CREATE INDEX IF NOT EXISTS idx_amazon_invoice_upload_ledger_order ON amazon_invoice_upload_ledger (amazon_order_id, updated_at)");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_amazon_invoice_upload_ledger_order ON amazon_invoice_upload_ledger (amazon_order_id, updated_at)",
+  );
   return db;
 }
 
-function ensureLedgerColumn(db: Database.Database, name: string, type: "TEXT"): void {
-  const columns = db.prepare("PRAGMA table_info(amazon_invoice_upload_ledger)").all() as Array<{ name: string }>;
+function ensureLedgerColumn(
+  db: Database.Database,
+  name: string,
+  type: "TEXT",
+): void {
+  const columns = db
+    .prepare("PRAGMA table_info(amazon_invoice_upload_ledger)")
+    .all() as Array<{ name: string }>;
   if (!columns.some((column) => column.name === name)) {
-    db.exec(`ALTER TABLE amazon_invoice_upload_ledger ADD COLUMN ${name} ${type}`);
+    db.exec(
+      `ALTER TABLE amazon_invoice_upload_ledger ADD COLUMN ${name} ${type}`,
+    );
   }
 }
 
-export function upsertAmazonInvoiceUploadLedgerRecord(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
+export function upsertAmazonInvoiceUploadLedgerRecord(
+  dataDir: string,
+  record: AmazonInvoiceUploadTaskRecord,
+): void {
   const db = openLedgerDb(dataDir);
   try {
     writeLedgerRecord(db, record);
@@ -67,11 +85,15 @@ export function upsertAmazonInvoiceUploadLedgerRecord(dataDir: string, record: A
   }
 }
 
-export function listAmazonInvoiceUploadLedgerRecords(dataDir: string): AmazonInvoiceUploadLedgerRecord[] {
+export function listAmazonInvoiceUploadLedgerRecords(
+  dataDir: string,
+): AmazonInvoiceUploadLedgerRecord[] {
   const db = openLedgerDb(dataDir);
   try {
     backfillLedgerFromTaskRecords(dataDir, db);
-    return db.prepare(`WITH ranked_ledger AS (
+    return db
+      .prepare(
+        `WITH ranked_ledger AS (
       SELECT *,
         ROW_NUMBER() OVER (
           PARTITION BY amazon_order_id, invoice_no
@@ -94,17 +116,28 @@ export function listAmazonInvoiceUploadLedgerRecords(dataDir: string): AmazonInv
       updated_at AS updatedAt
     FROM ranked_ledger
     WHERE canonical_rank = 1
-    ORDER BY updated_at DESC`).all().map((row) => ({
-      ...(row as Omit<AmazonInvoiceUploadLedgerRecord, "reviewRequired"> & { reviewRequired: number }),
-      reviewRequired: Boolean((row as { reviewRequired: number }).reviewRequired),
-    }));
+    ORDER BY updated_at DESC`,
+      )
+      .all()
+      .map((row) => ({
+        ...(row as Omit<AmazonInvoiceUploadLedgerRecord, "reviewRequired"> & {
+          reviewRequired: number;
+        }),
+        reviewRequired: Boolean(
+          (row as { reviewRequired: number }).reviewRequired,
+        ),
+      }));
   } finally {
     db.close();
   }
 }
 
-function writeLedgerRecord(db: Database.Database, record: AmazonInvoiceUploadTaskRecord): void {
-  db.prepare(`INSERT INTO amazon_invoice_upload_ledger (
+function writeLedgerRecord(
+  db: Database.Database,
+  record: AmazonInvoiceUploadTaskRecord,
+): void {
+  db.prepare(
+    `INSERT INTO amazon_invoice_upload_ledger (
     task_id, amazon_order_id, invoice_no, status, reason, reached_step,
     evidence_ref, runtime_log_ref, navigation_evidence_ref, review_required, created_at, updated_at
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -118,41 +151,53 @@ function writeLedgerRecord(db: Database.Database, record: AmazonInvoiceUploadTas
     runtime_log_ref = excluded.runtime_log_ref,
     navigation_evidence_ref = excluded.navigation_evidence_ref,
     review_required = excluded.review_required,
-    updated_at = excluded.updated_at`).run(
-      record.taskId,
-      record.amazonOrderId,
-      record.invoiceNo,
-      record.status,
-      record.reason,
-      record.reachedStep,
-      record.evidenceRef ?? null,
-      record.runtimeLogRef ?? null,
-      record.orderNavigationProof?.evidenceRef ?? null,
-      record.reviewRequired ? 1 : 0,
-      record.createdAt,
-      record.updatedAt,
-    );
+    updated_at = excluded.updated_at`,
+  ).run(
+    record.taskId,
+    record.amazonOrderId,
+    record.invoiceNo,
+    record.status,
+    record.reason,
+    record.reachedStep,
+    record.evidenceRef ?? null,
+    record.runtimeLogRef ?? null,
+    record.orderNavigationProof?.evidenceRef ?? null,
+    record.reviewRequired ? 1 : 0,
+    record.createdAt,
+    record.updatedAt,
+  );
 }
 
-function backfillLedgerFromTaskRecords(dataDir: string, db: Database.Database): void {
+function backfillLedgerFromTaskRecords(
+  dataDir: string,
+  db: Database.Database,
+): void {
   const root = taskRootPath(dataDir);
   if (!existsSync(root)) return;
-  const writeMany = db.transaction((records: AmazonInvoiceUploadTaskRecord[]) => {
-    for (const record of records) {
-      writeLedgerRecord(db, record);
-    }
-  });
+  const writeMany = db.transaction(
+    (records: AmazonInvoiceUploadTaskRecord[]) => {
+      for (const record of records) {
+        writeLedgerRecord(db, record);
+      }
+    },
+  );
   writeMany(readTaskRecords(root));
 }
 
 function readTaskRecords(root: string): AmazonInvoiceUploadTaskRecord[] {
   return readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .flatMap((entry) => readTaskRecord(path.join(root, entry.name, "task.json")));
+    .flatMap((entry) =>
+      readTaskRecord(path.join(root, entry.name, "task.json")),
+    );
 }
 
 function readTaskRecord(recordPath: string): AmazonInvoiceUploadTaskRecord[] {
   if (!existsSync(recordPath)) return [];
-  const record = JSON.parse(readFileSync(recordPath, "utf8")) as AmazonInvoiceUploadTaskRecord;
-  return record.taskId && record.amazonOrderId && record.invoiceNo ? [record] : [];
+  const record = JSON.parse(
+    readFileSync(recordPath, "utf8"),
+  ) as AmazonInvoiceUploadTaskRecord;
+  return record.taskId && record.amazonOrderId && record.invoiceNo
+    ? [record]
+    : [];
 }

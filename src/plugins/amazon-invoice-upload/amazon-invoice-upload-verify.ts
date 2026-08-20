@@ -1,6 +1,9 @@
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
+import {
+  readSnapshot,
+  taskResult,
+} from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -16,12 +19,16 @@ type VerifySuccessResult = {
 };
 
 export async function verifyUploadSuccess(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const success = await waitForUploadSuccessBoundary(browser, mission, abortSignal);
+  const success = await waitForUploadSuccessBoundary(
+    browser,
+    mission,
+    abortSignal,
+  );
   recordAmazonDomStepTrace({
     runtimeLogger,
     mission,
@@ -38,31 +45,52 @@ export async function verifyUploadSuccess(
     mission,
     stepName: "retain uploaded order tab",
     status: "success",
-    reason: "Active Seller Central order worker tab retained for next invoice navigation.",
+    reason:
+      "Active Seller Central order worker tab retained for next invoice navigation.",
   });
   return buildUploadSuccessResult(mission, success);
 }
 
 async function waitForUploadSuccessBoundary(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
 ): Promise<VerifySuccessResult> {
-  for (let observation = 1; observation <= UPLOAD_SUCCESS_OBSERVATION_LIMIT; observation += 1) {
-    const snapshot = await readSnapshot(browser, { maxTextLengthPerNode: 240 }, abortSignal);
+  for (
+    let observation = 1;
+    observation <= UPLOAD_SUCCESS_OBSERVATION_LIMIT;
+    observation += 1
+  ) {
+    const snapshot = await readSnapshot(
+      browser,
+      { maxTextLengthPerNode: 240 },
+      abortSignal,
+    );
     const boundary = observeExistingInvoiceConfirmation(snapshot, mission);
     if (boundary.status === "confirmed") {
       return {
         status: "success",
         reason: boundary.reason,
-        evidenceRef: await captureFinalBoundaryEvidence(browser, mission, observation, boundary.reason, abortSignal),
+        evidenceRef: await captureFinalBoundaryEvidence(
+          browser,
+          mission,
+          observation,
+          boundary.reason,
+          abortSignal,
+        ),
       };
     }
     if (boundary.status === "rejected") {
       return {
         status: "rejected",
         reason: boundary.reason,
-        evidenceRef: await captureFinalBoundaryEvidence(browser, mission, observation, boundary.reason, abortSignal),
+        evidenceRef: await captureFinalBoundaryEvidence(
+          browser,
+          mission,
+          observation,
+          boundary.reason,
+          abortSignal,
+        ),
       };
     }
     if (observation < UPLOAD_SUCCESS_OBSERVATION_LIMIT) {
@@ -83,7 +111,7 @@ async function waitForUploadSuccessBoundary(
 }
 
 async function captureFinalBoundaryEvidence(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   mission: AmazonInvoiceUploadMissionInput,
   observation: number,
   reason: string,
@@ -122,7 +150,8 @@ const buildUploadSuccessResult = (
 ): AmazonInvoiceUploadTaskResult =>
   taskResult({
     status: "upload_success",
-    reason: "Amazon Seller Central shows invoice uploaded successfully; active order tab retained for next invoice navigation.",
+    reason:
+      "Amazon Seller Central shows invoice uploaded successfully; active order tab retained for next invoice navigation.",
     reachedStep: "upload success verified",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,

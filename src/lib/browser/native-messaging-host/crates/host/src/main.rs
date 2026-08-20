@@ -1,5 +1,9 @@
+use base64::engine::general_purpose::{STANDARD as BASE64_STANDARD, URL_SAFE_NO_PAD};
+use base64::Engine;
+use hmac::{Hmac, Mac};
 use serde::Deserialize;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
@@ -12,11 +16,11 @@ use std::os::unix::fs::MetadataExt;
 #[cfg(unix)]
 use std::os::unix::net::UnixStream;
 
-const PROTOCOL_VERSION: &str = "grasseye-browser-v2";
-const RELEASE_IDENTITY: &str = "grasseye-browser-runtime-2026-08-18-v2";
+const PROTOCOL_VERSION: &str = "grasseye-browser-v3";
+const RELEASE_IDENTITY: &str = "grasseye-browser-runtime-2026-08-20-v3";
 const EXTENSION_ID: &str = "mepfnlhndaiihhfejbbhfehegpbdnipl";
 const EXPECTED_ORIGIN: &str = "chrome-extension://mepfnlhndaiihhfejbbhfehegpbdnipl/";
-const EXTENSION_TO_HOST_MAX_BYTES: usize = 48 * 1024 * 1024;
+const EXTENSION_TO_HOST_MAX_BYTES: usize = 4 * 1024 * 1024;
 const HOST_TO_EXTENSION_MAX_BYTES: usize = 256 * 1024;
 const CONTROLLER_LINE_MAX_BYTES: usize = 64 * 1024 * 1024;
 
@@ -32,6 +36,10 @@ struct HostConfig {
     profile_directory: String,
     chrome_executable_path: String,
     runtime_mode: String,
+    host_binary_hash: String,
+    chrome_process_incarnation_hash: String,
+    profile_enrollment_hash: String,
+    artifact_set_hash: String,
 }
 
 fn fail(code: &str, detail: impl AsRef<str>) -> ! {
@@ -112,7 +120,23 @@ fn load_config() -> HostConfig {
             fail("BROWSER_HOST_ABSOLUTE_PATH_REQUIRED", candidate);
         }
     }
+    for candidate in [
+        &config.host_binary_hash,
+        &config.chrome_process_incarnation_hash,
+        &config.profile_enrollment_hash,
+        &config.artifact_set_hash,
+    ] {
+        if !is_sha256(candidate) {
+            fail("BROWSER_HOST_IDENTITY_INVALID", "V3 host identity hash missing or malformed");
+        }
+    }
     config
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 71
+        && value.starts_with("sha256:")
+        && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn assert_caller_origin() {
@@ -235,12 +259,123 @@ fn write_native_message(writer: &mut impl Write, bytes: &[u8]) -> io::Result<()>
     writer.flush()
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ControllerHostChallenge {
+    #[serde(rename = "type")]
+    message_type: String,
+    controller_incarnation_hash: String,
+    controller_nonce: String,
+    supervisor_epoch: u64,
+    connection_generation: u64,
+}
+
+fn sha256(value: &str) -> String {
+    let digest = Sha256::digest(value.as_bytes());
+    format!("sha256:{}", digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>())
+}
+
+fn install_identity_secret() -> Vec<u8> {
+    #[cfg(target_os = "macos")]
+    let output = Command::new("/usr/bin/security")
+        .args(["find-generic-password", "-w", "-s", "com.grasseye.browser.install-identity"])
+        .output()
+        .unwrap_or_else(|error| fail("INSTALL_IDENTITY_REPAIR_REQUIRED", error.to_string()));
+    #[cfg(target_os = "linux")]
+    let output = Command::new("/usr/bin/secret-tool")
+        .args(["lookup", "service", "com.grasseye.browser.install-identity", "key", "install-identity"])
+        .output()
+        .unwrap_or_else(|error| fail("INSTALL_IDENTITY_REPAIR_REQUIRED", error.to_string()));
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    fail("INSTALL_IDENTITY_REPAIR_REQUIRED", "unsupported platform");
+    if !output.status.success() {
+        fail("INSTALL_IDENTITY_REPAIR_REQUIRED", "install identity credential unavailable");
+    }
+    URL_SAFE_NO_PAD
+        .decode(String::from_utf8_lossy(&output.stdout).trim())
+        .unwrap_or_else(|_| fail("INSTALL_IDENTITY_REPAIR_REQUIRED", "install identity credential malformed"))
+}
+
+fn host_attestation_transcript(
+    challenge_transcript_hash: &str,
+    config: &HostConfig,
+    host_process_epoch: u64,
+) -> String {
+    [
+        "browser-host-attestation-v1".to_string(),
+        challenge_transcript_hash.to_string(),
+        config.host_binary_hash.clone(),
+        host_process_epoch.to_string(),
+        config.chrome_process_incarnation_hash.clone(),
+        config.profile_enrollment_hash.clone(),
+        config.artifact_set_hash.clone(),
+    ]
+    .join(":")
+}
+
+#[cfg(unix)]
+fn attest_controller(stream: &mut UnixStream, config: &HostConfig) -> io::Result<()> {
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut line = String::new();
+    if reader.read_line(&mut line)? == 0 {
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "controller challenge missing"));
+    }
+    let value: Value = serde_json::from_str(line.trim_end())
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    let challenge: ControllerHostChallenge = serde_json::from_value(value.clone())
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    if challenge.message_type != "controller_host_challenge"
+        || !is_sha256(&challenge.controller_incarnation_hash)
+        || challenge.controller_nonce.trim().is_empty()
+        || challenge.supervisor_epoch == 0
+        || challenge.connection_generation == 0
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "controller challenge invalid"));
+    }
+    let challenge_transcript = [
+        "browser-host-challenge-v1".to_string(),
+        challenge.controller_incarnation_hash,
+        challenge.controller_nonce,
+        challenge.supervisor_epoch.to_string(),
+        challenge.connection_generation.to_string(),
+    ]
+    .join(":");
+    let challenge_transcript_hash = sha256(&challenge_transcript);
+    let host_process_epoch = process::id() as u64;
+    let transcript = host_attestation_transcript(
+        &challenge_transcript_hash,
+        config,
+        host_process_epoch,
+    );
+    let secret = install_identity_secret();
+    let mut mac = Hmac::<Sha256>::new_from_slice(&secret)
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "install identity invalid"))?;
+    mac.update(transcript.as_bytes());
+    let proof = BASE64_STANDARD.encode(mac.finalize().into_bytes());
+    let attestation = serde_json::json!({
+        "type": "host_attestation",
+        "challengeTranscriptHash": challenge_transcript_hash,
+        "hostBinaryHash": config.host_binary_hash,
+        "hostProcessEpoch": host_process_epoch,
+        "chromeProcessIncarnationHash": config.chrome_process_incarnation_hash,
+        "profileEnrollmentHash": config.profile_enrollment_hash,
+        "artifactSetHash": config.artifact_set_hash,
+        "mac": proof,
+    });
+    stream.write_all(serde_json::to_string(&attestation)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?
+        .as_bytes())?;
+    stream.write_all(b"\n")?;
+    stream.flush()
+}
+
 #[cfg(unix)]
 fn run(config: HostConfig) -> io::Result<()> {
     assert_enrolled_browser_ancestry(&config);
     let socket_path = Path::new(&config.socket_path);
     assert_owner_only(socket_path, false);
-    let stream = UnixStream::connect(socket_path)?;
+    let mut stream = UnixStream::connect(socket_path)?;
+    attest_controller(&mut stream, &config)?;
     let mut request_stream = stream.try_clone()?;
     let response_stream = stream;
 

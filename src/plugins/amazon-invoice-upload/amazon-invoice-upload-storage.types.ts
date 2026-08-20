@@ -1,5 +1,8 @@
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
-import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
+import type {
+  AmazonInvoiceUploadMissionInput,
+  AmazonTaxInvoiceDownloadMissionInput,
+} from "./mission.schema.js";
 import type { PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 
 export type AmazonInvoiceUploadPdfFile = {
@@ -52,14 +55,15 @@ export type AmazonTaxInvoiceDownloadTaskResult = {
   reviewRequired?: boolean;
 };
 
-export type AmazonTaxInvoiceDownloadTaskRecord = AmazonTaxInvoiceDownloadTaskResult & {
-  taskId: string;
-  taskKind: "tax_invoice_download";
-  mission: AmazonTaxInvoiceDownloadMissionInput;
-  sourceSystem?: string;
-  requestId?: string;
-  callbackStatus?: "not_configured" | "pending" | "sent" | "failed";
-  artifact?: AmazonTaxInvoiceDownloadArtifactMetadata;
-  createdAt: string;
-  updatedAt: string;
-};
+export type AmazonTaxInvoiceDownloadTaskRecord =
+  AmazonTaxInvoiceDownloadTaskResult & {
+    taskId: string;
+    taskKind: "tax_invoice_download";
+    mission: AmazonTaxInvoiceDownloadMissionInput;
+    sourceSystem?: string;
+    requestId?: string;
+    callbackStatus?: "not_configured" | "pending" | "sent" | "failed";
+    artifact?: AmazonTaxInvoiceDownloadArtifactMetadata;
+    createdAt: string;
+    updatedAt: string;
+  };

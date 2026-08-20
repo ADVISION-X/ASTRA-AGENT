@@ -39,7 +39,6 @@ running | pause_requested | paused | cancel_requested | cancelled
 | --- | --- | --- | --- | --- |
 | amazon-invoice-upload | GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1 | invoice task/ledger store | item 前后、file attach 前、submit 前、result/ledger 后 | 已提交但无结果即 `review_required`，不重传 |
 | amazon-product-mining | GRASSEYE-AMAZON-PRODUCT-MINING-027-V1 | mining SQLite/store | keyword、search、detail、reviews、AI submit/raw checkpoint、package commit | AI 结果不明即 `review_required`，不重提 |
-| deep-research-analysis | GRASSEYE-DEEP-RESEARCH-061-V1 | research record DB | 每个 exchange send/capture/raw persist、case-file/HTML commit | exchange 不明即复核；raw/full case file 保留 |
 | xuanxue-ai-production | GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1 | xuanxue SQLite order store | dequeue、stage feed、response checkpoint、join、hash commit、cloud publish | 只允许本地整单入口；cloud 无人工命令 |
 
 ## 3. 响应预算
@@ -58,7 +57,7 @@ running | pause_requested | paused | cancel_requested | cancelled
 - pause/cancel 后旧 document generation 失效。
 - takeover ACK 必须先向扩展发送精确 `release_target`，解除该 Tab 的 `chrome.debugger` 附着但不关闭用户标签页，然后销毁旧 target/document refs。
 - takeover/resume 必须从 owner checkpoint 重新 acquire 精确 target，核验 origin、业务身份和已持久化 hash，再继续；旧 refs 永久不可复活。
-- Product Mining、Deep Research、xuanxue-ai-production 接管 provider Tab 时，AI Input Gateway 必须登记精确 owner key，并阻塞全部新 Web AI 操作；只有同一 owner 的显式 resume 才解除阻塞。
+- Product Mining、xuanxue-ai-production 接管 provider Tab 时，AI Input Gateway 必须登记精确 owner key，并阻塞全部新 Web AI 操作；只有同一 owner 的显式 resume 才解除阻塞。
 - 不得恢复 active-tab、front-window、URL-first、first-page、same-path 或 host-tab fallback。
 - DOM/Browser 动作只走插件精确 target；系统文件选择器、OS 鼠标、OS 键盘和焦点租约均不存在。
 

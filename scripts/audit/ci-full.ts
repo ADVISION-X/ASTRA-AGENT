@@ -486,7 +486,7 @@ const main = async (): Promise<void> => {
     finalDecision: "PASS",
   });
 
-  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, Deep Research smoke, single-chain/raw/full-case/format-shell/no-confidence/promptbundle/raw-html/full-process-html/no-compatibility/export/UI acceptance, and Amazon smoke passed.\n");
+  process.stdout.write("[CI-FULL] PASS — entry gate, audit plan, typecheck, runtime log acceptance, and Amazon smoke passed.\n");
 };
 
 const isEntrypoint = (): boolean => {

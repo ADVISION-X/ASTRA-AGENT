@@ -36,26 +36,43 @@ export class BrowserCommandAdmissionBudget {
 
   admit(input: AdmissionRequest, nowMonotonicMs: number): AdmissionRelease {
     if (nowMonotonicMs >= input.deadlineMonotonicMs) {
-      throw new BrowserBackpressureError("command deadline elapsed before admission");
+      throw new BrowserBackpressureError(
+        "command deadline elapsed before admission",
+      );
     }
     if (!Number.isSafeInteger(input.payloadBytes) || input.payloadBytes < 0) {
       throw new BrowserBackpressureError("command payload size is invalid");
     }
     if (
-      this.queuedCommands + 1 > BROWSER_COMMAND_ADMISSION_BUDGET.maxQueuedCommands
-      || this.queuedBytes + input.payloadBytes > BROWSER_COMMAND_ADMISSION_BUDGET.maxQueuedBytes
+      this.queuedCommands + 1 >
+        BROWSER_COMMAND_ADMISSION_BUDGET.maxQueuedCommands ||
+      this.queuedBytes + input.payloadBytes >
+        BROWSER_COMMAND_ADMISSION_BUDGET.maxQueuedBytes
     ) {
-      throw new BrowserBackpressureError("browser command queue budget exceeded");
+      throw new BrowserBackpressureError(
+        "browser command queue budget exceeded",
+      );
     }
     if (input.mutationClass === "observation") {
-      if (this.inflightObservations >= BROWSER_COMMAND_ADMISSION_BUDGET.maxInflightObservations) {
-        throw new BrowserBackpressureError("browser observation concurrency budget exceeded");
+      if (
+        this.inflightObservations >=
+        BROWSER_COMMAND_ADMISSION_BUDGET.maxInflightObservations
+      ) {
+        throw new BrowserBackpressureError(
+          "browser observation concurrency budget exceeded",
+        );
       }
       this.inflightObservations += 1;
     } else {
-      const current = this.inflightMutationsByTarget.get(input.targetLeaseRef) ?? 0;
-      if (current >= BROWSER_COMMAND_ADMISSION_BUDGET.maxInflightMutationsPerTarget) {
-        throw new BrowserBackpressureError("browser target mutation lane is occupied");
+      const current =
+        this.inflightMutationsByTarget.get(input.targetLeaseRef) ?? 0;
+      if (
+        current >=
+        BROWSER_COMMAND_ADMISSION_BUDGET.maxInflightMutationsPerTarget
+      ) {
+        throw new BrowserBackpressureError(
+          "browser target mutation lane is occupied",
+        );
       }
       this.inflightMutationsByTarget.set(input.targetLeaseRef, current + 1);
     }
@@ -70,9 +87,12 @@ export class BrowserCommandAdmissionBudget {
       if (input.mutationClass === "observation") {
         this.inflightObservations = Math.max(0, this.inflightObservations - 1);
       } else {
-        const current = this.inflightMutationsByTarget.get(input.targetLeaseRef) ?? 0;
-        if (current <= 1) this.inflightMutationsByTarget.delete(input.targetLeaseRef);
-        else this.inflightMutationsByTarget.set(input.targetLeaseRef, current - 1);
+        const current =
+          this.inflightMutationsByTarget.get(input.targetLeaseRef) ?? 0;
+        if (current <= 1)
+          this.inflightMutationsByTarget.delete(input.targetLeaseRef);
+        else
+          this.inflightMutationsByTarget.set(input.targetLeaseRef, current - 1);
       }
     };
   }

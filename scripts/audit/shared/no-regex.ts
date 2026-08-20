@@ -79,11 +79,6 @@ export const extractMarkdownHeadings = (text: string): ReadonlySet<string> => {
 export const containsAny = (text: string, tokens: readonly string[]): boolean =>
   tokens.some((token) => text.includes(token));
 
-export const containsAnyCaseInsensitive = (text: string, tokens: readonly string[]): boolean => {
-  const lowered = text.toLowerCase();
-  return tokens.some((token) => lowered.includes(token.toLowerCase()));
-};
-
 export const escapeMarkdownCell = (value: string): string =>
   value.split("|").join("\\|").split("\n").join(" ");
 
@@ -125,34 +120,4 @@ export const isTopLevelPluginFile = (repoPath: string): boolean => {
     && segments[0] === "src"
     && segments[1] === "plugins"
     && (fileName.endsWith(".ts") || fileName.endsWith(".tsx"));
-};
-
-export const splitIdentifierTokens = (value: string): string[] => {
-  const tokens: string[] = [];
-  let current = "";
-  const pushCurrent = (): void => {
-    if (current.length > 0) {
-      tokens.push(current.toLowerCase());
-      current = "";
-    }
-  };
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index] ?? "";
-    const previous = value[index - 1] ?? "";
-    const isLowerOrDigit = (previous >= "a" && previous <= "z") || (previous >= "0" && previous <= "9");
-    const isUpper = character >= "A" && character <= "Z";
-    const isAlphaNumeric = (character >= "a" && character <= "z")
-      || isUpper
-      || (character >= "0" && character <= "9");
-    if (!isAlphaNumeric) {
-      pushCurrent();
-      continue;
-    }
-    if (isUpper && isLowerOrDigit) {
-      pushCurrent();
-    }
-    current += character;
-  }
-  pushCurrent();
-  return tokens;
 };

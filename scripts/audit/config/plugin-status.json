@@ -171,63 +171,6 @@
       ]
     },
     {
-      "pluginId": "deep-research-analysis",
-      "status": "active",
-      "owner": "plugin:deep-research-analysis",
-      "phase": "law-governed-active",
-      "mediatorRoute": "src/mediator/deep-research-analysis-route.ts",
-      "mediatorBindings": [
-        {
-          "routeExport": "runDeepResearchAnalysisRoute",
-          "schemaExport": "DeepResearchInputSchema",
-          "taskExport": "runDeepResearchAnalysis"
-        },
-        {
-          "routeExport": "runPauseDeepResearchRoute",
-          "schemaExport": "DeepResearchInterventionRequestSchema",
-          "taskExport": "pauseDeepResearch"
-        },
-        {
-          "routeExport": "runCancelDeepResearchRoute",
-          "schemaExport": "DeepResearchInterventionRequestSchema",
-          "taskExport": "cancelDeepResearch"
-        },
-        {
-          "routeExport": "runTakeoverDeepResearchRoute",
-          "schemaExport": "DeepResearchInterventionRequestSchema",
-          "taskExport": "takeoverDeepResearch"
-        },
-        {
-          "routeExport": "runResumeDeepResearchRoute",
-          "schemaExport": "DeepResearchInterventionRequestSchema",
-          "taskExport": "resumeDeepResearch"
-        }
-      ],
-      "allowedEntrypoints": [
-        "src/mediator/deep-research-analysis-route.ts",
-        "src/app/workbench-deep-research-routes.ts",
-        "src/app/workbench-deep-research-intervention-routes.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "src/lib/local-runtime/workbench-deep-research-handle.ts",
-        "src/lib/local-runtime/workbench-deep-research-input-attachments.ts",
-        "src/lib/local-runtime/workbench-handle.ts"
-      ],
-      "allowedAcceptanceTests": [
-        "acceptance:deep-research-input-attachments",
-        "acceptance:deep-research-analysis-smoke"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:deep-research-input-attachments",
-        "acceptance:deep-research-analysis-smoke"
-      ],
-      "exposureTokens": [
-        "deep-research-analysis"
-      ],
-      "lawSourceRefs": [
-        ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md"
-      ]
-    },
-    {
       "pluginId": "media-processing-artifact",
       "status": "active",
       "owner": "plugin:media-processing-artifact",

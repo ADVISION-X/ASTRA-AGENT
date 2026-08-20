@@ -55,7 +55,9 @@ export type ExistingInvoiceConfirmation =
   | { status: "rejected"; reason: string }
   | { status: "pending"; reason: string };
 
-export function locateManageInvoiceEntry(snapshot: DomSnapshot): ReturnType<typeof locateOrStatus> {
+export function locateManageInvoiceEntry(
+  snapshot: DomSnapshot,
+): ReturnType<typeof locateOrStatus> {
   const zhEntry = locateOrStatus({
     snapshot,
     targetKind: "button",
@@ -77,7 +79,9 @@ export function hasExistingInvoiceEvidence(
   snapshot: DomSnapshot,
   mission: AmazonInvoiceUploadMissionInput,
 ): boolean {
-  return observeExistingInvoiceConfirmation(snapshot, mission).status === "confirmed";
+  return (
+    observeExistingInvoiceConfirmation(snapshot, mission).status === "confirmed"
+  );
 }
 
 export function observeExistingInvoiceConfirmation(
@@ -86,44 +90,77 @@ export function observeExistingInvoiceConfirmation(
 ): ExistingInvoiceConfirmation {
   const dialogs = currentOrderDialogs(snapshot, mission);
   if (dialogs.length === 0) {
-    return { status: "pending", reason: "No current-order invoice dialog is visible yet." };
+    return {
+      status: "pending",
+      reason: "No current-order invoice dialog is visible yet.",
+    };
   }
   if (dialogs.length !== 1) {
-    return { status: "rejected", reason: "Expected exactly one visible current-order invoice dialog." };
+    return {
+      status: "rejected",
+      reason: "Expected exactly one visible current-order invoice dialog.",
+    };
   }
   const dialog = dialogs[0];
-  if (!dialog) return { status: "pending", reason: "No current-order invoice dialog is visible yet." };
-  const dialogText = normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`);
+  if (!dialog)
+    return {
+      status: "pending",
+      reason: "No current-order invoice dialog is visible yet.",
+    };
+  const dialogText = normalizeText(
+    `${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`,
+  );
   if (hasFailureState(dialogText)) {
-    return { status: "rejected", reason: "The unique current-order invoice dialog exposes a governed failure state." };
+    return {
+      status: "rejected",
+      reason:
+        "The unique current-order invoice dialog exposes a governed failure state.",
+    };
   }
   const matchingRows = dialog.descendantRows
     .filter((row) => !row.hidden && !row.disabled)
     .map((row) => normalizeText(row.visibleText ?? ""))
-    .filter((text) => hasExactInvoiceNumber(text, mission.invoiceNo) && hasInvoiceRowContext(text));
+    .filter(
+      (text) =>
+        hasExactInvoiceNumber(text, mission.invoiceNo) &&
+        hasInvoiceRowContext(text),
+    );
   if (matchingRows.some(hasFailureState)) {
-    return { status: "rejected", reason: "The expected invoice row exposes a governed failure state." };
+    return {
+      status: "rejected",
+      reason: "The expected invoice row exposes a governed failure state.",
+    };
   }
   const successfulRows = matchingRows.filter(hasExplicitSuccessfulInvoiceState);
   if (matchingRows.length === 1 && successfulRows.length === 1) {
     return {
       status: "confirmed",
-      reason: "Confirmed one visible current-order invoice dialog and one dialog-owned row with the exact invoice number and an explicit successful state.",
+      reason:
+        "Confirmed one visible current-order invoice dialog and one dialog-owned row with the exact invoice number and an explicit successful state.",
     };
   }
   if (matchingRows.length > 1 || successfulRows.length > 1) {
-    return { status: "rejected", reason: "Expected invoice identity is duplicated in the current-order invoice result." };
+    return {
+      status: "rejected",
+      reason:
+        "Expected invoice identity is duplicated in the current-order invoice result.",
+    };
   }
-  return { status: "pending", reason: "The unique visible current-order invoice dialog has not exposed one unique exact-invoice row with an explicit successful state yet." };
+  return {
+    status: "pending",
+    reason:
+      "The unique visible current-order invoice dialog has not exposed one unique exact-invoice row with an explicit successful state yet.",
+  };
 }
 
 export function findOrderBoundInvoiceDialogText(
   snapshot: DomSnapshot,
   mission: AmazonInvoiceUploadMissionInput,
 ): string | null {
-  const dialogTexts = currentOrderDialogs(snapshot, mission)
-    .map((dialog) => normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`));
-  return dialogTexts.length === 1 ? dialogTexts[0] ?? null : null;
+  const dialogTexts = currentOrderDialogs(snapshot, mission).map((dialog) =>
+    normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`),
+  );
+  return dialogTexts.length === 1 ? (dialogTexts[0] ?? null) : null;
 }
 
 export function hasInvoiceDialogReadyForUpload(
@@ -132,10 +169,18 @@ export function hasInvoiceDialogReadyForUpload(
 ): boolean {
   if (hasExistingInvoiceEvidence(snapshot, mission)) return false;
   return currentOrderDialogs(snapshot, mission)
-    .map((dialog) => normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`))
-    .some((text) =>
-    UPLOAD_READY_ACTION_HINTS.some((hint) => text.includes(normalizeText(hint)))
-      && INVOICE_TABLE_HEADER_GROUPS.some((headers) => headers.every((header) => text.includes(normalizeText(header)))));
+    .map((dialog) =>
+      normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`),
+    )
+    .some(
+      (text) =>
+        UPLOAD_READY_ACTION_HINTS.some((hint) =>
+          text.includes(normalizeText(hint)),
+        ) &&
+        INVOICE_TABLE_HEADER_GROUPS.some((headers) =>
+          headers.every((header) => text.includes(normalizeText(header))),
+        ),
+    );
 }
 
 function currentOrderDialogs(
@@ -152,29 +197,36 @@ function currentOrderDialogs(
   return snapshot.dialogs
     .filter((dialog) => !dialog.hidden && !dialog.disabled)
     .filter((dialog) => {
-      const text = normalizeText(`${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`);
+      const text = normalizeText(
+        `${dialog.visibleText ?? ""} ${dialog.ariaLabel ?? ""}`,
+      );
       return titleHints.some((hint) => text.includes(hint));
     });
 }
 
-function hasExactInvoiceNumber(
-  text: string,
-  invoiceNo: string,
-): boolean {
+function hasExactInvoiceNumber(text: string, invoiceNo: string): boolean {
   const expected = normalizeText(invoiceNo);
   return text.split(" ").includes(expected);
 }
 
 function hasExplicitSuccessfulInvoiceState(text: string): boolean {
-  return SUCCESSFUL_INVOICE_ROW_STATES.some((hint) => text.includes(normalizeText(hint)));
+  return SUCCESSFUL_INVOICE_ROW_STATES.some((hint) =>
+    text.includes(normalizeText(hint)),
+  );
 }
 
 function hasFailureState(text: string): boolean {
-  return INVOICE_FAILURE_HINTS.some((hint) => text.includes(normalizeText(hint)));
+  return INVOICE_FAILURE_HINTS.some((hint) =>
+    text.includes(normalizeText(hint)),
+  );
 }
 
 function hasInvoiceRowContext(text: string): boolean {
-  return INVOICE_ROW_CONTEXT_HINTS.some((hint) => text.includes(normalizeText(hint))) || hasFailureState(text);
+  return (
+    INVOICE_ROW_CONTEXT_HINTS.some((hint) =>
+      text.includes(normalizeText(hint)),
+    ) || hasFailureState(text)
+  );
 }
 
 function normalizeText(value: string): string {

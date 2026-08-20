@@ -1,6 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { RuntimeFailureClass, RuntimeLogEventType, type RuntimeLogger } from "../runtime-logs/index.js";
+import {
+  RuntimeFailureClass,
+  RuntimeLogEventType,
+  type RuntimeLogger,
+} from "../runtime-logs/index.js";
 
 type LoggedBrowserActionInput<T> = {
   runtimeLogger?: RuntimeLogger;
@@ -12,11 +16,18 @@ type LoggedBrowserActionInput<T> = {
   failureReason?: (result: T) => string;
 };
 
-export function runLoggedBrowserValueAction<T>(input: LoggedBrowserActionInput<T>): Promise<T> {
-  return runLoggedBrowserAction({ ...input, browserActionId: `browser:${randomUUID()}` });
+export function runLoggedBrowserValueAction<T>(
+  input: LoggedBrowserActionInput<T>,
+): Promise<T> {
+  return runLoggedBrowserAction({
+    ...input,
+    browserActionId: `browser:${randomUUID()}`,
+  });
 }
 
-async function runLoggedBrowserAction<T>(input: LoggedBrowserActionInput<T> & { browserActionId: string }): Promise<T> {
+async function runLoggedBrowserAction<T>(
+  input: LoggedBrowserActionInput<T> & { browserActionId: string },
+): Promise<T> {
   const startedAtMs = Date.now();
   emitBrowserActionStarted(input);
   try {
@@ -26,7 +37,10 @@ async function runLoggedBrowserAction<T>(input: LoggedBrowserActionInput<T> & { 
       ...input,
       success,
       durationMs: Math.max(0, Date.now() - startedAtMs),
-      reason: success ? `${input.actionKind} completed` : input.failureReason?.(result) ?? `${input.actionKind} returned a failed result`,
+      reason: success
+        ? `${input.actionKind} completed`
+        : (input.failureReason?.(result) ??
+          `${input.actionKind} returned a failed result`),
     });
     return result;
   } catch (error) {
@@ -40,7 +54,9 @@ async function runLoggedBrowserAction<T>(input: LoggedBrowserActionInput<T> & { 
   }
 }
 
-function emitBrowserActionStarted<T>(input: LoggedBrowserActionInput<T> & { browserActionId: string }): void {
+function emitBrowserActionStarted<T>(
+  input: LoggedBrowserActionInput<T> & { browserActionId: string },
+): void {
   input.runtimeLogger?.emit({
     traceId: input.browserActionId,
     stepId: `browser-${input.actionKind}`,
@@ -52,16 +68,22 @@ function emitBrowserActionStarted<T>(input: LoggedBrowserActionInput<T> & { brow
     status: "started",
     reason: `${input.actionKind} started`,
     hashes: { beforeHash: stateHash(input.beforeUrl) },
-    payload: { actionKind: input.actionKind, actionAttemptIndex: 1, fallbackUsed: false },
+    payload: {
+      actionKind: input.actionKind,
+      actionAttemptIndex: 1,
+      fallbackUsed: false,
+    },
   });
 }
 
-function emitBrowserActionTerminal<T>(input: LoggedBrowserActionInput<T> & {
-  browserActionId: string;
-  success: boolean;
-  durationMs: number;
-  reason: string;
-}): void {
+function emitBrowserActionTerminal<T>(
+  input: LoggedBrowserActionInput<T> & {
+    browserActionId: string;
+    success: boolean;
+    durationMs: number;
+    reason: string;
+  },
+): void {
   if (!input.runtimeLogger) return;
   const common = {
     traceId: input.browserActionId,
@@ -69,7 +91,10 @@ function emitBrowserActionTerminal<T>(input: LoggedBrowserActionInput<T> & {
     capabilityCallId: input.browserActionId,
     owner: "browser-session" as const,
     durationMs: input.durationMs,
-    hashes: { beforeHash: stateHash(input.beforeUrl), afterHash: stateHash(input.readAfterUrl()) },
+    hashes: {
+      beforeHash: stateHash(input.beforeUrl),
+      afterHash: stateHash(input.readAfterUrl()),
+    },
   };
   if (!input.success) {
     input.runtimeLogger.emit({
@@ -111,5 +136,7 @@ function emitBrowserActionTerminal<T>(input: LoggedBrowserActionInput<T> & {
 }
 
 function stateHash(value: string): string {
-  return createHash("sha256").update(value || "about:blank").digest("hex");
+  return createHash("sha256")
+    .update(value || "about:blank")
+    .digest("hex");
 }

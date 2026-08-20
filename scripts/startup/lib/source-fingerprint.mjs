@@ -7,7 +7,6 @@ const FINGERPRINT_ROOTS = [
   "src/capabilities/ai-input-gateway",
   "src/lib/browser",
   "src/lib/local-runtime",
-  "src/plugins/deep-research-analysis",
   "scripts/startup",
 ];
 

@@ -1,7 +1,7 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 
 export async function captureDomEvidenceRef(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   regionLabel: string,
 ): Promise<string | null> {
   try {

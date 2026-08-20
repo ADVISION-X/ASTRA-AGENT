@@ -43,7 +43,7 @@ project.createSourceFile(
       traceId: "x",
       level: "info",
       eventType: FakeRuntimeLogEventType.MISSION_STOPPED,
-      owner: "deep-research-analysis"
+      owner: "amazon-product-mining"
     });
 
     logger.emit({
@@ -51,7 +51,7 @@ project.createSourceFile(
       level: "error",
       modeVisibility: ["DEBUG"],
       eventType: RuntimeLogEventType.MISSION_STOPPED,
-      owner: "deep-research-analysis",
+      owner: "amazon-product-mining",
       status: "failed",
       reason: "x"
     });

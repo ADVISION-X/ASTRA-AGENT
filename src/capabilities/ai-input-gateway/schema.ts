@@ -29,7 +29,6 @@ export const AiTaskLabelKeySchema = z.enum([
   "bazi_analysis",
   "qimen_analysis",
   "naming_analysis",
-  "deep_research",
   "amazon_product_mining",
   "full_corpus_analysis",
   "system_acceptance",
@@ -159,7 +158,7 @@ export const buildGptWebProviderExecutionProfile = (input: {
 };
 
 export const defaultGptWebProviderExecutionProfile = (input: {
-  owner: "deep-research" | "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai";
+  owner: "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai";
   reasoningTier?: string | null;
 }): AiFeedProviderExecutionProfile => buildGptWebProviderExecutionProfile({
   profileRef: `agent:${input.owner}:gpt-web-production:v1`,

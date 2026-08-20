@@ -21,7 +21,9 @@ export const listDownloadFiles = (): FileCandidate[] => {
   const downloadsDir = path.join(os.homedir(), "Downloads");
   if (!existsSync(downloadsDir)) return [];
   return readdirSync(downloadsDir)
-    .filter((name) => !name.endsWith(".crdownload") && !name.endsWith(".download"))
+    .filter(
+      (name) => !name.endsWith(".crdownload") && !name.endsWith(".download"),
+    )
     .map((name) => path.join(downloadsDir, name))
     .filter((filePath) => existsSync(filePath))
     .map((filePath) => {
@@ -30,16 +32,24 @@ export const listDownloadFiles = (): FileCandidate[] => {
     });
 };
 
-export const waitForNewDownloadFile = async (baselineFiles: FileCandidate[]): Promise<string | null> => {
-  const baseline = new Map(baselineFiles.map((file) => [file.path, `${file.mtimeMs}:${file.size}`]));
+export const waitForNewDownloadFile = async (
+  baselineFiles: FileCandidate[],
+): Promise<string | null> => {
+  const baseline = new Map(
+    baselineFiles.map((file) => [file.path, `${file.mtimeMs}:${file.size}`]),
+  );
   const startedAt = Date.now();
   while (Date.now() - startedAt <= WAIT_DOWNLOAD_FILE_TIMEOUT_MS) {
     const current = listDownloadFiles()
       .filter((file) => file.size > 0)
-      .filter((file) => baseline.get(file.path) !== `${file.mtimeMs}:${file.size}`)
+      .filter(
+        (file) => baseline.get(file.path) !== `${file.mtimeMs}:${file.size}`,
+      )
       .sort((left, right) => right.mtimeMs - left.mtimeMs);
     if (current[0]) return current[0].path;
-    await new Promise((resolve) => setTimeout(resolve, WAIT_DOWNLOAD_FILE_POLL_MS));
+    await new Promise((resolve) =>
+      setTimeout(resolve, WAIT_DOWNLOAD_FILE_POLL_MS),
+    );
   }
   return null;
 };
@@ -60,7 +70,8 @@ export const verifyLocalDownloadArtifact = (
   return {
     ok: true,
     status: "completed",
-    reason: "Amazon tax invoice CSV download completed and safe artifact metadata was persisted.",
+    reason:
+      "Amazon tax invoice CSV download completed and safe artifact metadata was persisted.",
     reachedStep: "verify local download artifact",
     evidenceStepId: "AID-11",
     downloadArtifactRef: metadata.artifactRef,

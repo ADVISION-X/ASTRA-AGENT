@@ -1,29 +1,25 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { BrowserOpenReusePolicy } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { gatedResult, readSnapshot, taskResult } from "./amazon-invoice-upload-flow-support.js";
-import type { AmazonInvoiceUploadExecutionContext, AmazonInvoiceUploadTaskResult, AmazonOrderNavigationProof } from "./amazon-invoice-upload.flow.js";
+import {
+  taskResult,
+} from "./amazon-invoice-upload-flow-support.js";
+import type {
+  AmazonInvoiceUploadExecutionContext,
+  AmazonInvoiceUploadTaskResult,
+  AmazonOrderNavigationProof,
+} from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import {
   emitAmazonOrderDetailNavigationStarted,
   emitAmazonOrderDetailNavigationTerminal,
-  recordAmazonDomStepTrace,
-  startAmazonDomStepTrace,
 } from "./amazon-dom-step-trace.js";
-
-type DomSnapshot = Awaited<ReturnType<typeof readSnapshot>>;
-
-const ORDER_DETAIL_READY_TIMEOUT_MS = 2_000;
-const ORDER_DETAIL_READY_POLL_INTERVAL_MS = 200;
-const ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT = 8;
-
-type OrderDetailWaitResult =
-  | { status: "ready" }
-  | { status: "blocked"; result: AmazonInvoiceUploadTaskResult }
-  | { status: "technical_failure"; result: AmazonInvoiceUploadTaskResult }
-  | { status: "not_ready"; reason: string };
+import {
+  buildOrderDetailNotFoundResult,
+  waitForApprovedOrderDetailWindows,
+} from "./amazon-invoice-upload-order-detail-readiness.js";
 
 type NavigationOutcomeInput = {
   runtimeLogger: RuntimeLogger;
@@ -42,15 +38,18 @@ type NavigationOutcomeInput = {
 };
 
 export async function openApprovedOrderDetail(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
-): Promise<{ ok: true; proof: AmazonOrderNavigationProof } | { ok: false; failure: AmazonInvoiceUploadTaskResult }> {
+): Promise<
+  | { ok: true; proof: AmazonOrderNavigationProof }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult }
+> {
   const detailUrl = buildApprovedOrderDetailUrl(mission);
   const reusePolicy = await orderDetailReusePolicy(browser);
   const browserActionId = `browser:${randomUUID()}`;
-  const beforeHash = stateHash(browser.getSessionState().currentUrl);
+  const beforeHash = stateHash(browser.getLeaseState().currentUrl);
   const proofResult = await openAndPersistOrderDetailNavigation({
     browser,
     runtimeLogger,
@@ -63,28 +62,35 @@ export async function openApprovedOrderDetail(
   });
   if (!proofResult.ok) return proofResult;
   const proof = proofResult.proof;
-  let lastReason = "Order detail page did not show the requested order id and invoice action state.";
-  for (let window = 1; window <= ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT; window += 1) {
-    const readiness = await waitForApprovedOrderDetail(browser, runtimeLogger, mission, execution, window);
-    if (readiness.status === "ready") return { ok: true, proof };
-    if (readiness.status === "blocked") return { ok: false, failure: withNavigationProof(readiness.result, proof, execution.runtimeLogRef) };
-    if (readiness.status === "technical_failure") return { ok: false, failure: withNavigationProof(readiness.result, proof, execution.runtimeLogRef) };
-    lastReason = readiness.reason;
-    if (window < ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT) {
-      recordAmazonDomStepTrace({
-        runtimeLogger,
-        mission,
-        stepName: `continue same-page order readiness window ${window + 1}`,
-        status: "snapshot",
-        reason: `The preceding 2000ms observation failed. Continue on the same page without refresh or another navigation.`,
-      });
-    }
+  const readiness = await waitForApprovedOrderDetailWindows(
+    browser,
+    runtimeLogger,
+    mission,
+    execution,
+  );
+  if (readiness.status === "ready") return { ok: true, proof };
+  if (readiness.status === "blocked" || readiness.status === "technical_failure") {
+    return {
+      ok: false,
+      failure: withNavigationProof(
+        readiness.result,
+        proof,
+        execution.runtimeLogRef,
+      ),
+    };
   }
-  return { ok: false, failure: withNavigationProof(buildOrderDetailNotFoundResult(mission, lastReason), proof, execution.runtimeLogRef) };
+  return {
+    ok: false,
+    failure: withNavigationProof(
+      buildOrderDetailNotFoundResult(mission, readiness.reason),
+      proof,
+      execution.runtimeLogRef,
+    ),
+  };
 }
 
 async function openAndPersistOrderDetailNavigation(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeLogger: RuntimeLogger;
   mission: AmazonInvoiceUploadMissionInput;
   execution: AmazonInvoiceUploadExecutionContext;
@@ -92,7 +98,10 @@ async function openAndPersistOrderDetailNavigation(input: {
   reusePolicy: BrowserOpenReusePolicy;
   browserActionId: string;
   beforeHash: string;
-}): Promise<{ ok: true; proof: AmazonOrderNavigationProof } | { ok: false; failure: AmazonInvoiceUploadTaskResult }> {
+}): Promise<
+  | { ok: true; proof: AmazonOrderNavigationProof }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult }
+> {
   const fallbackStartedAt = new Date().toISOString();
   const fallbackStartedAtMs = Date.now();
   emitAmazonOrderDetailNavigationStarted({
@@ -104,7 +113,7 @@ async function openAndPersistOrderDetailNavigation(input: {
     amazonOrderId: input.mission.amazonOrderId,
     ...(input.execution.taskId ? { taskId: input.execution.taskId } : {}),
   });
-  let openResult: Awaited<ReturnType<BrowserTargetSession["open"]>>;
+  let openResult: Awaited<ReturnType<BrowserTargetLease["open"]>>;
   try {
     openResult = await input.browser.open({
       url: input.detailUrl,
@@ -120,41 +129,56 @@ async function openAndPersistOrderDetailNavigation(input: {
       actionResult: "failed",
       navigationMode: "unknown",
       observedUrlMatchesRequest: false,
-      afterHash: stateHash(input.browser.getSessionState().currentUrl),
+      afterHash: stateHash(input.browser.getLeaseState().currentUrl),
       startedAt: fallbackStartedAt,
       durationMs: Math.max(0, Date.now() - fallbackStartedAtMs),
       reason,
     });
   }
   const structuredOpenResult = hasStructuredNavigationReceipt(openResult);
-  const actionResult = openResult.ok && structuredOpenResult && openResult.observedUrlMatchesRequest ? "success" : "failed";
+  const actionResult =
+    openResult.ok &&
+    structuredOpenResult &&
+    openResult.observedUrlMatchesRequest
+      ? "success"
+      : "failed";
   const outcomeInput = {
     ...input,
     actionResult,
     navigationMode: openResult.navigationMode ?? "unknown",
     observedUrlMatchesRequest: openResult.observedUrlMatchesRequest === true,
-    afterHash: stateHash(openResult.observedUrl ?? input.browser.getSessionState().currentUrl),
+    afterHash: stateHash(
+      openResult.observedUrl ?? input.browser.getLeaseState().currentUrl,
+    ),
     startedAt: openResult.startedAt ?? fallbackStartedAt,
-    durationMs: openResult.durationMs ?? Math.max(0, Date.now() - fallbackStartedAtMs),
-    reason: structuredOpenResult ? openResult.message : "BrowserTargetSession.open did not return the required structured navigation receipt.",
+    durationMs:
+      openResult.durationMs ?? Math.max(0, Date.now() - fallbackStartedAtMs),
+    reason: structuredOpenResult
+      ? openResult.message
+      : "BrowserTargetLease.open did not return the required structured navigation receipt.",
   } as const;
   return persistAndEmitNavigationOutcome(outcomeInput);
 }
 
 function hasStructuredNavigationReceipt(
-  result: Awaited<ReturnType<BrowserTargetSession["open"]>>,
+  result: Awaited<ReturnType<BrowserTargetLease["open"]>>,
 ): boolean {
-  return result.actionKind === "open"
-    && result.startedAt !== undefined
-    && result.durationMs !== undefined
-    && result.navigationMode !== undefined
-    && result.observedUrl !== undefined
-    && result.observedUrlMatchesRequest !== undefined;
+  return (
+    result.actionKind === "open" &&
+    result.startedAt !== undefined &&
+    result.durationMs !== undefined &&
+    result.navigationMode !== undefined &&
+    result.observedUrl !== undefined &&
+    result.observedUrlMatchesRequest !== undefined
+  );
 }
 
 async function persistAndEmitNavigationOutcome(
   input: NavigationOutcomeInput,
-): Promise<{ ok: true; proof: AmazonOrderNavigationProof } | { ok: false; failure: AmazonInvoiceUploadTaskResult }> {
+): Promise<
+  | { ok: true; proof: AmazonOrderNavigationProof }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult }
+> {
   const outcome = await persistNavigationOutcome(input);
   emitAmazonOrderDetailNavigationTerminal({
     runtimeLogger: input.runtimeLogger,
@@ -176,7 +200,10 @@ async function persistAndEmitNavigationOutcome(
 
 async function persistNavigationOutcome(
   input: NavigationOutcomeInput,
-): Promise<{ ok: true; proof: AmazonOrderNavigationProof } | { ok: false; failure: AmazonInvoiceUploadTaskResult }> {
+): Promise<
+  | { ok: true; proof: AmazonOrderNavigationProof }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult }
+> {
   const persisted = await input.execution.evidenceStore.appendRecord({
     missionId: input.execution.executionId,
     runId: input.execution.executionId,
@@ -205,12 +232,22 @@ async function persistNavigationOutcome(
   const evidenceRef = persisted.recordRef;
   const storageRef = persisted.proof?.storageRef;
   const integrityHash = persisted.proof?.integrityHash;
-  const evidenceOk = persisted.status === "success" && evidenceRef && storageRef && integrityHash;
+  const evidenceOk =
+    persisted.status === "success" &&
+    evidenceRef &&
+    storageRef &&
+    integrityHash;
   if (!evidenceOk) {
     return navigationPersistenceFailure(input, persisted.failureReason);
   }
-  const proof = buildNavigationProof(input, evidenceRef, storageRef, integrityHash);
-  if (input.actionResult === "failed") return navigationActionFailure(input, proof);
+  const proof = buildNavigationProof(
+    input,
+    evidenceRef,
+    storageRef,
+    integrityHash,
+  );
+  if (input.actionResult === "failed")
+    return navigationActionFailure(input, proof);
   return { ok: true, proof };
 }
 
@@ -243,28 +280,38 @@ function navigationPersistenceFailure(
   input: NavigationOutcomeInput,
   failureReason: string | undefined,
 ): { ok: false; failure: AmazonInvoiceUploadTaskResult } {
-  return { ok: false, failure: taskResult({
-    status: "failed",
-    reason: `Order-detail navigation proof persistence failed: ${failureReason ?? "missing proof ref or integrity hash"}`,
-    reachedStep: "persist order detail navigation proof",
-    amazonOrderId: input.mission.amazonOrderId,
-    invoiceNo: input.mission.invoiceNo,
-    reviewRequired: true,
-  }) };
+  return {
+    ok: false,
+    failure: taskResult({
+      status: "failed",
+      reason: `Order-detail navigation proof persistence failed: ${failureReason ?? "missing proof ref or integrity hash"}`,
+      reachedStep: "persist order detail navigation proof",
+      amazonOrderId: input.mission.amazonOrderId,
+      invoiceNo: input.mission.invoiceNo,
+      reviewRequired: true,
+    }),
+  };
 }
 
 function navigationActionFailure(
   input: NavigationOutcomeInput,
   proof: AmazonOrderNavigationProof,
 ): { ok: false; failure: AmazonInvoiceUploadTaskResult } {
-  return { ok: false, failure: withNavigationProof(taskResult({
-    status: "failed",
-    reason: `Order-detail navigation failed closed: ${input.reason}`,
-    reachedStep: "open approved order detail",
-    amazonOrderId: input.mission.amazonOrderId,
-    invoiceNo: input.mission.invoiceNo,
-    reviewRequired: true,
-  }), proof, input.execution.runtimeLogRef) };
+  return {
+    ok: false,
+    failure: withNavigationProof(
+      taskResult({
+        status: "failed",
+        reason: `Order-detail navigation failed closed: ${input.reason}`,
+        reachedStep: "open approved order detail",
+        amazonOrderId: input.mission.amazonOrderId,
+        invoiceNo: input.mission.invoiceNo,
+        reviewRequired: true,
+      }),
+      proof,
+      input.execution.runtimeLogRef,
+    ),
+  };
 }
 
 function withNavigationProof(
@@ -276,7 +323,9 @@ function withNavigationProof(
 }
 
 function stateHash(value: string): string {
-  return createHash("sha256").update(value || "about:blank").digest("hex");
+  return createHash("sha256")
+    .update(value || "about:blank")
+    .digest("hex");
 }
 
 function hostFromUrl(value: string): string {
@@ -287,183 +336,25 @@ function hostFromUrl(value: string): string {
   }
 }
 
-async function orderDetailReusePolicy(browser: BrowserTargetSession): Promise<BrowserOpenReusePolicy> {
+async function orderDetailReusePolicy(
+  browser: BrowserTargetLease,
+): Promise<BrowserOpenReusePolicy> {
   await refreshCurrentBrowserState(browser);
   return "reuse-exact-url";
 }
 
-async function refreshCurrentBrowserState(browser: BrowserTargetSession): Promise<void> {
+async function refreshCurrentBrowserState(
+  browser: BrowserTargetLease,
+): Promise<void> {
   await browser.getGeometrySnapshot().catch(() => null);
 }
 
-export function buildApprovedOrderDetailUrl(mission: AmazonInvoiceUploadMissionInput): string {
+export function buildApprovedOrderDetailUrl(
+  mission: AmazonInvoiceUploadMissionInput,
+): string {
   const url = new URL(mission.sellerCentralEntryUrl);
   if (url.protocol === "file:") return mission.sellerCentralEntryUrl;
   url.pathname = `/orders-v3/order/${encodeURIComponent(mission.amazonOrderId)}`;
   url.search = "";
   return url.toString();
 }
-
-const snapshotContainsApprovedOrder = (snapshot: DomSnapshot, amazonOrderId: string): boolean =>
-  [
-    ...snapshot.tableRows.map((item) => item.visibleText),
-    ...snapshot.roleRows.map((item) => item.visibleText),
-    ...snapshot.textBlocks.map((item) => item.visibleText),
-    ...snapshot.links.map((item) => item.visibleText),
-    ...snapshot.buttons.map((item) => item.visibleText),
-  ].some((value) => String(value ?? "").includes(amazonOrderId));
-
-const snapshotHasInvoiceActionState = (snapshot: DomSnapshot): boolean =>
-  [
-    ...snapshot.buttons.map((item) => item.visibleText),
-    ...snapshot.links.map((item) => item.visibleText),
-    ...snapshot.genericClickableElements.map((item) => item.visibleText),
-    ...snapshot.textBlocks.map((item) => item.visibleText),
-  ].some((value) => {
-    const text = String(value ?? "").toLowerCase();
-    return text.includes("上传发票")
-      || text.includes("upload invoice")
-      || text.includes("管理发票")
-      || text.includes("manage invoice")
-      || text.includes("感谢您上传文件")
-      || text.includes("invoice uploaded successfully");
-  });
-
-const snapshotIsLoading = (snapshot: DomSnapshot): boolean =>
-  [...snapshot.textBlocks.map((item) => item.visibleText), ...snapshot.dialogs.map((item) => item.visibleText)]
-    .some((value) => String(value ?? "").includes("正在加载"));
-
-type OrderDetailObservation =
-  | Exclude<OrderDetailWaitResult, { status: "not_ready" }>
-  | { status: "pending"; reason: string };
-
-const recordOrderObservation = (input: {
-  runtimeLogger: RuntimeLogger;
-  mission: AmazonInvoiceUploadMissionInput;
-  execution: AmazonInvoiceUploadExecutionContext;
-  stepName: string;
-  traceStartedAtMs: number;
-  status: "failed" | "review_required" | "success";
-  reason: string;
-  snapshot?: DomSnapshot;
-}): void => recordAmazonDomStepTrace({
-  runtimeLogger: input.runtimeLogger,
-  mission: input.mission,
-  stepName: input.stepName,
-  status: input.status,
-  reason: input.reason,
-  ...(input.snapshot ? { snapshot: input.snapshot } : {}),
-  startedAtMs: input.traceStartedAtMs,
-  startedAlready: true,
-  traceId: input.execution.executionId,
-  ...(input.execution.taskId ? { taskId: input.execution.taskId } : {}),
-  runtimeLogRef: input.execution.runtimeLogRef,
-});
-
-const observeOrderDetailOnce = async (input: {
-  browser: BrowserTargetSession;
-  runtimeLogger: RuntimeLogger;
-  mission: AmazonInvoiceUploadMissionInput;
-  execution: AmazonInvoiceUploadExecutionContext;
-  stepName: string;
-  traceStartedAtMs: number;
-  snapshotBudgetMs: number;
-}): Promise<OrderDetailObservation> => {
-  let snapshot: DomSnapshot;
-  try {
-    snapshot = await readSnapshot(input.browser, { timeoutMs: input.snapshotBudgetMs }, input.execution.abortSignal);
-  } catch (error) {
-    const reason = `Order detail DOM observation failed within the 2-second window: ${error instanceof Error ? error.message : String(error)}`;
-    recordOrderObservation({ ...input, status: "failed", reason });
-    return { status: "technical_failure", result: buildOrderDetailTechnicalFailureResult(input.mission, reason) };
-  }
-  const gate = gatedResult(snapshot, input.mission, input.stepName);
-  if (gate) {
-    recordOrderObservation({ ...input, status: "review_required", snapshot, reason: gate.reason });
-    return { status: "blocked", result: gate };
-  }
-  if (snapshotContainsApprovedOrder(snapshot, input.mission.amazonOrderId)
-    && snapshotHasInvoiceActionState(snapshot) && !snapshotIsLoading(snapshot)) {
-    recordOrderObservation({ ...input, status: "success", snapshot, reason: "Order detail showed the requested order id and invoice action state." });
-    return { status: "ready" };
-  }
-  return { status: "pending", reason: orderDetailReadinessFailureReason(snapshot, input.mission.amazonOrderId) };
-};
-
-const waitForApprovedOrderDetail = async (
-  browser: BrowserTargetSession,
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-  execution: AmazonInvoiceUploadExecutionContext,
-  observationWindow: number,
-): Promise<OrderDetailWaitResult> => {
-  const stepName = `observe approved order detail readiness window ${observationWindow}`;
-  const traceStartedAtMs = startAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName,
-    traceId: execution.executionId,
-    ...(execution.taskId ? { taskId: execution.taskId } : {}),
-    runtimeLogRef: execution.runtimeLogRef,
-  });
-  const startedAt = Date.now();
-  const windowDeadlineMs = startedAt + ORDER_DETAIL_READY_TIMEOUT_MS;
-  let lastReason = "Order detail page did not show the requested order id and invoice action state.";
-  while (Date.now() < windowDeadlineMs) {
-    const snapshotBudgetMs = windowDeadlineMs - Date.now();
-    if (snapshotBudgetMs < 100) break;
-    const observation = await observeOrderDetailOnce({
-      browser, runtimeLogger, mission, execution, stepName, traceStartedAtMs, snapshotBudgetMs,
-    });
-    if (observation.status !== "pending") return observation;
-    lastReason = observation.reason;
-    const remainingWindowMs = windowDeadlineMs - Date.now();
-    if (remainingWindowMs > 0) {
-      await browser.wait(Math.min(ORDER_DETAIL_READY_POLL_INTERVAL_MS, remainingWindowMs), execution.abortSignal);
-    }
-  }
-  recordOrderObservation({
-    runtimeLogger, mission, execution, stepName, traceStartedAtMs, status: "failed",
-    reason: `${lastReason} The 2000ms observation window ${observationWindow}/${ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT} expired.`,
-  });
-  return { status: "not_ready", reason: lastReason };
-};
-
-const orderDetailReadinessFailureReason = (snapshot: DomSnapshot, amazonOrderId: string): string => {
-  if (!snapshotContainsApprovedOrder(snapshot, amazonOrderId)) {
-    return "Order detail page did not expose the requested Amazon order id before the readiness window expired.";
-  }
-  if (!snapshotHasInvoiceActionState(snapshot)) {
-    return "Order detail page did not expose upload/manage/already-uploaded invoice action state before the readiness window expired.";
-  }
-  if (snapshotIsLoading(snapshot)) {
-    return "Order detail page still showed loading state before the readiness window expired.";
-  }
-  return "Order detail page did not show the requested order id and invoice action state.";
-};
-
-const buildOrderDetailNotFoundResult = (
-  mission: AmazonInvoiceUploadMissionInput,
-  reason: string,
-): AmazonInvoiceUploadTaskResult =>
-  taskResult({
-    status: "order_not_found",
-    reason: `${reason} All ${ORDER_DETAIL_OBSERVATION_WINDOW_LIMIT} same-page observation windows expired; no order-page refresh or repeat navigation was executed.`,
-    reachedStep: "open approved order detail",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    reviewRequired: true,
-  });
-
-const buildOrderDetailTechnicalFailureResult = (
-  mission: AmazonInvoiceUploadMissionInput,
-  reason: string,
-): AmazonInvoiceUploadTaskResult =>
-  taskResult({
-    status: "review_required",
-    reason: `Exact-target technical execution failed closed: ${reason}`,
-    reachedStep: "observe approved order detail readiness",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    reviewRequired: true,
-  });

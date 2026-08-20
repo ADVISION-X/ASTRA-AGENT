@@ -38,7 +38,11 @@ export type AuthenticatedControllerHostIdentity = Readonly<{
 const hmac = (key: Buffer, value: string): string =>
   createHmac("sha256", key).update(value).digest("base64");
 
-const verifyMac = (key: Buffer, value: string, actualBase64: string): boolean => {
+const verifyMac = (
+  key: Buffer,
+  value: string,
+  actualBase64: string,
+): boolean => {
   const expected = Buffer.from(hmac(key, value), "base64");
   const actual = Buffer.from(actualBase64, "base64");
   return expected.length === actual.length && timingSafeEqual(expected, actual);
@@ -65,7 +69,9 @@ export class RawControllerHostChannel {
   }
 
   challengeTranscriptHash(): `sha256:${string}` {
-    return sha256BrowserTranscript(browserHostChallengeTranscript(this.challenge));
+    return sha256BrowserTranscript(
+      browserHostChallengeTranscript(this.challenge),
+    );
   }
 
   sendChallenge(): void {
@@ -82,13 +88,14 @@ export class RawControllerHostChannel {
     },
   ): AuthenticatedControllerHostIdentity {
     if (
-      attestation.challengeTranscriptHash !== this.challengeTranscriptHash()
-      || attestation.hostBinaryHash !== expected.hostBinaryHash
-      || attestation.chromeProcessIncarnationHash !== expected.chromeProcessIncarnationHash
-      || attestation.profileEnrollmentHash !== expected.profileEnrollmentHash
-      || attestation.artifactSetHash !== expected.artifactSetHash
-      || !Number.isSafeInteger(attestation.hostProcessEpoch)
-      || attestation.hostProcessEpoch <= 0
+      attestation.challengeTranscriptHash !== this.challengeTranscriptHash() ||
+      attestation.hostBinaryHash !== expected.hostBinaryHash ||
+      attestation.chromeProcessIncarnationHash !==
+        expected.chromeProcessIncarnationHash ||
+      attestation.profileEnrollmentHash !== expected.profileEnrollmentHash ||
+      attestation.artifactSetHash !== expected.artifactSetHash ||
+      !Number.isSafeInteger(attestation.hostProcessEpoch) ||
+      attestation.hostProcessEpoch <= 0
     ) {
       throw new Error("BROWSER_HOST_IDENTITY_INVALID");
     }
@@ -118,15 +125,19 @@ export class RawControllerHostChannel {
   }
 }
 
-export const isBrowserHostAttestation = (value: unknown): value is BrowserHostAttestation => {
+export const isBrowserHostAttestation = (
+  value: unknown,
+): value is BrowserHostAttestation => {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<BrowserHostAttestation>;
-  return item.type === "host_attestation"
-    && typeof item.challengeTranscriptHash === "string"
-    && typeof item.hostBinaryHash === "string"
-    && Number.isSafeInteger(item.hostProcessEpoch)
-    && typeof item.chromeProcessIncarnationHash === "string"
-    && typeof item.profileEnrollmentHash === "string"
-    && typeof item.artifactSetHash === "string"
-    && typeof item.mac === "string";
+  return (
+    item.type === "host_attestation" &&
+    typeof item.challengeTranscriptHash === "string" &&
+    typeof item.hostBinaryHash === "string" &&
+    Number.isSafeInteger(item.hostProcessEpoch) &&
+    typeof item.chromeProcessIncarnationHash === "string" &&
+    typeof item.profileEnrollmentHash === "string" &&
+    typeof item.artifactSetHash === "string" &&
+    typeof item.mac === "string"
+  );
 };

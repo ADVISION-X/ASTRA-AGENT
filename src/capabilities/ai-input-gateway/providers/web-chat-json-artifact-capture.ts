@@ -3,7 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -167,7 +167,7 @@ const remainingMs = (deadlineMs: number, capMs: number): number =>
   Math.max(0, Math.min(capMs, deadlineMs - Date.now()));
 
 const locateChatGptJsonDownloadControl = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<ClickEvaluation> =>
   browser.evaluate<ClickEvaluation>({
@@ -206,7 +206,7 @@ return {
   });
 
 const clickChatGptJsonDownloadControl = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
 }): Promise<ClickEvaluation> => {
   const located = await locateChatGptJsonDownloadControl(input.browser, input.context);
@@ -224,7 +224,7 @@ const clickChatGptJsonDownloadControl = async (input: {
 };
 
 export const captureChatGptJsonArtifact = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   conversationUrl: string | null;

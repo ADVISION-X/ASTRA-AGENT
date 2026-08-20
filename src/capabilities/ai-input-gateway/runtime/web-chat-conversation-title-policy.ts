@@ -20,7 +20,6 @@ const domainLabel: Readonly<Record<AiFeedInput["taskIdentity"]["labelKey"], stri
   bazi_analysis: "八字",
   qimen_analysis: "奇门",
   naming_analysis: "起名",
-  deep_research: "深度研究",
   amazon_product_mining: "亚马逊",
   full_corpus_analysis: "全书",
   system_acceptance: "系统",

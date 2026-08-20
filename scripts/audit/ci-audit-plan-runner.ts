@@ -71,14 +71,15 @@ const expectedExecutedKeys = (entry: GeneratedPlanEntry): Set<string> => new Set
 const reportArtifactIsAuthentic = (
   entry: GeneratedPlanEntry, report: DomainReport, artifact: ReportArtifact,
 ): boolean => {
-  const checkRun = artifact.checkRuns[0];
+  const expectedCheckIds = new Set(entry.bindings.flatMap((binding) => binding.checkIds));
   const actualExecuted = artifact.executedChecks.map(executedCheckKey);
   const expectedExecuted = expectedExecutedKeys(entry);
   return artifact.capabilityDomain === entry.capabilityDomain && artifact.status === report.status
-    && artifact.findings.length === report.findingCount && artifact.checkRuns.length === 1
-    && checkRun?.capabilityDomain === entry.capabilityDomain
-    && checkRun.checkId === `${entry.capabilityDomain}/owner-assertion-set`
-    && checkRun.findingCount === report.findingCount && checkRun.status === report.status
+    && artifact.findings.length === report.findingCount
+    && artifact.checkRuns.length === expectedCheckIds.size
+    && artifact.checkRuns.every((checkRun) => checkRun.capabilityDomain === entry.capabilityDomain
+      && expectedCheckIds.has(checkRun.checkId)
+      && checkRun.status === (checkRun.findingCount === 0 ? "PASS" : "FAIL"))
     && actualExecuted.length === expectedExecuted.size
     && new Set(actualExecuted).size === actualExecuted.length
     && actualExecuted.every((key) => expectedExecuted.has(key));

@@ -1,37 +1,22 @@
 {
-  "generatedAt": "2026-08-19T19:59:09.106Z",
-  "status": "PASS",
-  "inspectedFiles": [
-    "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"
-  ],
-  "findings": [],
+  "generatedAt": "2026-08-20T08:39:20.302Z",
   "capabilityDomain": "runtime-truth",
   "executionGroup": "meta",
   "lawIds": [
     "APEX-RUNTIME-TRUTH-001-V1"
   ],
-  "checkRuns": [
+  "status": "FAIL",
+  "findings": [
     {
-      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:831f9233-7a1f-4028-ad15-0cad64572b7b",
-      "capabilityDomain": "runtime-truth",
-      "checkId": "runtime-truth/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-19T19:59:09.106Z",
-      "endedAt": "2026-08-19T19:59:09.106Z",
-      "durationMs": 0,
-      "evidenceRefs": [
-        "src/plugins/deep-research-analysis/deep-research-analysis.parser.ts"
-      ],
-      "findingCount": 0
-    }
-  ],
-  "executedChecks": [
-    {
+      "checkId": "runner/inspector-error",
       "lawId": "APEX-RUNTIME-TRUTH-001-V1",
       "clauseId": "apex-runtime-truth-001-requirement",
-      "checkId": "runtime-truth/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:831f9233-7a1f-4028-ad15-0cad64572b7b"
+      "message": "Cannot find module '/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-truth/inspector.ts' imported from /Users/nexgen/Documents/AGENT/scripts/audit/core/run-generated-plan.ts",
+      "severity": "fatal"
     }
+  ],
+  "executedChecks": [],
+  "inspectedFiles": [
+    "scripts/audit/domains/runtime-truth/inspector.ts"
   ]
 }

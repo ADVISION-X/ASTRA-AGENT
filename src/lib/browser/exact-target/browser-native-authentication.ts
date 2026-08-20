@@ -21,57 +21,94 @@ import {
 import { BrowserTerminalError } from "./browser-command-contract.js";
 import type { BrowserNativeConnectionState } from "./browser-native-transport-server.js";
 
-const authTranscript = (input: Readonly<{
-  controllerSessionId: string;
-  connectionGeneration: number;
-  nativePortEpoch: number;
-  challengeId: string;
-  nonce: string;
-  controllerPublicKey: string;
-  extensionInstanceId: string;
-  extensionPublicKey: string;
-}>): string => [
-  "auth-v2", GRASSEYE_BROWSER_PROTOCOL_VERSION, GRASSEYE_BROWSER_RELEASE_IDENTITY,
-  input.controllerSessionId, input.connectionGeneration, input.nativePortEpoch,
-  input.challengeId, input.nonce, input.controllerPublicKey,
-  input.extensionInstanceId, input.extensionPublicKey,
-].join(":");
+const authTranscript = (
+  input: Readonly<{
+    controllerSessionId: string;
+    connectionGeneration: number;
+    nativePortEpoch: number;
+    challengeId: string;
+    nonce: string;
+    controllerPublicKey: string;
+    extensionInstanceId: string;
+    extensionPublicKey: string;
+  }>,
+): string =>
+  [
+    "auth-v2",
+    GRASSEYE_BROWSER_PROTOCOL_VERSION,
+    GRASSEYE_BROWSER_RELEASE_IDENTITY,
+    input.controllerSessionId,
+    input.connectionGeneration,
+    input.nativePortEpoch,
+    input.challengeId,
+    input.nonce,
+    input.controllerPublicKey,
+    input.extensionInstanceId,
+    input.extensionPublicKey,
+  ].join(":");
 
-const grantTranscript = (input: Readonly<{
-  authorityId: string;
-  authorityCertificateHash: string;
-  connectionGeneration: number;
-  nativePortEpoch: number;
-  challengeId: string;
-}>): string => [
-  "grant-v2", input.authorityId, input.authorityCertificateHash,
-  input.connectionGeneration, input.nativePortEpoch, input.challengeId,
-].join(":");
+const grantTranscript = (
+  input: Readonly<{
+    authorityId: string;
+    authorityCertificateHash: string;
+    connectionGeneration: number;
+    nativePortEpoch: number;
+    challengeId: string;
+  }>,
+): string =>
+  [
+    "grant-v2",
+    input.authorityId,
+    input.authorityCertificateHash,
+    input.connectionGeneration,
+    input.nativePortEpoch,
+    input.challengeId,
+  ].join(":");
 
-const grantAckTranscript = (input: Readonly<{
-  authorityId: string;
-  authorityCertificateHash: string;
-  connectionGeneration: number;
-  nativePortEpoch: number;
-  challengeId: string;
-}>): string => [
-  "grant-ack-v2", input.authorityId, input.authorityCertificateHash,
-  input.connectionGeneration, input.nativePortEpoch, input.challengeId,
-].join(":");
+const grantAckTranscript = (
+  input: Readonly<{
+    authorityId: string;
+    authorityCertificateHash: string;
+    connectionGeneration: number;
+    nativePortEpoch: number;
+    challengeId: string;
+  }>,
+): string =>
+  [
+    "grant-ack-v2",
+    input.authorityId,
+    input.authorityCertificateHash,
+    input.connectionGeneration,
+    input.nativePortEpoch,
+    input.challengeId,
+  ].join(":");
 
-const heartbeatTranscript = (input: Readonly<{
-  authorityId: string;
-  connectionGeneration: number;
-  nativePortEpoch: number;
-  monotonicMs: number;
-}>): string => [
-  "heartbeat-v2", input.authorityId, input.connectionGeneration,
-  input.nativePortEpoch, input.monotonicMs,
-].join(":");
+const heartbeatTranscript = (
+  input: Readonly<{
+    authorityId: string;
+    connectionGeneration: number;
+    nativePortEpoch: number;
+    monotonicMs: number;
+  }>,
+): string =>
+  [
+    "heartbeat-v2",
+    input.authorityId,
+    input.connectionGeneration,
+    input.nativePortEpoch,
+    input.monotonicMs,
+  ].join(":");
 
-type AuthenticationMessage = Extract<BrowserWireMessage, {
-  type: "extension_hello" | "extension_authenticated" | "authority_grant_ack" | "heartbeat";
-}>;
+type AuthenticationMessage = Extract<
+  BrowserWireMessage,
+  {
+    type:
+      | "extension_hello"
+      | "extension_authenticated"
+      | "authority_grant_ack"
+      | "heartbeat";
+  }
+>;
 
 export class BrowserNativeAuthentication {
   private readonly issuer = new BrowserAuthorityIssuer();
@@ -81,30 +118,50 @@ export class BrowserNativeAuthentication {
     timer: NodeJS.Timeout;
   }>();
 
-  constructor(private readonly owner: {
-    controllerSessionId: string;
-    profileEnrollmentId: string;
-    send(connection: BrowserNativeConnectionState, message: BrowserWireMessage): void;
-    terminate(connection: BrowserNativeConnectionState, reason: string): void;
-    emit(stage: "extension_hello" | "challenge_sent" | "authority_grant_sent"
-      | "authenticated_authority_issued" | "authority_revoked", generation: number, reason?: string): void;
-  }) {}
+  constructor(
+    private readonly owner: {
+      controllerSessionId: string;
+      profileEnrollmentId: string;
+      send(
+        connection: BrowserNativeConnectionState,
+        message: BrowserWireMessage,
+      ): void;
+      terminate(connection: BrowserNativeConnectionState, reason: string): void;
+      emit(
+        stage:
+          | "extension_hello"
+          | "challenge_sent"
+          | "authority_grant_sent"
+          | "authenticated_authority_issued"
+          | "authority_revoked",
+        generation: number,
+        reason?: string,
+      ): void;
+    },
+  ) {}
 
   waitForAuthority(timeoutMs: number): Promise<AuthenticatedBrowserAuthority> {
     try {
       return Promise.resolve(this.issuer.requireCurrent());
     } catch (error) {
-      if (!(error instanceof BrowserAuthorityAbsentError)) return Promise.reject(error);
+      if (!(error instanceof BrowserAuthorityAbsentError))
+        return Promise.reject(error);
     }
     return new Promise<AuthenticatedBrowserAuthority>((resolve, reject) => {
-      const waiter = { resolve, reject, timer: setTimeout(() => undefined, timeoutMs) };
+      const waiter = {
+        resolve,
+        reject,
+        timer: setTimeout(() => undefined, timeoutMs),
+      };
       clearTimeout(waiter.timer);
       waiter.timer = setTimeout(() => {
         this.waiters.delete(waiter);
-        reject(new BrowserTerminalError(
-          "TRANSPORT_DISCONNECTED",
-          "authenticated browser authority was not established before the startup deadline",
-        ));
+        reject(
+          new BrowserTerminalError(
+            "TRANSPORT_DISCONNECTED",
+            "authenticated browser authority was not established before the startup deadline",
+          ),
+        );
       }, timeoutMs);
       this.waiters.add(waiter);
     });
@@ -142,28 +199,44 @@ export class BrowserNativeAuthentication {
     this.waiters.clear();
   }
 
-  handle(value: BrowserWireMessage, connection: BrowserNativeConnectionState): boolean {
+  handle(
+    value: BrowserWireMessage,
+    connection: BrowserNativeConnectionState,
+  ): boolean {
     if (!this.isAuthenticationMessage(value)) return false;
     if (value.type === "extension_hello") this.handleHello(value, connection);
-    else if (value.type === "extension_authenticated") this.handleAuthentication(value, connection);
-    else if (value.type === "authority_grant_ack") this.handleGrantAck(value, connection);
+    else if (value.type === "extension_authenticated")
+      this.handleAuthentication(value, connection);
+    else if (value.type === "authority_grant_ack")
+      this.handleGrantAck(value, connection);
     else this.handleHeartbeat(value, connection);
     return true;
   }
 
-  private isAuthenticationMessage(value: BrowserWireMessage): value is AuthenticationMessage {
-    return value.type === "extension_hello"
-      || value.type === "extension_authenticated"
-      || value.type === "authority_grant_ack"
-      || value.type === "heartbeat";
+  private isAuthenticationMessage(
+    value: BrowserWireMessage,
+  ): value is AuthenticationMessage {
+    return (
+      value.type === "extension_hello" ||
+      value.type === "extension_authenticated" ||
+      value.type === "authority_grant_ack" ||
+      value.type === "heartbeat"
+    );
   }
 
   private handleHello(
     value: Extract<BrowserWireMessage, { type: "extension_hello" }>,
     connection: BrowserNativeConnectionState,
   ): void {
-    if (connection.challenge || connection.pendingAuthority || connection.authorityCommitted) {
-      this.owner.terminate(connection, "extension hello repeated within one connection generation");
+    if (
+      connection.challenge ||
+      connection.pendingAuthority ||
+      connection.authorityCommitted
+    ) {
+      this.owner.terminate(
+        connection,
+        "extension hello repeated within one connection generation",
+      );
       return;
     }
     connection.nativePortEpoch = value.nativePortEpoch;
@@ -196,16 +269,28 @@ export class BrowserNativeAuthentication {
     connection: BrowserNativeConnectionState,
   ): void {
     const challenge = connection.challenge;
-    if (!challenge || connection.pendingAuthority || connection.authorityCommitted || connection.frameKey) {
-      this.owner.terminate(connection, "extension authentication arrived outside the one-time challenge window");
+    if (
+      !challenge ||
+      connection.pendingAuthority ||
+      connection.authorityCommitted ||
+      connection.frameKey
+    ) {
+      this.owner.terminate(
+        connection,
+        "extension authentication arrived outside the one-time challenge window",
+      );
       return;
     }
-    const identityMatches = value.challengeId === challenge.challengeId
-      && value.nonce === challenge.nonce
-      && value.nativePortEpoch === challenge.nativePortEpoch
-      && value.extensionInstanceId === challenge.extensionInstanceId;
+    const identityMatches =
+      value.challengeId === challenge.challengeId &&
+      value.nonce === challenge.nonce &&
+      value.nativePortEpoch === challenge.nativePortEpoch &&
+      value.extensionInstanceId === challenge.extensionInstanceId;
     if (!identityMatches) {
-      this.owner.terminate(connection, "extension authentication transcript mismatch");
+      this.owner.terminate(
+        connection,
+        "extension authentication transcript mismatch",
+      );
       return;
     }
     const frameKey = this.deriveAuthenticatedFrameKey(value, connection);
@@ -221,7 +306,10 @@ export class BrowserNativeAuthentication {
     const challenge = connection.challenge!;
     let frameKey: Buffer;
     try {
-      frameKey = challenge.ephemeral.computeSharedSecret(value.extensionPublicKey, challenge.nonce);
+      frameKey = challenge.ephemeral.computeSharedSecret(
+        value.extensionPublicKey,
+        challenge.nonce,
+      );
     } catch {
       this.owner.terminate(connection, "extension public key was invalid");
       return null;
@@ -236,12 +324,18 @@ export class BrowserNativeAuthentication {
       extensionInstanceId: challenge.extensionInstanceId,
       extensionPublicKey: value.extensionPublicKey,
     });
-    if (verifyBrowserTranscriptProof(frameKey, transcript, value.transcriptProof)) return frameKey;
+    if (
+      verifyBrowserTranscriptProof(frameKey, transcript, value.transcriptProof)
+    )
+      return frameKey;
     this.owner.terminate(connection, "extension authentication proof mismatch");
     return null;
   }
 
-  private issueAuthorityGrant(connection: BrowserNativeConnectionState, frameKey: Buffer): void {
+  private issueAuthorityGrant(
+    connection: BrowserNativeConnectionState,
+    frameKey: Buffer,
+  ): void {
     const challenge = connection.challenge!;
     const candidate = this.issuer.prepare({
       controllerSessionId: this.owner.controllerSessionId,
@@ -254,13 +348,16 @@ export class BrowserNativeAuthentication {
     });
     connection.pendingAuthority = candidate;
     const certificate = candidate.certificate;
-    const grantProof = browserTranscriptProof(frameKey, grantTranscript({
-      authorityId: certificate.authorityId,
-      authorityCertificateHash: certificate.certificateHash,
-      connectionGeneration: certificate.connectionGeneration,
-      nativePortEpoch: certificate.nativePortEpoch,
-      challengeId: challenge.challengeId,
-    }));
+    const grantProof = browserTranscriptProof(
+      frameKey,
+      grantTranscript({
+        authorityId: certificate.authorityId,
+        authorityCertificateHash: certificate.certificateHash,
+        connectionGeneration: certificate.connectionGeneration,
+        nativePortEpoch: certificate.nativePortEpoch,
+        challengeId: challenge.challengeId,
+      }),
+    );
     this.owner.send(connection, {
       protocolVersion: GRASSEYE_BROWSER_PROTOCOL_VERSION,
       releaseIdentity: GRASSEYE_BROWSER_RELEASE_IDENTITY,
@@ -282,27 +379,45 @@ export class BrowserNativeAuthentication {
     const challenge = connection.challenge;
     const candidate = connection.pendingAuthority;
     const frameKey = connection.frameKey;
-    if (!challenge || !candidate || !frameKey || connection.authorityCommitted) {
-      this.owner.terminate(connection, "authority grant acknowledgement arrived outside the pending grant window");
+    if (
+      !challenge ||
+      !candidate ||
+      !frameKey ||
+      connection.authorityCommitted
+    ) {
+      this.owner.terminate(
+        connection,
+        "authority grant acknowledgement arrived outside the pending grant window",
+      );
       return;
     }
     const certificate = candidate.certificate;
-    const bindingMatches = value.challengeId === challenge.challengeId
-      && value.authorityId === certificate.authorityId
-      && value.authorityCertificateHash === certificate.certificateHash
-      && value.connectionGeneration === certificate.connectionGeneration
-      && value.nativePortEpoch === certificate.nativePortEpoch;
-    const proofValid = bindingMatches && verifyBrowserTranscriptProof(frameKey, grantAckTranscript({
-      authorityId: certificate.authorityId,
-      authorityCertificateHash: certificate.certificateHash,
-      connectionGeneration: certificate.connectionGeneration,
-      nativePortEpoch: certificate.nativePortEpoch,
-      challengeId: challenge.challengeId,
-    }), value.ackProof);
+    const bindingMatches =
+      value.challengeId === challenge.challengeId &&
+      value.authorityId === certificate.authorityId &&
+      value.authorityCertificateHash === certificate.certificateHash &&
+      value.connectionGeneration === certificate.connectionGeneration &&
+      value.nativePortEpoch === certificate.nativePortEpoch;
+    const proofValid =
+      bindingMatches &&
+      verifyBrowserTranscriptProof(
+        frameKey,
+        grantAckTranscript({
+          authorityId: certificate.authorityId,
+          authorityCertificateHash: certificate.certificateHash,
+          connectionGeneration: certificate.connectionGeneration,
+          nativePortEpoch: certificate.nativePortEpoch,
+          challengeId: challenge.challengeId,
+        }),
+        value.ackProof,
+      );
     if (!proofValid) {
-      this.owner.terminate(connection, bindingMatches
-        ? "authority grant acknowledgement proof mismatch"
-        : "authority grant acknowledgement binding mismatch");
+      this.owner.terminate(
+        connection,
+        bindingMatches
+          ? "authority grant acknowledgement proof mismatch"
+          : "authority grant acknowledgement binding mismatch",
+      );
       return;
     }
     const authority = this.issuer.commit(candidate);
@@ -318,21 +433,36 @@ export class BrowserNativeAuthentication {
   ): void {
     const frameKey = connection.frameKey;
     if (!frameKey || !connection.authorityCommitted) {
-      this.owner.terminate(connection, "heartbeat arrived without a committed authenticated authority");
+      this.owner.terminate(
+        connection,
+        "heartbeat arrived without a committed authenticated authority",
+      );
       return;
     }
     if (!this.issuer.isCurrent(value)) {
-      this.owner.terminate(connection, "stale heartbeat cannot renew browser authority");
+      this.owner.terminate(
+        connection,
+        "stale heartbeat cannot renew browser authority",
+      );
       return;
     }
-    if (!verifyBrowserTranscriptProof(frameKey, heartbeatTranscript(value), value.proof)) {
+    if (
+      !verifyBrowserTranscriptProof(
+        frameKey,
+        heartbeatTranscript(value),
+        value.proof,
+      )
+    ) {
       this.owner.terminate(connection, "heartbeat proof mismatch");
       return;
     }
     try {
       this.issuer.heartbeat(value);
     } catch {
-      this.owner.terminate(connection, "heartbeat failed authority liveness validation");
+      this.owner.terminate(
+        connection,
+        "heartbeat failed authority liveness validation",
+      );
     }
   }
 

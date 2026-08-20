@@ -20,21 +20,30 @@ export const createCurrentChromeBrowserControllerRuntime = async (
   runtimeLogger?: RuntimeLogger,
 ): Promise<BrowserController> => {
   if (options.headlessRequested === true) {
-    throw new Error("Real-platform mode forbids headless browser launch; use the enrolled production Chrome profile.");
+    throw new Error(
+      "Real-platform mode forbids headless browser launch; use the enrolled production Chrome profile.",
+    );
   }
   await ensureEnrolledBrowserProcess(options.profileEnrollment);
   const commandRuntime = await BrowserCommandRuntime.create({
     controllerSessionId: createId("browser-controller-authority"),
-    socketPath: path.join(options.dataDir, "browser-runtime", "controller-native.sock"),
+    socketPath: path.join(
+      options.dataDir,
+      "browser-runtime",
+      "controller-native.sock",
+    ),
     screenshotDir: options.screenshotDir,
     profileEnrollment: options.profileEnrollment,
     approvedFileRoots: [options.dataDir],
     ...(runtimeLogger ? { runtimeLogger } : {}),
-    ...(options.authorityTimeoutMs ? { authorityTimeoutMs: options.authorityTimeoutMs } : {}),
+    ...(options.authorityTimeoutMs
+      ? { authorityTimeoutMs: options.authorityTimeoutMs }
+      : {}),
   });
 
   return {
-    setExecutionAbortSignal: (signal) => commandRuntime.setExecutionAbortSignal(signal),
+    setExecutionAbortSignal: (signal) =>
+      commandRuntime.setExecutionAbortSignal(signal),
     getHealth: () => {
       const authority = commandRuntime.authoritySnapshot();
       return authority.state === "AUTHENTICATED_AUTHORITY_PRESENT"
@@ -48,7 +57,8 @@ export const createCurrentChromeBrowserControllerRuntime = async (
           };
     },
     getAuthoritySnapshot: () => commandRuntime.authoritySnapshot(),
-    createTargetSession: (ownerId) => commandRuntime.createTargetSession(ownerId),
+    createTargetSession: (ownerId) =>
+      commandRuntime.createTargetSession(ownerId),
     close: async () => {
       await commandRuntime.close();
       return {

@@ -21,7 +21,9 @@ export class CurrentChromeBrowserController implements BrowserController {
     );
   }
 
-  getHealth() { return this.runtime.getHealth(); }
+  getHealth() {
+    return this.runtime.getHealth();
+  }
 
   getAuthoritySnapshot(): BrowserAuthoritySnapshot {
     return this.runtime.getAuthoritySnapshot();
@@ -35,5 +37,7 @@ export class CurrentChromeBrowserController implements BrowserController {
     return this.runtime.createTargetSession(ownerId);
   }
 
-  close() { return this.runtime.close(); }
+  close() {
+    return this.runtime.close();
+  }
 }

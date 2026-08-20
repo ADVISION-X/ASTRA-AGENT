@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   WebChatConversationTitleProof,
@@ -129,7 +129,7 @@ type Target = {
 };
 
 type FinalizationInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   submission: WebChatSubmissionProof;
@@ -138,7 +138,7 @@ type TitleExecution = NonNullable<AiProviderAdapterContext["webChatExecution"]>;
 type TitleState = NonNullable<TitleExecution["conversationTitle"]>;
 
 const waitTarget = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   description: string;
   script: string;
@@ -162,7 +162,7 @@ const waitTarget = async (input: {
 };
 
 const clickTarget = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   point: { x: number; y: number } | undefined;
   label: string;
 }): Promise<void> => {
@@ -208,7 +208,7 @@ const buildProof = (input: {
 };
 
 const enterExpectedTitle = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   expectedTitle: string;
   textbox: Target;
@@ -231,7 +231,7 @@ const enterExpectedTitle = async (input: {
 };
 
 const renameConversationRow = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   expectedTitle: string;
   path: string;
@@ -256,7 +256,7 @@ const renameConversationRow = async (input: {
 };
 
 const runTitleFinalizationPatrol = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   canonicalUrl: string;
   context: AiProviderAdapterContext;
   execution: TitleExecution;

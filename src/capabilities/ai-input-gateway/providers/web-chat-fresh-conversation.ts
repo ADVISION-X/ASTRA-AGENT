@@ -1,6 +1,6 @@
 import type {
-  BrowserTargetSession,
-} from "../../../lib/browser/browser-controller.js";
+  BrowserTargetLease,
+} from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
 } from "../contracts/ai-provider-adapter.contract.js";
@@ -78,7 +78,7 @@ return {
 `;
 
 interface FreshConversationInput {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   providerUrl: string;

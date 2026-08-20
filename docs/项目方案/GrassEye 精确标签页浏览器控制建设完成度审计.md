@@ -41,8 +41,8 @@ CI-FULL 准入：`BLOCKED_BELOW_95`
 6. DOM snapshot/ref 会携带 target/document；click、fill、upload、wait 会在动作前拒绝外来 target 和 stale document。
 7. Take Over 已实现 `release_target`：只解除 debugger，不关闭用户 tab；Resume 后重新 acquire 并签发新 refs。
 8. AI Input Gateway 已建立 owner-key gate；任一 takeover owner 未 Resume 时，新 provider 任务和 title housekeeping 都不得重新占用 provider tab。
-9. amazon-invoice-upload、amazon-product-mining、deep-research-analysis、xuanxue-ai-production 均已有显式干预入口和状态读取链。
-10. 退役产品已从生产 App、Local Runtime、Mediator 和 plugin 主链移除；现役 `plugin-status.json` 只剩 5 个 plugin，其中 4 个需干预，media-processing-artifact 不需干预。
+9. amazon-invoice-upload、amazon-product-mining、xuanxue-ai-production 均已有显式干预入口和状态读取链。
+10. 退役产品已从生产 App、Local Runtime、Mediator 和 plugin 主链移除；现役 `plugin-status.json` 只剩 4 个 plugin，其中 3 个需干预，media-processing-artifact 不需干预。
 
 ## 5. 阻断 95% 的硬缺口
 

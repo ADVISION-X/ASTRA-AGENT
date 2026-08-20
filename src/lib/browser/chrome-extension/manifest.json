@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GrassEye Browser Runtime",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "minimum_chrome_version": "120",
   "description": "Authenticated exact-target runtime for the GrassEye Browser infrastructure.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqIUXROHaymKA5I2qBL5I1uHt96IUL8up8T4TWjKOumU171Bp/2AX2762Zkc+d4N76VKRs8+//s46d4LTR5OqNBdZUYiWFQojVfHVV5947prTczOtNX/ejlfML+3ir1vdUOVH22rSfQmD68XLQguR6yAB/5pOqnsT7GnD9cajw5/LcNVKjL1DXphAtXoqsRpLPA/M9m93MSDMIErs2R7X/sNBm+J3rcj8kHXsOFk+wnOEu5za7vUgmXxHltFLPwyd6BwiWGUCRxFPHtEJA6uS+3QITK4nfkPtgeqyk0YJIU8dibdjcU1ru9rkNKuiENB+VTs3MvN1VFoieT24m+BvlQIDAQAB",

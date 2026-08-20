@@ -43,7 +43,6 @@ Job Flow 决定什么时候处理、处理哪个 artifact、结果交给谁。
 
 已存在 App Shell skill registry：
 - Amazon Product Mining
-- Deep Research Analysis
 - Amazon Invoice Upload
 
 已存在 video-download 能力组：

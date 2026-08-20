@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T19:58:46.220Z",
+  "generatedAt": "2026-08-20T10:35:21.804Z",
   "capabilityDomain": "xuanxue-ai-production-localization-contract",
   "executionGroup": "domain",
   "lawIds": [
@@ -12,14 +12,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:d6dab330-d59a-4780-811f-cf94f446b352",
+      "runId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27",
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:37977993-d9e1-4bc2-971c-f3c1dab8b031",
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-19T19:58:46.105Z",
-      "endedAt": "2026-08-19T19:58:46.220Z",
-      "durationMs": 115,
+      "startedAt": "2026-08-20T10:35:21.703Z",
+      "endedAt": "2026-08-20T10:35:21.804Z",
+      "durationMs": 101,
       "evidenceRefs": [
         "artifacts/contracts/localization-production-contract.v1.json",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -43,25 +43,25 @@
       "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
       "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:d6dab330-d59a-4780-811f-cf94f446b352"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:37977993-d9e1-4bc2-971c-f3c1dab8b031"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
       "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:d6dab330-d59a-4780-811f-cf94f446b352"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:37977993-d9e1-4bc2-971c-f3c1dab8b031"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
       "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:d6dab330-d59a-4780-811f-cf94f446b352"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:37977993-d9e1-4bc2-971c-f3c1dab8b031"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
       "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
-      "checkRunId": "audit-run:a9594598-6364-4303-b52b-f630ad7d6c3c:check:d6dab330-d59a-4780-811f-cf94f446b352"
+      "checkRunId": "audit-run:e632140f-426e-4998-9b6f-4c9bb2755b27:check:37977993-d9e1-4bc2-971c-f3c1dab8b031"
     }
   ],
   "inspectedFiles": [

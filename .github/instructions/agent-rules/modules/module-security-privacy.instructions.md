@@ -31,22 +31,22 @@ version: 2026-05-21
 }
 ```
 
-## Law GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1
+## Law GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2
 
 ```apex-law
 {
-  "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V1",
+  "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
   "status": "active",
   "tier": "P0",
   "capabilityDomain": "local-browser-session",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+real-chrome",
-  "summary": "Browser session infrastructure must keep cookies, local storage, session storage, passwords, and tokens opaque and outside evidence persistence.",
+  "summary": "Browser authority infrastructure must keep credentials, raw browser identities, page content and mutable filesystem paths opaque and outside logs, durable proof and the wire protocol.",
   "clauses": [
     {
-      "clauseId": "grasseye-security-privacy-browser-001-requirement",
-      "statement": "Browser control must not read or persist cookies, localStorage, sessionStorage, passwords, or tokens and must keep session profiles separate from evidence storage.",
-      "evidenceMode": "acceptance",
+      "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
+      "statement": "Browser control must not read or persist credentials, raw browser identities, page content or raw file paths outside the Browser owner, and must keep profiles separate from evidence storage.",
+      "evidenceMode": "static",
       "ownerDomain": "local-browser-session"
     }
   ]

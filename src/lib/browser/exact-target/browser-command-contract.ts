@@ -1,11 +1,10 @@
 export type BrowserMutationClass =
-  | "observation"
-  | "idempotent_mutation"
-  | "non_idempotent_mutation";
+  "observation" | "idempotent_mutation" | "non_idempotent_mutation";
 
 export type BrowserTerminalErrorCode =
   | "TARGET_NOT_FOUND"
   | "TARGET_AMBIGUOUS"
+  | "TARGET_FOREIGN_SESSION"
   | "TARGET_FOREIGN_AUTHORITY"
   | "TARGET_ORIGIN_MISMATCH"
   | "DOCUMENT_STALE"

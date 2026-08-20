@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import { discoverChatGptConversationViaSearch } from "../providers/gpt-web-conversation-discovery.js";
 
@@ -70,7 +70,7 @@ export const buildCanonicalConversationScript = (input: { targetPath: string }):
   CANONICAL_CONVERSATION_SCRIPT.replace("__TARGET_PATH__", JSON.stringify(input.targetPath));
 
 const clickTarget = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   description: string;
   targetPoint: { x: number; y: number } | undefined;
 }): Promise<void> => {
@@ -88,7 +88,7 @@ const clickTarget = async (input: {
 };
 
 const reacquireCanonicalConversationTarget = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   conversationUrl: string;
   signal?: AbortSignal;
 }): Promise<void> => {
@@ -104,7 +104,7 @@ const reacquireCanonicalConversationTarget = async (input: {
 };
 
 const pollCanonicalConversationRoute = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   targetPath: string;
   conversationUrl: string;
   timeoutMs?: number;
@@ -149,7 +149,7 @@ const pollCanonicalConversationRoute = async (input: {
 };
 
 const verifyCanonicalMarker = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   targetPath: string;
   turnMarker: string;
   signal?: AbortSignal;
@@ -173,7 +173,7 @@ return {pageUrl:location.href,markerCount};
 };
 
 export const focusChatGptConversationByCanonicalPath = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   conversationUrl: string;
   turnMarker?: string;
   timeoutMs?: number;
@@ -214,7 +214,7 @@ export const focusChatGptConversationByCanonicalPath = async (input: {
 };
 
 const focusGeminiConversation = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   submission: WebChatSubmissionProof;
   turnMarker: string;
   signal?: AbortSignal;
@@ -245,7 +245,7 @@ return {pageUrl:location.href,markerCount};
 };
 
 export const focusBoundWebChatConversation = async (input: {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
   submission: WebChatSubmissionProof;
   turnMarker: string;

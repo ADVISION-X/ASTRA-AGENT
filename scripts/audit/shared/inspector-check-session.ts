@@ -82,6 +82,10 @@ type InspectorSessionOutputMeta = {
 };
 
 export type InspectorCheckSession = {
+  run(
+    checkId: string,
+    body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>,
+  ): Promise<InspectorCheckBodyResult>;
   runAll(
     body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>,
   ): Promise<InspectorCheckBodyResult>;
@@ -127,17 +131,20 @@ const callbackFailureFinding = (
 type CheckSessionState = {
   runId: string;
   expectedCheckIds: string[];
-  evaluationCompleted: boolean;
+  completedCheckIds: Set<string>;
   receipts: Map<string, InspectorCheckRunReceipt>;
   ownerFindings: readonly InspectorFinding[];
   authenticOutputs: WeakSet<object>;
 };
 
-const createRunAllChecks = (
+const executeCheck = async (
   planEntry: AuditPlanEntry,
   state: CheckSessionState,
-): InspectorCheckSession["runAll"] => async (body) => {
-    if (state.evaluationCompleted) throw new Error(`Inspector attempted duplicate owner evaluation ${planEntry.capabilityDomain}.`);
+  checkIds: readonly string[],
+  body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>,
+): Promise<InspectorCheckBodyResult> => {
+    const duplicate = checkIds.find((checkId) => state.completedCheckIds.has(checkId));
+    if (duplicate) throw new Error(`Inspector attempted duplicate physical check ${planEntry.capabilityDomain}/${duplicate}.`);
     const startedAtMs = Date.now();
     const startedAt = new Date(startedAtMs).toISOString();
     let result: InspectorCheckBodyResult;
@@ -145,7 +152,7 @@ const createRunAllChecks = (
       result = await body();
     } catch (error) {
       result = {
-        findings: state.expectedCheckIds.map((checkId) => callbackFailureFinding(planEntry, checkId, error)),
+        findings: checkIds.map((checkId) => callbackFailureFinding(planEntry, checkId, error)),
         evidenceRefs: [planEntry.ownerInspectorPath],
       };
     }
@@ -160,13 +167,13 @@ const createRunAllChecks = (
     const evidenceRefs = normalizedEvidenceRefs(result.evidenceRefs);
     const findings = [...result.findings];
     if (evidenceRefs.length === 0) {
-      findings.push(...state.expectedCheckIds.map((checkId) => callbackFailureFinding(
+      findings.push(...checkIds.map((checkId) => callbackFailureFinding(
         planEntry, checkId, new Error("owner evaluation completed without an evidence ref"),
       )));
     }
 
     const endedAtMs = Date.now();
-    for (const checkId of state.expectedCheckIds) {
+    for (const checkId of checkIds) {
       state.receipts.set(checkId, Object.freeze({
         runId: state.runId,
         checkRunId: `${state.runId}:check:${randomUUID()}`,
@@ -180,10 +187,35 @@ const createRunAllChecks = (
         findingCount: findings.length,
       }));
     }
-    state.ownerFindings = Object.freeze(findings);
-    state.evaluationCompleted = true;
+    state.ownerFindings = Object.freeze([...state.ownerFindings, ...findings]);
     return Object.freeze({ findings: Object.freeze(findings), evidenceRefs });
   };
+
+const createRunChecks = (
+  planEntry: AuditPlanEntry,
+  state: CheckSessionState,
+): InspectorCheckSession["run"] => async (checkId, body) => {
+  if (!state.expectedCheckIds.includes(checkId)) {
+    throw new Error(`Inspector attempted undeclared physical check ${planEntry.capabilityDomain}/${checkId}.`);
+  }
+  const result = await executeCheck(planEntry, state, [checkId], body);
+  state.completedCheckIds.add(checkId);
+  return result;
+};
+
+const createRunAllChecks = (
+  planEntry: AuditPlanEntry,
+  state: CheckSessionState,
+): InspectorCheckSession["runAll"] => async (body) => {
+  if (state.expectedCheckIds.length !== 1) {
+    throw new Error(`${planEntry.capabilityDomain} must execute its declared checks independently; runAll is only valid for a single-check owner.`);
+  }
+  const checkId = state.expectedCheckIds[0];
+  if (!checkId) throw new Error(`${planEntry.capabilityDomain} has no declared physical check.`);
+  const result = await executeCheck(planEntry, state, [checkId], body);
+  state.completedCheckIds.add(checkId);
+  return result;
+};
 
 const createSessionOutput = (
   planEntry: AuditPlanEntry,
@@ -229,23 +261,20 @@ export const createInspectorCheckSession = (
     throw new Error("Inspector check session requires the generated-plan run identity.");
   }
   const expectedCheckIds = uniqueCheckIds(planEntry);
-  if (expectedCheckIds.length !== 1
-    || expectedCheckIds[0] !== `${planEntry.capabilityDomain}/owner-assertion-set`) {
-    throw new Error(`${planEntry.capabilityDomain} must declare exactly one owner-assertion-set physical check.`);
-  }
   const state: CheckSessionState = {
     runId,
     expectedCheckIds,
-    evaluationCompleted: false,
+    completedCheckIds: new Set(),
     receipts: new Map(),
     ownerFindings: Object.freeze([]),
     authenticOutputs: new WeakSet(),
   };
+  const run = createRunChecks(planEntry, state);
   const runAll = createRunAllChecks(planEntry, state);
   const output = createSessionOutput(planEntry, state);
 
   return {
-    checks: Object.freeze({ runAll, output }),
+    checks: Object.freeze({ run, runAll, output }),
     completedCheckCount: () => state.receipts.size,
     expectedCheckCount: expectedCheckIds.length,
     isAuthenticOutput: (candidate): candidate is SessionInspectorOutput =>

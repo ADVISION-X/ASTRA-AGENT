@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
@@ -14,24 +14,33 @@ import {
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 
-type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
+type StepResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult };
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 
 const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });
-const stepFailure = <T>(failure: AmazonInvoiceUploadTaskResult): StepResult<T> => ({ ok: false, failure });
+const stepFailure = <T>(
+  failure: AmazonInvoiceUploadTaskResult,
+): StepResult<T> => ({ ok: false, failure });
 
 export async function fillInvoiceNumber(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
   const invoiceNumber = locateOrStatus({
-    snapshot: await readAndTraceInvoiceNumberSnapshot(browser, runtimeLogger, mission),
+    snapshot: await readAndTraceInvoiceNumberSnapshot(
+      browser,
+      runtimeLogger,
+      mission,
+    ),
     targetKind: "text-input",
     hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.invoiceNumber],
     notFoundStatus: "review_required",
   });
-  if (!invoiceNumber.ok) return invoiceNumberFailure(runtimeLogger, mission, invoiceNumber);
+  if (!invoiceNumber.ok)
+    return invoiceNumberFailure(runtimeLogger, mission, invoiceNumber);
   traceInvoiceNumberLocated(runtimeLogger, mission, invoiceNumber.element);
   const filled = await fillElement(browser, {
     elementRef: invoiceNumber.element,
@@ -39,16 +48,27 @@ export async function fillInvoiceNumber(
     clearBeforeType: true,
     inputPurpose: "approved-form-text",
   });
-  return buildInvoiceNumberFillResult(runtimeLogger, mission, invoiceNumber.element, filled);
+  return buildInvoiceNumberFillResult(
+    runtimeLogger,
+    mission,
+    invoiceNumber.element,
+    filled,
+  );
 }
 
 async function readAndTraceInvoiceNumberSnapshot(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<Awaited<ReturnType<typeof readSnapshot>>> {
   const snapshot = await readSnapshot(browser);
-  recordAmazonDomStepTrace({ runtimeLogger, mission, stepName: "locate invoice number input", status: "snapshot", snapshot });
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate invoice number input",
+    status: "snapshot",
+    snapshot,
+  });
   return snapshot;
 }
 
@@ -57,8 +77,16 @@ function invoiceNumberFailure(
   mission: AmazonInvoiceUploadMissionInput,
   invoiceNumber: LocateFailure,
 ): StepResult<void> {
-  recordAmazonDomStepTrace({ runtimeLogger, mission, stepName: "locate invoice number input", status: "failed", reason: invoiceNumber.reason });
-  return stepFailure(locateFailureResult(mission, invoiceNumber, "locate invoice number input"));
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate invoice number input",
+    status: "failed",
+    reason: invoiceNumber.reason,
+  });
+  return stepFailure(
+    locateFailureResult(mission, invoiceNumber, "locate invoice number input"),
+  );
 }
 
 function traceInvoiceNumberLocated(
@@ -86,18 +114,26 @@ function buildInvoiceNumberFillResult(
     runtimeLogger,
     mission,
     stepName: "fill invoice number",
-    status: filled.ok ? "success" : filled.status === "review_required" ? "review_required" : "failed",
+    status: filled.ok
+      ? "success"
+      : filled.status === "review_required"
+        ? "review_required"
+        : "failed",
     selectedElement: element,
-    reason: filled.ok ? filled.message : filled.reviewRequiredReason ?? filled.message,
+    reason: filled.ok
+      ? filled.message
+      : (filled.reviewRequiredReason ?? filled.message),
     evidenceRef: filled.afterEvidenceRef ?? filled.beforeEvidenceRef,
   });
   if (filled.ok) return stepSuccess(undefined);
-  return stepFailure(taskResult({
-    status: "failed",
-    reason: filled.reviewRequiredReason ?? filled.message,
-    reachedStep: "fill invoice number",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    ...evidenceField(filled.afterEvidenceRef ?? filled.beforeEvidenceRef),
-  }));
+  return stepFailure(
+    taskResult({
+      status: "failed",
+      reason: filled.reviewRequiredReason ?? filled.message,
+      reachedStep: "fill invoice number",
+      amazonOrderId: mission.amazonOrderId,
+      invoiceNo: mission.invoiceNo,
+      ...evidenceField(filled.afterEvidenceRef ?? filled.beforeEvidenceRef),
+    }),
+  );
 }

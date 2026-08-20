@@ -2,9 +2,7 @@ import { chmodSync, mkdirSync, rmSync, statSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 
-import {
-  BrowserAuthorityAbsentError,
-} from "../authority/browser-authority-issuer.js";
+import { BrowserAuthorityAbsentError } from "../authority/browser-authority-issuer.js";
 import type {
   AuthenticatedBrowserAuthority,
   BrowserAuthoritySnapshot,
@@ -22,9 +20,7 @@ import {
   BrowserNativeCommandChannel,
   type BrowserNativeCommandInput,
 } from "./browser-native-command-channel.js";
-import {
-  type BrowserControllerEphemeralKey,
-} from "../transport/browser-session-crypto.js";
+import { type BrowserControllerEphemeralKey } from "../transport/browser-session-crypto.js";
 
 type ChallengeState = Readonly<{
   challengeId: string;
@@ -100,26 +96,32 @@ export class BrowserNativeTransportServer {
     readonly controllerSessionId: string,
     readonly socketPath: string,
     readonly profileEnrollmentId: string,
-    private readonly onLifecycle?: (event: BrowserTransportLifecycleEvent) => void,
+    private readonly onLifecycle?: (
+      event: BrowserTransportLifecycleEvent,
+    ) => void,
   ) {
     this.authentication = new BrowserNativeAuthentication({
       controllerSessionId,
       profileEnrollmentId,
       send: (connection, message) => this.sendTo(connection, message),
-      terminate: (connection, reason) => this.revokeAndDestroy(connection, reason),
-      emit: (stage, generation, reason) => this.emitLifecycle({
-        stage,
-        generation,
-        ...(reason ? { reason } : {}),
-      }),
+      terminate: (connection, reason) =>
+        this.revokeAndDestroy(connection, reason),
+      emit: (stage, generation, reason) =>
+        this.emitLifecycle({
+          stage,
+          generation,
+          ...(reason ? { reason } : {}),
+        }),
     });
     this.commandChannel = new BrowserNativeCommandChannel({
       currentConnection: () => this.connection,
       requireAuthority: () => this.requireAuthority(),
       isCurrent: (binding) => this.authentication.isCurrent(binding),
-      requireConnection: (authority) => this.requireConnectionForAuthority(authority),
+      requireConnection: (authority) =>
+        this.requireConnectionForAuthority(authority),
       send: (connection, message) => this.sendTo(connection, message),
-      terminate: (connection, reason) => this.revokeAndDestroy(connection, reason),
+      terminate: (connection, reason) =>
+        this.revokeAndDestroy(connection, reason),
     });
   }
 
@@ -131,7 +133,9 @@ export class BrowserNativeTransportServer {
     return this.startupPromise;
   }
 
-  async waitForAuthority(timeoutMs = 10_000): Promise<AuthenticatedBrowserAuthority> {
+  async waitForAuthority(
+    timeoutMs = 10_000,
+  ): Promise<AuthenticatedBrowserAuthority> {
     await this.start();
     return this.authentication.waitForAuthority(timeoutMs);
   }
@@ -144,7 +148,9 @@ export class BrowserNativeTransportServer {
     return this.authentication.requireCurrent();
   }
 
-  command<T>(input: BrowserNativeCommandInput): Promise<{ commandId: string; result: T }> {
+  command<T>(
+    input: BrowserNativeCommandInput,
+  ): Promise<{ commandId: string; result: T }> {
     return this.commandChannel.command<T>(input);
   }
 
@@ -159,11 +165,16 @@ export class BrowserNativeTransportServer {
       await new Promise<void>((resolve) => this.server!.close(() => resolve()));
       this.server = null;
     }
-    if (this.socketIdentity !== null && this.readSocketIdentity() === this.socketIdentity) {
+    if (
+      this.socketIdentity !== null &&
+      this.readSocketIdentity() === this.socketIdentity
+    ) {
       rmSync(this.socketPath, { force: true });
     }
     this.socketIdentity = null;
-    this.authentication.rejectWaiters(new BrowserAuthorityAbsentError("browser transport closed"));
+    this.authentication.rejectWaiters(
+      new BrowserAuthorityAbsentError("browser transport closed"),
+    );
   }
 
   private async startInternal(): Promise<void> {
@@ -182,7 +193,9 @@ export class BrowserNativeTransportServer {
           }
           this.startupFailure = error;
           this.authentication.revoke("controller transport listener failed");
-          this.commandChannel.failPending("controller transport listener failed");
+          this.commandChannel.failPending(
+            "controller transport listener failed",
+          );
           this.connection?.socket.destroy(error);
         };
         server.once("error", onError);
@@ -193,15 +206,21 @@ export class BrowserNativeTransportServer {
       });
       chmodSync(this.socketPath, 0o600);
       this.socketIdentity = this.readSocketIdentity();
-      this.emitLifecycle({ stage: "listener_ready", generation: this.lifecycleGeneration });
+      this.emitLifecycle({
+        stage: "listener_ready",
+        generation: this.lifecycleGeneration,
+      });
       this.watchdog = setInterval(() => this.watchAuthorityLiveness(), 250);
     } catch (error) {
       this.server = null;
       const cause = error instanceof Error ? error : new Error(String(error));
       const errorCode = (error as NodeJS.ErrnoException).code;
-      this.startupFailure = errorCode === "EADDRINUSE"
-        ? new Error("BROWSER_CONTROLLER_ALREADY_OWNED: controller-native.sock is already owned by another BrowserController")
-        : cause;
+      this.startupFailure =
+        errorCode === "EADDRINUSE"
+          ? new Error(
+              "BROWSER_CONTROLLER_ALREADY_OWNED: controller-native.sock is already owned by another BrowserController",
+            )
+          : cause;
       server.close(() => undefined);
       throw this.startupFailure;
     }
@@ -227,19 +246,30 @@ export class BrowserNativeTransportServer {
     };
     this.connection = connection;
     socket.setEncoding("utf8");
-    socket.on("data", (chunk) => this.onData(
-      connection,
-      typeof chunk === "string" ? chunk : chunk.toString("utf8"),
-    ));
+    socket.on("data", (chunk) =>
+      this.onData(
+        connection,
+        typeof chunk === "string" ? chunk : chunk.toString("utf8"),
+      ),
+    );
     socket.on("close", () => this.onClose(connection));
     socket.on("error", () => undefined);
   }
 
-  private onData(connection: BrowserNativeConnectionState, chunk: string): void {
+  private onData(
+    connection: BrowserNativeConnectionState,
+    chunk: string,
+  ): void {
     if (this.connection !== connection) return;
     connection.buffer += chunk;
-    if (Buffer.byteLength(connection.buffer, "utf8") > GRASSEYE_BROWSER_CONTROLLER_HOST_MAX_MESSAGE_BYTES) {
-      this.revokeAndDestroy(connection, "Native host message exceeds controller-host budget");
+    if (
+      Buffer.byteLength(connection.buffer, "utf8") >
+      GRASSEYE_BROWSER_CONTROLLER_HOST_MAX_MESSAGE_BYTES
+    ) {
+      this.revokeAndDestroy(
+        connection,
+        "Native host message exceeds controller-host budget",
+      );
       return;
     }
     for (;;) {
@@ -251,20 +281,29 @@ export class BrowserNativeTransportServer {
       try {
         this.onMessage(JSON.parse(line) as unknown, connection);
       } catch {
-        this.revokeAndDestroy(connection, "Native host sent malformed or invalid browser protocol data");
+        this.revokeAndDestroy(
+          connection,
+          "Native host sent malformed or invalid browser protocol data",
+        );
         return;
       }
     }
   }
 
-  private onMessage(value: unknown, connection: BrowserNativeConnectionState): void {
+  private onMessage(
+    value: unknown,
+    connection: BrowserNativeConnectionState,
+  ): void {
     if (this.connection !== connection) return;
     if (!isBrowserWireMessage(value)) {
       this.revokeAndDestroy(connection, "invalid browser protocol message");
       return;
     }
     if (value.type === "extension_hello" && !connection.challenge) {
-      this.emitLifecycle({ stage: "socket_connected", generation: connection.generation });
+      this.emitLifecycle({
+        stage: "socket_connected",
+        generation: connection.generation,
+      });
     }
     if (this.authentication.handle(value, connection)) return;
     if (value.type === "response_frame") {
@@ -274,9 +313,10 @@ export class BrowserNativeTransportServer {
 
   private onClose(connection: BrowserNativeConnectionState): void {
     if (this.connection !== connection) return;
-    const admittedNativeHost = connection.challenge !== null
-      || connection.pendingAuthority !== null
-      || connection.authorityCommitted;
+    const admittedNativeHost =
+      connection.challenge !== null ||
+      connection.pendingAuthority !== null ||
+      connection.authorityCommitted;
     this.connection = null;
     if (!admittedNativeHost) return;
     this.authentication.revoke("Native host disconnected");
@@ -294,39 +334,63 @@ export class BrowserNativeTransportServer {
     try {
       this.authentication.requireCurrent();
     } catch {
-      this.revokeAndDestroy(connection, "browser authority liveness lease expired");
+      this.revokeAndDestroy(
+        connection,
+        "browser authority liveness lease expired",
+      );
     }
   }
 
-  private requireConnectionForAuthority(authority: AuthenticatedBrowserAuthority): BrowserNativeConnectionState {
+  private requireConnectionForAuthority(
+    authority: AuthenticatedBrowserAuthority,
+  ): BrowserNativeConnectionState {
     const connection = this.connection;
     const certificate = authority.certificate;
     if (
-      !connection
-      || connection.socket.destroyed
-      || !connection.frameKey
-      || !connection.authorityCommitted
-      || connection.generation !== certificate.connectionGeneration
-      || connection.nativePortEpoch !== certificate.nativePortEpoch
+      !connection ||
+      connection.socket.destroyed ||
+      !connection.frameKey ||
+      !connection.authorityCommitted ||
+      connection.generation !== certificate.connectionGeneration ||
+      connection.nativePortEpoch !== certificate.nativePortEpoch
     ) {
-      this.authentication.revoke("browser authority no longer owns the current connection");
-      throw new BrowserAuthorityAbsentError("browser authority is not bound to the current transport connection");
+      this.authentication.revoke(
+        "browser authority no longer owns the current connection",
+      );
+      throw new BrowserAuthorityAbsentError(
+        "browser authority is not bound to the current transport connection",
+      );
     }
     return connection;
   }
 
-  private sendTo(connection: BrowserNativeConnectionState, message: BrowserWireMessage): void {
+  private sendTo(
+    connection: BrowserNativeConnectionState,
+    message: BrowserWireMessage,
+  ): void {
     if (this.connection !== connection || connection.socket.destroyed) {
-      throw new BrowserTerminalError("TRANSPORT_DISCONNECTED", "Native host connection is no longer current");
+      throw new BrowserTerminalError(
+        "TRANSPORT_DISCONNECTED",
+        "Native host connection is no longer current",
+      );
     }
     const payload = `${JSON.stringify(message)}\n`;
-    if (Buffer.byteLength(payload, "utf8") > GRASSEYE_BROWSER_CONTROLLER_HOST_MAX_MESSAGE_BYTES) {
-      throw new BrowserTerminalError("TRANSPORT_DISCONNECTED", "browser controller-host message exceeds maximum size");
+    if (
+      Buffer.byteLength(payload, "utf8") >
+      GRASSEYE_BROWSER_CONTROLLER_HOST_MAX_MESSAGE_BYTES
+    ) {
+      throw new BrowserTerminalError(
+        "TRANSPORT_DISCONNECTED",
+        "browser controller-host message exceeds maximum size",
+      );
     }
     connection.socket.write(payload);
   }
 
-  private revokeAndDestroy(connection: BrowserNativeConnectionState, reason: string): void {
+  private revokeAndDestroy(
+    connection: BrowserNativeConnectionState,
+    reason: string,
+  ): void {
     if (this.connection !== connection) return;
     this.authentication.revoke(reason);
     this.commandChannel.failPending(reason);

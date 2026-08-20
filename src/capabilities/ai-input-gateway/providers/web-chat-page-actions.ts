@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { waitForExactAttachmentCount as waitForExactAttachmentCountImpl } from "./web-chat-upload-page-actions.js";
@@ -12,7 +12,7 @@ import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limi
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
 
 export const focusComposer = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({
@@ -22,7 +22,7 @@ export const focusComposer = (
   });
 
 const verifyComposerFocused = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({
@@ -32,7 +32,7 @@ const verifyComposerFocused = (
   });
 
 export const waitForExactAttachmentCount = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],
@@ -53,7 +53,7 @@ export const waitForExactAttachmentCount = (
 );
 
 export const waitForComposerFocused = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   timeoutMs: number,
 ): Promise<void> => {
@@ -79,7 +79,7 @@ export const waitForComposerFocused = async (
 };
 
 export const clickChatGptSendButton = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({

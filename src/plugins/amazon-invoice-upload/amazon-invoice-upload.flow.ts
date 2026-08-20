@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
@@ -66,16 +66,17 @@ export type AmazonInvoiceUploadExecutionContext = {
 
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 type SubmitButtonLocateResult =
-  | { ok: true; element: DomElementRef; expectedText: string }
-  | LocateFailure;
+  { ok: true; element: DomElementRef; expectedText: string } | LocateFailure;
 
 const UPLOAD_STEP_RETRY_LIMIT = 2;
 const UPLOAD_STEP_RETRY_SETTLE_MS = 500;
 
-type UploadStepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
+type UploadStepResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; failure: AmazonInvoiceUploadTaskResult };
 
 export async function runAmazonInvoiceUpload(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   rawMission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
@@ -85,23 +86,47 @@ export async function runAmazonInvoiceUpload(
 }
 
 async function continueInvoiceUpload(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   execution: AmazonInvoiceUploadExecutionContext,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   await execution.safePoint?.("order_detail_before");
-  const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission, execution);
+  const orderDetailResult = await openOrderDetail(
+    browser,
+    runtimeLogger,
+    mission,
+    execution,
+  );
   if (!orderDetailResult.ok) return orderDetailResult.failure;
   const navigationProof = orderDetailResult.value;
 
   await execution.safePoint?.("order_detail_after");
 
-  const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission, execution.abortSignal);
-  if (alreadyUploaded) return { ...alreadyUploaded, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
+  const alreadyUploaded = await verifyAlreadyUploadedInvoice(
+    browser,
+    runtimeLogger,
+    mission,
+    execution.abortSignal,
+  );
+  if (alreadyUploaded)
+    return {
+      ...alreadyUploaded,
+      runtimeLogRef: execution.runtimeLogRef,
+      orderNavigationProof: navigationProof,
+    };
 
-  const amountGate = await verifyInvoiceAmountBeforeUpload(browser, runtimeLogger, mission);
-  if (amountGate) return { ...amountGate, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
+  const amountGate = await verifyInvoiceAmountBeforeUpload(
+    browser,
+    runtimeLogger,
+    mission,
+  );
+  if (amountGate)
+    return {
+      ...amountGate,
+      runtimeLogRef: execution.runtimeLogRef,
+      orderNavigationProof: navigationProof,
+    };
 
   await execution.safePoint?.("upload_entry_before");
   const uploadEntryResult = await runUploadStepWithRetries({
@@ -111,16 +136,31 @@ async function continueInvoiceUpload(
     stepName: "open upload invoice entry",
     action: () => openUploadInvoiceEntry(browser, runtimeLogger, mission),
   });
-  if (!uploadEntryResult.ok) return { ...uploadEntryResult.failure, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
+  if (!uploadEntryResult.ok)
+    return {
+      ...uploadEntryResult.failure,
+      runtimeLogRef: execution.runtimeLogRef,
+      orderNavigationProof: navigationProof,
+    };
 
   await execution.safePoint?.("approved_file_attach_before");
-  const result = await uploadAndSubmitInvoice(browser, runtimeLogger, mission, execution.abortSignal, execution.safePoint);
+  const result = await uploadAndSubmitInvoice(
+    browser,
+    runtimeLogger,
+    mission,
+    execution.abortSignal,
+    execution.safePoint,
+  );
   await execution.safePoint?.("result_checkpoint_after");
-  return { ...result, runtimeLogRef: execution.runtimeLogRef, orderNavigationProof: navigationProof };
+  return {
+    ...result,
+    runtimeLogRef: execution.runtimeLogRef,
+    orderNavigationProof: navigationProof,
+  };
 }
 
 async function runUploadStepWithRetries<T>(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeLogger: RuntimeLogger;
   mission: AmazonInvoiceUploadMissionInput;
   stepName: string;
@@ -129,7 +169,11 @@ async function runUploadStepWithRetries<T>(input: {
 }): Promise<UploadStepResult<T>> {
   const attempt = input.attempt ?? 0;
   const result = await input.action();
-  if (result.ok || attempt >= UPLOAD_STEP_RETRY_LIMIT || !isRetryableUploadStepFailure(result.failure)) {
+  if (
+    result.ok ||
+    attempt >= UPLOAD_STEP_RETRY_LIMIT ||
+    !isRetryableUploadStepFailure(result.failure)
+  ) {
     return result;
   }
   const nextAttempt = attempt + 1;
@@ -144,14 +188,18 @@ async function runUploadStepWithRetries<T>(input: {
   return runUploadStepWithRetries({ ...input, attempt: nextAttempt });
 }
 
-function isRetryableUploadStepFailure(failure: AmazonInvoiceUploadTaskResult): boolean {
-  return failure.status !== "login_required"
-    && failure.status !== "captcha_or_2fa_required"
-    && failure.reachedStep !== "verify upload success";
+function isRetryableUploadStepFailure(
+  failure: AmazonInvoiceUploadTaskResult,
+): boolean {
+  return (
+    failure.status !== "login_required" &&
+    failure.status !== "captcha_or_2fa_required" &&
+    failure.reachedStep !== "verify upload success"
+  );
 }
 
 async function uploadAndSubmitInvoice(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
@@ -170,15 +218,24 @@ async function uploadAndSubmitInvoice(
 }
 
 async function submitAndVerifyInvoice(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const submitButton = locateSubmitButton(await readAndTraceSubmitSnapshot(browser, runtimeLogger, mission));
-  if (!submitButton.ok) return submitButtonFailure(runtimeLogger, mission, submitButton);
+  const submitButton = locateSubmitButton(
+    await readAndTraceSubmitSnapshot(browser, runtimeLogger, mission),
+  );
+  if (!submitButton.ok)
+    return submitButtonFailure(runtimeLogger, mission, submitButton);
   traceSubmitButtonLocated(runtimeLogger, mission, submitButton.element);
-  const submitFailure = await clickSubmitButton(browser, runtimeLogger, mission, submitButton.element, submitButton.expectedText);
+  const submitFailure = await clickSubmitButton(
+    browser,
+    runtimeLogger,
+    mission,
+    submitButton.element,
+    submitButton.expectedText,
+  );
   if (submitFailure) return normalizeSubmitFailure(submitFailure);
   return verifyUploadSuccess(browser, runtimeLogger, mission, abortSignal);
 }
@@ -235,7 +292,7 @@ function traceSubmitButtonLocated(
 }
 
 async function clickSubmitButton(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   element: DomElementRef,
@@ -262,7 +319,7 @@ async function clickSubmitButton(
 }
 
 async function readAndTraceSubmitSnapshot(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<DomSnapshot> {

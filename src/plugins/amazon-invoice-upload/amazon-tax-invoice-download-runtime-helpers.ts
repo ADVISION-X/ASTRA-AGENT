@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DomSnapshot } from "../../types/dom-automation.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
@@ -14,19 +14,23 @@ import {
 } from "./amazon-tax-invoice-download-evidence.js";
 import { TAX_DOWNLOAD_SNAPSHOT_TEXT_LIMIT } from "./amazon-tax-invoice-download-page-state.js";
 
-const evidenceStepIdSet = new Set<string>(AMAZON_TAX_INVOICE_DOWNLOAD_EVIDENCE_STEP_IDS);
+const evidenceStepIdSet = new Set<string>(
+  AMAZON_TAX_INVOICE_DOWNLOAD_EVIDENCE_STEP_IDS,
+);
 
 export const assertEvidenceStepId = (
   evidenceStepId: AmazonTaxInvoiceDownloadEvidenceStepId,
 ): AmazonTaxInvoiceDownloadEvidenceStepId => {
   if (!evidenceStepIdSet.has(evidenceStepId)) {
-    throw new Error(`Unknown Amazon tax invoice evidence step: ${evidenceStepId}`);
+    throw new Error(
+      `Unknown Amazon tax invoice evidence step: ${evidenceStepId}`,
+    );
   }
   return evidenceStepId;
 };
 
 export const readSnapshotAndTrace = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonTaxInvoiceDownloadMissionInput,
   evidenceStepId: AmazonTaxInvoiceDownloadEvidenceStepId,
@@ -60,7 +64,10 @@ export const gatedDownloadResult = (
     successHints: [],
     failureHints: [],
   });
-  if (gate.status !== "login_required" && gate.status !== "captcha_or_2fa_required") {
+  if (
+    gate.status !== "login_required" &&
+    gate.status !== "captcha_or_2fa_required"
+  ) {
     return null;
   }
   return {

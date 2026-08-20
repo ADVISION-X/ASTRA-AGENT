@@ -38,10 +38,16 @@ export class BrowserAuthorityIssuer {
     if (this.current || this.pending) {
       throw new Error("BROWSER_AUTHORITY_ALREADY_PENDING_OR_PRESENT");
     }
-    if (!Number.isSafeInteger(input.connectionGeneration) || input.connectionGeneration <= 0) {
+    if (
+      !Number.isSafeInteger(input.connectionGeneration) ||
+      input.connectionGeneration <= 0
+    ) {
       throw new Error("BROWSER_AUTHORITY_GENERATION_INVALID");
     }
-    if (!Number.isSafeInteger(input.nativePortEpoch) || input.nativePortEpoch <= 0) {
+    if (
+      !Number.isSafeInteger(input.nativePortEpoch) ||
+      input.nativePortEpoch <= 0
+    ) {
       throw new Error("BROWSER_AUTHORITY_PORT_EPOCH_INVALID");
     }
     const candidate = AuthenticatedBrowserAuthority.issueInternal({
@@ -53,9 +59,15 @@ export class BrowserAuthorityIssuer {
     return candidate;
   }
 
-  commit(candidate: AuthenticatedBrowserAuthority): AuthenticatedBrowserAuthority {
+  commit(
+    candidate: AuthenticatedBrowserAuthority,
+  ): AuthenticatedBrowserAuthority {
     if (this.current) throw new Error("BROWSER_AUTHORITY_ALREADY_PRESENT");
-    if (!this.pending || this.pending.certificate.certificateHash !== candidate.certificate.certificateHash) {
+    if (
+      !this.pending ||
+      this.pending.certificate.certificateHash !==
+        candidate.certificate.certificateHash
+    ) {
       throw new Error("BROWSER_AUTHORITY_PENDING_CANDIDATE_MISMATCH");
     }
     const now = performance.now();
@@ -73,19 +85,23 @@ export class BrowserAuthorityIssuer {
     return this.current;
   }
 
-  heartbeat(input: Readonly<{
-    authorityId: string;
-    connectionGeneration: number;
-    nativePortEpoch: number;
-  }>): void {
+  heartbeat(
+    input: Readonly<{
+      authorityId: string;
+      connectionGeneration: number;
+      nativePortEpoch: number;
+    }>,
+  ): void {
     const authority = this.requireCurrent();
     const certificate = authority.certificate;
     if (
-      certificate.authorityId !== input.authorityId
-      || certificate.connectionGeneration !== input.connectionGeneration
-      || certificate.nativePortEpoch !== input.nativePortEpoch
+      certificate.authorityId !== input.authorityId ||
+      certificate.connectionGeneration !== input.connectionGeneration ||
+      certificate.nativePortEpoch !== input.nativePortEpoch
     ) {
-      throw new BrowserAuthorityAbsentError("stale heartbeat cannot renew the current browser authority");
+      throw new BrowserAuthorityAbsentError(
+        "stale heartbeat cannot renew the current browser authority",
+      );
     }
     this.lastHeartbeatMonotonicMs = performance.now();
   }
@@ -99,16 +115,20 @@ export class BrowserAuthorityIssuer {
     this.absentReason = reason || "revoked";
   }
 
-  isCurrent(input: Readonly<{
-    authorityId: string;
-    connectionGeneration: number;
-    nativePortEpoch: number;
-  }>): boolean {
+  isCurrent(
+    input: Readonly<{
+      authorityId: string;
+      connectionGeneration: number;
+      nativePortEpoch: number;
+    }>,
+  ): boolean {
     try {
       const certificate = this.requireCurrent().certificate;
-      return certificate.authorityId === input.authorityId
-        && certificate.connectionGeneration === input.connectionGeneration
-        && certificate.nativePortEpoch === input.nativePortEpoch;
+      return (
+        certificate.authorityId === input.authorityId &&
+        certificate.connectionGeneration === input.connectionGeneration &&
+        certificate.nativePortEpoch === input.nativePortEpoch
+      );
     } catch {
       return false;
     }
@@ -142,8 +162,9 @@ export class BrowserAuthorityIssuer {
     if (!this.current) return;
     const now = performance.now();
     const certificate = this.current.certificate;
-    const heartbeatExpired = this.lastHeartbeatMonotonicMs > 0
-      && now - this.lastHeartbeatMonotonicMs > BROWSER_AUTHORITY_HARD_EXPIRY_MS;
+    const heartbeatExpired =
+      this.lastHeartbeatMonotonicMs > 0 &&
+      now - this.lastHeartbeatMonotonicMs > BROWSER_AUTHORITY_HARD_EXPIRY_MS;
     const authorityAgeExpired = now >= certificate.hardExpiresAtMonotonicMs;
     if (heartbeatExpired || authorityAgeExpired) this.revoke(reason);
   }

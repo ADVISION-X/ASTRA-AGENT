@@ -1,12 +1,9 @@
-import { renderWorkbenchDeepResearchClient } from "../workbench-deep-research-client.js";
-import { renderWorkbenchDeepResearchStyles } from "../workbench-deep-research-styles.js";
 import { renderMediaOptimizerClient } from "../skills/media-optimizer/media-optimizer-client.js";
 import { renderWorkbenchHomeClient } from "../workbench-home-client.js";
 import { renderWorkbenchHomeStyles } from "../workbench-home-styles.js";
 import { renderXuanxueAiProductionClient } from "../workbench-xuanxue-ai-production-client.js";
 import { renderAmazonInvoiceInterventionClient } from "../amazon-invoice-intervention-client.js";
 import { renderAmazonProductMiningInterventionClient } from "../amazon-product-mining-intervention-client.js";
-import { renderDeepResearchInterventionClient } from "../deep-research-intervention-client.js";
 import { renderCommandBar } from "./command-bar.js";
 import { renderInspector } from "./inspector.js";
 import { renderAppShellLocalizationClient } from "./localization.js";
@@ -20,7 +17,7 @@ export const renderAppShell = (): string => `<!doctype html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GrassEye AGENT Workbench</title>
-  <style>${renderWorkbenchHomeStyles()}${renderWorkbenchDeepResearchStyles()}</style>
+  <style>${renderWorkbenchHomeStyles()}</style>
 </head>
 <body class="inspector-collapsed" data-active-skill="amazon-product-mining">
   <div class="app-shell" data-workbench-shell data-app-shell>
@@ -32,6 +29,6 @@ export const renderAppShell = (): string => `<!doctype html>
     </div>
     ${renderRuntimeConsole()}
   </div>
-  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderMediaOptimizerClient()}${renderWorkbenchDeepResearchClient()}${renderXuanxueAiProductionClient()}${renderAmazonInvoiceInterventionClient()}${renderAmazonProductMiningInterventionClient()}${renderDeepResearchInterventionClient()}</script>
+  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderMediaOptimizerClient()}${renderXuanxueAiProductionClient()}${renderAmazonInvoiceInterventionClient()}${renderAmazonProductMiningInterventionClient()}</script>
 </body>
 </html>`;

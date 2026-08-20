@@ -1,44 +1,362 @@
-import { createHash, randomUUID } from "node:crypto";
-import type { BrowserActionResult,BrowserCaptureResult,BrowserGeometrySnapshot,BrowserOpenResult,BrowserTargetLease } from "../browser-authority-api.js";
-import type { BrowserWireCommand,BrowserWireTargetDescriptor } from "../protocol/generated/browser-protocol.js";
-import type { BrowserArtifactReceipt } from "./browser-artifact-stream.js";
-import { BrowserTerminalError,type BrowserMutationClass } from "./browser-command-contract.js";
+import type {
+  BrowserActionResult,
+  BrowserCaptureResult,
+  BrowserGeometrySnapshot,
+  BrowserOpenResult,
+  BrowserTargetLease,
+} from "../browser-authority-api.js";
+import type {
+  BrowserWireCommand,
+  BrowserWireTargetDescriptor,
+} from "../protocol/generated/browser-protocol.js";
+import {
+  BrowserTerminalError,
+  type BrowserMutationClass,
+} from "./browser-command-contract.js";
 import type { BrowserTargetLeaseManager } from "./browser-target-lease-manager.js";
 import type { ControlledBrowserTarget } from "./browser-target-ref.js";
-import { hashBrowserExecutionBinding } from "../transport/command-permit.js";
-const FILE_CHUNK_BYTES=48*1024;
-const hash=(v:string):`sha256:${string}`=>`sha256:${createHash("sha256").update(v).digest("hex")}`;
-const hostOf=(v:string):string=>{try{return new URL(v).host||"local";}catch{return"unknown";}};
-const sameUrl=(a:string,b:string):boolean=>{try{const x=new URL(a),y=new URL(b);return x.origin===y.origin&&x.pathname===y.pathname;}catch{return a===b;}};
-const recoverable=(e:unknown):boolean=>/(?:DEVTOOLS_ATTACHMENT_CONFLICT|TARGET_NOT_FOUND).*No tab with given id/iu.test(e instanceof Error?e.message:String(e));
-export class ExactBrowserTargetLease implements BrowserTargetLease{
- readonly executionBinding;private target:ControlledBrowserTarget|null=null;private valid=true;private abortSignal:AbortSignal|null=null;private releasedTargetRequest:Parameters<BrowserTargetLease["open"]>[0]|null=null;
- constructor(private readonly manager:BrowserTargetLeaseManager,readonly leaseRef:string,readonly ownerId:string){this.executionBinding=manager.executionBinding;}
- assertValid():void{this.manager.assertValid();if(!this.valid)throw new BrowserTerminalError("BROWSER_TARGET_LEASE_STALE",`target lease ${this.leaseRef} is stale`);}
- invalidate():void{this.valid=false;this.target=null;this.releasedTargetRequest=null;this.abortSignal=null;}
- getTarget():ControlledBrowserTarget|null{try{this.assertValid();return this.target?{...this.target}:null;}catch{return null;}}
- getHealth(){try{this.assertValid();return{ok:true,detail:`authenticated execution-bound target lease ${this.leaseRef}`};}catch(e){return{ok:false,detail:e instanceof Error?e.message:"BROWSER_TARGET_LEASE_STALE"};}}
- getLeaseState(){this.assertValid();const c=this.manager.authority.certificate;return{leaseRef:this.leaseRef,ownerId:this.ownerId,authorityRefHash:hash(c.authorityRef),authorityEpoch:c.authorityEpoch,executionBindingHash:hashBrowserExecutionBinding(this.executionBinding),profileRef:c.profileEnrollmentHash,currentUrl:this.target?.url??"about:blank",currentTitle:this.target?.title??this.ownerId,lifecycle:this.target?"ATTACHED" as const:"DETACHED" as const};}
- setExecutionAbortSignal(signal:AbortSignal|null):void{this.assertValid();this.abortSignal=signal;}
- async open(input:Parameters<BrowserTargetLease["open"]>[0]):Promise<BrowserOpenResult>{this.assertValid();const started=Date.now(),actionId=input.browserActionId??`browser-open:${randomUUID()}`,signal=input.abortSignal??this.abortSignal??undefined,reusePolicy=input.reusePolicy??"reuse-exact-url";let descriptor:BrowserWireTargetDescriptor;let navigationMode:BrowserOpenResult["navigationMode"];if(!this.target){descriptor=(await this.manager.commands.command<BrowserWireTargetDescriptor>({executionBinding:this.executionBinding,targetLeaseRef:this.leaseRef,documentRef:"browser-document:unbound",command:{kind:"acquire_target",url:input.url,reusePolicy,excludedTabIds:this.manager.registry.occupiedTabIds()},mutationClass:"idempotent_mutation",timeoutMs:30_000,...(signal?{abortSignal:signal}:{})})).result;this.target=this.manager.registry.register(this.ownerId,descriptor,new URL(input.url).origin);navigationMode="acquired_exact_target";}else{const entry=this.manager.registry.resolve(this.target.targetRef,this.target.documentRef);this.manager.registry.assertNavigationOrigin(this.target.targetRef,input.url);try{descriptor=(await this.command<BrowserWireTargetDescriptor>({kind:"navigate_target",tabId:entry.descriptor.tabId,url:input.url},"idempotent_mutation",signal,30_000)).result;}catch(error){if(!recoverable(error))throw error;this.forgetTargetForRecovery();return this.open(input);}this.target=this.manager.registry.updateDocument(this.target.targetRef,descriptor);navigationMode="navigated_exact_target";}this.releasedTargetRequest=null;return{...this.action(actionId,`opened ${input.url} on exact target`,started),actionKind:"open",requestedHost:hostOf(input.url),reusePolicy,navigationMode,observedUrlMatchesRequest:sameUrl(input.url,descriptor.url)};}
- async observeCapability<T>(input:Parameters<BrowserTargetLease["observeCapability"]>[0]):Promise<T>{return(await this.command<T>({kind:"observe_capability",tabId:this.rawTabId(),capabilityId:input.capabilityId},"observation",input.abortSignal??this.abortSignal??undefined,input.timeoutMs)).result;}
- async click(input:Parameters<BrowserTargetLease["click"]>[0]):Promise<BrowserActionResult>{const started=Date.now();await this.command({kind:"click_target",tabId:this.rawTabId(),x:input.point.x,y:input.point.y,button:input.button??"left",clickCount:input.clickCount??1},"non_idempotent_mutation",input.abortSignal??this.abortSignal??undefined);return this.action(`browser-click:${randomUUID()}`,`clicked ${input.targetLabel}`,started);}
- async move(input:Parameters<BrowserTargetLease["move"]>[0]):Promise<BrowserActionResult>{const started=Date.now();await this.command({kind:"move_target",tabId:this.rawTabId(),x:input.point.x,y:input.point.y},"idempotent_mutation",input.abortSignal??this.abortSignal??undefined);return this.action(`browser-move:${randomUUID()}`,`moved within ${input.targetLabel}`,started);}
- async scroll(input:Parameters<BrowserTargetLease["scroll"]>[0]):Promise<BrowserActionResult>{const started=Date.now(),geometry=await this.getGeometrySnapshot(input.abortSignal);await this.command({kind:"scroll_target",tabId:this.rawTabId(),x:input.anchorPoint?.x??geometry.viewportWidth/2,y:input.anchorPoint?.y??geometry.viewportHeight/2,deltaX:input.deltaX,deltaY:input.deltaY},"idempotent_mutation",input.abortSignal??this.abortSignal??undefined);return this.action(`browser-scroll:${randomUUID()}`,`scrolled ${input.targetLabel}`,started);}
- async clickLocatedDomElement(input:Parameters<BrowserTargetLease["clickLocatedDomElement"]>[0]):Promise<BrowserActionResult>{const started=Date.now();await this.command({kind:"click_dom_target",tabId:this.rawTabId(),selector:input.element.selector,identity:input.element.identity,...(input.expectedText?{expectedText:input.expectedText}:{})},"non_idempotent_mutation",input.abortSignal??this.abortSignal??undefined);return this.action(`browser-dom-click:${randomUUID()}`,`clicked ${input.targetLabel}`,started);}
- async fillLocatedDomElement(input:Parameters<BrowserTargetLease["fillLocatedDomElement"]>[0]):Promise<BrowserActionResult>{const started=Date.now();await this.command({kind:"fill_dom_target",tabId:this.rawTabId(),selector:input.element.selector,identity:input.element.identity,approvedText:input.approvedText,clearBeforeType:input.clearBeforeType},"non_idempotent_mutation",input.abortSignal??this.abortSignal??undefined);return this.action(`browser-dom-fill:${randomUUID()}`,`filled ${input.targetLabel}`,started);}
- async textInput(input:Parameters<BrowserTargetLease["textInput"]>[0]):Promise<BrowserActionResult>{const started=Date.now();await this.command({kind:"text_target",tabId:this.rawTabId(),action:input.action,...(input.text!=null?{text:input.text}:{}),...(input.key!=null?{key:input.key}:{})},"non_idempotent_mutation",input.abortSignal??this.abortSignal??undefined);return this.action(`browser-text:${randomUUID()}`,`text input ${input.targetLabel}`,started);}
- async setFileInputArtifact(input:Parameters<BrowserTargetLease["setFileInputArtifact"]>[0]):Promise<BrowserActionResult>{this.assertValid();const started=Date.now(),certificate=this.manager.authority.certificate,resolved=await this.manager.fileGrants.resolveBytesForSend({grant:input.grant,authorityEpoch:certificate.authorityEpoch,executionFenceHash:this.executionBinding.writerFenceHash});try{const chunkCount=Math.max(1,Math.ceil(resolved.bytes.byteLength/FILE_CHUNK_BYTES));for(let chunkIndex=0;chunkIndex<chunkCount;chunkIndex+=1){const chunk=resolved.bytes.subarray(chunkIndex*FILE_CHUNK_BYTES,Math.min(resolved.bytes.byteLength,(chunkIndex+1)*FILE_CHUNK_BYTES));await this.command({kind:"stage_file_artifact_chunk",tabId:this.rawTabId(),grantRef:resolved.grant.grantRef,artifactRef:resolved.grant.artifactRef,fileName:resolved.grant.fileName,contentHash:resolved.grant.contentHash,byteLength:resolved.grant.byteLength,chunkIndex,chunkCount,dataBase64:chunk.toString("base64")},"idempotent_mutation",input.abortSignal??this.abortSignal??undefined,10_000);}await this.command({kind:"set_file_input_artifact",tabId:this.rawTabId(),selector:input.elementRef.selector,fileGrant:resolved.grant},"non_idempotent_mutation",input.abortSignal??this.abortSignal??undefined,30_000);return this.action(`browser-file-input:${randomUUID()}`,input.description,started);}finally{await this.manager.fileGrants.destroy(input.grant.grantRef);}}
- async screenshotRegion(input:Parameters<BrowserTargetLease["screenshotRegion"]>[0]):Promise<BrowserCaptureResult>{const started=Date.now(),result=(await this.command<{artifactReceipt:BrowserArtifactReceipt}>({kind:"screenshot_target",tabId:this.rawTabId()},"observation",input.abortSignal??this.abortSignal??undefined,30_000)).result,target=this.requireTarget(),descriptor=this.manager.registry.resolve(target.targetRef,target.documentRef).descriptor;return{browserActionId:`browser-capture:${randomUUID()}`,pageUrl:descriptor.url,pageTitle:descriptor.title,regionLabel:input.regionLabel,regionType:"viewport",width:descriptor.viewportWidth,height:descriptor.viewportHeight,viewportWidth:descriptor.viewportWidth,viewportHeight:descriptor.viewportHeight,...(input.contentLines?{contentLines:input.contentLines}:{}),sourceFilePath:result.artifactReceipt.filePath,createdAt:new Date(started).toISOString(),targetRef:target.targetRef,documentRef:target.documentRef};}
- async getGeometrySnapshot(abortSignal?:AbortSignal):Promise<BrowserGeometrySnapshot>{const target=await this.ensureTarget(),entry=this.manager.registry.resolve(target.targetRef,target.documentRef);let descriptor:BrowserWireTargetDescriptor;try{descriptor=(await this.command<BrowserWireTargetDescriptor>({kind:"inspect_target",tabId:entry.descriptor.tabId},"observation",abortSignal??this.abortSignal??undefined)).result;}catch(error){if(recoverable(error))this.forgetTargetForRecovery();throw error;}this.target=this.manager.registry.updateDocument(target.targetRef,descriptor);return{windowX:0,windowY:0,viewportWidth:descriptor.viewportWidth,viewportHeight:descriptor.viewportHeight,screenshotWidth:Math.round(descriptor.viewportWidth*descriptor.deviceScaleFactor),screenshotHeight:Math.round(descriptor.viewportHeight*descriptor.deviceScaleFactor),scaleFactor:descriptor.deviceScaleFactor,currentUrl:descriptor.url,pageTitle:descriptor.title,visibleContentBounds:{x:0,y:0,width:descriptor.viewportWidth,height:descriptor.viewportHeight},capturedAt:new Date().toISOString(),targetRef:this.target.targetRef,documentRef:this.target.documentRef};}
- async wait(durationMs:number,abortSignal?:AbortSignal):Promise<BrowserActionResult>{this.assertValid();const signal=abortSignal??this.abortSignal??undefined,started=Date.now();await new Promise<void>((resolve,reject)=>{const timer=setTimeout(resolve,durationMs);const abort=()=>{clearTimeout(timer);reject(signal?.reason instanceof Error?signal.reason:new Error("browser wait aborted"));};signal?.addEventListener("abort",abort,{once:true});});this.assertValid();return this.action(`browser-wait:${randomUUID()}`,`waited ${durationMs}ms`,started);}
- async releaseTargetForOperator(input:{reason:string}):Promise<BrowserActionResult>{const started=Date.now(),target=this.requireTarget(),entry=this.manager.registry.resolve(target.targetRef,target.documentRef);this.releasedTargetRequest={url:entry.descriptor.url,title:entry.descriptor.title||this.ownerId,reusePolicy:"reuse-exact-url"};try{await this.command({kind:"release_target",tabId:entry.descriptor.tabId},"idempotent_mutation",undefined,10_000);return this.action(`browser-release:${randomUUID()}`,input.reason,started);}finally{this.manager.registry.release(target.targetRef);this.target=null;}}
- async closeTarget(input:Parameters<BrowserTargetLease["closeTarget"]>[0]):Promise<BrowserActionResult>{const started=Date.now(),target=this.requireTarget(),entry=this.manager.registry.resolve(target.targetRef,target.documentRef);await this.command({kind:"close_target",tabId:entry.descriptor.tabId},"non_idempotent_mutation",input.abortSignal??this.abortSignal??undefined);const result=this.action(`browser-close:${randomUUID()}`,input.reason,started);this.manager.registry.close(target.targetRef);this.target=null;return result;}
- close():Promise<BrowserActionResult>{if(!this.target){this.invalidate();return Promise.resolve({browserActionId:`browser-lease-close:${randomUUID()}`,ok:true,message:`closed target lease ${this.leaseRef}`,createdAt:new Date().toISOString()});}return this.closeTarget({reason:`closed target lease ${this.leaseRef}`});}
- private rawTabId():number{const target=this.requireTarget();return this.manager.registry.resolve(target.targetRef,target.documentRef).descriptor.tabId;}
- private requireTarget():ControlledBrowserTarget{this.assertValid();if(!this.target)throw new BrowserTerminalError("TARGET_NOT_FOUND",`lease ${this.leaseRef} has no exact target`);return this.target;}
- private async ensureTarget():Promise<ControlledBrowserTarget>{this.assertValid();if(this.target)return this.target;if(!this.releasedTargetRequest)return this.requireTarget();const request=this.releasedTargetRequest;await this.open(request);return this.requireTarget();}
- private async command<T>(command:BrowserWireCommand,mutationClass:BrowserMutationClass,abortSignal?:AbortSignal,timeoutMs?:number){this.assertValid();let expectedLoaderId:string|undefined;if(command.kind!=="acquire_target"){const target=this.requireTarget();expectedLoaderId=this.manager.registry.resolve(target.targetRef,target.documentRef).descriptor.loaderId;}let response;try{response=await this.manager.commands.command<T>({executionBinding:this.executionBinding,targetLeaseRef:this.leaseRef,documentRef:this.target?.documentRef??"browser-document:unbound",command,mutationClass,...(expectedLoaderId?{expectedLoaderId}:{}),...(abortSignal?{abortSignal}:{}),...(timeoutMs?{timeoutMs}:{})});}catch(error){if(recoverable(error))this.forgetTargetForRecovery();throw error;}this.assertValid();if(this.target&&command.kind!=="observe_capability"&&command.kind!=="screenshot_target"){try{this.target=this.manager.registry.updateDocument(this.target.targetRef,response.result as BrowserWireTargetDescriptor);}catch(error){if(mutationClass==="non_idempotent_mutation")throw new BrowserTerminalError("OUTCOME_UNKNOWN",error instanceof Error?error.message:String(error),mutationClass);throw error;}}return response;}
- private forgetTargetForRecovery():void{if(!this.target)return;this.manager.registry.close(this.target.targetRef);this.target=null;this.releasedTargetRequest=null;}
- private action(id:string,message:string,started:number):BrowserActionResult{const target=this.requireTarget(),entry=this.manager.registry.resolve(target.targetRef,target.documentRef);return{browserActionId:id,ok:true,message,createdAt:new Date().toISOString(),targetRef:target.targetRef,documentRef:target.documentRef,observedUrl:entry.descriptor.url,startedAt:new Date(started).toISOString(),durationMs:Date.now()-started};}
+import {
+  setBrowserFileInputArtifact,
+  type BrowserTargetLeaseFileArtifactPort,
+} from "./browser-target-lease-file-artifact.js";
+import {
+  clickBrowserTarget,
+  clickLocatedBrowserDomElement,
+  fillLocatedBrowserDomElement,
+  moveBrowserTarget,
+  scrollBrowserTarget,
+  textInputBrowserTarget,
+} from "./browser-target-lease-interaction.js";
+import {
+  captureBrowserTargetScreenshot,
+  readBrowserTargetGeometry,
+  waitForBrowserTarget,
+  type BrowserTargetLeaseObservationPort,
+} from "./browser-target-lease-observation.js";
+import {
+  browserTargetLeaseHealth,
+  browserTargetLeaseState,
+} from "./browser-target-lease-state.js";
+import {
+  closeBrowserTarget,
+  closeBrowserTargetLease,
+  releaseBrowserTargetForOperator,
+  type BrowserTargetLeaseTerminalPort,
+} from "./browser-target-lease-terminal.js";
+import {
+  openBrowserTarget,
+  type BrowserTargetLeaseOpenPort,
+} from "./browser-target-lease-open.js";
+import type { BrowserTargetLeaseInteractionPort } from "./browser-target-lease-interaction.js";
+const recoverable = (e: unknown): boolean =>
+  /(?:DEVTOOLS_ATTACHMENT_CONFLICT|TARGET_NOT_FOUND).*No tab with given id/iu.test(
+    e instanceof Error ? e.message : String(e),
+  );
+export class ExactBrowserTargetLease {
+  readonly executionBinding;
+  target: ControlledBrowserTarget | null = null;
+  private valid = true;
+  private abortSignal: AbortSignal | null = null;
+  private releasedTargetRequest:
+    Parameters<BrowserTargetLease["open"]>[0] | null = null;
+  constructor(
+    readonly manager: BrowserTargetLeaseManager,
+    readonly leaseRef: string,
+    readonly ownerId: string,
+  ) {
+    this.executionBinding = manager.executionBinding;
+  }
+  assertValid(): void {
+    this.manager.assertValid();
+    if (!this.valid)
+      throw new BrowserTerminalError(
+        "BROWSER_TARGET_LEASE_STALE",
+        `target lease ${this.leaseRef} is stale`,
+      );
+  }
+  invalidate(): void {
+    this.valid = false;
+    this.target = null;
+    this.releasedTargetRequest = null;
+    this.abortSignal = null;
+  }
+  getTarget(): ControlledBrowserTarget | null {
+    try {
+      this.assertValid();
+      return this.target ? { ...this.target } : null;
+    } catch {
+      return null;
+    }
+  }
+  getHealth() {
+    return browserTargetLeaseHealth(() => this.assertValid(), this.leaseRef);
+  }
+  getLeaseState() {
+    this.assertValid();
+    return browserTargetLeaseState({
+      leaseRef: this.leaseRef,
+      ownerId: this.ownerId,
+      certificate: this.manager.authority.certificate,
+      executionBinding: this.executionBinding,
+      target: this.target,
+    });
+  }
+  setExecutionAbortSignal(signal: AbortSignal | null): void {
+    this.assertValid();
+    this.abortSignal = signal;
+  }
+  rawTabId(): number {
+    const target = this.requireTarget();
+    return this.manager.registry.resolve(target.targetRef, target.documentRef)
+      .descriptor.tabId;
+  }
+  requireTarget(): ControlledBrowserTarget {
+    this.assertValid();
+    if (!this.target)
+      throw new BrowserTerminalError(
+        "TARGET_NOT_FOUND",
+        `lease ${this.leaseRef} has no exact target`,
+      );
+    return this.target;
+  }
+  async ensureTarget(): Promise<ControlledBrowserTarget> {
+    this.assertValid();
+    if (this.target) return this.target;
+    if (!this.releasedTargetRequest) return this.requireTarget();
+    const request = this.releasedTargetRequest;
+    await openBrowserTarget(this.openPort(), request);
+    return this.requireTarget();
+  }
+  async command<T>(
+    command: BrowserWireCommand,
+    mutationClass: BrowserMutationClass,
+    abortSignal?: AbortSignal,
+    timeoutMs?: number,
+  ) {
+    this.assertValid();
+    let expectedLoaderId: string | undefined;
+    if (command.kind !== "acquire_target") {
+      const target = this.requireTarget();
+      expectedLoaderId = this.manager.registry.resolve(
+        target.targetRef,
+        target.documentRef,
+      ).descriptor.loaderId;
+    }
+    let response;
+    try {
+      response = await this.manager.commands.command<T>({
+        executionBinding: this.executionBinding,
+        targetLeaseRef: this.leaseRef,
+        documentRef: this.target?.documentRef ?? "browser-document:unbound",
+        command,
+        mutationClass,
+        ...(expectedLoaderId ? { expectedLoaderId } : {}),
+        ...(abortSignal ? { abortSignal } : {}),
+        ...(timeoutMs ? { timeoutMs } : {}),
+      });
+    } catch (error) {
+      if (recoverable(error)) this.forgetTargetForRecovery();
+      throw error;
+    }
+    this.assertValid();
+    if (
+      this.target &&
+      command.kind !== "observe_capability" &&
+      command.kind !== "screenshot_target"
+    ) {
+      try {
+        this.target = this.manager.registry.updateDocument(
+          this.target.targetRef,
+          response.result as BrowserWireTargetDescriptor,
+        );
+      } catch (error) {
+        if (mutationClass === "non_idempotent_mutation")
+          throw new BrowserTerminalError(
+            "OUTCOME_UNKNOWN",
+            error instanceof Error ? error.message : String(error),
+            mutationClass,
+          );
+        throw error;
+      }
+    }
+    return response;
+  }
+  forgetTargetForRecovery(): void {
+    if (!this.target) return;
+    this.manager.registry.close(this.target.targetRef);
+    this.target = null;
+    this.releasedTargetRequest = null;
+  }
+  action(id: string, message: string, started: number): BrowserActionResult {
+    const target = this.requireTarget(),
+      entry = this.manager.registry.resolve(
+        target.targetRef,
+        target.documentRef,
+      );
+    return {
+      browserActionId: id,
+      ok: true,
+      message,
+      createdAt: new Date().toISOString(),
+      targetRef: target.targetRef,
+      documentRef: target.documentRef,
+      observedUrl: entry.descriptor.url,
+      startedAt: new Date(started).toISOString(),
+      durationMs: Date.now() - started,
+    };
+  }
+
+  observationPort(): BrowserTargetLeaseObservationPort {
+    return {
+      rawTabId: () => this.rawTabId(),
+      requireTarget: () => this.requireTarget(),
+      ensureTarget: () => this.ensureTarget(),
+      descriptorFor: (target: ControlledBrowserTarget) =>
+        this.manager.registry.resolve(target.targetRef, target.documentRef)
+          .descriptor,
+      updateDocument: (
+        target: ControlledBrowserTarget,
+        descriptor: BrowserWireTargetDescriptor,
+      ) => {
+        this.target = this.manager.registry.updateDocument(
+          target.targetRef,
+          descriptor,
+        );
+        return this.target;
+      },
+      forgetTargetForRecovery: () => this.forgetTargetForRecovery(),
+      command: this.command.bind(this),
+      defaultAbortSignal: () => this.abortSignal ?? undefined,
+      assertValid: () => this.assertValid(),
+      action: this.action.bind(this),
+    };
+  }
+
+  terminalPort(): BrowserTargetLeaseTerminalPort {
+    return {
+      leaseRef: this.leaseRef,
+      ownerId: this.ownerId,
+      requireTarget: () => this.requireTarget(),
+      descriptorFor: (target: ControlledBrowserTarget) =>
+        this.manager.registry.resolve(target.targetRef, target.documentRef)
+          .descriptor,
+      command: this.command.bind(this),
+      releaseRegistry: (targetRef: ControlledBrowserTarget["targetRef"]) =>
+        this.manager.registry.release(targetRef),
+      closeRegistry: (targetRef: ControlledBrowserTarget["targetRef"]) =>
+        this.manager.registry.close(targetRef),
+      clearTarget: () => {
+        this.target = null;
+      },
+      setReleasedTargetRequest: (
+        request: Parameters<BrowserTargetLease["open"]>[0],
+      ) => {
+        this.releasedTargetRequest = request;
+      },
+      action: this.action.bind(this),
+      defaultAbortSignal: () => this.abortSignal ?? undefined,
+    };
+  }
+
+  openPort(): BrowserTargetLeaseOpenPort {
+    return {
+      executionBinding: this.executionBinding,
+      leaseRef: this.leaseRef,
+      ownerId: this.ownerId,
+      manager: this.manager,
+      target: this.target,
+      setTarget: (target) => {
+        this.target = target;
+      },
+      clearReleasedTargetRequest: () => {
+        this.releasedTargetRequest = null;
+      },
+      forgetTargetForRecovery: () => this.forgetTargetForRecovery(),
+      command: this.command.bind(this),
+      action: this.action.bind(this),
+      defaultAbortSignal: () => this.abortSignal ?? undefined,
+    };
+  }
+
+  fileArtifactPort(): BrowserTargetLeaseFileArtifactPort {
+    const certificate = this.manager.authority.certificate;
+    return {
+      rawTabId: () => this.rawTabId(),
+      command: this.command.bind(this),
+      resolveArtifact: (grant) =>
+        this.manager.fileGrants.resolveBytesForSend({
+          grant,
+          authorityEpoch: certificate.authorityEpoch,
+          executionFenceHash: this.executionBinding.writerFenceHash,
+        }),
+      destroyArtifact: (grantRef) => this.manager.fileGrants.destroy(grantRef),
+      action: this.action.bind(this),
+      defaultAbortSignal: () => this.abortSignal ?? undefined,
+    };
+  }
+
+  interactionPort(): BrowserTargetLeaseInteractionPort {
+    return {
+      rawTabId: () => this.rawTabId(),
+      command: this.command.bind(this),
+      action: this.action.bind(this),
+      defaultAbortSignal: () => this.abortSignal ?? undefined,
+      observationPort: () => this.observationPort(),
+    };
+  }
 }
+
+export const browserTargetLeaseFacade = (
+  core: ExactBrowserTargetLease,
+): BrowserTargetLease => ({
+  leaseRef: core.leaseRef,
+  ownerId: core.ownerId,
+  executionBinding: core.executionBinding,
+  getTarget: () => core.getTarget(),
+  getHealth: () => core.getHealth(),
+  getLeaseState: () => core.getLeaseState(),
+  setExecutionAbortSignal: (abortSignal) =>
+    core.setExecutionAbortSignal(abortSignal),
+  releaseTargetForOperator: (input) =>
+    releaseBrowserTargetForOperator(core.terminalPort(), input),
+  open: (input): Promise<BrowserOpenResult> =>
+    openBrowserTarget(core.openPort(), input),
+  scroll: (input) => scrollBrowserTarget(core.interactionPort(), input),
+  click: (input) => clickBrowserTarget(core.interactionPort(), input),
+  move: (input) => moveBrowserTarget(core.interactionPort(), input),
+  clickLocatedDomElement: (input) =>
+    clickLocatedBrowserDomElement(core.interactionPort(), input),
+  fillLocatedDomElement: (input) =>
+    fillLocatedBrowserDomElement(core.interactionPort(), input),
+  textInput: (input) => textInputBrowserTarget(core.interactionPort(), input),
+  screenshotRegion: (input): Promise<BrowserCaptureResult> =>
+    captureBrowserTargetScreenshot(core.observationPort(), input),
+  observeCapability: <T>(
+    input: Parameters<BrowserTargetLease["observeCapability"]>[0],
+  ) =>
+    core
+      .command<T>(
+        {
+          kind: "observe_capability",
+          tabId: core.rawTabId(),
+          capabilityId: input.capabilityId,
+        },
+        "observation",
+        input.abortSignal,
+        input.timeoutMs,
+      )
+      .then((response) => response.result),
+  setFileInputArtifact: (input) =>
+    setBrowserFileInputArtifact(core.fileArtifactPort(), input),
+  getGeometrySnapshot: (
+    abortSignal?: AbortSignal,
+  ): Promise<BrowserGeometrySnapshot> =>
+    readBrowserTargetGeometry(core.observationPort(), abortSignal),
+  wait: (durationMs, abortSignal) =>
+    waitForBrowserTarget(core.observationPort(), durationMs, abortSignal),
+  closeTarget: (input) => closeBrowserTarget(core.terminalPort(), input),
+  close: (): Promise<BrowserActionResult> =>
+    closeBrowserTargetLease(core.terminalPort(), Boolean(core.target), () =>
+      core.invalidate(),
+    ),
+});

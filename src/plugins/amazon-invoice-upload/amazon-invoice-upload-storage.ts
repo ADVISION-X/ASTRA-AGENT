@@ -1,11 +1,21 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
-import type { AmazonTaxInvoiceDownloadMissionInput, AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import type {
+  AmazonTaxInvoiceDownloadMissionInput,
+  AmazonInvoiceUploadMissionInput,
+} from "./mission.schema.js";
 import { upsertAmazonInvoiceUploadLedgerRecord } from "./amazon-invoice-upload-ledger.js";
 import type {
   AmazonInvoiceUploadPdfFile,
@@ -17,7 +27,10 @@ import type {
 } from "./amazon-invoice-upload-storage.types.js";
 
 const safeSegment = (value: string): string =>
-  value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "invoice";
+  value
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "invoice";
 
 export function createAmazonInvoiceUploadTaskId(): string {
   return `amazon-invoice-upload_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -35,12 +48,18 @@ export function saveApprovedInvoicePdf(input: {
   file: AmazonInvoiceUploadPdfFile;
 }): string {
   const extension = path.extname(input.file.filename).toLowerCase();
-  if (extension !== ".pdf" || !input.file.mimeType.toLowerCase().includes("pdf")) {
+  if (
+    extension !== ".pdf" ||
+    !input.file.mimeType.toLowerCase().includes("pdf")
+  ) {
     throw new Error("invoicePdf must be a PDF file.");
   }
   const invoiceDir = path.join(os.homedir(), "Downloads", "invoice");
   mkdirSync(invoiceDir, { recursive: true });
-  const approvedPath = path.join(invoiceDir, `${safeSegment(input.invoiceNo)}.pdf`);
+  const approvedPath = path.join(
+    invoiceDir,
+    `${safeSegment(input.invoiceNo)}.pdf`,
+  );
   writeFileSync(approvedPath, input.file.bytes);
   return approvedPath;
 }
@@ -59,7 +78,14 @@ export function buildReceivedTaskRecord(input: {
     reachedStep: "received",
     amazonOrderId: input.mission.amazonOrderId,
     invoiceNo: input.mission.invoiceNo,
-    intervention: { revision: 0, state: "running", reason: null, checkpoint: "received", pending: null, updatedAt: now },
+    intervention: {
+      revision: 0,
+      state: "running",
+      reason: null,
+      checkpoint: "received",
+      pending: null,
+      updatedAt: now,
+    },
     createdAt: now,
     updatedAt: now,
   };
@@ -67,16 +93,27 @@ export function buildReceivedTaskRecord(input: {
 
 export function updateTaskRecord(
   record: AmazonInvoiceUploadTaskRecord,
-  result: AmazonInvoiceUploadTaskResult | { status: AmazonInvoiceUploadStatus; reason: string; reachedStep: string },
+  result:
+    | AmazonInvoiceUploadTaskResult
+    | {
+        status: AmazonInvoiceUploadStatus;
+        reason: string;
+        reachedStep: string;
+      },
 ): AmazonInvoiceUploadTaskRecord {
-  const fullResult = "ok" in result ? result : {
-    ok: result.status === "upload_success" || result.status === "already_uploaded",
-    status: result.status,
-    reason: result.reason,
-    reachedStep: result.reachedStep,
-    amazonOrderId: record.amazonOrderId,
-    invoiceNo: record.invoiceNo,
-  };
+  const fullResult =
+    "ok" in result
+      ? result
+      : {
+          ok:
+            result.status === "upload_success" ||
+            result.status === "already_uploaded",
+          status: result.status,
+          reason: result.reason,
+          reachedStep: result.reachedStep,
+          amazonOrderId: record.amazonOrderId,
+          invoiceNo: record.invoiceNo,
+        };
   return {
     ...record,
     ...fullResult,
@@ -84,24 +121,61 @@ export function updateTaskRecord(
   };
 }
 
-export function saveTaskStateOnly(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
-  const taskDir = path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", safeSegment(record.taskId));
+export function saveTaskStateOnly(
+  dataDir: string,
+  record: AmazonInvoiceUploadTaskRecord,
+): void {
+  const taskDir = path.join(
+    dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+    safeSegment(record.taskId),
+  );
   mkdirSync(taskDir, { recursive: true });
-  writeFileSync(path.join(taskDir, "task.json"), JSON.stringify(record, null, 2));
+  writeFileSync(
+    path.join(taskDir, "task.json"),
+    JSON.stringify(record, null, 2),
+  );
 }
 
-export function saveTaskRecord(dataDir: string, record: AmazonInvoiceUploadTaskRecord): void {
+export function saveTaskRecord(
+  dataDir: string,
+  record: AmazonInvoiceUploadTaskRecord,
+): void {
   saveTaskStateOnly(dataDir, record);
   upsertAmazonInvoiceUploadLedgerRecord(dataDir, record);
 }
 
-export function loadTaskRecord(dataDir: string, taskId: string): AmazonInvoiceUploadTaskRecord | null {
-  const recordPath = path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", safeSegment(taskId), "task.json");
+export function loadTaskRecord(
+  dataDir: string,
+  taskId: string,
+): AmazonInvoiceUploadTaskRecord | null {
+  const recordPath = path.join(
+    dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+    safeSegment(taskId),
+    "task.json",
+  );
   if (!existsSync(recordPath)) {
     return null;
   }
-  const record = JSON.parse(readFileSync(recordPath, "utf8")) as AmazonInvoiceUploadTaskRecord;
-  return record.intervention ? record : { ...record, intervention: { revision: 0, state: "running", reason: null, checkpoint: record.reachedStep, pending: null, updatedAt: record.updatedAt } };
+  const record = JSON.parse(
+    readFileSync(recordPath, "utf8"),
+  ) as AmazonInvoiceUploadTaskRecord;
+  return record.intervention
+    ? record
+    : {
+        ...record,
+        intervention: {
+          revision: 0,
+          state: "running",
+          reason: null,
+          checkpoint: record.reachedStep,
+          pending: null,
+          updatedAt: record.updatedAt,
+        },
+      };
 }
 
 export function findLatestTaskRecordForInvoice(input: {
@@ -109,7 +183,11 @@ export function findLatestTaskRecordForInvoice(input: {
   amazonOrderId: string;
   invoiceNo?: string;
 }): AmazonInvoiceUploadTaskRecord | null {
-  const tasksDir = path.join(input.dataDir, "plugin-tasks", "amazon-invoice-upload");
+  const tasksDir = path.join(
+    input.dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+  );
   if (!existsSync(tasksDir)) {
     return null;
   }
@@ -129,9 +207,12 @@ export function findLatestTaskRecordForInvoice(input: {
 function selectCanonicalUploadTaskRecord(
   records: readonly AmazonInvoiceUploadTaskRecord[],
 ): AmazonInvoiceUploadTaskRecord | null {
-  const successful = records.filter((record) =>
-    record.status === "upload_success" || record.status === "already_uploaded");
-  return (successful[0] ?? records[0]) ?? null;
+  const successful = records.filter(
+    (record) =>
+      record.status === "upload_success" ||
+      record.status === "already_uploaded",
+  );
+  return successful[0] ?? records[0] ?? null;
 }
 
 export function buildReceivedDownloadTaskRecord(input: {
@@ -149,7 +230,9 @@ export function buildReceivedDownloadTaskRecord(input: {
     reachedStep: "received",
     evidenceStepId: "AID-01",
     callbackStatus: input.mission.callbackUrl ? "pending" : "not_configured",
-    ...(input.mission.sourceSystem ? { sourceSystem: input.mission.sourceSystem } : {}),
+    ...(input.mission.sourceSystem
+      ? { sourceSystem: input.mission.sourceSystem }
+      : {}),
     ...(input.mission.requestId ? { requestId: input.mission.requestId } : {}),
     createdAt: now,
     updatedAt: now,
@@ -158,28 +241,39 @@ export function buildReceivedDownloadTaskRecord(input: {
 
 export function updateDownloadTaskRecord(
   record: AmazonTaxInvoiceDownloadTaskRecord,
-  result: AmazonTaxInvoiceDownloadTaskResult | {
-    status: AmazonTaxInvoiceDownloadStatus;
-    reason: string;
-    reachedStep: string;
-    evidenceStepId?: string;
-  },
+  result:
+    | AmazonTaxInvoiceDownloadTaskResult
+    | {
+        status: AmazonTaxInvoiceDownloadStatus;
+        reason: string;
+        reachedStep: string;
+        evidenceStepId?: string;
+      },
 ): AmazonTaxInvoiceDownloadTaskRecord {
-  const fullResult: AmazonTaxInvoiceDownloadTaskResult = "ok" in result ? result : {
-    ok: result.status === "completed" || result.status === "artifact_persisted",
-    status: result.status,
-    reason: result.reason,
-    reachedStep: result.reachedStep,
-    ...(result.evidenceStepId ? { evidenceStepId: result.evidenceStepId } : {}),
-  };
-  const artifact = fullResult.downloadArtifactRef ? {
-    artifactRef: fullResult.downloadArtifactRef,
-    artifactName: fullResult.downloadedFileName ?? "amazon-tax-invoice.csv",
-    mimeType: "text/csv" as const,
-    fileSize: fullResult.downloadedFileSize ?? 0,
-    sha256: fullResult.downloadedFileSha256 ?? "",
-    createdAt: fullResult.downloadedAt ?? new Date().toISOString(),
-  } : record.artifact;
+  const fullResult: AmazonTaxInvoiceDownloadTaskResult =
+    "ok" in result
+      ? result
+      : {
+          ok:
+            result.status === "completed" ||
+            result.status === "artifact_persisted",
+          status: result.status,
+          reason: result.reason,
+          reachedStep: result.reachedStep,
+          ...(result.evidenceStepId
+            ? { evidenceStepId: result.evidenceStepId }
+            : {}),
+        };
+  const artifact = fullResult.downloadArtifactRef
+    ? {
+        artifactRef: fullResult.downloadArtifactRef,
+        artifactName: fullResult.downloadedFileName ?? "amazon-tax-invoice.csv",
+        mimeType: "text/csv" as const,
+        fileSize: fullResult.downloadedFileSize ?? 0,
+        sha256: fullResult.downloadedFileSha256 ?? "",
+        createdAt: fullResult.downloadedAt ?? new Date().toISOString(),
+      }
+    : record.artifact;
   return {
     ...record,
     ...fullResult,
@@ -188,18 +282,42 @@ export function updateDownloadTaskRecord(
   };
 }
 
-export function saveDownloadTaskRecord(dataDir: string, record: AmazonTaxInvoiceDownloadTaskRecord): void {
-  const taskDir = path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", "download", safeSegment(record.taskId));
+export function saveDownloadTaskRecord(
+  dataDir: string,
+  record: AmazonTaxInvoiceDownloadTaskRecord,
+): void {
+  const taskDir = path.join(
+    dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+    "download",
+    safeSegment(record.taskId),
+  );
   mkdirSync(taskDir, { recursive: true });
-  writeFileSync(path.join(taskDir, "task.json"), JSON.stringify(record, null, 2));
+  writeFileSync(
+    path.join(taskDir, "task.json"),
+    JSON.stringify(record, null, 2),
+  );
 }
 
-export function loadDownloadTaskRecord(dataDir: string, taskId: string): AmazonTaxInvoiceDownloadTaskRecord | null {
-  const recordPath = path.join(dataDir, "plugin-tasks", "amazon-invoice-upload", "download", safeSegment(taskId), "task.json");
+export function loadDownloadTaskRecord(
+  dataDir: string,
+  taskId: string,
+): AmazonTaxInvoiceDownloadTaskRecord | null {
+  const recordPath = path.join(
+    dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+    "download",
+    safeSegment(taskId),
+    "task.json",
+  );
   if (!existsSync(recordPath)) {
     return null;
   }
-  return JSON.parse(readFileSync(recordPath, "utf8")) as AmazonTaxInvoiceDownloadTaskRecord;
+  return JSON.parse(
+    readFileSync(recordPath, "utf8"),
+  ) as AmazonTaxInvoiceDownloadTaskRecord;
 }
 
 export function findLatestDownloadTaskRecord(input: {
@@ -207,7 +325,12 @@ export function findLatestDownloadTaskRecord(input: {
   marketplace?: string;
   requestId?: string;
 }): AmazonTaxInvoiceDownloadTaskRecord | null {
-  const tasksDir = path.join(input.dataDir, "plugin-tasks", "amazon-invoice-upload", "download");
+  const tasksDir = path.join(
+    input.dataDir,
+    "plugin-tasks",
+    "amazon-invoice-upload",
+    "download",
+  );
   if (!existsSync(tasksDir)) {
     return null;
   }
@@ -216,14 +339,17 @@ export function findLatestDownloadTaskRecord(input: {
     .map((entry) => loadDownloadTaskRecord(input.dataDir, entry.name))
     .filter((record): record is AmazonTaxInvoiceDownloadTaskRecord => {
       if (!record) return false;
-      if (input.marketplace && record.mission.marketplace !== input.marketplace) return false;
+      if (input.marketplace && record.mission.marketplace !== input.marketplace)
+        return false;
       return input.requestId ? record.requestId === input.requestId : true;
     })
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   return records[0] ?? null;
 }
 
-export function buildDownloadArtifactMetadata(filePath: string): AmazonTaxInvoiceDownloadArtifactMetadata {
+export function buildDownloadArtifactMetadata(
+  filePath: string,
+): AmazonTaxInvoiceDownloadArtifactMetadata {
   const stats = statSync(filePath);
   const bytes = readFileSync(filePath);
   return {

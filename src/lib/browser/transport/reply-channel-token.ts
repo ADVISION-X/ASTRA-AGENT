@@ -13,12 +13,13 @@ export const issueReplyChannelToken = (input: {
   hostProcessEpoch: number;
   nativePortEpoch: number;
   sourceChannelIdentity: string;
-}): ReplyChannelToken => Object.freeze({
-  value: `reply:${randomUUID()}`,
-  connectionGeneration: input.connectionGeneration,
-  hostProcessEpoch: input.hostProcessEpoch,
-  nativePortEpoch: input.nativePortEpoch,
-  sourceChannelHash: `sha256:${createHash("sha256")
-    .update(input.sourceChannelIdentity)
-    .digest("hex")}`,
-});
+}): ReplyChannelToken =>
+  Object.freeze({
+    value: `reply:${randomUUID()}`,
+    connectionGeneration: input.connectionGeneration,
+    hostProcessEpoch: input.hostProcessEpoch,
+    nativePortEpoch: input.nativePortEpoch,
+    sourceChannelHash: `sha256:${createHash("sha256")
+      .update(input.sourceChannelIdentity)
+      .digest("hex")}`,
+  });

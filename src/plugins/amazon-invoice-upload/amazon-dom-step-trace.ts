@@ -1,4 +1,9 @@
-import { createRuntimeEvent, RuntimeFailureClass, RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import {
+  createRuntimeEvent,
+  RuntimeFailureClass,
+  RuntimeLogEventType,
+  type RuntimeLogger,
+} from "../../lib/runtime-logs/index.js";
 import {
   buildAmazonDomTraceBaseEvent,
   resolveAmazonDomRuntimeStatus,
@@ -33,11 +38,13 @@ export function startAmazonDomStepTrace(input: {
   return startedAtMs;
 }
 
-export function recordAmazonDomStepTrace(input: {
-  runtimeLogger: RuntimeLogger;
-  startedAtMs?: number;
-  startedAlready?: boolean;
-} & AmazonDomStepTraceContext): void {
+export function recordAmazonDomStepTrace(
+  input: {
+    runtimeLogger: RuntimeLogger;
+    startedAtMs?: number;
+    startedAlready?: boolean;
+  } & AmazonDomStepTraceContext,
+): void {
   const baseEvent = buildAmazonDomTraceBaseEvent(input);
   if (input.startedAlready !== true) {
     input.runtimeLogger.emit({
@@ -51,14 +58,25 @@ export function recordAmazonDomStepTrace(input: {
   }
   input.runtimeLogger.emit({
     ...baseEvent,
-    eventType: input.status === "success" || input.status === "snapshot"
-      ? RuntimeLogEventType.DOM_AUTOMATION_STEP_COMPLETED
-      : RuntimeLogEventType.DOM_AUTOMATION_STEP_FAILED,
-    level: input.status === "success" || input.status === "snapshot" ? "info" : "warn",
-    modeVisibility: input.status === "success" || input.status === "snapshot" ? ["DEBUG", "TRACE"] : ["FLOW", "DEBUG", "TRACE"],
+    eventType:
+      input.status === "success" || input.status === "snapshot"
+        ? RuntimeLogEventType.DOM_AUTOMATION_STEP_COMPLETED
+        : RuntimeLogEventType.DOM_AUTOMATION_STEP_FAILED,
+    level:
+      input.status === "success" || input.status === "snapshot"
+        ? "info"
+        : "warn",
+    modeVisibility:
+      input.status === "success" || input.status === "snapshot"
+        ? ["DEBUG", "TRACE"]
+        : ["FLOW", "DEBUG", "TRACE"],
     status: resolveAmazonDomRuntimeStatus(input.status),
-    reason: input.reason?.replace(/\s+/g, " ").trim().slice(0, 140) || input.stepName,
-    durationMs: input.startedAtMs === undefined ? 0 : Math.max(0, Date.now() - input.startedAtMs),
+    reason:
+      input.reason?.replace(/\s+/g, " ").trim().slice(0, 140) || input.stepName,
+    durationMs:
+      input.startedAtMs === undefined
+        ? 0
+        : Math.max(0, Date.now() - input.startedAtMs),
   });
 }
 
@@ -71,25 +89,35 @@ export function emitAmazonOrderDetailNavigationStarted(input: {
   amazonOrderId: string;
   taskId?: string;
 }): void {
-  input.runtimeLogger.emit(createRuntimeEvent({
-    context: {
-      traceId: input.executionId,
-      spanId: input.browserActionId,
-      missionId: input.executionId,
-      runId: input.executionId,
-      stepId: "amazon-invoice-order-detail-navigation",
-      owner: "amazon-invoice-upload",
-    },
-    capabilityCallId: input.browserActionId,
-    eventType: RuntimeLogEventType.BROWSER_ACTION_STARTED,
-    level: "debug",
-    modeVisibility: ["DEBUG", "TRACE"],
-    status: "started",
-    reason: "Open approved Amazon order detail exactly once.",
-    refs: { runtimeLogRef: input.runtimeLogRef, orderId: input.amazonOrderId, ...(input.taskId ? { taskId: input.taskId } : {}) },
-    hashes: { beforeHash: input.beforeHash },
-    payload: { actionKind: "open", actionAttemptIndex: 1, fallbackUsed: false },
-  }));
+  input.runtimeLogger.emit(
+    createRuntimeEvent({
+      context: {
+        traceId: input.executionId,
+        spanId: input.browserActionId,
+        missionId: input.executionId,
+        runId: input.executionId,
+        stepId: "amazon-invoice-order-detail-navigation",
+        owner: "amazon-invoice-upload",
+      },
+      capabilityCallId: input.browserActionId,
+      eventType: RuntimeLogEventType.BROWSER_ACTION_STARTED,
+      level: "debug",
+      modeVisibility: ["DEBUG", "TRACE"],
+      status: "started",
+      reason: "Open approved Amazon order detail exactly once.",
+      refs: {
+        runtimeLogRef: input.runtimeLogRef,
+        orderId: input.amazonOrderId,
+        ...(input.taskId ? { taskId: input.taskId } : {}),
+      },
+      hashes: { beforeHash: input.beforeHash },
+      payload: {
+        actionKind: "open",
+        actionAttemptIndex: 1,
+        fallbackUsed: false,
+      },
+    }),
+  );
 }
 
 type OrderDetailNavigationTerminalInput = {
@@ -108,7 +136,9 @@ type OrderDetailNavigationTerminalInput = {
   reason: string;
 };
 
-export function emitAmazonOrderDetailNavigationTerminal(input: OrderDetailNavigationTerminalInput): void {
+export function emitAmazonOrderDetailNavigationTerminal(
+  input: OrderDetailNavigationTerminalInput,
+): void {
   if (input.actionResult === "failed") {
     emitFailedOrderDetailNavigation(input);
     return;
@@ -116,8 +146,11 @@ export function emitAmazonOrderDetailNavigationTerminal(input: OrderDetailNaviga
   emitCompletedOrderDetailNavigation(input);
 }
 
-function emitFailedOrderDetailNavigation(input: OrderDetailNavigationTerminalInput): void {
-  input.runtimeLogger.emit(createRuntimeEvent({
+function emitFailedOrderDetailNavigation(
+  input: OrderDetailNavigationTerminalInput,
+): void {
+  input.runtimeLogger.emit(
+    createRuntimeEvent({
       context: {
         traceId: input.executionId,
         spanId: input.browserActionId,
@@ -133,7 +166,11 @@ function emitFailedOrderDetailNavigation(input: OrderDetailNavigationTerminalInp
       status: "failed",
       reason: input.reason.replace(/\s+/g, " ").trim().slice(0, 180),
       durationMs: input.durationMs,
-      refs: { runtimeLogRef: input.runtimeLogRef, ...(input.taskId ? { taskId: input.taskId } : {}), ...(input.evidenceRef ? { evidenceRef: input.evidenceRef } : {}) },
+      refs: {
+        runtimeLogRef: input.runtimeLogRef,
+        ...(input.taskId ? { taskId: input.taskId } : {}),
+        ...(input.evidenceRef ? { evidenceRef: input.evidenceRef } : {}),
+      },
       hashes: { beforeHash: input.beforeHash, afterHash: input.afterHash },
       payload: {
         actionKind: "open",
@@ -148,36 +185,45 @@ function emitFailedOrderDetailNavigation(input: OrderDetailNavigationTerminalInp
         terminal: true,
         recoveryPolicy: "review_required_without_repeat_navigation",
       },
-  }));
+    }),
+  );
 }
 
-function emitCompletedOrderDetailNavigation(input: OrderDetailNavigationTerminalInput): void {
-  input.runtimeLogger.emit(createRuntimeEvent({
-    context: {
-      traceId: input.executionId,
-      spanId: input.browserActionId,
-      missionId: input.executionId,
-      runId: input.executionId,
-      stepId: "amazon-invoice-order-detail-navigation",
-      owner: "amazon-invoice-upload",
-    },
-    capabilityCallId: input.browserActionId,
-    eventType: RuntimeLogEventType.BROWSER_ACTION_COMPLETED,
-    level: "info",
-    modeVisibility: ["DEBUG", "TRACE"],
-    status: "success",
-    reason: input.reason.replace(/\s+/g, " ").trim().slice(0, 180),
-    durationMs: input.durationMs,
-    refs: { runtimeLogRef: input.runtimeLogRef, ...(input.taskId ? { taskId: input.taskId } : {}), ...(input.evidenceRef ? { evidenceRef: input.evidenceRef } : {}) },
-    hashes: { beforeHash: input.beforeHash, afterHash: input.afterHash },
-    payload: {
-      actionKind: "open",
-      actionAttemptIndex: 1,
-      actionResult: input.actionResult,
-      navigationMode: input.navigationMode,
-      observedUrlMatchesRequest: input.observedUrlMatchesRequest,
-      fallbackUsed: false,
-      failureClass: null,
-    },
-  }));
+function emitCompletedOrderDetailNavigation(
+  input: OrderDetailNavigationTerminalInput,
+): void {
+  input.runtimeLogger.emit(
+    createRuntimeEvent({
+      context: {
+        traceId: input.executionId,
+        spanId: input.browserActionId,
+        missionId: input.executionId,
+        runId: input.executionId,
+        stepId: "amazon-invoice-order-detail-navigation",
+        owner: "amazon-invoice-upload",
+      },
+      capabilityCallId: input.browserActionId,
+      eventType: RuntimeLogEventType.BROWSER_ACTION_COMPLETED,
+      level: "info",
+      modeVisibility: ["DEBUG", "TRACE"],
+      status: "success",
+      reason: input.reason.replace(/\s+/g, " ").trim().slice(0, 180),
+      durationMs: input.durationMs,
+      refs: {
+        runtimeLogRef: input.runtimeLogRef,
+        ...(input.taskId ? { taskId: input.taskId } : {}),
+        ...(input.evidenceRef ? { evidenceRef: input.evidenceRef } : {}),
+      },
+      hashes: { beforeHash: input.beforeHash, afterHash: input.afterHash },
+      payload: {
+        actionKind: "open",
+        actionAttemptIndex: 1,
+        actionResult: input.actionResult,
+        navigationMode: input.navigationMode,
+        observedUrlMatchesRequest: input.observedUrlMatchesRequest,
+        fallbackUsed: false,
+        failureClass: null,
+      },
+    }),
+  );
 }

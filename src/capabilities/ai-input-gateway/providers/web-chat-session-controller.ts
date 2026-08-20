@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   ProviderExecutionProfileProof,
@@ -10,7 +10,7 @@ import { enforceGptWebExecutionProfile } from "./gpt-web-execution-profile.js";
 import { finalizeGptWebConversationTitle } from "./gpt-web-conversation-title.js";
 
 export const prepareWebChatSessionForSubmission = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   providerUrl: string;
@@ -20,7 +20,7 @@ export const prepareWebChatSessionForSubmission = async (input: {
 };
 
 export const finalizeWebChatSessionAfterResult = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   submission: WebChatSubmissionProof;

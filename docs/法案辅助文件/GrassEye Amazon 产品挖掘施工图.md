@@ -633,7 +633,7 @@ flow 继续进入下一 Amazon 挖掘步骤
 禁止扩大适用范围：
 
 ```txt
-Deep Research / invoice upload / other prompt contract 仍 fail closed
+Invoice upload / other prompt contract 仍 fail closed
 不得新增 fallback provider
 不得新增第二导出链路
 不得隐藏 restoredSourcePage=false

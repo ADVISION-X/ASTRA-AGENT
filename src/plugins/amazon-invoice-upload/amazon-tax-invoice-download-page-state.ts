@@ -1,17 +1,19 @@
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { locateElement } from "./amazon-invoice-upload-flow-support.js";
 
-export const TAX_REPORT_URL_PATH = "/reportcentral/AFNShipmentInvoicingReport/1";
-export const FULFILLMENT_REPORTS_URL_PATH = "/reportcentral/ref=xx_fbareports_dnav_xx";
-export const SELLER_CENTRAL_GLOBAL_MENU_SELECTOR = "navigation-hamburger-menu[data-test-tag=\"hamburger-menu\"]";
-export const SELLER_CENTRAL_REPORTS_MENU_SELECTOR =
-  `${SELLER_CENTRAL_GLOBAL_MENU_SELECTOR} >>> [data-test-tag="menu__section-reports"]`;
-export const SELLER_CENTRAL_FULFILLMENT_REPORTS_SELECTOR =
-  `${SELLER_CENTRAL_GLOBAL_MENU_SELECTOR} >>> a[data-test-tag="menu__button-ssof-inventory-manager-new"][href="${FULFILLMENT_REPORTS_URL_PATH}"]`;
+export const TAX_REPORT_URL_PATH =
+  "/reportcentral/AFNShipmentInvoicingReport/1";
+export const FULFILLMENT_REPORTS_URL_PATH =
+  "/reportcentral/ref=xx_fbareports_dnav_xx";
+export const SELLER_CENTRAL_GLOBAL_MENU_SELECTOR =
+  'navigation-hamburger-menu[data-test-tag="hamburger-menu"]';
+export const SELLER_CENTRAL_REPORTS_MENU_SELECTOR = `${SELLER_CENTRAL_GLOBAL_MENU_SELECTOR} >>> [data-test-tag="menu__section-reports"]`;
+export const SELLER_CENTRAL_FULFILLMENT_REPORTS_SELECTOR = `${SELLER_CENTRAL_GLOBAL_MENU_SELECTOR} >>> a[data-test-tag="menu__button-ssof-inventory-manager-new"][href="${FULFILLMENT_REPORTS_URL_PATH}"]`;
 export const TAX_DOWNLOAD_SNAPSHOT_TEXT_LIMIT = 160;
 
-type LocateResult = { ok: true; element: DomElementRef } | { ok: false; reason: string };
+type LocateResult =
+  { ok: true; element: DomElementRef } | { ok: false; reason: string };
 
 export const locate = (
   snapshot: DomSnapshot,
@@ -25,14 +27,18 @@ export const locate = (
   return { ok: true, element };
 };
 
-const compactElementText = (input: {
-  visibleText?: string | undefined;
-  ariaLabel?: string | undefined;
-  labelText?: string | undefined;
-  nearbyText?: string | undefined;
-  placeholder?: string | undefined;
-  selectorCandidate?: string | undefined;
-} | undefined): string => {
+const compactElementText = (
+  input:
+    | {
+        visibleText?: string | undefined;
+        ariaLabel?: string | undefined;
+        labelText?: string | undefined;
+        nearbyText?: string | undefined;
+        placeholder?: string | undefined;
+        selectorCandidate?: string | undefined;
+      }
+    | undefined,
+): string => {
   if (!input) return "";
   return [
     input.visibleText,
@@ -41,10 +47,15 @@ const compactElementText = (input: {
     input.nearbyText,
     input.placeholder,
     input.selectorCandidate,
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 };
 
-export const snapshotHasAnyText = (snapshot: DomSnapshot, needles: string[]): boolean => {
+export const snapshotHasAnyText = (
+  snapshot: DomSnapshot,
+  needles: string[],
+): boolean => {
   const text = [
     snapshot.title,
     snapshot.url,
@@ -62,7 +73,13 @@ export const snapshotHasAnyText = (snapshot: DomSnapshot, needles: string[]): bo
 
 export const locateGlobalMenu = (snapshot: DomSnapshot): LocateResult => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
-    return locate(snapshot, "clickable", ["目录", "menu", "navigation", "nav", "报告"]);
+    return locate(snapshot, "clickable", [
+      "目录",
+      "menu",
+      "navigation",
+      "nav",
+      "报告",
+    ]);
   }
   return {
     ok: true,
@@ -71,11 +88,15 @@ export const locateGlobalMenu = (snapshot: DomSnapshot): LocateResult => {
       documentRef: snapshot.documentRef,
       elementRef: "dom:amazon-tax-invoice-global-menu",
       selector: SELLER_CENTRAL_GLOBAL_MENU_SELECTOR,
-      identity: { tagName: "navigation-hamburger-menu", testId: "hamburger-menu" },
+      identity: {
+        tagName: "navigation-hamburger-menu",
+        testId: "hamburger-menu",
+      },
       targetKind: "clickable",
       confidence: 0.98,
       matchedSignals: ["seller-central-hamburger-data-test-tag", "AID-02"],
-      reason: "Matched Seller Central global menu by Chrome-verified hamburger data-test-tag.",
+      reason:
+        "Matched Seller Central global menu by Chrome-verified hamburger data-test-tag.",
       fallbackUsed: false,
       sourceSnapshotRef: snapshot.url,
       capturedAt: snapshot.capturedAt,
@@ -97,8 +118,12 @@ export const locateReportsMenu = (snapshot: DomSnapshot): LocateResult => {
       identity: { testId: "menu__section-reports" },
       targetKind: "clickable",
       confidence: 0.98,
-      matchedSignals: ["seller-central-hamburger-shadow-menu-section-reports", "AID-03"],
-      reason: "Matched Seller Central reports menu by Chrome-verified hamburger shadowRoot data-test-tag.",
+      matchedSignals: [
+        "seller-central-hamburger-shadow-menu-section-reports",
+        "AID-03",
+      ],
+      reason:
+        "Matched Seller Central reports menu by Chrome-verified hamburger shadowRoot data-test-tag.",
       fallbackUsed: false,
       sourceSnapshotRef: snapshot.url,
       capturedAt: snapshot.capturedAt,
@@ -106,9 +131,14 @@ export const locateReportsMenu = (snapshot: DomSnapshot): LocateResult => {
   };
 };
 
-export const locateFulfillmentReports = (snapshot: DomSnapshot): LocateResult => {
+export const locateFulfillmentReports = (
+  snapshot: DomSnapshot,
+): LocateResult => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
-    return locate(snapshot, "link", ["配送", "/reportcentral/ref=xx_fbareports_dnav_xx"]);
+    return locate(snapshot, "link", [
+      "配送",
+      "/reportcentral/ref=xx_fbareports_dnav_xx",
+    ]);
   }
   return {
     ok: true,
@@ -117,11 +147,18 @@ export const locateFulfillmentReports = (snapshot: DomSnapshot): LocateResult =>
       documentRef: snapshot.documentRef,
       elementRef: "dom:amazon-tax-invoice-fulfillment-reports",
       selector: SELLER_CENTRAL_FULFILLMENT_REPORTS_SELECTOR,
-      identity: { tagName: "a", testId: "menu__button-ssof-inventory-manager-new" },
+      identity: {
+        tagName: "a",
+        testId: "menu__button-ssof-inventory-manager-new",
+      },
       targetKind: "link",
       confidence: 0.98,
-      matchedSignals: ["seller-central-hamburger-shadow-fulfillment-reports-link", "AID-04"],
-      reason: "Matched Seller Central fulfillment reports link by Chrome-verified hamburger shadowRoot data-test-tag and href.",
+      matchedSignals: [
+        "seller-central-hamburger-shadow-fulfillment-reports-link",
+        "AID-04",
+      ],
+      reason:
+        "Matched Seller Central fulfillment reports link by Chrome-verified hamburger shadowRoot data-test-tag and href.",
       fallbackUsed: false,
       sourceSnapshotRef: snapshot.url,
       capturedAt: snapshot.capturedAt,
@@ -130,7 +167,7 @@ export const locateFulfillmentReports = (snapshot: DomSnapshot): LocateResult =>
 };
 
 export const isSellerCentralHamburgerMenuOpen = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
@@ -147,11 +184,16 @@ return Boolean(sidebar && sidebar.classList.contains('menu__sidebar--open'));
 };
 
 export const isSellerCentralReportsMenuExpanded = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
-    return snapshotHasAnyText(snapshot, ["业务报告", "配送", "Tax Document Library", "管理税费"]);
+    return snapshotHasAnyText(snapshot, [
+      "业务报告",
+      "配送",
+      "Tax Document Library",
+      "管理税费",
+    ]);
   }
   return browser.evaluate<boolean>({
     description: "verify Seller Central reports menu expanded state",
@@ -173,16 +215,27 @@ return Boolean(
 };
 
 export const isSellerCentralHomeCandidate = (snapshot: DomSnapshot): boolean =>
-  snapshot.url.includes("sellercentral.amazon.")
-  || snapshotHasAnyText(snapshot, ["Seller Central", "卖家平台", "菜单", "库存", "报告"]);
+  snapshot.url.includes("sellercentral.amazon.") ||
+  snapshotHasAnyText(snapshot, [
+    "Seller Central",
+    "卖家平台",
+    "菜单",
+    "库存",
+    "报告",
+  ]);
 
 export const isFulfillmentReportsPage = (snapshot: DomSnapshot): boolean =>
-  snapshot.url.includes(TAX_REPORT_URL_PATH)
-  || snapshot.url.includes(FULFILLMENT_REPORTS_URL_PATH)
-  || snapshotHasAnyText(snapshot, ["配送报告", "亚马逊配送报告", "欢迎使用“报告”", "亚马逊配送货件"]);
+  snapshot.url.includes(TAX_REPORT_URL_PATH) ||
+  snapshot.url.includes(FULFILLMENT_REPORTS_URL_PATH) ||
+  snapshotHasAnyText(snapshot, [
+    "配送报告",
+    "亚马逊配送报告",
+    "欢迎使用“报告”",
+    "亚马逊配送货件",
+  ]);
 
 export const isSellerCentralTaxInvoiceReportLinkPresent = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) return false;
@@ -196,7 +249,7 @@ return links.some((link) => String(link.innerText || link.textContent || "").inc
 };
 
 export const selectSellerCentralLast30Days = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
 ): Promise<{ ok: true } | { ok: false; reason: string }> =>
   browser.evaluate<{ ok: true } | { ok: false; reason: string }>({
     description: "select Seller Central event date last 30 days",
@@ -225,11 +278,11 @@ return String(dropdown.value || dropdown.getAttribute("value")) === "30"
   });
 
 export const isSellerCentralLast30DaysSelected = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) {
-    return snapshotHasAnyText(snapshot, ["最近 30 天", "value=\"30\""]);
+    return snapshotHasAnyText(snapshot, ["最近 30 天", 'value="30"']);
   }
   return browser.evaluate<boolean>({
     description: "verify Seller Central event date last 30 days selected",
@@ -242,19 +295,28 @@ return Boolean(dropdown && String(dropdown.value || dropdown.getAttribute("value
 
 export const firstReportRowText = (snapshot: DomSnapshot): string => {
   const rows = [...snapshot.tableRows, ...snapshot.roleRows];
-  return compactElementText(rows.find((row) => compactElementText(row).includes("亚马逊配送货件")) ?? rows[0]);
+  return compactElementText(
+    rows.find((row) => compactElementText(row).includes("亚马逊配送货件")) ??
+      rows[0],
+  );
 };
 
 export const isRequestedCsvRowInProgress = (rowText: string): boolean =>
-  rowText.includes("亚马逊配送货件") && rowText.includes(".csv") && rowText.includes("进行中");
+  rowText.includes("亚马逊配送货件") &&
+  rowText.includes(".csv") &&
+  rowText.includes("进行中");
 
 export const isDownloadableCsvRow = (rowText: string): boolean => {
   const normalized = rowText.replace(/\s+/g, "");
-  return normalized.includes("亚马逊配送货件") && normalized.includes(".csv") && normalized.includes("下载");
+  return (
+    normalized.includes("亚马逊配送货件") &&
+    normalized.includes(".csv") &&
+    normalized.includes("下载")
+  );
 };
 
 export const isSellerCentralLatestReportDownloadable = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   snapshot: DomSnapshot,
 ): Promise<boolean> => {
   if (!snapshot.url.includes("sellercentral.amazon.")) return false;
@@ -263,10 +325,16 @@ export const isSellerCentralLatestReportDownloadable = async (
 };
 
 export const findSellerCentralLatestReportDownloadPoint = async (
-  browser: BrowserTargetSession,
-): Promise<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }> =>
-  browser.evaluate<{ ok: true; point: { x: number; y: number } } | { ok: false; reason: string }>({
-    description: "locate Seller Central latest tax invoice report download button",
+  browser: BrowserTargetLease,
+): Promise<
+  { ok: true; point: { x: number; y: number } } | { ok: false; reason: string }
+> =>
+  browser.evaluate<
+    | { ok: true; point: { x: number; y: number } }
+    | { ok: false; reason: string }
+  >({
+    description:
+      "locate Seller Central latest tax invoice report download button",
     script: `
 const rows = Array.from(document.querySelectorAll('kat-table-row'));
 const row = rows.find((candidate) => {
@@ -286,9 +354,12 @@ return {ok: true, point: {x: Math.round(rect.x + rect.width / 2), y: Math.round(
   });
 
 export const readSellerCentralLatestTaxInvoiceRowState = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
 ): Promise<{ state: "downloadable" | "pending" | "missing"; reason: string }> =>
-  browser.evaluate<{ state: "downloadable" | "pending" | "missing"; reason: string }>({
+  browser.evaluate<{
+    state: "downloadable" | "pending" | "missing";
+    reason: string;
+  }>({
     description: "read Seller Central latest tax invoice row state",
     script: `
 const rows = Array.from(document.querySelectorAll('kat-table-row'));

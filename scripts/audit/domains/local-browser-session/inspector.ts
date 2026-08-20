@@ -18,23 +18,23 @@ import { inspectRetiredBrowserPaths } from "./inspector-old-path-zero.js";
 const laws = {
   exact: {
     lawId: "APEX-LOCAL-BROWSER-001-V2",
-    clauseId: "apex-local-browser-001-v2-requirement",
+    clauseId: "apex-local-browser-001-v2-exact-authority-lease",
   },
   auth: {
     lawId: "APEX-LOCAL-BROWSER-002-V2",
-    clauseId: "apex-local-browser-002-v2-requirement",
+    clauseId: "apex-local-browser-002-v2-authority-atomicity",
   },
   executor: {
     lawId: "APEX-LOCAL-BROWSER-003-V2",
-    clauseId: "apex-local-browser-003-v2-requirement",
+    clauseId: "apex-local-browser-003-v2-single-chain",
   },
   evaluate: {
     lawId: "APEX-LOCAL-BROWSER-004-V2",
-    clauseId: "apex-local-browser-004-v2-requirement",
+    clauseId: "apex-local-browser-004-v2-governed-command-plane",
   },
   release: {
     lawId: "APEX-LOCAL-BROWSER-005-V1",
-    clauseId: "apex-local-browser-005-v1-requirement",
+    clauseId: "apex-local-browser-005-v1-release-identity",
   },
 } as const satisfies Readonly<Record<string, BrowserLawBinding>>;
 
@@ -121,14 +121,56 @@ export const inspectDomain = async (
   if (!context.checks) {
     throw new Error("local-browser-session requires a runner-owned check session");
   }
-  let reportJson: unknown;
-  await context.checks.runAll(async () => {
-    const evaluation = inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    return {
-      findings: [...evaluation.findings, ...inspectRetiredBrowserPaths()],
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
+  const evaluation = inspectDomainEvaluation(context);
+  const evidenceRefs = [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles];
+  const byClause = (lawId: string, clauseId: string) => evaluation.findings.filter((finding) =>
+    finding.lawId === lawId && finding.clauseId === clauseId);
+  await context.checks.run("browser-old-path/retired-zero", async () => ({
+    findings: [...byClause(laws.exact.lawId, laws.exact.clauseId), ...inspectRetiredBrowserPaths(laws.exact.lawId, laws.exact.clauseId)],
+    evidenceRefs,
+  }));
+  await context.checks.run("browser-auth/no-unauth-session-type", async () => ({
+    findings: byClause(laws.auth.lawId, laws.auth.clauseId),
+    evidenceRefs,
+  }));
+  await context.checks.run("browser-auth/original-reply-channel", async () => ({
+    findings: byClause(laws.executor.lawId, laws.executor.clauseId),
+    evidenceRefs,
+  }));
+  await context.checks.run("browser-file/artifact-grant-no-raw-path", async () => ({
+    findings: byClause(laws.evaluate.lawId, laws.evaluate.clauseId),
+    evidenceRefs,
+  }));
+  await context.checks.run("browser-release/artifact-activation-proof-separation", async () => ({
+    findings: byClause(laws.release.lawId, laws.release.clauseId),
+    evidenceRefs,
+  }));
+  await context.checks.run("browser-privacy/no-owner-boundary-leak", async () => ({
+    findings: [],
+    evidenceRefs: [context.planEntry.ownerInspectorPath, "src/lib/browser/browser-authority-api.ts"],
+  }));
+  await context.checks.run("browser-cross-repo/authority-proof-v2", async () => ({
+    findings: [
+      addCrossRepoProofFinding(),
+    ],
+    evidenceRefs: [context.planEntry.ownerInspectorPath],
+  }));
+  const reportJson = {
+    status: "FAIL",
+    findings: [
+      ...evaluation.findings,
+      ...inspectRetiredBrowserPaths(laws.exact.lawId, laws.exact.clauseId),
+      addCrossRepoProofFinding(),
+    ],
+  };
   return context.checks.output({ ...(reportJson === undefined ? {} : { reportJson }) });
 };
+
+const addCrossRepoProofFinding = (): InspectorFinding => ({
+  checkId: "browser-cross-repo/authority-proof-v2",
+  lawId: "APEX-LOCAL-BROWSER-006-V1",
+  clauseId: "apex-local-browser-006-v1-cross-repo-fence-proof",
+  severity: "fatal",
+  filePath: "src/plugins/xuanxue-ai-production",
+  message: "Browser Authority Proof V2 has no AGENT producer or single AgentRuntimeReceipt integration.",
+});

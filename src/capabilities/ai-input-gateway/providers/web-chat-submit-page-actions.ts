@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import {
   buildVerifyPromptPastedScript,
@@ -8,7 +8,7 @@ import { buildVerifyLastUserMessageAttachmentsScript } from "./web-chat-submitte
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 
 export const verifyPromptPasted = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   input: {
     expectedLength: number;
@@ -27,7 +27,7 @@ export const verifyPromptPasted = (
   });
 
 export const verifyPromptSubmitted = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   input: {
     expectedLength: number;
@@ -44,7 +44,7 @@ export const verifyPromptSubmitted = (
   });
 
 export const verifyLastUserMessageAttachments = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   expectedCount: number,
  expectedKind: "image" | "file",

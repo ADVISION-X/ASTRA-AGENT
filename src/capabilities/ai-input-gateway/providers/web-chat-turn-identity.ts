@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   WebChatSubmissionProof,
@@ -148,7 +148,7 @@ const buildSubmissionProof = (input: {
 });
 
 export const captureWebChatSubmissionProof = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   previousAssistantCount: number;

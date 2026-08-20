@@ -1,14 +1,5 @@
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
-import type {
-  DeepResearchAnalysisStartInput,
-  DeepResearchExportArtifactPayload,
-  DeepResearchHistorySnapshot,
-  DeepResearchInputAttachment,
-  DeepResearchJobSnapshot,
-  DeepResearchReportViewModel,
-  DeepResearchTimelineSnapshot,
-} from "../../plugins/deep-research-analysis/deep-research-analysis.public.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
 import type {
   WorkbenchHealthReport,
@@ -58,12 +49,6 @@ type AmazonProductMiningAutoContinueResult = ReturnType<ContinueInterruptedAmazo
 type ReadPluginIntervention = (taskId: string) => Promise<PluginInterventionSnapshot | null>;
 type RequestPluginIntervention = (request: PluginInterventionRequest) => Promise<unknown>;
 
-export type DeepResearchInputAttachmentStagingFile = {
-  fileName: string;
-  contentType: string | null;
-  bytes: Buffer;
-};
-
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
   shutdown: () => Promise<void>;
@@ -90,11 +75,6 @@ export type GrassEyeWorkbenchHandle = {
   cancelAmazonProductMining: RequestPluginIntervention;
   takeoverAmazonProductMining: RequestPluginIntervention;
   resumeAmazonProductMining: RequestPluginIntervention;
-  readDeepResearchIntervention: ReadPluginIntervention;
-  pauseDeepResearch: RequestPluginIntervention;
-  cancelDeepResearch: RequestPluginIntervention;
-  takeoverDeepResearch: RequestPluginIntervention;
-  resumeDeepResearch: RequestPluginIntervention;
   getMediaProcessingAbilityGroup: () => MediaProcessingAbilityGroup;
   getHealthReport: () => Promise<WorkbenchHealthReport>;
   getMissionReadinessReport: () => Promise<WorkbenchMissionReadinessReport>;
@@ -159,33 +139,6 @@ export type GrassEyeWorkbenchHandle = {
   getAmazonTaxInvoiceDownloadArtifact: (
     taskId: string,
   ) => Promise<AmazonTaxInvoiceDownloadArtifactMetadata>;
-  startDeepResearchAnalysis: (
-    input: DeepResearchAnalysisStartInput,
-  ) => Promise<DeepResearchJobSnapshot>;
-  stageDeepResearchAnalysisInputAttachments: (input: {
-    files: readonly DeepResearchInputAttachmentStagingFile[];
-  }) => Promise<{ attachments: DeepResearchInputAttachment[] }>;
-  getDeepResearchAnalysisJob: (
-    jobId: string,
-  ) => Promise<DeepResearchJobSnapshot | null>;
-  listDeepResearchAnalysisJobs: (input?: {
-    limit?: number;
-    status?: DeepResearchHistorySnapshot["jobs"][number]["status"];
-  }) => Promise<DeepResearchHistorySnapshot>;
-  getDeepResearchAnalysisReport: (
-    jobId: string,
-  ) => Promise<DeepResearchReportViewModel | null>;
-  getLatestDeepResearchAnalysisJob: () => Promise<DeepResearchJobSnapshot | null>;
-  getDeepResearchAnalysisTimeline: (
-    jobId: string,
-  ) => Promise<DeepResearchTimelineSnapshot | null>;
-  exportDeepResearchAnalysisArtifact: (input: {
-    jobId: string;
-    kind: DeepResearchExportArtifactPayload["kind"];
-  }) => Promise<DeepResearchExportArtifactPayload | null>;
-  deleteDeepResearchAnalysisJob: (
-    jobId: string,
-  ) => Promise<{ deleted: boolean; jobId: string }>;
   startAmazonProductMiningMission: (
     input: AmazonProductMiningMissionInput,
   ) => AmazonProductMiningStartResult;

@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiInputGatewayProgress } from "../contract.js";
 import type {
@@ -37,7 +37,7 @@ type ExecuteAiFeedOnceInput = {
   childCapabilityId: AiInputGatewayChildCapabilityId;
   transport: "api" | "web-chat";
   adapter: AiProviderAdapter;
-  browser?: BrowserTargetSession;
+  browser?: BrowserTargetLease;
   runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
   executionId?: string;

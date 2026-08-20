@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   ProviderExecutionProfileProof,
@@ -78,7 +78,7 @@ type ProfileObservation = {
 };
 
 type ExecutionProfileInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   providerUrl: string;
@@ -137,7 +137,7 @@ return {
 `;
 
 const openProfileMenu = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
 }): Promise<void> => {
   const observed = await input.browser.evaluate<MenuControl>({
@@ -161,7 +161,7 @@ const openProfileMenu = async (input: {
 };
 
 const closeProfileMenu = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<void> => {
   await browser.textInput({
@@ -173,7 +173,7 @@ const closeProfileMenu = async (
 };
 
 const observeProfile = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
   request: AiFeedInput,
 ): Promise<ProfileObservation> => browser.evaluate<ProfileObservation>({
@@ -186,7 +186,7 @@ const observeProfile = (
 });
 
 const clickProfileTarget = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   point: { x: number; y: number } | undefined;
   label: string;
 }): Promise<void> => {

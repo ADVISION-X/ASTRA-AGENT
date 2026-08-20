@@ -23,7 +23,11 @@ const opaque = <T extends string>(prefix: string): T =>
   `${prefix}_${randomUUID().replaceAll("-", "")}` as T;
 
 const originOf = (value: string): string => {
-  try { return new URL(value).origin; } catch { return "null"; }
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "null";
+  }
 };
 
 export class BrowserTargetRegistry {
@@ -37,10 +41,15 @@ export class BrowserTargetRegistry {
     allowedOrigin = originOf(descriptor.url),
   ): ControlledBrowserTarget {
     if (!Number.isInteger(descriptor.tabId)) {
-      throw new BrowserTerminalError("TARGET_NOT_FOUND", "target descriptor has no raw Chrome tab identity");
+      throw new BrowserTerminalError(
+        "TARGET_NOT_FOUND",
+        "target descriptor has no raw Chrome tab identity",
+      );
     }
-    const conflict = [...this.entries.values()].find((entry) =>
-      entry.lifecycle === "attached" && entry.descriptor.tabId === descriptor.tabId,
+    const conflict = [...this.entries.values()].find(
+      (entry) =>
+        entry.lifecycle === "attached" &&
+        entry.descriptor.tabId === descriptor.tabId,
     );
     if (conflict) {
       throw new BrowserTerminalError(
@@ -63,7 +72,10 @@ export class BrowserTargetRegistry {
     return this.publicTarget(entry);
   }
 
-  resolve(targetRef: BrowserTargetRef, documentRef?: BrowserDocumentRef): RegistryEntry {
+  resolve(
+    targetRef: BrowserTargetRef,
+    documentRef?: BrowserDocumentRef,
+  ): RegistryEntry {
     const entry = this.entries.get(targetRef);
     if (!entry || entry.authorityRef !== this.authorityRef) {
       throw new BrowserTerminalError(
@@ -72,7 +84,10 @@ export class BrowserTargetRegistry {
       );
     }
     if (entry.lifecycle !== "attached") {
-      throw new BrowserTerminalError("TARGET_CLOSED", "target is no longer attached");
+      throw new BrowserTerminalError(
+        "TARGET_CLOSED",
+        "target is no longer attached",
+      );
     }
     if (documentRef && entry.documentRef !== documentRef) {
       throw new BrowserTerminalError(
@@ -83,7 +98,10 @@ export class BrowserTargetRegistry {
     return entry;
   }
 
-  updateDocument(targetRef: BrowserTargetRef, descriptor: BrowserWireTargetDescriptor): ControlledBrowserTarget {
+  updateDocument(
+    targetRef: BrowserTargetRef,
+    descriptor: BrowserWireTargetDescriptor,
+  ): ControlledBrowserTarget {
     const entry = this.resolve(targetRef);
     this.assertAllowedOrigin(entry.allowedOrigin, descriptor.url);
     if (descriptor.loaderId !== entry.descriptor.loaderId) {
@@ -113,12 +131,18 @@ export class BrowserTargetRegistry {
       .map((entry) => entry.descriptor.tabId);
   }
 
-  assertNavigationOrigin(targetRef: BrowserTargetRef, requestedUrl: string): void {
+  assertNavigationOrigin(
+    targetRef: BrowserTargetRef,
+    requestedUrl: string,
+  ): void {
     const entry = this.resolve(targetRef);
     this.assertAllowedOrigin(entry.allowedOrigin, requestedUrl);
   }
 
-  private assertAllowedOrigin(allowedOrigin: string, observedUrl: string): void {
+  private assertAllowedOrigin(
+    allowedOrigin: string,
+    observedUrl: string,
+  ): void {
     const observedOrigin = originOf(observedUrl);
     if (allowedOrigin !== "null" && observedOrigin !== allowedOrigin) {
       throw new BrowserTerminalError(

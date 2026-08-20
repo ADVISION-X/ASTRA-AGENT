@@ -21,8 +21,10 @@ const typedCharacterKey = (
       windowsVirtualKeyCode: character.charCodeAt(0),
     };
   }
-  if (character === "-") return { code: "Minus", key: character, windowsVirtualKeyCode: 189 };
-  if (character === " ") return { code: "Space", key: character, windowsVirtualKeyCode: 32 };
+  if (character === "-")
+    return { code: "Minus", key: character, windowsVirtualKeyCode: 189 };
+  if (character === " ")
+    return { code: "Space", key: character, windowsVirtualKeyCode: 32 };
   return { code: "Unidentified", key: character, windowsVirtualKeyCode: 0 };
 };
 
@@ -47,20 +49,28 @@ export const keyCode = (
   };
 };
 
-export const createServiceWorkerKeyboard = (sendCommand: SendCommand): {
+export const createServiceWorkerKeyboard = (
+  sendCommand: SendCommand,
+): {
   keyCode: typeof keyCode;
   dispatchTypedCharacter: (tabId: number, character: string) => Promise<void>;
 } => ({
   keyCode,
   dispatchTypedCharacter: async (tabId, character) => {
     const key = typedCharacterKey(character);
-    await sendCommand(tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
+    await sendCommand(tabId, "Input.dispatchKeyEvent", {
+      type: "rawKeyDown",
+      ...key,
+    });
     await sendCommand(tabId, "Input.dispatchKeyEvent", {
       type: "char",
       ...key,
       text: character,
       unmodifiedText: character,
     });
-    await sendCommand(tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...key });
+    await sendCommand(tabId, "Input.dispatchKeyEvent", {
+      type: "keyUp",
+      ...key,
+    });
   },
 });

@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const BROWSER_HEARTBEAT_INTERVAL_MS = 1_000;
-export const BROWSER_LIVENESS_SOFT_DRAIN_MS = 3_500;
 export const BROWSER_LIVENESS_HARD_EXPIRY_MS = 5_000;
-export const BROWSER_WATCHDOG_TICK_MAX_MS = 250;
 export const BROWSER_MAX_AUTHORITY_AGE_MS = 8 * 60 * 60 * 1_000;
 
 export type BrowserAuthorityLivenessLeaseV1 = Readonly<{
@@ -34,8 +31,10 @@ export const issueBrowserAuthorityLivenessLease = (input: {
     authorityRef: input.authorityRef,
     authorityEpoch: input.authorityEpoch,
     leaseEpoch: input.leaseEpoch,
-    controllerDeadlineMonotonicMs: input.nowMonotonicMs + BROWSER_LIVENESS_HARD_EXPIRY_MS,
-    extensionDeadlineMonotonicMs: input.nowMonotonicMs + BROWSER_LIVENESS_HARD_EXPIRY_MS,
+    controllerDeadlineMonotonicMs:
+      input.nowMonotonicMs + BROWSER_LIVENESS_HARD_EXPIRY_MS,
+    extensionDeadlineMonotonicMs:
+      input.nowMonotonicMs + BROWSER_LIVENESS_HARD_EXPIRY_MS,
     lastAuthenticatedHeartbeatSequence: input.heartbeatSequence,
   });
   return Object.freeze({ ...unsigned, leaseHash: hashLease(unsigned) });
@@ -44,7 +43,9 @@ export const issueBrowserAuthorityLivenessLease = (input: {
 export const isBrowserAuthorityLivenessLeaseExpired = (
   lease: BrowserAuthorityLivenessLeaseV1,
   nowMonotonicMs: number,
-): boolean => nowMonotonicMs >= Math.min(
-  lease.controllerDeadlineMonotonicMs,
-  lease.extensionDeadlineMonotonicMs,
-);
+): boolean =>
+  nowMonotonicMs >=
+  Math.min(
+    lease.controllerDeadlineMonotonicMs,
+    lease.extensionDeadlineMonotonicMs,
+  );

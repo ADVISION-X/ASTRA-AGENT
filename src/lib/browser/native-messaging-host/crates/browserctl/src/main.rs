@@ -734,9 +734,39 @@ fn uninstall() {
     }));
 }
 
+fn hold_owner_lock(lock_path: &str) {
+    let path = PathBuf::from(lock_path);
+    if !path.is_absolute() {
+        fail("BROWSER_CONTROLLER_ALREADY_OWNED", "owner lock path must be absolute");
+    }
+    let parent = path.parent()
+        .unwrap_or_else(|| fail("BROWSER_CONTROLLER_ALREADY_OWNED", "owner lock parent missing"));
+    fs::create_dir_all(parent)
+        .unwrap_or_else(|error| fail("BROWSER_CONTROLLER_ALREADY_OWNED", error.to_string()));
+    let file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .unwrap_or_else(|_| fail("BROWSER_CONTROLLER_ALREADY_OWNED", path.display().to_string()));
+    #[cfg(unix)]
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+        .unwrap_or_else(|error| fail("BROWSER_CONTROLLER_ALREADY_OWNED", error.to_string()));
+    println!("{}", serde_json::json!({"status": "LOCKED"}));
+    let _ = std::io::stdout().flush();
+    let mut stdin = std::io::stdin();
+    let mut discarded = Vec::new();
+    let _ = stdin.read_to_end(&mut discarded);
+    drop(file);
+    let _ = fs::remove_file(path);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.iter().any(|arg| arg == "--enroll-profile") {
+    if args.get(1).map(String::as_str) == Some("hold-owner-lock") {
+        let lock_path = args.get(2)
+            .unwrap_or_else(|| fail("BROWSER_CONTROLLER_ALREADY_OWNED", "owner lock path missing"));
+        hold_owner_lock(lock_path);
+    } else if args.iter().any(|arg| arg == "--enroll-profile") {
         enroll_profile();
     } else if args.iter().any(|arg| arg == "--repair") {
         install();

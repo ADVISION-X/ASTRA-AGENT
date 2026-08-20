@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
 const PROVIDER_HOSTS = new Set(["chatgpt.com", "gemini.google.com"]);
@@ -10,7 +10,7 @@ type ComposerInsertResult = {
 };
 
 const insertPromptInActiveProviderTab = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   prompt: string,
   replace: boolean,
   abortSignal?: AbortSignal,
@@ -69,13 +69,13 @@ const insertPromptInActiveProviderTab = async (
 };
 
 export const pasteTextAndSubmitInChrome = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   prompt: string,
   abortSignal?: AbortSignal,
 ): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, false, abortSignal);
 
 export const pasteTextReplacingInChrome = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   prompt: string,
   abortSignal?: AbortSignal,
 ): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, true, abortSignal);

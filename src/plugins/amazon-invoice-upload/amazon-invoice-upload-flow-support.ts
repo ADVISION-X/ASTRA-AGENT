@@ -7,7 +7,7 @@ import {
   verifyDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
@@ -18,47 +18,61 @@ const DOM_CLICK_SETTLE_MS = 50;
 const AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS = 1_800;
 
 export const readSnapshot = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   input?: Parameters<typeof readDomSnapshotOnce>[1],
   abortSignal?: AbortSignal,
 ) => {
-  const requestedTimeoutMs = input?.timeoutMs ?? AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS;
-  return readDomSnapshotOnce(browser, {
-    ...input,
-    timeoutMs: Math.max(1, Math.min(AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS, requestedTimeoutMs)),
-  }, abortSignal ? { abortSignal } : undefined);
+  const requestedTimeoutMs =
+    input?.timeoutMs ?? AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS;
+  return readDomSnapshotOnce(
+    browser,
+    {
+      ...input,
+      timeoutMs: Math.max(
+        1,
+        Math.min(AMAZON_INVOICE_SNAPSHOT_TIMEOUT_MS, requestedTimeoutMs),
+      ),
+    },
+    abortSignal ? { abortSignal } : undefined,
+  );
 };
 
-export const verifyState = (
-  input: Parameters<typeof verifyDomStateOnce>[0],
-) => verifyDomStateOnce(input);
+export const verifyState = (input: Parameters<typeof verifyDomStateOnce>[0]) =>
+  verifyDomStateOnce(input);
 
 export const locateElement = (
   input: Parameters<typeof locateDomElementOnce>[0],
 ) => locateDomElementOnce(input);
 
 export const clickElement = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   input: Parameters<typeof clickDomElementOnce>[1],
 ) => clickDomElementOnce(browser, input);
 
 export const fillElement = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   input: Parameters<typeof fillDomElementOnce>[1],
 ) => fillDomElementOnce(browser, input);
 
 export const uploadFile = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   input: Parameters<typeof uploadApprovedFileOnce>[1],
 ) => uploadApprovedFileOnce(browser, input);
 
-export function evidenceField(evidenceRef: string | undefined): { evidenceRef: string } | Record<string, never> {
+export function evidenceField(
+  evidenceRef: string | undefined,
+): { evidenceRef: string } | Record<string, never> {
   return evidenceRef ? { evidenceRef } : {};
 }
 
-export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok" | "orderNavigationProof" | "runtimeLogRef"> & {
-  ok?: boolean;
-}): AmazonInvoiceUploadTaskResult {
+export function taskResult(
+  input: Omit<
+    AmazonInvoiceUploadTaskResult,
+    "ok" | "orderNavigationProof" | "runtimeLogRef"
+  > & {
+    ok?: boolean;
+  },
+): AmazonInvoiceUploadTaskResult {
   return {
     ok: input.ok ?? isStrongUploadTerminalStatus(input.status),
     status: input.status,
@@ -72,7 +86,9 @@ export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok" | "or
   };
 }
 
-function isStrongUploadTerminalStatus(status: AmazonInvoiceUploadStatus): boolean {
+function isStrongUploadTerminalStatus(
+  status: AmazonInvoiceUploadStatus,
+): boolean {
   return status === "upload_success" || status === "already_uploaded";
 }
 
@@ -87,7 +103,10 @@ export function gatedResult(
     successHints: [],
     failureHints: [],
   });
-  if (gate.status !== "login_required" && gate.status !== "captcha_or_2fa_required") {
+  if (
+    gate.status !== "login_required" &&
+    gate.status !== "captcha_or_2fa_required"
+  ) {
     return null;
   }
   return taskResult({
@@ -108,23 +127,29 @@ export function locateOrStatus(input: {
   proximityAnchorText?: string;
   requiredText?: string;
   notFoundStatus: AmazonInvoiceUploadStatus;
-}): { ok: true; element: DomElementRef } | { ok: false; status: AmazonInvoiceUploadStatus; reason: string } {
+}):
+  | { ok: true; element: DomElementRef }
+  | { ok: false; status: AmazonInvoiceUploadStatus; reason: string } {
   const element = locateDomElementOnce({
     snapshot: input.snapshot,
     targetKind: input.targetKind,
     hints: input.hints,
-    ...(input.proximityAnchorText ? { proximityAnchorText: input.proximityAnchorText } : {}),
+    ...(input.proximityAnchorText
+      ? { proximityAnchorText: input.proximityAnchorText }
+      : {}),
     ...(input.requiredText ? { requiredText: input.requiredText } : {}),
   });
   if (element.elementRef.startsWith("dom:unresolved:")) {
-    const status = element.elementRef.endsWith(":ambiguous") ? "ambiguous" : input.notFoundStatus;
+    const status = element.elementRef.endsWith(":ambiguous")
+      ? "ambiguous"
+      : input.notFoundStatus;
     return { ok: false, status, reason: element.reason };
   }
   return { ok: true, element };
 }
 
 export async function clickLocated(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   runtimeLogger: RuntimeLogger;
   element: DomElementRef;
   expectedKind: string;

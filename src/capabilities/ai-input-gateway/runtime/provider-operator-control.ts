@@ -1,7 +1,7 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 
 export const createProviderOperatorControl = (
-  browser?: BrowserTargetSession,
+  browser?: BrowserTargetLease,
 ) => {
   const owners = new Set<string>();
   const waiters = new Set<() => void>();

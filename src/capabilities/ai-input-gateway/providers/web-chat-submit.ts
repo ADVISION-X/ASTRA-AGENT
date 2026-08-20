@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   AiProviderUploadedFileProof,
@@ -60,7 +60,7 @@ const withWebChatStep = async <T>(
 };
 
 const waitForPromptSubmitted = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedLength: number;
@@ -93,7 +93,7 @@ const waitForPromptSubmitted = async (input: {
 };
 
 const waitForSendButtonClick = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   step: "click_send_after_prompt_paste";
@@ -116,7 +116,7 @@ const waitForSendButtonClick = async (input: {
 };
 
 type SubmitPromptViaClipboardInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   previousAssistantCount: number;
@@ -126,7 +126,7 @@ type SubmitPromptViaClipboardInput = {
   attachmentUploadProof: WebChatAttachmentUploadProof;
 };
 type RateLimitSubmitGuardInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };
@@ -184,7 +184,7 @@ const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): 
 };
 
 const waitForPromptReady = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   expectedLength: number;

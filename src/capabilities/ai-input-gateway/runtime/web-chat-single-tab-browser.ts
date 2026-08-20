@@ -1,7 +1,7 @@
 import type {
   BrowserActionResult,
-  BrowserTargetSession,
-} from "../../../lib/browser/browser-controller.js";
+  BrowserTargetLease,
+} from "../../../lib/browser/browser-authority-api.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import {
   acquireWebChatBrowserPatrolLease,
@@ -11,7 +11,7 @@ import {
 import { focusBoundWebChatConversation } from "./web-chat-single-tab-routing.js";
 
 type SingleTabBrowserInput = {
-  base: BrowserTargetSession;
+  base: BrowserTargetLease;
   dataDir: string;
   executionId: string;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
@@ -47,10 +47,10 @@ const delay = (durationMs: number, signal?: AbortSignal): Promise<void> =>
   });
 
 export type SingleTabWebChatBrowser = {
-  browser: BrowserTargetSession;
-  globalBrowser: BrowserTargetSession;
+  browser: BrowserTargetLease;
+  globalBrowser: BrowserTargetLease;
   runExclusivePatrol<T>(
-    operation: (browser: BrowserTargetSession) => Promise<T>,
+    operation: (browser: BrowserTargetLease) => Promise<T>,
   ): Promise<T>;
   bindObservedConversation(submission: WebChatSubmissionProof): void;
   bindConversationIdentity(submission: WebChatSubmissionProof): void;
@@ -135,11 +135,11 @@ const createBrowserFacade = (
   input: SingleTabBrowserInput,
   withMutation: MutationRunner,
   routeByDefault: boolean,
-): BrowserTargetSession => {
+): BrowserTargetLease => {
   const browser = {
     ...createInteractiveBrowserFacade(input, withMutation, routeByDefault),
     ...createObservationBrowserFacade(input, withMutation, routeByDefault),
-  } as BrowserTargetSession;
+  } as BrowserTargetLease;
   if (input.base.move) {
     browser.move = (value) =>
       withMutation(() => input.base.move!(value), {
@@ -150,9 +150,9 @@ const createBrowserFacade = (
 };
 
 type InteractiveBrowserFacade = Pick<
-  BrowserTargetSession,
+  BrowserTargetLease,
   | "getHealth"
-  | "getSessionState"
+  | "getLeaseState"
   | "getGeometrySnapshot"
   | "open"
   | "scroll"
@@ -168,7 +168,7 @@ const createInteractiveBrowserFacade = (
   routeByDefault: boolean,
 ): InteractiveBrowserFacade => ({
   getHealth: () => input.base.getHealth(),
-  getSessionState: () => input.base.getSessionState(),
+  getLeaseState: () => input.base.getLeaseState(),
   getGeometrySnapshot: () =>
     withMutation(() => input.base.getGeometrySnapshot(), {
       route: routeByDefault,
@@ -197,7 +197,7 @@ const createInteractiveBrowserFacade = (
 });
 
 type ObservationBrowserFacade = Pick<
-  BrowserTargetSession,
+  BrowserTargetLease,
   | "screenshotRegion"
   | "evaluate"
   | "setFileInputFiles"
@@ -215,7 +215,7 @@ const createObservationBrowserFacade = (
     withMutation(() => input.base.screenshotRegion(value), {
       route: routeByDefault,
     }),
-  evaluate: <T>(value: Parameters<BrowserTargetSession["evaluate"]>[0]) =>
+  evaluate: <T>(value: Parameters<BrowserTargetLease["evaluate"]>[0]) =>
     withMutation(() => input.base.evaluate<T>(value), {
       route: routeByDefault,
     }),
@@ -291,7 +291,7 @@ export const createSingleTabWebChatBrowser = (
     browser: createBrowserFacade(input, withSubmissionThenPatrol, true),
     globalBrowser: createBrowserFacade(input, withGlobalSurvival, false),
     async runExclusivePatrol<T>(
-      operation: (browser: BrowserTargetSession) => Promise<T>,
+      operation: (browser: BrowserTargetLease) => Promise<T>,
     ): Promise<T> {
       const lease = await acquireWebChatBrowserPatrolLease({
         dataDir: input.dataDir,

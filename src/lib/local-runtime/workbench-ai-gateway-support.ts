@@ -1,14 +1,14 @@
 import { createAiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { BrowserController } from "../browser/browser-controller.js";
+import type { BrowserTargetLease } from "../browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 
 export function createWorkbenchAiInputGateway(
   dataDir: string,
-  browserController: BrowserController,
+  browser: BrowserTargetLease | null,
   runtimeLogger: RuntimeLogger,
 ) {
   return createAiInputGatewayAbilityGroup(
     { dataDir, runtimeLogger },
-    browserController.createTargetSession("ai-input-gateway:single-provider-target"),
+    browser ?? undefined,
   );
 }

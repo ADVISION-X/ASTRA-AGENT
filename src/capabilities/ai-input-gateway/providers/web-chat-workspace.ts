@@ -1,11 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
-const DEEP_RESEARCH_WORKSPACE_ID = "deep-research";
 const FULL_CORPUS_WORKSPACE_ID = "full-corpus";
 
 const workspaceDir = (dataDir: string): string =>
@@ -27,11 +26,9 @@ export const normalizeWorkspaceUrl = (input: {
 };
 
 export const resolveWebChatWorkspaceId = (request: AiFeedInput): string | null =>
-  request.promptContractId.includes("deep-research.")
-    ? DEEP_RESEARCH_WORKSPACE_ID
-    : request.promptContractId.startsWith("full-corpus-")
-        ? FULL_CORPUS_WORKSPACE_ID
-        : null;
+  request.promptContractId.startsWith("full-corpus-")
+    ? FULL_CORPUS_WORKSPACE_ID
+    : null;
 
 export const readSavedWorkspaceUrl = (input: {
   dataDir: string;
@@ -110,7 +107,7 @@ export const cleanupStaleWorkspaceConversationTabs = async (input: {
 };
 
 export const focusExistingWorkspaceTab = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   providerHost: string;
   workspaceId: string;
   savedUrl: string | null;

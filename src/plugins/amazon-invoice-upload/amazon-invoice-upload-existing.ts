@@ -1,5 +1,5 @@
 import type { DomElementRef } from "../../types/dom-automation.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import {
@@ -28,11 +28,13 @@ type ExistingInvoiceEvidenceWaitResult =
   | { kind: "confirmed"; evidenceRef: string }
   | { kind: "ready_for_upload" }
   | { kind: "not_confirmed"; reason: string }
-  | { kind: "read_failure"; failureText: string; snapshot: Awaited<ReturnType<typeof readSnapshot>> };
+  | {
+      kind: "read_failure";
+      failureText: string;
+      snapshot: Awaited<ReturnType<typeof readSnapshot>>;
+    };
 
-type OutsideDialogClickResult =
-  | { ok: true }
-  | { ok: false; reason: string };
+type OutsideDialogClickResult = { ok: true } | { ok: false; reason: string };
 
 type AlreadyUploadedRetainedTabInput = {
   runtimeLogger: RuntimeLogger;
@@ -42,7 +44,7 @@ type AlreadyUploadedRetainedTabInput = {
 };
 
 export async function verifyAlreadyUploadedInvoice(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
@@ -58,10 +60,21 @@ export async function verifyAlreadyUploadedInvoice(
     });
   }
 
-  const manageEntry = await openManageInvoiceList(browser, runtimeLogger, mission, snapshot);
-  if (manageEntry !== null) return manageEntry === "not-found" ? null : manageEntry;
+  const manageEntry = await openManageInvoiceList(
+    browser,
+    runtimeLogger,
+    mission,
+    snapshot,
+  );
+  if (manageEntry !== null)
+    return manageEntry === "not-found" ? null : manageEntry;
 
-  const firstWait = await waitForExistingInvoiceEvidence(browser, runtimeLogger, mission, abortSignal);
+  const firstWait = await waitForExistingInvoiceEvidence(
+    browser,
+    runtimeLogger,
+    mission,
+    abortSignal,
+  );
   if (firstWait.kind === "confirmed") {
     return alreadyUploadedWithRetainedTab({
       runtimeLogger,
@@ -75,15 +88,24 @@ export async function verifyAlreadyUploadedInvoice(
     return existingInvoiceNeedsReview(mission, firstWait.reason);
   }
 
-  return recoverInvoiceReadFailure(browser, runtimeLogger, mission, abortSignal, firstWait);
+  return recoverInvoiceReadFailure(
+    browser,
+    runtimeLogger,
+    mission,
+    abortSignal,
+    firstWait,
+  );
 }
 
 async function recoverInvoiceReadFailure(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
-  firstWait: Extract<ExistingInvoiceEvidenceWaitResult, { kind: "read_failure" }>,
+  firstWait: Extract<
+    ExistingInvoiceEvidenceWaitResult,
+    { kind: "read_failure" }
+  >,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   const dismissFailure = await dismissInvoiceReadFailureDialog(
     browser,
@@ -95,8 +117,16 @@ async function recoverInvoiceReadFailure(
   );
   if (dismissFailure) return dismissFailure;
 
-  const reopenedSnapshot = await readExistingInvoiceSnapshot(browser, abortSignal);
-  const reopenedManageEntry = await openManageInvoiceList(browser, runtimeLogger, mission, reopenedSnapshot);
+  const reopenedSnapshot = await readExistingInvoiceSnapshot(
+    browser,
+    abortSignal,
+  );
+  const reopenedManageEntry = await openManageInvoiceList(
+    browser,
+    runtimeLogger,
+    mission,
+    reopenedSnapshot,
+  );
   if (reopenedManageEntry !== null) {
     return existingInvoiceNeedsReview(
       mission,
@@ -104,12 +134,18 @@ async function recoverInvoiceReadFailure(
     );
   }
 
-  const secondWait = await waitForExistingInvoiceEvidence(browser, runtimeLogger, mission, abortSignal);
+  const secondWait = await waitForExistingInvoiceEvidence(
+    browser,
+    runtimeLogger,
+    mission,
+    abortSignal,
+  );
   if (secondWait.kind === "confirmed") {
     return alreadyUploadedWithRetainedTab({
       runtimeLogger,
       mission,
-      reason: "existing invoice verified after one governed no-actions dialog dismissal and reopen",
+      reason:
+        "existing invoice verified after one governed no-actions dialog dismissal and reopen",
       evidenceRef: secondWait.evidenceRef,
     });
   }
@@ -140,14 +176,19 @@ function traceAlreadyUploaded(
 }
 
 async function openManageInvoiceList(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   snapshot: Awaited<ReturnType<typeof readSnapshot>>,
 ): Promise<AmazonInvoiceUploadTaskResult | "not-found" | null> {
   const manageEntry = locateManageInvoiceEntry(snapshot);
   if (!manageEntry.ok) return "not-found";
-  traceManageInvoiceEntry(runtimeLogger, mission, snapshot, manageEntry.element);
+  traceManageInvoiceEntry(
+    runtimeLogger,
+    mission,
+    snapshot,
+    manageEntry.element,
+  );
   const clickFailure = await clickLocated({
     browser,
     runtimeLogger,
@@ -193,7 +234,7 @@ function traceManageInvoiceClick(
 }
 
 async function dismissInvoiceReadFailureDialog(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   snapshot: Awaited<ReturnType<typeof readSnapshot>>,
@@ -209,14 +250,26 @@ async function dismissInvoiceReadFailureDialog(
     reason: `The unique current-order invoice dialog exposed the governed read-failure blocker: ${failureText}.`,
   });
 
-  const clicked = await clickSafeOutsideDialogPoint(browser, mission, failureText, abortSignal);
+  const clicked = await clickSafeOutsideDialogPoint(
+    browser,
+    mission,
+    failureText,
+    abortSignal,
+  );
   if (!clicked.ok) {
     return existingInvoiceNeedsReview(
       mission,
       `Amazon manage-invoice recovery could not click the verified outside-dialog blank area: ${clicked.reason}`,
     );
   }
-  if (!await waitForInvoiceReadFailureDialogDismissal(browser, mission, failureText, abortSignal)) {
+  if (
+    !(await waitForInvoiceReadFailureDialogDismissal(
+      browser,
+      mission,
+      failureText,
+      abortSignal,
+    ))
+  ) {
     return existingInvoiceNeedsReview(
       mission,
       "Amazon manage-invoice recovery clicked outside the dialog, but the blocked dialog did not disappear.",
@@ -227,13 +280,14 @@ async function dismissInvoiceReadFailureDialog(
     mission,
     stepName: "dismiss invoice read failure dialog",
     status: "success",
-    reason: "Clicked one live DOM-derived blank point outside the dialog and verified that the blocked dialog disappeared.",
+    reason:
+      "Clicked one live DOM-derived blank point outside the dialog and verified that the blocked dialog disappeared.",
   });
   return null;
 }
 
 async function clickSafeOutsideDialogPoint(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   mission: AmazonInvoiceUploadMissionInput,
   failureText: string,
   abortSignal: AbortSignal,
@@ -241,7 +295,8 @@ async function clickSafeOutsideDialogPoint(
   const orderId = JSON.stringify(mission.amazonOrderId);
   const blockerText = JSON.stringify(failureText);
   return browser.evaluate<OutsideDialogClickResult>({
-    description: "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog",
+    description:
+      "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog",
     abortSignal,
     script: `
       const orderId = ${orderId};
@@ -287,7 +342,7 @@ async function clickSafeOutsideDialogPoint(
 }
 
 async function waitForInvoiceReadFailureDialogDismissal(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   mission: AmazonInvoiceUploadMissionInput,
   failureText: string,
   abortSignal: AbortSignal,
@@ -296,7 +351,8 @@ async function waitForInvoiceReadFailureDialogDismissal(
   while (Date.now() - startedAt < noAvailableActionsDialogDismissTimeoutMs) {
     throwIfAborted(abortSignal);
     const snapshot = await readExistingInvoiceSnapshot(browser, abortSignal);
-    if (findInvoiceReadFailureDialogText(snapshot, mission) !== failureText) return true;
+    if (findInvoiceReadFailureDialogText(snapshot, mission) !== failureText)
+      return true;
     await browser.wait(existingInvoiceEvidencePollMs, abortSignal);
   }
   return false;
@@ -308,8 +364,11 @@ function findInvoiceReadFailureDialogText(
 ): string | null {
   const dialogText = findOrderBoundInvoiceDialogText(snapshot, mission);
   if (dialogText === null) return null;
-  return [noAvailableActionsDialogText, invoiceReadFailureDialogText]
-    .find((failureText) => dialogText.includes(failureText)) ?? null;
+  return (
+    [noAvailableActionsDialogText, invoiceReadFailureDialogText].find(
+      (failureText) => dialogText.includes(failureText),
+    ) ?? null
+  );
 }
 
 function existingInvoiceNeedsReview(
@@ -327,13 +386,17 @@ function existingInvoiceNeedsReview(
 }
 
 async function waitForExistingInvoiceEvidence(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   abortSignal: AbortSignal,
 ): Promise<ExistingInvoiceEvidenceWaitResult> {
   let readyConfirmationCount = 0;
-  for (let observation = 1; observation <= INVOICE_DIALOG_OBSERVATION_LIMIT; observation += 1) {
+  for (
+    let observation = 1;
+    observation <= INVOICE_DIALOG_OBSERVATION_LIMIT;
+    observation += 1
+  ) {
     throwIfAborted(abortSignal);
     const snapshot = await readExistingInvoiceSnapshot(browser, abortSignal);
     if (hasExistingInvoiceEvidence(snapshot, mission)) {
@@ -362,7 +425,8 @@ async function waitForExistingInvoiceEvidence(
           stepName: "verify current-order invoice dialog ready for upload",
           status: "success",
           snapshot,
-          reason: "Current-order invoice dialog exposed a complete invoice table and upload action without a matching uploaded row.",
+          reason:
+            "Current-order invoice dialog exposed a complete invoice table and upload action without a matching uploaded row.",
         });
         return { kind: "ready_for_upload" };
       }
@@ -377,8 +441,10 @@ async function waitForExistingInvoiceEvidence(
   };
 }
 
-const readExistingInvoiceSnapshot = (browser: BrowserTargetSession, abortSignal: AbortSignal) =>
-  readSnapshot(browser, { maxTextLengthPerNode: 240 }, abortSignal);
+const readExistingInvoiceSnapshot = (
+  browser: BrowserTargetLease,
+  abortSignal: AbortSignal,
+) => readSnapshot(browser, { maxTextLengthPerNode: 240 }, abortSignal);
 
 function throwIfAborted(abortSignal: AbortSignal): void {
   if (!abortSignal.aborted) return;
@@ -387,8 +453,14 @@ function throwIfAborted(abortSignal: AbortSignal): void {
     : new Error("Amazon existing-invoice DOM wait aborted.");
 }
 
-function alreadyUploadedWithRetainedTab(input: AlreadyUploadedRetainedTabInput): AmazonInvoiceUploadTaskResult {
-  traceAlreadyUploadedRetainedTab(input.runtimeLogger, input.mission, input.evidenceRef);
+function alreadyUploadedWithRetainedTab(
+  input: AlreadyUploadedRetainedTabInput,
+): AmazonInvoiceUploadTaskResult {
+  traceAlreadyUploadedRetainedTab(
+    input.runtimeLogger,
+    input.mission,
+    input.evidenceRef,
+  );
   return alreadyUploadedSuccess(input.mission, input.reason, input.evidenceRef);
 }
 
@@ -402,7 +474,8 @@ function traceAlreadyUploadedRetainedTab(
     mission,
     stepName: "retain already uploaded order tab",
     status: "success",
-    reason: "Active Seller Central order worker tab retained after already-uploaded verification.",
+    reason:
+      "Active Seller Central order worker tab retained after already-uploaded verification.",
     evidenceRef,
   });
 }

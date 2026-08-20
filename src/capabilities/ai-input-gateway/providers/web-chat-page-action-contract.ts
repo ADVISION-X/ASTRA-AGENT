@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
   AiProviderAdapterContext,
   WebChatPageActionProof,
@@ -14,7 +14,7 @@ const ref = (value: string | undefined): string | null =>
   value ? hash(value) : null;
 
 export const recordWebChatPageAction = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   actionId: WebChatPageActionId;
   startedAt: string;
@@ -52,7 +52,7 @@ export const recordWebChatPageAction = async (input: {
 };
 
 export const assertStableWebChatDocument = (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   expectedDocumentRef: string | null;
   actionId: WebChatPageActionId;
 }): void => {

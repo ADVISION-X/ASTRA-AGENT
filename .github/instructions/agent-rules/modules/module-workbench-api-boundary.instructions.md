@@ -77,7 +77,6 @@ src/app/create-workbench-server.ts
 src/app/workbench-http.ts
 src/app/workbench-amazon-routes.ts
 src/app/workbench-amazon-product-mining-routes.ts
-src/app/workbench-deep-research-routes.ts
 ```
 
 Required new guard file:
@@ -328,7 +327,7 @@ externalApiAllowed: true
     "Method wildcard route admission.",
     "Path prefix admission without exact method+path rule.",
     "External access to health, mode, settings, AI provider config, or debug routes unless explicitly authorized.",
-    "External website calling deep research, product mining, video download, or browser-control routes without dedicated law authorization."
+    "External website calling product mining, video download, or browser-control routes without dedicated law authorization."
   ],
   "clauses": [
     {

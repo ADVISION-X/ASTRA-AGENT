@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-19T19:56:35.095Z",
+  "generatedAt": "2026-08-20T10:35:41.861Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
-    "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
-    "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-    "message": "Localization contract assertion failed: src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts reintroduced legacy localization_static_review product\n\ntrue !== false\n",
+    "lawId": "APEX-CODE-PURITY-017-V1",
+    "filePath": "src/lib/local-runtime/workbench-browser-support.ts",
+    "message": "src/lib/local-runtime/workbench-browser-support.ts exports createWorkbenchBrowserAuthority without any provable final consumer.",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 269,
-      "endedAt": "2026-08-19T19:54:52.422Z",
+      "durationMs": 233,
+      "endedAt": "2026-08-20T10:34:18.946Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-19T19:54:52.153Z",
+      "startedAt": "2026-08-20T10:34:18.713Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 4411,
-      "endedAt": "2026-08-19T19:54:56.834Z",
+      "durationMs": 3726,
+      "endedAt": "2026-08-20T10:34:22.673Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-19T19:54:52.423Z",
+      "startedAt": "2026-08-20T10:34:18.947Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 2,
-      "endedAt": "2026-08-19T19:54:56.842Z",
+      "endedAt": "2026-08-20T10:34:22.678Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-19T19:54:56.840Z",
+      "startedAt": "2026-08-20T10:34:22.676Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 98251,
-      "endedAt": "2026-08-19T19:56:35.094Z",
+      "durationMs": 79182,
+      "endedAt": "2026-08-20T10:35:41.860Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-19T19:54:56.843Z",
+      "startedAt": "2026-08-20T10:34:22.678Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -493,344 +493,6 @@
     },
     {
       "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-analysis-browser-intervention.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-061-V1",
-      "name": "deep-research-analysis-browser-intervention",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
-      "name": "deep-research-analysis-smoke",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-app-ui.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
-      "name": "deep-research-app-ui",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-case-reader-ui.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-053-V1",
-      "name": "deep-research-case-reader-ui",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-clean-raw-index-ui.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-055-V1",
-      "name": "deep-research-clean-raw-index-ui",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-final-adjudication-promptbundle-input.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
-      "name": "deep-research-final-adjudication-promptbundle-input",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-final-adjudication-raw.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
-      "name": "deep-research-final-adjudication-raw",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-format-shell-boundary.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
-      "name": "deep-research-format-shell-boundary",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-full-case-file.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-040-V1",
-      "name": "deep-research-full-case-file",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-html-delivery-status-ui.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-056-V1",
-      "name": "deep-research-html-delivery-status-ui",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-html-full-process-report.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-057-V1",
-      "name": "deep-research-html-full-process-report",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-html-promptbundle-input.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-045-V1",
-      "name": "deep-research-html-promptbundle-input",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-html-report-only.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
-      "name": "deep-research-html-report-only",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-html-uses-raw-final-answer.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-046-V1",
-      "name": "deep-research-html-uses-raw-final-answer",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-input-attachments.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-058-V1",
-      "name": "deep-research-input-attachments",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-no-system-confidence.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-049-V1",
-      "name": "deep-research-no-system-confidence",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-per-subquestion-promptbundle.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-043-V1",
-      "name": "deep-research-per-subquestion-promptbundle",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-promptbundle-field-consistency.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-051-V1",
-      "name": "deep-research-promptbundle-field-consistency",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-promptbundle-sovereignty.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-048-V1",
-      "name": "deep-research-promptbundle-sovereignty",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-promptbundle-visibility-ui.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-054-V1",
-      "name": "deep-research-promptbundle-visibility-ui",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-raw-response-sovereignty.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-050-V1",
-      "name": "deep-research-raw-response-sovereignty",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-report-export.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-041-V1",
-      "name": "deep-research-report-export",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-runtime-shell-only.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-044-V1",
-      "name": "deep-research-runtime-shell-only",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-single-chain.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
-      "name": "deep-research-single-chain",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-single-format-path.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-052-V1",
-      "name": "deep-research-single-format-path",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/deep-research-subquestion-failure-stop.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "GRASSEYE-DEEP-RESEARCH-038-V1",
-      "name": "deep-research-subquestion-failure-stop",
-      "ownerId": "deep-research-analysis",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
       "command": "node --import tsx scripts/acceptance/forensics-persistence-capability.acceptance.ts",
       "durationMs": 0,
       "endedAt": null,
@@ -1000,19 +662,6 @@
     },
     {
       "authorityStatus": "sealed",
-      "command": "node --import tsx scripts/acceptance/runtime-truth-completed-evidence.acceptance.ts",
-      "durationMs": 0,
-      "endedAt": null,
-      "lawId": "APEX-RUNTIME-TRUTH-001-V1",
-      "name": "runtime-truth-completed-evidence",
-      "ownerId": "runtime-truth",
-      "phase": "acceptance-runner",
-      "startedAt": null,
-      "status": "SKIPPED",
-      "timeoutMs": 300000
-    },
-    {
-      "authorityStatus": "sealed",
       "command": "node --import tsx scripts/acceptance/startup-initialization-health.acceptance.ts",
       "durationMs": 0,
       "endedAt": null,
@@ -1169,9 +818,9 @@
     }
   ],
   "lawCoverage": {
-    "activeLawCount": 244,
-    "activeClauseCount": 245,
-    "boundClauseCount": 245,
+    "activeLawCount": 219,
+    "activeClauseCount": 220,
+    "boundClauseCount": 220,
     "checked": true,
     "uncoveredClauseIds": []
   },
@@ -1196,9 +845,9 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 0,
+      "findingCount": 7,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "constitutional-boundary",
@@ -1214,21 +863,21 @@
     },
     {
       "capabilityDomain": "local-browser-session",
-      "findingCount": 0,
+      "findingCount": 27,
       "reportPath": "scripts/audit/generated/local-browser-session-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "runtime-log-spine",
-      "findingCount": 0,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "amazon-invoice-upload",
-      "findingCount": 0,
+      "findingCount": 20,
       "reportPath": "scripts/audit/generated/amazon-invoice-upload-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "amazon-product-mining",
@@ -1238,21 +887,15 @@
     },
     {
       "capabilityDomain": "app-shell-ui",
-      "findingCount": 0,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/app-shell-ui-report.generated.json",
-      "status": "PASS"
-    },
-    {
-      "capabilityDomain": "deep-research-analysis",
-      "findingCount": 0,
-      "reportPath": "scripts/audit/generated/deep-research-analysis-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "dom-automation",
-      "findingCount": 0,
+      "findingCount": 2,
       "reportPath": "scripts/audit/generated/dom-automation-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "local-app-shell",
@@ -1292,26 +935,20 @@
     },
     {
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
-      "findingCount": 4,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/xuanxue-ai-production-localization-contract-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "audit-system",
-      "findingCount": 0,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/audit-system-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "audit-truth",
       "findingCount": 0,
       "reportPath": "scripts/audit/generated/audit-truth-report.generated.json",
-      "status": "PASS"
-    },
-    {
-      "capabilityDomain": "runtime-truth",
-      "findingCount": 0,
-      "reportPath": "scripts/audit/generated/runtime-truth-report.generated.json",
       "status": "PASS"
     }
   ],

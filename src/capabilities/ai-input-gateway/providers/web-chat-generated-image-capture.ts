@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
@@ -163,7 +163,7 @@ function inspectGeneratedImageAssistantTurn(promptText: string): LocatedImageDow
 }
 
 async function locateDownload(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<LocatedImageDownload> {
   return browser.evaluate<LocatedImageDownload>({
@@ -201,7 +201,7 @@ function inspectGeneratedImageViewerDownload(): LocatedImageDownload {
 }
 
 async function locateViewerDownload(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<LocatedImageDownload> {
   return browser.evaluate<LocatedImageDownload>({
@@ -232,7 +232,7 @@ async function waitForNewDownload(before: Set<string>, startedAt: number): Promi
 }
 
 async function downloadGeneratedImageOnce(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 }): Promise<DownloadEntry> {
@@ -312,7 +312,7 @@ async function persistGeneratedImageArtifact(
 }
 
 async function captureChatGptGeneratedImageOnce(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 }): Promise<GeneratedImageArtifact | null> {
@@ -322,7 +322,7 @@ async function captureChatGptGeneratedImageOnce(input: {
 }
 
 export async function captureChatGptGeneratedImage(input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 }): Promise<GeneratedImageArtifact | null> {

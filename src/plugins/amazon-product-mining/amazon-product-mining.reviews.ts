@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import {
   buildFieldDisclosureMap,
   fieldDisclosureFromValue,
@@ -160,7 +160,7 @@ type ExtractResult =
   | { blocker: string }
   | { reviews: ExtractedReview[]; hasNextPage: boolean };
 const extractActiveTabJson = async <T>(
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   script: string,
   description: string,
   errorCode: string,
@@ -187,7 +187,7 @@ export const buildReviewPageUrl = (reviewsUrl: string, pageIndex: number): strin
   return url.toString();
 };
 
-const buildBrowserReviewAdapter = (browser: BrowserTargetSession): ReviewPageAdapter => ({
+const buildBrowserReviewAdapter = (browser: BrowserTargetLease): ReviewPageAdapter => ({
   async extractReviewsFromPage({ reviewsUrl, pageIndex, detailId, taskId, asin }) {
     const url = buildReviewPageUrl(reviewsUrl, pageIndex);
     await browser.open({
@@ -259,7 +259,7 @@ export type ReviewPaginationResult = {
 };
 
 export const runReviewPagination = async (input: {
-  browser?: BrowserTargetSession;
+  browser?: BrowserTargetLease;
   reviewsUrl: string;
   detailId: string;
   taskId: string;

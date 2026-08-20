@@ -1,5 +1,8 @@
 import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
-import type { AmazonInvoiceUploadMissionInput, AmazonTaxInvoiceDownloadMissionInput } from "./mission.schema.js";
+import type {
+  AmazonInvoiceUploadMissionInput,
+  AmazonTaxInvoiceDownloadMissionInput,
+} from "./mission.schema.js";
 
 type TraceCandidate = {
   kind: string;
@@ -20,10 +23,12 @@ type TraceCandidate = {
 
 type CandidateSource = Omit<TraceCandidate, "kind">;
 
-type AmazonDomTraceStatus = "snapshot" | "success" | "failed" | "review_required";
+type AmazonDomTraceStatus =
+  "snapshot" | "success" | "failed" | "review_required";
 
 export type AmazonDomStepTraceContext = {
-  mission: AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput;
+  mission:
+    AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput;
   stepName: string;
   status: AmazonDomTraceStatus;
   snapshot?: DomSnapshot | undefined;
@@ -52,7 +57,10 @@ export function buildAmazonDomTraceBaseEvent(input: AmazonDomStepTraceContext) {
   };
 }
 
-function missionId(mission: AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput): string {
+function missionId(
+  mission:
+    AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput,
+): string {
   return mission.missionType === "amazon_invoice_upload"
     ? `${mission.amazonOrderId}:${mission.invoiceNo}`
     : `tax-invoice-download:${mission.marketplace}:${mission.requestId ?? "latest"}`;
@@ -66,25 +74,30 @@ export function resolveAmazonDomRuntimeStatus(
   return "success";
 }
 
-function buildPayload(input: AmazonDomStepTraceContext): Record<string, unknown> {
+function buildPayload(
+  input: AmazonDomStepTraceContext,
+): Record<string, unknown> {
   return compact({
     schemaVersion: "amazonDomStepTrace.v2",
     stepId: stepId(input.stepName),
     abilityId: abilityId(input),
     targetHost: targetHost(input),
     targetKind: input.selectedElement?.targetKind,
-    locatorSummary: input.selectedElement ? summarizeSelectedElement(input.selectedElement) : undefined,
+    locatorSummary: input.selectedElement
+      ? summarizeSelectedElement(input.selectedElement)
+      : undefined,
     actionResult: input.status,
     evidenceRef: input.evidenceRef,
-    reviewRequiredReason: input.status === "review_required" ? clip(input.reason) : undefined,
+    reviewRequiredReason:
+      input.status === "review_required" ? clip(input.reason) : undefined,
     page: input.snapshot ? summarizePage(input.snapshot) : undefined,
-    candidates: input.snapshot ? summarizeCandidates(input.snapshot) : undefined,
+    candidates: input.snapshot
+      ? summarizeCandidates(input.snapshot)
+      : undefined,
   });
 }
 
-function buildRefs(
-  input: AmazonDomStepTraceContext,
-): Record<string, string> {
+function buildRefs(input: AmazonDomStepTraceContext): Record<string, string> {
   return compactStringRecord({
     targetHost: targetHost(input),
     evidenceRef: input.evidenceRef,
@@ -117,7 +130,10 @@ function summarizePage(snapshot: DomSnapshot): Record<string, unknown> {
 }
 
 function stepId(stepName: string): string {
-  return `amazon-dom:${stepName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`;
+  return `amazon-dom:${stepName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")}`;
 }
 
 function abilityId(input: {
@@ -125,16 +141,20 @@ function abilityId(input: {
   selectedElement?: DomElementRef | undefined;
   snapshot?: DomSnapshot | undefined;
 }): string {
-  if (input.selectedElement?.targetKind) return `dom.${input.selectedElement.targetKind}`;
+  if (input.selectedElement?.targetKind)
+    return `dom.${input.selectedElement.targetKind}`;
   if (input.snapshot) return "dom.snapshot";
   return `dom.${stepId(input.stepName)}`;
 }
 
 function targetHost(input: {
-  mission: AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput;
+  mission:
+    AmazonInvoiceUploadMissionInput | AmazonTaxInvoiceDownloadMissionInput;
   snapshot?: DomSnapshot | undefined;
 }): string {
-  return hostFromUrl(input.snapshot?.url ?? input.mission.sellerCentralEntryUrl);
+  return hostFromUrl(
+    input.snapshot?.url ?? input.mission.sellerCentralEntryUrl,
+  );
 }
 
 function hostFromUrl(value: string): string {
@@ -145,16 +165,34 @@ function hostFromUrl(value: string): string {
   }
 }
 
-function summarizeCandidates(snapshot: DomSnapshot): Record<string, TraceCandidate[]> {
+function summarizeCandidates(
+  snapshot: DomSnapshot,
+): Record<string, TraceCandidate[]> {
   return {
-    inputs: snapshot.inputs.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("input", item)),
-    buttons: snapshot.buttons.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("button", item)),
-    links: snapshot.links.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("link", item)),
-    fileInputs: snapshot.fileInputs.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("file-input", item)),
-    dialogs: snapshot.dialogs.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("dialog", item)),
-    textBlocks: snapshot.textBlocks.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("text-block", item)),
-    tableRows: snapshot.tableRows.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("table-row", item)),
-    roleRows: snapshot.roleRows.slice(0, MAX_CANDIDATES_PER_GROUP).map((item) => candidate("role-row", item)),
+    inputs: snapshot.inputs
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("input", item)),
+    buttons: snapshot.buttons
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("button", item)),
+    links: snapshot.links
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("link", item)),
+    fileInputs: snapshot.fileInputs
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("file-input", item)),
+    dialogs: snapshot.dialogs
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("dialog", item)),
+    textBlocks: snapshot.textBlocks
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("text-block", item)),
+    tableRows: snapshot.tableRows
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("table-row", item)),
+    roleRows: snapshot.roleRows
+      .slice(0, MAX_CANDIDATES_PER_GROUP)
+      .map((item) => candidate("role-row", item)),
     genericClickableElements: snapshot.genericClickableElements
       .slice(0, MAX_CANDIDATES_PER_GROUP)
       .map((item) => candidate("generic-clickable", item)),
@@ -180,7 +218,9 @@ function candidate(kind: string, source: CandidateSource): TraceCandidate {
   });
 }
 
-function summarizeSelectedElement(element: DomElementRef): Record<string, unknown> {
+function summarizeSelectedElement(
+  element: DomElementRef,
+): Record<string, unknown> {
   return {
     elementRef: element.elementRef,
     selector: clip(element.selector),
@@ -196,7 +236,9 @@ function summarizeSelectedElement(element: DomElementRef): Record<string, unknow
 function clip(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const compactValue = value.replace(/\s+/g, " ").trim();
-  return compactValue.length > MAX_TEXT_LENGTH ? `${compactValue.slice(0, MAX_TEXT_LENGTH)}...` : compactValue;
+  return compactValue.length > MAX_TEXT_LENGTH
+    ? `${compactValue.slice(0, MAX_TEXT_LENGTH)}...`
+    : compactValue;
 }
 
 function compact<T extends Record<string, unknown>>(input: T): T {
@@ -209,7 +251,9 @@ function compact<T extends Record<string, unknown>>(input: T): T {
   return output as T;
 }
 
-function compactStringRecord(input: Record<string, string | undefined>): Record<string, string> {
+function compactStringRecord(
+  input: Record<string, string | undefined>,
+): Record<string, string> {
   const output: Record<string, string> = {};
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined && value !== "") {

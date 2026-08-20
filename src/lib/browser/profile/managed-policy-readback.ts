@@ -31,9 +31,20 @@ export const browserManagedPolicyReadbackPath = (): string => {
     );
   }
   if (process.platform === "linux") {
-    return path.join(os.homedir(), ".config", "grasseye", "browser-runtime", "managed-policy-readback.json");
+    return path.join(
+      os.homedir(),
+      ".config",
+      "grasseye",
+      "browser-runtime",
+      "managed-policy-readback.json",
+    );
   }
-  return path.join(os.homedir(), ".grasseye", "browser-runtime", "managed-policy-readback.json");
+  return path.join(
+    os.homedir(),
+    ".grasseye",
+    "browser-runtime",
+    "managed-policy-readback.json",
+  );
 };
 
 export const readBrowserManagedPolicyReadback = (input: {
@@ -43,7 +54,8 @@ export const readBrowserManagedPolicyReadback = (input: {
   expectedExtensionTreeHash: `sha256:${string}`;
 }): BrowserManagedPolicyReadbackV1 => {
   const filePath = browserManagedPolicyReadbackPath();
-  if (!existsSync(filePath)) throw new Error("BROWSER_MANAGED_POLICY_INVALID:readback missing");
+  if (!existsSync(filePath))
+    throw new Error("BROWSER_MANAGED_POLICY_INVALID:readback missing");
   const file = statSync(filePath);
   if (!file.isFile() || (file.mode & 0o077) !== 0) {
     throw new Error("BROWSER_MANAGED_POLICY_INVALID:readback permissions");
@@ -51,18 +63,20 @@ export const readBrowserManagedPolicyReadback = (input: {
   if (typeof process.geteuid === "function" && file.uid !== process.geteuid()) {
     throw new Error("BROWSER_MANAGED_POLICY_INVALID:readback owner");
   }
-  const value = JSON.parse(readFileSync(filePath, "utf8")) as BrowserManagedPolicyReadbackV1;
+  const value = JSON.parse(
+    readFileSync(filePath, "utf8"),
+  ) as BrowserManagedPolicyReadbackV1;
   const { policyHash, ...unsigned } = value;
   if (
-    value.schemaVersion !== "browser-managed-policy-readback.v1"
-    || value.extensionId !== input.extensionId
-    || value.installationMode !== "force_installed"
-    || value.enabled !== true
-    || value.permissionPolicyHash !== input.permissionPolicyHash
-    || value.originPolicyHash !== input.originPolicyHash
-    || value.installedExtensionTreeHash !== input.expectedExtensionTreeHash
-    || !value.updateUrl
-    || hash(unsigned) !== policyHash
+    value.schemaVersion !== "browser-managed-policy-readback.v1" ||
+    value.extensionId !== input.extensionId ||
+    value.installationMode !== "force_installed" ||
+    value.enabled !== true ||
+    value.permissionPolicyHash !== input.permissionPolicyHash ||
+    value.originPolicyHash !== input.originPolicyHash ||
+    value.installedExtensionTreeHash !== input.expectedExtensionTreeHash ||
+    !value.updateUrl ||
+    hash(unsigned) !== policyHash
   ) {
     throw new Error("BROWSER_MANAGED_POLICY_INVALID:readback mismatch");
   }

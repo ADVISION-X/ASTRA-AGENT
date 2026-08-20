@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatForkActionProof } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
@@ -28,13 +28,6 @@ const isChromeAppleEventsJavaScriptDisabled = (message: string): boolean =>
   (message.includes("AppleScript") && message.includes("JavaScript") && message.includes("关闭"))
   || message.includes("Allow JavaScript from Apple Events")
   || message.includes("允许 Apple 事件中的 JavaScript");
-export const isDeepResearchGptRequest = (input: {
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean =>
-  new URL(input.providerUrl).host === "chatgpt.com"
-  && input.request.promptContractId.includes("deep-research.");
-
 export const isAmazonProductMiningGptRequest = (input: {
   providerUrl: string;
   request: AiFeedInput;
@@ -48,7 +41,6 @@ const requiresFreshChatGptConversation = (input: {
 }): boolean =>
   !input.request.providerContinuationRef && (
   (new URL(input.providerUrl).host === "chatgpt.com" && input.request.providerKind === "gpt-web-chat")
-  || isDeepResearchGptRequest(input)
   || isAmazonProductMiningGptRequest(input));
 
 const resolveProviderReusePolicy = (input: {
@@ -62,7 +54,7 @@ const resolveProviderReusePolicy = (input: {
     : "reuse-exact-url";
 
 const waitForProviderComposer = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   request: AiFeedInput;
   abortSignal?: AbortSignal;
   timeoutMs?: number;
@@ -107,7 +99,7 @@ const isRecoverableComposerTimeout = (error: unknown): boolean =>
 
 
 const readActiveProviderUrl = async (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   abortSignal?: AbortSignal,
 ): Promise<string | null> => {
   try {
@@ -118,7 +110,7 @@ const readActiveProviderUrl = async (
     });
     return state.pageUrl;
   } catch {
-    return browser.getSessionState().currentUrl || null;
+    return browser.getLeaseState().currentUrl || null;
   }
 };
 
@@ -160,7 +152,7 @@ const focusExistingProviderWorkspace = async (input: {
 };
 
 const persistWorkspaceUrlIfNeeded = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   workspaceId: string | null;
@@ -177,7 +169,7 @@ const persistWorkspaceUrlIfNeeded = async (input: {
 };
 
 const openOrReuseProviderWorkspace = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   providerUrl: string;
   runtimeName: string;
   workspaceId: string | null;
@@ -199,7 +191,7 @@ const assertProviderPageOpened = (opened: { ok: boolean; message: string }): voi
 };
 
 type ProviderPageInput = {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   providerUrl: string;
   runtimeName: string;
   context: AiProviderAdapterContext;

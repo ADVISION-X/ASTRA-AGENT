@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { BrowserTargetSession } from "../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonKeywordRecord, AmazonMiningInput, AmazonProductDetail, AmazonSearchResultItem } from "./amazon-product-mining.schema.js";
 import { createAmazonMiningLogger } from "./amazon-product-mining.logging.js";
@@ -33,7 +33,7 @@ export type AmazonFlowContext = {
   miningInput: AmazonMiningInput;
   taskId: string;
   dataDir: string;
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   aiInputGateway: AiInputGatewayAbilityGroup;
   runtimeLogger: RuntimeLogger;
   providerKind: AmazonKeywordProviderKind;

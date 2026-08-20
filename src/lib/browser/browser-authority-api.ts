@@ -51,8 +51,7 @@ export type BrowserOpenReusePolicy =
   | "open-new-tab";
 
 export type BrowserOpenNavigationMode =
-  | "acquired_exact_target"
-  | "navigated_exact_target";
+  "acquired_exact_target" | "navigated_exact_target";
 
 export type BrowserOpenResult = BrowserActionResult;
 
@@ -140,6 +139,7 @@ export type BrowserFileInputRef = Readonly<{
 }>;
 
 export type BrowserObservationCapabilityId =
+  | "dom.snapshot.structural.v1"
   | "video.media-probe.universal.v1"
   | "video.media-probe.tiktok.v1"
   | "video.media-probe.facebook.v1";
@@ -152,7 +152,9 @@ export interface BrowserTargetLease {
   getHealth(): { ok: boolean; detail: string };
   getLeaseState(): BrowserTargetLeaseState;
   setExecutionAbortSignal(abortSignal: AbortSignal | null): void;
-  releaseTargetForOperator(input: { reason: string }): Promise<BrowserActionResult>;
+  releaseTargetForOperator(input: {
+    reason: string;
+  }): Promise<BrowserActionResult>;
   open(input: {
     url: string;
     title: string;
@@ -219,9 +221,17 @@ export interface BrowserTargetLease {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
-  getGeometrySnapshot(abortSignal?: AbortSignal): Promise<BrowserGeometrySnapshot>;
-  wait(durationMs: number, abortSignal?: AbortSignal): Promise<BrowserActionResult>;
-  closeTarget(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
+  getGeometrySnapshot(
+    abortSignal?: AbortSignal,
+  ): Promise<BrowserGeometrySnapshot>;
+  wait(
+    durationMs: number,
+    abortSignal?: AbortSignal,
+  ): Promise<BrowserActionResult>;
+  closeTarget(input: {
+    reason: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 
@@ -241,5 +251,7 @@ export interface AuthenticatedBrowserAuthorityLease {
 
 export interface BrowserAuthorityBroker {
   currentStatus(): BrowserAuthorityStatus;
-  acquireForExecution(binding: BrowserExecutionBinding): Promise<AuthenticatedBrowserAuthorityLease>;
+  acquireForExecution(
+    binding: BrowserExecutionBinding,
+  ): Promise<AuthenticatedBrowserAuthorityLease>;
 }

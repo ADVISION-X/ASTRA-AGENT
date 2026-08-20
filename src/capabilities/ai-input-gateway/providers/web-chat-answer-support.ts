@@ -1,4 +1,4 @@
-import type { BrowserTargetSession } from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import {
@@ -16,7 +16,7 @@ type StableAnswerState = {
 };
 
 const extractAnswer = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> =>
   browser.evaluate<WebChatEvaluation>({
@@ -102,7 +102,7 @@ export const noteStableAnswerActivity = (input: {
 };
 
 export const readAnswerEvaluation = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   pollIntervalMs: number;
 }): Promise<WebChatEvaluation | null> => {
@@ -151,7 +151,7 @@ export const advanceStableAnswer = (input: {
 };
 
 export const buildTimedOutAnswerEvaluation = (
-  browser: BrowserTargetSession,
+  browser: BrowserTargetLease,
   lastText: string,
   lastGenerating: boolean,
   lastAssistantCount: number,
@@ -161,13 +161,13 @@ export const buildTimedOutAnswerEvaluation = (
     ? "answer extracted at timeout boundary"
     : "GPT_RESPONSE_TIMEOUT; provider response polling timed out",
   answerText: lastText || null,
-  pageUrl: browser.getSessionState().currentUrl,
+  pageUrl: browser.getLeaseState().currentUrl,
   generating: lastGenerating,
   assistantCount: lastAssistantCount,
 });
 
 export const shouldContinueWaiting = async (input: {
-  browser: BrowserTargetSession;
+  browser: BrowserTargetLease;
   evaluation: WebChatEvaluation;
   minAssistantCount: number | undefined;
   pollIntervalMs: number;

@@ -8,7 +8,7 @@ import type {
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 
-type WorkbenchStatusAssembly = Pick<WorkbenchAssembly, "browserController">;
+type WorkbenchStatusAssembly = Pick<WorkbenchAssembly, "browserAuthority">;
 type AiProductionHealthSnapshot = {
   readonly status: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
   readonly contractManifestHash: string;
@@ -60,14 +60,14 @@ const readBrowserAuthorityComponent = (
   assembly: WorkbenchStatusAssembly,
 ): WorkbenchHealthComponent => {
   try {
-    const authority = assembly.browserController.getAuthoritySnapshot();
-    const present = authority.state === "AUTHENTICATED_AUTHORITY_PRESENT";
+    const authority = assembly.browserAuthority.broker.currentStatus();
+    const present = authority.kind === "AVAILABLE";
     return {
       name: "browserAuthority",
       ok: present,
       detail: present
-        ? `Authenticated browser authority present for generation ${authority.connectionGeneration}.`
-        : `Browser authority absent: ${authority.reason}`,
+        ? `Authenticated browser authority present: ${authority.certificateHash}.`
+        : `Browser authority absent: ${authority.reasonCode}`,
       actionableMessage: present
         ? null
         : "Repair the enrolled Chrome profile, signed Native Host, extension or transport identity before admitting browser work.",

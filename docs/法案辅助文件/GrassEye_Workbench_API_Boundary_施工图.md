@@ -43,7 +43,6 @@ src/app/create-workbench-server.ts
 当前路由入口包括：
 
 ```txt
-handleDeepResearchRequest
 handleAmazonRequest
 handleAmazonProductMiningRequest
 handleVideoDownloadRequest
