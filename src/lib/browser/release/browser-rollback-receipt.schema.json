@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"grasseye.browser.rollback-receipt.v1","required":["fromTupleHash","toTupleHash","reasonCode","completedAt"],"additionalProperties":false}

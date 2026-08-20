@@ -10,7 +10,6 @@ import {
 import { captureDomEvidenceRef } from "./dom-evidence.js";
 import {
   assertDomTargetBinding,
-  toBrowserDomElementIdentity,
 } from "./dom-target-binding.js";
 
 const captureRequiredFillEvidence = async (
@@ -50,14 +49,10 @@ export async function fillDomElementOnce(
   const beforeEvidenceRef = await captureRequiredFillEvidence(browser);
   if (typeof beforeEvidenceRef !== "string") return beforeEvidenceRef;
 
-  let filled: Awaited<ReturnType<BrowserTargetLease["fillLocatedDomElement"]>>;
   try {
-    filled = await browser.fillLocatedDomElement({
-      targetLabel: input.inputPurpose,
-      element: {
-        selector: elementRef.selector,
-        identity: toBrowserDomElementIdentity(elementRef.identity),
-      },
+    await browser.executeDomIntent({
+      kind: "fill",
+      selector: elementRef.selector,
       approvedText: input.approvedText,
       clearBeforeType: input.clearBeforeType,
     });
@@ -85,10 +80,8 @@ export async function fillDomElementOnce(
     });
   return buildDomActionOutcome(
     {
-      status: filled.ok ? "success" : "failed",
-      message: filled.ok
-        ? "atomically revalidated and filled the exact DOM element"
-        : filled.message,
+      status: "success",
+      message: "atomically revalidated and filled the exact DOM element",
     },
     beforeEvidenceRef,
     afterEvidenceRef,

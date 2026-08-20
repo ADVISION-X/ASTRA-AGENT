@@ -39,7 +39,7 @@ src/capabilities/dom-automation/
 唯一依赖方向：
 
 ```txt
-Business Flow -> src/capabilities/dom-automation/index.ts -> one child ability -> injected BrowserTargetSession
+Business Flow -> src/capabilities/dom-automation/index.ts -> one child ability -> injected execution-bound BrowserTargetLease
 ```
 
 强制边界：
@@ -86,14 +86,14 @@ type DomActionResult = {
 - `ambiguous`：观察成功，但无法唯一定位。
 - `stale`：document/element generation 已失效。
 - `review_required`：frame、deep shadow、敏感动作或能力边界不支持。
-- Browser transport/evaluate exception：技术 `failed`，调用方必须 fail closed；不得改写成 `not_found`。
+- Browser command exception：技术 `failed`，调用方必须 fail closed；不得改写成 `not_found`。
 
 ## 5. Snapshot 图纸
 
 - Snapshot 绑定 `targetRef + documentRef`，只读观察。
 - 输出受限结构摘要，不返回 full HTML、cookie、storage 或 token。
 - 覆盖 buttons、links、inputs、file inputs、dialogs、tables、text blocks、loading/overlay state。
-- 每次底层 evaluate deadline 不超过调用方剩余预算；Amazon 上传 snapshot 上限仍为 1800ms。
+- 每次受治理 Browser observation deadline 不超过调用方剩余预算；Amazon 上传 snapshot 上限仍为 1800ms。
 - navigation、frame replacement 或 extension reconnect 后，旧 snapshot/element ref 失效。
 - 无法唯一绑定的 iframe/deep shadow 节点不得伪装成 light DOM ref；返回 `review_required`。
 
@@ -119,7 +119,7 @@ observe / locate / retry / scroll 都必须有固定次数或截止时间，不�
 
 ## 7. Observation / Mutation 分权
 
-`BrowserTargetSession.evaluate` 只允许：
+`BrowserTargetLease.executeDomIntent` 与 `observeCapability` 只允许声明式、版本化的观察：
 
 ```txt
 read attributes / text / role / value
@@ -128,7 +128,7 @@ read bounding rectangle and viewport
 verify post-action state
 ```
 
-evaluate 脚本禁止：
+任意脚本、表达式或 Browser 侧执行器均禁止：
 
 ```txt
 element.click()
@@ -143,12 +143,11 @@ file assignment
 页面修改只允许：
 
 ```txt
-click  -> clickLocatedDomElement -> click_target
-fill   -> fillLocatedDomElement -> fill_dom_target
-          -> revalidate the same host and editable receiver object
-          -> dispatch ordered trusted CDP keyboard events inside that command
-          -> verify exact retained value and non-error component state
-upload -> setFileInputFiles      -> set_file_input_files
+click  -> executeDomIntent({ kind: "click" })
+fill   -> executeDomIntent({ kind: "fill" })
+          -> Browser owner revalidates the same host and editable receiver object
+          -> Browser owner applies the approved text and verifies exact retained value
+upload -> attachFile({ grant })  -> browser.file-input.v1
 ```
 
 三种 mutation 都必须在同一 exact target/current document 上执行。没有 active/current/front/first tab fallback，没有系统鼠标键盘，没有 caller-local evaluator。
@@ -172,8 +171,8 @@ one fill_dom_target command
 ```txt
 revalidate unique clickable element and visible viewport point (observation)
   -> sensitive-action gate
-      -> clickLocatedDomElement
-          -> click_target
+      -> executeDomIntent({ kind: "click" })
+          -> browser.dom.click.v1
               -> post-action observation
 ```
 
@@ -186,8 +185,8 @@ validate caller-approved local path equality
   -> revalidate input[type=file] and current document
       -> classify topology
           -> LIGHT_DOM_SUPPORTED
-              -> setFileInputFiles
-                  -> set_file_input_files
+              -> BrowserTargetLease.attachFile({ grant })
+                  -> browser.file-input.v1
                       -> observe selected-file metadata
 ```
 
@@ -211,18 +210,19 @@ validate caller-approved local path equality
 
 ## 12. Browser 端口
 
-DOM runtime 只依赖既有 `BrowserTargetSession` 窄口：
+DOM runtime 只依赖现役 `BrowserTargetLease` 窄口：
 
 ```ts
-interface BrowserTargetSession {
-  evaluate<T>(input: { script: string; timeoutMs?: number }): Promise<T>;
-  clickLocatedDomElement(input: { selector: string; identity: DomIdentity; expectedText?: string }): Promise<BrowserActionResult>;
-  fillLocatedDomElement(input: { selector: string; identity: DomIdentity; approvedText: string; clearBeforeType: boolean }): Promise<BrowserActionResult>;
-  setFileInputFiles(input: { selector: string; files: string[]; documentRef: string }): Promise<BrowserActionResult>;
+interface BrowserTargetLease {
+  readonly target: { targetRef: string };
+  readonly document: { documentRef: string };
+  observeCapability(input: { capabilityId: "dom.snapshot.structural.v1"; timeoutMs?: number }): Promise<unknown>;
+  executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
+  attachFile(input: { selector: string; grant: BrowserFileArtifactGrantV1 }): Promise<void>;
 }
 ```
 
-函数体到 executable expression 的转换只属于 `src/lib/browser/exact-target/**`。DOM 不包装、不 `eval`、不 `new Function`。
+DOM intent 到 Browser command registry 的固定实现只属于 `src/lib/browser/exact-target/**` 与唯一 MV3 command registry。DOM 不包装、不 `eval`、不 `new Function`，也不接受 caller script。
 
 ## 13. Evidence / Logs / Business Truth
 
@@ -272,9 +272,9 @@ Inspector 必须使用 ts-morph AST/symbol，阻断：
 - public facade 与六能力清单漂移。
 - plugin 绕过 `index.ts` 或 DOM runtime import plugin。
 - click/fill 保留“先观察坐标、后突变”的时间差链路。
-- click 未且只调用一次 `clickLocatedDomElement` 原子命令。
-- fill 未且只调用一次 `fillLocatedDomElement` 原子命令。
-- upload 未调用 `setFileInputFiles` 或未验证 approved path/file-input。
+- click 未且只调用一次声明式 `executeDomIntent({ kind: "click" })` 原子命令。
+- fill 未且只调用一次声明式 `executeDomIntent({ kind: "fill" })` 原子命令。
+- upload 未调用 `BrowserTargetLease.attachFile` 或未验证 approved artifact grant/file-input。
 - active/current/front/first fallback、系统 focus lease、caller-local evaluator。
 - retired child owner 或第二链路径复活。
 
@@ -291,10 +291,10 @@ Deterministic acceptance 必须真实执行：
 5. upload 只接收 approved light-DOM file input，由 Browser 向唯一真实 receiver 派发一次；组件终态由业务 owner 另行观察。
 6. verify 返回 matched/mismatched；重复观察由 owning Business Flow 的 deadline/次数上限管理。
 7. stale document、unsupported frame/deep shadow fail closed。
-8. 技术 evaluate exception 不归类为业务 not_found。
+8. 技术 Browser command exception 不归类为业务 not_found。
 9. DOM 侧坐标观察/突变分段 scripts 物理归零。
 
-真实 Chrome 必须证明后台 controlled target 的 evaluate/click/fill/upload 只影响目标 tab，前台 tab 的 URL、title、scroll 和 input marker 不变。真实 Seller Central 还必须证明单个原子 fill 命令能让 KAT 输入模型接受精确值，以及文件组件在清空 native receiver 后仍以自己的 ready item 表示已选文件；未实际提交成功时标记 `NOT_PRODUCTION_VERIFIED`。
+真实 Chrome 必须证明后台 controlled target 的声明式 observe/click/fill/file-input 命令只影响目标 tab，前台 tab 的 URL、title、scroll 和 input marker 不变。真实 Seller Central 还必须证明单个原子 fill 命令能让 KAT 输入模型接受精确值，以及文件组件在清空 native receiver 后仍以自己的 ready item 表示已选文件；未实际提交成功时标记 `NOT_PRODUCTION_VERIFIED`。
 
 ## 18. 施工顺序
 

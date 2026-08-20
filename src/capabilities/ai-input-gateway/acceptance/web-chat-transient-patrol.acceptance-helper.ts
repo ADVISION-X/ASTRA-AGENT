@@ -1,101 +1,35 @@
 import assert from "node:assert/strict";
 
-import type {
-  BrowserActionResult,
-  BrowserTargetSession,
-} from "../../../lib/browser/browser-controller.js";
+import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { waitForStableAnswer } from "../providers/web-chat-answer.js";
 
-const actionResult = (): BrowserActionResult => ({
-  browserActionId: "transient-patrol-acceptance",
-  ok: true,
-  message: "acceptance action completed",
-  createdAt: new Date().toISOString(),
-});
+type StableAnswerBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait">;
 
-const browserState = () => ({
-  browserMode: "fixture" as const,
-  browserProfileRef: "acceptance",
-  browserExecutablePath: null,
-  profileStatus: "profile_ready" as const,
-  profileDirectory: "acceptance",
-  profileProvisioning: "operator_supplied" as const,
-  profileVerificationStatus: "operator_verified" as const,
-  profileVerificationReason: null,
-  loginState: "logged_in" as const,
-  currentUrl: "https://chatgpt.com/c/transient-patrol",
-  lastLoginCheckAt: null,
-  loginRequiredReason: null,
-  reviewRequiredReason: null,
-  open: true,
-  currentTitle: "ChatGPT",
-  browserExecutable: null,
-});
+class TransientPatrolBrowser implements StableAnswerBrowser {
+  public constructor(private readonly onWait: () => void) {}
 
-const geometrySnapshot = () => ({
-  windowX: 0,
-  windowY: 0,
-  viewportWidth: 1,
-  viewportHeight: 1,
-  screenshotWidth: 1,
-  screenshotHeight: 1,
-  scaleFactor: 1,
-  currentUrl: "https://chatgpt.com/c/transient-patrol",
-  pageTitle: "ChatGPT",
-  visibleContentBounds: { x: 0, y: 0, width: 1, height: 1 },
-  capturedAt: new Date().toISOString(),
-});
+  public async executeDomIntent(intent: Parameters<BrowserTargetLease["executeDomIntent"]>[0]): Promise<unknown> {
+    if (intent.kind === "document") return { url: "https://chatgpt.com/c/transient-patrol", title: "ChatGPT" };
+    if (intent.kind === "find") {
+      const selector = intent.selector ?? "";
+      if (selector.includes("assistant")) return { count: 1 };
+      if (selector.includes("user")) return { count: 1 };
+      if (selector.includes("Stop")) return { count: 0 };
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
+    if (intent.kind === "readText") return "completed answer";
+    throw new Error("BROWSER_TARGET_INVALID");
+  }
 
-const screenshotCapture = () => ({
-  ...actionResult(),
-  pageUrl: "https://chatgpt.com/c/transient-patrol",
-  pageTitle: "ChatGPT",
-  regionLabel: "acceptance",
-  regionType: "fixture",
-  width: 1,
-  height: 1,
-  viewportWidth: 1,
-  viewportHeight: 1,
-  sourceFilePath: "/tmp/transient-patrol.png",
-});
-
-const answerEvaluation = <T>(): T => ({
-  status: "success",
-  message: "exact marked answer completed",
-  answerText: "completed answer",
-  pageUrl: "https://chatgpt.com/c/transient-patrol",
-  generating: false,
-  assistantCount: 1,
-  userMessageCount: 1,
-  conversationTurnIds: ["conversation-turn-1", "conversation-turn-2"],
-} as T);
-
-const createTransientPatrolBrowser = (
-  onWait: () => void,
-): BrowserTargetSession => ({
-    getHealth: () => ({ ok: true, detail: "acceptance browser" }),
-    getSessionState: browserState,
-    getGeometrySnapshot: async () => geometrySnapshot(),
-    open: async () => actionResult(),
-    scroll: async () => actionResult(),
-    click: async () => actionResult(),
-    clickLocatedDomElement: async () => actionResult(),
-    textInput: async () => actionResult(),
-    screenshotRegion: async () => screenshotCapture(),
-    evaluate: async <T>() => answerEvaluation<T>(),
-    setFileInputFiles: async () => actionResult(),
-    wait: async () => {
-      onWait();
-      return actionResult();
-    },
-    closeTarget: async () => actionResult(),
-    close: async () => actionResult(),
-});
+  public async wait(): Promise<void> {
+    this.onWait();
+  }
+}
 
 export const assertTransientPatrolRemainsRetryable = async (): Promise<void> => {
   let attempts = 0;
   let waits = 0;
-  const browser = createTransientPatrolBrowser(() => {
+  const browser = new TransientPatrolBrowser(() => {
     waits += 1;
   });
   const result = await waitForStableAnswer({

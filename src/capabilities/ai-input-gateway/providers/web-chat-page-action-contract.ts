@@ -25,13 +25,16 @@ export const recordWebChatPageAction = async (input: {
   semantics?: readonly string[];
   allowDocumentChange?: boolean;
 }): Promise<WebChatPageActionProof> => {
-  const target = input.browser.getTarget?.() ?? null;
+  const target = {
+    targetRef: input.browser.target.targetRef,
+    documentRef: input.browser.document.documentRef,
+  };
   const endedAt = new Date().toISOString();
   const proofPayload = {
     actionId: input.actionId,
     executionId: input.context.webChatExecution?.executionId ?? null,
-    targetRefHash: ref(target?.targetRef),
-    documentRefHash: ref(target?.documentRef),
+    targetRefHash: ref(target.targetRef),
+    documentRefHash: ref(target.documentRef),
     beforeUrl: input.beforeUrl,
     afterUrl: input.afterUrl,
     candidateCount: input.candidateCount ?? null,
@@ -57,7 +60,7 @@ export const assertStableWebChatDocument = (input: {
   actionId: WebChatPageActionId;
 }): void => {
   if (!input.expectedDocumentRef) return;
-  const current = input.browser.getTarget?.()?.documentRef ?? null;
+  const current = input.browser.document.documentRef;
   if (current !== input.expectedDocumentRef) {
     throw new Error(`WEB_CHAT_DOCUMENT_CHANGED:${input.actionId}`);
   }

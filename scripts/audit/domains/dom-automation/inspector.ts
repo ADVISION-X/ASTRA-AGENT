@@ -25,7 +25,7 @@ const inspectExactTargetBinding = (context: InspectorContext) => {
     .getSourceFile(resolveFromRepo(filePath))
     ?.getDescendantsOfKind(SyntaxKind.StringLiteral)
     .map((node) => node.getLiteralText()) ?? []));
-  for (const required of ["targetRef", "documentRef", "assertDomTargetBinding", "DOCUMENT_STALE", "TARGET_FOREIGN_SESSION"]) {
+  for (const required of ["targetRef", "documentRef", "assertDomTargetBinding", "BROWSER_DOCUMENT_INVALID", "BROWSER_TARGET_INVALID"]) {
     if (!identifiers.has(required) && !stringLiterals.has(required)) findings.push(createFinding({
       checkId: "dom-automation/owner-assertion-set",
       lawId,
@@ -57,14 +57,14 @@ const inspectAtomicDomMutationBoundary = (
   addGap: (filePath: string, message: string) => void,
 ): void => {
   for (const [key, required, forbidden] of [
-    ["click", "clickLocatedDomElement", ["evaluate", "click", "textInput"]],
-    ["fill", "fillLocatedDomElement", ["evaluate", "clickLocatedDomElement", "click", "textInput"]],
+    ["click", "executeDomIntent", ["evaluate", "clickLocatedDomElement", "textInput"]],
+    ["fill", "executeDomIntent", ["evaluate", "clickLocatedDomElement", "textInput"]],
   ] as const) {
     const file = files[key];
     if (!file) continue;
     const calls = sourceMethodCallNames(file);
     if (calls.filter((name) => name === required).length !== 1) {
-      addGap(paths[key], `${key} must dispatch exactly one BrowserTargetSession.${required} atomic command`);
+      addGap(paths[key], `${key} must dispatch exactly one BrowserTargetLease.${required} atomic command`);
     }
     for (const name of forbidden) {
       if (calls.includes(name)) addGap(paths[key], `${key} must not retain split observation/mutation call ${name}`);
@@ -86,9 +86,9 @@ const inspectObservationMutationSeparation = (context: InspectorContext): Inspec
     checkId: "dom-automation/owner-assertion-set", lawId, clauseId, filePath, message,
   }));
   const requiredCalls: ReadonlyArray<readonly [keyof typeof paths, string, readonly string[]]> = [
-    ["click", "clickDomElementOnce", ["clickLocatedDomElement"]],
-    ["fill", "fillDomElementOnce", ["fillLocatedDomElement"]],
-    ["upload", "uploadApprovedFileOnce", ["setFileInputFiles"]],
+    ["click", "clickDomElementOnce", ["executeDomIntent"]],
+    ["fill", "fillDomElementOnce", ["executeDomIntent"]],
+    ["upload", "uploadApprovedFileOnce", ["attachFile"]],
   ];
   for (const [key, functionName, required] of requiredCalls) {
     const fn = files[key]?.getFunction(functionName);
@@ -97,7 +97,7 @@ const inspectObservationMutationSeparation = (context: InspectorContext): Inspec
       continue;
     }
     const calls = new Set(key === "fill" ? sourceMethodCallNames(files[key]!) : methodCallNames(fn));
-    for (const call of required) if (!calls.has(call)) addGap(paths[key], `${functionName} must call BrowserTargetSession.${call}`);
+    for (const call of required) if (!calls.has(call)) addGap(paths[key], `${functionName} must call BrowserTargetLease.${call}`);
   }
   inspectAtomicDomMutationBoundary(files, paths, addGap);
   return findings;

@@ -1,251 +1,147 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
-import { discoverChatGptConversationViaSearch } from "../providers/gpt-web-conversation-discovery.js";
 
- type CanonicalConversationTarget = {
-  status:
-    | "focused"
-    | "click_row"
-    | "scroll_row"
-    | "ack_rate_limit"
-    | "pending"
-    | "review_required";
-  message: string;
-  pageUrl: string;
-  markerCount: number;
-  rowCount: number;
-  targetPoint?: { x: number; y: number };
-  scrollDeltaY?: number;
+/**
+ * Canonical routing may observe, click one predeclared row and wait. It cannot
+ * open a second tab, select an active tab, execute a page script or revive a
+ * retired controller interface.
+ */
+type WebChatRoutingBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait" | "navigate">;
+
+const CHATGPT_USER_TURN_SELECTOR = "[data-testid^='conversation-turn-'][data-turn='user']";
+
+const countFrom = (value: unknown): number => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("BROWSER_TARGET_INVALID");
+  const count = (value as { count?: unknown }).count;
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 0) throw new Error("BROWSER_TARGET_INVALID");
+  return count;
 };
 
-const CANONICAL_CONVERSATION_SCRIPT = `
-const targetPath = __TARGET_PATH__;
-const visible = (node) => {
-  if (!(node instanceof Element)) return false;
-  const rect = node.getBoundingClientRect();
-  const style = getComputedStyle(node);
-  return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+const canonicalPathFor = (conversationUrl: string): string => {
+  const path = new URL(conversationUrl).pathname;
+  if (!/^\/c\/(?!WEB:)[^/]+$/u.test(path)) {
+    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=${conversationUrl}`);
+  }
+  return path;
 };
-const normalized = (value) => String(value || "").replace(/\\s+/gu, " ").trim();
-const rows = Array.from(document.querySelectorAll("a[href]"))
-  .filter((link) => {
-    try { return visible(link) && new URL(link.getAttribute("href") || "", location.href).pathname === targetPath; }
-    catch { return false; }
-  })
-  .map((node) => {
-    const rect = node.getBoundingClientRect();
-    const centerX = rect.left + Math.min(rect.width / 2, 96);
-    const centerY = rect.top + rect.height / 2;
-    return { node, rect, centerX, centerY, actionable: centerY >= 24 && centerY <= innerHeight - 24 };
-  })
-  .sort((left, right) => Number(right.actionable) - Number(left.actionable)
-    || left.rect.top - right.rect.top || left.rect.left - right.rect.left
-    || left.rect.width - right.rect.width || left.rect.height - right.rect.height);
-if (location.pathname === targetPath) {
-  return {status:"focused",message:"exact canonical ChatGPT conversation is focused",pageUrl:location.href,markerCount:0,rowCount:rows.length};
-}
-if (rows.length > 0) {
-  const selected = rows[0];
-  if (!selected.actionable) return {
-    status:"scroll_row",message:"all renderings of the exact canonical ChatGPT sidebar route are outside the visible viewport",
-    pageUrl:location.href,markerCount:0,rowCount:rows.length,
-    targetPoint:{x:Math.max(24,Math.min(innerWidth-24,selected.centerX)),y:innerHeight/2},
-    scrollDeltaY:Math.max(-600,Math.min(600,selected.centerY-innerHeight/2)),
-  };
-  return {status:"click_row",message:"exact canonical ChatGPT logical sidebar route located by stable geometry order",pageUrl:location.href,markerCount:0,rowCount:rows.length,targetPoint:{x:selected.centerX,y:selected.centerY}};
-}
-const rateLimitDialogs = Array.from(document.querySelectorAll("[role='dialog']"))
-  .filter(visible).filter((node) => /请求过于频繁|too many requests|temporarily limited/i.test(normalized(node.textContent)));
-const acknowledgements = rateLimitDialogs.flatMap((dialog) => Array.from(dialog.querySelectorAll("button"))
-  .filter(visible).filter((node) => /^(明白了|got it|understood)$/i.test(normalized(node.getAttribute("aria-label") || node.textContent))));
-if (rateLimitDialogs.length > 1 || acknowledgements.length > 1) return {status:"review_required",message:"CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS",pageUrl:location.href,markerCount:0,rowCount:0};
-if (acknowledgements.length === 1) {
-  const rect = acknowledgements[0].getBoundingClientRect();
-  return {status:"ack_rate_limit",message:"ChatGPT rate-limit acknowledgement located",pageUrl:location.href,markerCount:0,rowCount:0,targetPoint:{x:rect.left+rect.width/2,y:rect.top+rect.height/2}};
-}
-return {status:"pending",message:"waiting for exact canonical ChatGPT sidebar row",pageUrl:location.href,markerCount:0,rowCount:0};
-`;
 
-export const buildCanonicalConversationScript = (input: { targetPath: string }): string =>
-  CANONICAL_CONVERSATION_SCRIPT.replace("__TARGET_PATH__", JSON.stringify(input.targetPath));
+const canonicalRouteSelector = (path: string): string => `a[href=${JSON.stringify(path)}]`;
 
-const clickTarget = async (input: {
-  base: BrowserTargetLease;
+const observeOne = async (input: {
+  browser: WebChatRoutingBrowser;
+  selector: string;
+  textContains?: string;
+  absentReason: string;
+  ambiguousReason: string;
+}): Promise<void> => {
+  try {
+    const count = countFrom(await input.browser.executeDomIntent({
+      kind: "find",
+      selector: input.selector,
+      ...(input.textContains === undefined ? {} : { textContains: input.textContains }),
+      maxMatches: 1,
+    }));
+    if (count === 0) throw new Error(input.absentReason);
+  } catch (error) {
+    if (error instanceof Error && error.message === input.absentReason) throw error;
+    throw new Error(`review_required: ${input.ambiguousReason}`);
+  }
+};
+
+const clickOne = async (input: {
+  browser: WebChatRoutingBrowser;
+  selector: string;
+  expectedText?: string;
   description: string;
-  targetPoint: { x: number; y: number } | undefined;
 }): Promise<void> => {
-  if (!input.targetPoint) throw new Error(`review_required: ${input.description} point missing.`);
-  const clicked = await input.base.click({
-    targetLabel: input.description,
-    point: input.targetPoint,
-    coordinateSpace: "browserViewport",
-    button: "left",
-    clickCount: 1,
-  });
-  if (!clicked.ok) {
-    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: ${input.description} click failed; ${clicked.message}`);
-  }
-};
-
-const reacquireCanonicalConversationTarget = async (input: {
-  base: BrowserTargetLease;
-  conversationUrl: string;
-  signal?: AbortSignal;
-}): Promise<void> => {
-  const acquired = await input.base.open({
-    url: input.conversationUrl,
-    title: "reacquire exact canonical ChatGPT conversation tab",
-    reusePolicy: "reuse-exact-url",
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  if (!acquired.ok) {
-    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: unique existing ChatGPT provider target could not be reacquired; ${acquired.message}`);
-  }
-};
-
-const pollCanonicalConversationRoute = async (input: {
-  base: BrowserTargetLease;
-  targetPath: string;
-  conversationUrl: string;
-  timeoutMs?: number;
-  signal?: AbortSignal;
-}): Promise<void> => {
-  const deadline = Date.now() + Math.max(1, Math.min(input.timeoutMs ?? 15_000, 15_000));
-  let last: CanonicalConversationTarget | null = null;
-  while (Date.now() < deadline) {
-    last = await input.base.evaluate<CanonicalConversationTarget>({
-      description: "locate exact canonical ChatGPT conversation row",
-      script: buildCanonicalConversationScript({ targetPath: input.targetPath }),
-      ...(input.signal ? { abortSignal: input.signal } : {}),
+  try {
+    await input.browser.executeDomIntent({
+      kind: "click",
+      selector: input.selector,
+      ...(input.expectedText === undefined ? {} : { expectedText: input.expectedText }),
+      expectedMatches: 1,
     });
-    if (last.status === "focused") return;
-    if (last.status === "review_required") {
-      throw new Error(`review_required: ${last.message}; pageUrl=${last.pageUrl}`);
-    }
-    if (last.status === "click_row" || last.status === "ack_rate_limit") {
-      await clickTarget({
-        base: input.base,
-        description: last.status === "click_row"
-          ? "open exact canonical ChatGPT sidebar row"
-          : "acknowledge ChatGPT rate limit before canonical routing",
-        targetPoint: last.targetPoint,
-      });
-    } else if (last.status === "scroll_row") {
-      await input.base.scroll({
-        targetLabel: "scroll exact canonical ChatGPT sidebar row into view",
-        deltaX: 0,
-        deltaY: last.scrollDeltaY ?? 0,
-        coordinateSpace: "browserViewport",
-        ...(last.targetPoint ? { anchorPoint: last.targetPoint } : {}),
-        ...(input.signal ? { abortSignal: input.signal } : {}),
-      });
-    }
-    await input.base.wait(500);
+  } catch {
+    throw new Error(`review_required: ${input.description} is absent or ambiguous`);
   }
-  throw new Error(
-    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT conversation is not ready; "
-    + `last=${last?.message ?? "none"}; pageUrl=${last?.pageUrl ?? input.conversationUrl}`,
-  );
 };
 
 const verifyCanonicalMarker = async (input: {
-  base: BrowserTargetLease;
-  targetPath: string;
+  browser: WebChatRoutingBrowser;
   turnMarker: string;
-  signal?: AbortSignal;
-}): Promise<void> => {
-  const observed = await input.base.evaluate<{ pageUrl: string; markerCount: number }>({
-    description: "verify exact canonical ChatGPT marker after routing",
-    script: `
-const marker=${JSON.stringify(input.turnMarker)};
-const normalized=(value)=>String(value||"").replace(/\\s+/gu," ").trim();
-const markerCount=Array.from(document.querySelectorAll("[data-testid^='conversation-turn-'][data-turn='user']"))
- .filter((node)=>normalized(node.textContent).includes(marker)).length;
-return {pageUrl:location.href,markerCount};
-`,
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  if (new URL(observed.pageUrl).pathname !== input.targetPath || observed.markerCount !== 1) {
-    throw new Error(
-      `review_required: exact ChatGPT canonical route marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`,
-    );
-  }
-};
+}): Promise<void> => observeOne({
+  browser: input.browser,
+  selector: CHATGPT_USER_TURN_SELECTOR,
+  textContains: input.turnMarker,
+  absentReason: "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT marker is not materialized",
+  ambiguousReason: "CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS",
+});
 
+/**
+ * Normal recovery stays in the one already leased physical provider tab. A
+ * persisted canonical path may select only one exact sidebar row; a missing
+ * row is a bounded, fail-closed condition. Search-dialog recovery is not
+ * implemented here because its live DOM has not been observed in the approved
+ * Chrome construction path.
+ */
 export const focusChatGptConversationByCanonicalPath = async (input: {
-  base: BrowserTargetLease;
+  base: WebChatRoutingBrowser;
   conversationUrl: string;
   turnMarker?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
 }): Promise<void> => {
-  const targetPath = new URL(input.conversationUrl).pathname;
-  if (!/^\/c\/(?!WEB:)[^/]+$/u.test(targetPath)) {
-    throw new Error(`WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=${input.conversationUrl}`);
+  const targetPath = canonicalPathFor(input.conversationUrl);
+  const deadline = Date.now() + Math.max(1, Math.min(input.timeoutMs ?? 15_000, 15_000));
+  const selector = canonicalRouteSelector(targetPath);
+  let lastError: Error | null = null;
+  while (Date.now() < deadline) {
+    if (input.signal?.aborted) throw new Error("BROWSER_TARGET_INVALID");
+    try {
+      await observeOne({
+        browser: input.base,
+        selector,
+        absentReason: "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT sidebar row is not materialized",
+        ambiguousReason: "CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS",
+      });
+      await clickOne({
+        browser: input.base,
+        selector,
+        description: "exact canonical ChatGPT sidebar row",
+      });
+      await input.base.wait({ durationMs: 500 });
+      if (input.turnMarker) await verifyCanonicalMarker({ browser: input.base, turnMarker: input.turnMarker });
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("WEB_CHAT_BOUND_CONVERSATION_NOT_READY");
+      if (!lastError.message.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY")) throw lastError;
+      await input.base.wait({ durationMs: 500 });
+    }
   }
-  if (input.base.getTarget && !input.base.getTarget()) {
-    await reacquireCanonicalConversationTarget(input);
-  }
-  try {
-    await pollCanonicalConversationRoute({ ...input, targetPath });
-  } catch (error) {
-    if (!(error instanceof Error)
-      || !error.message.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY")
-      || !input.turnMarker) throw error;
-    await discoverChatGptConversationViaSearch({
-      browser: input.base,
-      canonicalConversationUrl: input.conversationUrl,
-      turnMarker: input.turnMarker,
-    });
-    await pollCanonicalConversationRoute({
-      ...input,
-      targetPath,
-      timeoutMs: Math.min(input.timeoutMs ?? 5_000, 5_000),
-    });
-  }
-  if (input.turnMarker) {
-    await verifyCanonicalMarker({
-      base: input.base,
-      targetPath,
-      turnMarker: input.turnMarker,
-      ...(input.signal ? { signal: input.signal } : {}),
-    });
-  }
+  throw new Error(
+    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT conversation is not ready; "
+    + `last=${lastError?.message ?? "none"}; url=${input.conversationUrl}`,
+  );
 };
 
 const focusGeminiConversation = async (input: {
-  base: BrowserTargetLease;
+  base: WebChatRoutingBrowser;
   submission: WebChatSubmissionProof;
   turnMarker: string;
-  signal?: AbortSignal;
 }): Promise<void> => {
-  const targetUrl = input.submission.canonicalConversationUrl
-    ?? input.submission.transientConversationUrl;
-  const opened = await input.base.open({
-    url: targetUrl,
-    title: "resume exact Gemini conversation",
-    reusePolicy: "reuse-exact-url",
+  const targetUrl = input.submission.canonicalConversationUrl ?? input.submission.transientConversationUrl;
+  await input.base.navigate({ url: targetUrl, title: "resume exact Gemini conversation" });
+  await observeOne({
+    browser: input.base,
+    selector: "user-query,user-query-content,.user-query-container",
+    textContains: input.turnMarker,
+    absentReason: "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact Gemini marker is not materialized",
+    ambiguousReason: "GEMINI_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS",
   });
-  if (!opened.ok) {
-    throw new Error(`review_required: exact Gemini conversation could not be opened; ${opened.message}`);
-  }
-  const observed = await input.base.evaluate<{ pageUrl: string; markerCount: number }>({
-    description: "verify exact Gemini conversation marker",
-    script: `
-const marker=${JSON.stringify(input.turnMarker)};
-const nodes=Array.from(document.querySelectorAll("user-query,user-query-content,.user-query-container"));
-const markerCount=nodes.filter((node)=>(node.textContent||"").includes(marker)).length;
-return {pageUrl:location.href,markerCount};
-`,
-    ...(input.signal ? { abortSignal: input.signal } : {}),
-  });
-  if (observed.markerCount !== 1) {
-    throw new Error(`review_required: exact Gemini conversation marker mismatch; count=${observed.markerCount}; pageUrl=${observed.pageUrl}`);
-  }
 };
 
 export const focusBoundWebChatConversation = async (input: {
-  base: BrowserTargetLease;
+  base: WebChatRoutingBrowser;
   providerKind: "gpt-web-chat" | "gemini-web-chat";
   submission: WebChatSubmissionProof;
   turnMarker: string;
@@ -255,11 +151,10 @@ export const focusBoundWebChatConversation = async (input: {
   if (input.providerKind === "gpt-web-chat") {
     await focusChatGptConversationByCanonicalPath({
       base: input.base,
-      conversationUrl: input.submission.canonicalConversationUrl
-        ?? input.submission.transientConversationUrl,
+      conversationUrl: input.submission.canonicalConversationUrl ?? input.submission.transientConversationUrl,
       turnMarker: input.turnMarker,
-      ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
-      ...(input.signal ? { signal: input.signal } : {}),
+      ...(input.timeoutMs === undefined ? {} : { timeoutMs: input.timeoutMs }),
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
     });
     return;
   }

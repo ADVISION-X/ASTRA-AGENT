@@ -11,8 +11,10 @@ import {
   shouldContinueWaiting,
 } from "./web-chat-answer-support.js";
 
+type StableAnswerBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait">;
+
 type WaitForStableAnswerInput = {
-  browser: BrowserTargetLease;
+  browser: StableAnswerBrowser;
   context: AiProviderAdapterContext;
   timeoutMs: number;
   pollIntervalMs: number;
@@ -33,7 +35,7 @@ export const waitForStableAnswer = async (input: WaitForStableAnswerInput): Prom
       await input.beforePoll?.();
     } catch (error) {
       if (!isTransientNavigationExtractionError(error)) throw error;
-      await input.browser.wait(input.pollIntervalMs);
+      await input.browser.wait({ durationMs: input.pollIntervalMs });
       continue;
     }
     const evaluation = await readAnswerEvaluation(input);
@@ -64,14 +66,14 @@ export const waitForStableAnswer = async (input: WaitForStableAnswerInput): Prom
     });
     state = progress.nextState;
     if (progress.successEvaluation) return progress.successEvaluation;
-    await input.browser.wait(input.pollIntervalMs);
+    await input.browser.wait({ durationMs: input.pollIntervalMs });
   }
-  return buildTimedOutAnswerEvaluation(
-    input.browser,
-    state.lastText,
-    state.lastGenerating,
-    state.lastAssistantCount,
-  );
+  return buildTimedOutAnswerEvaluation({
+    lastText: state.lastText,
+    lastGenerating: state.lastGenerating,
+    lastAssistantCount: state.lastAssistantCount,
+    lastPageUrl: state.lastPageUrl,
+  });
 };
 
 export const assertExtracted = (input: {

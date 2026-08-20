@@ -2,34 +2,28 @@ import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { waitForExactAttachmentCount as waitForExactAttachmentCountImpl } from "./web-chat-upload-page-actions.js";
-import {
-  CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
-  FOCUS_COMPOSER_SCRIPT,
-  VERIFY_COMPOSER_FOCUSED_SCRIPT,
-} from "./web-chat-composer-scripts.js";
-import { acknowledgeChatGptRateLimitDialogIfVisible } from "./web-chat-rate-limit-dialog.js";
 
-const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
+const CHATGPT_COMPOSER_SELECTOR = "#prompt-textarea";
+const CHATGPT_SEND_SELECTOR = "#composer-submit-button[data-testid='send-button']";
 
-export const focusComposer = (
-  browser: BrowserTargetLease,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluate<WebChatEvaluation>({
-    description: "focus AI web chat composer for file paste",
-    script: FOCUS_COMPOSER_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+const inspectComposer = async (browser: BrowserTargetLease): Promise<Record<string, unknown>> => {
+  const value = await browser.executeDomIntent({
+    kind: "inspect",
+    selector: CHATGPT_COMPOSER_SELECTOR,
+    fields: ["tagName", "text", "visible", "disabled"],
   });
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("BROWSER_TARGET_INVALID");
+  return value as Record<string, unknown>;
+};
 
-const verifyComposerFocused = (
-  browser: BrowserTargetLease,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluate<WebChatEvaluation>({
-    description: "verify AI web chat composer focus",
-    script: VERIFY_COMPOSER_FOCUSED_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
+export const focusComposer = async (browser: BrowserTargetLease, _context: AiProviderAdapterContext): Promise<WebChatEvaluation> => {
+  await browser.executeDomIntent({ kind: "click", selector: CHATGPT_COMPOSER_SELECTOR, expectedMatches: 1 });
+  const composer = await inspectComposer(browser);
+  if (composer.tagName !== "DIV" || composer.visible !== true || composer.disabled === true) {
+    return { status: "review_required", message: "CHATGPT_COMPOSER_INVALID" };
+  }
+  return { status: "success", message: "exact ChatGPT composer focused", inputFocused: true };
+};
 
 export const waitForExactAttachmentCount = (
   browser: BrowserTargetLease,
@@ -48,7 +42,7 @@ export const waitForExactAttachmentCount = (
   context,
   expectedCount,
   expectedFileNames,
-  Math.min(timeoutMs, MAX_ATTACHMENT_COUNT_WAIT_MS),
+  timeoutMs,
   options,
 );
 
@@ -58,32 +52,27 @@ export const waitForComposerFocused = async (
   timeoutMs: number,
 ): Promise<void> => {
   const deadline = Date.now() + Math.min(timeoutMs, 5_000);
-  let lastMessage = "provider input focus was not checked";
   while (Date.now() < deadline) {
-    await acknowledgeChatGptRateLimitDialogIfVisible({ browser, context });
-    const focusEvaluation = await focusComposer(browser, context);
-    lastMessage = `${focusEvaluation.status}: ${focusEvaluation.message}`;
-    if (focusEvaluation.status === "review_required" || focusEvaluation.status === "failed") {
-      throw new Error(lastMessage);
-    }
-    await browser.wait(100);
-    const evaluation = await verifyComposerFocused(browser, context);
-    lastMessage = `${evaluation.status}: ${evaluation.message}`;
+    const evaluation = await focusComposer(browser, context);
     if (evaluation.status === "success") return;
-    if (evaluation.status === "review_required" || evaluation.status === "failed") {
-      throw new Error(lastMessage);
-    }
-    await browser.wait(100);
+    if (evaluation.status === "review_required" || evaluation.status === "failed") throw new Error(evaluation.message);
+    await browser.wait({ durationMs: 100 });
   }
-  throw new Error(`pending: provider input box focus did not stick; last=${lastMessage}`);
+  throw new Error("pending: provider input box focus did not stick");
 };
 
-export const clickChatGptSendButton = (
-  browser: BrowserTargetLease,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluate<WebChatEvaluation>({
-    description: "click ChatGPT send button for pasted text card",
-    script: CLICK_CHATGPT_SEND_BUTTON_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+export const clickChatGptSendButton = async (browser: BrowserTargetLease, _context: AiProviderAdapterContext): Promise<WebChatEvaluation> => {
+  const inspection = await browser.executeDomIntent({
+    kind: "inspect",
+    selector: CHATGPT_SEND_SELECTOR,
+    fields: ["tagName", "visible", "disabled"],
   });
+  if (typeof inspection !== "object" || inspection === null || Array.isArray(inspection)
+    || (inspection as Record<string, unknown>).tagName !== "BUTTON"
+    || (inspection as Record<string, unknown>).visible !== true
+    || (inspection as Record<string, unknown>).disabled === true) {
+    return { status: "review_required", message: "CHATGPT_SEND_BUTTON_INVALID" };
+  }
+  await browser.executeDomIntent({ kind: "click", selector: CHATGPT_SEND_SELECTOR, expectedMatches: 1 });
+  return { status: "success", message: "exact ChatGPT send button clicked" };
+};

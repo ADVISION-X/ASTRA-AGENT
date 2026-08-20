@@ -1,13 +1,13 @@
 # GrassEye Browser Authority 生产终态施工图
 
-版本：2026-08-20.3<br>
+版本：2026-08-20.4<br>
 状态：active final-state blueprint  
 上级权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`  
 目标方案：`docs/项目方案/AGENT-插件生产级实施方案.md`
 
 > 本施工图只投影终态，不描述“可上线阶段”。任何未落地项均为实现缺口，不能用过渡对象、兼容层或第二链路合法化。
 >
-> 2026-08-20.3 补齐终态路径、Health / Errors / Metrics 和 26 项质检投影；不改变上级法案的语义、owner 或发布门。
+> 2026-08-20.4 补齐终态路径、Health / Errors / Metrics、26 项 Browser 核心质检及 1 项现役 P0 隐私质检投影；不改变上级法案的语义、owner 或发布门。
 
 ## 1. 终态图
 
@@ -140,10 +140,10 @@ scripts/
   audit/domains/local-browser-session/
     manifest.json
     inspector.ts
-    local-browser-26-checks.acceptance.ts
+    local-browser-check-coverage.acceptance.ts
   acceptance/
     local-browser-terminal-contract.acceptance.ts
-    local-browser-26-mutants.acceptance.ts
+    local-browser-rule-mutants.acceptance.ts
     local-browser-property-model.acceptance.ts
     local-browser-real-chrome-terminal.acceptance.ts
 ```
@@ -163,8 +163,8 @@ scripts/
 | 唯一 Host / MV3 传输 | `src/lib/browser/native-messaging-host/**` + `chrome-extension/**` + `transport/**` |
 | artifact / tuple / policy / proof | `src/lib/browser/release/**` |
 | health / errors / metrics | `src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts` 只发布 `browserInfrastructure` / `browserAuthority`；`protocol/browser-errors.json` 是唯一 Browser error-code 合同；运行指标只由 infrastructure supervisor 的有界 telemetry 输出 |
-| 26 项 machine-blocking 质检 | `scripts/audit/domains/local-browser-session/manifest.json` + `inspector.ts`，只通过现有 generated-plan runner 生成收据 |
-| 终态验收 | `scripts/acceptance/local-browser-terminal-contract.acceptance.ts`、`local-browser-26-mutants.acceptance.ts`、`local-browser-property-model.acceptance.ts`、`local-browser-real-chrome-terminal.acceptance.ts`；只证明各自合同，不拥有生产逻辑 |
+| 26 项 Browser 核心 + 1 项 P0 隐私 machine-blocking 质检 | `scripts/audit/domains/local-browser-session/manifest.json` + `inspector.ts`，每项独立 receipt，只通过现有 generated-plan runner 生成 |
+| 终态验收 | `scripts/acceptance/local-browser-terminal-contract.acceptance.ts`、`local-browser-rule-mutants.acceptance.ts`、`local-browser-property-model.acceptance.ts`、`local-browser-real-chrome-terminal.acceptance.ts`；只证明各自合同，不拥有生产逻辑 |
 
 `BrowserProcessSupervisor` 的唯一目标路径固定为：
 
@@ -321,7 +321,7 @@ Dynamic Proof 仍是唯一网站动态 verdict；Browser proof 是 receipt 内 e
 
 ## 15. Quality Mapping
 
-26 个独立 checkIds 必须在唯一 `local-browser-session` manifest 中逐项绑定并由同一 inspector 逐项运行；禁止 `owner-assertion-set` 代替 P0，也禁止一个 broad check 代替多个 ID。
+26 个 Browser 核心 checkIds 与 1 个独立的现役 P0 隐私 checkId 必须在唯一 `local-browser-session` manifest 中逐项绑定并由同一 inspector 逐项运行；禁止 `owner-assertion-set` 代替 P0，也禁止一个 broad check 代替多个 ID。
 
 ```txt
 browser-auth/no-unauth-session-type

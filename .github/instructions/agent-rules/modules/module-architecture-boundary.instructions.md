@@ -489,7 +489,7 @@ Flow 禁止：
 正向证据与反向证据冲突、候选不是一个、页面仍在加载、目标过期或观察预算耗尽时，
 必须进入 `failed` 或 `review_required`，后续副作用不得发生。
 
-Inspector 必须使用 AST/symbol 识别依赖 `BrowserTargetSession` 的生产文件中的无条件
+Inspector 必须使用 AST/symbol 识别依赖 `BrowserTargetLease` 的生产文件中的无条件
 `while (true)` / `for (;;)` / `do ... while (true)` 观察风险。具体业务 owner 的 inspector 与
 acceptance 继续负责证明该业务的正向事实、反向排除项、唯一候选和预算耗尽负例。
 

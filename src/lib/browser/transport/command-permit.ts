@@ -1,50 +1,67 @@
-import { createHash } from "node:crypto";
+import type { BrowserHash } from "../exact-target/browser-target-ref.js";
+import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 
-import type { AuthenticatedBrowserAuthority } from "../infrastructure/browser-authority-certificate.js";
-import type { BrowserExecutionBinding } from "../browser-authority-api.js";
-import type {
-  BrowserCapabilityId,
-  BrowserCommandPermit,
-  BrowserWireMutationClass,
-} from "../protocol/generated/browser-protocol.js";
-import type { ReplyChannelToken } from "./reply-channel-token.js";
+export type BrowserMutationClass = "observation" | "mutation" | "lifecycle";
 
-const hash = (value: unknown): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
-
-export const hashBrowserExecutionBinding = (
-  binding: BrowserExecutionBinding,
-): `sha256:${string}` => hash(binding);
-
-export const issueBrowserCommandPermit = (input: {
-  authority: AuthenticatedBrowserAuthority;
-  activationTupleHash: `sha256:${string}`;
-  replyChannel: ReplyChannelToken;
-  capabilityId: BrowserCapabilityId;
-  executionBinding: BrowserExecutionBinding;
+export type BrowserCommandPermit = Readonly<{
+  permitRef: string;
+  authorityRef: string;
+  authorityEpoch: number;
+  certificateHash: BrowserHash;
+  activationTupleHash: BrowserHash;
+  executionBindingHash: BrowserHash;
   targetLeaseRef: string;
+  targetRef: string;
   documentRef: string;
+  capabilityId: BrowserCapabilityId;
   commandId: string;
   sequence: number;
-  deadlineMonotonicMs: number;
-  mutationClass: BrowserWireMutationClass;
-}): BrowserCommandPermit => {
-  const certificate = input.authority.certificate;
-  const unsigned = Object.freeze({
-    authorityRef: certificate.authorityRef,
-    authorityEpoch: certificate.authorityEpoch,
-    authorityCertificateHash: certificate.certificateHash,
-    activationTupleHash: input.activationTupleHash,
-    replyChannelToken: input.replyChannel.value,
-    capabilityId: input.capabilityId,
-    executionBindingHash: hashBrowserExecutionBinding(input.executionBinding),
-    writerFenceHash: input.executionBinding.writerFenceHash,
-    targetLeaseRef: input.targetLeaseRef,
-    documentRef: input.documentRef,
-    commandId: input.commandId,
-    sequence: input.sequence,
-    deadlineMonotonicMs: input.deadlineMonotonicMs,
-    mutationClass: input.mutationClass,
-  });
-  return Object.freeze({ ...unsigned, permitHash: hash(unsigned) });
+  mutationClass: BrowserMutationClass;
+  deadlineAt: string;
+  replyChannelToken: string;
+  commandFrameMac: BrowserHash;
+}>;
+
+export type BrowserUnsignedCommandPermit = Omit<BrowserCommandPermit, "commandFrameMac">;
+
+/** A stable, complete payload: a permit MAC never covers only its identity. */
+export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPermit): string => JSON.stringify([
+  permit.permitRef,
+  permit.authorityRef,
+  permit.authorityEpoch,
+  permit.certificateHash,
+  permit.activationTupleHash,
+  permit.executionBindingHash,
+  permit.targetLeaseRef,
+  permit.targetRef,
+  permit.documentRef,
+  permit.capabilityId,
+  permit.commandId,
+  permit.sequence,
+  permit.mutationClass,
+  permit.deadlineAt,
+  permit.replyChannelToken,
+]);
+
+export const assertValidCommandPermit = (permit: BrowserCommandPermit, now = Date.now()): void => {
+  const hashes = [
+    permit.certificateHash,
+    permit.activationTupleHash,
+    permit.executionBindingHash,
+    permit.commandFrameMac,
+  ];
+  if (
+    permit.authorityRef.length === 0
+    || permit.targetLeaseRef.length === 0
+    || permit.targetRef.length === 0
+    || permit.documentRef.length === 0
+    || permit.commandId.length === 0
+    || permit.replyChannelToken.length === 0
+    || permit.authorityEpoch < 1
+    || permit.sequence < 1
+    || Date.parse(permit.deadlineAt) <= now
+    || hashes.some((value) => !/^sha256:[a-f0-9]{64}$/u.test(value))
+  ) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
 };

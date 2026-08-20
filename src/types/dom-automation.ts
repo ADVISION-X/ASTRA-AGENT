@@ -85,5 +85,5 @@ export type DomVerificationResult = {
 export type DomLocateResult =
   | { ok: true; status: "success"; elementRef: DomElementRef }
   | { ok: false; status: "not_found" | "ambiguous" | "review_required"; reason: string; candidates?: DomElementRef[] };
-import type { BrowserDomElementIdentity } from "../lib/browser/browser-controller.js";
+import type { BrowserDomElementIdentity } from "../lib/browser/browser-authority-api.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target.js";

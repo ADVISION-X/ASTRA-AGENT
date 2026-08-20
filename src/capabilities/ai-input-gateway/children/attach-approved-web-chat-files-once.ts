@@ -17,11 +17,11 @@ import {
 } from "../providers/web-chat-upload-page-actions.js";
 import { attachByExactTargetFileInputBatch } from "../providers/web-chat-exact-target-file-input-attachment.js";
 import type {
+  AttachmentMutationBrowser,
   StagedWebChatAttachment,
   WebChatAttachmentTransportResult,
 } from "../providers/web-chat-attachment-transport.js";
 import { clearRecentChatGptBlockingDialog } from "../providers/web-chat-rate-limit-dialog.js";
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 
 const ATTACHMENT_STABILITY_POLL_COUNT = 15;
 const ATTACHMENT_STABILITY_POLL_MS = 2_000;
@@ -33,7 +33,7 @@ export type AttachApprovedWebChatFilesResult = {
 };
 
 type AttachmentChildInput = {
-  browser: BrowserTargetLease;
+  browser: AttachmentMutationBrowser;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
 };
@@ -114,6 +114,7 @@ const stageApprovedFiles = async (input: {
     }
     files.push({
       inputRefId: ref.id,
+      artifactRef: `ai-input:${ref.id}:${ref.sha256}`,
       order,
       sourceFileName: ref.fileName,
       displayFileName,
@@ -129,6 +130,7 @@ const stageApprovedFiles = async (input: {
   }
   const stagingManifestHash = digest(JSON.stringify(files.map((file) => ({
     inputRefId: file.inputRefId,
+    artifactRef: file.artifactRef,
     order: file.order,
     sourceFileName: file.sourceFileName,
     displayFileName: file.displayFileName,
@@ -139,7 +141,7 @@ const stageApprovedFiles = async (input: {
 };
 
 const waitForStableAttachmentSet = async (input: {
-  browser: BrowserTargetLease;
+  browser: AttachmentMutationBrowser;
   context: AiProviderAdapterContext;
   files: StagedWebChatAttachment[];
   expectedPageUrl: string;
@@ -147,7 +149,7 @@ const waitForStableAttachmentSet = async (input: {
   let detectedFileCount = 0;
   let stablePollCount = 0;
   for (let poll = 0; poll < ATTACHMENT_STABILITY_MAX_POLL_COUNT; poll += 1) {
-    await input.browser.wait(ATTACHMENT_STABILITY_POLL_MS);
+    await input.browser.wait({ durationMs: ATTACHMENT_STABILITY_POLL_MS });
     const evaluation = await readExactAttachmentState(
       input.browser,
       input.context,

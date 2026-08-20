@@ -2,14 +2,7 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { decideGeneratedImageAssistantTurn } from "../providers/web-chat-generated-image-capture.js";
-import { CHATGPT_FRESH_CONVERSATION_SCRIPT } from "../providers/web-chat-fresh-conversation-script.js";
-import { buildClearProvenSubmittedRootDraftScript } from "../providers/web-chat-page-action-scripts.js";
-import { isRoutableWebChatSubmission } from "../runtime/web-chat-single-tab-browser.js";
-import { assertGptWebSessionControllerContracts } from "./web-chat-session-controller.acceptance-helper.js";
-
-const sourceText = (repoPath: string): Promise<string> =>
-  readFile(path.join(process.cwd(), repoPath), "utf8");
+const source = (repoPath: string): Promise<string> => readFile(path.join(process.cwd(), repoPath), "utf8");
 
 const exists = async (repoPath: string): Promise<boolean> => {
   try {
@@ -20,331 +13,114 @@ const exists = async (repoPath: string): Promise<boolean> => {
   }
 };
 
-const retiredImplementationPaths = [
+const retiredPaths = [
+  "src/lib/browser/browser-controller.ts",
+  "src/lib/browser/current-chrome-browser-controller.ts",
+  "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+  "src/lib/browser/exact-target/browser-command-runtime.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-model-identity.ts",
   "src/capabilities/ai-input-gateway/providers/web-chat-chat-title.ts",
-  "src/capabilities/ai-input-gateway/providers/web-chat-chat-title-scripts.ts",
   "src/capabilities/ai-input-gateway/runtime/web-chat-system-title.ts",
   "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping.ts",
-  "src/capabilities/ai-input-gateway/runtime/web-chat-title-housekeeping-worker.ts",
-  "src/capabilities/ai-input-gateway/runtime/web-chat-named-conversation-search.ts",
-  "src/capabilities/ai-input-gateway/acceptance/web-chat-rename-patrol.acceptance-helper.ts",
 ] as const;
 
-const sourcePaths = {
+const activeSources = {
+  browserApi: "src/lib/browser/browser-authority-api.ts",
+  targetLease: "src/lib/browser/exact-target/browser-target-lease.ts",
+  domIntent: "src/lib/browser/exact-target/browser-dom-intent.ts",
+  domRuntime: "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
+  nativeActor: "src/lib/browser/chrome-extension/native-port-actor.ts",
   routing: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
-  executionState: "src/capabilities/ai-input-gateway/runtime/web-chat-execution-state.ts",
-  managedExecution: "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts",
-  managedExecutionStart: "src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution-start.ts",
-  feedProviderOnce: "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-  operatorControl: "src/capabilities/ai-input-gateway/runtime/provider-operator-control.ts",
-  answerEvaluation: "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-  answerSupport: "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
-  exactTargetRef: "src/lib/browser/exact-target/browser-target-ref.ts",
-  exactTargetRuntime: "src/lib/browser/exact-target/browser-command-runtime.ts",
-  singleTabBrowser: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts",
-  searchDialogHygiene: "src/capabilities/ai-input-gateway/providers/web-chat-search-dialog-hygiene.ts",
-  submit: "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-  browserProtocol: "src/lib/browser/chrome-extension/protocol.ts",
-  extensionWorker: "src/lib/browser/chrome-extension/service-worker.ts",
-  generatedImageCapture: "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
-  freshConversationControl: "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
-  freshConversationState: "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
-  pageActionScripts: "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
-  canonicalBinding: "src/capabilities/ai-input-gateway/runtime/web-chat-canonical-binding.ts",
-  providerOpen: "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-  providerExecutionProfile: "src/capabilities/ai-input-gateway/provider-execution-profile.ts",
-  gptExecutionProfile: "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts",
-  sessionController: "src/capabilities/ai-input-gateway/providers/web-chat-session-controller.ts",
-  conversationTitlePolicy: "src/capabilities/ai-input-gateway/runtime/web-chat-conversation-title-policy.ts",
-  conversationTitle: "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts",
-  conversationDiscovery: "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-discovery.ts",
-  pageActionContract: "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
-  checkpointResponse: "src/capabilities/ai-input-gateway/providers/web-chat-checkpoint-response.ts",
-  providerProof: "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
+  answer: "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+  attachment: "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
+  attachmentPreflight: "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
 } as const;
 
-type SourceContracts = Record<keyof typeof sourcePaths, string>;
-
-const loadSourceContracts = async (): Promise<SourceContracts> => {
-  const entries = await Promise.all(Object.entries(sourcePaths).map(async ([key, repoPath]) => [
-    key,
-    await sourceText(repoPath),
-  ] as const));
-  return Object.fromEntries(entries) as SourceContracts;
+const readActiveSources = async (): Promise<Record<keyof typeof activeSources, string>> => {
+  const entries = await Promise.all(Object.entries(activeSources).map(async ([key, repoPath]) => [key, await source(repoPath)] as const));
+  return Object.fromEntries(entries) as Record<keyof typeof activeSources, string>;
 };
 
-const assertScriptContracts = (): void => {
-  assert.doesNotThrow(
-    () => new Function(CHATGPT_FRESH_CONVERSATION_SCRIPT),
-    "the exact fresh-conversation template must remain executable after string interpolation",
-  );
-  assert.doesNotThrow(
-    () => new Function(buildClearProvenSubmittedRootDraftScript(
-      "GRASSEYE_TURN_0123456789abcdef0123456789abcdef",
-    )),
-    "the guarded stale-draft clear template must remain executable after string interpolation",
-  );
-};
-
-const assertRetiredPaths = async (): Promise<void> => {
+const assertNoRetiredPaths = async (): Promise<void> => {
   assert.deepEqual(
-    await Promise.all(retiredImplementationPaths.map(exists)),
-    retiredImplementationPaths.map(() => false),
-    "retired title/model identity implementations and housekeeping paths must be physically absent",
+    await Promise.all(retiredPaths.map(exists)),
+    retiredPaths.map(() => false),
+    "the retired Browser controller/session chain must be physically absent",
   );
 };
 
-const assertFreshConversationControlContract = (sources: SourceContracts): void => {
+const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
-    sources.freshConversationControl.includes('a[data-testid="create-new-chat-button"][data-sidebar-item="true"]')
-      && sources.freshConversationControl.includes('pointerEvents === "none"')
-      && sources.freshConversationControl.includes("hitAnchor === element")
-      && sources.freshConversationControl.includes("href.pathname !== providerRoot.pathname")
-      && !sources.freshConversationControl.includes("exactAriaCandidates")
-      && !sources.freshConversationControl.includes("selected = candidates"),
-    "fresh ChatGPT reset must select one actionable exact sidebar control and must not fall back to aria-only trailing actions",
+    sources.browserApi.includes("BrowserTargetLease")
+      && sources.targetLease.includes("executionBindingHash")
+      && sources.targetLease.includes("agentJobRefHash")
+      && sources.targetLease.includes("writerFenceHash")
+      && sources.targetLease.includes("executeDomIntent")
+      && sources.targetLease.includes("attachFile")
+      && !sources.browserApi.includes("BrowserTargetSession"),
+    "AI must receive an authority-bound exact target lease, never a controller/session object",
   );
-};
-
-const assertFreshConversationDraftContract = (sources: SourceContracts): void => {
   assert.ok(
-    sources.freshConversationControl.includes("clearUniquelyOwnedSubmittedRootDraft")
-      && sources.freshConversationControl.includes("resolveSubmittedDraftOwnerByTurnMarker")
-      && sources.freshConversationControl.includes("owner.matchCount !== 1")
-      && sources.freshConversationControl.includes("protected unknown or unproven draft")
-      && sources.freshConversationState.includes("eligibleSubmittedDraftCleanup")
-      && sources.freshConversationState.includes("internalMarkerMentionCount === 1")
-      && sources.pageActionScripts.includes("owned stale draft guard changed before clear")
-      && sources.pageActionScripts.includes("markers[0] === expectedTurnMarker")
-      && sources.canonicalBinding.includes("candidate.submission?.canonicalConversationUrl")
-      && sources.canonicalBinding.includes("matches.length === 1 ? matches[0]!")
-      && sources.providerOpen.includes("emitStage: (stage) => emitSubmitStage(")
-      && !sources.freshConversationControl.includes("clearComposer(input.browser"),
-    "root draft cleanup must require one exact internal marker, one different durable canonical owner, an atomic page guard and protection for unknown drafts",
+    sources.domIntent.includes('kind: "document"')
+      && sources.domIntent.includes('kind: "find"')
+      && sources.domIntent.includes('kind: "click"')
+      && sources.domIntent.includes("expectedMatches")
+      && !sources.domIntent.includes("evaluate"),
+    "Browser DOM access must be a finite, uniqueness-aware command set",
+  );
+  assert.ok(
+    sources.domRuntime.includes("DOM.querySelectorAll")
+      && sources.domRuntime.includes("Page.getNavigationHistory")
+      && sources.domRuntime.includes("Input.dispatchMouseEvent")
+      && !sources.domRuntime.includes("Runtime.evaluate")
+      && !sources.domRuntime.includes("new Function"),
+    "the extension must use fixed DevTools DOM methods rather than a page-script surface",
+  );
+  assert.ok(
+    sources.nativeActor.includes("controller-command")
+      && sources.nativeActor.includes("claimOperatorTarget")
+      && sources.nativeActor.includes("sourceChannelToken")
+      && !sources.nativeActor.includes("tabs.query"),
+    "the native actor must bind only the operator-claimed target and authenticated command channel",
   );
 };
 
-const assertFreshConversationContract = (sources: SourceContracts): void => {
-  assertFreshConversationControlContract(sources);
-  assertFreshConversationDraftContract(sources);
-};
-
-const assertNoLegacyTitleOrModelBridge = (sources: SourceContracts): void => {
-  for (const source of [
-    sources.managedExecution,
-    sources.managedExecutionStart,
-    sources.feedProviderOnce,
-    sources.operatorControl,
-    sources.singleTabBrowser,
-    sources.sessionController,
-  ]) {
-    assert.doesNotMatch(
-      source,
-      /systemChatTitle|chatTitleRename|renameSubmittedChatGptConversation|TitleHousekeeping|web-chat-model-identity/u,
-      "live runtime must not retain the retired title/model bridge",
-    );
-  }
-  assert.doesNotMatch(
-    sources.gptExecutionProfile,
-    /reasoningSliderIndex|data-model-reasoning-effort-slider/u,
-    "semantic GPT execution profile selection must not depend on a fixed slider index",
-  );
-};
-
-const assertRoutingContract = (sources: SourceContracts): void => {
-  assert.equal(
+const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources, string>): void => {
+  assert.ok(
     sources.routing.includes("focusChatGptConversationByCanonicalPath")
-      && sources.routing.includes('new URL(link.getAttribute("href")')
-      && sources.routing.includes("location.pathname === targetPath")
-      && sources.routing.includes("turnMarker")
-      && sources.routing.includes("discoverChatGptConversationViaSearch")
-      && sources.routing.includes("Number(right.actionable) - Number(left.actionable)")
-      && sources.routing.includes("left.rect.top - right.rect.top")
-      && sources.routing.includes("scroll exact canonical ChatGPT sidebar row into view")
-      && !sources.routing.includes("expectedTitle")
-      && !sources.routing.includes("systemChatTitle"),
-    true,
-    "GPT routing must bind exact canonical href + unique marker; search may discover but title may never route",
+      && sources.routing.includes("executeDomIntent")
+      && sources.routing.includes("CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS")
+      && sources.routing.includes("Search-dialog recovery is not")
+      && !sources.routing.includes(".evaluate("),
+    "canonical routing must use exact path/marker instructions and fail closed for unobserved search UI",
   );
-};
-
-const assertSessionControllerContract = (sources: SourceContracts): void => {
-  const checks = [
-    sources.providerExecutionProfile.includes("gpt-web-execution-profile.v1"),
-    sources.providerExecutionProfile.includes("governProductionGptExecutionProfileInput"),
-    sources.providerExecutionProfile.includes("extra_high"),
-    sources.providerExecutionProfile.includes("pro_standard"),
-    sources.providerExecutionProfile.includes("pro_extended"),
-    sources.gptExecutionProfile.includes("enforceGptWebExecutionProfile"),
-    sources.gptExecutionProfile.includes("assertStableWebChatDocument"),
-    sources.sessionController.includes("prepareWebChatSessionForSubmission"),
-    sources.sessionController.includes("finalizeWebChatSessionAfterResult"),
-    sources.conversationTitlePolicy.includes("gpt-web-title-policy.v1"),
-    sources.conversationTitlePolicy.includes("Asia/Dubai"),
-    !sources.conversationTitlePolicy.includes("textPrompt"),
-    sources.conversationTitle.includes("runExclusivePatrol"),
-    sources.conversationTitle.includes("[data-testid^='conversation-turn-'][data-turn='user']"),
-    sources.conversationDiscovery.includes("turnMarker"),
-    sources.conversationDiscovery.includes("targetPath"),
-    sources.pageActionContract.includes("WebChatPageActionProof"),
-    sources.checkpointResponse.includes("title_finalization_pending"),
-    sources.providerProof.includes("AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING"),
-    sources.providerProof.includes("AI_INPUT_GATEWAY_PROVIDER_EXECUTION_PROFILE_PROOF_MISMATCH"),
-  ];
-  assert.equal(
-    checks.every(Boolean),
-    true,
-    "one GPT Web Session Controller must own semantic profile selection, action proof, canonical routing and post-result title finalization",
+  assert.ok(
+    sources.answer.includes("conversation-turn-")
+      && sources.answer.includes("turnOrdinal")
+      && sources.answer.includes("executeDomIntent")
+      && !sources.answer.includes(".evaluate("),
+    "answer capture must bind the marked user turn to its immediately following assistant turn without arbitrary evaluation",
   );
-};
-
-const assertIdentityAndTargetContracts = (sources: SourceContracts): void => {
-  assert.equal(
-    sources.executionState.includes("web-chat-execution-v3")
-      && sources.executionState.includes("_retiredRenameDebt")
-      && sources.executionState.includes("_retiredSubmissionTitle")
-      && sources.executionState.includes("providerExecutionProfileBinding")
-      && sources.executionState.includes("conversationTitle")
-      && sources.executionState.includes("pageActionLedger")
-      && !sources.executionState.includes("buildHumanReadableSystemChatTitle")
-      && !sources.executionState.includes("WebChatTitleRenameState"),
-    true,
-    "v3 execution state must migrate old title fields without reviving the old title chain",
+  assert.ok(
+    sources.attachment.includes("#upload-files")
+      && sources.attachment.includes("issueBrowserFileArtifactGrant")
+      && sources.attachment.includes("attachFile")
+      && sources.attachment.includes("NOT_PRODUCTION_VERIFIED")
+      && !sources.attachment.includes("setFileInputFiles"),
+    "attachment selection must use one opaque-grant batch and may not claim unobserved post-selection proof",
   );
-  assert.equal(
-    sources.answerEvaluation.includes("visibleProgressClass")
-      && sources.answerEvaluation.includes("[class*='shimmer']")
-      && sources.answerSupport.includes("WEB_CHAT_BOUND_CONVERSATION_NOT_READY"),
-    true,
-    "live generation and temporarily unavailable canonical rows must stay distinct",
+  assert.ok(
+    sources.attachmentPreflight.includes("#prompt-textarea")
+      && sources.attachmentPreflight.includes("#upload-files")
+      && sources.attachmentPreflight.includes("WEB_CHAT_COMPOSER_NOT_EMPTY")
+      && !sources.attachmentPreflight.includes(".evaluate("),
+    "attachment preflight must preserve an unknown draft and inspect only the observed composer/input topology",
   );
-  assert.equal(
-    sources.exactTargetRef.includes("BrowserTargetRef")
-      && sources.exactTargetRef.includes("BrowserDocumentRef")
-      && sources.exactTargetRuntime.includes("BrowserTargetRegistry")
-      && sources.exactTargetRuntime.includes("createTargetSession")
-      && sources.singleTabBrowser.includes("BrowserTargetSession")
-      && !sources.singleTabBrowser.includes("focusSingleProviderTab"),
-    true,
-    "web chat must stay bound to one exact extension target and document",
-  );
-};
-
-const assertRoutableSubmissionContract = (sources: SourceContracts): void => {
-  const fixture = {
-    executionId: "transient-routing-acceptance",
-    turnMarker: "GRASSEYE_TURN_transient_routing_acceptance",
-    transientConversationUrl: "https://chatgpt.com/c/WEB:transient-routing-acceptance",
-    canonicalConversationUrl: null,
-    userTurnId: "conversation-turn-1",
-    previousAssistantCount: 0,
-    previousUserMessageCount: 0,
-    submittedAt: new Date().toISOString(),
-  };
-  assert.equal(
-    isRoutableWebChatSubmission(fixture),
-    false,
-    "a transient WEB submission receipt must prevent resubmission without becoming a route identity",
-  );
-  assert.equal(isRoutableWebChatSubmission({
-    ...fixture,
-    canonicalConversationUrl: "https://chatgpt.com/c/canonical-routing-acceptance",
-  }), true, "only a verified canonical conversation may become routable");
-  assert.equal(
-    sources.singleTabBrowser.includes("if (!isRoutableWebChatSubmission(state.submission)) return;")
-      && sources.singleTabBrowser.includes("submission: isRoutableWebChatSubmission(input.resumeSubmission)")
-      && (sources.singleTabBrowser.match(
-        /if \(isRoutableWebChatSubmission\(submission\) state\.submission = submission;/gu,
-      )?.length ?? 0) === 2,
-    true,
-    "single-tab routing must exclude transient WEB receipts at route, bind and restart boundaries",
-  );
-};
-
-const assertRestartAndSearchContracts = (sources: SourceContracts): void => {
-  assert.equal(
-    sources.routing.includes('reusePolicy: "reuse-exact-url"')
-      && sources.browserProtocol.includes('"reuse-exact-url"')
-      && sources.extensionWorker.includes('command.reusePolicy === "reuse-exact-url"')
-      && sources.extensionWorker.includes("TARGET_AMBIGUOUS:multiple exact URL tabs")
-      && sources.extensionWorker.indexOf("chrome.tabs.create({ url: command.url, active: false })")
-        < sources.extensionWorker.indexOf("return readDescriptor(tabId);"),
-    true,
-    "restart recovery must bind the exact canonical URL and ignore unrelated same-origin tabs",
-  );
-  assert.equal(
-    sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_AMBIGUOUS")
-      && sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS")
-      && sources.searchDialogHygiene.includes("CHATGPT_SEARCH_DIALOG_STILL_VISIBLE")
-      && sources.submit.includes("dismissChatGptSearchDialogIfVisible")
-      && sources.conversationDiscovery.includes("dismissChatGptSearchDialogIfVisible")
-      && sources.conversationDiscovery.includes("targetPath")
-      && !sources.submit.includes("dismissFloatingMenus")
-      && !sources.submit.includes('new KeyboardEvent("keydown"'),
-    true,
-    "prompt/search actions may close only the exact harmless search dialog; discovery must still prove canonical path + marker",
-  );
-};
-
-const assertGeneratedImageContract = (sources: SourceContracts): void => {
-  assert.equal(
-    sources.generatedImageCapture.includes('[data-testid^="conversation-turn-"][data-turn="user"], [data-testid^="conversation-turn-"][data-turn="assistant"]')
-      && sources.generatedImageCapture.includes("generatedImageTurnHasSubstantiveContent")
-      && sources.generatedImageCapture.includes("target instanceof HTMLElement")
-      && sources.generatedImageCapture.includes('button[aria-label="保存"]')
-      && !sources.generatedImageCapture.includes("target instanceof HTMLButtonElement")
-      && !sources.generatedImageCapture.includes("data-message-author-role")
-      && !sources.generatedImageCapture.includes('article[data-testid^="conversation-turn"')
-      && !sources.generatedImageCapture.includes('label === "download"')
-      && !sources.generatedImageCapture.includes('label === "下载"'),
-    true,
-    "generated image capture must use only the current outer Chrome turn and exact zh-CN viewer save identities without a legacy selector bridge",
-  );
-  assert.deepEqual(
-    decideGeneratedImageAssistantTurn([
-      { role: "user", promptMatched: true, substantive: true },
-      { role: "assistant", promptMatched: false, substantive: true },
-      { role: "assistant", promptMatched: false, substantive: false },
-    ]),
-    { status: "success", message: "exact generated-image assistant turn located", assistantIndex: 1 },
-  );
-  assert.equal(
-    decideGeneratedImageAssistantTurn([
-      { role: "user", promptMatched: true, substantive: true },
-      { role: "assistant", promptMatched: false, substantive: false },
-    ]).status,
-    "pending",
-  );
-  for (const fixture of [
-    [
-      { role: "user" as const, promptMatched: true, substantive: true },
-      { role: "user" as const, promptMatched: true, substantive: true },
-      { role: "assistant" as const, promptMatched: false, substantive: true },
-    ],
-    [
-      { role: "user" as const, promptMatched: true, substantive: true },
-      { role: "user" as const, promptMatched: false, substantive: true },
-    ],
-    [
-      { role: "user" as const, promptMatched: true, substantive: true },
-      { role: "assistant" as const, promptMatched: false, substantive: true },
-      { role: "user" as const, promptMatched: false, substantive: true },
-    ],
-  ]) assert.equal(decideGeneratedImageAssistantTurn(fixture).status, "review_required");
 };
 
 export const assertWebChatSourceContracts = async (): Promise<void> => {
-  assertScriptContracts();
-  const sources = await loadSourceContracts();
-  await assertRetiredPaths();
-  assertFreshConversationContract(sources);
-  assertNoLegacyTitleOrModelBridge(sources);
-  assertRoutingContract(sources);
-  assertSessionControllerContract(sources);
-  assertIdentityAndTargetContracts(sources);
-  assertRoutableSubmissionContract(sources);
-  assertRestartAndSearchContracts(sources);
-  assertGeneratedImageContract(sources);
-  assertGptWebSessionControllerContracts();
+  await assertNoRetiredPaths();
+  const sources = await readActiveSources();
+  assertBrowserBoundary(sources);
+  assertObservedChatGptActions(sources);
 };

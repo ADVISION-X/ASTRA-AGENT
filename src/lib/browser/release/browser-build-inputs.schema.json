@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"grasseye.browser.build-inputs.v1","required":["toolchainHash","protocolHash","sourceTreeHash"],"additionalProperties":false}

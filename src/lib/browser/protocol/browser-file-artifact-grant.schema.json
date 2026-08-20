@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "grasseye.browser.file-artifact-grant.v1",
+  "maxTtlMs": 300000,
+  "required": ["grantRef", "authorityEpoch", "executionBindingHash", "artifactRef", "contentHash", "maxBytes", "expiresAt"],
+  "forbidden": ["sourcePath", "resolvedPath", "rawPath"],
+  "additionalProperties": false
+}

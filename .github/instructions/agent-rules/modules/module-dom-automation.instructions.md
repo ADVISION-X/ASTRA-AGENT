@@ -976,14 +976,14 @@ DOM Automation may be called production-stable only when all are true:
     "scripts/acceptance/**/*.{ts,tsx,js,jsx,mjs}"
   ],
   "required": [
-    "Click invokes clickLocatedDomElement exactly once; the Chrome command resolves one selector, compares the current DOM identity with the captured identity, validates visibility and enabled state, and clicks that same object in one atomic command.",
-    "Fill invokes fillLocatedDomElement exactly once; the Chrome command resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, dispatches the component events, and verifies the exact retained value before returning.",
-    "Upload revalidates a supported light-DOM file input and invokes setFileInputFiles with only the caller-approved path.",
+    "Click invokes exactly one declaration-only BrowserDomIntent click command; the Browser owner resolves one selector, compares the current DOM identity with the captured identity, validates visibility and enabled state, and clicks that same object in one atomic command.",
+    "Fill invokes exactly one declaration-only BrowserDomIntent fill command; the Browser owner resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, and verifies the exact retained value before returning.",
+    "Upload revalidates a supported light-DOM file input and invokes BrowserTargetLease.attachFile with only the caller-approved artifact grant; raw paths never cross the business or Browser wire boundary.",
     "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
     "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
   ],
   "forbidden": [
-    "A DOM child performing a separate BrowserTargetSession.evaluate before or after click/fill mutation",
+    "A DOM child performing arbitrary evaluation before or after click/fill mutation",
     "page mutation through evaluate_target",
     "a caller-local evaluator, point observation followed by coordinate click, split click/clear/text/Tab fill, foreground-focus fallback or compatibility bridge",
     "claiming unsupported deep shadow or frame upload succeeded",

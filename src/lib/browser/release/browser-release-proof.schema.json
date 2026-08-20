@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"grasseye.browser.release-proof.v1","required":["candidateHash","artifactSetHash","activationTupleHash","governanceReceiptHash","realChromeReceiptHash","soakReceiptHash"],"additionalProperties":false}

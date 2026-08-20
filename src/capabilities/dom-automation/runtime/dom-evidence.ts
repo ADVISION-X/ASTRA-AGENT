@@ -5,11 +5,8 @@ export async function captureDomEvidenceRef(
   regionLabel: string,
 ): Promise<string | null> {
   try {
-    const capture = await browser.screenshotRegion({
-      regionLabel,
-      captureProfile: "observation_lightweight",
-    });
-    return capture.sourceFilePath || capture.browserActionId;
+    const capture = await browser.captureScreenshot({ regionLabel });
+    return capture.artifactRef;
   } catch {
     return null;
   }

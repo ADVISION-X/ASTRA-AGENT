@@ -3,28 +3,35 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { AiFeedInput } from "../schema.js";
 import { focusChatGptConversationByCanonicalPath } from "../runtime/web-chat-single-tab-routing.js";
 
-const CURRENT_URL_SCRIPT = "return {status: 'success', message: 'read current provider URL', pageUrl: location.href};";
-
-type ContinuationInput = {
+type ContinuationInput = Readonly<{
   browser: BrowserTargetLease;
   runtimeName: string;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   waitForComposer: () => Promise<void>;
-};
+}>;
 
 const governedContinuationUrl = (request: AiFeedInput): URL => {
   const continuation = request.providerContinuationRef;
   if (!continuation) throw new Error("review_required: provider continuation reference is missing");
   const url = new URL(continuation.providerPageUrl);
-  const governed = request.providerKind === "gpt-web-chat"
-    && url.protocol === "https:"
-    && url.host === "chatgpt.com"
-    && /^\/c\/(?!WEB:)[^/]+$/u.test(url.pathname);
-  if (!governed) {
+  if (request.providerKind !== "gpt-web-chat"
+    || url.protocol !== "https:"
+    || url.host !== "chatgpt.com"
+    || !/^\/c\/(?!WEB:)[^/]+$/u.test(url.pathname)) {
     throw new Error("review_required: provider continuation URL is not a governed ChatGPT conversation URL");
   }
   return url;
+};
+
+const documentUrl = async (browser: BrowserTargetLease): Promise<URL> => {
+  const observation = await browser.executeDomIntent({ kind: "document" });
+  if (typeof observation !== "object" || observation === null || Array.isArray(observation)) {
+    throw new Error("BROWSER_TARGET_INVALID");
+  }
+  const url = (observation as { url?: unknown }).url;
+  if (typeof url !== "string") throw new Error("BROWSER_TARGET_INVALID");
+  return new URL(url);
 };
 
 export const openGovernedContinuation = async (
@@ -41,17 +48,10 @@ export const openGovernedContinuation = async (
     ...(input.context.abortSignal ? { signal: input.context.abortSignal } : {}),
   });
   await input.waitForComposer();
-  const state = await input.browser.evaluate<{ pageUrl?: string }>({
-    description: "read active provider URL after governed continuation open",
-    script: CURRENT_URL_SCRIPT,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-  const actualUrl = state.pageUrl ? new URL(state.pageUrl) : null;
-  if (!actualUrl
-    || actualUrl.origin !== requestedUrl.origin
-    || actualUrl.pathname !== requestedUrl.pathname) {
+  const actualUrl = await documentUrl(input.browser);
+  if (actualUrl.origin !== requestedUrl.origin || actualUrl.pathname !== requestedUrl.pathname) {
     throw new Error(
-      `review_required: provider continuation conversation mismatch; requested=${requestedUrl.href}; actual=${state.pageUrl ?? "unknown"}`,
+      `review_required: provider continuation conversation mismatch; requested=${requestedUrl.href}; actual=${actualUrl.href}`,
     );
   }
 };

@@ -1,0 +1,21 @@
+{
+  "revision": 1,
+  "capabilities": [
+    "browser.navigate.v1",
+    "dom.snapshot.structural.v1",
+    "browser.dom.inspect.v1",
+    "browser.dom.find.v1",
+    "browser.dom.read-text.v1",
+    "browser.dom.read-attribute.v1",
+    "browser.dom.click.v1",
+    "browser.dom.fill.v1",
+    "browser.file-input.v1",
+    "browser.screenshot.v1",
+    "browser.wait.v1",
+    "browser.close-target.v1",
+    "video.media-probe.universal.v1",
+    "video.media-probe.tiktok.v1",
+    "video.media-probe.facebook.v1",
+    "video.media-probe.telegram.v1"
+  ]
+}

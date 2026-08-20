@@ -24,16 +24,13 @@ function validateApprovedUploadRequest(
 }
 
 function buildDomUploadOutcome(
-  uploadResult: Awaited<ReturnType<BrowserTargetLease["setFileInputArtifact"]>>,
   beforeEvidenceRef: string,
   afterEvidenceRef: string,
 ): DomActionResult {
   return buildDomActionOutcome(
     {
-      status: uploadResult.ok ? "success" : "failed",
-      message: uploadResult.ok
-        ? "approved file selection dispatched once to one real file input receiver"
-        : uploadResult.message,
+      status: "success",
+      message: "approved file selection dispatched once to one real file input receiver",
     },
     beforeEvidenceRef,
     afterEvidenceRef,
@@ -44,9 +41,8 @@ export async function uploadApprovedFileOnce(
   browser: BrowserTargetLease,
   rawInput: UploadApprovedFileInput,
 ): Promise<DomActionResult> {
-  const input = DOM_SCHEMAS.UploadApprovedFileInput.parse(
-    rawInput,
-  ) as UploadApprovedFileInput;
+  DOM_SCHEMAS.UploadApprovedFileInput.parse(rawInput);
+  const input = rawInput;
   assertDomTargetBinding(browser, input.elementRef);
   const validated = validateApprovedUploadRequest(input);
   if (validated) {
@@ -63,14 +59,7 @@ export async function uploadApprovedFileOnce(
       "DOM upload requires evidence before setting a file.",
     );
   }
-  const uploadResult = await browser.setFileInputArtifact({
-    elementRef: {
-      selector: input.elementRef.selector,
-      targetKind: "file-input",
-    },
-    grant: input.fileArtifactGrant,
-    description: "set approved file on located file input",
-  });
+  await browser.attachFile({ selector: input.elementRef.selector, grants: [input.fileArtifactGrant] });
   const afterEvidenceRef = await captureDomEvidenceRef(
     browser,
     "dom-upload-after",
@@ -85,7 +74,6 @@ export async function uploadApprovedFileOnce(
   }
 
   return buildDomUploadOutcome(
-    uploadResult,
     beforeEvidenceRef,
     afterEvidenceRef,
   );

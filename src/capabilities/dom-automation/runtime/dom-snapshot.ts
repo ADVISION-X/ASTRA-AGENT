@@ -9,19 +9,14 @@ export async function readDomSnapshotOnce(
   options?: { abortSignal?: AbortSignal },
 ): Promise<DomSnapshot> {
   const parsed = DOM_SCHEMAS.ReadDomSnapshotInput.parse(input);
-  const raw = await browser.observeCapability<unknown>({
+  const raw = await browser.observeCapability({
     capabilityId: "dom.snapshot.structural.v1",
     ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
     ...(parsed.timeoutMs ? { timeoutMs: parsed.timeoutMs } : {}),
   });
-  const target = browser.getTarget();
-  if (!target)
-    throw new Error(
-      "TARGET_NOT_FOUND:DOM snapshot requires an acquired exact target",
-    );
   return DOM_SCHEMAS.DomSnapshot.parse({
     ...(raw as Record<string, unknown>),
-    targetRef: target.targetRef,
-    documentRef: target.documentRef,
+    targetRef: browser.target.targetRef,
+    documentRef: browser.document.documentRef,
   }) as DomSnapshot;
 }

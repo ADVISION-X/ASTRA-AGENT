@@ -10,7 +10,6 @@ import {
 import { captureDomEvidenceRef } from "./dom-evidence.js";
 import {
   assertDomTargetBinding,
-  toBrowserDomElementIdentity,
 } from "./dom-target-binding.js";
 
 const DANGEROUS_TEXT = /delete|refund|cancel|pay now|submit payment|remove/i;
@@ -33,16 +32,10 @@ export async function clickDomElementOnce(
     );
   }
 
-  let clicked: Awaited<
-    ReturnType<BrowserTargetLease["clickLocatedDomElement"]>
-  >;
   try {
-    clicked = await browser.clickLocatedDomElement({
-      targetLabel: input.expectedText ?? input.expectedKind,
-      element: {
-        selector: elementRef.selector,
-        identity: toBrowserDomElementIdentity(elementRef.identity),
-      },
+    await browser.executeDomIntent({
+      kind: "click",
+      selector: elementRef.selector,
       ...(input.expectedText ? { expectedText: input.expectedText } : {}),
     });
   } catch (error) {
@@ -64,7 +57,7 @@ export async function clickDomElementOnce(
         );
   }
   if (input.waitAfterMs && input.waitAfterMs > 0) {
-    await browser.wait(input.waitAfterMs);
+    await browser.wait({ durationMs: input.waitAfterMs });
   }
   const afterEvidenceRef = await captureDomEvidenceRef(
     browser,
@@ -74,10 +67,8 @@ export async function clickDomElementOnce(
     return buildDomFailureResult("after-action evidence capture failed");
   return buildDomActionOutcome(
     {
-      status: clicked.ok ? "success" : "failed",
-      message: clicked.ok
-        ? "clicked revalidated DOM element through exact-target command"
-        : clicked.message,
+      status: "success",
+      message: "clicked revalidated DOM element through exact-target command",
     },
     undefined,
     afterEvidenceRef,

@@ -8,6 +8,7 @@ import type { AiFeedInput } from "../schema.js";
 
 export type StagedWebChatAttachment = {
   inputRefId: string;
+  artifactRef: string;
   order: number;
   sourceFileName: string;
   displayFileName: string;
@@ -16,8 +17,10 @@ export type StagedWebChatAttachment = {
   byteCount: number;
 };
 
+export type AttachmentMutationBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait" | "attachFile">;
+
 export type WebChatAttachmentTransportInput = {
-  browser: BrowserTargetLease;
+  browser: AttachmentMutationBrowser;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   stagingDirectoryPath: string;

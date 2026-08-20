@@ -1,30 +1,28 @@
-import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import type { BrowserProfileConfig } from "./browser-profile-config.js";
+import type { BrowserProfileProcessAttestation } from "./browser-profile-process-attestation.js";
+import type { BrowserProfileState } from "./browser-profile-state.js";
+import { attestBrowserProcess } from "./browser-profile-process-attestation.js";
 
-import type { BrowserProfileEnrollment } from "./browser-profile-enrollment.js";
+export class BrowserProcessSupervisor {
+  private processAttestation: BrowserProfileProcessAttestation | null = null;
 
-const delay = (durationMs: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, durationMs));
+  public constructor(
+    private readonly config: BrowserProfileConfig,
+    private readonly enrolledProfile: BrowserProfileState,
+  ) {}
 
-export const ensureEnrolledBrowserProcess = async (
-  enrollment: BrowserProfileEnrollment,
-): Promise<void> => {
-  const child = spawn(
-    enrollment.chromeExecutablePath,
-    [
-      `--user-data-dir=${enrollment.userDataDir}`,
-      `--profile-directory=${enrollment.profileDirectory}`,
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--disable-default-apps",
-    ],
-    {
-      detached: true,
-      stdio: "ignore",
-    },
-  );
-  child.unref();
-  // The authority handshake, not this delay, is the readiness proof. The small
-  // bounded delay only gives Chrome enough time to acquire or hand off to the
-  // already-running enrolled profile before Native Messaging admission starts.
-  await delay(750);
-};
+  public startManagedProcess(): BrowserProfileProcessAttestation {
+    if (this.enrolledProfile.profileRef !== this.config.profileRef) throw new Error("BROWSER_PROCESS_UNVERIFIED");
+    this.processAttestation = attestBrowserProcess(this.enrolledProfile, randomUUID());
+    return this.processAttestation;
+  }
+
+  public currentAttestation(): BrowserProfileProcessAttestation | null {
+    return this.processAttestation;
+  }
+
+  public stop(): void {
+    this.processAttestation = null;
+  }
+}

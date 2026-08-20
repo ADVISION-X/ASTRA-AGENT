@@ -39,7 +39,7 @@ export const waitForSubmittedUserMessageAttachments = async (input: {
     } catch (error) {
       throw new Error(`verify_last_user_message_bound_attachments: ${error instanceof Error ? error.message : String(error)}`);
     }
-    await input.browser.wait(500);
+    await input.browser.wait({ durationMs: 500 });
   }
   const missingKind = input.expectedKind === "image"
     ? "provider_missing_bound_image" : "provider_missing_bound_file";

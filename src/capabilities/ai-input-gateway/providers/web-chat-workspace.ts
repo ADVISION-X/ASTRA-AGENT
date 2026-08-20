@@ -116,13 +116,13 @@ export const focusExistingWorkspaceTab = async (input: {
 }): Promise<boolean> => {
   const url = input.savedUrl ?? `https://${input.providerHost}/`;
   try {
-    const result = await input.browser.open({
-      url,
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || parsed.host !== input.providerHost || input.abortSignal?.aborted) return false;
+    await input.browser.navigate({
+      url: parsed.href,
       title: `AI workspace ${input.workspaceId}`,
-      reusePolicy: "reuse-exact-url",
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
-    return result.ok;
+    return true;
   } catch {
     return false;
   }

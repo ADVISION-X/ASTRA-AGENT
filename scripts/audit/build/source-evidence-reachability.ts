@@ -2,6 +2,7 @@ import {
   Node,
   SyntaxKind,
   type ArrowFunction,
+  type CallExpression,
   type FunctionDeclaration,
   type FunctionExpression,
   type MethodDeclaration,
@@ -43,26 +44,54 @@ export const ownerAssertionRoots = (project: Project, manifest: ManifestSource):
     ?? inspector?.getVariableDeclaration("inspectDomain")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
   const contextParameter = inspectDomain?.getParameters()[0];
   if (!inspectDomain || !contextParameter) return [];
-  const signedCallbacks = inspectDomain.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
-    const callee = call.getExpression();
-    if (!Node.isPropertyAccessExpression(callee) || !["run", "runAll"].includes(callee.getName())) return [];
-    const checks = callee.getExpression();
-    const receiver = Node.isPropertyAccessExpression(checks) && checks.getName() === "checks"
-      ? checks.getExpression()
-      : undefined;
-    const callback = call.getArguments()[callee.getName() === "run" ? 1 : 0];
-    const isSignedCall = (receiver?.getSymbol()?.getDeclarations().includes(contextParameter) ?? false)
-      && call.getFirstAncestor(Node.isFunctionLikeDeclaration) === inspectDomain
-      && Node.isAwaitExpression(call.getParent())
-      && callback !== undefined
-      && (Node.isArrowFunction(callback) || Node.isFunctionExpression(callback));
-    return isSignedCall ? [callback] : [];
-  });
+  const signedCallbacks = collectSignedCallbacks(inspectDomain, new Set([contextParameter]));
   return signedCallbacks.length > 0 ? [inspectDomain, ...signedCallbacks] : [];
 };
 
-const callDeclarations = (call: MorphNode): MorphNode[] => {
-  if (!Node.isCallExpression(call)) return [];
+const isBoundContextParameter = (
+  expression: MorphNode | undefined,
+  parameters: ReadonlySet<MorphNode>,
+): boolean => Node.isIdentifier(expression)
+  && (expression.getSymbol()?.getDeclarations() ?? []).some((declaration) => parameters.has(declaration));
+
+const directCalls = (boundary: FunctionNode): CallExpression[] => boundary
+  .getDescendantsOfKind(SyntaxKind.CallExpression)
+  .filter((call) => call.getFirstAncestor(Node.isFunctionLikeDeclaration) === boundary);
+
+const collectSignedCallbacks = (
+  boundary: FunctionNode,
+  boundContextParameters: ReadonlySet<MorphNode>,
+  visitedFunctions = new Set<string>(),
+): Array<ArrowFunction | FunctionExpression> => directCalls(boundary).flatMap((call) => {
+    const callee = call.getExpression();
+    if (Node.isPropertyAccessExpression(callee) && ["run", "runAll"].includes(callee.getName())) {
+      const checks = callee.getExpression();
+      const receiver = Node.isPropertyAccessExpression(checks) && checks.getName() === "checks"
+        ? checks.getExpression()
+        : undefined;
+      const callback = call.getArguments()[callee.getName() === "run" ? 1 : 0];
+      const isSignedCall = isBoundContextParameter(receiver, boundContextParameters)
+        && Node.isAwaitExpression(call.getParent())
+        && callback !== undefined
+        && (Node.isArrowFunction(callback) || Node.isFunctionExpression(callback));
+      return isSignedCall ? [callback] : [];
+    }
+    return callDeclarations(call).flatMap((declaration) => {
+      const helper = functionNodeFor(declaration);
+      if (!helper || visitedFunctions.has(declarationKey(helper))) return [];
+      const helperParameters = helper.getParameters();
+      const propagated = helperParameters.filter((parameter, index) =>
+        isBoundContextParameter(call.getArguments()[index], boundContextParameters));
+      if (propagated.length === 0) return [];
+      return collectSignedCallbacks(
+        helper,
+        new Set(propagated),
+        new Set(visitedFunctions).add(declarationKey(helper)),
+      );
+    });
+  });
+
+const callDeclarations = (call: CallExpression): MorphNode[] => {
   const symbol = call.getExpression().getSymbol();
   const resolved = symbol?.getAliasedSymbol() ?? symbol;
   return (resolved?.getDeclarations() ?? [])
@@ -94,7 +123,7 @@ const variableDeclarations = (node: MorphNode): VariableDeclaration[] => {
   }))];
 };
 
-const callDirectlyTargets = (call: MorphNode, targetKeys: ReadonlySet<string>): boolean =>
+const callDirectlyTargets = (call: CallExpression, targetKeys: ReadonlySet<string>): boolean =>
   callDeclarations(call).some((declaration) => targetKeys.has(declarationKey(declaration)));
 
 const transparentInner = (expression: MorphNode): MorphNode | undefined => {
@@ -146,7 +175,7 @@ function expressionCarriesSourceEvidence(
 }
 
 const callCarriesSourceEvidence = (
-  call: MorphNode,
+  call: CallExpression,
   targetKeys: ReadonlySet<string>,
   visitedFunctions: ReadonlySet<string>,
 ): boolean => {

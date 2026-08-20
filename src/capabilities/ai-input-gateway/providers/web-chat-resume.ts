@@ -43,20 +43,24 @@ const verifyResumableTurn = async (input: {
   if (!execution?.resumeSubmission) {
     throw new Error("review_required: durable web-chat submission proof is unavailable for resume.");
   }
-  const identity = await input.browser.evaluate<{ pageUrl: string; markerCount: number }>({
-    description: "verify exact canonical web-chat marker before resuming provider polling",
-    script: `
-const marker=${JSON.stringify(execution.turnMarker)};
-const normalized=(value)=>String(value||"").replace(/\\s+/gu," ").trim();
-const nodes=Array.from(document.querySelectorAll("[data-testid^='conversation-turn-'][data-turn='user']"));
-const markerCount=nodes.filter((node)=>normalized(node.textContent).includes(marker)).length;
-return {pageUrl:location.href,markerCount};
-`,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-  if (identity.markerCount !== 1) {
+  const [document, match] = await Promise.all([
+    input.browser.executeDomIntent({ kind: "document" }),
+    input.browser.executeDomIntent({
+      kind: "find",
+      selector: "[data-testid^='conversation-turn-'][data-turn='user']",
+      textContains: execution.turnMarker,
+      maxMatches: 1,
+    }),
+  ]);
+  const pageUrl = typeof document === "object" && document !== null && !Array.isArray(document)
+    && typeof (document as { url?: unknown }).url === "string"
+    ? (document as { url: string }).url : "unknown";
+  const markerCount = typeof match === "object" && match !== null && !Array.isArray(match)
+    && typeof (match as { count?: unknown }).count === "number"
+    ? (match as { count: number }).count : -1;
+  if (markerCount !== 1) {
     throw new Error(
-      `review_required: resumable canonical web-chat marker mismatch; count=${identity.markerCount}; pageUrl=${identity.pageUrl}`,
+      `review_required: resumable canonical web-chat marker mismatch; count=${markerCount}; pageUrl=${pageUrl}`,
     );
   }
 };

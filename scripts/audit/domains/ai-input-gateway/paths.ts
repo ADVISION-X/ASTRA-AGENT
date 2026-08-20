@@ -11,9 +11,9 @@ export const attachment = {
   sharedPath: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   exactTargetTransportPath: "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
   attachmentTransportPath: "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
-  browserContractPath: "src/lib/browser/browser-controller.ts",
+  browserContractPath: "src/lib/browser/browser-authority-api.ts",
   exactTargetRefPath: "src/lib/browser/exact-target/browser-target-ref.ts",
-  exactTargetRuntimePath: "src/lib/browser/exact-target/browser-command-runtime.ts",
+  exactTargetRuntimePath: "src/lib/browser/exact-target/browser-command-actor.ts",
   acceptancePath: "src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts",
 } as const;
 

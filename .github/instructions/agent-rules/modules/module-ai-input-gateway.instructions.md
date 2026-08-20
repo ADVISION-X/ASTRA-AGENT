@@ -1,7 +1,7 @@
 ---
 name: "GrassEye AI Input Gateway"
 description: "Use when defining external AI feeding, provider delivery, GPT Web session control, web-chat attachment transport, raw-response proof, or provider isolation."
-applyTo: "src/capabilities/ai-input-gateway/**/*.{ts,tsx,json},src/lib/browser/current-chrome-browser-controller-execution.ts,scripts/audit/domains/ai-input-gateway/**/*.{ts,json},scripts/acceptance/ai-input-gateway-*.ts,docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md"
+applyTo: "src/capabilities/ai-input-gateway/**/*.{ts,tsx,json},src/lib/browser/browser-authority-api.ts,src/lib/browser/exact-target/**,scripts/audit/domains/ai-input-gateway/**/*.{ts,json},scripts/acceptance/ai-input-gateway-*.ts,docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md"
 ---
 
 # GrassEye AI Input Gateway
@@ -81,9 +81,9 @@ business owner
   "capabilityDomain": "ai-input-gateway",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "law+blueprint+ast+acceptance",
-  "summary": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
+  "summary": "Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
   "required": [
-    "GPT Web adapters reuse one operator-authorized BrowserController and exactly one controlled physical ChatGPT tab; independent tasks live in separately created ChatGPT conversations, never separate browser tabs.",
+    "GPT Web adapters acquire an operator-authorized authenticated Browser authority lease and exactly one controlled physical ChatGPT target at a time; independent tasks live in separately created ChatGPT conversations, never separate browser tabs or a cached legacy session.",
     "The serialized browser-mutation lease covers only bounded page mutations such as fresh-conversation establishment, exact conversation switching, profile control, attachment selection, prompt entry, submission proof, title finalization, DOM capture and cleanup; provider generation wait never holds that lease. Submission and patrol waiters use one SQLite ticket ledger and admitted submissions have priority over ordinary response patrol.",
     "Independent submitted feeds may wait for provider responses concurrently up to the operator-owned runtime capacity, which is not caller-controlled and is not a fixed product constant.",
     "When a plugin-owned task acknowledges takeover, AI Input Gateway records that exact owner key, releases the single provider target to the operator, and makes all new web-chat executions wait without reacquiring the tab until that same owner explicitly resumes.",
@@ -100,7 +100,7 @@ business owner
   "clauses": [
     {
       "clauseId": "apex-ai-input-gateway-002-requirement",
-      "statement": "Web-chat provider work must use an operator-authorized BrowserController, fail closed on provider security barriers, and preserve exact raw response truth.",
+      "statement": "Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
       "evidenceMode": "acceptance",
       "ownerDomain": "ai-input-gateway"
     }

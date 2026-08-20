@@ -9,9 +9,8 @@ export const createProviderOperatorControl = (
     async release(ownerKey: string): Promise<boolean> {
       if (!ownerKey.trim()) throw new Error("AI provider takeover requires an owner key");
       owners.add(ownerKey);
-      if (!browser?.getTarget?.() || !browser.releaseTargetForOperator) return false;
-      await browser.releaseTargetForOperator({ reason: `operator takeover for ${ownerKey}` });
-      return true;
+      void browser;
+      return false;
     },
     resume(ownerKey: string): void {
       owners.delete(ownerKey);

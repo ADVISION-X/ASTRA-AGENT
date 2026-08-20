@@ -1,63 +1,53 @@
-import { once } from "node:events";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { createInterface } from "node:readline";
+import { lstat, mkdir, open, unlink } from "node:fs/promises";
+import { dirname } from "node:path";
+
+const EEXIST = "EEXIST";
+const ENOENT = "ENOENT";
+const OWNER_LOCK_MODE = 0o600;
 
 export class BrowserOwnerLock {
-  private constructor(
-    private readonly helper: ChildProcessWithoutNullStreams,
-    readonly lockPath: string,
-  ) {}
+  private handle: Awaited<ReturnType<typeof open>> | null = null;
 
-  static async acquire(input: {
-    helperPath: string;
-    lockPath: string;
-    timeoutMs?: number;
-  }): Promise<BrowserOwnerLock> {
-    const helper = spawn(
-      input.helperPath,
-      ["hold-owner-lock", input.lockPath],
-      {
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    const stderr: string[] = [];
-    helper.stderr.setEncoding("utf8");
-    helper.stderr.on("data", (chunk: string) => stderr.push(chunk));
-    const lines = createInterface({ input: helper.stdout });
-    const timeoutMs = input.timeoutMs ?? 2_000;
-    const timeout = setTimeout(() => helper.kill("SIGKILL"), timeoutMs);
+  public constructor(private readonly lockPath: string) {}
+
+  public async acquire(): Promise<void> {
+    await mkdir(dirname(this.lockPath), { recursive: true });
     try {
-      const line = await Promise.race([
-        once(lines, "line").then(([value]) => String(value)),
-        once(helper, "exit").then(() => {
-          throw new Error(
-            stderr.join("") || "BROWSER_CONTROLLER_ALREADY_OWNED",
-          );
-        }),
-      ]);
-      const ack = JSON.parse(line) as { status?: unknown };
-      if (ack.status !== "LOCKED") {
-        helper.kill("SIGKILL");
-        throw new Error("BROWSER_CONTROLLER_ALREADY_OWNED");
-      }
-      return new BrowserOwnerLock(helper, input.lockPath);
-    } finally {
-      clearTimeout(timeout);
-      lines.close();
+      this.handle = await open(this.lockPath, "wx", OWNER_LOCK_MODE);
+      await this.handle.writeFile(`${process.pid}\n`, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === EEXIST) throw new Error("BROWSER_DUAL_ACTIVE_WORKER");
+      throw error;
     }
   }
 
-  isAlive(): boolean {
-    return this.helper.exitCode === null && !this.helper.killed;
+  /**
+   * A stale endpoint may be removed only by the process that already owns the
+   * controller lock.  This deliberately refuses regular files, foreign users
+   * and group/world-readable sockets; those states require operator repair.
+   */
+  public async removeProvenStaleSocket(socketPath: string): Promise<void> {
+    if (!this.handle) throw new Error("BROWSER_CONTROLLER_ALREADY_OWNED");
+    let stat: Awaited<ReturnType<typeof lstat>>;
+    try {
+      stat = await lstat(socketPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === ENOENT) return;
+      throw error;
+    }
+    const ownerUid = typeof process.getuid === "function" ? process.getuid() : null;
+    const secureMode = (stat.mode & 0o077) === 0;
+    if (!stat.isSocket() || !secureMode || (ownerUid !== null && stat.uid !== ownerUid)) {
+      throw new Error("BROWSER_REPAIR_REQUIRED");
+    }
+    await unlink(socketPath);
   }
 
-  async release(): Promise<void> {
-    if (this.helper.exitCode !== null) return;
-    this.helper.stdin.end();
-    await Promise.race([
-      once(this.helper, "exit").then(() => undefined),
-      new Promise<void>((resolve) => setTimeout(resolve, 1_000)),
-    ]);
-    if (this.helper.exitCode === null) this.helper.kill("SIGKILL");
+  public async release(): Promise<void> {
+    await this.handle?.close();
+    this.handle = null;
+    await unlink(this.lockPath).catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code !== ENOENT) throw error;
+    });
   }
 }

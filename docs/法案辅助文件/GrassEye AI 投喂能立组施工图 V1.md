@@ -28,7 +28,7 @@ business owner
 
 - 业务 owner 只提供任务、提示词、输入引用、输出合同、拓扑父引用与受治理执行档案；不提供 selector、坐标、tab id、标题、marker、浏览器命令或 action plan。
 - AI Input Gateway 只负责 provider transport、页面动作、原始回答与 transport evidence，不做八字、奇门、合婚、起名、SEO、选品等业务判断。
-- `BrowserController` / `BrowserTargetSession` 是唯一浏览器物理执行基础；一个 ChatGPT 物理标签页承载多条逻辑会话。
+- `BrowserAuthorityBroker` 发出的认证 authority lease 与短生命周期 exact `BrowserTargetLease` 是唯一浏览器物理执行基础；一个 ChatGPT 物理标签页承载多条逻辑会话，业务不得缓存或复活旧 session。
 - canonical `/c/...` URL + logical turn marker + response hash 是逻辑会话身份；标题永远只是人类可读的次级 evidence。
 - 所有新页面动作都进入同一个 Session Controller；禁止增加 `provider-title-owner`、`chat-manager`、`rename-worker`、`model-picker-v2` 等平行 owner。
 

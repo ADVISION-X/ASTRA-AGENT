@@ -1,63 +1,46 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
-export const BROWSER_AUTHORITY_CERTIFICATE_SCHEMA_VERSION =
-  "browser-authority-certificate.v1" as const;
+import type { BrowserHash } from "../exact-target/browser-target-ref.js";
 
+/**
+ * Process-memory authority only. A target lease must identify the exact
+ * artifact, policy, profile, Chrome process and Native Port that created it.
+ */
 export type BrowserAuthorityCertificateV1 = Readonly<{
-  schemaVersion: typeof BROWSER_AUTHORITY_CERTIFICATE_SCHEMA_VERSION;
+  schemaVersion: "browser-authority-certificate-v1";
   authorityRef: string;
   authorityEpoch: number;
-  artifactSetHash: `sha256:${string}`;
-  activationTupleHash: `sha256:${string}`;
-  releaseSecurityPolicyHash: `sha256:${string}`;
-  profileEnrollmentHash: `sha256:${string}`;
-  chromeProcessIncarnationHash: `sha256:${string}`;
-  controllerIncarnationHash: `sha256:${string}`;
+  executionBindingHash: BrowserHash;
+  artifactSetHash: BrowserHash;
+  activationTupleHash: BrowserHash;
+  releaseSecurityPolicyHash: BrowserHash;
+  profileEnrollmentHash: BrowserHash;
+  processIncarnationHash: BrowserHash;
+  controllerIncarnationHash: BrowserHash;
   connectionGeneration: number;
   hostProcessEpoch: number;
   nativePortEpoch: number;
   extensionId: string;
   extensionVersion: string;
   protocolRevision: number;
-  capabilitySetHash: `sha256:${string}`;
-  permissionPolicyHash: `sha256:${string}`;
-  originPolicyHash: `sha256:${string}`;
-  authorityLivenessPolicyHash: `sha256:${string}`;
-  commandAdmissionBudgetHash: `sha256:${string}`;
-  artifactStreamBudgetHash: `sha256:${string}`;
-  authTranscriptHash: `sha256:${string}`;
+  capabilitySetHash: BrowserHash;
+  permissionPolicyHash: BrowserHash;
+  originPolicyHash: BrowserHash;
+  livenessPolicyHash: BrowserHash;
+  commandAdmissionBudgetHash: BrowserHash;
+  artifactStreamBudgetHash: BrowserHash;
+  authTranscriptHash: BrowserHash;
   keyEpoch: number;
   livenessLeaseEpoch: number;
-  issuedAtMonotonicMs: number;
-  maxAgeDeadlineMonotonicMs: number;
-  certificateHash: `sha256:${string}`;
+  issuedAt: string;
+  issuedAtMonotonicNs: string;
+  expiresAt: string;
+  issuerMac: BrowserHash;
 }>;
 
-const sha256Canonical = (value: unknown): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
+export const assertCertificateLive = (certificate: BrowserAuthorityCertificateV1, now = Date.now()): void => {
+  if (Date.parse(certificate.expiresAt) <= now) throw new Error("BROWSER_LIVENESS_EXPIRED");
+};
 
-export class AuthenticatedBrowserAuthority {
-  readonly certificate: BrowserAuthorityCertificateV1;
-
-  private constructor(certificate: BrowserAuthorityCertificateV1) {
-    this.certificate = Object.freeze(certificate);
-    Object.freeze(this);
-  }
-
-  static issueInternal(
-    input: Omit<
-      BrowserAuthorityCertificateV1,
-      "schemaVersion" | "authorityRef" | "certificateHash"
-    >,
-  ): AuthenticatedBrowserAuthority {
-    const unsigned = Object.freeze({
-      schemaVersion: BROWSER_AUTHORITY_CERTIFICATE_SCHEMA_VERSION,
-      authorityRef: `browser-authority:${randomUUID()}`,
-      ...input,
-    });
-    return new AuthenticatedBrowserAuthority({
-      ...unsigned,
-      certificateHash: sha256Canonical(unsigned),
-    });
-  }
-}
+export const hashBrowserAuthorityCertificate = (certificate: BrowserAuthorityCertificateV1): BrowserHash =>
+  `sha256:${createHash("sha256").update(JSON.stringify(certificate)).digest("hex")}`;

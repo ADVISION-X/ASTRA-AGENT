@@ -18,15 +18,11 @@ import {
 export const readActivePageUrl = async (
   browser: BrowserTargetLease,
 ): Promise<string | null> => {
-  try {
-    const state = await browser.evaluate<{ pageUrl: string }>({
-      description: "read active page URL before AI web chat feed",
-      script: "return {pageUrl: location.href};",
-    });
-    return state.pageUrl || null;
-  } catch {
-    return browser.getLeaseState().currentUrl || null;
-  }
+  const state = await browser.executeDomIntent({ kind: "document" }).catch(() => null);
+  if (typeof state !== "object" || state === null || Array.isArray(state)) return null;
+  return typeof (state as { url?: unknown }).url === "string"
+    ? (state as { url: string }).url
+    : null;
 };
 
 export const assertActiveProviderPage = async (input: {
@@ -36,28 +32,11 @@ export const assertActiveProviderPage = async (input: {
   phase: string;
 }): Promise<void> => {
   const expectedHost = new URL(input.providerUrl).host;
-  const readState = (): Promise<{ pageUrl: string; hostMatches: boolean }> =>
-    input.browser.evaluate<{ pageUrl: string; hostMatches: boolean }>({
-      description: `verify provider page remains active before ${input.phase}`,
-      script: `const expectedHost=${JSON.stringify(expectedHost)};return {pageUrl:location.href,hostMatches:location.host===expectedHost};`,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-  let state = await readState();
-  if (!state.hostMatches && input.phase === "attachment upload"
-    && state.pageUrl.startsWith("chrome-error://")) {
-    const reopened = await input.browser.open({
-      url: input.providerUrl,
-      title: "recover provider page before attachment upload",
-      reusePolicy: "bind-existing-exact-origin",
-    });
-    if (reopened.ok) {
-      await input.browser.wait(1_000);
-      state = await readState();
-    }
-  }
-  if (!state.hostMatches) {
+  if (input.abortSignal?.aborted) throw new Error("review_required: active provider page check aborted");
+  const pageUrl = await readActivePageUrl(input.browser);
+  if (!pageUrl || new URL(pageUrl).host !== expectedHost) {
     throw new Error(
-      `review_required: active Chrome tab left provider page before ${input.phase}; pageUrl=${state.pageUrl}`,
+      `review_required: active Chrome tab left provider page before ${input.phase}; pageUrl=${pageUrl ?? "unknown"}`,
     );
   }
 };

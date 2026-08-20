@@ -1,180 +1,126 @@
-import { performance } from "node:perf_hooks";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
+import type { BrowserHash } from "../exact-target/browser-target-ref.js";
 import {
-  AuthenticatedBrowserAuthority,
-  type BrowserAuthorityCertificateV1,
-} from "./browser-authority-certificate.js";
-import {
-  BROWSER_MAX_AUTHORITY_AGE_MS,
-  issueBrowserAuthorityLivenessLease,
-  isBrowserAuthorityLivenessLeaseExpired,
-  type BrowserAuthorityLivenessLeaseV1,
-} from "./browser-authority-liveness-lease.js";
+  assertAuthenticatedTransportHandshake,
+  type BrowserTransportHandshake,
+} from "../transport/transport-authenticator.js";
+import { hashBrowserAuthorityCertificate, type BrowserAuthorityCertificateV1 } from "./browser-authority-certificate.js";
 import type { BrowserAuthoritySlot } from "./browser-control-state.js";
+import {
+  browserCommandPermitMacPayload,
+  type BrowserCommandPermit,
+  type BrowserUnsignedCommandPermit,
+} from "../transport/command-permit.js";
 
-export class BrowserAuthorityAbsentError extends Error {
-  readonly code = "BROWSER_AUTHORITY_ABSENT" as const;
-  constructor(message = "authenticated browser authority is absent") {
-    super(message);
-    this.name = "BrowserAuthorityAbsentError";
-  }
-}
-
-export type BrowserAuthorityIssueInput = Omit<
-  BrowserAuthorityCertificateV1,
-  | "schemaVersion"
-  | "authorityRef"
-  | "certificateHash"
-  | "issuedAtMonotonicMs"
-  | "maxAgeDeadlineMonotonicMs"
-  | "livenessLeaseEpoch"
->;
+export type BrowserAuthenticationProof = Readonly<{
+  executionBindingHash: BrowserHash;
+  handshake: BrowserTransportHandshake;
+  authTranscriptHash: BrowserHash;
+}>;
 
 export class BrowserAuthorityIssuer {
-  private current: AuthenticatedBrowserAuthority | null = null;
-  private pending: AuthenticatedBrowserAuthority | null = null;
-  private liveness: BrowserAuthorityLivenessLeaseV1 | null = null;
-  private changedAtMonotonicMs = performance.now();
-  private absentReason = "not_authenticated";
-  private authorityEpoch = 0;
-  private livenessLeaseEpoch = 0;
-  private lastHeartbeatSequence = 0;
+  private slot: BrowserAuthoritySlot = { kind: "ABSENT", reasonCode: "BROWSER_HOST_UNAVAILABLE" };
+  private nextEpoch = 1;
+  private readonly issuerKey = randomBytes(32);
 
-  prepare(input: BrowserAuthorityIssueInput): AuthenticatedBrowserAuthority {
-    if (this.current || this.pending) {
-      throw new Error("BROWSER_AUTHORITY_ALREADY_PENDING_OR_PRESENT");
-    }
-    const now = performance.now();
-    const authorityEpoch = Math.max(
-      this.authorityEpoch + 1,
-      input.authorityEpoch,
-    );
-    const candidate = AuthenticatedBrowserAuthority.issueInternal({
-      ...input,
+  public current(): BrowserAuthoritySlot {
+    return this.slot;
+  }
+
+  /** The reducer may call this only after the full Host/MV3 handshake agrees. */
+  public commitAuthenticationProof(proof: BrowserAuthenticationProof): BrowserAuthorityCertificateV1 {
+    assertAuthenticatedTransportHandshake(proof.handshake, proof.authTranscriptHash);
+    const authorityEpoch = this.nextEpoch;
+    const issuedAt = new Date().toISOString();
+    const certificateWithoutMac = {
+      schemaVersion: "browser-authority-certificate-v1" as const,
+      authorityRef: `authority-${authorityEpoch}`,
       authorityEpoch,
-      livenessLeaseEpoch: this.livenessLeaseEpoch + 1,
-      issuedAtMonotonicMs: now,
-      maxAgeDeadlineMonotonicMs: now + BROWSER_MAX_AUTHORITY_AGE_MS,
-    });
-    this.pending = candidate;
-    return candidate;
+      executionBindingHash: proof.executionBindingHash,
+      artifactSetHash: proof.handshake.artifactSetHash,
+      activationTupleHash: proof.handshake.activationTupleHash,
+      releaseSecurityPolicyHash: proof.handshake.releaseSecurityPolicyHash,
+      profileEnrollmentHash: proof.handshake.profileEnrollmentHash,
+      processIncarnationHash: proof.handshake.processIncarnationHash,
+      controllerIncarnationHash: proof.handshake.controllerIncarnationHash,
+      connectionGeneration: proof.handshake.connectionGeneration,
+      hostProcessEpoch: proof.handshake.hostProcessEpoch,
+      nativePortEpoch: proof.handshake.nativePortEpoch,
+      extensionId: proof.handshake.extensionId,
+      extensionVersion: proof.handshake.extensionVersion,
+      protocolRevision: proof.handshake.protocolRevision,
+      capabilitySetHash: proof.handshake.capabilitySetHash,
+      permissionPolicyHash: proof.handshake.permissionPolicyHash,
+      originPolicyHash: proof.handshake.originPolicyHash,
+      livenessPolicyHash: proof.handshake.livenessPolicyHash,
+      commandAdmissionBudgetHash: proof.handshake.commandAdmissionBudgetHash,
+      artifactStreamBudgetHash: proof.handshake.artifactStreamBudgetHash,
+      authTranscriptHash: proof.authTranscriptHash,
+      keyEpoch: authorityEpoch,
+      livenessLeaseEpoch: authorityEpoch,
+      issuedAt,
+      issuedAtMonotonicNs: process.hrtime.bigint().toString(),
+      expiresAt: proof.handshake.expiresAt,
+    };
+    const issuerMac = `sha256:${createHmac("sha256", this.issuerKey).update(JSON.stringify(certificateWithoutMac)).digest("hex")}` as BrowserHash;
+    const certificate: BrowserAuthorityCertificateV1 = { ...certificateWithoutMac, issuerMac };
+    this.nextEpoch += 1;
+    this.slot = { kind: "PRESENT", authority: certificate };
+    return certificate;
   }
 
-  commit(
-    candidate: AuthenticatedBrowserAuthority,
-  ): AuthenticatedBrowserAuthority {
-    if (this.current) throw new Error("BROWSER_AUTHORITY_ALREADY_PRESENT");
+  public revokeCurrent(reasonCode: string): void {
+    this.slot = { kind: "ABSENT", reasonCode };
+  }
+
+  /**
+   * This is the only signer. The MAC covers every permit field, and the same
+   * per-authority key is provided only after the Native Host/MV3 handshake so
+   * the extension can reject a modified frame before executing it.
+   */
+  public signCurrentCommandPermit(permit: BrowserUnsignedCommandPermit): BrowserHash {
+    this.assertPermitBoundToCurrentAuthority(permit);
+    return `sha256:${createHmac("sha256", this.issuerKey)
+      .update(browserCommandPermitMacPayload(permit))
+      .digest("hex")}` as BrowserHash;
+  }
+
+  public commandPermitKeyBase64(): string {
+    return this.issuerKey.toString("base64");
+  }
+
+  /**
+   * Command MAC verification remains inside the Controller authority owner.
+   * The MV3 receives commands solely through the authenticated Native Host and
+   * additionally compares the certificate context supplied at ready time.
+   */
+  public assertCurrentCommandPermit(permit: BrowserCommandPermit): void {
+    const { commandFrameMac, ...unsigned } = permit;
+    const expected = this.signCurrentCommandPermit(unsigned);
+    const candidate = Buffer.from(commandFrameMac);
+    const expectedBuffer = Buffer.from(expected);
     if (
-      !this.pending ||
-      this.pending.certificate.certificateHash !==
-        candidate.certificate.certificateHash
+      candidate.byteLength !== expectedBuffer.byteLength
+      || !timingSafeEqual(candidate, expectedBuffer)
     ) {
-      throw new Error("BROWSER_AUTHORITY_PENDING_CANDIDATE_MISMATCH");
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
-    const now = performance.now();
-    this.current = candidate;
-    this.pending = null;
-    this.authorityEpoch = candidate.certificate.authorityEpoch;
-    this.livenessLeaseEpoch = candidate.certificate.livenessLeaseEpoch;
-    this.lastHeartbeatSequence = 0;
-    this.liveness = issueBrowserAuthorityLivenessLease({
-      authorityRef: candidate.certificate.authorityRef,
-      authorityEpoch: candidate.certificate.authorityEpoch,
-      leaseEpoch: this.livenessLeaseEpoch,
-      heartbeatSequence: 0,
-      nowMonotonicMs: now,
-    });
-    this.changedAtMonotonicMs = now;
-    this.absentReason = "";
-    return candidate;
   }
 
-  requireCurrent(): AuthenticatedBrowserAuthority {
-    this.revokeIfExpired("BROWSER_AUTHORITY_LIVENESS_EXPIRED");
-    if (!this.current) throw new BrowserAuthorityAbsentError();
-    return this.current;
-  }
-
-  currentLivenessLease(): BrowserAuthorityLivenessLeaseV1 {
-    this.requireCurrent();
-    if (!this.liveness) throw new BrowserAuthorityAbsentError();
-    return this.liveness;
-  }
-
-  heartbeat(input: {
-    authorityRef: string;
-    authorityEpoch: number;
-    leaseEpoch: number;
-    heartbeatSequence: number;
-  }): BrowserAuthorityLivenessLeaseV1 {
-    const authority = this.requireCurrent();
-    const currentLease = this.currentLivenessLease();
+  private assertPermitBoundToCurrentAuthority(permit: BrowserUnsignedCommandPermit): BrowserAuthorityCertificateV1 {
+    const current = this.slot;
+    if (current.kind === "ABSENT") throw new Error(current.reasonCode);
+    const authority = current.authority;
     if (
-      authority.certificate.authorityRef !== input.authorityRef ||
-      authority.certificate.authorityEpoch !== input.authorityEpoch ||
-      currentLease.leaseEpoch !== input.leaseEpoch ||
-      input.heartbeatSequence !== this.lastHeartbeatSequence + 1
+      permit.authorityRef !== authority.authorityRef
+      || permit.authorityEpoch !== authority.authorityEpoch
+      || permit.certificateHash !== hashBrowserAuthorityCertificate(authority)
+      || permit.activationTupleHash !== authority.activationTupleHash
+      || permit.executionBindingHash !== authority.executionBindingHash
     ) {
-      throw new BrowserAuthorityAbsentError(
-        "stale heartbeat cannot renew browser authority",
-      );
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
-    this.lastHeartbeatSequence = input.heartbeatSequence;
-    this.liveness = issueBrowserAuthorityLivenessLease({
-      authorityRef: input.authorityRef,
-      authorityEpoch: input.authorityEpoch,
-      leaseEpoch: input.leaseEpoch,
-      heartbeatSequence: input.heartbeatSequence,
-      nowMonotonicMs: performance.now(),
-    });
-    return this.liveness;
-  }
-
-  revoke(reason: string): void {
-    const now = performance.now();
-    this.current = null;
-    this.pending = null;
-    this.liveness = null;
-    this.lastHeartbeatSequence = 0;
-    this.changedAtMonotonicMs = now;
-    this.absentReason = reason || "BROWSER_AUTHORITY_REVOKED";
-  }
-
-  isCurrent(input: { authorityRef: string; authorityEpoch: number }): boolean {
-    try {
-      const current = this.requireCurrent().certificate;
-      return (
-        current.authorityRef === input.authorityRef &&
-        current.authorityEpoch === input.authorityEpoch
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  slot(): BrowserAuthoritySlot<AuthenticatedBrowserAuthority> {
-    this.revokeIfExpired("BROWSER_AUTHORITY_LIVENESS_EXPIRED");
-    return this.current
-      ? Object.freeze({
-          kind: "PRESENT" as const,
-          authority: this.current,
-          changedAtMonotonicMs: this.changedAtMonotonicMs,
-        })
-      : Object.freeze({
-          kind: "ABSENT" as const,
-          reasonCode: this.absentReason || "BROWSER_AUTHORITY_ABSENT",
-          changedAtMonotonicMs: this.changedAtMonotonicMs,
-        });
-  }
-
-  private revokeIfExpired(reason: string): void {
-    if (!this.current || !this.liveness) return;
-    const now = performance.now();
-    if (
-      now >= this.current.certificate.maxAgeDeadlineMonotonicMs ||
-      isBrowserAuthorityLivenessLeaseExpired(this.liveness, now)
-    ) {
-      this.revoke(reason);
-    }
+    return authority;
   }
 }

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "grasseye.browser.profile-enrollment.v1",
+  "required": ["profileRef", "profilePathHash", "extensionId", "extensionTreeHash", "policyHash", "enrolledAt"],
+  "additionalProperties": false
+}

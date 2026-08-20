@@ -1,61 +1,85 @@
-import { createHash } from "node:crypto";
-import type {
-  AuthenticatedBrowserAuthorityLease,
-  BrowserAuthorityBroker,
-  BrowserAuthorityStatus,
-  BrowserExecutionBinding,
-} from "../browser-authority-api.js";
-import type { TransportActor } from "../transport/transport-actor.js";
-import { AuthenticatedBrowserAuthorityLeaseImpl } from "./authenticated-browser-authority-lease.js";
-const hash = (v: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(v).digest("hex")}`;
-export type BrowserExecutionFenceValidator = {
-  assertCurrent(binding: BrowserExecutionBinding): void;
-};
-export class BrowserAuthorityBrokerImpl implements BrowserAuthorityBroker {
-  private readonly leases = new Set<AuthenticatedBrowserAuthorityLeaseImpl>();
-  constructor(
-    private readonly input: {
-      dataDir: string;
-      transport: TransportActor;
-      approvedArtifactRoots: readonly string[];
-      fenceValidator: BrowserExecutionFenceValidator;
-    },
+import { randomUUID } from "node:crypto";
+import type { BrowserTargetLeaseManager, BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
+import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
+import type { BrowserFileArtifactGrantV1 } from "../exact-target/browser-file-artifact-grant.js";
+import { assertCertificateLive } from "./browser-authority-certificate.js";
+import type { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
+import type { BrowserHash } from "../exact-target/browser-target-ref.js";
+
+export type BrowserExecutionBinding = Readonly<{
+  kind: "local" | "xuanxue";
+  executionRef: string;
+  jobRefHash: BrowserHash;
+  executionRefHash: BrowserHash;
+  writerLeaseEpoch: number;
+  writerFenceHash: BrowserHash;
+  candidateHash: BrowserHash;
+}>;
+
+export type BrowserAuthorityStatus =
+  | Readonly<{ kind: "UNAVAILABLE"; reasonCode: string }>
+  | Readonly<{ kind: "AVAILABLE"; authorityRefHash: BrowserHash; certificateHash: BrowserHash; activationTupleHash: BrowserHash }>;
+
+export type AuthenticatedBrowserAuthorityLease = Readonly<{
+  leaseRef: string;
+  executionBinding: BrowserExecutionBinding;
+  acquireTargetLease(input: BrowserExactTargetAcquisition): BrowserTargetLease;
+  issueFileArtifactGrant(input: Readonly<{ artifactRef: string; expectedSha256: BrowserHash; maxBytes: number }>): Promise<BrowserFileArtifactGrantV1>;
+  release(): Promise<void>;
+}>;
+
+export type BrowserArtifactResolver = Readonly<{
+  resolveArtifact(artifactRef: string): Promise<Readonly<{ canonicalPath: string; contentHash: BrowserHash; sizeBytes: number }>>;
+}>;
+
+export class BrowserAuthorityBroker {
+  public constructor(
+    private readonly issuer: BrowserAuthorityIssuer,
+    private readonly targetLeaseManagerFor: (binding: BrowserExecutionBinding) => BrowserTargetLeaseManager,
+    private readonly artifactResolver: BrowserArtifactResolver,
   ) {}
-  currentStatus(): BrowserAuthorityStatus {
-    const slot = this.input.transport.authoritySlot();
-    return slot.kind === "PRESENT"
-      ? {
-          kind: "AVAILABLE",
-          authorityRefHash: hash(slot.authority.certificate.authorityRef),
-          certificateHash: slot.authority.certificate.certificateHash,
-          activationTupleHash: slot.authority.certificate.activationTupleHash,
-        }
-      : { kind: "UNAVAILABLE", reasonCode: slot.reasonCode };
+
+  public currentStatus(): BrowserAuthorityStatus {
+    const slot = this.issuer.current();
+    if (slot.kind === "ABSENT") return { kind: "UNAVAILABLE", reasonCode: slot.reasonCode };
+    return {
+      kind: "AVAILABLE",
+      authorityRefHash: `sha256:${slot.authority.authorityRef}`,
+      certificateHash: `sha256:${slot.authority.authTranscriptHash.slice(7)}`,
+      activationTupleHash: slot.authority.activationTupleHash,
+    };
   }
-  async acquireForExecution(
-    binding: BrowserExecutionBinding,
-  ): Promise<AuthenticatedBrowserAuthorityLease> {
-    this.input.fenceValidator.assertCurrent(binding);
-    const slot = this.input.transport.authoritySlot();
-    if (slot.kind !== "PRESENT")
-      throw new Error(`BROWSER_INFRASTRUCTURE_UNAVAILABLE:${slot.reasonCode}`);
-    const lease = new AuthenticatedBrowserAuthorityLeaseImpl(
-      slot.authority,
-      binding,
-      {
-        dataDir: this.input.dataDir,
-        transport: this.input.transport,
-        approvedArtifactRoots: this.input.approvedArtifactRoots,
-        assertFenceCurrent: (candidate) =>
-          this.input.fenceValidator.assertCurrent(candidate),
+
+  public async acquireForExecution(binding: BrowserExecutionBinding): Promise<AuthenticatedBrowserAuthorityLease> {
+    const slot = this.issuer.current();
+    if (slot.kind === "ABSENT") throw new Error(slot.reasonCode);
+    assertCertificateLive(slot.authority);
+    if (slot.authority.executionBindingHash !== binding.executionRefHash) throw new Error("BROWSER_WORKER_FENCE_INVALID");
+    const manager = this.targetLeaseManagerFor(binding);
+    let released = false;
+    return {
+      leaseRef: `authority-lease-${randomUUID()}`,
+      executionBinding: binding,
+      acquireTargetLease: (input) => {
+        if (released) throw new Error("BROWSER_LIVENESS_EXPIRED");
+        return manager.acquire(input);
       },
-    );
-    this.leases.add(lease);
-    return lease;
-  }
-  invalidateAll(): void {
-    for (const lease of this.leases) lease.invalidate();
-    this.leases.clear();
+      issueFileArtifactGrant: async ({ artifactRef, expectedSha256, maxBytes }) => {
+        if (released || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
+        const artifact = await this.artifactResolver.resolveArtifact(artifactRef);
+        if (artifact.contentHash !== expectedSha256 || artifact.sizeBytes > maxBytes) throw new Error("BROWSER_FILE_GRANT_INVALID");
+        return {
+          schemaVersion: "browser-file-artifact-grant-v1",
+          grantRef: `grant-${randomUUID()}`,
+          authorityEpoch: slot.authority.authorityEpoch,
+          executionBindingHash: slot.authority.executionBindingHash,
+          artifactRef,
+          contentHash: expectedSha256,
+          maxBytes,
+          expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        };
+      },
+      release: async () => { released = true; },
+    };
   }
 }

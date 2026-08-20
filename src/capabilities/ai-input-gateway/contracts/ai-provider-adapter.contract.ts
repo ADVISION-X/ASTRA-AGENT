@@ -1,4 +1,4 @@
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import type { BrowserFileArtifactGrantV1, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type {
   AiFeedInput,
@@ -268,6 +268,16 @@ export type AiProviderRawResponse = {
 export type AiProviderAdapterContext = {
   dataDir: string;
   browser?: BrowserTargetLease;
+  /**
+   * This narrow issuer is injected only by the Browser authority owner. It
+   * accepts opaque artifact identities, never source or staged filesystem
+   * paths, and lets the attachment child perform one exact-target batch.
+   */
+  issueBrowserFileArtifactGrant?: (input: Readonly<{
+    artifactRef: string;
+    expectedSha256: `sha256:${string}`;
+    maxBytes: number;
+  }>) => Promise<BrowserFileArtifactGrantV1>;
   runtimeLogger?: RuntimeLogger;
   abortSignal?: AbortSignal;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;

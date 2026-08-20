@@ -1,14 +1,12 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
-import { buildWaitForExactAttachmentCountScript } from "./web-chat-composer-scripts.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
-import {
-  buildClearProvenSubmittedRootDraftScript,
-  CLEAR_COMPOSER_SCRIPT,
-} from "./web-chat-page-action-scripts.js";
-import { getRecentChatGptBlockingDialog } from "./web-chat-rate-limit-dialog.js";
 
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 120_000;
+const CHATGPT_COMPOSER_SELECTOR = "#prompt-textarea";
+const CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR = "#upload-files";
+
+export type AttachmentBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait">;
 
 type ExactAttachmentStateOptions = {
   expectedPageUrl?: string | null;
@@ -17,53 +15,102 @@ type ExactAttachmentStateOptions = {
   requireComposerTextEmpty?: boolean;
 };
 
-export const readExactAttachmentState = (
-  browser: BrowserTargetLease,
-  context: AiProviderAdapterContext,
-  expectedCount: number,
-  expectedFileNames: readonly string[],
-  options: ExactAttachmentStateOptions = {},
-): Promise<WebChatEvaluation> =>
-  browser.evaluate<WebChatEvaluation>({
-    description: "read exact fresh web chat composer attachment state",
-    script: buildWaitForExactAttachmentCountScript(expectedCount, expectedFileNames, options),
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-export const clearComposer = (
-  browser: BrowserTargetLease,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluate<WebChatEvaluation>({
-    description: "clear stale AI web chat draft and attachments",
-    script: CLEAR_COMPOSER_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-export const clearProvenSubmittedRootDraft = (
-  browser: BrowserTargetLease,
-  context: AiProviderAdapterContext,
-  expectedTurnMarker: string,
-): Promise<WebChatEvaluation> =>
-  browser.evaluate<WebChatEvaluation>({
-    description: "clear uniquely owned submitted ChatGPT root draft",
-    script: buildClearProvenSubmittedRootDraftScript(expectedTurnMarker),
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-const throwIfBlockingDialog = (
-  evaluation: WebChatEvaluation | null,
-  expectedCount: number,
-): void => {
-  const blockingDialog = getRecentChatGptBlockingDialog();
-  if (!blockingDialog) return;
-  const code = blockingDialog.kind === "rate_limit"
-    ? "GPT_UPLOAD_RATE_LIMITED"
-    : "GPT_UPLOAD_REJECTED";
-  throw new Error(
-    `${code}; prompt_submitted=false; response_captured=false; step=${expectedCount}; expected_count=${expectedCount}; detected_count=${String(evaluation?.attachmentCount ?? 0)}; provider_dialog=${blockingDialog.text}`,
-  );
+const record = (value: unknown): Record<string, unknown> => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("BROWSER_TARGET_INVALID");
+  return value as Record<string, unknown>;
 };
+
+const documentState = async (browser: AttachmentBrowser): Promise<{ url: string; title: string }> => {
+  const value = record(await browser.executeDomIntent({ kind: "document" }));
+  if (typeof value.url !== "string" || typeof value.title !== "string" || !value.url.startsWith("https://")) {
+    throw new Error("BROWSER_TARGET_INVALID");
+  }
+  return { url: value.url, title: value.title };
+};
+
+const inspect = async (browser: AttachmentBrowser, selector: string): Promise<Record<string, unknown>> =>
+  record(await browser.executeDomIntent({
+    kind: "inspect",
+    selector,
+    fields: ["tagName", "type", "text", "accept", "multiple", "connected", "disabled", "visible"],
+  }));
+
+const inspectKnownChatGptComposer = async (browser: AttachmentBrowser): Promise<{ pageUrl: string; composer: Record<string, unknown>; fileInput: Record<string, unknown> }> => {
+  const { url } = await documentState(browser);
+  const [composer, fileInput] = await Promise.all([
+    inspect(browser, CHATGPT_COMPOSER_SELECTOR),
+    inspect(browser, CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR),
+  ]);
+  return { pageUrl: url, composer, fileInput };
+};
+
+const hasExactDocumentInputTopology = (input: Record<string, unknown>): boolean =>
+  input.tagName === "INPUT"
+  && input.type === "file"
+  && input.accept === ""
+  && input.multiple === true
+  && input.connected === true
+  && input.disabled === false;
+
+const evaluateKnownAttachmentPreflight = async (browser: AttachmentBrowser, expectedCount: number, options: ExactAttachmentStateOptions): Promise<WebChatEvaluation> => {
+  const observed = await inspectKnownChatGptComposer(browser);
+  if (options.expectedPageUrl && observed.pageUrl !== options.expectedPageUrl) {
+    return { status: "review_required", message: "WEB_CHAT_PROVIDER_IDENTITY_DRIFT", pageUrl: observed.pageUrl };
+  }
+  if (observed.composer.tagName !== "DIV" || observed.composer.disabled === true) {
+    return { status: "review_required", message: "CHATGPT_COMPOSER_INVALID", pageUrl: observed.pageUrl };
+  }
+  if (!hasExactDocumentInputTopology(observed.fileInput)) {
+    return { status: "review_required", message: "CHATGPT_DOCUMENT_FILE_INPUT_AMBIGUOUS", pageUrl: observed.pageUrl };
+  }
+  const composerText = typeof observed.composer.text === "string" ? observed.composer.text.trim() : "";
+  if (options.requireComposerTextEmpty && composerText.length > 0) {
+    return { status: "review_required", message: "WEB_CHAT_COMPOSER_NOT_EMPTY", pageUrl: observed.pageUrl, composerText };
+  }
+  if (expectedCount === 0) {
+    return {
+      status: "success",
+      message: "exact ChatGPT composer and document-file input preflight verified",
+      pageUrl: observed.pageUrl,
+      attachmentCount: 0,
+      attachmentNames: [],
+      attachmentScope: "composer",
+      composerCandidateCount: 1,
+      composerRootCount: 1,
+      conversationTurnCountInScope: 0,
+      generalFileInputCount: 1,
+      imageFileInputCountInScope: 0,
+      pendingAttachmentCount: 0,
+      sendReady: false,
+      composerTextLength: composerText.length,
+    };
+  }
+  return {
+    status: "review_required",
+    message: "NOT_PRODUCTION_VERIFIED: exact ChatGPT attachment-name and stability DOM has not been observed on the approved Chrome construction path",
+    pageUrl: observed.pageUrl,
+  };
+};
+
+export const readExactAttachmentState = (
+  browser: AttachmentBrowser,
+  _context: AiProviderAdapterContext,
+  expectedCount: number,
+  _expectedFileNames: readonly string[],
+  options: ExactAttachmentStateOptions = {},
+): Promise<WebChatEvaluation> => evaluateKnownAttachmentPreflight(browser, expectedCount, options);
+
+/** Unknown drafts are never cleared. This only admits a already-empty composer. */
+export const clearComposer = async (
+  browser: AttachmentBrowser,
+  context: AiProviderAdapterContext,
+): Promise<WebChatEvaluation> => readExactAttachmentState(browser, context, 0, [], { requireComposerTextEmpty: true });
+
+/** The current approved construction evidence has not reached a stale owned draft. */
+export const clearProvenSubmittedRootDraft = async (): Promise<WebChatEvaluation> => ({
+  status: "review_required",
+  message: "NOT_PRODUCTION_VERIFIED: stale owned ChatGPT draft clearing requires a fresh live DOM observation",
+});
 
 const throwIfTerminalAttachmentEvaluation = (input: {
   evaluation: WebChatEvaluation;
@@ -71,22 +118,11 @@ const throwIfTerminalAttachmentEvaluation = (input: {
   expectedFileNames: readonly string[];
 }): void => {
   if (input.evaluation.status !== "review_required" && input.evaluation.status !== "failed") return;
-  const evaluation = input.evaluation;
-  throw new Error(
-    `${evaluation.message}; step=${input.expectedCount}; expected_count=${input.expectedCount}; detected_count=${String(evaluation.attachmentCount ?? 0)}; expected_files=${input.expectedFileNames.join("|")}; detected_files=${evaluation.attachmentNames?.join("|") ?? ""}; page_url=${evaluation.pageUrl ?? "unknown"}; composer_candidates=${String(evaluation.composerCandidateCount ?? 0)}; conversation_turns_in_scope=${String(evaluation.conversationTurnCountInScope ?? 0)}; pending=${String(evaluation.pendingAttachmentCount ?? 0)}; send_ready=${String(evaluation.sendReady ?? false)}`,
-  );
+  throw new Error(`${input.evaluation.message}; step=${input.expectedCount}; expected_files=${input.expectedFileNames.join("|")}; page_url=${input.evaluation.pageUrl ?? "unknown"}`);
 };
 
-const buildAttachmentTimeoutError = (input: {
-  evaluation: WebChatEvaluation | null;
-  expectedCount: number;
-  expectedFileNames: readonly string[];
-}): Error => new Error(
-  `GPT_ATTACHMENT_COUNT_MISMATCH; step=${input.expectedCount}; expected_count=${input.expectedCount}; detected_count=${String(input.evaluation?.attachmentCount ?? 0)}; expected_files=${input.expectedFileNames.join("|")}; detected_files=${input.evaluation?.attachmentNames?.join("|") ?? ""}; scope=${input.evaluation?.attachmentScope ?? "none"}; page_url=${input.evaluation?.pageUrl ?? "unknown"}; composer_candidates=${String(input.evaluation?.composerCandidateCount ?? 0)}; conversation_turns_in_scope=${String(input.evaluation?.conversationTurnCountInScope ?? 0)}; pending=${String(input.evaluation?.pendingAttachmentCount ?? 0)}; send_ready=${String(input.evaluation?.sendReady ?? false)}.`,
-);
-
 export const waitForExactAttachmentCount = async (
-  browser: BrowserTargetLease,
+  browser: AttachmentBrowser,
   context: AiProviderAdapterContext,
   expectedCount: number,
   expectedFileNames: readonly string[],
@@ -94,25 +130,11 @@ export const waitForExactAttachmentCount = async (
   options: ExactAttachmentStateOptions = {},
 ): Promise<WebChatEvaluation> => {
   const deadline = Date.now() + Math.min(timeoutMs, MAX_ATTACHMENT_COUNT_WAIT_MS);
-  let lastEvaluation: WebChatEvaluation | null = null;
   while (Date.now() < deadline) {
-    const evaluation = await readExactAttachmentState(
-      browser,
-      context,
-      expectedCount,
-      expectedFileNames,
-      options,
-    );
-    lastEvaluation = evaluation;
+    const evaluation = await readExactAttachmentState(browser, context, expectedCount, expectedFileNames, options);
     if (evaluation.status === "success") return evaluation;
-    throwIfBlockingDialog(evaluation, expectedCount);
     throwIfTerminalAttachmentEvaluation({ evaluation, expectedCount, expectedFileNames });
-    await browser.wait(250);
+    await browser.wait({ durationMs: 250 });
   }
-  throwIfBlockingDialog(lastEvaluation, expectedCount);
-  throw buildAttachmentTimeoutError({
-    evaluation: lastEvaluation,
-    expectedCount,
-    expectedFileNames,
-  });
+  throw new Error(`GPT_ATTACHMENT_COUNT_MISMATCH; expected_count=${expectedCount}; expected_files=${expectedFileNames.join("|")}`);
 };

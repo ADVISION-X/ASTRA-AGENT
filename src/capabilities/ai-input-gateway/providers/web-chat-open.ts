@@ -1,57 +1,27 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
-import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
-import type { WebChatForkActionProof } from "../contracts/ai-provider-adapter.contract.js";
+import type { AiProviderAdapterContext, WebChatForkActionProof } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
-import type { WebChatEvaluation } from "./web-chat-evaluation-contract.js";
 import { openGovernedContinuation } from "./web-chat-continuation.js";
 import { openGovernedForkFromCheckpoint } from "./web-chat-fork.js";
-import {
-  startFreshChatGptConversation,
-} from "./web-chat-fresh-conversation.js";
+import { startFreshChatGptConversation } from "./web-chat-fresh-conversation.js";
 import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
-import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
-import {
-  focusExistingWorkspaceTab,
-  readSavedWorkspaceUrl,
-  resolveWebChatWorkspaceId,
-  saveWorkspaceUrl,
-} from "./web-chat-workspace.js";
 
-const PROVIDER_COMPOSER_READY_TIMEOUT_MS = 60_000;
+const CHATGPT_COMPOSER_SELECTOR = "#prompt-textarea";
 const AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX = "amazon-product-mining-" as const;
-const PROVIDER_COMPOSER_READY_SCRIPT = `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const composer = resolveComposerInput();
-return {status: composer ? "success" : "pending", message: composer ? "provider composer ready" : "provider composer pending", pageUrl: location.href};
-`;
-const isChromeAppleEventsJavaScriptDisabled = (message: string): boolean =>
-  (message.includes("AppleScript") && message.includes("JavaScript") && message.includes("关闭"))
-  || message.includes("Allow JavaScript from Apple Events")
-  || message.includes("允许 Apple 事件中的 JavaScript");
+
 export const isAmazonProductMiningGptRequest = (input: {
   providerUrl: string;
   request: AiFeedInput;
-}): boolean =>
-  new URL(input.providerUrl).host === "chatgpt.com"
+}): boolean => new URL(input.providerUrl).host === "chatgpt.com"
   && input.request.promptContractId.startsWith(AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX);
 
-const requiresFreshChatGptConversation = (input: {
+type ProviderPageInput = Readonly<{
+  browser: BrowserTargetLease;
   providerUrl: string;
+  runtimeName: string;
+  context: AiProviderAdapterContext;
   request: AiFeedInput;
-}): boolean =>
-  !input.request.providerContinuationRef && (
-  (new URL(input.providerUrl).host === "chatgpt.com" && input.request.providerKind === "gpt-web-chat")
-  || isAmazonProductMiningGptRequest(input));
-
-const resolveProviderReusePolicy = (input: {
-  providerUrl: string;
-  request: AiFeedInput;
-  workspaceId: string | null;
-}): "reuse-exact-url" | "bind-existing-exact-origin" | "open-new-tab" =>
-  new URL(input.providerUrl).host === "chatgpt.com"
-  && input.request.providerKind === "gpt-web-chat"
-    ? "bind-existing-exact-origin"
-    : "reuse-exact-url";
+}>;
 
 const waitForProviderComposer = async (input: {
   browser: BrowserTargetLease;
@@ -59,228 +29,30 @@ const waitForProviderComposer = async (input: {
   abortSignal?: AbortSignal;
   timeoutMs?: number;
 }): Promise<void> => {
-  const timeoutMs = input.timeoutMs ?? PROVIDER_COMPOSER_READY_TIMEOUT_MS;
-  const deadline = Date.now() + timeoutMs;
-  let lastMessage = "provider composer readiness was not checked";
+  if (input.request.providerKind !== "gpt-web-chat") {
+    throw new Error("review_required: NOT_PRODUCTION_VERIFIED: Gemini composer DOM is not observed");
+  }
+  const deadline = Date.now() + Math.min(input.timeoutMs ?? 60_000, 60_000);
   while (Date.now() < deadline) {
-    if (input.abortSignal?.aborted) {
-      throw new Error("review_required: provider composer wait aborted.");
+    if (input.abortSignal?.aborted) throw new Error("review_required: provider composer wait aborted");
+    const inspection = await input.browser.executeDomIntent({
+      kind: "inspect",
+      selector: CHATGPT_COMPOSER_SELECTOR,
+      fields: ["tagName", "visible", "disabled"],
+    }).catch(() => null);
+    if (inspection && typeof inspection === "object" && !Array.isArray(inspection)) {
+      const value = inspection as Record<string, unknown>;
+      if (value.tagName === "DIV" && value.visible === true && value.disabled !== true) return;
     }
-    let state: WebChatEvaluation | null = null;
-    try {
-      state = await input.browser.evaluate<WebChatEvaluation>({
-        description: "wait for provider web chat composer",
-        script: PROVIDER_COMPOSER_READY_SCRIPT,
-        ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-      });
-    } catch (error) {
-      lastMessage = error instanceof Error ? error.message : String(error);
-      if (isChromeAppleEventsJavaScriptDisabled(lastMessage)) {
-        throw new Error(`review_required: Chrome Apple Events JavaScript is disabled; enable Google Chrome menu 显示/开发者/允许 Apple 事件中的 JavaScript before using web-chat provider. last=${lastMessage}`);
-      }
-      await input.browser.wait(1_000);
-      continue;
-    }
-    lastMessage = `${state.status}: ${state.message}; pageUrl=${state.pageUrl ?? "unknown"}`;
-    if (state.status === "success") {
-      return;
-    }
-    if (state.status === "review_required" || state.status === "failed") {
-      throw new Error(`${state.status}: ${state.message}`);
-    }
-    await input.browser.wait(300);
+    await input.browser.wait({ durationMs: 250 });
   }
-  throw new Error(`review_required: provider composer did not become ready; last=${lastMessage}`);
+  throw new Error("review_required: provider composer did not become ready");
 };
 
-const isRecoverableComposerTimeout = (error: unknown): boolean =>
-  error instanceof Error
-  && /provider composer did not become ready|wait for provider web chat composer.*timed out/iu.test(error.message);
-
-
-const readActiveProviderUrl = async (
-  browser: BrowserTargetLease,
-  abortSignal?: AbortSignal,
-): Promise<string | null> => {
-  try {
-    const state = await browser.evaluate<{ pageUrl: string | null }>({
-      description: "read active provider workspace URL",
-      script: "return {pageUrl: location.href};",
-      ...(abortSignal ? { abortSignal } : {}),
-    });
-    return state.pageUrl;
-  } catch {
-    return browser.getLeaseState().currentUrl || null;
-  }
-};
-
-const resolveWorkspaceState = (input: {
-  context: AiProviderAdapterContext;
-  request: AiFeedInput;
-}): { workspaceId: string | null; savedUrl: string | null } => {
-  const workspaceId = resolveWebChatWorkspaceId(input.request);
-  const savedUrl = workspaceId
-    ? readSavedWorkspaceUrl({
-        dataDir: input.context.dataDir,
-        providerKind: input.request.providerKind,
-        workspaceId,
-      })
-    : null;
-  return { workspaceId, savedUrl };
-};
-
-const focusExistingProviderWorkspace = async (input: {
-  providerUrl: string;
-  context: AiProviderAdapterContext;
-  workspaceId: string | null;
-  savedUrl: string | null;
-}): Promise<boolean> => {
-  if (input.context.webChatExecution) {
-    return false;
-  }
-  if (!input.workspaceId) {
-    return false;
-  }
-  return focusExistingWorkspaceTab({
-    browser: input.context.browser!,
-    providerHost: new URL(input.providerUrl).host,
-    workspaceId: input.workspaceId,
-    savedUrl: input.savedUrl,
-    allowAnyProviderTab: input.workspaceId === "full-corpus",
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
-};
-
-const persistWorkspaceUrlIfNeeded = async (input: {
-  browser: BrowserTargetLease;
-  context: AiProviderAdapterContext;
-  request: AiFeedInput;
-  workspaceId: string | null;
-}): Promise<void> => {
-  if (!input.workspaceId) {
-    return;
-  }
-  saveWorkspaceUrl({
-    dataDir: input.context.dataDir,
-    providerKind: input.request.providerKind,
-    workspaceId: input.workspaceId,
-    url: await readActiveProviderUrl(input.browser, input.context.abortSignal),
-  });
-};
-
-const openOrReuseProviderWorkspace = async (input: {
-  browser: BrowserTargetLease;
-  providerUrl: string;
-  runtimeName: string;
-  workspaceId: string | null;
-  savedUrl: string | null;
-  focusedExisting: boolean;
-  reusePolicy: "reuse-exact-url" | "bind-existing-exact-origin" | "open-new-tab";
-}): Promise<{ ok: boolean; message: string }> => input.focusedExisting
-  ? { ok: true, message: "focused existing provider workspace tab" }
-  : input.browser.open({
-      url: input.savedUrl ?? input.providerUrl,
-      title: `${input.runtimeName}${input.workspaceId ? `:${input.workspaceId}` : ""}`,
-      reusePolicy: input.reusePolicy,
-    });
-
-const assertProviderPageOpened = (opened: { ok: boolean; message: string }): void => {
-  if (!opened.ok) {
-    throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
-  }
-};
-
-type ProviderPageInput = {
-  browser: BrowserTargetLease;
-  providerUrl: string;
-  runtimeName: string;
-  context: AiProviderAdapterContext;
-  request: AiFeedInput;
-};
-
-const waitForComposerWithRecovery = async (
-  input: ProviderPageInput,
-): Promise<void> => {
-  try {
-    await waitForProviderComposer({
-      browser: input.browser,
-      request: input.request,
-      ...(input.context.abortSignal
-        ? { abortSignal: input.context.abortSignal }
-        : {}),
-    });
-    return;
-  } catch (error) {
-    if (!isRecoverableComposerTimeout(error)) throw error;
-  }
-  const reopened = await input.browser.open({
-    url: input.providerUrl,
-    title: `${input.runtimeName}:recover-provider-composer`,
-    reusePolicy: "bind-existing-exact-origin",
-  });
-  assertProviderPageOpened(reopened);
-  await input.browser.wait(1_000);
-  await waitForProviderComposer({
-    browser: input.browser,
-    request: input.request,
-    ...(input.context.abortSignal
-      ? { abortSignal: input.context.abortSignal }
-      : {}),
-  });
-};
-
-const openFreshProviderWorkspace = async (
-  input: ProviderPageInput,
-): Promise<void> => {
-  const workspaceState = resolveWorkspaceState(input);
-  const workspaceId = workspaceState.workspaceId;
-  const savedUrl = input.context.webChatExecution ? null : workspaceState.savedUrl;
-  const reusePolicy = resolveProviderReusePolicy({
-    providerUrl: input.providerUrl,
-    request: input.request,
-    workspaceId,
-  });
-  const focusedExisting = await focusExistingProviderWorkspace({
-    providerUrl: input.providerUrl,
-    context: input.context,
-    workspaceId,
-    savedUrl,
-  });
-  const opened = await openOrReuseProviderWorkspace({
-    browser: input.browser,
-    providerUrl: input.providerUrl,
-    runtimeName: input.runtimeName,
-    workspaceId,
-    savedUrl,
-    focusedExisting,
-    reusePolicy,
-  });
-  assertProviderPageOpened(opened);
-  await waitForComposerWithRecovery(input);
-  await startFreshChatGptConversation({
-    browser: input.browser,
-    context: input.context,
-    request: input.request,
-    providerUrl: input.providerUrl,
-    required: requiresFreshChatGptConversation(input),
-    waitForProviderComposer: () => waitForProviderComposer({
-      browser: input.browser,
-      request: input.request,
-      ...(input.context.abortSignal
-        ? { abortSignal: input.context.abortSignal }
-        : {}),
-    }),
-    isRecoverableComposerTimeout,
-    emitStage: (stage) => emitSubmitStage(
-      { request: input.request },
-      stage.stage,
-      stage.status,
-      stage.startedAtMs,
-      stage.refs,
-    ),
-  });
-  await persistWorkspaceUrlIfNeeded({ browser: input.browser, context: input.context, request: input.request, workspaceId });
-};
+const requiresFreshChatGptConversation = (input: ProviderPageInput): boolean =>
+  !input.request.providerContinuationRef && !input.request.providerForkRef
+  && input.request.providerKind === "gpt-web-chat"
+  && new URL(input.providerUrl).origin === "https://chatgpt.com";
 
 export const openProviderPage = async (
   input: ProviderPageInput,
@@ -292,27 +64,41 @@ export const openProviderPage = async (
         browser: input.browser,
         request: input.request,
         timeoutMs: 8_000,
-        ...(input.context.abortSignal
-          ? { abortSignal: input.context.abortSignal }
-          : {}),
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
       }),
     });
     await input.context.webChatExecution?.onForkActionObserved(proof);
     return proof;
   }
-  if (!input.request.providerContinuationRef) {
-    await openFreshProviderWorkspace(input);
+  if (input.request.providerContinuationRef) {
+    await openGovernedContinuation({
+      ...input,
+      waitForComposer: () => waitForProviderComposer({
+        browser: input.browser,
+        request: input.request,
+        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+      }),
+    });
     return null;
   }
-  await openGovernedContinuation({
-    ...input,
-    waitForComposer: () => waitForProviderComposer({
+  await startFreshChatGptConversation({
+    browser: input.browser,
+    context: input.context,
+    request: input.request,
+    providerUrl: input.providerUrl,
+    required: requiresFreshChatGptConversation(input),
+    waitForProviderComposer: () => waitForProviderComposer({
       browser: input.browser,
       request: input.request,
-      ...(input.context.abortSignal
-        ? { abortSignal: input.context.abortSignal }
-      : {}),
+      ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
     }),
+    isRecoverableComposerTimeout: () => false,
+    emitStage: (stage) => emitSubmitStage({ request: input.request }, stage.stage, stage.status, stage.startedAtMs, stage.refs),
+  });
+  await waitForProviderComposer({
+    browser: input.browser,
+    request: input.request,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
   return null;
 };
