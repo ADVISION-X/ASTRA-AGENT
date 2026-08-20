@@ -6,7 +6,7 @@ export type BrowserMutationClass =
 export type BrowserTerminalErrorCode =
   | "TARGET_NOT_FOUND"
   | "TARGET_AMBIGUOUS"
-  | "TARGET_FOREIGN_SESSION"
+  | "TARGET_FOREIGN_AUTHORITY"
   | "TARGET_ORIGIN_MISMATCH"
   | "DOCUMENT_STALE"
   | "TARGET_CLOSED"
@@ -15,8 +15,10 @@ export type BrowserTerminalErrorCode =
   | "DEVTOOLS_ATTACHMENT_CONFLICT"
   | "COMMAND_TIMEOUT"
   | "BROWSER_BACKPRESSURE"
+  | "BROWSER_AUTHORITY_REVOKED"
+  | "BROWSER_TARGET_LEASE_STALE"
+  | "BROWSER_WORKER_FENCE_STALE"
   | "OUTCOME_UNKNOWN"
-  | "FOCUS_LEASE_DENIED"
   | "OPERATOR_INTERRUPTED";
 
 export class BrowserTerminalError extends Error {
