@@ -4,7 +4,6 @@ import type {
   VideoDownloadAbilityGroup,
   VideoDownloadExecutionContext,
 } from "./contract.js";
-import type { BrowserMediaSourcePort } from "./ports/browser-media-source-port.js";
 import {
   VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
   VideoDownloadAbilityInputSchema,
@@ -20,7 +19,6 @@ import {
   createVideoDownloadCapabilityRegistry,
   listVideoDownloadChildren,
 } from "./registry.js";
-import { createFilesystemVideoArtifactStoragePort } from "./runtime/artifact-storage.js";
 import { buildVideoDownloadFailure } from "./runtime/result.js";
 import { resolveYtDlpBinaryPath } from "./runtime/youtube-dlp-binary.js";
 import { maxYoutubeHeightForQuality, youtubeDisplayTitle, youtubeExpectedSubtitleLanguages, youtubeLanguageMatches } from "./runtime/youtube-dlp-download.js";
@@ -140,17 +138,6 @@ export const createVideoDownloadAbilityGroup = (
     },
   };
 };
-
-export const createVideoDownloadAbilityGroupFromFilesystem = (input: {
-  browserMediaSourcePort: BrowserMediaSourcePort;
-  dataDir: string;
-  runtimeLogger?: import("../../lib/runtime-logs/index.js").RuntimeLogger;
-}): VideoDownloadAbilityGroup =>
-  createVideoDownloadAbilityGroup({
-    browserMediaSourcePort: input.browserMediaSourcePort,
-    artifactStoragePort: createFilesystemVideoArtifactStoragePort(input.dataDir),
-    ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
-  });
 
 const unavailableBrowserAuthority = async (): Promise<never> => {
   throw new Error("BROWSER_HOST_UNAVAILABLE");

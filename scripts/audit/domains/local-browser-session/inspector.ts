@@ -116,7 +116,20 @@ const rules: readonly Rule[] = [
   r("browser-profile/process-enrollment-attestation", laws.release, (context) => requiredIdentifiers(rules[18]!, context, "src/lib/browser/profile/browser-profile-process-attestation.ts", ["BrowserProfileProcessAttestation", "attestBrowserProcess"])),
   r("browser-profile/force-install-policy-readback", laws.release, (context) => requiredIdentifiers(rules[19]!, context, "src/lib/browser/profile/managed-policy-readback.ts", ["BrowserManagedPolicyReadback", "attestManagedPolicyReadback"])),
   r("browser-release/artifact-activation-proof-separation", laws.release, () => requiredDiskFiles(rules[20]!, ["src/lib/browser/release/browser-artifact-set.schema.json", "src/lib/browser/release/browser-activation-tuple.schema.json", "src/lib/browser/release/browser-release-proof.schema.json"])),
-  r("browser-release/verified-crx-hard-gate", laws.release, () => requiredDiskFiles(rules[21]!, ["src/lib/browser/release/build-artifacts.mjs", "src/lib/browser/release/verify-artifacts.mjs"])),
+  r("browser-release/verified-crx-hard-gate", laws.release, (context) => [
+    ...requiredDiskFiles(rules[21]!, [
+      "src/lib/browser/release/build-artifacts.mjs",
+      "src/lib/browser/release/verify-artifacts.mjs",
+      "src/lib/browser/release/release-signing-trust.json",
+      "src/lib/browser/release/release-identity.acceptance.ts",
+      "scripts/acceptance/local-browser-real-chrome-terminal.acceptance.ts",
+    ]),
+    ...requiredIdentifiers(rules[21]!, context, "src/lib/browser/release/release-identity.ts", [
+      "assertReleaseSignature",
+      "loadBrowserReleaseSigningTrust",
+      "BROWSER_RELEASE_SIGNER_NOT_ENROLLED",
+    ]),
+  ]),
   r("browser-release/anti-rollback-and-revocation", laws.release, () => requiredDiskFiles(rules[22]!, ["src/lib/browser/release/browser-release-security-policy.schema.json"])),
   r("browser-release/reproducible-build-identity", laws.release, () => requiredDiskFiles(rules[23]!, ["src/lib/browser/release/pinned-browser-toolchain.json", "src/lib/browser/native-messaging-host/Cargo.lock"])),
   r("browser-cross-repo/authority-proof-v2", laws.crossRepo, (context) => requiredIdentifiers(rules[24]!, context, "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts", ["AgentBrowserAuthorityProofV2", "AgentRuntimeReceiptV2", "no_action_during_authority_absence"])),

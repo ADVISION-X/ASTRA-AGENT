@@ -1,6 +1,5 @@
 export {
   createVideoDownloadAbilityGroup,
-  createVideoDownloadAbilityGroupFromFilesystem,
   createUnavailableVideoDownloadAbilityGroup,
   prepareVideoDownloadRuntimeDependencies,
   youtubeProductionDisplayTitle,
@@ -9,8 +8,8 @@ export {
   youtubeProductionMaxHeightForQuality,
 } from "./ability-group.js";
 export type {
-  BrowserMediaSourcePort,
-} from "./ports/browser-media-source-port.js";
+  BrowserPageObservationPort,
+} from "./ports/browser-page-observation-port.js";
 export type {
   ImportVideoArtifactFromFileInput,
   VideoArtifactStoragePort,

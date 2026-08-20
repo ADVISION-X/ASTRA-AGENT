@@ -6,14 +6,14 @@ import type {
   VideoDownloadPublicRequest,
   VideoDownloadResult,
 } from "./schema.js";
-import type { BrowserMediaSourcePort } from "./ports/browser-media-source-port.js";
+import type { BrowserPageObservationPort } from "./ports/browser-page-observation-port.js";
 import type { VideoArtifactStoragePort } from "./ports/video-artifact-storage-port.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type VideoDownloadAbilityGroupId = "video-download";
 
 export type VideoDownloadExecutionContext = {
-  browserMediaSourcePort: BrowserMediaSourcePort;
+  browserPageObservationPort: BrowserPageObservationPort;
   artifactStoragePort: VideoArtifactStoragePort;
   runtimeLogger?: RuntimeLogger;
   abortSignal?: AbortSignal;

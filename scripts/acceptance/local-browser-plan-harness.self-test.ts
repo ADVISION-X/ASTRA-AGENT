@@ -42,7 +42,7 @@ const browserConsumers = [
   ["CON-008", "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts", "amazon-invoice-upload", ["WO-027"], ["ACC-027"]],
   ["CON-009", "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts", "amazon-product-mining", ["WO-028"], ["ACC-028"]],
   ["CON-010", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts", "xuanxue-ai-production", ["WO-029"], ["ACC-029"]],
-  ["CON-011", "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts", "acceptance", ["WO-034"], ["ACC-034"]],
+  ["CON-011", "scripts/acceptance/local-browser-real-chrome-terminal.acceptance.ts", "acceptance", ["WO-034"], ["ACC-034"]],
 ] as const satisfies ReadonlyArray<readonly [string, string, string, readonly string[], readonly string[]]>;
 
 export const CONSUMERS: readonly BrowserConsumer[] = browserConsumers.map(([

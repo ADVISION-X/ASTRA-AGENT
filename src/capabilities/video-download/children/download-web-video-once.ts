@@ -12,7 +12,6 @@ import {
   normalizeUniversalCandidates,
   parseUniversalProbeResult,
 } from "../runtime/universal-candidates.js";
-import { UNIVERSAL_PAGE_PROBE_SCRIPT } from "../runtime/universal-page-probe-script.js";
 import { downloadValidatedMedia } from "../runtime/media-download.js";
 import {
   buildVideoDownloadFailure,
@@ -29,11 +28,12 @@ const asFailureMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Unknown video download failure.";
 
 const probeActivePage = async (
+  input: ParsedDownloadWebVideoInput,
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
-) => parseUniversalProbeResult(await context.browserMediaSourcePort.evaluate({
-  script: UNIVERSAL_PAGE_PROBE_SCRIPT,
-  description: "collect universal video media candidates",
+) => parseUniversalProbeResult(await context.browserPageObservationPort.observeUniversalVideoCandidates({
+  sourcePageUrl: input.sourcePageUrl,
+  maxCandidates: 24,
   abortSignal,
 }));
 
@@ -89,7 +89,7 @@ async function executeDownloadWebVideoOnce(
   const base = { input, startedAt: new Date().toISOString() };
   const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await probeActivePage(context, abortHandle.signal);
+    const probe = await probeActivePage(input, context, abortHandle.signal);
     if (!probe) {
       return buildVideoDownloadFailure(base, "candidate_not_found", "Universal page probe returned no structured result.");
     }

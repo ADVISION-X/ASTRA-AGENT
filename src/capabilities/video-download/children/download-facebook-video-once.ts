@@ -14,7 +14,6 @@ import {
   normalizeFacebookCandidates,
   parseFacebookMediaProbe,
 } from "../runtime/facebook-candidates.js";
-import { FACEBOOK_MEDIA_PROBE_SCRIPT } from "../runtime/facebook-page-probe-script.js";
 import { downloadValidatedMedia } from "../runtime/media-download.js";
 import {
   buildVideoDownloadFailure,
@@ -60,12 +59,13 @@ type SuccessfulCandidateDownload = CandidateDownloadContext & {
 };
 
 const probeActiveFacebookPage = async (
+  input: ParsedDownloadFacebookVideoInput,
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
 ): Promise<ReturnType<typeof parseFacebookMediaProbe>> =>
-  parseFacebookMediaProbe(await context.browserMediaSourcePort.evaluate({
-    script: FACEBOOK_MEDIA_PROBE_SCRIPT,
-    description: "collect Facebook video media candidates",
+  parseFacebookMediaProbe(await context.browserPageObservationPort.observeFacebookVideoCandidates({
+    sourcePageUrl: input.sourcePageUrl,
+    maxCandidates: 24,
     abortSignal,
   }));
 
@@ -146,7 +146,7 @@ async function executeDownloadFacebookVideoOnce(
   const base = { input, startedAt: new Date().toISOString() };
   const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await probeActiveFacebookPage(context, abortHandle.signal);
+    const probe = await probeActiveFacebookPage(input, context, abortHandle.signal);
     if (!probe) return buildVideoDownloadFailure(base, "candidate_not_found", "Facebook media probe returned no structured result.");
     const candidates = selectCandidates(base, probe);
     return Array.isArray(candidates)

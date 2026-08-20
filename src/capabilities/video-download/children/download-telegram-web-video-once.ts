@@ -14,7 +14,6 @@ import {
   buildVideoDownloadSuccess,
 } from "../runtime/result.js";
 import { createVideoDownloadAbortHandle } from "../runtime/abort-handle.js";
-import { buildTelegramWebCacheProbeScript } from "../runtime/telegram-web-cache-probe-script.js";
 
 type ParsedDownloadTelegramWebVideoInput = Extract<
   ParsedVideoDownloadAbilityInput,
@@ -111,23 +110,17 @@ const writeArtifact = (
 const asFailureMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Unknown Telegram Web video download failure.";
 
-const evaluateTelegramProbe = async (
+const observeTelegramCache = async (
   input: ParsedDownloadTelegramWebVideoInput,
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
 ): Promise<TelegramProbeResult> => {
-  const evaluateTelegramPage = context.browserMediaSourcePort.evaluateSourcePage
-    ?? ((request: {
-      script: string;
-      description: string;
-      abortSignal?: AbortSignal;
-    }) => context.browserMediaSourcePort.evaluate<TelegramProbeResult>(request));
-  return evaluateTelegramPage<TelegramProbeResult>({
+  return context.browserPageObservationPort.observeTelegramWebCache({
     sourcePageUrl: input.sourcePageUrl,
-    script: buildTelegramWebCacheProbeScript(input.maxBytes, input.telegramDocumentIdHash),
-    description: "collect Telegram Web cached video media bytes",
+    maxBytes: input.maxBytes,
+    ...(input.telegramDocumentIdHash ? { telegramDocumentIdHash: input.telegramDocumentIdHash } : {}),
     abortSignal,
-  });
+  }) as Promise<TelegramProbeResult>;
 };
 
 const buildCandidateBase = (
@@ -203,7 +196,7 @@ const executeDownloadTelegramWebVideoOnce = async (
 
   const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await evaluateTelegramProbe(
+    const probe = await observeTelegramCache(
       input,
       context,
       abortHandle.signal,

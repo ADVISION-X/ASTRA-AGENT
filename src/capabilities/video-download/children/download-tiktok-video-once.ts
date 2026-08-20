@@ -9,7 +9,6 @@ import type {
 } from "../schema.js";
 import { validateFacebookMediaCandidate } from "../runtime/candidate-validation.js";
 import { normalizeTikTokCandidates, parseTikTokMediaProbe } from "../runtime/tiktok-candidates.js";
-import { TIKTOK_MEDIA_PROBE_SCRIPT } from "../runtime/tiktok-page-probe-script.js";
 import { downloadValidatedMedia } from "../runtime/media-download.js";
 import {
   buildVideoDownloadFailure,
@@ -26,11 +25,12 @@ const asFailureMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Unknown video download failure.";
 
 const probePage = async (
+  input: ParsedDownloadTikTokVideoInput,
   context: VideoDownloadExecutionContext,
   abortSignal: AbortSignal,
-) => parseTikTokMediaProbe(await context.browserMediaSourcePort.evaluate({
-  script: TIKTOK_MEDIA_PROBE_SCRIPT,
-  description: "collect TikTok/Douyin video media candidates",
+) => parseTikTokMediaProbe(await context.browserPageObservationPort.observeTikTokVideoCandidates({
+  sourcePageUrl: input.sourcePageUrl,
+  maxCandidates: 24,
   abortSignal,
 }));
 
@@ -86,7 +86,7 @@ async function executeDownloadTikTokVideoOnce(
   const base = { input, startedAt: new Date().toISOString() };
   const abortHandle = createVideoDownloadAbortHandle(input.timeoutMs, context.abortSignal);
   try {
-    const probe = await probePage(context, abortHandle.signal);
+    const probe = await probePage(input, context, abortHandle.signal);
     if (!probe) {
       return buildVideoDownloadFailure(base, "candidate_not_found", "TikTok media probe returned no structured result.");
     }

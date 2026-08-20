@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import {
   createVideoDownloadAbilityGroup,
   type ImportVideoArtifactFromFileInput,
-  type BrowserMediaSourcePort,
+  type BrowserPageObservationPort,
   type VideoArtifactStoragePort,
   type WriteVideoArtifactInput,
 } from "../../src/capabilities/video-download/index.js";
@@ -53,17 +53,18 @@ const createStorage = (): VideoArtifactStoragePort => ({
   },
 });
 
-const createBrowser = (result: unknown): BrowserMediaSourcePort => ({
-  async evaluate<T>() {
-    return result as T;
-  },
+const createBrowserObservation = (result: unknown): BrowserPageObservationPort => ({
+  async observeUniversalVideoCandidates() { throw new Error("UNEXPECTED_UNIVERSAL_OBSERVATION"); },
+  async observeFacebookVideoCandidates() { throw new Error("UNEXPECTED_FACEBOOK_OBSERVATION"); },
+  async observeTikTokVideoCandidates() { throw new Error("UNEXPECTED_TIKTOK_OBSERVATION"); },
+  async observeTelegramWebCache() { return result; },
 });
 
 const assert = (condition: unknown, message: string): void => {
   if (!condition) throw new Error(message);
 };
 
-const successBrowser = createBrowser({
+const successBrowser = createBrowserObservation({
   ok: true,
   status: "success",
   candidateKind: "telegram_sw_progressive_cache",
@@ -75,7 +76,7 @@ const successBrowser = createBrowser({
 });
 
 const successGroup = createVideoDownloadAbilityGroup({
-  browserMediaSourcePort: successBrowser,
+  browserPageObservationPort: successBrowser,
   artifactStoragePort: createStorage(),
 });
 const successResult = await successGroup.downloadVideo(baseInput);
@@ -90,7 +91,7 @@ assert(successResult.output.byteSize === mp4Bytes.length, "Telegram Web byte siz
 assert(successResult.output.videoId?.startsWith("telegram-document-"), "Telegram Web video id should be redacted.");
 
 const reviewGroup = createVideoDownloadAbilityGroup({
-  browserMediaSourcePort: createBrowser({
+  browserPageObservationPort: createBrowserObservation({
     ok: false,
     status: "review_required",
     failureReason: "candidate_not_found",

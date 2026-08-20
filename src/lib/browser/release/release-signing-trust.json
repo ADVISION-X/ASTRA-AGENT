@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "grasseye.browser.release-signing-trust.v1",
+  "state": "ABSENT",
+  "reasonCode": "BROWSER_RELEASE_SIGNER_NOT_ENROLLED"
+}
