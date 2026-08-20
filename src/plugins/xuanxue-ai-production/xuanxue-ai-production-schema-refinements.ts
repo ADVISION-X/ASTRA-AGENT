@@ -18,6 +18,21 @@ const issue = (
   path: Array<string | number>,
 ): void => context.addIssue({ code: z.ZodIssueCode.custom, message, path });
 
+const terminalMetaphysicsProducts = new Set<string>([
+  "bazi_chart_interpretation",
+  "bazi_ai_full_analysis",
+  "bazi_report_followup",
+  "qimen_professional_answer",
+  "qimen_report_followup",
+  "hehun_ai_analysis",
+  "hehun_report_followup",
+  "naming_bazi_analysis_and_naming",
+  "naming_from_existing_bazi_report",
+  "bazi_canonical_base_interpretation",
+  "hehun_canonical_party_a_interpretation",
+  "hehun_canonical_party_b_interpretation",
+]);
+
 const inspectContinuationStage = (
   order: XuanxueAiStoredOrder,
   context: z.RefinementCtx,
@@ -80,6 +95,27 @@ export const inspectXuanxueContinuationPolicy = (
   inspectContinuationRelation(order, context);
 };
 
+const exactTerminalProfile = (
+  order: XuanxueAiStoredOrder,
+  context: z.RefinementCtx,
+): void => {
+  const profile = order.providerExecutionProfile as Record<string, unknown> | null;
+  if (!profile) {
+    issue(context, "XUANXUE_AI_PRODUCTION_GPT_PRO_PROFILE_REQUIRED", ["providerExecutionProfile"]);
+    return;
+  }
+  if (
+    profile.provider !== "openai-chatgpt-web"
+    || profile.transport !== "gpt-web-chat"
+    || profile.model_label !== "GPT-PRO"
+    || profile.model_family !== "GPT-PRO"
+    || profile.model_identity_status !== "verified"
+    || profile.reasoning_effort !== "pro_extended"
+  ) {
+    issue(context, "XUANXUE_AI_PRODUCTION_GPT_PRO_PROFILE_MISMATCH", ["providerExecutionProfile"]);
+  }
+};
+
 const inspectNonLocalizationPolicy = (
   order: XuanxueAiStoredOrder,
   context: z.RefinementCtx,
@@ -88,9 +124,13 @@ const inspectNonLocalizationPolicy = (
     order.contractManifestHash !== null
     || order.productContractHash !== null
     || order.localizationRole !== null
-    || order.providerExecutionProfile !== null
   ) {
     issue(context, "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN", ["localizationRole"]);
+  }
+  if (terminalMetaphysicsProducts.has(order.productId)) {
+    exactTerminalProfile(order, context);
+  } else if (order.providerExecutionProfile !== null) {
+    issue(context, "XUANXUE_AI_PRODUCTION_UNDECLARED_PROVIDER_PROFILE_FORBIDDEN", ["providerExecutionProfile"]);
   }
   if (order.frozenSubject.participants.length === 0) {
     issue(context, "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED", ["frozenSubject", "participants"]);
@@ -109,7 +149,7 @@ const inspectLocalizationContract = (
       contractManifestHash: order.contractManifestHash,
       productContractHash: order.productContractHash,
       role: order.localizationRole,
-      providerProfile: order.providerExecutionProfile,
+      providerProfile: order.providerExecutionProfile as never,
       inputKinds: order.materials[0]?.inputRefs.map((item) => item.kind) ?? [],
       hasConversationParent: Boolean(order.conversationParent),
     });
