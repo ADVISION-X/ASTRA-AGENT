@@ -33,6 +33,12 @@ const terminalMetaphysicsProducts = new Set<string>([
   "hehun_canonical_party_b_interpretation",
 ]);
 
+const allowedPaidFollowupParentStages: Readonly<Record<string, readonly string[]>> = {
+  bazi_report_followup: ["chart_interpretation", "question_analysis"],
+  qimen_report_followup: ["analysis", "followup"],
+  hehun_report_followup: ["final_compatibility", "followup"],
+};
+
 const inspectContinuationStage = (
   order: XuanxueAiStoredOrder,
   context: z.RefinementCtx,
@@ -45,18 +51,17 @@ const inspectContinuationStage = (
   )) {
     issue(context, "XUANXUE_AI_PRODUCTION_LOCALIZATION_SELECTOR_PARENT_INVALID", ["conversationParent"]);
   }
-  if (
-    isXuanxueAiRequiredContinuationProduct(order.productId)
-    && order.productId !== "bazi_report_followup"
-    && order.conversationParent?.stageId
-      !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
-  ) {
-    issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID", ["conversationParent", "stageId"]);
+  if (isXuanxueAiPaidFollowupProduct(order.productId) && order.conversationParent) {
+    const allowed = allowedPaidFollowupParentStages[order.productId] ?? [];
+    if (!allowed.includes(order.conversationParent.stageId)) {
+      issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID", ["conversationParent", "stageId"]);
+    }
+    return;
   }
   if (
-    order.productId === "bazi_report_followup"
-    && order.conversationParent
-    && !["chart_interpretation", "question_analysis"].includes(order.conversationParent.stageId)
+    isXuanxueAiRequiredContinuationProduct(order.productId)
+    && order.conversationParent?.stageId
+      !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
   ) {
     issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID", ["conversationParent", "stageId"]);
   }
