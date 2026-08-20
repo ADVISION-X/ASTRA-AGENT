@@ -145,6 +145,7 @@ scripts/
     local-browser-terminal-contract.acceptance.ts
     local-browser-rule-mutants.acceptance.ts
     local-browser-property-model.acceptance.ts
+    local-runtime-browser-authority.acceptance.ts
     local-browser-real-chrome-terminal.acceptance.ts
 ```
 
@@ -164,7 +165,7 @@ scripts/
 | artifact / tuple / policy / proof | `src/lib/browser/release/**` |
 | health / errors / metrics | `src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts` 只发布 `browserInfrastructure` / `browserAuthority`；`protocol/browser-errors.json` 是唯一 Browser error-code 合同；运行指标只由 infrastructure supervisor 的有界 telemetry 输出 |
 | 26 项 Browser 核心 + 1 项 P0 隐私 machine-blocking 质检 | `scripts/audit/domains/local-browser-session/manifest.json` + `inspector.ts`，每项独立 receipt，只通过现有 generated-plan runner 生成 |
-| 终态验收 | `scripts/acceptance/local-browser-terminal-contract.acceptance.ts`、`local-browser-rule-mutants.acceptance.ts`、`local-browser-property-model.acceptance.ts`、`local-browser-real-chrome-terminal.acceptance.ts`；只证明各自合同，不拥有生产逻辑 |
+| 终态验收 | `scripts/acceptance/local-browser-terminal-contract.acceptance.ts`、`local-browser-rule-mutants.acceptance.ts`、`local-browser-property-model.acceptance.ts`、`local-runtime-browser-authority.acceptance.ts`、`local-browser-real-chrome-terminal.acceptance.ts`；只证明各自合同，不拥有生产逻辑 |
 
 `BrowserProcessSupervisor` 的唯一目标路径固定为：
 

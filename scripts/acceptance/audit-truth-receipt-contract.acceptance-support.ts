@@ -59,7 +59,7 @@ export const runAuditTruthReceiptContractAcceptance = async (): Promise<void> =>
   assert.throws(() => missingSession.checks.output(), /omitted physical check/u);
   const duplicateSession = createInspectorCheckSession(receiptPlan, "acceptance-run:receipt-duplicate");
   await duplicateSession.checks.runAll(() => ({ evidenceRefs: ["src/alpha.ts"], findings: [] }));
-  await assert.rejects(duplicateSession.checks.runAll(() => ({ evidenceRefs: ["src/alpha.ts"], findings: [] })), /duplicate owner evaluation/u);
+  await assert.rejects(duplicateSession.checks.runAll(() => ({ evidenceRefs: ["src/alpha.ts"], findings: [] })), /duplicate physical check/u);
 
   const singleBindingPlan = { ...receiptPlan, bindings: [receiptPlan.bindings[0]!], lawIds: ["APEX-AUDIT-001-V1"] };
   const emptyEvidenceSession = createInspectorCheckSession(singleBindingPlan, "acceptance-run:receipt-empty-evidence");

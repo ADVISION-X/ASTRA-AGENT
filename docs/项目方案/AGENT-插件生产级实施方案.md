@@ -2299,7 +2299,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "create_scope": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts"
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts"
       ],
       "modify_scope": [
         "src/lib/local-runtime/workbench-assembly.ts",
@@ -2330,7 +2330,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "outputs": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts"
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts"
       ],
       "consumer_migration": [
         "src/lib/local-runtime/workbench-browser-support.ts | owner=local-runtime | terminal=permanently absent | replacement=src/lib/local-runtime/workbench-browser-authority-support.ts | acceptance=ACC-023",
@@ -2387,7 +2387,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
         "src/lib/browser/exact-target/browser-command-actor.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "deliverable://browser-observation/preconstruction-chrome.json"
       ],
       "create_scope": [
@@ -2413,7 +2413,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
         "src/lib/browser/exact-target/browser-command-actor.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "deliverable://browser-observation/preconstruction-chrome.json"
       ],
       "actions": [
@@ -2468,7 +2468,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "read_scope": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts"
       ],
       "create_scope": [
@@ -2494,7 +2494,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "inputs": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts"
       ],
       "actions": [
@@ -2550,7 +2550,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
         "src/lib/browser/exact-target/browser-command-actor.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts"
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts"
       ],
       "create_scope": [
         "src/capabilities/video-download/acceptance/browser-authority.acceptance.ts"
@@ -2572,7 +2572,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
         "src/lib/browser/exact-target/browser-command-actor.ts",
         "src/lib/browser/transport/command-permit.ts",
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts"
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts"
       ],
       "actions": [
         "ACT-026"
@@ -2623,7 +2623,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "read_scope": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts"
       ],
       "create_scope": [
@@ -2649,7 +2649,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "inputs": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts"
       ],
       "actions": [
@@ -2703,7 +2703,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "read_scope": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts"
       ],
@@ -2728,7 +2728,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "inputs": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts"
       ],
@@ -2782,7 +2782,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "read_scope": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts"
       ],
       "create_scope": [
@@ -2803,7 +2803,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       ],
       "inputs": [
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
-        "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts"
       ],
       "actions": [
@@ -8001,7 +8001,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-023",
       "owner": "local-runtime owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "CREATE",
       "consumer_ids": [],
       "authority_basis": [
@@ -8121,7 +8121,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-024",
       "owner": "dom-automation owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "READ",
       "consumer_ids": [],
       "authority_basis": [
@@ -8271,7 +8271,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-025",
       "owner": "ai-input-gateway owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "READ",
       "consumer_ids": [],
       "authority_basis": [
@@ -8481,7 +8481,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-026",
       "owner": "video-download owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "READ",
       "consumer_ids": [],
       "authority_basis": [
@@ -8571,7 +8571,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-027",
       "owner": "amazon-invoice-upload owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "READ",
       "consumer_ids": [],
       "authority_basis": [
@@ -8751,7 +8751,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-028",
       "owner": "amazon-product-mining owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "READ",
       "consumer_ids": [],
       "authority_basis": [
@@ -8916,7 +8916,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-029",
       "owner": "xuanxue-ai-production owner",
       "object_type": "file",
-      "target": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "target": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "operation": "READ",
       "consumer_ids": [],
       "authority_basis": [
@@ -13801,8 +13801,8 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "caller_or_actor": "dom-automation owner",
       "entrypoint_or_channel": "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; deliverable://browser-observation/preconstruction-chrome.json ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-target-binding.ts ; src/capabilities/dom-automation/runtime/dom-snapshot.ts ; src/capabilities/dom-automation/runtime/dom-fill.ts ; src/capabilities/dom-automation/runtime/dom-click.ts ; src/capabilities/dom-automation/runtime/dom-upload.ts ; src/capabilities/dom-automation/runtime/dom-evidence.ts",
-      "input_contract": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; deliverable://browser-observation/preconstruction-chrome.json",
+      "object_scope": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; deliverable://browser-observation/preconstruction-chrome.json ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-target-binding.ts ; src/capabilities/dom-automation/runtime/dom-snapshot.ts ; src/capabilities/dom-automation/runtime/dom-fill.ts ; src/capabilities/dom-automation/runtime/dom-click.ts ; src/capabilities/dom-automation/runtime/dom-upload.ts ; src/capabilities/dom-automation/runtime/dom-evidence.ts",
+      "input_contract": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; deliverable://browser-observation/preconstruction-chrome.json",
       "output_contract": "src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
       "state_transition": "六个原子动作只消费当前 BrowserTargetLease 与命令 permit。",
       "idempotency_or_replay": "Read-only checks may repeat on the same candidate; mutations never auto-replay.",
@@ -13819,8 +13819,8 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "caller_or_actor": "ai-input-gateway owner",
       "entrypoint_or_channel": "src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/ability-group.ts ; src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts ; src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts ; src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts ; src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts ; src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts ; src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
-      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
+      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/ability-group.ts ; src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts ; src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts ; src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts ; src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts ; src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts ; src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
+      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
       "output_contract": "src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts",
       "state_transition": "每次 provider execution/checkpoint 重新取得并释放 authority/target；删除 BrowserTargetSession fixture 合同。",
       "idempotency_or_replay": "Read-only checks may repeat on the same candidate; mutations never auto-replay.",
@@ -13837,8 +13837,8 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "caller_or_actor": "video-download owner",
       "entrypoint_or_channel": "src/capabilities/video-download/acceptance/browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/video-download/acceptance/browser-authority.acceptance.ts ; src/capabilities/video-download/children/download-web-video-once.ts ; src/capabilities/video-download/children/download-facebook-video-once.ts ; src/capabilities/video-download/children/download-tiktok-video-once.ts",
-      "input_contract": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "object_scope": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/video-download/acceptance/browser-authority.acceptance.ts ; src/capabilities/video-download/children/download-web-video-once.ts ; src/capabilities/video-download/children/download-facebook-video-once.ts ; src/capabilities/video-download/children/download-tiktok-video-once.ts",
+      "input_contract": "src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "output_contract": "src/capabilities/video-download/acceptance/browser-authority.acceptance.ts",
       "state_transition": "来源页探测只使用命名、有界 observation capability，不允许 evaluate 或脚本 fallback。",
       "idempotency_or_replay": "Read-only checks may repeat on the same candidate; mutations never auto-replay.",
@@ -13855,8 +13855,8 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "caller_or_actor": "amazon-invoice-upload owner",
       "entrypoint_or_channel": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts ; src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-actions.ts ; src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-navigation.ts ; src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
-      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
+      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts ; src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts ; src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-actions.ts ; src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-navigation.ts ; src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts",
+      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts",
       "output_contract": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts",
       "state_transition": "只改 Browser 边界，保留业务顺序和人工最终门；每个 mutation 有 journal 与 owner outcome resolution。",
       "idempotency_or_replay": "Read-only checks may repeat on the same candidate; mutations never auto-replay.",
@@ -13873,8 +13873,8 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "caller_or_actor": "amazon-product-mining owner",
       "entrypoint_or_channel": "src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts ; src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts ; src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts ; src/plugins/amazon-product-mining/amazon-product-mining.flow.ts ; src/plugins/amazon-product-mining/amazon-product-mining.search.ts ; src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts ; src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts ; src/plugins/amazon-product-mining/index.ts",
-      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts",
+      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts ; src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts ; src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts ; src/plugins/amazon-product-mining/amazon-product-mining.flow.ts ; src/plugins/amazon-product-mining/amazon-product-mining.search.ts ; src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts ; src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts ; src/plugins/amazon-product-mining/index.ts",
+      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts",
       "output_contract": "src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts",
       "state_transition": "每阶段使用当前 execution/authority/target，checkpoint 后不缓存旧 lease。",
       "idempotency_or_replay": "Read-only checks may repeat on the same candidate; mutations never auto-replay.",
@@ -13891,8 +13891,8 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "caller_or_actor": "xuanxue-ai-production owner",
       "entrypoint_or_channel": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts ; src/plugins/xuanxue-ai-production/index.ts ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
-      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts",
+      "object_scope": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts ; src/plugins/xuanxue-ai-production/index.ts ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
+      "input_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts",
       "output_contract": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts",
       "state_transition": "在唯一 AgentRuntimeReceiptV2 内记录有序 authority windows，窗口间零动作且无未裁决 mutation。",
       "idempotency_or_replay": "Read-only checks may repeat on the same candidate; mutations never auto-replay.",
@@ -14177,11 +14177,11 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "work_order_id": "WO-023",
       "owner": "local-runtime owner",
       "caller_or_actor": "local-runtime owner",
-      "entrypoint_or_channel": "src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "entrypoint_or_channel": "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "authorization": "future explicit construction authorization required",
-      "object_scope": "src/lib/browser/infrastructure/browser-authority-broker.ts ; src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts ; src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts ; src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/browser/profile/browser-profile-enrollment.ts ; src/lib/browser/profile/browser-process-supervisor.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/lib/local-runtime/workbench-assembly.ts ; src/lib/local-runtime/workbench-ai-gateway-support.ts ; src/lib/local-runtime/workbench-status.ts ; src/lib/local-runtime/workbench.ts",
+      "object_scope": "src/lib/browser/infrastructure/browser-authority-broker.ts ; src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts ; src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts ; src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/browser/profile/browser-profile-enrollment.ts ; src/lib/browser/profile/browser-process-supervisor.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/lib/local-runtime/workbench-assembly.ts ; src/lib/local-runtime/workbench-ai-gateway-support.ts ; src/lib/local-runtime/workbench-status.ts ; src/lib/local-runtime/workbench.ts",
       "input_contract": "src/lib/browser/infrastructure/browser-authority-broker.ts ; src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts ; src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts ; src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/browser/profile/browser-profile-enrollment.ts ; src/lib/browser/profile/browser-process-supervisor.ts",
-      "output_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts",
+      "output_contract": "src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
       "state_transition": "Local Runtime 只注入 Broker；assembly 不领取或缓存 target lease；已退休的 workbench-browser-support.ts 与 workbench-video-download-support.ts 永久不存在。",
       "idempotency_or_replay": "Read-only checks may repeat on the same constructed candidate; mutations never auto-replay.",
       "audit_or_receipt": "ACC-023",
@@ -15023,7 +15023,7 @@ revoke→ABSENT p99 ≤10ms 和 `unbounded_queue=unbounded_cache=unbounded_strea
       "evidence_type": "EXAM",
       "evidence_status": "TO_BE_CREATED_BY_WORK_ORDER",
       "producer_work_order_id": "WO-023",
-      "command_or_procedure": "node --import tsx src/lib/local-runtime/workbench-browser-authority.acceptance.ts --require-broker-only --forbid-assembly-authority-lease --forbid-assembly-target-lease --require-only-health-components browserInfrastructure,browserAuthority --reject-old-health-semantics browserSession,transportReady,session-not-authenticated,wait-for-authentication --verify-targets-absent src/lib/local-runtime/workbench-browser-support.ts,src/lib/local-runtime/workbench-video-download-support.ts --require-video-capability-public-factory --require-browser-jobs-blocked-when-authority-absent; run AST import check proving local-runtime imports Browser public facade only.",
+      "command_or_procedure": "node --import tsx scripts/acceptance/local-runtime-browser-authority.acceptance.ts --require-broker-only --forbid-assembly-authority-lease --forbid-assembly-target-lease --require-only-health-components browserInfrastructure,browserAuthority --reject-old-health-semantics browserSession,transportReady,session-not-authenticated,wait-for-authentication --verify-targets-absent src/lib/local-runtime/workbench-browser-support.ts,src/lib/local-runtime/workbench-video-download-support.ts --require-video-capability-public-factory --require-browser-jobs-blocked-when-authority-absent; run AST import check proving local-runtime imports Browser public facade only.",
       "proves": "Local Runtime 只注入 Broker，原样展示唯一 supervisor 的两个合法 health component；assembly 不领取或缓存 target lease；已退休的 workbench-browser-support.ts 与 workbench-video-download-support.ts 永久不存在。",
       "does_not_prove": "Does not prove any downstream work order, deployment, activation or release.",
       "failure_result": "Emit FAIL and stop dependent work orders."
@@ -15955,12 +15955,12 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 依赖：`WO-018`、`WO-019`、`WO-020`、`WO-021`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
 - READ：`src/lib/browser/infrastructure/browser-authority-broker.ts`、`src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts`、`src/lib/browser/exact-target/browser-target-lease.ts`、`src/lib/browser/exact-target/browser-target-lease-manager.ts`、`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/browser/profile/browser-profile-enrollment.ts`、`src/lib/browser/profile/browser-process-supervisor.ts`
-- CREATE：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`
+- CREATE：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`
 - MODIFY：`src/lib/local-runtime/workbench-assembly.ts`、`src/lib/local-runtime/workbench-ai-gateway-support.ts`、`src/lib/local-runtime/workbench-status.ts`、`src/lib/local-runtime/workbench.ts`
 - RETIRE/DELETE：无
 - 输入：`src/lib/browser/infrastructure/browser-authority-broker.ts`、`src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts`、`src/lib/browser/exact-target/browser-target-lease.ts`、`src/lib/browser/exact-target/browser-target-lease-manager.ts`、`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/browser/profile/browser-profile-enrollment.ts`、`src/lib/browser/profile/browser-process-supervisor.ts`
 - 动作：`ACT-023`
-- 输出：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`
+- 输出：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`
 - 消费者交接：src/lib/local-runtime/workbench-browser-support.ts \| owner=local-runtime \| terminal=permanently absent \| replacement=src/lib/local-runtime/workbench-browser-authority-support.ts \| acceptance=ACC-023；src/lib/local-runtime/workbench-video-download-support.ts \| owner=local-runtime \| terminal=permanently absent \| replacement=Broker injection in workbench-assembly.ts plus capability public factory in WO-026 \| acceptance=ACC-023/ACC-026；src/lib/local-runtime/workbench-ai-gateway-support.ts \| owner=local-runtime \| migration=WO-023/WO-025 \| acceptance=ACC-023/ACC-025；src/lib/local-runtime/workbench-assembly.ts \| owner=local-runtime \| migration=WO-023 \| acceptance=ACC-023
 - 验收：`ACC-023`
 - 失败动作：Emit a candidate-bound FAIL receipt and stop dependent work orders.
@@ -15977,11 +15977,11 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 权威依据：用户绿地重建要求；AGENTS.md；APEX-LOCAL-BROWSER active law；终态施工图
 - 依赖：`WO-020`、`WO-023`、`WO-007`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
-- READ：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`deliverable://browser-observation/preconstruction-chrome.json`
+- READ：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`deliverable://browser-observation/preconstruction-chrome.json`
 - CREATE：`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
 - MODIFY：`src/capabilities/dom-automation/runtime/dom-target-binding.ts`、`src/capabilities/dom-automation/runtime/dom-snapshot.ts`、`src/capabilities/dom-automation/runtime/dom-fill.ts`、`src/capabilities/dom-automation/runtime/dom-click.ts`、`src/capabilities/dom-automation/runtime/dom-upload.ts`、`src/capabilities/dom-automation/runtime/dom-evidence.ts`
 - RETIRE/DELETE：无
-- 输入：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`deliverable://browser-observation/preconstruction-chrome.json`
+- 输入：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`deliverable://browser-observation/preconstruction-chrome.json`
 - 动作：`ACT-024`
 - 输出：`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
 - 消费者交接：src/capabilities/dom-automation/runtime/dom-target-binding.ts \| owner=dom-automation \| migration=WO-024 \| acceptance=ACC-024
@@ -16000,11 +16000,11 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 权威依据：用户绿地重建要求；AGENTS.md；APEX-LOCAL-BROWSER active law；终态施工图
 - 依赖：`WO-023`、`WO-024`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
-- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
+- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
 - CREATE：`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
 - MODIFY：`src/capabilities/ai-input-gateway/ability-group.ts`、`src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts`、`src/capabilities/ai-input-gateway/runtime/web-chat-managed-execution.ts`、`src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-browser.ts`、`src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts`、`src/capabilities/ai-input-gateway/children/attach-approved-web-chat-files-once.ts`、`src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts`
 - RETIRE/DELETE：无
-- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
+- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
 - 动作：`ACT-025`
 - 输出：`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
 - 消费者交接：src/capabilities/ai-input-gateway/ability-group.ts \| owner=ai-input-gateway \| migration=WO-025 \| acceptance=ACC-025
@@ -16023,11 +16023,11 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 权威依据：用户绿地重建要求；AGENTS.md；APEX-LOCAL-BROWSER active law；终态施工图
 - 依赖：`WO-020`、`WO-023`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
-- READ：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`
+- READ：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`
 - CREATE：`src/capabilities/video-download/acceptance/browser-authority.acceptance.ts`
 - MODIFY：`src/capabilities/video-download/children/download-web-video-once.ts`、`src/capabilities/video-download/children/download-facebook-video-once.ts`、`src/capabilities/video-download/children/download-tiktok-video-once.ts`
 - RETIRE/DELETE：无
-- 输入：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`
+- 输入：`src/lib/browser/exact-target/browser-command-actor.ts`、`src/lib/browser/transport/command-permit.ts`、`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`
 - 动作：`ACT-026`
 - 输出：`src/capabilities/video-download/acceptance/browser-authority.acceptance.ts`
 - 消费者交接：src/capabilities/video-download/children/download-web-video-once.ts \| owner=video-download \| migration=WO-026 \| acceptance=ACC-026
@@ -16046,11 +16046,11 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 权威依据：用户绿地重建要求；AGENTS.md；APEX-LOCAL-BROWSER active law；终态施工图
 - 依赖：`WO-023`、`WO-024`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
-- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
+- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
 - CREATE：`src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts`
 - MODIFY：`src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts`、`src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts`、`src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts`、`src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts`、`src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts`、`src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-actions.ts`、`src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-navigation.ts`、`src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts`
 - RETIRE/DELETE：无
-- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
+- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`
 - 动作：`ACT-027`
 - 输出：`src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts`
 - 消费者交接：src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts \| owner=amazon-invoice-upload \| migration=WO-027 \| acceptance=ACC-027
@@ -16069,11 +16069,11 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 权威依据：用户绿地重建要求；AGENTS.md；APEX-LOCAL-BROWSER active law；终态施工图
 - 依赖：`WO-023`、`WO-024`、`WO-025`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
-- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
+- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
 - CREATE：`src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts`
 - MODIFY：`src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts`、`src/plugins/amazon-product-mining/amazon-product-mining.flow.ts`、`src/plugins/amazon-product-mining/amazon-product-mining.search.ts`、`src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts`、`src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts`、`src/plugins/amazon-product-mining/index.ts`
 - RETIRE/DELETE：无
-- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
+- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
 - 动作：`ACT-028`
 - 输出：`src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts`
 - 消费者交接：src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts \| owner=amazon-product-mining \| migration=WO-028 \| acceptance=ACC-028
@@ -16092,11 +16092,11 @@ WO-040 的 PASS 只进入 WO-042；POST_ACTIVATION_MISMATCH 只进入 WO-051。W
 - 权威依据：用户绿地重建要求；AGENTS.md；APEX-LOCAL-BROWSER active law；终态施工图
 - 依赖：`WO-023`、`WO-025`；决策门：无；并行组：`SEQUENTIAL`
 - 进入条件：Named dependencies and decision gates are PASS on the same candidate
-- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
+- READ：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
 - CREATE：`src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts`
 - MODIFY：`src/plugins/xuanxue-ai-production/index.ts`、`src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts`、`src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts`
 - RETIRE/DELETE：无
-- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`src/lib/local-runtime/workbench-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
+- 输入：`src/lib/local-runtime/workbench-browser-authority-support.ts`、`scripts/acceptance/local-runtime-browser-authority.acceptance.ts`、`src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts`
 - 动作：`ACT-029`
 - 输出：`src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts`
 - 消费者交接：src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-proof.ts \| owner=xuanxue-ai-production \| migration=WO-029 \| acceptance=ACC-029
@@ -16982,7 +16982,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | OP-023-007 | WO-023 | local-runtime owner | file | READ | src/lib/browser/profile/browser-profile-enrollment.ts |  |
 | OP-023-008 | WO-023 | local-runtime owner | file | READ | src/lib/browser/profile/browser-process-supervisor.ts |  |
 | OP-023-009 | WO-023 | local-runtime owner | file | CREATE | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-023-010 | WO-023 | local-runtime owner | file | CREATE | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-023-010 | WO-023 | local-runtime owner | file | CREATE | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-023-011 | WO-023 | local-runtime owner | file | MODIFY | src/lib/local-runtime/workbench-assembly.ts |  |
 | OP-023-012 | WO-023 | local-runtime owner | file | MODIFY | src/lib/local-runtime/workbench-ai-gateway-support.ts |  |
 | OP-023-013 | WO-023 | local-runtime owner | file | MODIFY | src/lib/local-runtime/workbench-status.ts |  |
@@ -16990,7 +16990,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | OP-024-001 | WO-024 | dom-automation owner | file | READ | src/lib/browser/exact-target/browser-command-actor.ts |  |
 | OP-024-002 | WO-024 | dom-automation owner | file | READ | src/lib/browser/transport/command-permit.ts |  |
 | OP-024-003 | WO-024 | dom-automation owner | file | READ | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-024-004 | WO-024 | dom-automation owner | file | READ | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-024-004 | WO-024 | dom-automation owner | file | READ | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-024-005 | WO-024 | dom-automation owner | deliverable | READ | deliverable://browser-observation/preconstruction-chrome.json |  |
 | OP-024-006 | WO-024 | dom-automation owner | file | CREATE | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts |  |
 | OP-024-007 | WO-024 | dom-automation owner | file | MODIFY | src/capabilities/dom-automation/runtime/dom-target-binding.ts |  |
@@ -17000,7 +17000,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | OP-024-011 | WO-024 | dom-automation owner | file | MODIFY | src/capabilities/dom-automation/runtime/dom-upload.ts |  |
 | OP-024-012 | WO-024 | dom-automation owner | file | MODIFY | src/capabilities/dom-automation/runtime/dom-evidence.ts |  |
 | OP-025-001 | WO-025 | ai-input-gateway owner | file | READ | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-025-002 | WO-025 | ai-input-gateway owner | file | READ | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-025-002 | WO-025 | ai-input-gateway owner | file | READ | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-025-003 | WO-025 | ai-input-gateway owner | file | READ | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts |  |
 | OP-025-004 | WO-025 | ai-input-gateway owner | file | CREATE | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts |  |
 | OP-025-005 | WO-025 | ai-input-gateway owner | file | MODIFY | src/capabilities/ai-input-gateway/ability-group.ts |  |
@@ -17014,13 +17014,13 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | OP-026-001 | WO-026 | video-download owner | file | READ | src/lib/browser/exact-target/browser-command-actor.ts |  |
 | OP-026-002 | WO-026 | video-download owner | file | READ | src/lib/browser/transport/command-permit.ts |  |
 | OP-026-003 | WO-026 | video-download owner | file | READ | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-026-004 | WO-026 | video-download owner | file | READ | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-026-004 | WO-026 | video-download owner | file | READ | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-026-005 | WO-026 | video-download owner | file | CREATE | src/capabilities/video-download/acceptance/browser-authority.acceptance.ts |  |
 | OP-026-006 | WO-026 | video-download owner | file | MODIFY | src/capabilities/video-download/children/download-web-video-once.ts |  |
 | OP-026-007 | WO-026 | video-download owner | file | MODIFY | src/capabilities/video-download/children/download-facebook-video-once.ts |  |
 | OP-026-008 | WO-026 | video-download owner | file | MODIFY | src/capabilities/video-download/children/download-tiktok-video-once.ts |  |
 | OP-027-001 | WO-027 | amazon-invoice-upload owner | file | READ | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-027-002 | WO-027 | amazon-invoice-upload owner | file | READ | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-027-002 | WO-027 | amazon-invoice-upload owner | file | READ | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-027-003 | WO-027 | amazon-invoice-upload owner | file | READ | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts |  |
 | OP-027-004 | WO-027 | amazon-invoice-upload owner | file | CREATE | src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts |  |
 | OP-027-005 | WO-027 | amazon-invoice-upload owner | file | MODIFY | src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts |  |
@@ -17032,7 +17032,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | OP-027-011 | WO-027 | amazon-invoice-upload owner | file | MODIFY | src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-flow-navigation.ts |  |
 | OP-027-012 | WO-027 | amazon-invoice-upload owner | file | MODIFY | src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts |  |
 | OP-028-001 | WO-028 | amazon-product-mining owner | file | READ | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-028-002 | WO-028 | amazon-product-mining owner | file | READ | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-028-002 | WO-028 | amazon-product-mining owner | file | READ | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-028-003 | WO-028 | amazon-product-mining owner | file | READ | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts |  |
 | OP-028-004 | WO-028 | amazon-product-mining owner | file | READ | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts |  |
 | OP-028-005 | WO-028 | amazon-product-mining owner | file | CREATE | src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts |  |
@@ -17043,7 +17043,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | OP-028-010 | WO-028 | amazon-product-mining owner | file | MODIFY | src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts |  |
 | OP-028-011 | WO-028 | amazon-product-mining owner | file | MODIFY | src/plugins/amazon-product-mining/index.ts |  |
 | OP-029-001 | WO-029 | xuanxue-ai-production owner | file | READ | src/lib/local-runtime/workbench-browser-authority-support.ts |  |
-| OP-029-002 | WO-029 | xuanxue-ai-production owner | file | READ | src/lib/local-runtime/workbench-browser-authority.acceptance.ts |  |
+| OP-029-002 | WO-029 | xuanxue-ai-production owner | file | READ | scripts/acceptance/local-runtime-browser-authority.acceptance.ts |  |
 | OP-029-003 | WO-029 | xuanxue-ai-production owner | file | READ | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts |  |
 | OP-029-004 | WO-029 | xuanxue-ai-production owner | file | CREATE | src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts |  |
 | OP-029-005 | WO-029 | xuanxue-ai-production owner | file | MODIFY | src/plugins/xuanxue-ai-production/index.ts |  |
@@ -17369,12 +17369,12 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | ACT-019 | WO-019 | Browser target lease owner | src/lib/browser/exact-target/browser-target-ref.ts | future explicit construction authorization required | src/lib/browser/infrastructure/browser-authority-broker.ts ; src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts | src/lib/browser/exact-target/browser-target-ref.ts ; src/lib/browser/exact-target/browser-document-ref.ts ; src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts ; src/lib/browser/exact-target/browser-target-lease.acceptance.ts | 只从当前 authority lease 取得唯一 target/document lease，epoch 变化立即失效。 | ACC-019 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-020 | WO-020 | Browser command owner | src/lib/browser/transport/command-permit.ts | future explicit construction authorization required | src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts | src/lib/browser/transport/command-permit.ts ; src/lib/browser/transport/reply-channel-token.ts ; src/lib/browser/transport/browser-command-admission-budget.ts ; src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/exact-target/browser-mutation-intent-journal.ts ; src/lib/browser/exact-target/browser-dom-intent.ts ; src/lib/browser/exact-target/browser-file-artifact-grant.ts ; src/lib/browser/exact-target/browser-artifact-stream.ts ; src/lib/browser/exact-target/browser-command.acceptance.ts | 只执行 registry-owned declarative commands；mutation 不自动重放，歧义进入 OUTCOME_UNKNOWN。 | ACC-020 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-021 | WO-021 | Browser profile owner | src/lib/browser/profile/browser-profile-enrollment.ts | future explicit construction authorization required | src/lib/browser/protocol/browser-profile-enrollment.schema.json ; src/lib/browser/native-messaging-host/crates/browserctl/src/enroll_profile.rs ; deliverable://construction-admission/browser-canonical-path.json | src/lib/browser/profile/browser-profile-enrollment.ts ; src/lib/browser/profile/dedicated-profile-policy.ts ; src/lib/browser/profile/browser-profile-state.ts ; src/lib/browser/profile/browser-profile-config.ts ; src/lib/browser/profile/browser-profile-enrollment-receipt.ts ; src/lib/browser/profile/browser-profile-process-attestation.ts ; src/lib/browser/profile/managed-policy-readback.ts ; src/lib/browser/profile/browser-process-supervisor.ts ; src/lib/browser/profile/browser-profile.acceptance.ts | 建设完整 profile 终态：config、state、dedicated policy、enrollment、receipt、process attestation、managed policy readback 与唯一 BrowserProcessSupervisor；enrollment mutation 仍只由 browserctl 执行。 | ACC-021 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-024 | WO-024 | dom-automation owner | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; deliverable://browser-observation/preconstruction-chrome.json | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | 六个原子动作只消费当前 BrowserTargetLease 与命令 permit。 | ACC-024 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-025 | WO-025 | ai-input-gateway owner | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | 每次 provider execution/checkpoint 重新取得并释放 authority/target；删除 BrowserTargetSession fixture 合同。 | ACC-025 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-026 | WO-026 | video-download owner | src/capabilities/video-download/acceptance/browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts | src/capabilities/video-download/acceptance/browser-authority.acceptance.ts | 来源页探测只使用命名、有界 observation capability，不允许 evaluate 或脚本 fallback。 | ACC-026 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-027 | WO-027 | amazon-invoice-upload owner | src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts | 只改 Browser 边界，保留业务顺序和人工最终门；每个 mutation 有 journal 与 owner outcome resolution。 | ACC-027 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-028 | WO-028 | amazon-product-mining owner | src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts | 每阶段使用当前 execution/authority/target，checkpoint 后不缓存旧 lease。 | ACC-028 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-029 | WO-029 | xuanxue-ai-production owner | src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts | 在唯一 AgentRuntimeReceiptV2 内记录有序 authority windows，窗口间零动作且无未裁决 mutation。 | ACC-029 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-024 | WO-024 | dom-automation owner | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; deliverable://browser-observation/preconstruction-chrome.json | src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | 六个原子动作只消费当前 BrowserTargetLease 与命令 permit。 | ACC-024 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-025 | WO-025 | ai-input-gateway owner | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | 每次 provider execution/checkpoint 重新取得并释放 authority/target；删除 BrowserTargetSession fixture 合同。 | ACC-025 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-026 | WO-026 | video-download owner | src/capabilities/video-download/acceptance/browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts | src/capabilities/video-download/acceptance/browser-authority.acceptance.ts | 来源页探测只使用命名、有界 observation capability，不允许 evaluate 或脚本 fallback。 | ACC-026 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-027 | WO-027 | amazon-invoice-upload owner | src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts | src/plugins/amazon-invoice-upload/amazon-invoice-upload-browser-authority.acceptance.ts | 只改 Browser 边界，保留业务顺序和人工最终门；每个 mutation 有 journal 与 owner outcome resolution。 | ACC-027 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-028 | WO-028 | amazon-product-mining owner | src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/dom-automation/runtime/dom-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | src/plugins/amazon-product-mining/amazon-product-mining-browser-authority.acceptance.ts | 每阶段使用当前 execution/authority/target，checkpoint 后不缓存旧 lease。 | ACC-028 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-029 | WO-029 | xuanxue-ai-production owner | src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts ; src/capabilities/ai-input-gateway/acceptance/browser-authority.acceptance.ts | src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts | 在唯一 AgentRuntimeReceiptV2 内记录有序 authority windows，窗口间零动作且无未裁决 mutation。 | ACC-029 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-030 | WO-030 | xuanxue dynamic-proof owner | /Users/nexgen/Documents/xuanxue-web/tests/dynamic-proof/browser-authority-window-contract.test.ts | future explicit construction authorization required | deliverable://construction-admission/xuanxue-candidate.json ; src/plugins/xuanxue-ai-production/xuanxue-ai-production-browser-authority.acceptance.ts | /Users/nexgen/Documents/xuanxue-web/tests/dynamic-proof/browser-authority-window-contract.test.ts ; deliverable://work-orders/WO-030/cross-repo-receipt.json | 只在 DG-003 干净候选上修改三条冻结路径，不建立第二 election、receipt 或 verdict owner。 | ACC-030 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-031 | WO-031 | local-browser audit owner | scripts/audit/domains/local-browser-session/local-browser-check-coverage.acceptance.ts | future explicit construction authorization required | .github/instructions/agent-rules/modules/module-local-browser-session.instructions.md ; scripts/audit/domains/local-browser-session/manifest.json ; scripts/audit/domains/local-browser-session/inspector.ts | scripts/audit/domains/local-browser-session/local-browser-check-coverage.acceptance.ts ; deliverable://work-orders/WO-031/local-browser-check-coverage-receipt.json | 从当前 active law SHA 导出精确 26 个 machine-blocking checkId，并与 manifest/inspector 的独立 binding 集合做全等比较。 | ACC-031 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-032 | WO-032 | acceptance and audit test owner | scripts/acceptance/local-browser-terminal-contract.acceptance.ts | future explicit construction authorization required | scripts/audit/domains/local-browser-session/manifest.json ; scripts/audit/domains/local-browser-session/inspector.ts ; src/lib/browser/protocol/browser-errors.json ; src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts | scripts/acceptance/local-browser-terminal-contract.acceptance.ts ; scripts/acceptance/local-browser-rule-mutants.acceptance.ts ; scripts/acceptance/local-browser-property-model.acceptance.ts | 26 个检查逐项拥有 negative/property/model/mutant 证据；确定性合同验证两项合法 health、精确 error taxonomy、11 个零指标、4 项 SLO 和无界队列/缓存/流为零。 | ACC-032 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
@@ -17390,7 +17390,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | ACT-003 | WO-003 | release operations owner | deliverable://construction-admission/external-operations.json | future explicit construction authorization required | docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md | deliverable://construction-admission/external-operations.json | 只冻结 CWS、签名/公证、managed profile、两台独立 HA worker 与 release key custody；不决定任何仓库 required-check policy。 | ACC-003 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-014 | WO-014 | Native Host owner | src/lib/browser/native-messaging-host/crates/host/Cargo.toml | future explicit construction authorization required | src/lib/browser/protocol/generated/browser-protocol.generated.ts ; src/lib/browser/native-messaging-host/crates/host/src/generated/browser_protocol.rs | src/lib/browser/native-messaging-host/Cargo.toml ; src/lib/browser/native-messaging-host/crates/host/Cargo.toml ; src/lib/browser/native-messaging-host/crates/host/src/main.rs ; src/lib/browser/native-messaging-host/crates/host/src/browser-native-framing.rs ; src/lib/browser/native-messaging-host/crates/host/src/raw-channel.rs ; src/lib/browser/native-messaging-host/crates/host/src/authenticated-channel.rs ; src/lib/browser/native-messaging-host/crates/host/src/transcript.rs ; src/lib/browser/native-messaging-host/crates/host/src/artifact-stream.rs ; src/lib/browser/native-messaging-host/crates/host/tests/native-host.acceptance.rs ; src/lib/browser/native-messaging-host/Cargo.lock ; src/lib/browser/native-messaging-host/crates/host/fuzz/Cargo.toml ; src/lib/browser/native-messaging-host/crates/host/fuzz/fuzz_targets/native_framing.rs ; src/lib/browser/native-messaging-host/crates/host/fuzz/corpus/native_framing/seed.bin | 只建设 framing、认证握手、单 Port 与有界 I/O 的 Host。 | ACC-014 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-022 | WO-022 | Browser release identity owner | src/lib/browser/release/release-identity.acceptance.ts | future explicit construction authorization required | src/lib/browser/protocol/browser-protocol.schema.json ; src/lib/browser/protocol/generated/browser-protocol.generated.ts ; src/lib/browser/native-messaging-host/crates/host/src/generated/browser_protocol.rs | src/lib/browser/release/browser-artifact-set.schema.json ; src/lib/browser/release/browser-activation-tuple.schema.json ; src/lib/browser/release/browser-release-proof.schema.json ; src/lib/browser/release/browser-release-security-policy.schema.json ; src/lib/browser/release/browser-rollback-receipt.schema.json ; src/lib/browser/release/browser-build-inputs.schema.json ; src/lib/browser/release/browser-sbom.schema.json ; src/lib/browser/release/browser-provenance.schema.json ; src/lib/browser/release/pinned-browser-toolchain.json ; src/lib/browser/release/active-activation.json ; src/lib/browser/release/release-identity.acceptance.ts ; src/lib/browser/release/browser-build.config.json ; src/lib/browser/release/browser-previous-activation-snapshot.schema.json | 只建立 ArtifactSet、ActivationTuple、ReleaseSecurityPolicy、ProofManifest、rollback、SBOM、provenance 与 build-input schemas，并初始化空 ABSENT slot；不签发任何候选身份。 | ACC-022 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
-| ACT-023 | WO-023 | local-runtime owner | src/lib/local-runtime/workbench-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/browser/infrastructure/browser-authority-broker.ts ; src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts ; src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts ; src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/browser/profile/browser-profile-enrollment.ts ; src/lib/browser/profile/browser-process-supervisor.ts | src/lib/local-runtime/workbench-browser-authority-support.ts ; src/lib/local-runtime/workbench-browser-authority.acceptance.ts | Local Runtime 只注入 Broker；assembly 不领取或缓存 target lease；已退休的 workbench-browser-support.ts 与 workbench-video-download-support.ts 永久不存在。 | ACC-023 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
+| ACT-023 | WO-023 | local-runtime owner | scripts/acceptance/local-runtime-browser-authority.acceptance.ts | future explicit construction authorization required | src/lib/browser/infrastructure/browser-authority-broker.ts ; src/lib/browser/infrastructure/browser-authority-broker.acceptance.ts ; src/lib/browser/exact-target/browser-target-lease.ts ; src/lib/browser/exact-target/browser-target-lease-manager.ts ; src/lib/browser/exact-target/browser-command-actor.ts ; src/lib/browser/transport/command-permit.ts ; src/lib/browser/profile/browser-profile-enrollment.ts ; src/lib/browser/profile/browser-process-supervisor.ts | src/lib/local-runtime/workbench-browser-authority-support.ts ; scripts/acceptance/local-runtime-browser-authority.acceptance.ts | Local Runtime 只注入 Broker；assembly 不领取或缓存 target lease；已退休的 workbench-browser-support.ts 与 workbench-video-download-support.ts 永久不存在。 | ACC-023 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-041 | WO-041 | independent read-only audit owner | deliverable://browser-release/independent-audit.json | future explicit construction authorization required | deliverable://work-orders/WO-031/local-browser-check-coverage-receipt.json ; deliverable://work-orders/WO-030/cross-repo-receipt.json ; deliverable://browser-release/artifact-set.json ; deliverable://browser-release/activation-tuple-candidate.json ; deliverable://browser-release/release-security-policy.json ; deliverable://browser-release/real-chrome-matrix.json ; deliverable://browser-release/business-workday-receipt.json ; deliverable://browser-release/branch-protection-readback.json ; deliverable://browser-release/ha-handover.json ; deliverable://browser-release/soak-24h.json ; deliverable://browser-release/soak-168h.json ; deliverable://browser-release/ci-full-receipt.json ; deliverable://browser-release/xuanxue-branch-protection-readback.json ; deliverable://browser-release/browser-build-input-lock.json ; deliverable://browser-release/sbom.spdx.json ; deliverable://browser-release/provenance.json ; deliverable://browser-release/installed-artifact-readback.json ; deliverable://browser-release/release-identity-signature.json ; deliverable://browser-release/agent-branch-protection-prestate.json ; deliverable://browser-release/agent-branch-protection-recovery-receipt.json ; deliverable://browser-release/xuanxue-branch-protection-prestate.json ; deliverable://browser-release/xuanxue-branch-protection-recovery-receipt.json ; deliverable://browser-release/constructed-release-candidate.json ; deliverable://construction-admission/agent-repository-governance-policy.json ; deliverable://construction-admission/xuanxue-repository-governance-policy.json | deliverable://browser-release/independent-audit.json | 独立审计者绑定同一候选和 artifact，审查法案执法面、旧路径零可达与所有 proof receipts。 | ACC-041 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-056 | WO-056 | AGENT repository governance owner | deliverable://construction-admission/agent-repository-governance-policy.json | future explicit construction authorization required | deliverable://construction-admission/agent-repository-governance-request.json | deliverable://construction-admission/agent-repository-governance-policy.json | 签发 ADVISION-X/AGENT main 的 repo、branch、strict、exact contexts、construction branch commit/push 权限、expected remote ref、保护规则变更权限与恢复权限。 | ACC-056 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
 | ACT-057 | WO-057 | xuanxue repository governance owner | deliverable://construction-admission/xuanxue-repository-governance-policy.json | future explicit construction authorization required | deliverable://construction-admission/xuanxue-repository-governance-request.json | deliverable://construction-admission/xuanxue-repository-governance-policy.json | 签发 ADVISION-X/xuanxue-web main 的 repo、branch、strict、exact contexts、construction branch commit/push 权限、expected remote ref、保护规则变更权限与恢复权限。 | ACC-057 | Emit a candidate-bound FAIL receipt and stop dependent work orders. |
@@ -17457,7 +17457,7 @@ CREATE 必须先于下游 READ。远端/运行态 mutation 必须有 legal owner
 | ACC-003 | WO-003 | MANUAL | WO-003 | Release operations owner signs external-operations.json containing non-empty permanent CWS item ID, Verified CRX publisher identity, Host/launcher/browserctl signing and notarization key references, release-signing-root custody, dedicated managed-profile policy ref, and two distinct HA worker device IDs/dataDirs/profile enrollment refs; reject shared device/profile/dataDir or missing owner signature. | 只冻结 CWS、签名/公证、managed profile、两台独立 HA worker 与 release key custody；不决定任何仓库 required-check policy。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
 | ACC-014 | WO-014 | EXAM | WO-014 | cargo test --manifest-path src/lib/browser/native-messaging-host/Cargo.toml --locked --all-targets && cargo fuzz run --manifest-path src/lib/browser/native-messaging-host/crates/host/fuzz/Cargo.toml native_framing -- -max_total_time=60; require bounded framing, raw/auth channel separation, original reply token, one Host per Port, transcript integrity and crash-safe artifact stream; any panic, hang or oversized frame acceptance fails. | 只建设 framing、认证握手、单 Port 与有界 I/O 的 Host。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
 | ACC-022 | WO-022 | EXAM | WO-022 | node --import tsx src/lib/browser/release/release-identity.acceptance.ts --require-artifact-tuple-proof-security-rollback-sbom-provenance-build-input-previous-snapshot-schemas --require-active-slot-signed-absent --verify-targets-absent deliverable://browser-release/artifact-set.json,deliverable://browser-release/activation-tuple-candidate.json,deliverable://browser-release/release-security-policy.json --reject-tuple-intersection --reject-downgrade --reject-revoked; fail if WO-022 issues any candidate identity. | 只建立 ArtifactSet、ActivationTuple、ReleaseSecurityPolicy、ProofManifest、rollback、SBOM、provenance 与 build-input schemas，并初始化空 ABSENT slot；不签发任何候选身份。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
-| ACC-023 | WO-023 | EXAM | WO-023 | node --import tsx src/lib/local-runtime/workbench-browser-authority.acceptance.ts --require-broker-only --forbid-assembly-authority-lease --forbid-assembly-target-lease --require-only-health-components browserInfrastructure,browserAuthority --reject-old-health-semantics browserSession,transportReady,session-not-authenticated,wait-for-authentication --verify-targets-absent src/lib/local-runtime/workbench-browser-support.ts,src/lib/local-runtime/workbench-video-download-support.ts --require-video-capability-public-factory --require-browser-jobs-blocked-when-authority-absent; run AST import check proving local-runtime imports Browser public facade only. | Local Runtime 只注入 Broker，原样展示唯一 supervisor 的两个合法 health component；assembly 不领取或缓存 target lease；已退休的 workbench-browser-support.ts 与 workbench-video-download-support.ts 永久不存在。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
+| ACC-023 | WO-023 | EXAM | WO-023 | node --import tsx scripts/acceptance/local-runtime-browser-authority.acceptance.ts --require-broker-only --forbid-assembly-authority-lease --forbid-assembly-target-lease --require-only-health-components browserInfrastructure,browserAuthority --reject-old-health-semantics browserSession,transportReady,session-not-authenticated,wait-for-authentication --verify-targets-absent src/lib/local-runtime/workbench-browser-support.ts,src/lib/local-runtime/workbench-video-download-support.ts --require-video-capability-public-factory --require-browser-jobs-blocked-when-authority-absent; run AST import check proving local-runtime imports Browser public facade only. | Local Runtime 只注入 Broker，原样展示唯一 supervisor 的两个合法 health component；assembly 不领取或缓存 target lease；已退休的 workbench-browser-support.ts 与 workbench-video-download-support.ts 永久不存在。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
 | ACC-041 | WO-041 | MANUAL | WO-041 | Create a fresh independent read-only auditor with no prior implementation context; bind exact constructed-release-candidate, ArtifactSet, ActivationTuple, ReleaseSecurityPolicy and all declared receipt hashes; independently execute all 26 local-browser checks, old-path/import/symbol zero reachability, two-repo governance pre/post/recovery readbacks, ci-full receipt, packaged Chrome matrix, provider/business receipt, HA/24h/168h receipts and producer-ancestor graph; sign independent-audit.json only when blocking findings=0, conflicts=0 and every hash matches. Reject plan-evidence SHA as release identity; use only deliverable://browser-release/constructed-release-candidate.json. | 独立审计者绑定同一候选和 artifact，审查法案执法面、旧路径零可达与所有 proof receipts。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
 | ACC-056 | WO-056 | MANUAL | WO-056 | Verify the signer is the AGENT repository governance owner; require repo=ADVISION-X/AGENT, branch=main, strict boolean, non-empty exact contexts, construction_branch=codex/browser-greenfield, expected_remote_ref, commit/push permission, branch-protection mutation permission and exact pre-state restore permission; reject wildcard context or release-operations signature. | 签发 ADVISION-X/AGENT main 的 repo、branch、strict、exact contexts、construction branch commit/push 权限、expected remote ref、保护规则变更权限与恢复权限。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |
 | ACC-057 | WO-057 | MANUAL | WO-057 | Verify the signer is the xuanxue repository governance owner; require repo=ADVISION-X/xuanxue-web, branch=main, strict boolean, non-empty exact contexts, construction_branch=codex/browser-greenfield, expected_remote_ref, commit/push permission, branch-protection mutation permission and exact pre-state restore permission; reject wildcard context or AGENT/release-operations signature. | 签发 ADVISION-X/xuanxue-web main 的 repo、branch、strict、exact contexts、construction branch commit/push 权限、expected remote ref、保护规则变更权限与恢复权限。 | Does not prove any downstream work order, deployment, activation or release. | Emit FAIL and stop dependent work orders. |

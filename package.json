@@ -12,7 +12,7 @@
     "browser:build": "node src/lib/browser/release/build-artifacts.mjs",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "acceptance:local-browser-terminal": "node --import tsx scripts/acceptance/local-browser-terminal-contract.acceptance.ts && node --import tsx scripts/acceptance/local-browser-property-model.acceptance.ts && node --import tsx scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
+    "acceptance:local-browser-terminal": "node --import tsx scripts/acceptance/local-browser-terminal-contract.acceptance.ts && node --import tsx scripts/acceptance/local-browser-property-model.acceptance.ts && node --import tsx scripts/acceptance/local-browser-rule-mutants.acceptance.ts && node --import tsx scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
     "acceptance:dom-automation-exact-target": "node --import tsx scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "acceptance:ai-input-gateway-exact-target": "node --import tsx scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "acceptance:browser-intervention": "node --import tsx scripts/acceptance/amazon-invoice-upload-browser-intervention.acceptance.ts && node --import tsx scripts/acceptance/amazon-product-mining-browser-intervention.acceptance.ts && node --import tsx scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",

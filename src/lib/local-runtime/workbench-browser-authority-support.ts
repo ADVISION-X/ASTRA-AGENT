@@ -3,15 +3,15 @@ import { readFile } from "node:fs/promises";
 import { attestManagedPolicyReadback } from "../browser/profile/managed-policy-readback.js";
 import { createBrowserProfileEnrollment } from "../browser/profile/browser-profile-enrollment.js";
 import { resolveProductionBrowserProfileConfig } from "../browser/profile/browser-profile-config.js";
-import { BrowserInfrastructureSupervisor } from "../browser/infrastructure/browser-infrastructure-supervisor.js";
-import type { BrowserTargetLease } from "../browser/exact-target/browser-target-lease.js";
-import type { BrowserExecutionBinding } from "../browser/infrastructure/browser-authority-broker.js";
+import {
+  BrowserInfrastructureSupervisor,
+  type BrowserHealthSnapshot,
+} from "../browser/infrastructure/browser-infrastructure-supervisor.js";
 import type { BrowserMediaSourcePort } from "../../capabilities/video-download/index.js";
 
 export type WorkbenchBrowserAuthority = Readonly<{
   broker: ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>;
-  supervisor: BrowserInfrastructureSupervisor;
-  acquireTargetLease(input: Readonly<{ ownerId: string; binding: BrowserExecutionBinding }>): Promise<BrowserTargetLease>;
+  health(): BrowserHealthSnapshot;
   shutdown(): Promise<void>;
 }>;
 
@@ -50,15 +50,12 @@ export const createWorkbenchBrowserAuthority = async (dataDir: string): Promise<
   await supervisor.start();
   return {
     broker: supervisor.authorityBroker(),
-    supervisor,
-    acquireTargetLease: ({ ownerId, binding }) => supervisor.acquireOperatorClaimedTargetLease(
-      binding,
-      ownerId,
-    ),
+    health: () => supervisor.health(),
     shutdown: () => supervisor.stop(),
   };
 };
 
 export const createUnavailableBrowserObservationPort = (): BrowserMediaSourcePort => ({
-  observe: async () => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
+  evaluate: async <T>(): Promise<T> => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
+  evaluateSourcePage: async <T>(): Promise<T> => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
 });

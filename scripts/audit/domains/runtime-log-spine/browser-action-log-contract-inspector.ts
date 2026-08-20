@@ -17,7 +17,7 @@ const browserActionMethods: ReadonlySet<string> = new Set(["command"]);
 const terminalBrowserEvents = new Set(["BROWSER_ACTION_COMPLETED", "BROWSER_ACTION_FAILED", "BROWSER_ACTION_RESULT"]);
 const centralLogHelperPath = "src/lib/browser/current-chrome-browser-action-logging.ts";
 const browserCommandActorPath = "src/lib/browser/exact-target/browser-command-actor.ts";
-const workbenchBrowserSupportPath = "src/lib/local-runtime/workbench-browser-support.ts";
+const workbenchBrowserAuthoritySupportPath = "src/lib/local-runtime/workbench-browser-authority-support.ts";
 const workbenchAssemblyPath = "src/lib/local-runtime/workbench-assembly.ts";
 const browserControllerPath = browserCommandActorPath;
 
@@ -65,7 +65,7 @@ export const collectBrowserActionLogContractFindings = (context: InspectorContex
       ...actionFiles.map(({ file }) => toRepoPath(file.getFilePath())),
       centralLogHelperPath,
       browserCommandActorPath,
-      workbenchBrowserSupportPath,
+      workbenchBrowserAuthoritySupportPath,
       workbenchAssemblyPath,
     ])].sort(),
   };
@@ -75,7 +75,7 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
   const source = (repoPath: string) => context.project.getSourceFiles().find((file) => toRepoPath(file.getFilePath()) === repoPath);
   const helper = source(centralLogHelperPath);
   const browserCommandActor = source(browserCommandActorPath);
-  const browserSupport = source(workbenchBrowserSupportPath);
+  const browserSupport = source(workbenchBrowserAuthoritySupportPath);
   const assembly = source(workbenchAssemblyPath);
   const missing: string[] = [];
   if (!helper) return ["central-helper-file"];
@@ -106,16 +106,17 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
     missing.push("browser-command-actor:runtime-logger-injection");
   }
   const browserFactoryCall = browserSupport?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
-    expression.getExpression().getText() === "BrowserInfrastructureSupervisorImpl");
+    expression.getExpression().getText() === "BrowserInfrastructureSupervisor");
   const browserFactoryInput = browserFactoryCall?.getArguments()[0];
   if (!Node.isObjectLiteralExpression(browserFactoryInput)
-    || !browserFactoryInput.getProperties().some((property) => property.getName() === "runtimeLogger")) {
-    missing.push("workbench-browser:runtime-logger-injection");
+    || !browserFactoryInput.getProperties().some((property) =>
+      Node.isPropertyAssignment(property) && property.getName() === "activationBlockedReasonCode")) {
+    missing.push("workbench-browser:unsigned-activation-gate");
   }
   const assemblyCall = assembly?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
-    symbolHasDeclarationAt(call.getExpression().getSymbol(), workbenchBrowserSupportPath));
-  if (!assemblyCall?.getArguments().some(isRuntimeLoggerReference)) {
-    missing.push("workbench-assembly:runtime-logger-wiring");
+    symbolHasDeclarationAt(call.getExpression().getSymbol(), workbenchBrowserAuthoritySupportPath));
+  if (!assemblyCall?.getArguments().some(isDataDirReference)) {
+    missing.push("workbench-assembly:browser-authority-data-dir-wiring");
   }
   return missing;
 }
@@ -237,11 +238,11 @@ function symbolHasDeclarationAt(symbol: MorphSymbol | undefined, repoPath: strin
   return symbolDeclarations(symbol).some((declaration) => toRepoPath(declaration.getSourceFile().getFilePath()) === repoPath);
 }
 
-function isRuntimeLoggerReference(node: Node): boolean {
+function isDataDirReference(node: Node): boolean {
   if (!Node.isIdentifier(node)) return false;
   return symbolDeclarations(node.getSymbol()).some((declaration) =>
     (Node.isParameterDeclaration(declaration) || Node.isVariableDeclaration(declaration))
-    && declaration.getName() === "runtimeLogger");
+    && declaration.getName() === "dataDir");
 }
 
 function eventTypeName(object: ObjectLiteralExpression): string | null {

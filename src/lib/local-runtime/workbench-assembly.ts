@@ -14,12 +14,13 @@ import {
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import {
   createWorkbenchBrowserAuthority,
+  createUnavailableBrowserObservationPort,
   type WorkbenchBrowserAuthority,
-} from "./workbench-browser-support.js";
+} from "./workbench-browser-authority-support.js";
+import { createVideoDownloadAbilityGroupFromFilesystem } from "../../capabilities/video-download/index.js";
 import { createWorkbenchAiInputGateway } from "./workbench-ai-gateway-support.js";
 import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
 import { createWorkbenchMediaProcessing } from "./workbench-media-processing-support.js";
-import { createWorkbenchVideoDownload } from "./workbench-video-download-support.js";
 
 export type WorkbenchAssembly = {
   options: GrassEyeWorkbenchOptions;
@@ -27,7 +28,7 @@ export type WorkbenchAssembly = {
   structuredLogBus: StructuredLogBus;
   browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
-  videoDownload: ReturnType<typeof createWorkbenchVideoDownload>;
+  videoDownload: ReturnType<typeof createVideoDownloadAbilityGroupFromFilesystem>;
   mediaProcessing: ReturnType<typeof createWorkbenchMediaProcessing>;
   aiInputGateway: ReturnType<typeof createWorkbenchAiInputGateway>;
   runtimeLogger: RuntimeLogger;
@@ -40,22 +41,16 @@ export async function createWorkbenchAssembly(
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   const structuredLogBus = createWorkbenchStructuredLogBus();
 
-  const browserAuthority = await createWorkbenchBrowserAuthority(
-    options,
-    dataDir,
-    runtimeLogger,
-  );
-  const aiBrowser = await browserAuthority.tryAcquireTargetLease(
-    "ai-input-gateway:single-provider-target",
-  );
-  const videoBrowser = await browserAuthority.tryAcquireTargetLease(
-    "video-download:source-page",
-  );
+  const browserAuthority = await createWorkbenchBrowserAuthority(dataDir);
 
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
-  const videoDownload = createWorkbenchVideoDownload(dataDir, videoBrowser, runtimeLogger);
+  const videoDownload = createVideoDownloadAbilityGroupFromFilesystem({
+    browserMediaSourcePort: createUnavailableBrowserObservationPort(),
+    dataDir,
+    runtimeLogger,
+  });
   const mediaProcessing = createWorkbenchMediaProcessing(dataDir, runtimeLogger);
-  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, aiBrowser, runtimeLogger);
+  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, runtimeLogger);
 
   return {
     options,
