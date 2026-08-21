@@ -90,83 +90,115 @@ const turnOrdinal = (testId: string): number => {
 const currentGenerationState = async (browser: AnswerBrowser): Promise<boolean> =>
   (await readCount(browser, CHATGPT_STOP_SELECTOR, 1)) === 1;
 
-const buildEvaluation = async (input: {
-  browser: AnswerBrowser;
-  marker: string | null;
-}): Promise<WebChatEvaluation> => {
-  const document = await readDocument(input.browser);
-  const userMessageCount = await readCount(input.browser, CHATGPT_USER_TURN_SELECTOR, 20);
-  const assistantCount = await readCount(input.browser, CHATGPT_ASSISTANT_TURN_SELECTOR, 20);
-  const generating = await currentGenerationState(input.browser);
+type EvaluationSnapshot = {
+  document: { url: string; title: string };
+  userMessageCount: number;
+  assistantCount: number;
+  generating: boolean;
+};
 
-  if (input.marker) {
-    const markedUserCount = await readCount(input.browser, CHATGPT_USER_TURN_SELECTOR, 1, input.marker);
-    if (markedUserCount === 0) {
-      return {
-        status: "pending",
-        message: "exact marked ChatGPT user turn is not materialized yet",
-        pageUrl: document.url,
-        generating,
-        assistantCount,
-        userMessageCount,
-      };
-    }
-    const userTurnId = await readAttribute(input.browser, {
-      selector: CHATGPT_USER_TURN_SELECTOR,
-      name: "data-testid",
-      textContains: input.marker,
-    });
-    const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
-    const assistantSelector = `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant']`;
-    const immediateAssistantCount = await readCount(input.browser, assistantSelector, 1);
-    if (immediateAssistantCount === 0) {
-      return {
-        status: "pending",
-        message: "exact assistant turn immediately following the marked ChatGPT user turn is not materialized yet",
-        pageUrl: document.url,
-        generating,
-        assistantCount,
-        userMessageCount,
-        conversationTurnIds: [userTurnId],
-      };
-    }
-    const answerText = await readText(input.browser, { selector: assistantSelector, expectedMatches: 1 });
+const buildMarkedEvaluation = async (input: {
+  browser: AnswerBrowser;
+  marker: string;
+  snapshot: EvaluationSnapshot;
+}): Promise<WebChatEvaluation> => {
+  const markedUserCount = await readCount(
+    input.browser,
+    CHATGPT_USER_TURN_SELECTOR,
+    1,
+    input.marker,
+  );
+  if (markedUserCount === 0) {
     return {
-      status: generating ? "pending" : "success",
-      message: generating ? "exact marked ChatGPT assistant turn is still generating" : "exact marked ChatGPT assistant turn is stable",
-      answerText,
-      pageUrl: document.url,
-      generating,
-      assistantCount,
-      userMessageCount,
-      conversationTurnIds: [userTurnId, assistantTurnId],
+      status: "pending",
+      message: "exact marked ChatGPT user turn is not materialized yet",
+      pageUrl: input.snapshot.document.url,
+      generating: input.snapshot.generating,
+      assistantCount: input.snapshot.assistantCount,
+      userMessageCount: input.snapshot.userMessageCount,
     };
   }
+  const userTurnId = await readAttribute(input.browser, {
+    selector: CHATGPT_USER_TURN_SELECTOR,
+    name: "data-testid",
+    textContains: input.marker,
+  });
+  const assistantTurnId = `conversation-turn-${turnOrdinal(userTurnId) + 1}`;
+  const assistantSelector = `[data-testid=${JSON.stringify(assistantTurnId)}][data-turn='assistant']`;
+  const immediateAssistantCount = await readCount(input.browser, assistantSelector, 1);
+  if (immediateAssistantCount === 0) {
+    return {
+      status: "pending",
+      message: "exact assistant turn immediately following the marked ChatGPT user turn is not materialized yet",
+      pageUrl: input.snapshot.document.url,
+      generating: input.snapshot.generating,
+      assistantCount: input.snapshot.assistantCount,
+      userMessageCount: input.snapshot.userMessageCount,
+      conversationTurnIds: [userTurnId],
+    };
+  }
+  const answerText = await readText(input.browser, { selector: assistantSelector, expectedMatches: 1 });
+  return {
+    status: input.snapshot.generating ? "pending" : "success",
+    message: input.snapshot.generating
+      ? "exact marked ChatGPT assistant turn is still generating"
+      : "exact marked ChatGPT assistant turn is stable",
+    answerText,
+    pageUrl: input.snapshot.document.url,
+    generating: input.snapshot.generating,
+    assistantCount: input.snapshot.assistantCount,
+    userMessageCount: input.snapshot.userMessageCount,
+    conversationTurnIds: [userTurnId, assistantTurnId],
+  };
+};
 
-  if (assistantCount === 0) {
+const buildLatestEvaluation = async (input: {
+  browser: AnswerBrowser;
+  snapshot: EvaluationSnapshot;
+}): Promise<WebChatEvaluation> => {
+  if (input.snapshot.assistantCount === 0) {
     return {
       status: "pending",
       message: "provider has no assistant turn yet",
-      pageUrl: document.url,
-      generating,
-      assistantCount,
-      userMessageCount,
+      pageUrl: input.snapshot.document.url,
+      generating: input.snapshot.generating,
+      assistantCount: input.snapshot.assistantCount,
+      userMessageCount: input.snapshot.userMessageCount,
     };
   }
   const answerText = await readText(input.browser, {
     selector: CHATGPT_ASSISTANT_TURN_SELECTOR,
     maxMatches: 20,
-    matchIndex: assistantCount - 1,
+    matchIndex: input.snapshot.assistantCount - 1,
   });
   return {
-    status: generating ? "pending" : "success",
-    message: generating ? "latest ChatGPT assistant turn is still generating" : "latest ChatGPT assistant turn is stable",
+    status: input.snapshot.generating ? "pending" : "success",
+    message: input.snapshot.generating
+      ? "latest ChatGPT assistant turn is still generating"
+      : "latest ChatGPT assistant turn is stable",
     answerText,
-    pageUrl: document.url,
-    generating,
-    assistantCount,
-    userMessageCount,
+    pageUrl: input.snapshot.document.url,
+    generating: input.snapshot.generating,
+    assistantCount: input.snapshot.assistantCount,
+    userMessageCount: input.snapshot.userMessageCount,
   };
+};
+
+const buildEvaluation = async (input: {
+  browser: AnswerBrowser;
+  marker: string | null;
+}): Promise<WebChatEvaluation> => {
+  const document = await readDocument(input.browser);
+  const snapshot: EvaluationSnapshot = {
+    document,
+    userMessageCount: await readCount(input.browser, CHATGPT_USER_TURN_SELECTOR, 20),
+    assistantCount: await readCount(input.browser, CHATGPT_ASSISTANT_TURN_SELECTOR, 20),
+    generating: await currentGenerationState(input.browser),
+  };
+  if (input.marker) {
+    return buildMarkedEvaluation({ browser: input.browser, marker: input.marker, snapshot });
+  }
+  return buildLatestEvaluation({ browser: input.browser, snapshot });
 };
 
 const extractAnswer = (browser: AnswerBrowser, context: AiProviderAdapterContext): Promise<WebChatEvaluation> => {

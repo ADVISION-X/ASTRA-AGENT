@@ -16,10 +16,10 @@ for (const flag of requiredFlags) {
 }
 
 const impossibleObservation: BrowserPageObservationPort = {
-  observeUniversalVideoCandidates: async () => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
-  observeFacebookVideoCandidates: async () => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
-  observeTikTokVideoCandidates: async () => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
-  observeTelegramWebCache: async () => { throw new Error("BROWSER_HOST_UNAVAILABLE"); },
+  observeUniversalVideoCandidates: async () => { throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"); },
+  observeFacebookVideoCandidates: async () => { throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"); },
+  observeTikTokVideoCandidates: async () => { throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"); },
+  observeTelegramWebCache: async () => { throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"); },
 };
 
 assert.deepEqual(Object.keys(impossibleObservation).sort(), [
@@ -37,6 +37,6 @@ await assert.rejects(
     sourcePageUrl: "https://example.invalid/",
     platform: "universal",
   }),
-  /BROWSER_HOST_UNAVAILABLE/u,
+  /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u,
 );
 console.log("VIDEO_DOWNLOAD_BROWSER_AUTHORITY_ACCEPTANCE_PASS");

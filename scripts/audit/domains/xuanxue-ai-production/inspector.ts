@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
@@ -18,15 +16,16 @@ import {
   cloudCredentialPath,
   cloudWorkerPath,
   pluginPaths,
-  removedSecondChainPaths,
   schedulerPath,
   schemaPath,
   schemaRefinementsPath,
+  storedOrderQuarantinePath,
   storePath,
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 import { inspectXuanxueContracts } from "./inspect-contracts.js";
 import { inspectTransientLifecycleBehavior } from "./components/transient-material-lifecycle-inspector.js";
+import { inspectXuanxueBoundary } from "./components/boundary-inspector.js";
 import {
   collectXuanxueSourceValues,
   inspectXuanxueLocalIntervention,
@@ -86,82 +85,6 @@ const requireValues = (
   }
 };
 
-const inspectAuthority = (
-  findings: InspectorFinding[],
-  boundaryLaw: string,
-): void => {
-  for (const filePath of authorityPaths) {
-    if (existsSync(resolveFromRepo(filePath))) continue;
-    findings.push(finding(
-      boundaryLaw,
-      "xuanxue-ai-production/source-present",
-      filePath,
-      `${filePath} must exist.`,
-    ));
-  }
-};
-
-const sourceContainsDetachedProviderPreflightMarker = (
-  sourceFile: SourceFile,
-): boolean => {
-  const markers = [
-    "provider-input-preflight",
-    "provider_input_preflight",
-    "preflightApprovedWebChatFiles",
-    "bytes_base64",
-  ];
-  const values = [
-    ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)
-      .map((node) => String(node.compilerNode.escapedText)),
-    ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .map((node) => node.getLiteralText()),
-    ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
-      .map((node) => node.getLiteralText()),
-    ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateHead)
-      .map((node) => node.getLiteralText()),
-    ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateMiddle)
-      .map((node) => node.getLiteralText()),
-    ...sourceFile.getDescendantsOfKind(SyntaxKind.TemplateTail)
-      .map((node) => node.getLiteralText()),
-  ];
-  return markers.some((marker) => values.some((value) => value.indexOf(marker) >= 0));
-};
-
-const inspectRemovedSecondChain = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  boundaryLaw: string,
-): void => {
-  for (const filePath of removedSecondChainPaths) {
-    if (!existsSync(resolveFromRepo(filePath))) continue;
-    findings.push(finding(
-      boundaryLaw,
-      "xuanxue-ai-production/no-detached-provider-preflight",
-      filePath,
-      `${filePath} must remain physically deleted.`,
-    ));
-  }
-  for (const filePath of [
-    "src/app/workbench-xuanxue-ai-production-routes.ts",
-    "src/app/workbench-api-boundary.ts",
-    "src/app/create-workbench-server.ts",
-    "src/capabilities/ai-input-gateway/contract.ts",
-    "src/capabilities/ai-input-gateway/ability-group.ts",
-    cloudContractPath,
-  ]) {
-    const file = resolveFromRepo(filePath);
-    if (!existsSync(file)) continue;
-    const sourceFile = context.project.getSourceFile(file);
-    if (!sourceFile || !sourceContainsDetachedProviderPreflightMarker(sourceFile)) continue;
-    findings.push(finding(
-      boundaryLaw,
-      "xuanxue-ai-production/no-detached-provider-preflight",
-      filePath,
-      `${filePath} must not retain the detached provider preflight chain.`,
-    ));
-  }
-};
-
 const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
@@ -171,7 +94,7 @@ const inspectDurability = (
   requireValues(findings, {
     lawId: durabilityLaw,
     checkId: "xuanxue-ai-production/durable-ledger",
-    filePath: storePath,
+    filePath: storedOrderQuarantinePath,
     messagePrefix: "SQLite production ledger must contain",
     values,
     required: [
@@ -181,6 +104,9 @@ const inspectDurability = (
       "journal_mode = WAL",
       "listRecoverableOrders",
       "listCloudRecoveryOrders",
+      "quarantineInvalidStoredOrders",
+      "stored_order_contract_quarantined",
+      "XUANXUE_AI_PRODUCTION_STORED_ORDER_CONTRACT_INVALID",
       "repairInvalidCompletedStageOutputs",
       "invalid_completed_stage_restarted",
       "requestHash",
@@ -370,6 +296,8 @@ const inspectAcceptance = (
       "consistency",
       "providerTranscriptJsonl",
       "modelIdentityProof",
+      "acceptStoredOrderContractQuarantine",
+      "stored_order_contract_quarantined",
     ],
   });
 };
@@ -435,8 +363,7 @@ const inspectDomainPolicy = (
   values: ReadonlySet<string>,
   terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
-  inspectAuthority(findings, laws.boundary);
-  inspectRemovedSecondChain(context, findings, laws.boundary);
+  inspectXuanxueBoundary(context, findings, laws.boundary);
   inspectXuanxueContracts(
     findings,
     laws.boundary,
@@ -444,7 +371,12 @@ const inspectDomainPolicy = (
     terminalMetaphysicsProfileValues,
   );
   inspectXuanxueRecoveryDurability(context, findings, laws.durability, values);
-  inspectDurability(findings, laws.durability, values);
+  inspectDurability(
+    findings,
+    laws.durability,
+    values,
+    terminalMetaphysicsProfileValues,
+  );
   inspectPluginBoundaries(findings, laws, sources);
   inspectCloud(findings, laws.cloud, values);
   inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });

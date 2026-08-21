@@ -11,6 +11,7 @@ import {
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { loadManifests } from "../../build/load-manifests.js";
 import { ownerEvaluationExecutesAssertions } from "./owner-evaluation-integrity-inspector.js";
 
 const resolvesToDeclaration = (node: Node, declaration: Node): boolean => {
@@ -127,6 +128,16 @@ const sessionOutputIsContextBound = (
     && directReturns[0]?.getExpression() === calls[0];
 };
 
+const physicalReceiptIdsMatchManifest = (
+  entry: InspectorContext["planEntry"],
+  physicalIds: readonly string[],
+): boolean => {
+  const manifest = loadManifests().manifests.find((candidate) => candidate.manifestPath === entry.manifestPath);
+  if (!manifest) return false;
+  const manifestIds = new Set(manifest.coverage.bindings.flatMap((binding) => binding.checkIds));
+  return physicalIds.length === manifestIds.size && physicalIds.every((checkId) => manifestIds.has(checkId));
+};
+
 const pushOwnerRegistrationFindings = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -136,9 +147,9 @@ const pushOwnerRegistrationFindings = (
   const source = context.project.getSourceFile(resolveFromRepo(entry.ownerInspectorPath));
   if (!source) return;
   const physicalIds = [...new Set(entry.bindings.flatMap((binding) => binding.checkIds))].sort();
-  if (physicalIds.length === 0) findings.push(createFinding({
+  if (!physicalReceiptIdsMatchManifest(entry, physicalIds)) findings.push(createFinding({
     checkId: "audit-system/runner-source", lawId, filePath: entry.ownerInspectorPath,
-    message: `${entry.capabilityDomain} must expose at least one manifest-owned physical receipt identity.`,
+    message: `${entry.capabilityDomain} physical receipt identities must exactly match its manifest declaration.`,
     evidence: JSON.stringify({ physicalCheckIds: physicalIds }),
   }));
   const inspectDomain = source.getFunction("inspectDomain")

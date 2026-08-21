@@ -26,9 +26,18 @@ type SingleTabState = {
 
 export const isRoutableWebChatSubmission = (
   submission: WebChatSubmissionProof | null,
-): submission is WebChatSubmissionProof & { canonicalConversationUrl: string } =>
-  typeof submission?.canonicalConversationUrl === "string"
-  && submission.canonicalConversationUrl.length > 0;
+): submission is WebChatSubmissionProof & { canonicalConversationUrl: string } => {
+  if (typeof submission?.canonicalConversationUrl !== "string"
+    || submission.canonicalConversationUrl.length === 0) return false;
+  try {
+    const url = new URL(submission.canonicalConversationUrl);
+    if (url.protocol !== "https:") return false;
+    if (url.host === "chatgpt.com") return /^\/c\/(?!WEB:)[^/]+$/u.test(url.pathname);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const delay = (durationMs: number, signal?: AbortSignal): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -136,6 +145,13 @@ const createBrowserFacade = (
   close: (value) => withMutation(() => input.base.close(value), { route: false }),
 });
 
+const bindObservedConversation = (
+  state: SingleTabState,
+  submission: WebChatSubmissionProof,
+): void => {
+  if (isRoutableWebChatSubmission(submission)) state.submission = submission;
+};
+
 const bindConversationIdentity = (
   state: SingleTabState,
   submission: WebChatSubmissionProof,
@@ -177,7 +193,7 @@ export const createSingleTabWebChatBrowser = (
         await lease.release();
       }
     },
-    bindObservedConversation: (submission) => bindConversationIdentity(state, submission),
+    bindObservedConversation: (submission) => bindObservedConversation(state, submission),
     bindConversationIdentity: (submission) => bindConversationIdentity(state, submission),
     releaseInitialMutationLease: () => releaseInitialMutationLease(state),
   };

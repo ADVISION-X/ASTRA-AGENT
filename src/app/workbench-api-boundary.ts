@@ -50,6 +50,9 @@ export const EXTERNAL_REQUEST_FORBIDDEN_KEYS = [
 ] as const;
 
 export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
+  { method: "POST", pathPattern: "exact", path: "/api/browser-extension-channel/open", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_browser_extension_channel_open" },
+  { method: "POST", pathPattern: "exact", path: "/api/browser-extension-channel/inbound", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_browser_extension_channel_inbound" },
+  { method: "GET", pathPattern: "exact", path: "/api/browser-extension-channel/next", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_browser_extension_channel_next" },
   { method: "GET", pathPattern: "exact", path: "/api/health", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_health" },
   { method: "GET", pathPattern: "exact", path: "/api/mode", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_mode" },
   { method: "GET", pathPattern: "exact", path: "/api/xuanxue-ai-production/status", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_status" },

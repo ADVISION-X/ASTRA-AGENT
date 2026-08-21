@@ -1247,6 +1247,11 @@ App 可保存最近 taskId，
   "enforcementMode": "machine-blocking",
   "evidenceMode": "provider-proof+tab-lifecycle+acceptance+ast",
   "summary": "After an Amazon product mining GPT Web Chat response is captured, provider tabs must be closed and source tab restoration failure must be recorded as provider proof without failing the mining flow; this exception is forbidden outside amazon-product-mining prompt contracts.",
+  "codePurityLiveness": {
+    "auditInspectionFiles": [
+      "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
+    ]
+  },
   "appliesTo": [
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",

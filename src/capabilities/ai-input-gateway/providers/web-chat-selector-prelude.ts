@@ -35,3 +35,4 @@ const resolveComposerInput = () => {
   return null;
 };
 `;
+

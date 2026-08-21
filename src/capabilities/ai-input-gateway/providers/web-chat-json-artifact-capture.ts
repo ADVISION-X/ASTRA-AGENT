@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
-import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
 type CapturedJsonArtifact = Readonly<{
@@ -68,13 +66,9 @@ export const captureInlineChatGptJsonArtifact = (input: {
 };
 
 export const captureChatGptJsonArtifact = async (input: {
-  browser: BrowserTargetLease;
   request: AiFeedInput;
-  context: AiProviderAdapterContext;
   conversationUrl: string | null;
 }): Promise<CapturedJsonArtifact | null> => {
-  void input.browser;
-  void input.context;
   if (!isJsonArtifactRequest(input.request) || !input.conversationUrl) return null;
   throw new Error("review_required: NOT_PRODUCTION_VERIFIED: ChatGPT JSON download control and artifact identity are not observed");
 };

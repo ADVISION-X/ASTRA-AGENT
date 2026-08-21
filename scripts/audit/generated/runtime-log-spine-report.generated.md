@@ -1,14 +1,14 @@
 # Runtime Log Spine Quality Report
 
-Status: PASS
+Status: FAIL
 
 ## Summary
 
-- Total findings: 0
-- Fatal findings: 0
-- Scanned files: 469
+- Total findings: 2
+- Fatal findings: 2
+- Scanned files: 428
 - Emit calls: 19
-- Console violations: 0
+- Console violations: 2
 - Failure events without class: 0
 - Stage coverage: 100%
 
@@ -16,7 +16,7 @@ Status: PASS
 
 | Phase | Status | Findings |
 |---|---:|---:|
-| forbidden-console | PASS | 0 |
+| forbidden-console | FAIL | 2 |
 | event-type-registry | PASS | 0 |
 | runtime-log-emit-contract | PASS | 0 |
 | mode-visibility | PASS | 0 |
@@ -32,7 +32,10 @@ Status: PASS
 
 ## Fatal Findings
 
-No fatal findings.
+| Law | File | Line | Message | Hint |
+|---|---|---:|---|---|
+| GRASSEYE-RUNTIME-LOG-SPINE-001-V1 | src/capabilities/video-download/acceptance/browser-authority.acceptance.ts | 42 | console escape detected by AST/symbol inspector | Replace console usage or alias with RuntimeLogger.emit / authorized stage logger. Console aliases and destructuring are forbidden. |
+| GRASSEYE-RUNTIME-LOG-SPINE-001-V1 | src/lib/browser/release/release-identity.acceptance.ts | 51 | console escape detected by AST/symbol inspector | Replace console usage or alias with RuntimeLogger.emit / authorized stage logger. Console aliases and destructuring are forbidden. |
 
 ## Coverage
 

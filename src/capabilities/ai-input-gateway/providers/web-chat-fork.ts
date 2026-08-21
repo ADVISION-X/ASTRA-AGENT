@@ -1,15 +1,10 @@
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
-  AiProviderAdapterContext,
   WebChatForkActionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
 type ForkRuntimeInput = Readonly<{
-  browser: BrowserTargetLease;
-  context: AiProviderAdapterContext;
   request: AiFeedInput;
-  waitForComposer: () => Promise<void>;
 }>;
 
 const assertGovernedParent = (request: AiFeedInput): void => {
@@ -34,9 +29,6 @@ export const openGovernedForkFromCheckpoint = async (
   input: ForkRuntimeInput,
 ): Promise<WebChatForkActionProof> => {
   assertGovernedParent(input.request);
-  void input.browser;
-  void input.context;
-  void input.waitForComposer;
   throw new Error(
     "review_required: NOT_PRODUCTION_VERIFIED: ChatGPT fork checkpoint action and child-conversation DOM are not yet observed",
   );

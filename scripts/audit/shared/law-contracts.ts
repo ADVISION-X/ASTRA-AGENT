@@ -45,6 +45,7 @@ const lawRegistryConsumerSchema = z.object({
 }).strict();
 
 const codePurityLivenessSchema = z.object({
+  auditInspectionFiles: z.array(z.string().min(1)).optional(),
   externalEntryExports: z.array(z.object({
     exportName: z.string().min(1),
     filePath: z.string().min(1),

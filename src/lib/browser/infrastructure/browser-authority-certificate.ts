@@ -4,22 +4,17 @@ import type { BrowserHash } from "../exact-target/browser-target-ref.js";
 
 /**
  * Process-memory authority only. A target lease must identify the exact
- * artifact, policy, profile, Chrome process and Native Port that created it.
+ * CWS extension, Workbench page-session and policy that created it.
  */
 export type BrowserAuthorityCertificateV1 = Readonly<{
   schemaVersion: "browser-authority-certificate-v1";
   authorityRef: string;
   authorityEpoch: number;
-  executionBindingHash: BrowserHash;
+  channelSessionHash: BrowserHash;
   artifactSetHash: BrowserHash;
-  activationTupleHash: BrowserHash;
   releaseSecurityPolicyHash: BrowserHash;
   profileEnrollmentHash: BrowserHash;
-  processIncarnationHash: BrowserHash;
-  controllerIncarnationHash: BrowserHash;
   connectionGeneration: number;
-  hostProcessEpoch: number;
-  nativePortEpoch: number;
   extensionId: string;
   extensionVersion: string;
   protocolRevision: number;

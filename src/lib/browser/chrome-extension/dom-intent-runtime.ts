@@ -80,25 +80,6 @@ const nodeForSelector = async (runtime: ExtensionDebuggerRuntime, tabId: number,
   return nodeId;
 };
 
-const nodeForText = async (
-  runtime: ExtensionDebuggerRuntime,
-  tabId: number,
-  selector: string,
-  expectedText: string,
-  expectedMatches: number,
-): Promise<number> => {
-  const nodes = await nodesContainingText(
-    runtime,
-    tabId,
-    await queryAll(runtime, tabId, selector, expectedMatches + 1),
-    expectedText,
-  );
-  if (nodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
-  const nodeId = nodes[0];
-  if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
-  return nodeId;
-};
-
 const nodeForRead = async (
   runtime: ExtensionDebuggerRuntime,
   tabId: number,

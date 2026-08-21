@@ -14,13 +14,12 @@ import {
 } from "../transport/command-permit.js";
 
 export type BrowserAuthenticationProof = Readonly<{
-  executionBindingHash: BrowserHash;
   handshake: BrowserTransportHandshake;
   authTranscriptHash: BrowserHash;
 }>;
 
 export class BrowserAuthorityIssuer {
-  private slot: BrowserAuthoritySlot = { kind: "ABSENT", reasonCode: "BROWSER_HOST_UNAVAILABLE" };
+  private slot: BrowserAuthoritySlot = { kind: "ABSENT", reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE" };
   private nextEpoch = 1;
   private readonly issuerKey = randomBytes(32);
 
@@ -28,25 +27,20 @@ export class BrowserAuthorityIssuer {
     return this.slot;
   }
 
-  /** The reducer may call this only after the full Host/MV3 handshake agrees. */
+  /** The reducer may call this only after the Workbench-page/MV3 handshake agrees. */
   public commitAuthenticationProof(proof: BrowserAuthenticationProof): BrowserAuthorityCertificateV1 {
-    assertAuthenticatedTransportHandshake(proof.handshake, proof.authTranscriptHash);
+    assertAuthenticatedTransportHandshake(proof.handshake);
     const authorityEpoch = this.nextEpoch;
     const issuedAt = new Date().toISOString();
     const certificateWithoutMac = {
       schemaVersion: "browser-authority-certificate-v1" as const,
       authorityRef: `authority-${authorityEpoch}`,
       authorityEpoch,
-      executionBindingHash: proof.executionBindingHash,
+      channelSessionHash: proof.handshake.pageSessionHash,
       artifactSetHash: proof.handshake.artifactSetHash,
-      activationTupleHash: proof.handshake.activationTupleHash,
       releaseSecurityPolicyHash: proof.handshake.releaseSecurityPolicyHash,
       profileEnrollmentHash: proof.handshake.profileEnrollmentHash,
-      processIncarnationHash: proof.handshake.processIncarnationHash,
-      controllerIncarnationHash: proof.handshake.controllerIncarnationHash,
       connectionGeneration: proof.handshake.connectionGeneration,
-      hostProcessEpoch: proof.handshake.hostProcessEpoch,
-      nativePortEpoch: proof.handshake.nativePortEpoch,
       extensionId: proof.handshake.extensionId,
       extensionVersion: proof.handshake.extensionVersion,
       protocolRevision: proof.handshake.protocolRevision,
@@ -76,7 +70,7 @@ export class BrowserAuthorityIssuer {
 
   /**
    * This is the only signer. The MAC covers every permit field, and the same
-   * per-authority key is provided only after the Native Host/MV3 handshake so
+   * per-authority key is provided only after the page/MV3 handshake so
    * the extension can reject a modified frame before executing it.
    */
   public signCurrentCommandPermit(permit: BrowserUnsignedCommandPermit): BrowserHash {
@@ -92,7 +86,7 @@ export class BrowserAuthorityIssuer {
 
   /**
    * Command MAC verification remains inside the Controller authority owner.
-   * The MV3 receives commands solely through the authenticated Native Host and
+   * The MV3 receives commands solely through the authenticated page channel and
    * additionally compares the certificate context supplied at ready time.
    */
   public assertCurrentCommandPermit(permit: BrowserCommandPermit): void {
@@ -116,8 +110,7 @@ export class BrowserAuthorityIssuer {
       permit.authorityRef !== authority.authorityRef
       || permit.authorityEpoch !== authority.authorityEpoch
       || permit.certificateHash !== hashBrowserAuthorityCertificate(authority)
-      || permit.activationTupleHash !== authority.activationTupleHash
-      || permit.executionBindingHash !== authority.executionBindingHash
+      || permit.channelSessionHash !== authority.channelSessionHash
     ) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }

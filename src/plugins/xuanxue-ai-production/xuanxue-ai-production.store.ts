@@ -41,6 +41,8 @@ import {
 } from "./xuanxue-ai-production-store-orders.js";
 import {
   recoverMissingRequiredContinuationParents,
+  quarantineInvalidStoredOrders,
+  readQuarantinedStoredOrder,
   repairInvalidCompletedStageOutputs,
   repairRecoverableProviderFailures,
 } from "./xuanxue-ai-production-store-recovery.js";
@@ -67,6 +69,7 @@ export class XuanxueAiProductionStore {
   constructor(dataDir: string) {
     this.dataDir = dataDir;
     this.database = openXuanxueAiProductionDatabase(dataDir);
+    quarantineInvalidStoredOrders(this.database);
     repairInvalidCompletedStageOutputs(this.database);
     repairRecoverableProviderFailures(this.database);
     recoverMissingRequiredContinuationParents(this.database);
@@ -90,6 +93,10 @@ export class XuanxueAiProductionStore {
 
   readOrder(orderId: string): XuanxueAiOrderRecord | null {
     return readXuanxueAiProductionOrder(this.database, orderId);
+  }
+
+  readQuarantinedOrder(orderId: string) {
+    return readQuarantinedStoredOrder(this.database, orderId);
   }
 
   readIntervention(orderId: string): XuanxueAiInterventionRecord {

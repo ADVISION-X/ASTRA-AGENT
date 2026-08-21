@@ -16,10 +16,8 @@ import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
-import { loadBrowserRuntimeEnv } from "../../src/lib/browser/release/browser-runtime-env.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-loadBrowserRuntimeEnv(rootDir);
 
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);

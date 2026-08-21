@@ -59,13 +59,7 @@ export const openProviderPage = async (
 ): Promise<WebChatForkActionProof | null> => {
   if (input.request.providerForkRef) {
     const proof = await openGovernedForkFromCheckpoint({
-      ...input,
-      waitForComposer: () => waitForProviderComposer({
-        browser: input.browser,
-        request: input.request,
-        timeoutMs: 8_000,
-        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-      }),
+      request: input.request,
     });
     await input.context.webChatExecution?.onForkActionObserved(proof);
     return proof;

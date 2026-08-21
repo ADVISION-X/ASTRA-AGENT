@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
-import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
 
 type CapturedHtmlArtifact = Readonly<{
@@ -47,13 +45,9 @@ export const captureInlineChatGptBusinessHtmlArtifact = (input: {
 };
 
 export const captureChatGptBusinessHtmlArtifact = async (input: {
-  browser: BrowserTargetLease;
   request: AiFeedInput;
-  context: AiProviderAdapterContext;
   conversationUrl: string | null;
 }): Promise<CapturedHtmlArtifact | null> => {
-  void input.browser;
-  void input.context;
   if (!isBusinessHtmlReportRequest(input.request) || !input.conversationUrl) return null;
   throw new Error("review_required: NOT_PRODUCTION_VERIFIED: ChatGPT business HTML download controls and downloaded-artifact identity are not observed");
 };

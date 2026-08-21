@@ -59,7 +59,7 @@ export const buildAmazonMiningHandle = (assembly: WorkbenchAssembly, dataDir: st
   getAmazonProductMiningKeywordReview(reviewId: string) {
     return getAmazonProductMiningKeywordReview({ dataDir, reviewId });
   },
-  continueInterruptedAmazonProductMiningTasks() {
+  async continueInterruptedAmazonProductMiningTasks() {
     return runContinueAmazonProductMiningRoute({}, await buildAmazonMiningRuntime(assembly, dataDir));
   },
   ...buildAmazonMiningInterventionHandle(assembly, dataDir),
@@ -77,8 +77,3 @@ const buildAmazonMiningInterventionHandle = (assembly: WorkbenchAssembly, dataDi
     return snapshot;
   },
 });
-
-export const continueInterruptedAmazonMiningForWorkbench = (assembly: WorkbenchAssembly): void => {
-  void buildAmazonMiningRuntime(assembly, assembly.dataDir).then((runtime) =>
-    runContinueAmazonProductMiningRoute({}, runtime));
-};

@@ -149,3 +149,4 @@ if (boundAttachmentCount > expectedCount) {
 }
 return {status: "pending", message: expectedKind === "image" ? "provider_missing_bound_image: clean submitted user message does not contain required image attachment" : "provider_missing_bound_file: clean submitted user message does not contain required file attachment", ...proof};
 `;
+

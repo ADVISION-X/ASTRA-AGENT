@@ -32,6 +32,7 @@ export type ZombieDynamicRegistryConsumerExemption = {
 };
 
 export type ZombieExemptionManifest = {
+  auditInspectionFiles: readonly ZombieEntryFileExemption[];
   externalEntryExports: readonly ZombieEntryExportExemption[];
   externalEntryFiles: readonly ZombieEntryFileExemption[];
   lawfulDynamicImports: readonly ZombieDynamicImportExemption[];
@@ -46,6 +47,7 @@ const pathPairSchema = z.object({
 }).strict();
 
 const livenessSchema = z.object({
+  auditInspectionFiles: z.array(z.string().min(1)).default([]),
   externalEntryExports: z.array(z.object({
     exportName: z.string().min(1),
     filePath: z.string().min(1),
@@ -84,6 +86,8 @@ const readActiveLawLiveness = (): Array<{ lawId: string; liveness: LawLiveness }
 export const createZombieExemptionManifest = (): ZombieExemptionManifest => {
   const authorities = readActiveLawLiveness();
   return {
+    auditInspectionFiles: authorities.flatMap(({ lawId, liveness }) =>
+      liveness.auditInspectionFiles.map((filePath) => ({ filePath, reason: `active law ${lawId} audit inspection` }))),
     externalEntryExports: authorities.flatMap(({ lawId, liveness }) =>
       liveness.externalEntryExports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
     externalEntryFiles: authorities.flatMap(({ lawId, liveness }) =>
@@ -103,6 +107,11 @@ export const isLawfulManifestEntryFile = (
   manifest: ZombieExemptionManifest,
   filePath: string,
 ): boolean => manifest.externalEntryFiles.some((entry) => entry.filePath === filePath);
+
+export const isLawfulAuditInspectionFile = (
+  manifest: ZombieExemptionManifest,
+  filePath: string,
+): boolean => manifest.auditInspectionFiles.some((entry) => entry.filePath === filePath);
 
 export const isLawfulManifestEntryExport = (
   manifest: ZombieExemptionManifest,

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-20T15:20:10.364Z",
-  "status": "PASS",
-  "scannedFiles": 469,
+  "generatedAt": "2026-08-20T23:42:40.986Z",
+  "status": "FAIL",
+  "scannedFiles": 428,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -84,14 +84,12 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
@@ -171,6 +169,7 @@
     "src/capabilities/media-processing/runtime/sharp-runner.ts",
     "src/capabilities/media-processing/schema.ts",
     "src/capabilities/video-download/ability-group.ts",
+    "src/capabilities/video-download/acceptance/browser-authority.acceptance.ts",
     "src/capabilities/video-download/children/download-bilibili-video-once.ts",
     "src/capabilities/video-download/children/download-douyin-video-once.ts",
     "src/capabilities/video-download/children/download-facebook-video-once.ts",
@@ -183,7 +182,7 @@
     "src/capabilities/video-download/children/download-youtube-video-once.ts",
     "src/capabilities/video-download/contract.ts",
     "src/capabilities/video-download/index.ts",
-    "src/capabilities/video-download/ports/browser-media-source-port.ts",
+    "src/capabilities/video-download/ports/browser-page-observation-port.ts",
     "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
     "src/capabilities/video-download/registry.ts",
     "src/capabilities/video-download/runtime/abort-handle.ts",
@@ -191,15 +190,11 @@
     "src/capabilities/video-download/runtime/candidate-schema.ts",
     "src/capabilities/video-download/runtime/candidate-validation.ts",
     "src/capabilities/video-download/runtime/facebook-candidates.ts",
-    "src/capabilities/video-download/runtime/facebook-page-probe-script.ts",
     "src/capabilities/video-download/runtime/media-download.ts",
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
-    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
-    "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",
-    "src/capabilities/video-download/runtime/universal-page-probe-script.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
     "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
@@ -208,86 +203,50 @@
     "src/capabilities/video-download/runtime/youtube-url.ts",
     "src/capabilities/video-download/schema.ts",
     "src/capabilities/video-download/type-contracts.ts",
-    "src/lib/browser/authority/browser-authority-certificate.ts",
-    "src/lib/browser/authority/browser-authority-issuer.ts",
     "src/lib/browser/browser-authority-api.ts",
-    "src/lib/browser/browser-controller.ts",
-    "src/lib/browser/chrome-extension/atomic-dom-command.ts",
-    "src/lib/browser/chrome-extension/service-worker-click-command.ts",
-    "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
-    "src/lib/browser/chrome-extension/service-worker-contracts.ts",
-    "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
-    "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
-    "src/lib/browser/chrome-extension/service-worker-native-port-actor.ts",
-    "src/lib/browser/chrome-extension/service-worker-native-transport-auth.ts",
-    "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
-    "src/lib/browser/chrome-extension/service-worker-origin-policy.ts",
-    "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
+    "src/lib/browser/chrome-extension/authenticated-heartbeat.ts",
+    "src/lib/browser/chrome-extension/command-permit-validator.ts",
+    "src/lib/browser/chrome-extension/command-registry.ts",
+    "src/lib/browser/chrome-extension/debugger-runtime.ts",
+    "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
+    "src/lib/browser/chrome-extension/exact-target-runtime.ts",
+    "src/lib/browser/chrome-extension/extension-runtime-types.ts",
+    "src/lib/browser/chrome-extension/native-port-actor.ts",
     "src/lib/browser/chrome-extension/service-worker.ts",
     "src/lib/browser/current-chrome-browser-action-logging.ts",
-    "src/lib/browser/current-chrome-browser-controller-runtime.ts",
-    "src/lib/browser/current-chrome-browser-controller.ts",
-    "src/lib/browser/exact-target/browser-artifact-stream.ts",
     "src/lib/browser/exact-target/browser-command-actor.ts",
-    "src/lib/browser/exact-target/browser-command-contract.ts",
-    "src/lib/browser/exact-target/browser-command-response-handler.ts",
-    "src/lib/browser/exact-target/browser-command-runtime.ts",
-    "src/lib/browser/exact-target/browser-evaluation-contract.ts",
+    "src/lib/browser/exact-target/browser-dom-intent.ts",
     "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
     "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
-    "src/lib/browser/exact-target/browser-native-authentication.ts",
-    "src/lib/browser/exact-target/browser-native-command-channel.ts",
-    "src/lib/browser/exact-target/browser-native-transport-server.ts",
-    "src/lib/browser/exact-target/browser-target-lease-file-artifact.ts",
-    "src/lib/browser/exact-target/browser-target-lease-interaction.ts",
     "src/lib/browser/exact-target/browser-target-lease-manager.ts",
-    "src/lib/browser/exact-target/browser-target-lease-observation.ts",
-    "src/lib/browser/exact-target/browser-target-lease-open.ts",
-    "src/lib/browser/exact-target/browser-target-lease-state.ts",
-    "src/lib/browser/exact-target/browser-target-lease-terminal.ts",
     "src/lib/browser/exact-target/browser-target-lease.ts",
     "src/lib/browser/exact-target/browser-target-ref.ts",
-    "src/lib/browser/exact-target/browser-target-registry.ts",
-    "src/lib/browser/exact-target/exact-browser-target-session.ts",
-    "src/lib/browser/infrastructure/authenticated-browser-authority-lease.ts",
     "src/lib/browser/infrastructure/browser-authority-broker.ts",
     "src/lib/browser/infrastructure/browser-authority-certificate.ts",
     "src/lib/browser/infrastructure/browser-authority-issuer.ts",
     "src/lib/browser/infrastructure/browser-authority-liveness-lease.ts",
     "src/lib/browser/infrastructure/browser-control-state.ts",
     "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
-    "src/lib/browser/infrastructure/browser-install-identity.ts",
     "src/lib/browser/infrastructure/browser-owner-lock.ts",
     "src/lib/browser/profile/browser-process-supervisor.ts",
     "src/lib/browser/profile/browser-profile-config.ts",
     "src/lib/browser/profile/browser-profile-enrollment.ts",
     "src/lib/browser/profile/browser-profile-process-attestation.ts",
+    "src/lib/browser/profile/browser-profile-state.ts",
+    "src/lib/browser/profile/dedicated-profile-policy.ts",
     "src/lib/browser/profile/managed-policy-readback.ts",
-    "src/lib/browser/protocol/browser-protocol-identity.ts",
-    "src/lib/browser/protocol/generated/browser-protocol-capability-map.ts",
-    "src/lib/browser/protocol/generated/browser-protocol-message-validator.ts",
-    "src/lib/browser/protocol/generated/browser-protocol.ts",
-    "src/lib/browser/release/browser-activation-receipt.ts",
-    "src/lib/browser/release/browser-release-binding-loader.ts",
-    "src/lib/browser/release/browser-release-contract.ts",
-    "src/lib/browser/release/browser-release-identity.ts",
-    "src/lib/browser/transport/authenticated-controller-host-channel.ts",
+    "src/lib/browser/protocol/generated/browser-protocol.generated.ts",
+    "src/lib/browser/release/browser-release-acceptance-inputs.ts",
+    "src/lib/browser/release/release-identity.acceptance.ts",
+    "src/lib/browser/release/release-identity.ts",
     "src/lib/browser/transport/browser-command-admission-budget.ts",
-    "src/lib/browser/transport/browser-session-crypto.ts",
+    "src/lib/browser/transport/browser-native-framing.ts",
     "src/lib/browser/transport/command-permit.ts",
-    "src/lib/browser/transport/raw-controller-host-channel.ts",
-    "src/lib/browser/transport/reply-channel-token.ts",
-    "src/lib/browser/transport/transport-actor-authority.ts",
-    "src/lib/browser/transport/transport-actor-inbound.ts",
-    "src/lib/browser/transport/transport-actor-lifecycle.ts",
-    "src/lib/browser/transport/transport-actor-runtime.ts",
+    "src/lib/browser/transport/controller-host-command-port.ts",
     "src/lib/browser/transport/transport-actor.ts",
-    "src/lib/browser/transport/transport-authenticator-transcripts.ts",
     "src/lib/browser/transport/transport-authenticator.ts",
     "src/lib/browser/transport/transport-event.ts",
-    "src/lib/browser/transport/transport-frame-crypto.ts",
     "src/lib/browser/transport/transport-reducer.ts",
-    "src/lib/browser/transport/transport-transcript.ts",
     "src/lib/local-runtime/contract.ts",
     "src/lib/local-runtime/default-data-dir.ts",
     "src/lib/local-runtime/ids.ts",
@@ -299,7 +258,7 @@
     "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
     "src/lib/local-runtime/workbench-api-boundary-log.ts",
     "src/lib/local-runtime/workbench-assembly.ts",
-    "src/lib/local-runtime/workbench-browser-support.ts",
+    "src/lib/local-runtime/workbench-browser-authority-support.ts",
     "src/lib/local-runtime/workbench-evidence-support.ts",
     "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -307,7 +266,6 @@
     "src/lib/local-runtime/workbench-media-processing-support.ts",
     "src/lib/local-runtime/workbench-status-types.ts",
     "src/lib/local-runtime/workbench-status.ts",
-    "src/lib/local-runtime/workbench-video-download-support.ts",
     "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/lib/online-ai/config.ts",
@@ -453,6 +411,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stored-order-quarantine.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
@@ -474,8 +433,8 @@
     "src/types/structured-log.ts"
   ],
   "emitCallCount": 19,
-  "consoleCallCount": 0,
-  "consoleEscapeCount": 0,
+  "consoleCallCount": 2,
+  "consoleEscapeCount": 2,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
   "missingTraceContractCount": 0,
@@ -489,35 +448,35 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 0,
-    "fatalFindings": 0,
-    "scannedFiles": 469,
+    "totalFindings": 2,
+    "fatalFindings": 2,
+    "scannedFiles": 428,
     "emitCallCount": 19,
-    "consoleViolationCount": 0,
+    "consoleViolationCount": 2,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
   },
   "phases": [
     {
       "name": "forbidden-console",
-      "status": "PASS",
-      "findingCount": 0,
-      "scannedFiles": 465,
+      "status": "FAIL",
+      "findingCount": 2,
+      "scannedFiles": 423,
       "metrics": {
-        "consoleViolationCount": 0
+        "consoleViolationCount": 2
       }
     },
     {
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 323
+      "scannedFiles": 318
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 321,
+      "scannedFiles": 316,
       "metrics": {
         "emitCallCount": 5
       }
@@ -526,13 +485,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 321
+      "scannedFiles": 316
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 324,
+      "scannedFiles": 319,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -547,7 +506,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 324,
+      "scannedFiles": 319,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -574,7 +533,7 @@
       "name": "browser-action-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 6
+      "scannedFiles": 4
     },
     {
       "name": "semantic-metrics-self-audit",
@@ -595,7 +554,28 @@
       "scannedFiles": 1
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "checkId": "runtime-log-spine/forbidden-console",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
+      "clauseId": "grasseye-runtime-log-spine-001-requirement",
+      "message": "console escape detected by AST/symbol inspector",
+      "line": 42,
+      "severity": "fatal",
+      "hint": "Replace console usage or alias with RuntimeLogger.emit / authorized stage logger. Console aliases and destructuring are forbidden.",
+      "filePath": "src/capabilities/video-download/acceptance/browser-authority.acceptance.ts"
+    },
+    {
+      "checkId": "runtime-log-spine/forbidden-console",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
+      "clauseId": "grasseye-runtime-log-spine-001-requirement",
+      "message": "console escape detected by AST/symbol inspector",
+      "line": 51,
+      "severity": "fatal",
+      "hint": "Replace console usage or alias with RuntimeLogger.emit / authorized stage logger. Console aliases and destructuring are forbidden.",
+      "filePath": "src/lib/browser/release/release-identity.acceptance.ts"
+    }
+  ],
   "capabilityDomain": "runtime-log-spine",
   "executionGroup": "foundation",
   "lawIds": [
@@ -624,14 +604,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7",
+      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0",
       "capabilityDomain": "runtime-log-spine",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-20T15:20:04.057Z",
-      "endedAt": "2026-08-20T15:20:10.363Z",
-      "durationMs": 6306,
+      "status": "FAIL",
+      "startedAt": "2026-08-20T23:42:34.468Z",
+      "endedAt": "2026-08-20T23:42:40.986Z",
+      "durationMs": 6518,
       "evidenceRefs": [
         "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
         "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -714,14 +694,12 @@
         "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fork.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-html-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-json-artifact-capture.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-action-contract.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-pre-submit-state.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
@@ -801,6 +779,7 @@
         "src/capabilities/media-processing/runtime/sharp-runner.ts",
         "src/capabilities/media-processing/schema.ts",
         "src/capabilities/video-download/ability-group.ts",
+        "src/capabilities/video-download/acceptance/browser-authority.acceptance.ts",
         "src/capabilities/video-download/children/download-bilibili-video-once.ts",
         "src/capabilities/video-download/children/download-douyin-video-once.ts",
         "src/capabilities/video-download/children/download-facebook-video-once.ts",
@@ -813,7 +792,7 @@
         "src/capabilities/video-download/children/download-youtube-video-once.ts",
         "src/capabilities/video-download/contract.ts",
         "src/capabilities/video-download/index.ts",
-        "src/capabilities/video-download/ports/browser-media-source-port.ts",
+        "src/capabilities/video-download/ports/browser-page-observation-port.ts",
         "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
         "src/capabilities/video-download/registry.ts",
         "src/capabilities/video-download/runtime/abort-handle.ts",
@@ -821,15 +800,11 @@
         "src/capabilities/video-download/runtime/candidate-schema.ts",
         "src/capabilities/video-download/runtime/candidate-validation.ts",
         "src/capabilities/video-download/runtime/facebook-candidates.ts",
-        "src/capabilities/video-download/runtime/facebook-page-probe-script.ts",
         "src/capabilities/video-download/runtime/media-download.ts",
         "src/capabilities/video-download/runtime/platform-router.ts",
         "src/capabilities/video-download/runtime/result.ts",
-        "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
         "src/capabilities/video-download/runtime/tiktok-candidates.ts",
-        "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
         "src/capabilities/video-download/runtime/universal-candidates.ts",
-        "src/capabilities/video-download/runtime/universal-page-probe-script.ts",
         "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
         "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
         "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
@@ -838,86 +813,50 @@
         "src/capabilities/video-download/runtime/youtube-url.ts",
         "src/capabilities/video-download/schema.ts",
         "src/capabilities/video-download/type-contracts.ts",
-        "src/lib/browser/authority/browser-authority-certificate.ts",
-        "src/lib/browser/authority/browser-authority-issuer.ts",
         "src/lib/browser/browser-authority-api.ts",
-        "src/lib/browser/browser-controller.ts",
-        "src/lib/browser/chrome-extension/atomic-dom-command.ts",
-        "src/lib/browser/chrome-extension/service-worker-click-command.ts",
-        "src/lib/browser/chrome-extension/service-worker-command-execution.ts",
-        "src/lib/browser/chrome-extension/service-worker-contracts.ts",
-        "src/lib/browser/chrome-extension/service-worker-interaction-commands.ts",
-        "src/lib/browser/chrome-extension/service-worker-keyboard.ts",
-        "src/lib/browser/chrome-extension/service-worker-native-port-actor.ts",
-        "src/lib/browser/chrome-extension/service-worker-native-transport-auth.ts",
-        "src/lib/browser/chrome-extension/service-worker-native-transport.ts",
-        "src/lib/browser/chrome-extension/service-worker-origin-policy.ts",
-        "src/lib/browser/chrome-extension/service-worker-session-crypto.ts",
+        "src/lib/browser/chrome-extension/authenticated-heartbeat.ts",
+        "src/lib/browser/chrome-extension/command-permit-validator.ts",
+        "src/lib/browser/chrome-extension/command-registry.ts",
+        "src/lib/browser/chrome-extension/debugger-runtime.ts",
+        "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
+        "src/lib/browser/chrome-extension/exact-target-runtime.ts",
+        "src/lib/browser/chrome-extension/extension-runtime-types.ts",
+        "src/lib/browser/chrome-extension/native-port-actor.ts",
         "src/lib/browser/chrome-extension/service-worker.ts",
         "src/lib/browser/current-chrome-browser-action-logging.ts",
-        "src/lib/browser/current-chrome-browser-controller-runtime.ts",
-        "src/lib/browser/current-chrome-browser-controller.ts",
-        "src/lib/browser/exact-target/browser-artifact-stream.ts",
         "src/lib/browser/exact-target/browser-command-actor.ts",
-        "src/lib/browser/exact-target/browser-command-contract.ts",
-        "src/lib/browser/exact-target/browser-command-response-handler.ts",
-        "src/lib/browser/exact-target/browser-command-runtime.ts",
-        "src/lib/browser/exact-target/browser-evaluation-contract.ts",
+        "src/lib/browser/exact-target/browser-dom-intent.ts",
         "src/lib/browser/exact-target/browser-file-artifact-grant.ts",
         "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
-        "src/lib/browser/exact-target/browser-native-authentication.ts",
-        "src/lib/browser/exact-target/browser-native-command-channel.ts",
-        "src/lib/browser/exact-target/browser-native-transport-server.ts",
-        "src/lib/browser/exact-target/browser-target-lease-file-artifact.ts",
-        "src/lib/browser/exact-target/browser-target-lease-interaction.ts",
         "src/lib/browser/exact-target/browser-target-lease-manager.ts",
-        "src/lib/browser/exact-target/browser-target-lease-observation.ts",
-        "src/lib/browser/exact-target/browser-target-lease-open.ts",
-        "src/lib/browser/exact-target/browser-target-lease-state.ts",
-        "src/lib/browser/exact-target/browser-target-lease-terminal.ts",
         "src/lib/browser/exact-target/browser-target-lease.ts",
         "src/lib/browser/exact-target/browser-target-ref.ts",
-        "src/lib/browser/exact-target/browser-target-registry.ts",
-        "src/lib/browser/exact-target/exact-browser-target-session.ts",
-        "src/lib/browser/infrastructure/authenticated-browser-authority-lease.ts",
         "src/lib/browser/infrastructure/browser-authority-broker.ts",
         "src/lib/browser/infrastructure/browser-authority-certificate.ts",
         "src/lib/browser/infrastructure/browser-authority-issuer.ts",
         "src/lib/browser/infrastructure/browser-authority-liveness-lease.ts",
         "src/lib/browser/infrastructure/browser-control-state.ts",
         "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
-        "src/lib/browser/infrastructure/browser-install-identity.ts",
         "src/lib/browser/infrastructure/browser-owner-lock.ts",
         "src/lib/browser/profile/browser-process-supervisor.ts",
         "src/lib/browser/profile/browser-profile-config.ts",
         "src/lib/browser/profile/browser-profile-enrollment.ts",
         "src/lib/browser/profile/browser-profile-process-attestation.ts",
+        "src/lib/browser/profile/browser-profile-state.ts",
+        "src/lib/browser/profile/dedicated-profile-policy.ts",
         "src/lib/browser/profile/managed-policy-readback.ts",
-        "src/lib/browser/protocol/browser-protocol-identity.ts",
-        "src/lib/browser/protocol/generated/browser-protocol-capability-map.ts",
-        "src/lib/browser/protocol/generated/browser-protocol-message-validator.ts",
-        "src/lib/browser/protocol/generated/browser-protocol.ts",
-        "src/lib/browser/release/browser-activation-receipt.ts",
-        "src/lib/browser/release/browser-release-binding-loader.ts",
-        "src/lib/browser/release/browser-release-contract.ts",
-        "src/lib/browser/release/browser-release-identity.ts",
-        "src/lib/browser/transport/authenticated-controller-host-channel.ts",
+        "src/lib/browser/protocol/generated/browser-protocol.generated.ts",
+        "src/lib/browser/release/browser-release-acceptance-inputs.ts",
+        "src/lib/browser/release/release-identity.acceptance.ts",
+        "src/lib/browser/release/release-identity.ts",
         "src/lib/browser/transport/browser-command-admission-budget.ts",
-        "src/lib/browser/transport/browser-session-crypto.ts",
+        "src/lib/browser/transport/browser-native-framing.ts",
         "src/lib/browser/transport/command-permit.ts",
-        "src/lib/browser/transport/raw-controller-host-channel.ts",
-        "src/lib/browser/transport/reply-channel-token.ts",
-        "src/lib/browser/transport/transport-actor-authority.ts",
-        "src/lib/browser/transport/transport-actor-inbound.ts",
-        "src/lib/browser/transport/transport-actor-lifecycle.ts",
-        "src/lib/browser/transport/transport-actor-runtime.ts",
+        "src/lib/browser/transport/controller-host-command-port.ts",
         "src/lib/browser/transport/transport-actor.ts",
-        "src/lib/browser/transport/transport-authenticator-transcripts.ts",
         "src/lib/browser/transport/transport-authenticator.ts",
         "src/lib/browser/transport/transport-event.ts",
-        "src/lib/browser/transport/transport-frame-crypto.ts",
         "src/lib/browser/transport/transport-reducer.ts",
-        "src/lib/browser/transport/transport-transcript.ts",
         "src/lib/local-runtime/contract.ts",
         "src/lib/local-runtime/default-data-dir.ts",
         "src/lib/local-runtime/ids.ts",
@@ -929,7 +868,7 @@
         "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
         "src/lib/local-runtime/workbench-api-boundary-log.ts",
         "src/lib/local-runtime/workbench-assembly.ts",
-        "src/lib/local-runtime/workbench-browser-support.ts",
+        "src/lib/local-runtime/workbench-browser-authority-support.ts",
         "src/lib/local-runtime/workbench-evidence-support.ts",
         "src/lib/local-runtime/workbench-handle.ts",
         "src/lib/local-runtime/workbench-launch-contract.ts",
@@ -937,7 +876,6 @@
         "src/lib/local-runtime/workbench-media-processing-support.ts",
         "src/lib/local-runtime/workbench-status-types.ts",
         "src/lib/local-runtime/workbench-status.ts",
-        "src/lib/local-runtime/workbench-video-download-support.ts",
         "src/lib/local-runtime/workbench-xuanxue-ai-production-handle.ts",
         "src/lib/local-runtime/workbench.ts",
         "src/lib/online-ai/config.ts",
@@ -1083,6 +1021,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stored-order-quarantine.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
@@ -1103,7 +1042,7 @@
         "src/types/sharp.d.ts",
         "src/types/structured-log.ts"
       ],
-      "findingCount": 0
+      "findingCount": 2
     }
   ],
   "executedChecks": [
@@ -1111,133 +1050,133 @@
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
       "clauseId": "grasseye-runtime-log-spine-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
       "clauseId": "grasseye-runtime-log-spine-002-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
       "clauseId": "grasseye-runtime-log-spine-003-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
       "clauseId": "grasseye-runtime-log-spine-004-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
       "clauseId": "grasseye-runtime-log-spine-005-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
       "clauseId": "grasseye-runtime-log-spine-006-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
       "clauseId": "grasseye-runtime-log-spine-007-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
       "clauseId": "grasseye-runtime-log-spine-008-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
       "clauseId": "grasseye-runtime-log-spine-009-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
       "clauseId": "grasseye-runtime-log-spine-010-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
       "clauseId": "grasseye-runtime-log-spine-011-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
       "clauseId": "grasseye-runtime-log-spine-012-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
       "clauseId": "grasseye-runtime-log-spine-013-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
       "clauseId": "grasseye-runtime-log-spine-014-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
       "clauseId": "grasseye-runtime-log-spine-015-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
       "clauseId": "grasseye-runtime-log-spine-016-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
       "clauseId": "grasseye-runtime-log-spine-017-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
       "clauseId": "grasseye-runtime-log-spine-018-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
       "clauseId": "grasseye-runtime-log-spine-019-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
       "clauseId": "grasseye-runtime-log-spine-020-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
       "clauseId": "grasseye-structured-logging-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
       "clauseId": "grasseye-security-privacy-log-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:c5ee81cf-37d1-4117-bbbb-005d6497cea7"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:518cf50e-b81a-482b-b3d2-060b806483c0"
     }
   ]
 }

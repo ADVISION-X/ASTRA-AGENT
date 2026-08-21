@@ -49,7 +49,7 @@ const isCanonicalConversationUrl = (pageUrl: string): boolean => {
   return parsed.protocol === "https:" && parsed.host === "chatgpt.com" && /^\/c\/(?!WEB:)[^/]+$/u.test(parsed.pathname);
 };
 
-export const captureWebChatSubmissionProof = async (input: {
+type SubmissionCaptureInput = {
   browser: BrowserTargetLease;
   context: AiProviderAdapterContext;
   request: AiFeedInput;
@@ -57,12 +57,45 @@ export const captureWebChatSubmissionProof = async (input: {
   previousUserMessageCount: number;
   initialConversationUrl?: string;
   requireCanonical?: boolean;
-}): Promise<WebChatSubmissionProof> => {
-  if (input.request.providerKind !== "gpt-web-chat") {
-    throw new Error("review_required: NOT_PRODUCTION_VERIFIED: Gemini submission DOM is not observed");
+};
+
+const assertFreshConversationBinding = (
+  input: SubmissionCaptureInput,
+  pageUrl: string,
+  userTurnCount: number,
+): void => {
+  if (input.request.providerContinuationRef || input.request.providerForkRef) return;
+  if (input.previousUserMessageCount === 0 && userTurnCount === 1) return;
+  throw new Error(
+    `WEB_CHAT_FRESH_CONVERSATION_REBOUND: previous=${input.previousUserMessageCount}; actual=${userTurnCount}; pageUrl=${pageUrl}`,
+  );
+};
+
+const assertContinuationBinding = (input: SubmissionCaptureInput, pageUrl: string): void => {
+  const continuation = input.request.providerContinuationRef;
+  if (!continuation) return;
+  const expected = new URL(continuation.providerPageUrl);
+  const actual = new URL(pageUrl);
+  if (expected.origin !== actual.origin || expected.pathname !== actual.pathname) {
+    throw new Error(`WEB_CHAT_CONTINUATION_CONVERSATION_DRIFT: expected=${expected.href}; actual=${actual.href}`);
   }
-  const execution = input.context.webChatExecution;
-  if (!execution) throw new Error("review_required: web-chat execution identity is unavailable after submit");
+};
+
+const buildSubmissionProof = async (input: SubmissionCaptureInput, execution: NonNullable<AiProviderAdapterContext["webChatExecution"]>, transientConversationUrl: string | null, pageUrl: string, canonical: boolean): Promise<WebChatSubmissionProof> => ({
+  executionId: execution.executionId,
+  turnMarker: execution.turnMarker,
+  transientConversationUrl: transientConversationUrl ?? pageUrl,
+  canonicalConversationUrl: canonical ? pageUrl : null,
+  userTurnId: await readTurnId(input.browser, input.request.textPrompt),
+  previousAssistantCount: input.previousAssistantCount,
+  previousUserMessageCount: input.previousUserMessageCount,
+  submittedAt: new Date().toISOString(),
+});
+
+const captureStableSubmissionProof = async (
+  input: SubmissionCaptureInput,
+  execution: NonNullable<AiProviderAdapterContext["webChatExecution"]>,
+): Promise<WebChatSubmissionProof> => {
   const deadline = Date.now() + (input.requireCanonical ? 120_000 : 10_000);
   let transientConversationUrl = input.initialConversationUrl ?? null;
   let lastPageUrl = "unknown";
@@ -73,34 +106,25 @@ export const captureWebChatSubmissionProof = async (input: {
     const userTurnCount = await count(input.browser, CHATGPT_USER_TURN_SELECTOR, 20);
     const exactCount = await count(input.browser, CHATGPT_USER_TURN_SELECTOR, 1, input.request.textPrompt);
     if (exactCount === 1) {
-      if (!input.request.providerContinuationRef && !input.request.providerForkRef
-        && (input.previousUserMessageCount !== 0 || userTurnCount !== 1)) {
-        throw new Error(`WEB_CHAT_FRESH_CONVERSATION_REBOUND: previous=${input.previousUserMessageCount}; actual=${userTurnCount}; pageUrl=${pageUrl}`);
-      }
+      assertFreshConversationBinding(input, pageUrl, userTurnCount);
       const canonical = isCanonicalConversationUrl(pageUrl);
-      if (input.request.providerContinuationRef) {
-        const expected = new URL(input.request.providerContinuationRef.providerPageUrl);
-        const actual = new URL(pageUrl);
-        if (expected.origin !== actual.origin || expected.pathname !== actual.pathname) {
-          throw new Error(`WEB_CHAT_CONTINUATION_CONVERSATION_DRIFT: expected=${expected.href}; actual=${actual.href}`);
-        }
-      }
+      assertContinuationBinding(input, pageUrl);
       if (input.requireCanonical && !canonical) {
         await input.browser.wait({ durationMs: 250 });
         continue;
       }
-      return {
-        executionId: execution.executionId,
-        turnMarker: execution.turnMarker,
-        transientConversationUrl: transientConversationUrl ?? pageUrl,
-        canonicalConversationUrl: canonical ? pageUrl : null,
-        userTurnId: await readTurnId(input.browser, input.request.textPrompt),
-        previousAssistantCount: input.previousAssistantCount,
-        previousUserMessageCount: input.previousUserMessageCount,
-        submittedAt: new Date().toISOString(),
-      };
+      return buildSubmissionProof(input, execution, transientConversationUrl, pageUrl, canonical);
     }
     await input.browser.wait({ durationMs: 250 });
   }
   throw new Error(`review_required: submitted web-chat turn identity did not stabilize; requireCanonical=${String(input.requireCanonical === true)}; pageUrl=${lastPageUrl}`);
+};
+
+export const captureWebChatSubmissionProof = async (input: SubmissionCaptureInput): Promise<WebChatSubmissionProof> => {
+  if (input.request.providerKind !== "gpt-web-chat") {
+    throw new Error("review_required: NOT_PRODUCTION_VERIFIED: Gemini submission DOM is not observed");
+  }
+  const execution = input.context.webChatExecution;
+  if (!execution) throw new Error("review_required: web-chat execution identity is unavailable after submit");
+  return captureStableSubmissionProof(input, execution);
 };

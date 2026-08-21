@@ -82,3 +82,4 @@ export const finalizeObservedWebChatSubmission = async (
   });
   return submission;
 };
+

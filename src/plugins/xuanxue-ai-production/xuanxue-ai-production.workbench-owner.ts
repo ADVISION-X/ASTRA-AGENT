@@ -166,6 +166,8 @@ export const createXuanxueAiProductionWorkbenchOwner = (
   return {
     init: () => initializeOwner(dependencies, state),
     readProductionHealth: () => state.workerHealth,
+    readQuarantinedOrderStatus: (orderId: string) =>
+      requireStore(state).readQuarantinedOrder(orderId),
     readOrderStatus(orderId: string) {
       const ownerStore = requireStore(state);
       const order = ownerStore.readOrder(orderId);

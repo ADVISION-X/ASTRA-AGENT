@@ -40,7 +40,6 @@ export const acknowledgeWebChatRateLimitIfVisible = async (input: {
   if (input.request.providerKind === "gpt-web-chat") {
     await acknowledgeChatGptRateLimitDialogIfVisible({
       browser: input.browser,
-      context: input.context,
     });
     return;
   }

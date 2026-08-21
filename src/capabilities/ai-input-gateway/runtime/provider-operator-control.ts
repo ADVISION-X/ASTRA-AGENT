@@ -1,15 +1,10 @@
-import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
-
-export const createProviderOperatorControl = (
-  browser?: BrowserTargetLease,
-) => {
+export const createProviderOperatorControl = () => {
   const owners = new Set<string>();
   const waiters = new Set<() => void>();
   return {
     async release(ownerKey: string): Promise<boolean> {
       if (!ownerKey.trim()) throw new Error("AI provider takeover requires an owner key");
       owners.add(ownerKey);
-      void browser;
       return false;
     },
     resume(ownerKey: string): void {

@@ -4,6 +4,7 @@ import { renderWorkbenchHomeStyles } from "../workbench-home-styles.js";
 import { renderXuanxueAiProductionClient } from "../workbench-xuanxue-ai-production-client.js";
 import { renderAmazonInvoiceInterventionClient } from "../amazon-invoice-intervention-client.js";
 import { renderAmazonProductMiningInterventionClient } from "../amazon-product-mining-intervention-client.js";
+import { renderWorkbenchBrowserExtensionChannelClient } from "../workbench-browser-extension-channel-client.js";
 import { renderCommandBar } from "./command-bar.js";
 import { renderInspector } from "./inspector.js";
 import { renderAppShellLocalizationClient } from "./localization.js";
@@ -29,6 +30,6 @@ export const renderAppShell = (): string => `<!doctype html>
     </div>
     ${renderRuntimeConsole()}
   </div>
-  <script>${renderAppShellLocalizationClient()}${renderWorkbenchHomeClient()}${renderMediaOptimizerClient()}${renderXuanxueAiProductionClient()}${renderAmazonInvoiceInterventionClient()}${renderAmazonProductMiningInterventionClient()}</script>
+  <script>${renderAppShellLocalizationClient()}${renderWorkbenchBrowserExtensionChannelClient()}${renderWorkbenchHomeClient()}${renderMediaOptimizerClient()}${renderXuanxueAiProductionClient()}${renderAmazonInvoiceInterventionClient()}${renderAmazonProductMiningInterventionClient()}</script>
 </body>
 </html>`;

@@ -8,7 +8,7 @@ export type ExtensionCommandPermit = Readonly<{
   authorityRef: string;
   authorityEpoch: number;
   certificateHash: BrowserHash;
-  activationTupleHash: BrowserHash;
+  channelSessionHash: BrowserHash;
   executionBindingHash: BrowserHash;
   targetLeaseRef: string;
   targetRef: string;
@@ -26,8 +26,7 @@ export type ExtensionPermitAuthorityContext = Readonly<{
   authorityRef: string;
   authorityEpoch: number;
   certificateHash: BrowserHash;
-  activationTupleHash: BrowserHash;
-  executionBindingHash: BrowserHash;
+  channelSessionHash: BrowserHash;
   commandPermitKey: string;
 }>;
 
@@ -57,7 +56,7 @@ const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => perm
   && permit.sequence >= 1
   && Date.parse(permit.deadlineAt) > Date.now()
   && isHash(permit.certificateHash)
-  && isHash(permit.activationTupleHash)
+  && isHash(permit.channelSessionHash)
   && isHash(permit.executionBindingHash)
   && isHash(permit.commandFrameMac);
 
@@ -70,8 +69,7 @@ const matchesPermitAuthority = (
 ): boolean => permit.authorityRef === authority.authorityRef
   && permit.authorityEpoch === authority.authorityEpoch
   && permit.certificateHash === authority.certificateHash
-  && permit.activationTupleHash === authority.activationTupleHash
-  && permit.executionBindingHash === authority.executionBindingHash;
+  && permit.channelSessionHash === authority.channelSessionHash;
 
 export async function assertExtensionCommandPermit(permit: ExtensionCommandPermit): Promise<void> {
   if (!hasValidPermitShape(permit)) {

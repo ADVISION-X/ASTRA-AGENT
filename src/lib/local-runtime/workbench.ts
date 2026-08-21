@@ -10,7 +10,6 @@ import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
   buildAmazonMiningHandle,
   buildSettingsHandle,
-  continueInterruptedAmazonMiningForWorkbench,
 } from "./workbench-marketplace-handles.js";
 import {
   getHealthReport,
@@ -47,6 +46,7 @@ const buildWorkbenchHandle = (
     getMissionStartPreflight: async (input) =>
       getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
+    workbenchBrowserExtensionChannel: (input) => assembly.browserAuthority.workbenchExtensionChannel(input),
     getMediaProcessingAbilityGroup: () => assembly.mediaProcessing,
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
@@ -60,7 +60,7 @@ const authorityAbsentComponent = () => ({
   name: "browserAuthority",
   ok: false,
   detail: "Browser authority is absent while runtime initialization is incomplete.",
-  actionableMessage: "Complete the enrolled Chrome, Native Host and extension authority chain before admitting browser work.",
+  actionableMessage: "Install the exact MV3 extension, open the local Workbench page, then reconnect the one browser authority channel before admitting browser work.",
   ownerResponsible: "Browser",
 });
 
@@ -100,7 +100,6 @@ export class GrassEyeWorkbench {
         runXuanxueAiProductionRoute,
       );
       await prepareVideoDownloadRuntimeDependencies();
-      continueInterruptedAmazonMiningForWorkbench(assembly);
       await xuanxueAiProduction.init();
       this.assembly = assembly;
       this.xuanxueAiProduction = xuanxueAiProduction;

@@ -1,4 +1,4 @@
-import { Node, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
@@ -19,6 +19,8 @@ const appShellInspectorPath = "src/app/app-shell/inspector.ts";
 const appShellRuntimeConsolePath = "src/app/app-shell/runtime-console.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
+const browserChannelClientPath = "src/app/workbench-browser-extension-channel-client.ts";
+const browserChannelRoutesPath = "src/app/workbench-browser-extension-channel-routes.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
 
 const appShellSurfacePaths = [
@@ -34,6 +36,25 @@ const appShellSurfacePaths = [
 
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
+
+const identifierSymbolName = (node: Node): string | undefined => Node.isIdentifier(node) ? node.getSymbol()?.getEscapedName().toString() : undefined;
+const propertyAccessPath = (node: Node): readonly string[] | undefined => {
+  if (Node.isIdentifier(node)) return [node.getSymbol()?.getEscapedName().toString() ?? node.getText()];
+  if (!Node.isPropertyAccessExpression(node)) return undefined;
+  const prefix = propertyAccessPath(node.getExpression());
+  return prefix === undefined ? undefined : [...prefix, node.getName()];
+};
+const callCount = (source: SourceFile, expectedPath: readonly string[]): number => source.getDescendantsOfKind(SyntaxKind.CallExpression)
+  .filter((call) => propertyAccessPath(call.getExpression())?.join(".") === expectedPath.join(".")).length;
+const callName = (call: Node): string | undefined => {
+  if (!Node.isCallExpression(call)) return undefined;
+  const path = propertyAccessPath(call.getExpression());
+  return path?.[path.length - 1] ?? identifierSymbolName(call.getExpression());
+};
+const literalValues = (source: SourceFile): readonly string[] => source.getDescendants().flatMap((node) => {
+  if (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) return [node.getLiteralValue()];
+  return [];
+});
 
 const semanticSourceTokens = (context: InspectorContext, repoPath: string): string[] => {
   const source = getSourceFile(context, repoPath);
@@ -146,6 +167,117 @@ const inspectForbiddenPageTerms = (context: InspectorContext, findings: Finding[
   });
 };
 
+const inspectWorkbenchExtensionPageChannel = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  const client = getSourceFile(context, browserChannelClientPath);
+  const routes = getSourceFile(context, browserChannelRoutesPath);
+  if (!client || !routes) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/workbench-extension-channel",
+      lawId,
+      filePath: !client ? browserChannelClientPath : browserChannelRoutesPath,
+      message: "The one Workbench extension page client and its route facade must both exist.",
+    });
+    return;
+  }
+
+  const clientSymbols = new Set(semanticSourceTokens(context, browserChannelClientPath));
+  for (const symbol of ["WORKBENCH_EXTENSION_CHANNEL_PORT_NAME", "GRASSEYE_BROWSER_EXTENSION_ID", "pageSessionGrant"]) {
+    if (!clientSymbols.has(symbol)) {
+      pushFinding(findings, {
+        checkId: "local-app-shell/workbench-extension-channel",
+        lawId,
+        filePath: browserChannelClientPath,
+        message: `Workbench extension page client must bind ${symbol}.`,
+      });
+    }
+  }
+
+  const script = client.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
+    .find((literal) => literal.getLiteralValue().includes("openWorkbenchExtensionChannel"));
+  const pageClient = script
+    ? context.project.createSourceFile("/virtual/workbench-browser-extension-channel-client.js", script.getLiteralValue(), { overwrite: true })
+    : undefined;
+  const clientConnects = pageClient ? callCount(pageClient, ["runtime", "connect"]) : 0;
+  if (clientConnects !== 1) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/workbench-extension-channel",
+      lawId,
+      filePath: browserChannelClientPath,
+      message: "Only the root Workbench page client may call runtime.connect, exactly once.",
+    });
+  }
+
+  const expectedRoutes = [
+    "/api/browser-extension-channel/open",
+    "/api/browser-extension-channel/inbound",
+    "/api/browser-extension-channel/next",
+  ] as const;
+  const browserChannelRoutes = literalValues(routes)
+    .filter((value) => value.startsWith("/api/browser-extension-channel/"));
+  const routeSet = new Set(browserChannelRoutes);
+  if (browserChannelRoutes.length !== expectedRoutes.length || expectedRoutes.some((route) => !routeSet.has(route))) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/workbench-extension-channel",
+      lawId,
+      filePath: browserChannelRoutesPath,
+      message: "Workbench extension route registration must be exactly open, inbound, and next; a fourth route is forbidden.",
+    });
+  }
+
+  const routeSymbols = new Set(semanticSourceTokens(context, browserChannelRoutesPath));
+  for (const symbol of ["handleWorkbenchBrowserExtensionChannelRequest", "workbenchBrowserExtensionChannel"]) {
+    if (!routeSymbols.has(symbol)) {
+      pushFinding(findings, {
+        checkId: "local-app-shell/workbench-extension-channel",
+        lawId,
+        filePath: browserChannelRoutesPath,
+        message: `Workbench extension route facade must call only ${symbol}.`,
+      });
+    }
+  }
+
+  const handler = routes.getFunctions().find((candidate) => candidate.getName() === "handleWorkbenchBrowserExtensionChannelRequest");
+  const facadeCalls = handler?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => callName(call) === "workbenchBrowserExtensionChannel") ?? [];
+  if (!handler || facadeCalls.length !== 1) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/workbench-extension-channel",
+      lawId,
+      filePath: browserChannelRoutesPath,
+      message: "The one Browser-channel route handler must make exactly one Workbench Handle workbenchBrowserExtensionChannel call.",
+    });
+  }
+
+  const privateBrowserImport = routes.getImportDeclarations().find((declaration) => {
+    const target = declaration.getModuleSpecifierSourceFile();
+    return target !== undefined && getRepoSourcePath(target).startsWith("src/lib/browser/");
+  });
+  if (privateBrowserImport) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/workbench-extension-channel-boundary",
+      lawId,
+      filePath: browserChannelRoutesPath,
+      message: "Workbench extension routes must not import Browser runtime directly; they use the Workbench Handle facade.",
+      evidence: privateBrowserImport.getModuleSpecifierValue(),
+    });
+  }
+
+  const forbiddenSymbols = ["connectNative", "debugger", "executeCommand", "selector", "target", "permit", "actionPlan", "nextAction"];
+  for (const source of [client, routes]) {
+    const symbols = new Set(semanticSourceTokens(context, getRepoSourcePath(source)));
+    const forbidden = forbiddenSymbols.find((symbol) => symbols.has(symbol));
+    if (forbidden) {
+      pushFinding(findings, {
+        checkId: "local-app-shell/workbench-extension-channel-boundary",
+        lawId,
+        filePath: getRepoSourcePath(source),
+        message: "Workbench extension page channel must not own browser actions, command data, or business flow.",
+        evidence: forbidden,
+      });
+    }
+  }
+};
+
 const inspectAppImports = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   for (const sourceFile of context.project.getSourceFiles()) {
     const repoPath = getRepoSourcePath(sourceFile);
@@ -225,6 +357,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const inputLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-002-V1");
   const statusLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-003-V1");
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-004-V1");
+  const browserChannelLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-APP-SHELL-006-V1");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>([
     pagePath,
@@ -238,6 +371,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     appShellRuntimeConsolePath,
     stylesPath,
     serverPath,
+    browserChannelClientPath,
+    browserChannelRoutesPath,
     inspectorPath,
   ]);
 
@@ -248,6 +383,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectForbiddenPageTerms(context, findings, boundaryLawId);
   inspectAppImports(context, findings, boundaryLawId);
   inspectLocalRuntimeImports(context, findings, boundaryLawId);
+  inspectWorkbenchExtensionPageChannel(context, findings, browserChannelLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

@@ -19,6 +19,7 @@ import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan
 import type { ZombieExemptionManifest } from "../audit/domains/code-purity/components/zombie-exemption-manifest.js";
 
 type FixtureManifestConfig = {
+  auditInspectionFiles?: string[];
   externalEntryExports?: Array<{ exportName: string; filePath: string }>;
   externalEntryFiles?: string[];
   lawfulDynamicImports?: Array<{ consumerFilePath: string; targetFilePath: string }>;
@@ -119,6 +120,10 @@ const buildPackageScripts = (entryScripts: readonly string[], runtimeRepoPath: s
   );
 
 const buildManifest = (runtimeRepoPath: string, manifest: FixtureManifestConfig | undefined): ZombieExemptionManifest => ({
+  auditInspectionFiles: (manifest?.auditInspectionFiles ?? []).map((filePath) => ({
+    filePath: prefixRuntimePath(runtimeRepoPath, filePath),
+    reason: "fixture audit inspection entry",
+  })),
   externalEntryExports: (manifest?.externalEntryExports ?? []).map((entry) => ({
     exportName: entry.exportName,
     filePath: prefixRuntimePath(runtimeRepoPath, entry.filePath),

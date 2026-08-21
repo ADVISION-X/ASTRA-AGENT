@@ -455,6 +455,8 @@ unique marked user turn
 → original byte hash
 ```
 
+`web-chat-generated-image-capture.ts` 中的 exact assistant-turn 判定是现役 AI inspector 的静态受检证据；它不取得运行入口、导出转运或动态加载权。
+
 ## Response Checkpoint And Publication
 
 终态状态机：

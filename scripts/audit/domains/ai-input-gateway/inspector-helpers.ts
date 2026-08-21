@@ -63,16 +63,6 @@ export const propertyNames = (node: Node): Set<string> =>
       .map((property) => property.getName()),
   );
 
-export const variableStringValues = (
-  source: SourceFile,
-  variableName: string,
-): Set<string> => new Set(
-  source.getVariableDeclaration(variableName)
-    ?.getInitializer()
-    ?.getDescendantsOfKind(SyntaxKind.StringLiteral)
-    .map((literal) => literal.getLiteralText()) ?? [],
-);
-
 export const typePropertyNames = (
   source: SourceFile,
   typeName: string,

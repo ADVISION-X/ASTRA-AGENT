@@ -1,26 +1,47 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.contract.js";
 
-const CHATGPT_SEARCH_INPUT_SELECTOR = 'input[aria-label="搜索聊天"]';
+const CHATGPT_SEARCH_DIALOG_SELECTOR = 'div[role="dialog"]';
+const CHATGPT_SEARCH_CLOSE_SELECTOR = 'div[role="dialog"] button[aria-label="关闭"]';
+const CHATGPT_SEARCH_DIALOG_AMBIGUOUS = "CHATGPT_SEARCH_DIALOG_AMBIGUOUS";
+const CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS = "CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS";
+const CHATGPT_SEARCH_DIALOG_STILL_VISIBLE = "CHATGPT_SEARCH_DIALOG_STILL_VISIBLE";
 
-/**
- * The approved construction evidence has not observed the dialog close
- * control. We can safely prove it absent; if it is present, no guessed escape
- * key or coordinate path may dismiss it.
- */
-export const dismissChatGptSearchDialogIfVisible = async (
-  browser: BrowserTargetLease,
-  _context: Pick<AiProviderAdapterContext, "abortSignal">,
-): Promise<"not_found" | "closed"> => {
-  const result = await browser.executeDomIntent({
-    kind: "find",
-    selector: CHATGPT_SEARCH_INPUT_SELECTOR,
-    maxMatches: 1,
-  });
+const readMatchCount = async (browser: BrowserTargetLease, selector: string): Promise<number> => {
+  const result = await browser.executeDomIntent({ kind: "find", selector, maxMatches: 2 });
   if (typeof result !== "object" || result === null || Array.isArray(result)
     || typeof (result as { count?: unknown }).count !== "number") {
     throw new Error("BROWSER_TARGET_INVALID");
   }
-  if ((result as { count: number }).count === 0) return "not_found";
-  throw new Error("review_required: NOT_PRODUCTION_VERIFIED: ChatGPT Search chats dialog close control is not observed");
+  return (result as { count: number }).count;
+};
+
+const requireSingleCloseControl = async (browser: BrowserTargetLease): Promise<void> => {
+  if (await readMatchCount(browser, CHATGPT_SEARCH_CLOSE_SELECTOR) !== 1) {
+    throw new Error(`review_required: ${CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS}`);
+  }
+};
+
+const closeSearchDialog = async (browser: BrowserTargetLease): Promise<void> => {
+  await browser.executeDomIntent({
+    kind: "click",
+    selector: CHATGPT_SEARCH_CLOSE_SELECTOR,
+    expectedMatches: 1,
+  });
+  await browser.wait({ durationMs: 250 });
+  if (await readMatchCount(browser, CHATGPT_SEARCH_DIALOG_SELECTOR) !== 0) {
+    throw new Error(`review_required: ${CHATGPT_SEARCH_DIALOG_STILL_VISIBLE}`);
+  }
+};
+
+export const dismissChatGptSearchDialogIfVisible = async (
+  browser: BrowserTargetLease,
+  _context: Pick<AiProviderAdapterContext, "abortSignal">,
+): Promise<"not_found" | "closed"> => {
+  const dialogCount = await readMatchCount(browser, CHATGPT_SEARCH_DIALOG_SELECTOR);
+  if (dialogCount === 0) return "not_found";
+  if (dialogCount !== 1) throw new Error(`review_required: ${CHATGPT_SEARCH_DIALOG_AMBIGUOUS}`);
+  await requireSingleCloseControl(browser);
+  await closeSearchDialog(browser);
+  return "closed";
 };

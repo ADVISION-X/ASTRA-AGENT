@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T20:32:59.053Z",
+  "generatedAt": "2026-08-21T00:29:02.676Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2374,7 +2374,8 @@
         "APEX-LOCAL-APP-SHELL-002-V1",
         "APEX-LOCAL-APP-SHELL-003-V1",
         "APEX-LOCAL-APP-SHELL-004-V1",
-        "APEX-LOCAL-APP-SHELL-005-V1"
+        "APEX-LOCAL-APP-SHELL-005-V1",
+        "APEX-LOCAL-APP-SHELL-006-V1"
       ],
       "bindings": [
         {
@@ -2446,6 +2447,20 @@
             }
           ],
           "evidenceMode": "static"
+        },
+        {
+          "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
+          "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
+          "checkIds": [
+            "local-app-shell/owner-assertion-set"
+          ],
+          "sourceEvidence": [
+            {
+              "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
+              "symbolName": "inspectDomain"
+            }
+          ],
+          "evidenceMode": "model+acceptance+real-chrome"
         }
       ],
       "blueprintRefs": [
@@ -2455,7 +2470,8 @@
             "## 本地形态",
             "## 首屏结构",
             "## 当前法门入口",
-            "## 对口质检"
+            "## 对口质检",
+            "## Workbench Extension 页面通道"
           ]
         }
       ]
@@ -2466,18 +2482,18 @@
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "executionGroup": "foundation",
       "lawIds": [
-        "APEX-LOCAL-BROWSER-001-V2",
-        "APEX-LOCAL-BROWSER-002-V2",
-        "APEX-LOCAL-BROWSER-003-V2",
-        "APEX-LOCAL-BROWSER-004-V2",
-        "APEX-LOCAL-BROWSER-005-V1",
-        "APEX-LOCAL-BROWSER-006-V1",
+        "APEX-LOCAL-BROWSER-001-V3",
+        "APEX-LOCAL-BROWSER-002-V3",
+        "APEX-LOCAL-BROWSER-003-V3",
+        "APEX-LOCAL-BROWSER-004-V3",
+        "APEX-LOCAL-BROWSER-005-V2",
+        "APEX-LOCAL-BROWSER-006-V2",
         "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2"
       ],
       "bindings": [
         {
-          "lawId": "APEX-LOCAL-BROWSER-001-V2",
-          "clauseId": "apex-local-browser-001-v2-exact-authority-lease",
+          "lawId": "APEX-LOCAL-BROWSER-001-V3",
+          "clauseId": "apex-local-browser-001-v3-exact-authority-lease",
           "checkIds": [
             "browser-old-path/retired-zero"
           ],
@@ -2490,8 +2506,8 @@
           "evidenceMode": "model+acceptance+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-002-V2",
-          "clauseId": "apex-local-browser-002-v2-authority-atomicity",
+          "lawId": "APEX-LOCAL-BROWSER-002-V3",
+          "clauseId": "apex-local-browser-002-v3-authority-atomicity",
           "checkIds": [
             "browser-auth/no-unauth-session-type",
             "browser-auth/no-transport-ready-boolean",
@@ -2512,13 +2528,13 @@
           "evidenceMode": "model+acceptance+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-003-V2",
-          "clauseId": "apex-local-browser-003-v2-single-chain",
+          "lawId": "APEX-LOCAL-BROWSER-003-V3",
+          "clauseId": "apex-local-browser-003-v3-single-chain",
           "checkIds": [
-            "browser-auth/no-host-controller-rebind",
-            "browser-auth/original-reply-channel",
+            "browser-channel/no-page-session-rebind",
+            "browser-channel/original-reply-channel",
             "browser-auth/production-fixture-zero",
-            "browser-install/safe-stale-socket-recovery"
+            "browser-channel/no-native-host-surface"
           ],
           "sourceEvidence": [
             {
@@ -2529,8 +2545,8 @@
           "evidenceMode": "model+acceptance+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-004-V2",
-          "clauseId": "apex-local-browser-004-v2-governed-command-plane",
+          "lawId": "APEX-LOCAL-BROWSER-004-V3",
+          "clauseId": "apex-local-browser-004-v3-governed-command-plane",
           "checkIds": [
             "browser-command/bounded-admission-budget",
             "browser-file/artifact-grant-no-raw-path"
@@ -2544,17 +2560,17 @@
           "evidenceMode": "model+acceptance+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-005-V1",
-          "clauseId": "apex-local-browser-005-v1-release-identity",
+          "lawId": "APEX-LOCAL-BROWSER-005-V2",
+          "clauseId": "apex-local-browser-005-v2-release-identity",
           "checkIds": [
-            "browser-auth/exact-activation-tuple",
+            "browser-release/cws-release-identity",
             "browser-profile/dedicated-production-profile",
-            "browser-profile/process-enrollment-attestation",
-            "browser-profile/force-install-policy-readback",
-            "browser-release/artifact-activation-proof-separation",
-            "browser-release/verified-crx-hard-gate",
+            "browser-profile/installed-extension-readback",
+            "browser-profile/exact-workbench-origin-readback",
+            "browser-release/cws-identity-proof-separation",
+            "browser-release/cws-review-and-installed-readback",
             "browser-release/anti-rollback-and-revocation",
-            "browser-release/reproducible-build-identity"
+            "browser-release/no-apple-signing-gate"
           ],
           "sourceEvidence": [
             {
@@ -2565,8 +2581,8 @@
           "evidenceMode": "artifact+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-006-V1",
-          "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
+          "lawId": "APEX-LOCAL-BROWSER-006-V2",
+          "clauseId": "apex-local-browser-006-v2-cross-repo-fence-proof",
           "checkIds": [
             "browser-cross-repo/authority-proof-v2",
             "browser-cross-repo/ordered-authority-window-chain"
@@ -2602,8 +2618,8 @@
             "## 3. Composition Root",
             "## 5. Authentication Commit",
             "## 6. Liveness",
-            "## 9. Native Messaging / Artifact Stream",
-            "## 10. Profile / Process / Policy",
+            "## 9. Workbench Page Framing / Artifact Stream",
+            "## 12. Release",
             "## 14. Cross-Repo Proof",
             "## 15. Quality Mapping",
             "## 16. Real Chrome / Release Gate"

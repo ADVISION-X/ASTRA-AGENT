@@ -6,7 +6,10 @@ import {
   type ZombieDeclarationResolutionFailure,
   type ZombieTopLevelDeclaration,
 } from "./zombie-call-graph.js";
-import type { ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
+import {
+  isLawfulAuditInspectionFile,
+  type ZombieExemptionManifest,
+} from "./zombie-exemption-manifest.js";
 import type { ZombieReachability } from "./zombie-module-graph.js";
 import { isLawfulZombieExport } from "./zombie-surface-shared.js";
 import type { ZombieSymbolGraph } from "./zombie-symbol-graph.js";
@@ -148,6 +151,15 @@ const collectLawfulExportRootDeclarationIds = (
   return rootIds;
 };
 
+const collectAuditInspectionRootDeclarationIds = (
+  declarations: readonly ZombieTopLevelDeclaration[],
+  manifest: ZombieExemptionManifest,
+): Set<string> => new Set(
+  declarations
+    .filter((declaration) => isLawfulAuditInspectionFile(manifest, declaration.governedFile.repoPath))
+    .map((declaration) => declaration.id),
+);
+
 const collectLiveExportRootDeclarationIds = (
   declarationsByNodeKey: ReadonlyMap<string, ZombieTopLevelDeclaration>,
   input: ZombieDeclarationLiveGraphInput,
@@ -185,6 +197,7 @@ export const buildZombieDeclarationLiveGraph = (
     ...collectLiveExportRootDeclarationIds(declarationsByNodeKey, input),
     ...collectManifestRootDeclarationIds(declarations, input.manifest),
     ...collectLawfulExportRootDeclarationIds(declarations, input.manifest),
+    ...collectAuditInspectionRootDeclarationIds(declarations, input.manifest),
   ]);
 
   const pendingDeclarationIds = [...liveDeclarationIds];

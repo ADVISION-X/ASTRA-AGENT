@@ -11,7 +11,8 @@ const readXuanxueInterventionForm = () => {
 const renderXuanxueAiProductionStatus = (payload) => {
   const intervention = payload?.intervention || payload;
   const order = payload?.order;
-  setText("[data-xuanxue-state]", intervention?.state || "-");
+  const quarantine = payload?.quarantine;
+  setText("[data-xuanxue-state]", quarantine?.state || intervention?.state || "-");
   setText("[data-xuanxue-revision]", String(intervention?.revision ?? "-"));
   setText("[data-xuanxue-checkpoint]", intervention?.lastSafeCheckpoint || "-");
   setText("[data-xuanxue-order-status]", order?.status || "-");

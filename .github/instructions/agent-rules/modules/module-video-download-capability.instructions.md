@@ -38,6 +38,14 @@ All security redlines from Law 002 remain fully active. No law upgrade changes t
   "evidenceMode": "law+blueprint+real-code-inspection",
   "summary": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
   "codePurityLiveness": {
+    "externalEntryFiles": [
+      "src/capabilities/video-download/index.ts",
+      "src/capabilities/video-download/runtime/artifact-storage.ts"
+    ],
+    "externalEntryExports": [
+      { "filePath": "src/capabilities/video-download/index.ts", "exportName": "createVideoDownloadAbilityGroup" },
+      { "filePath": "src/capabilities/video-download/runtime/artifact-storage.ts", "exportName": "createFilesystemVideoArtifactStoragePort" }
+    ],
     "lawfulDynamicRegistryConsumers": [
       { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-web-video-once.ts", "registryExportName": "downloadWebVideoOnce" },
       { "consumerFilePath": "src/capabilities/video-download/registry.ts", "registryFilePath": "src/capabilities/video-download/children/download-facebook-video-once.ts", "registryExportName": "downloadFacebookVideoOnce" },

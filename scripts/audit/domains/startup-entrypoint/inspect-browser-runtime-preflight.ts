@@ -1,6 +1,4 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
-
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -16,10 +14,6 @@ const hasNamedImport = (source: SourceFile, modulePart: string, importedName: st
 const hasStringLiteral = (source: SourceFile, value: string): boolean =>
   source.getDescendantsOfKind(SyntaxKind.StringLiteral)
     .some((literal) => literal.getLiteralValue() === value);
-
-const hasIdentifier = (source: SourceFile, value: string): boolean =>
-  source.getDescendantsOfKind(SyntaxKind.Identifier)
-    .some((identifier) => astIdentifierName(identifier) === value);
 
 export const inspectBrowserRuntimePreflight = (
   context: InspectorContext,
@@ -38,12 +32,10 @@ export const inspectBrowserRuntimePreflight = (
     return;
   }
   const metrics = {
-    launchLoadsSharedBrowserRuntimeEnv: hasNamedImport(launchSource, "browser-runtime-env", "loadBrowserRuntimeEnv"),
     launchImportsPreflight: hasNamedImport(launchSource, "browser-runtime-preflight", "runBrowserRuntimePreflight"),
-    preflightImportsReleaseSlotVerifier: hasNamedImport(preflightSource, "verify-artifacts", "verifyBrowserReleaseSlot"),
-    preflightCallsReleaseSlotVerifier: hasIdentifier(preflightSource, "verifyBrowserReleaseSlot"),
-    preflightRejectsTestRuntimeMode: hasNamedImport(preflightSource, "browser-runtime-env", "resolveBrowserRuntimeMode")
-      && hasIdentifier(preflightSource, "resolveBrowserRuntimeMode"),
+    preflightDeclaresCwsPageChannel: hasStringLiteral(preflightSource, "CWS_PAGE_CHANNEL"),
+    preflightDoesNotImportReleaseSlotVerifier: !hasNamedImport(preflightSource, "verify-artifacts", "verifyBrowserReleaseSlot"),
+    preflightDoesNotLoadLegacyRuntimeEnvironment: !hasNamedImport(launchSource, "browser-runtime-env", "loadBrowserRuntimeEnv"),
     preflightDoesNotInstall: !hasStringLiteral(preflightSource, "--install"),
     preflightDoesNotRepair: !hasStringLiteral(preflightSource, "--repair"),
     preflightDoesNotEnroll: !hasStringLiteral(preflightSource, "--enroll-profile"),
@@ -53,7 +45,7 @@ export const inspectBrowserRuntimePreflight = (
     lawId,
     checkId: "startup/browser-runtime-preflight",
     filePath: preflightPath,
-    message: "Startup must verify the single production Browser release slot, reject test mode, and must not install, repair or enroll Browser state.",
+    message: "Startup must allow the Workbench to open before a Browser authority exists, declare the single CWS page channel, and must not install, repair or enroll Browser state.",
     evidence: JSON.stringify(metrics),
   }));
 };

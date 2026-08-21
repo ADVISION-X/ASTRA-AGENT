@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T21:59:32.089Z",
+  "generatedAt": "2026-08-21T00:29:02.676Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -37,6 +37,19 @@
         }
       ],
       "codePurityLiveness": {
+        "auditInspectionFiles": [
+          "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
+          "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-response-extraction-script.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-submit-attachment-verification.ts",
+          "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts"
+        ],
         "lawfulDynamicRegistryConsumers": [
           {
             "consumerFilePath": "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
@@ -1564,6 +1577,11 @@
           "ownerDomain": "amazon-product-mining"
         }
       ],
+      "codePurityLiveness": {
+        "auditInspectionFiles": [
+          "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
+        ]
+      },
       "appliesTo": [
         "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
         "src/capabilities/ai-input-gateway/providers/web-chat-restore-policy.ts",
@@ -4083,16 +4101,46 @@
       "blockIndex": 4
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-001-V2",
+      "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-app-shell",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+      "summary": "The one local Workbench page may carry exactly one CWS MV3 external Port for Browser owner frames, but it must remain a non-interactive transport adapter and never become a browser command or business-flow owner.",
+      "clauses": [
+        {
+          "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
+          "statement": "Only the root Workbench page may initiate the fixed external Port and only the Browser owner may authorize its schema-bound frames; disconnect or grant expiry never triggers a UI-originated browser action.",
+          "evidenceMode": "model+acceptance+real-chrome",
+          "ownerDomain": "local-app-shell"
+        }
+      ],
+      "appliesTo": [
+        "src/app/**",
+        "src/lib/local-runtime/**"
+      ],
+      "forbidden": [
+        "A second workbench browser page or channel.",
+        "Browser command, selector, target, permit, or business-result creation in the page adapter.",
+        "chrome.debugger, connectNative, Native Messaging, or native host handling in src/app.",
+        "A visible browser action console, planner, or universal command input.",
+        "App routes calling browser private runtime directly."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+model+real-chrome",
-      "summary": "Every page action is admitted only through an execution-bound authenticated authority lease and exact target/document lease; foreground identity, raw Chrome identity leakage and a second browser path are impossible.",
+      "summary": "Every page action is admitted only through an execution-bound authenticated authority lease and exact target/document lease; the fixed CWS-installed MV3 plus its one Workbench page channel is the only Browser side-effect path.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-001-v2-exact-authority-lease",
+          "clauseId": "apex-local-browser-001-v3-exact-authority-lease",
           "statement": "All page actions require a current authority lease plus exact target/document lease and stale leases cannot produce side effects.",
           "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
@@ -4109,33 +4157,39 @@
         "BrowserController.createTargetSession",
         "active-tab/current-page/URL-first fallback",
         "raw Chrome ids outside Browser owner",
-        "second browser transport or OS interaction fallback"
+        "second browser transport or OS interaction fallback",
+        "Native Messaging production chain"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 0
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-002-V2",
+      "lawId": "APEX-LOCAL-BROWSER-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+model+real-chrome",
-      "summary": "Within each Browser Worker, Browser command authority does not exist before authentication proof is atomically committed; any discontinuity revokes before every other side effect.",
+      "summary": "Within each Browser Worker, Browser command authority does not exist before the CWS identity, exact Workbench page session and authentication proof are atomically committed; any discontinuity revokes before every other side effect.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-002-v2-authority-atomicity",
-          "statement": "Authentication proof commit is the only ABSENT-to-PRESENT transition and revoke is the first discontinuity side effect.",
+          "clauseId": "apex-local-browser-002-v3-authority-atomicity",
+          "statement": "CWS identity plus the exact Workbench page session proof are required for the only ABSENT-to-PRESENT transition; revoke is the first discontinuity side effect.",
           "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
+      "codePurityLiveness": {
+        "auditInspectionFiles": [
+          "src/lib/browser/chrome-extension/authenticated-heartbeat.ts"
+        ]
+      },
       "required": [
         "data plane is only ABSENT or PRESENT",
         "one TransportActor/Reducer owns control mutation",
         "BrowserAuthorityIssuer is the only mint/revoke owner",
         "authenticated heartbeat renews only PRESENT authority",
-        "wrong profile/process/policy/tree or liveness expiry keeps authority ABSENT",
+        "wrong extension/page-session/profile/process/policy/tree or liveness expiry keeps authority ABSENT",
         "revoke occurs before callbacks cleanup diagnostics or reconnect"
       ],
       "forbidden": [
@@ -4143,7 +4197,7 @@
         "transportReady",
         "pre-auth command surface",
         "fire-and-forget startup",
-        "Host controller rebind",
+        "page session rebind",
         "heartbeat minting authority",
         "online Port rekey"
       ],
@@ -4151,37 +4205,66 @@
       "blockIndex": 1
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-003-V2",
+      "lawId": "APEX-LOCAL-BROWSER-003-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-      "summary": "The fixed-id MV3 extension plus one self-contained Rust Native Host is the only production page-action chain; each Native Port has one immutable actor and replies never cross port epochs.",
+      "summary": "The fixed-id CWS-installed MV3 extension plus one exact local Workbench page external Port is the only production page-action chain; each Port has one immutable ExtensionExternalPortActor and replies never cross port epochs.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-003-v2-single-chain",
-          "statement": "One authenticated Native Messaging chain owns every production browser side effect and old-port work cannot enter the current chain.",
+          "clauseId": "apex-local-browser-003-v3-single-chain",
+          "statement": "One authenticated CWS MV3 to exact Workbench-page channel owns every production browser side effect; Native Host and old-port work are physically unreachable.",
           "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
       "codePurityLiveness": {
+        "externalEntryExports": [
+          {
+            "exportName": "BROWSER_PROTOCOL_REVISION",
+            "filePath": "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
+          },
+          {
+            "exportName": "BROWSER_ARTIFACT_CHUNK_MAX_BYTES",
+            "filePath": "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
+          },
+          {
+            "exportName": "BROWSER_COMMAND_DEFAULT_DEADLINE_MS",
+            "filePath": "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
+          },
+          {
+            "exportName": "BROWSER_PROTOCOL_SCHEMA_SHA256",
+            "filePath": "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
+          },
+          {
+            "exportName": "BrowserErrorCode",
+            "filePath": "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
+          },
+          {
+            "exportName": "isBrowserCapabilityId",
+            "filePath": "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
+          }
+        ],
         "externalEntryFiles": [
-          "src/lib/browser/chrome-extension/service-worker.ts"
+          "src/lib/browser/chrome-extension/service-worker.ts",
+          "src/lib/browser/protocol/generated/browser-protocol.generated.ts"
         ]
       },
       "required": [
-        "one NativePortActor per Port",
+        "one ExtensionExternalPortActor per accepted Port",
+        "exact 127.0.0.1 sender URL plus short-lived page-session grant",
         "original source/reply channel captured for async completion",
-        "Controller IPC discontinuity terminates Host and Port",
         "production fixture authority is physically unreachable",
         "the exact MV3 manifest service worker is the only law-owned external Browser extension entry"
       ],
       "forbidden": [
         "global cross-port auth truth",
         "old completion sent to new Port",
-        "second Native Host",
+        "Native Messaging permission or connectNative",
+        "native-messaging-host production path",
+        "second external page channel",
         "Playwright/JXA/AppleScript/system input fallback",
         "load-unpacked production chain",
         "package-script or inspector-local liveness substitute for the MV3 manifest entry"
@@ -4190,17 +4273,17 @@
       "blockIndex": 2
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-004-V2",
+      "lawId": "APEX-LOCAL-BROWSER-004-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+schema+ast+fuzz+real-chrome",
-      "summary": "Browser commands are versioned governed capabilities with bounded admission and declarative DOM intent; arbitrary evaluation, raw file paths and unbounded queues or streams do not exist in production.",
+      "summary": "Browser commands are versioned governed capabilities with bounded admission and declarative DOM intent; the Workbench page may forward but never create commands, permits, targets, selectors or authority.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-004-v2-governed-command-plane",
-          "statement": "Only schema-bound capability commands admitted by the current authority/execution/target fences may execute.",
+          "clauseId": "apex-local-browser-004-v3-governed-command-plane",
+          "statement": "Only schema-bound capability commands admitted by the current authority/execution/target fences may execute; the page channel only carries those frames.",
           "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
@@ -4218,58 +4301,60 @@
         "eval/new Function/remote code",
         "raw/resolved path in production wire",
         "unbounded queue/cache/artifact stream",
-        "automatic non-idempotent replay"
+        "automatic non-idempotent replay",
+        "Workbench-page generated command or permit"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 3
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-005-V1",
+      "lawId": "APEX-LOCAL-BROWSER-005-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+artifact+signature+readback+real-chrome+soak",
-      "summary": "Production browser bytes, exact activation, anti-rollback policy and release proof are separate signed identities; a release is usable only when installed bytes/profile/policy/Chrome identity and the exact tuple all read back correctly.",
+      "evidenceMode": "law+artifact+readback+real-chrome+soak",
+      "summary": "Production browser identity is the CWS-reviewed fixed-id MV3 release plus its immutable source/package evidence, permission freeze, installed identity readback and release proof; no native executable signing or Apple notarization is a production condition.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-005-v1-release-identity",
-          "statement": "Only one signed exact activation over verified immutable bytes may mint Browser authority.",
+          "clauseId": "apex-local-browser-005-v2-release-identity",
+          "statement": "Only the exact CWS-reviewed installed extension identity plus the exact page-origin policy and release proof may mint Browser authority; Apple Developer Program membership is not required.",
           "evidenceMode": "artifact+real-chrome",
           "ownerDomain": "local-browser-session"
         }
       ],
       "required": [
-        "ArtifactSetIdentity ActivationTuple ReleaseSecurityPolicy and ReleaseProofManifest are distinct",
+        "CwsExtensionReleaseIdentity ReleaseSecurityPolicy and ReleaseProofManifest are distinct",
+        "CWS item ID extension ID version source/package hash and permission/origin policy hash are bound",
         "minimum release sequence and revocation are monotonic hard gates",
-        "Verified CRX hash is non-null in production",
-        "current+previous activation window is bounded",
-        "core artifacts are hermetic build-once and reproducible by two builders",
-        "owner lock and installed identity readback are mandatory"
+        "CWS review approval and installed identity readback are mandatory",
+        "current+previous protocol compatibility is bounded without a second active channel",
+        "proof is bound to the exact reviewed extension version"
       ],
       "forbidden": [
         "capability intersection READY_COMPATIBLE",
         "rollback below minimum sequence",
-        "revoked tuple revival",
+        "revoked release identity revival",
         "proof-after-rebuild bytes",
-        "unsigned/unnotarized production Host",
-        "CWS downgrade required for local rollback"
+        "Native Host signature/notarization or Apple Developer Program production gate",
+        "CWS downgrade required for local rollback",
+        "load-unpacked production release"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 4
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-006-V1",
+      "lawId": "APEX-LOCAL-BROWSER-006-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+cross-repo-contract+runtime+fault-injection",
-      "summary": "For one browser-required execution at most one Browser Worker may hold the current xuanxue writer fence; failover starts only from a sealed checkpoint with a new fence and every browser action is provable inside an ordered authenticated authority window in the single AgentRuntimeReceipt.",
+      "summary": "For one browser-required execution at most one Browser Worker may hold the current xuanxue writer fence; failover starts only from a sealed checkpoint with a new fence and every browser action is provable inside an ordered CWS-extension authority window in the single AgentRuntimeReceipt.",
       "clauses": [
         {
-          "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
-          "statement": "Execution fencing, safe handover and ordered authority-window proof jointly prevent dual writers and unprovable browser actions.",
+          "clauseId": "apex-local-browser-006-v2-cross-repo-fence-proof",
+          "statement": "Execution fencing, safe handover and ordered CWS-extension authority-window proof jointly prevent dual writers and unprovable browser actions.",
           "evidenceMode": "model+acceptance+real-chrome",
           "ownerDomain": "local-browser-session"
         }
@@ -4287,7 +4372,8 @@
         "dual active execution",
         "profile copy between workers",
         "implicit mutation replay on failover",
-        "second Agent runtime receipt or dynamic verdict"
+        "second Agent runtime receipt or dynamic verdict",
+        "Native Host failover channel"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 5
@@ -5251,6 +5337,20 @@
         }
       ],
       "codePurityLiveness": {
+        "externalEntryExports": [
+          {
+            "exportName": "createVideoDownloadAbilityGroup",
+            "filePath": "src/capabilities/video-download/index.ts"
+          },
+          {
+            "exportName": "createFilesystemVideoArtifactStoragePort",
+            "filePath": "src/capabilities/video-download/runtime/artifact-storage.ts"
+          }
+        ],
+        "externalEntryFiles": [
+          "src/capabilities/video-download/index.ts",
+          "src/capabilities/video-download/runtime/artifact-storage.ts"
+        ],
         "lawfulDynamicRegistryConsumers": [
           {
             "consumerFilePath": "src/capabilities/video-download/registry.ts",

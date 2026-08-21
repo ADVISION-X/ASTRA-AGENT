@@ -69,6 +69,19 @@
             "symbolName": "inspectDomain"
           }
         ]
+      },
+      {
+        "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
+        "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
+        "checkIds": [
+          "local-app-shell/owner-assertion-set"
+        ],
+        "sourceEvidence": [
+          {
+            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
+            "symbolName": "inspectDomain"
+          }
+        ]
       }
     ]
   },
@@ -79,7 +92,8 @@
         "## 本地形态",
         "## 首屏结构",
         "## 当前法门入口",
-        "## 对口质检"
+        "## 对口质检",
+        "## Workbench Extension 页面通道"
       ]
     }
   ],

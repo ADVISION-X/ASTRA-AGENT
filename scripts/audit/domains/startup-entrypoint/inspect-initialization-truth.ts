@@ -68,6 +68,10 @@ export const inspectInitializationTruth = (
       && hasStringLiteral(statusSource, "ready"),
     lifecycleIsDurableInWorkbench: hasIdentifier(workbenchSource, "initializationState")
       && hasStringLiteral(workbenchSource, "failed"),
+    initializationDoesNotAutoRunAmazonMining: !hasIdentifier(
+      workbenchSource,
+      "continueInterruptedAmazonMiningForWorkbench",
+    ),
     closesServerOnInitFailure: closesServerOnInitializationFailure(serverSource),
   };
   if (Object.values(metrics).some((value) => !value)) {
@@ -75,7 +79,7 @@ export const inspectInitializationTruth = (
       lawId,
       checkId: "startup/initialization-truth",
       filePath: initializationTruthPaths.server,
-      message: "Startup must reject degraded health, expose mandatory owner initialization, and close the listener when initialization fails.",
+      message: "Startup must reject degraded health, avoid job-flow auto-run, expose mandatory owner initialization, and close the listener when initialization fails.",
       evidence: JSON.stringify(metrics),
     }));
   }

@@ -1,6 +1,7 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import {
+  isLawfulAuditInspectionFile,
   isLawfulManifestEntryExport,
   type ZombieExemptionManifest,
 } from "./zombie-exemption-manifest.js";
@@ -52,4 +53,5 @@ export const isLawfulZombieExport = (
 ): boolean =>
   (isOwnerInspectorPath(governedFile.repoPath)
     && exportName === "inspectDomain")
+  || isLawfulAuditInspectionFile(manifest, governedFile.repoPath)
   || isLawfulManifestEntryExport(manifest, governedFile.repoPath, exportName);

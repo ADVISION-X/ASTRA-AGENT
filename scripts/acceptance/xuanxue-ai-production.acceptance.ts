@@ -18,6 +18,7 @@ import { acceptXuanxueAiProductionRecovery } from "./xuanxue-ai-production-recov
 import { acceptXuanxueParentRecovery } from "./xuanxue-ai-production-parent-recovery.js";
 import { acceptXuanxueAiProductionSurface } from "./xuanxue-ai-production-surface-acceptance.js";
 import { acceptXuanxueRestartRecovery } from "./xuanxue-ai-production-restart-recovery.js";
+import { acceptStoredOrderContractQuarantine } from "./xuanxue-ai-production-stored-order-quarantine-acceptance.js";
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
   XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
@@ -27,6 +28,7 @@ const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
 );
 try {
+  await acceptStoredOrderContractQuarantine();
   const sharedSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
     "utf8",

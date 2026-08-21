@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T15:20:11.702Z",
+  "generatedAt": "2026-08-20T23:42:42.488Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -13,14 +13,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1e061404-2cd9-412c-821a-50375ee5cfb9",
+      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834",
       "capabilityDomain": "local-app-shell",
       "checkId": "local-app-shell/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-20T15:20:11.691Z",
-      "endedAt": "2026-08-20T15:20:11.702Z",
-      "durationMs": 11,
+      "startedAt": "2026-08-20T23:42:42.475Z",
+      "endedAt": "2026-08-20T23:42:42.488Z",
+      "durationMs": 13,
       "evidenceRefs": [
         "scripts/audit/domains/local-app-shell/inspector.ts",
         "src/app/app-shell/amazon-invoice-workspace.ts",
@@ -43,31 +43,31 @@
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
       "clauseId": "apex-local-app-shell-001-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1e061404-2cd9-412c-821a-50375ee5cfb9"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
       "clauseId": "apex-local-app-shell-002-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1e061404-2cd9-412c-821a-50375ee5cfb9"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
       "clauseId": "apex-local-app-shell-003-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1e061404-2cd9-412c-821a-50375ee5cfb9"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
       "clauseId": "apex-local-app-shell-004-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1e061404-2cd9-412c-821a-50375ee5cfb9"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
       "clauseId": "apex-local-app-shell-005-requirement",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1e061404-2cd9-412c-821a-50375ee5cfb9"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
     }
   ],
   "inspectedFiles": [

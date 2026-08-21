@@ -2,7 +2,7 @@ import { writeStartupFailureBundle } from "./startup-failure-bundle.mjs";
 
 const FAILURE_ACTIONS = [
   [/BROWSER_PROFILE_ENROLLMENT_MISSING/i, "Complete the explicit browserctl profile enrollment with the required bootstrap inputs; startup does not install or enroll Browser Runtime."],
-  [/BROWSERCTL_PREBUILT_BINARY_REQUIRED|BROWSER_ARTIFACT_SIGNATURE_FILES_REQUIRED/i, "Provide and verify the signed prebuilt Browser Runtime for this platform; the target machine must not compile the Native Host."],
+  [/BROWSER_CWS_(?:EXTENSION_ID_INVALID|LEGACY_VERSION_FROZEN|REVIEW_REQUIRED)/i, "Install the exact CWS MV3 extension release, then reopen the local Workbench page. Do not fall back to a Native Host or Apple signing path."],
   [/BROWSER_TEST_RELEASE_PUBLIC_KEY_REQUIRED|BROWSER_TEST_ARTIFACT_SIGNATURE_FILES_REQUIRED/i, "Rebuild the explicit test Browser Runtime with its local test release signature, then rerun the test-mode startup."],
   [/BROWSER_RUNTIME_VERIFY_FAILED|BROWSER_ARTIFACT_|BROWSER_RELEASE_/i, "Run the explicit browserctl verify/doctor path and repair the installed Browser Runtime before rerunning npm run grasseye:start."],
   [/Dependency state/i, "Repair local dependencies and rerun npm run grasseye:start."],

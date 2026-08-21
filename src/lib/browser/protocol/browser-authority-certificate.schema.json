@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "grasseye.browser.authority-certificate.v1",
-  "required": ["authorityRef", "authorityEpoch", "executionBindingHash", "profileEnrollmentHash", "processIncarnationHash", "activationTupleHash", "authTranscriptHash", "livenessLeaseEpoch", "issuedAt", "expiresAt"],
+  "required": ["authorityRef", "authorityEpoch", "channelSessionHash", "extensionId", "extensionVersion", "permissionPolicyHash", "originPolicyHash", "profileEnrollmentHash", "authTranscriptHash", "livenessLeaseEpoch", "issuedAt", "expiresAt"],
   "additionalProperties": false
 }

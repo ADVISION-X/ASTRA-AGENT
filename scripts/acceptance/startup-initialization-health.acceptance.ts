@@ -12,7 +12,7 @@ const fixtureAssembly = (): Parameters<typeof getHealthReport>[0] => ({
         kind: "AVAILABLE" as const,
         authorityRefHash: "sha256:fixture-authority",
         certificateHash: "sha256:fixture-certificate",
-        activationTupleHash: "sha256:fixture-activation",
+        channelSessionHash: "sha256:fixture-page-session",
       }),
     },
   },
@@ -23,7 +23,7 @@ const authorityAbsentFixtureAssembly = (): Parameters<typeof getHealthReport>[0]
     broker: {
       currentStatus: () => ({
         kind: "UNAVAILABLE" as const,
-        reasonCode: "BROWSER_ACTIVATION_TUPLE_INVALID",
+        reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
       }),
     },
   },
@@ -101,30 +101,16 @@ const verifyHealthProbe = async (): Promise<void> => {
 
 };
 
-const verifyInactiveReleaseSlotPreflight = async (): Promise<void> => {
-  const releaseSlot = await runBrowserRuntimePreflight();
-  assert.equal(releaseSlot.status, "BLOCKED");
-  assert.equal(releaseSlot.code, "BROWSER_ACTIVATION_TUPLE_INVALID");
-};
-
-const verifyTestModePreflight = async (): Promise<void> => {
-  const original = process.env.GRASSEYE_BROWSER_RUNTIME_MODE;
-  process.env.GRASSEYE_BROWSER_RUNTIME_MODE = "test";
-  try {
-    const runtimeMode = await runBrowserRuntimePreflight();
-    assert.equal(runtimeMode.status, "BLOCKED");
-    assert.equal(runtimeMode.code, "BROWSER_RUNTIME_MODE_INVALID");
-  } finally {
-    if (original === undefined) delete process.env.GRASSEYE_BROWSER_RUNTIME_MODE;
-    else process.env.GRASSEYE_BROWSER_RUNTIME_MODE = original;
-  }
+const verifyCwsPageChannelPreflight = async (): Promise<void> => {
+  const preflight = await runBrowserRuntimePreflight();
+  assert.equal(preflight.status, "READY");
+  assert.equal(preflight.releaseState, "CWS_PAGE_CHANNEL");
 };
 
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   await verifyInitializationHealth();
   await verifyHealthProbe();
-  await verifyInactiveReleaseSlotPreflight();
-  await verifyTestModePreflight();
+  await verifyCwsPageChannelPreflight();
 }
 
 await runStartupInitializationHealthAcceptance();

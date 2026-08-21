@@ -47,3 +47,4 @@ export const waitForSubmittedUserMessageAttachments = async (input: {
     `review_required: ${missingKind}; expected=${input.expectedCount}; detected=${String(lastEvaluation?.boundAttachmentCount ?? 0)}; last=${lastMessage}`,
   );
 };
+

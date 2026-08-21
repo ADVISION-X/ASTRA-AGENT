@@ -43,9 +43,3 @@ export const pasteTextAndSubmitInChrome = async (
   prompt: string,
   abortSignal?: AbortSignal,
 ): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, false, abortSignal);
-
-export const pasteTextReplacingInChrome = async (
-  browser: BrowserTargetLease,
-  prompt: string,
-  abortSignal?: AbortSignal,
-): Promise<void> => insertPromptInActiveProviderTab(browser, prompt, true, abortSignal);

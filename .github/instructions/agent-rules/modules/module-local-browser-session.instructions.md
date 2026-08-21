@@ -1,26 +1,48 @@
 ---
 name: "GrassEye Browser Authority Infrastructure"
-description: "Governs the single production Chrome authority chain, execution-bound leases, exact target/document identity, Native Messaging transport, managed profile/process identity, release activation, HA handover and cross-repo browser proof."
+description: "Governs the single production Chrome authority chain, execution-bound leases, exact target/document identity, CWS MV3 to local Workbench page transport, release identity, HA handover and cross-repo browser proof."
 applyTo: "src/lib/browser/**,src/lib/local-runtime/workbench-browser-authority-support.ts,src/lib/local-runtime/workbench-assembly.ts,src/lib/local-runtime/workbench-status.ts,src/capabilities/**,src/plugins/**,scripts/audit/domains/local-browser-session/**,scripts/acceptance/local-browser-*.ts,.github/workflows/browser-*.yml"
 ---
 
 # GrassEye Browser Authority Infrastructure｜终态法案
 
 status: active  
-version: 2026-08-20.1  
+version: 2026-08-21.1
 capabilityDomain: `local-browser-session`  
 constitutional objective: **生产世界中未认证 Browser session / 半成品 BrowserController / 长期 TargetSession 不可表示。**
 
 本文件原位替代 2026-08-18.5 过渡版本。与本文件冲突的旧法条、旧施工图、旧 API、旧 audit 绑定和旧 generated PASS 均无效；必须迁移引用后物理退出，不得保留兼容桥或第二真相。
 
+## 0.1 生产传输与发行边界
+
+生产 Browser 产品只包含两端：已经通过 Chrome Web Store 审核并由用户从 Chrome Web Store 安装的固定 ID MV3 扩展，以及本机唯一 Workbench 在 `http://127.0.0.1/` 提供的页面端点。Apple Developer Program、Developer ID Application、签名和公证均不是产品条件。
+
+唯一传输固定为：
+
+```txt
+BrowserAuthorityBroker / BrowserCommandActor
+  -> WorkbenchExtensionChannel（唯一 local app HTTP owner）
+      -> 受限 Workbench 页面会话（仅承载、无业务决策）
+          -> chrome.runtime.connect(extensionId, exactPortName)
+              -> MV3 ExtensionExternalPortActor
+                  -> CommandRegistry
+                      -> chrome.debugger exact target/document
+```
+
+Workbench 页面必须由本机唯一 App Server 签发短期一次性 page-session grant；它只能连接固定 extension ID、固定 port 名称和精确 `127.0.0.1` page path。MV3 必须同时校验 manifest `externally_connectable`、`port.sender.url`、page-session transcript、CWS extension ID/version 和原 reply channel。页面只转发已经由 Browser owner 签发的 schema-bound frame；它不得产生命令、selector、target、permit、业务状态或成功结论。
+
+固定常量为：`WORKBENCH_PAGE_PATH = "/"` 与 `WORKBENCH_EXTENSION_CHANNEL_PORT_NAME = "grasseye-browser-authority-v1"`。`port.sender.url` 必须以 URL 语义精确解析为 `http://127.0.0.1:<当前 App Server port>/`；manifest 的 match pattern 只负责把连接送到 service worker，不能替代该完整校验。
+
+生产严禁：`nativeMessaging` permission、`runtime.connectNative`、`native-messaging-host/**`、任何 native Host、任何 Apple 签名/公证门、`load-unpacked` 生产链、第二 extension transport、第二 local page channel、通配外部 origin、CWS 审核中或未安装版本的 READY 声明。
+
 ## 0. 生产信任边界与唯一语义
 
 本文的“永远禁止”只在以下生产根信任成立时作机器可验证承诺：
 
-- 运行字节属于已签名、未吊销的 `BrowserArtifactSetIdentity`；
-- 当前 `BrowserActivationTuple` 精确签名、未过期、未被撤销且 release sequence 不低于本机 minimum accepted sequence；
+- 运行的 extension bytes 属于已审核、未撤销的 `CwsExtensionReleaseIdentity`；
+- 当前 CWS item/extension ID/version/source-package hash/permission-origin policy 与本机 minimum accepted release sequence 精确一致；
 - OS/kernel/credential store/release signing root 未被判定失陷；
-- Browser Worker、Chrome process、专用 profile、managed policy 与 installed extension tree 完整性读回通过；
+- Browser Worker、Chrome process、专用 profile、唯一 App Server page-session 和 installed extension identity 完整性读回通过；
 - xuanxue execution writer fence 当前有效。
 
 任一根信任不能证明时，唯一结果是：
@@ -50,20 +72,19 @@ xuanxue durable ai_production_jobs
                   -> BrowserTargetLeaseManager
                       -> exact BrowserTargetLease + BrowserDocumentRef
                           -> BrowserCommandActor
-                              -> AuthenticatedControllerHostChannel
-                                  -> one signed Rust Native Host process
-                                      -> one Chrome Native Messaging Port
-                                          -> fixed-id MV3 NativePortActor
-                                              -> governed CommandRegistry
-                                                  -> chrome.debugger
-                                                      -> exact target / exact document
+                              -> WorkbenchExtensionChannel
+                                  -> one exact local Workbench page session
+                                      -> fixed-id CWS MV3 ExtensionExternalPortActor
+                                          -> governed CommandRegistry
+                                              -> chrome.debugger
+                                                  -> exact target / exact document
 ```
 
 控制面：
 
 ```txt
-browserctl
-  -> InstallVerifier / ManagedPolicyReadback
+BrowserExtensionReleaseVerifier
+  -> CwsInstallIdentityReadback / WorkbenchPageSessionIssuer
   -> BrowserProcessSupervisor
   -> BrowserInfrastructureSupervisor
   -> TransportActor + TransportReducer
@@ -72,7 +93,7 @@ browserctl
   -> Repair / Activation / Rollback owner
 ```
 
-禁止：第二 Browser transport、第二 Native Host、第二 Controller IPC、Playwright/CDP 公共旁路、AppleScript/JXA、系统鼠标键盘、clipboard、native picker、active-tab/current-page/first-page/URL-first fallback、业务模块自行重连、运行时 capability intersection、永久 legacy bridge。
+禁止：第二 Browser transport、Native Messaging/Native Host、第二 Workbench page channel、第二 Controller IPC、Playwright/CDP 公共旁路、AppleScript/JXA、系统鼠标键盘、clipboard、native picker、active-tab/current-page/first-page/URL-first fallback、业务模块自行重连、运行时 capability intersection、永久 legacy bridge。
 
 ## 2. Owner 与对象模型
 
@@ -80,16 +101,16 @@ browserctl
 
 | 责任 | owner |
 |---|---|
-| install / verify / doctor / repair / activate / rollback | `browserctl` |
+| CWS release verify / installed readback / repair | `BrowserExtensionReleaseVerifier` |
 | 专用 Chrome process/profile | `BrowserProcessSupervisor` |
-| socket/Host/Port/control-state/reconnect | `BrowserInfrastructureSupervisor` + one `TransportActor/Reducer` |
+| Workbench page channel/Port/control-state/reconnect | `BrowserInfrastructureSupervisor` + one `TransportActor/Reducer` |
 | authority candidate / commit / revoke | `BrowserAuthorityIssuer` |
 | 业务 authority admission | `BrowserAuthorityBroker` |
 | exact target/document lease | `BrowserTargetLeaseManager` |
 | command queue/permit/send/completion | `BrowserCommandActor` |
 | extension command execution | MV3 `CommandRegistry` |
-| software bytes identity | `BrowserArtifactSetIdentity` |
-| exact runnable combination | `BrowserActivationTuple` |
+| CWS software bytes identity | `CwsExtensionReleaseIdentity` |
+| exact runnable combination | `CwsExtensionReleaseIdentity` + current page-session policy |
 | anti-rollback/revocation | `BrowserReleaseSecurityPolicy` |
 | release evidence verdict input | `BrowserReleaseProofManifest` |
 | cloud job/execution/lease/fence/business verdict | `xuanxue-web` AI production owner |
@@ -127,10 +148,10 @@ type BrowserInfrastructureControlState =
   | { readonly kind: "VERIFYING_INSTALL"; readonly attempt: number }
   | { readonly kind: "STARTING_CHROME"; readonly processEpoch: bigint }
   | { readonly kind: "BINDING_OWNER"; readonly supervisorEpoch: bigint }
-  | { readonly kind: "CONNECTING_HOST"; readonly connectionGeneration: bigint }
-  | { readonly kind: "AUTHENTICATING_TRANSPORT"; readonly nativePortEpoch: bigint }
+  | { readonly kind: "CONNECTING_WORKBENCH_PAGE"; readonly connectionGeneration: bigint }
+  | { readonly kind: "AUTHENTICATING_TRANSPORT"; readonly externalPortEpoch: bigint }
   | { readonly kind: "PROBING_CAPABILITIES"; readonly transcriptHash: string }
-  | { readonly kind: "AUTHORITY_AVAILABLE"; readonly authorityRefHash: string; readonly activationTupleHash: string }
+  | { readonly kind: "AUTHORITY_AVAILABLE"; readonly authorityRefHash: string; readonly releaseIdentityHash: string }
   | { readonly kind: "DRAINING"; readonly reason: string }
   | { readonly kind: "BACKOFF"; readonly attempt: number; readonly nextProbeAtMonotonicNs: bigint }
   | { readonly kind: "REPAIR_REQUIRED"; readonly code: BrowserInfrastructureErrorCode }
@@ -142,22 +163,21 @@ socket callback、Port callback、heartbeat、challenge response、command compl
 每个 event 在任何副作用前至少验证：
 
 ```txt
-artifactSetHash
-activationTupleHash
+releaseIdentityHash
 profileEnrollmentHash
 chromeProcessIncarnationHash
 supervisorEpoch
 controllerIncarnation
 connectionGeneration
-hostProcessEpoch
-nativePortEpoch
+appServerEpoch
+externalPortEpoch
 authorityEpoch (post-auth only)
 sourceChannelToken
 ```
 
 ## 4. Profile / Chrome Process / Managed Policy
 
-生产必须使用受管专用 Browser Worker profile。`browserctl enroll-profile` 是唯一 enrollment owner。Enrollment 至少绑定：
+生产必须使用获准专用 Browser Worker profile。`BrowserExtensionReleaseVerifier` 是唯一 enrollment/readback owner。Enrollment 至少绑定：
 
 ```txt
 profileRef
@@ -166,14 +186,14 @@ profileDirectory
 Chrome channel / executable
 profile stable identity hash
 extensionId
-installed extension tree digest
-ExtensionSettings.force_installed readback
-updateUrl readback
+installed extension ID/version readback
+CWS item/review receipt ref
+page-origin policy hash
 permission/host-permission policy hash
-Controller install identity
+Workbench page-session issuer identity
 ```
 
-`BrowserProcessSupervisor` 必须记录批准 Chrome process incarnation/start token/process tree。Native Host 每次启动都必须 attestation 自身 parent Chrome process incarnation，并绑定 enrollment。相同 extension ID 在错误 profile/process 启动时仍不得签发 authority。
+`BrowserProcessSupervisor` 必须记录批准 Chrome process incarnation/start token/process tree。唯一 App Server 的 page-session issuer 必须绑定当前 enrollment、Chrome process 和安装的 extension identity；相同 extension ID 在错误 profile/process 或错误 Workbench origin 中仍不得签发 authority。
 
 生产不允许 silent Default、`last_used` 猜测、个人日常 profile、复制 profile/cookie/password、两个 Worker 共用 profile/dataDir。测试例外必须由显式 test artifact/profile 隔离，production bundle 不得引用 fixture authority。
 
@@ -182,39 +202,38 @@ Controller install identity
 认证顺序固定为：
 
 ```txt
-verify installed artifact + exact active tuple + release security policy
--> acquire exclusive controller owner lock
--> start/verify approved Chrome process
--> Chrome starts fresh signed Host for one Native Port
--> Host validates caller origin + process/profile attestation
--> Host and Controller authenticate local IPC identity
--> ExtensionHello(extension id/version/artifact digest/port epoch/supported tuple ids)
--> ControllerChallenge(controller nonce/incarnation/generation/exact tuple/transcript prefix)
--> ExtensionConfirmation(bind both nonces/port/tuple)
--> HostAttestation(bind caller/host/process/profile/IPC/full transcript)
+verify CWS release identity + release security policy
+-> acquire exclusive page-channel owner lock
+-> start/verify approved Chrome process and App Server page-session issuer
+-> Workbench root page connects the fixed CWS MV3 external Port
+-> MV3 validates sender URL, fixed port name and fresh page-session opening
+-> ExtensionHello(extension id/version/release identity/source-channel token)
+-> ControllerChallenge(controller nonce/incarnation/generation/release identity/transcript prefix)
+-> ExtensionConfirmation(bind both nonces/Port/release identity)
+-> WorkbenchPageAttestation(bind current grant/origin/profile/process/full transcript)
 -> CapabilityProbe(command registry/permission/origin/framing)
 -> AUTH_PROOF_COMMITTED
 -> BrowserAuthorityIssuer.commit()
 -> authority slot ABSENT -> PRESENT
 ```
 
-握手任一步失败：authority 保持 ABSENT；整条 Host/Port chain 关闭；不 mint target lease；不领取 Browser writer lane。
+握手任一步失败：authority 保持 ABSENT；整条 page/Port chain 关闭；不 mint target lease；不领取 Browser writer lane。
 
 `BrowserAuthorityCertificateV1` 至少绑定：
 
 ```txt
 authorityRef / authorityEpoch
-artifactSetHash / activationTupleHash / releaseSecurityPolicyHash
+releaseIdentityHash / releaseSecurityPolicyHash
 profileEnrollmentHash / chromeProcessIncarnationHash
-controllerIncarnationHash / connectionGeneration / hostProcessEpoch / nativePortEpoch
+controllerIncarnationHash / connectionGeneration / appServerEpoch / externalPortEpoch
 extensionId / extensionVersion / protocolRevision
-capabilitySetHash / permissionPolicyHash / originPolicyHash
+capabilitySetHash / permissionPolicyHash / originPolicyHash / pageSessionGrantHash
 livenessPolicyHash / commandAdmissionBudgetHash / artifactStreamBudgetHash
 authTranscriptHash / keyEpoch / livenessLeaseEpoch
 issuedAtMonotonicNs / issuerMac
 ```
 
-Certificate 只存在内存，不跨进程恢复，不写 nonce/install secret/raw Chrome id。`commandFrameKey` 对一个 nativePortEpoch 不可变；禁止在线 rekey。
+Certificate 只存在内存，不跨进程恢复，不写 nonce/install secret/raw Chrome id。`commandFrameKey` 对一个 externalPortEpoch 不可变；禁止在线 rekey。
 
 ## 6. Liveness / Revoke / Recovery
 
@@ -230,7 +249,7 @@ maxAuthorityAgeMs = 8h
 
 Heartbeat 必须由当前 frame key 认证，绑定 authority epoch、lease epoch、严格递增 sequence；它只能续租 PRESENT authority，永远不能 mint authority。
 
-任一 Host/Port/Controller/Chrome discontinuity、hard expiry、sleep/wake discontinuity、process/profile/policy/tree/tuple 漂移发生时，第一同步动作必须是：
+任一 page-session/Port/Controller/Chrome discontinuity、hard expiry、sleep/wake discontinuity、process/profile/policy/release identity 漂移发生时，第一同步动作必须是：
 
 ```txt
 BrowserAuthorityIssuer.revokeCurrent(cause)
@@ -241,15 +260,15 @@ BrowserAuthorityIssuer.revokeCurrent(cause)
 -> diagnostics / cleanup / reconnect
 ```
 
-reconnect 的唯一 owner 是 `BrowserInfrastructureSupervisor`，采用 signed retry policy + bounded full jitter。Extension disconnect 只能报告关闭并触发一次 wake-up token；`chrome.alarms` 仅作 worker wake-up 补偿，不拥有退避或认证真相。
+reconnect 的唯一 owner 是 `BrowserInfrastructureSupervisor`，采用固定 retry policy + bounded full jitter。Extension disconnect 只能报告关闭并触发一次 wake-up token；`chrome.alarms` 仅作 worker wake-up 补偿，不拥有退避或认证真相。
 
-Controller IPC 断开后 Host 进程必须退出并关闭 Native Port。禁止旧 Host/Port rebind 新 Controller。
+page-session 或 Controller channel 断开后必须关闭 external Port。禁止旧 page-session/Port rebind 新 Controller。
 
 ## 7. Controller Owner Lock / Stale Socket
 
-Unix/macOS：先持有 process-lifetime exclusive `flock/fcntl` owner lock，再检查 socket。只有当前进程拿到 owner lock，且 inode/path/uid/mode 证明 endpoint stale 时才允许删除。拿不到锁必须返回 `BROWSER_CONTROLLER_ALREADY_OWNED`，绝不 unlink。
+本机进程先持有 process-lifetime exclusive `flock/fcntl` owner lock，再创建 page-session 记录。只有当前锁 owner 可以终结过期的内存 session；拿不到锁必须返回 `BROWSER_CONTROLLER_ALREADY_OWNED`，绝不抢占或复用别人的 grant。
 
-Windows adapter 使用 named mutex + named pipe ACL 的等价语义。socket 文件本身不是认证凭证。
+Windows adapter 使用 named mutex 的等价语义。grant、URL 或页面本身都不是单独的认证凭证。
 
 ## 8. Authority Lease / Execution Fence / Target Lease
 
@@ -279,7 +298,7 @@ originPolicyRef / capabilitySetHash
 lifecycle
 ```
 
-navigation committed/document generation change、debugger detach、target close、operator takeover、authority revoke、writer fence失效、activation tuple变化均立即使 lease stale。新 authority 必须重新 acquire exact target/document；不得恢复旧 opaque refs。
+navigation committed/document generation change、debugger detach、target close、operator takeover、authority revoke、writer fence失效、release identity 或 page-session 变化均立即使 lease stale。新 authority 必须重新 acquire exact target/document；不得恢复旧 opaque refs。
 
 生产禁止 `targetSessionsByOwner` 跨 authority epoch cache。
 
@@ -305,7 +324,7 @@ acceptance + real-page evidence
 `BrowserCommandPermit` 至少绑定：
 
 ```txt
-authorityRef / authorityEpoch / certificateHash / activationTupleHash
+authorityRef / authorityEpoch / certificateHash / releaseIdentityHash
 replyChannelToken
 capabilityId
 executionBindingHash
@@ -344,20 +363,20 @@ PREPARED(commandId, authorityCertificateHash, executionFenceHash, mutationClass,
 
 journal 不保存页面正文、输入文本、附件内容、nonce、secret。Controller restart 后无 terminal record 的 mutation 一律 `OUTCOME_UNKNOWN`，transport 永不自动 replay。只有业务 owner 通过真实 postcondition + `OutcomeResolutionReceipt` 可裁决后续恢复。
 
-## 11. Native Messaging Framing / Artifact Stream / File Grant
+## 11. Workbench Page Framing / Artifact Stream / File Grant
 
-Chrome outer frame 固定 4-byte unsigned native-endian length + UTF-8 JSON。
+控制帧在 Workbench page 与 MV3 external Port 之间使用 canonical UTF-8 JSON schema；页面与唯一 App Server 之间只通过三个固定同源 HTTP routes 承载同一 schema。没有 native-endian framing、Native Messaging outer frame 或 native process。
 
 内部预算：
 
 ```txt
-Host -> Extension control <= 256 KiB
-Extension -> Host control <= 256 KiB
-Extension -> Host artifact chunk <= 4 MiB
-Host -> Extension artifact payload = forbidden
+Workbench page -> Extension control <= 256 KiB
+Extension -> Workbench page control <= 256 KiB
+Extension -> Workbench page artifact chunk <= 4 MiB
+Workbench page -> Extension artifact payload = forbidden
 ```
 
-控制帧与 artifact stream 分离，三端常量必须由同一 canonical protocol schema/codegen 生成。
+控制帧与 artifact stream 分离，两端常量必须由同一 canonical protocol schema/codegen 生成。页面只能 transfer opaque frame；不得解读或改写 permit、target、command payload。
 
 业务协议不得接受 raw path。唯一文件合同 `BrowserFileArtifactGrantV1` 至少绑定：
 
@@ -368,30 +387,29 @@ deviceIdHash / inodeHash / byteLength / contentHash
 expiresAtMonotonicNs
 ```
 
-Controller 在 grant 签发与命令发送前分别 `open/fstat/hash` readback，拒绝 symlink/root escape/inode-size-hash drift/expiry。Wire 只传 opaque grant/artifact refs，不传 raw/resolved path。artifact stream 使用 owner-only 0600 staging、content hash、total/concurrency/TTL budget、atomic complete marker、确定性销毁。
+Browser owner 在 grant 签发与命令发送前分别 `open/fstat/hash` readback，拒绝 symlink/root escape/inode-size-hash drift/expiry。Wire 只传 opaque grant/artifact refs，不传 raw/resolved path。artifact stream 使用 owner-only 0600 staging、content hash、total/concurrency/TTL budget、atomic complete marker、确定性销毁。
 
-## 12. MV3 Extension / Rust Host
+## 12. MV3 Extension / Workbench Page
 
-Extension 顶层同步注册 listener；每 Port 一个不可变 `NativePortActor`。Actor 拥有 port epoch、handshake、authority binding、sequence、bounded receipt cache、liveness；Port 断开后内存真相全部销毁。异步 completion 只能投递原 actor 原 port。
+Extension 顶层同步注册 `runtime.onConnectExternal` listener；listener 只能先以 URL 语义校验精确 sender URL 与固定 port name。page-session grant 必须由该 Port 的第一帧交给 actor，并在 actor 获得 authority、接受命令或产生任何浏览器副作用之前校验。每个被精确 sender URL、固定 port name 和 page-session transcript 接受的 Port 只有一个不可变 `ExtensionExternalPortActor`。Actor 拥有 port epoch、handshake、authority binding、sequence、bounded receipt cache、liveness；Port 断开后内存真相全部销毁。异步 completion 只能投递原 actor 原 port。
 
-Rust Host 必须自包含、签名/公证；只负责 Native Messaging framing、方向预算、caller/profile/process attestation、authenticated Controller IPC、bounded diagnostics 和 byte forwarding。Host 不保存 target、command receipt、业务队列、evidence 或 secret；Controller IPC 断开立即退出。
+Workbench page 只负责 browser extension external Port 与固定同源 HTTP route 的方向预算和 byte forwarding。它不保存 target、command receipt、业务队列、evidence、secret 或 release truth；Browser owner channel 断开立即使 page session 无效。`runtime.connectNative`、Native Messaging manifest 与 Rust Host 在生产源码中必须不存在。
 
 ## 13. Release Identity / Activation / Anti-Rollback
 
 发布身份永久分层：
 
-1. `BrowserArtifactSetIdentityV1`：软件字节、签名、公证、protocol/registry/policy hashes、toolchain/SBOM/provenance；
-2. `BrowserActivationTupleV1`：Controller/Host/Extension exact runnable combination + capability/policy/budget + Chrome/platform range；
-3. `BrowserReleaseSecurityPolicyV1`：monotonic releaseSequence、minimumAccepted、revoked artifact/tuple、current/previous bounded window；
-4. `BrowserReleaseProofManifestV1`：candidate/governance/audit/real-Chrome/soak/xuanxue cross-repo evidence binding，不改变软件字节。
+1. `CwsExtensionReleaseIdentityV1`：CWS item ID、extension ID/version、审核通过 receipt、上传包/source hash、manifest permission/origin policy hash、protocol/registry hashes；
+2. `BrowserReleaseSecurityPolicyV1`：monotonic releaseSequence、minimumAccepted、revoked release identity、current/previous protocol compatibility window；
+3. `CwsExtensionReleaseProofV1`：candidate/governance/audit/installed identity readback/real-Chrome/soak/xuanxue cross-repo evidence binding，不改变 extension bytes。
 
-Runtime 不做 capability intersection，只选择一个签名 exact tuple。
+Runtime 不做 capability intersection，只接受一个已安装、未撤销的 CWS release identity 和一个 current page-session policy。
 
-CWS 更新采用有限 current + previous dual-tuple activation window；N+1 extension 可临时同时理解 N/N+1 tuple，但同一时刻只激活一个。回滚切 activation tuple，不依赖把 Chrome 已安装 extension 立即降级。previous 有明确截止与删除门，被 revocation 命中的 artifact/tuple 永不因 previous slot 复活。
+CWS 更新采用有限 current + previous protocol compatibility window；同一时刻只接受一个 installed release identity。回滚只切 Browser owner 的最低接受序列和协议兼容策略，不要求把 CWS 已安装扩展降级。previous 有明确截止与删除门，被 revocation 命中的 release identity 永不因 previous slot 复活。
 
-Production `extensionVerifiedCrxHash` 不得为 null；Verified CRX Uploads、publisher 强认证/最小成员、permission freeze、managed policy readback 均是发布硬门。
+Production CWS item/review receipt、extension ID/version、上传包/source hash、permission/origin freeze 与 installed identity readback 均是发布硬门。没有 Apple Developer Program、Developer ID Application、签名或公证门。
 
-核心 Host/launcher/extension 使用 hermetic/pinned build-once；两个独立 builder 必须复现相同 hash，proof 后禁止同版本重建不同字节。
+核心 CWS package/source 使用 pinned build-once；两个独立 builder 必须复现同一 source/package hash，proof 后禁止同版本重建不同字节。
 
 ## 14. Browser Worker HA / Handover
 
@@ -405,7 +423,7 @@ Failover：旧 writer lease失效 -> unresolved mutation裁决 -> sealed busines
 
 AGENT Browser 只证明低层基础设施身份和动作，不证明报告/上传/翻译/业务成功。
 
-xuanxue 的唯一 `AgentRuntimeReceiptV2` 对 browser-required job 必须内嵌 `AgentBrowserAuthorityProofV2`，它由有序 `AgentBrowserAuthorityWindowProofV2[]` 组成；每 window 绑定 worker fence、authority certificate、profile/process、artifact/tuple/security policy、auth transcript/liveness、generation/port/capability、command sequence 与 action receipt subtree。Window handover 之间不得有浏览器动作。
+xuanxue 的唯一 `AgentRuntimeReceiptV2` 对 browser-required job 必须内嵌 `AgentBrowserAuthorityProofV2`，它由有序 `AgentBrowserAuthorityWindowProofV2[]` 组成；每 window 绑定 worker fence、authority certificate、profile/process、CWS release identity/security policy、page-session/auth transcript/liveness、generation/port/capability、command sequence 与 action receipt subtree。Window handover 之间不得有浏览器动作。
 
 不得创建第二 AGENT channel、第二 runtime receipt owner 或第二 Dynamic Proof verdict。
 
@@ -443,27 +461,27 @@ browser_admission_budget_violation_total
 ## 17. 法条
 
 ```apex-law
-{"lawId":"APEX-LOCAL-BROWSER-001-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+model+real-chrome","summary":"Every page action is admitted only through an execution-bound authenticated authority lease and exact target/document lease; foreground identity, raw Chrome identity leakage and a second browser path are impossible.","required":["BrowserAuthorityBroker is the only business Browser entry","every BrowserTargetLease is authority-epoch and execution-fence bound","navigation/lifecycle/authority/fence changes invalidate prior target/document refs","background exact-target work preserves non-target foreground state"],"forbidden":["BrowserTargetSession","BrowserController.createTargetSession","active-tab/current-page/URL-first fallback","raw Chrome ids outside Browser owner","second browser transport or OS interaction fallback"],"clauses":[{"clauseId":"apex-local-browser-001-v2-exact-authority-lease","statement":"All page actions require a current authority lease plus exact target/document lease and stale leases cannot produce side effects.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
+{"lawId":"APEX-LOCAL-BROWSER-001-V3","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+model+real-chrome","summary":"Every page action is admitted only through an execution-bound authenticated authority lease and exact target/document lease; the fixed CWS-installed MV3 plus its one Workbench page channel is the only Browser side-effect path.","required":["BrowserAuthorityBroker is the only business Browser entry","every BrowserTargetLease is authority-epoch and execution-fence bound","navigation/lifecycle/authority/fence changes invalidate prior target/document refs","background exact-target work preserves non-target foreground state"],"forbidden":["BrowserTargetSession","BrowserController.createTargetSession","active-tab/current-page/URL-first fallback","raw Chrome ids outside Browser owner","second browser transport or OS interaction fallback","Native Messaging production chain"],"clauses":[{"clauseId":"apex-local-browser-001-v3-exact-authority-lease","statement":"All page actions require a current authority lease plus exact target/document lease and stale leases cannot produce side effects.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{"lawId":"APEX-LOCAL-BROWSER-002-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+model+real-chrome","summary":"Within each Browser Worker, Browser command authority does not exist before authentication proof is atomically committed; any discontinuity revokes before every other side effect.","required":["data plane is only ABSENT or PRESENT","one TransportActor/Reducer owns control mutation","BrowserAuthorityIssuer is the only mint/revoke owner","authenticated heartbeat renews only PRESENT authority","wrong profile/process/policy/tree or liveness expiry keeps authority ABSENT","revoke occurs before callbacks cleanup diagnostics or reconnect"],"forbidden":["UnauthenticatedBrowserSession","transportReady","pre-auth command surface","fire-and-forget startup","Host controller rebind","heartbeat minting authority","online Port rekey"],"clauses":[{"clauseId":"apex-local-browser-002-v2-authority-atomicity","statement":"Authentication proof commit is the only ABSENT-to-PRESENT transition and revoke is the first discontinuity side effect.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
+{"lawId":"APEX-LOCAL-BROWSER-002-V3","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+model+real-chrome","summary":"Within each Browser Worker, Browser command authority does not exist before the CWS identity, exact Workbench page session and authentication proof are atomically committed; any discontinuity revokes before every other side effect.","codePurityLiveness":{"auditInspectionFiles":["src/lib/browser/chrome-extension/authenticated-heartbeat.ts"]},"required":["data plane is only ABSENT or PRESENT","one TransportActor/Reducer owns control mutation","BrowserAuthorityIssuer is the only mint/revoke owner","authenticated heartbeat renews only PRESENT authority","wrong extension/page-session/profile/process/policy/tree or liveness expiry keeps authority ABSENT","revoke occurs before callbacks cleanup diagnostics or reconnect"],"forbidden":["UnauthenticatedBrowserSession","transportReady","pre-auth command surface","fire-and-forget startup","page session rebind","heartbeat minting authority","online Port rekey"],"clauses":[{"clauseId":"apex-local-browser-002-v3-authority-atomicity","statement":"CWS identity plus the exact Workbench page session proof are required for the only ABSENT-to-PRESENT transition; revoke is the first discontinuity side effect.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{"lawId":"APEX-LOCAL-BROWSER-003-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome","summary":"The fixed-id MV3 extension plus one self-contained Rust Native Host is the only production page-action chain; each Native Port has one immutable actor and replies never cross port epochs.","codePurityLiveness":{"externalEntryFiles":["src/lib/browser/chrome-extension/service-worker.ts"]},"required":["one NativePortActor per Port","original source/reply channel captured for async completion","Controller IPC discontinuity terminates Host and Port","production fixture authority is physically unreachable","the exact MV3 manifest service worker is the only law-owned external Browser extension entry"],"forbidden":["global cross-port auth truth","old completion sent to new Port","second Native Host","Playwright/JXA/AppleScript/system input fallback","load-unpacked production chain","package-script or inspector-local liveness substitute for the MV3 manifest entry"],"clauses":[{"clauseId":"apex-local-browser-003-v2-single-chain","statement":"One authenticated Native Messaging chain owns every production browser side effect and old-port work cannot enter the current chain.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
+{"lawId":"APEX-LOCAL-BROWSER-003-V3","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome","summary":"The fixed-id CWS-installed MV3 extension plus one exact local Workbench page external Port is the only production page-action chain; each Port has one immutable ExtensionExternalPortActor and replies never cross port epochs.","codePurityLiveness":{"externalEntryFiles":["src/lib/browser/chrome-extension/service-worker.ts","src/lib/browser/protocol/generated/browser-protocol.generated.ts"],"externalEntryExports":[{"filePath":"src/lib/browser/protocol/generated/browser-protocol.generated.ts","exportName":"BROWSER_PROTOCOL_REVISION"},{"filePath":"src/lib/browser/protocol/generated/browser-protocol.generated.ts","exportName":"BROWSER_ARTIFACT_CHUNK_MAX_BYTES"},{"filePath":"src/lib/browser/protocol/generated/browser-protocol.generated.ts","exportName":"BROWSER_COMMAND_DEFAULT_DEADLINE_MS"},{"filePath":"src/lib/browser/protocol/generated/browser-protocol.generated.ts","exportName":"BROWSER_PROTOCOL_SCHEMA_SHA256"},{"filePath":"src/lib/browser/protocol/generated/browser-protocol.generated.ts","exportName":"BrowserErrorCode"},{"filePath":"src/lib/browser/protocol/generated/browser-protocol.generated.ts","exportName":"isBrowserCapabilityId"}]},"required":["one ExtensionExternalPortActor per accepted Port","exact 127.0.0.1 sender URL plus short-lived page-session grant","original source/reply channel captured for async completion","production fixture authority is physically unreachable","the exact MV3 manifest service worker is the only law-owned external Browser extension entry"],"forbidden":["global cross-port auth truth","old completion sent to new Port","Native Messaging permission or connectNative","native-messaging-host production path","second external page channel","Playwright/JXA/AppleScript/system input fallback","load-unpacked production chain","package-script or inspector-local liveness substitute for the MV3 manifest entry"],"clauses":[{"clauseId":"apex-local-browser-003-v3-single-chain","statement":"One authenticated CWS MV3 to exact Workbench-page channel owns every production browser side effect; Native Host and old-port work are physically unreachable.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{"lawId":"APEX-LOCAL-BROWSER-004-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+schema+ast+fuzz+real-chrome","summary":"Browser commands are versioned governed capabilities with bounded admission and declarative DOM intent; arbitrary evaluation, raw file paths and unbounded queues or streams do not exist in production.","required":["canonical protocol/schema/codegen is the only wire contract","each command binds capability execution fence target/document permit and deadline","control frames are <=256KiB and artifact chunks <=4MiB","mutation intent journal fsyncs PREPARED before send","file actions use TTL authority/fence-bound grants and content-addressed streams"],"forbidden":["evaluate(script)","evaluate_target arbitrary expression","eval/new Function/remote code","raw/resolved path in production wire","unbounded queue/cache/artifact stream","automatic non-idempotent replay"],"clauses":[{"clauseId":"apex-local-browser-004-v2-governed-command-plane","statement":"Only schema-bound capability commands admitted by the current authority/execution/target fences may execute.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
+{"lawId":"APEX-LOCAL-BROWSER-004-V3","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+schema+ast+fuzz+real-chrome","summary":"Browser commands are versioned governed capabilities with bounded admission and declarative DOM intent; the Workbench page may forward but never create commands, permits, targets, selectors or authority.","required":["canonical protocol/schema/codegen is the only wire contract","each command binds capability execution fence target/document permit and deadline","control frames are <=256KiB and artifact chunks <=4MiB","mutation intent journal fsyncs PREPARED before send","file actions use TTL authority/fence-bound grants and content-addressed streams"],"forbidden":["evaluate(script)","evaluate_target arbitrary expression","eval/new Function/remote code","raw/resolved path in production wire","unbounded queue/cache/artifact stream","automatic non-idempotent replay","Workbench-page generated command or permit"],"clauses":[{"clauseId":"apex-local-browser-004-v3-governed-command-plane","statement":"Only schema-bound capability commands admitted by the current authority/execution/target fences may execute; the page channel only carries those frames.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{"lawId":"APEX-LOCAL-BROWSER-005-V1","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+artifact+signature+readback+real-chrome+soak","summary":"Production browser bytes, exact activation, anti-rollback policy and release proof are separate signed identities; a release is usable only when installed bytes/profile/policy/Chrome identity and the exact tuple all read back correctly.","required":["ArtifactSetIdentity ActivationTuple ReleaseSecurityPolicy and ReleaseProofManifest are distinct","minimum release sequence and revocation are monotonic hard gates","Verified CRX hash is non-null in production","current+previous activation window is bounded","core artifacts are hermetic build-once and reproducible by two builders","owner lock and installed identity readback are mandatory"],"forbidden":["capability intersection READY_COMPATIBLE","rollback below minimum sequence","revoked tuple revival","proof-after-rebuild bytes","unsigned/unnotarized production Host","CWS downgrade required for local rollback"],"clauses":[{"clauseId":"apex-local-browser-005-v1-release-identity","statement":"Only one signed exact activation over verified immutable bytes may mint Browser authority.","evidenceMode":"artifact+real-chrome","ownerDomain":"local-browser-session"}]}
+{"lawId":"APEX-LOCAL-BROWSER-005-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+artifact+readback+real-chrome+soak","summary":"Production browser identity is the CWS-reviewed fixed-id MV3 release plus its immutable source/package evidence, permission freeze, installed identity readback and release proof; no native executable signing or Apple notarization is a production condition.","required":["CwsExtensionReleaseIdentity ReleaseSecurityPolicy and ReleaseProofManifest are distinct","CWS item ID extension ID version source/package hash and permission/origin policy hash are bound","minimum release sequence and revocation are monotonic hard gates","CWS review approval and installed identity readback are mandatory","current+previous protocol compatibility is bounded without a second active channel","proof is bound to the exact reviewed extension version"],"forbidden":["capability intersection READY_COMPATIBLE","rollback below minimum sequence","revoked release identity revival","proof-after-rebuild bytes","Native Host signature/notarization or Apple Developer Program production gate","CWS downgrade required for local rollback","load-unpacked production release"],"clauses":[{"clauseId":"apex-local-browser-005-v2-release-identity","statement":"Only the exact CWS-reviewed installed extension identity plus the exact page-origin policy and release proof may mint Browser authority; Apple Developer Program membership is not required.","evidenceMode":"artifact+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ```apex-law
-{"lawId":"APEX-LOCAL-BROWSER-006-V1","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+cross-repo-contract+runtime+fault-injection","summary":"For one browser-required execution at most one Browser Worker may hold the current xuanxue writer fence; failover starts only from a sealed checkpoint with a new fence and every browser action is provable inside an ordered authenticated authority window in the single AgentRuntimeReceipt.","required":["xuanxue database lease/fence is the only election truth","active and standby use independent profiles and identities","handover waits for old fence invalidation and sealed checkpoint","no browser action occurs between authority windows","unresolved OUTCOME_UNKNOWN blocks complete","AgentRuntimeReceipt remains the only runtime receipt owner"],"forbidden":["second Browser election owner","dual active execution","profile copy between workers","implicit mutation replay on failover","second Agent runtime receipt or dynamic verdict"],"clauses":[{"clauseId":"apex-local-browser-006-v1-cross-repo-fence-proof","statement":"Execution fencing, safe handover and ordered authority-window proof jointly prevent dual writers and unprovable browser actions.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
+{"lawId":"APEX-LOCAL-BROWSER-006-V2","status":"active","tier":"P0","capabilityDomain":"local-browser-session","enforcementMode":"machine-blocking","evidenceMode":"law+cross-repo-contract+runtime+fault-injection","summary":"For one browser-required execution at most one Browser Worker may hold the current xuanxue writer fence; failover starts only from a sealed checkpoint with a new fence and every browser action is provable inside an ordered CWS-extension authority window in the single AgentRuntimeReceipt.","required":["xuanxue database lease/fence is the only election truth","active and standby use independent profiles and identities","handover waits for old fence invalidation and sealed checkpoint","no browser action occurs between authority windows","unresolved OUTCOME_UNKNOWN blocks complete","AgentRuntimeReceipt remains the only runtime receipt owner"],"forbidden":["second Browser election owner","dual active execution","profile copy between workers","implicit mutation replay on failover","second Agent runtime receipt or dynamic verdict","Native Host failover channel"],"clauses":[{"clauseId":"apex-local-browser-006-v2-cross-repo-fence-proof","statement":"Execution fencing, safe handover and ordered CWS-extension authority-window proof jointly prevent dual writers and unprovable browser actions.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"local-browser-session"}]}
 ```
 
 ## 18. Machine-blocking check IDs
@@ -477,21 +495,21 @@ browser-auth/no-preauth-command-surface
 browser-auth/no-fire-and-forget-startup
 browser-auth/authority-mint-only-after-proof
 browser-auth/revoke-before-side-effects
-browser-auth/no-host-controller-rebind
-browser-auth/original-reply-channel
-browser-auth/exact-activation-tuple
+browser-channel/no-page-session-rebind
+browser-channel/original-reply-channel
+browser-release/cws-release-identity
 browser-auth/authority-liveness-lease
 browser-auth/no-command-after-liveness-expiry
 browser-auth/heartbeat-cannot-mint-authority
 browser-auth/production-fixture-zero
 browser-profile/dedicated-production-profile
-browser-profile/process-enrollment-attestation
-browser-profile/force-install-policy-readback
-browser-release/artifact-activation-proof-separation
-browser-release/verified-crx-hard-gate
+browser-profile/installed-extension-readback
+browser-profile/exact-workbench-origin-readback
+browser-release/cws-identity-proof-separation
+browser-release/cws-review-and-installed-readback
 browser-release/anti-rollback-and-revocation
-browser-release/reproducible-build-identity
-browser-install/safe-stale-socket-recovery
+browser-release/no-apple-signing-gate
+browser-channel/no-native-host-surface
 browser-cross-repo/authority-proof-v2
 browser-cross-repo/ordered-authority-window-chain
 browser-command/bounded-admission-budget

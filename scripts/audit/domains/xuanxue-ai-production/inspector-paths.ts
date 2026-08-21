@@ -8,6 +8,7 @@ export const schemaPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-producti
 export const schemaRefinementsPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts";
 export const profilePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
 export const storePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts";
+export const storedOrderQuarantinePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stored-order-quarantine.ts";
 export const schedulerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.scheduler.ts";
 export const flowPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.flow.ts";
 export const cloudContractPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts";
@@ -35,6 +36,7 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
 ] as const;
 
 export const removedSecondChainPaths = [
@@ -61,6 +63,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+  storedOrderQuarantinePath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",

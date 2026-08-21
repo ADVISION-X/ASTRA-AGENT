@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-08-20T12:42:01.991Z",
+  "generatedAt": "2026-08-20T23:43:04.435Z",
   "mode": "fail_fast",
   "status": "FAIL",
   "firstFailure": {
     "phase": "generated-plan-runner",
     "command": "worker:runGeneratedPlan()",
-    "lawId": "APEX-CODE-PURITY-008-V1",
-    "filePath": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
-    "message": "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts uses as unknown as near line 11.",
+    "lawId": "APEX-LOCAL-BROWSER-004-V2",
+    "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
+    "message": "forbidden AST identifier remains reachable: evaluate",
     "minimalFixHint": "Repair the first failing domain report finding and rerun npm run ci:full."
   },
   "completedSteps": [
     {
       "command": "npm run codex:entry-gate",
-      "durationMs": 244,
-      "endedAt": "2026-08-20T12:40:35.943Z",
+      "durationMs": 253,
+      "endedAt": "2026-08-20T23:41:44.894Z",
       "lawId": "APEX-AUDIT-001-V1",
       "name": "codex-entry-gate",
       "ownerId": "audit-system",
       "phase": "codex-entry-gate",
-      "startedAt": "2026-08-20T12:40:35.699Z",
+      "startedAt": "2026-08-20T23:41:44.641Z",
       "status": "PASS",
       "timeoutMs": 60000
     },
     {
       "command": "internal:buildAuditArtifacts()",
-      "durationMs": 3992,
-      "endedAt": "2026-08-20T12:40:39.936Z",
+      "durationMs": 3678,
+      "endedAt": "2026-08-20T23:41:48.573Z",
       "name": "build-audit-artifacts",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "build-audit-artifacts",
-      "startedAt": "2026-08-20T12:40:35.944Z",
+      "startedAt": "2026-08-20T23:41:44.895Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "internal:verifyActiveLawFullCoverage()",
       "durationMs": 2,
-      "endedAt": "2026-08-20T12:40:39.941Z",
+      "endedAt": "2026-08-20T23:41:48.578Z",
       "name": "active-law-full-coverage",
       "ownerId": "audit-system",
       "lawId": null,
       "phase": "active-law-full-coverage",
-      "startedAt": "2026-08-20T12:40:39.939Z",
+      "startedAt": "2026-08-20T23:41:48.576Z",
       "status": "PASS",
       "timeoutMs": 0
     },
     {
       "command": "worker:runGeneratedPlan()",
-      "durationMs": 82049,
-      "endedAt": "2026-08-20T12:42:01.990Z",
+      "durationMs": 75856,
+      "endedAt": "2026-08-20T23:43:04.434Z",
       "name": "generated-plan-runner",
       "ownerId": "audit-system",
       "lawId": "APEX-AUDIT-005-V1",
       "phase": "generated-plan-runner",
-      "startedAt": "2026-08-20T12:40:39.941Z",
+      "startedAt": "2026-08-20T23:41:48.578Z",
       "status": "FAIL",
       "timeoutMs": 300000,
       "error": "One or more generated-plan owners reported findings."
@@ -858,9 +858,9 @@
     },
     {
       "capabilityDomain": "code-purity",
-      "findingCount": 1,
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json",
-      "status": "FAIL"
+      "status": "PASS"
     },
     {
       "capabilityDomain": "constitutional-boundary",
@@ -876,25 +876,25 @@
     },
     {
       "capabilityDomain": "local-browser-session",
-      "findingCount": 0,
+      "findingCount": 6,
       "reportPath": "scripts/audit/generated/local-browser-session-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "runtime-log-spine",
-      "findingCount": 0,
+      "findingCount": 2,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "amazon-invoice-upload",
-      "findingCount": 20,
+      "findingCount": 13,
       "reportPath": "scripts/audit/generated/amazon-invoice-upload-report.generated.json",
       "status": "FAIL"
     },
     {
       "capabilityDomain": "amazon-product-mining",
-      "findingCount": 4,
+      "findingCount": 6,
       "reportPath": "scripts/audit/generated/amazon-product-mining-report.generated.json",
       "status": "FAIL"
     },
@@ -942,9 +942,9 @@
     },
     {
       "capabilityDomain": "xuanxue-ai-production",
-      "findingCount": 0,
+      "findingCount": 2,
       "reportPath": "scripts/audit/generated/xuanxue-ai-production-report.generated.json",
-      "status": "PASS"
+      "status": "FAIL"
     },
     {
       "capabilityDomain": "xuanxue-ai-production-localization-contract",

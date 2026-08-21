@@ -106,12 +106,6 @@ export const clearComposer = async (
   context: AiProviderAdapterContext,
 ): Promise<WebChatEvaluation> => readExactAttachmentState(browser, context, 0, [], { requireComposerTextEmpty: true });
 
-/** The current approved construction evidence has not reached a stale owned draft. */
-export const clearProvenSubmittedRootDraft = async (): Promise<WebChatEvaluation> => ({
-  status: "review_required",
-  message: "NOT_PRODUCTION_VERIFIED: stale owned ChatGPT draft clearing requires a fresh live DOM observation",
-});
-
 const throwIfTerminalAttachmentEvaluation = (input: {
   evaluation: WebChatEvaluation;
   expectedCount: number;

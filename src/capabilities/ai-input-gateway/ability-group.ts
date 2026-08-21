@@ -127,6 +127,6 @@ export const createAiInputGatewayAbilityGroup = (
   context: AiInputGatewayExecutionContext,
   browser?: BrowserTargetLease,
 ): AiInputGatewayAbilityGroup => {
-  const operatorControl = createProviderOperatorControl(browser);
+  const operatorControl = createProviderOperatorControl();
   return buildAiInputGatewaySurface(context, browser, operatorControl);
 };

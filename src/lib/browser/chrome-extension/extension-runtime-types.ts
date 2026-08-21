@@ -1,16 +1,19 @@
 export type ExtensionDebuggee = Readonly<{ tabId: number }>;
 
-export type ExtensionNativePort = Readonly<{
+export type ExtensionExternalPort = Readonly<{
   postMessage(message: unknown): void;
   disconnect(): void;
+  name: string;
+  sender?: Readonly<{ url?: string }>;
   onMessage: Readonly<{ addListener(listener: (message: unknown) => void): void }>;
   onDisconnect: Readonly<{ addListener(listener: () => void): void }>;
 }>;
 
 export type ExtensionChromeApi = Readonly<{
   runtime: Readonly<{
-    connectNative(application: string): ExtensionNativePort;
+    id: string;
     getManifest(): Readonly<{ version: string }>;
+    onConnectExternal: Readonly<{ addListener(listener: (port: ExtensionExternalPort) => void): void }>;
   }>;
   debugger: Readonly<{
     attach(target: ExtensionDebuggee, version: string): Promise<void>;
@@ -32,8 +35,10 @@ export const readExtensionChromeApi = (): ExtensionChromeApi | null => {
 
 const isChromeApi = (value: unknown): value is ExtensionChromeApi => {
   if (!isRecord(value) || !isRecord(value.runtime) || !isRecord(value.debugger) || !isRecord(value.action)) return false;
-  return typeof value.runtime.connectNative === "function"
+  return typeof value.runtime.id === "string"
     && typeof value.runtime.getManifest === "function"
+    && isRecord(value.runtime.onConnectExternal)
+    && typeof value.runtime.onConnectExternal.addListener === "function"
     && typeof value.debugger.attach === "function"
     && typeof value.debugger.detach === "function"
     && typeof value.debugger.sendCommand === "function"

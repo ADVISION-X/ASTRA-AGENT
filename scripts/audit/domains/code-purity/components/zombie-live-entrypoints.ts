@@ -4,12 +4,13 @@ import { extname } from "node:path";
 import { resolveFromRepo, toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import {
+  isLawfulAuditInspectionFile,
   isLawfulManifestEntryFile,
   type ZombieExemptionManifest,
 } from "./zombie-exemption-manifest.js";
 
 export type ZombieLiveEntryPoint = {
-  entryKind: "active-law" | "owner-inspector" | "package-script";
+  entryKind: "active-law" | "audit-inspection" | "owner-inspector" | "package-script";
   filePath: string;
   reason: string;
   scriptName: string | null;
@@ -135,6 +136,16 @@ export const collectZombieLiveEntrypoints = (input: {
   }
 
   for (const governedFile of input.governedFiles) {
+    if (isLawfulAuditInspectionFile(input.manifest, governedFile.repoPath) && !entryFiles.has(governedFile.repoPath)) {
+      entryFiles.add(governedFile.repoPath);
+      liveEntryPoints.push({
+        entryKind: "audit-inspection",
+        filePath: governedFile.repoPath,
+        reason: "active law requires owner-inspector source evidence",
+        scriptName: null,
+      });
+      continue;
+    }
     if (!isLawfulManifestEntryFile(input.manifest, governedFile.repoPath) || entryFiles.has(governedFile.repoPath)) {
       continue;
     }

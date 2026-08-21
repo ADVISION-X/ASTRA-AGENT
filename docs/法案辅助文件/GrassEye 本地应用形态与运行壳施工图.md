@@ -1,6 +1,6 @@
 # GrassEye 本地应用形态与运行壳施工图
 
-版本：2026-05-22
+版本：2026-08-21.1
 状态：active
 
 ## 本地形态
@@ -69,6 +69,20 @@ Amazon invoice upload 必须收集：
 - 页面伪造 evidence 或 task success。
 - `src/lib/local-runtime/**` 直接 import plugin 私有文件或 capability 私有文件。
 
+## Workbench Extension 页面通道
+
+这不是第二页面，也不是浏览器控制台。根 Workbench 页面可以无 UI 控件地建立一个固定 CWS MV3 external Port，用于承载 Browser owner 已签发的 schema-bound 帧：
+
+```txt
+root Workbench page
+  -> fixed chrome.runtime.connect(extension ID, channel name)
+      -> fixed same-origin Browser-channel route
+          -> Workbench Handle explicit channel facade
+              -> Browser owner
+```
+
+页面只转发 opaque frame 和显示 `available` / `unavailable` 状态。不得创建 selector、target、command、permit、业务步骤或任务结论；不得使用 `chrome.debugger`、`connectNative`、Native Messaging、WebSocket 旁路或第二 Port。断开、grant 过期、扩展未安装或 sender 校验失败一律显示 unavailable，绝不尝试备用链。
+
 ## 对口质检
 
 local-app-shell owner inspector 检查：
@@ -82,3 +96,5 @@ local-app-shell owner inspector 检查：
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。
 - `src/lib/local-runtime/**` 是否只通过 plugin / ability public facade 导入 job 与能力。
+- Browser page channel 是否只有 root Workbench page 一个入口，且没有可见浏览器控制面。
+- page adapter 是否只使用固定 external Port 与固定 same-origin route，并且没有 command/permit/selector/target 生成能力。

@@ -10,6 +10,7 @@ import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 import { handleXuanxueAiProductionRequest } from "./workbench-xuanxue-ai-production-routes.js";
+import { handleWorkbenchBrowserExtensionChannelRequest } from "./workbench-browser-extension-channel-routes.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
 
@@ -159,6 +160,9 @@ const handleKnownWorkbenchApiRequest = async (input: {
   workbench: GrassEyeWorkbenchHandle;
   url: URL;
 }): Promise<boolean> => {
+  if (await handleWorkbenchBrowserExtensionChannelRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
   if (await handleWorkbenchMetaRequest(input)) {
     return true;
   }

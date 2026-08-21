@@ -8,7 +8,7 @@ export type BrowserCommandPermit = Readonly<{
   authorityRef: string;
   authorityEpoch: number;
   certificateHash: BrowserHash;
-  activationTupleHash: BrowserHash;
+  channelSessionHash: BrowserHash;
   executionBindingHash: BrowserHash;
   targetLeaseRef: string;
   targetRef: string;
@@ -30,7 +30,7 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.authorityRef,
   permit.authorityEpoch,
   permit.certificateHash,
-  permit.activationTupleHash,
+  permit.channelSessionHash,
   permit.executionBindingHash,
   permit.targetLeaseRef,
   permit.targetRef,
@@ -46,7 +46,7 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
 export const assertValidCommandPermit = (permit: BrowserCommandPermit, now = Date.now()): void => {
   const hashes = [
     permit.certificateHash,
-    permit.activationTupleHash,
+    permit.channelSessionHash,
     permit.executionBindingHash,
     permit.commandFrameMac,
   ];

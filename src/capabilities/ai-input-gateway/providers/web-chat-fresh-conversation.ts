@@ -3,8 +3,19 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { AiFeedInput } from "../schema.js";
 
 const CHATGPT_COMPOSER_SELECTOR = "#prompt-textarea";
+const CHATGPT_COMPOSER_FORM_SELECTOR = "form";
+const CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR = "#upload-files";
 const CHATGPT_USER_TURN_SELECTOR = "[data-testid^='conversation-turn-'][data-turn='user']";
 const CHATGPT_ASSISTANT_TURN_SELECTOR = "[data-testid^='conversation-turn-'][data-turn='assistant']";
+const CHATGPT_REMOVE_ATTACHMENT_SELECTOR = "form button[aria-label='Remove file'],form button[aria-label='移除文件'],form button[aria-label='删除文件']";
+const CHATGPT_PASTED_TEXT_CARD_SELECTOR = "form [data-testid*='pasted-text' i],form [data-testid*='pasted-content' i]";
+const CHATGPT_ACTIVE_GENERATION_SELECTOR = "button[data-testid='stop-button'],button[aria-label='Stop streaming'],button[aria-label='Stop generating'],button[aria-label='停止生成'],button[aria-label='停止回应']";
+const CHATGPT_PASTED_TEXT_MARKERS = [
+  "已粘贴的文本",
+  "在文本字段中显示",
+  "pasted text",
+  "pasted content",
+] as const;
 
 type FreshConversationInput = Readonly<{
   browser: BrowserTargetLease;
@@ -31,33 +42,100 @@ const count = async (browser: BrowserTargetLease, selector: string): Promise<num
   return (value as { count: number }).count;
 };
 
-const isExactFreshChatGptRoot = async (browser: BrowserTargetLease): Promise<boolean> => {
-  const [document, composer, userCount, assistantCount] = await Promise.all([
-    browser.executeDomIntent({ kind: "document" }),
-    browser.executeDomIntent({
-      kind: "inspect",
-      selector: CHATGPT_COMPOSER_SELECTOR,
-      fields: ["tagName", "visible", "disabled", "text"],
-    }),
-    count(browser, CHATGPT_USER_TURN_SELECTOR),
-    count(browser, CHATGPT_ASSISTANT_TURN_SELECTOR),
-  ]);
-  if (typeof document !== "object" || document === null || Array.isArray(document)
-    || typeof (document as { url?: unknown }).url !== "string"
-    || typeof composer !== "object" || composer === null || Array.isArray(composer)) {
+const inspect = async (
+  browser: BrowserTargetLease,
+  selector: string,
+  fields: readonly ("tagName" | "type" | "text" | "value" | "accept" | "multiple" | "connected" | "visible" | "disabled")[],
+): Promise<Record<string, unknown>> => {
+  const value = await browser.executeDomIntent({ kind: "inspect", selector, fields });
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("BROWSER_TARGET_INVALID");
   }
-  const url = new URL((document as { url: string }).url);
-  const state = composer as Record<string, unknown>;
-  return url.origin === "https://chatgpt.com"
+  return value as Record<string, unknown>;
+};
+
+type FreshRootSnapshot = {
+  document: Record<string, unknown>;
+  composer: Record<string, unknown>;
+  form: Record<string, unknown>;
+  fileInput: Record<string, unknown>;
+  userCount: number;
+  assistantCount: number;
+  removeAttachmentCount: number;
+  pastedCardCount: number;
+  activeGenerationCount: number;
+};
+
+const readFreshRootSnapshot = async (browser: BrowserTargetLease): Promise<FreshRootSnapshot> => {
+  const [document, composer, formCount, form, fileInput, userCount, assistantCount, removeAttachmentCount, pastedCardCount, activeGenerationCount] = await Promise.all([
+    browser.executeDomIntent({ kind: "document" }),
+    inspect(browser, CHATGPT_COMPOSER_SELECTOR, ["tagName", "visible", "disabled", "text"]),
+    count(browser, CHATGPT_COMPOSER_FORM_SELECTOR),
+    inspect(browser, CHATGPT_COMPOSER_FORM_SELECTOR, ["text"]).catch(() => null),
+    inspect(browser, CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR, ["tagName", "type", "value", "accept", "multiple", "connected", "visible", "disabled"]),
+    count(browser, CHATGPT_USER_TURN_SELECTOR),
+    count(browser, CHATGPT_ASSISTANT_TURN_SELECTOR),
+    count(browser, CHATGPT_REMOVE_ATTACHMENT_SELECTOR),
+    count(browser, CHATGPT_PASTED_TEXT_CARD_SELECTOR),
+    count(browser, CHATGPT_ACTIVE_GENERATION_SELECTOR),
+  ]);
+  if (formCount !== 1 || form === null) {
+    throw new Error("BROWSER_TARGET_INVALID");
+  }
+  const documentState = typeof document === "object" && document !== null && !Array.isArray(document)
+    ? document as Record<string, unknown>
+    : null;
+  if (!documentState || typeof documentState.url !== "string") throw new Error("BROWSER_TARGET_INVALID");
+  return {
+    document: documentState,
+    composer: inspectRecord(composer),
+    form: inspectRecord(form),
+    fileInput: inspectRecord(fileInput),
+    userCount,
+    assistantCount,
+    removeAttachmentCount,
+    pastedCardCount,
+    activeGenerationCount,
+  };
+};
+
+const inspectRecord = (value: unknown): Record<string, unknown> => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error("BROWSER_TARGET_INVALID");
+  }
+  return value as Record<string, unknown>;
+};
+
+const isFreshComposer = (state: Record<string, unknown>): boolean => state.tagName === "DIV"
+  && state.visible === true
+  && state.disabled !== true
+  && typeof state.text === "string"
+  && state.text.trim().length === 0;
+
+const isFreshFileInput = (state: Record<string, unknown>): boolean => state.tagName === "INPUT"
+  && state.type === "file"
+  && state.value === ""
+  && state.accept === ""
+  && state.multiple === true
+  && state.connected === true
+  && state.disabled === false;
+
+const isExactFreshChatGptRoot = async (browser: BrowserTargetLease): Promise<boolean> => {
+  const snapshot = await readFreshRootSnapshot(browser);
+  const url = new URL(String(snapshot.document.url));
+  const formText = typeof snapshot.form.text === "string" ? snapshot.form.text.toLocaleLowerCase() : "";
+  const hasPastedTextCard = snapshot.pastedCardCount !== 0
+    || CHATGPT_PASTED_TEXT_MARKERS.some((marker) => formText.includes(marker));
+  const isRootUrl = url.origin === "https://chatgpt.com"
     && (url.pathname === "/" || url.pathname === "")
-    && state.tagName === "DIV"
-    && state.visible === true
-    && state.disabled !== true
-    && typeof state.text === "string"
-    && state.text.trim().length === 0
-    && userCount === 0
-    && assistantCount === 0;
+  return isRootUrl
+    && isFreshComposer(snapshot.composer)
+    && isFreshFileInput(snapshot.fileInput)
+    && snapshot.userCount === 0
+    && snapshot.assistantCount === 0
+    && snapshot.removeAttachmentCount === 0
+    && !hasPastedTextCard
+    && snapshot.activeGenerationCount === 0;
 };
 
 /** A new chat is an exact root navigation, never a guessed sidebar click. */

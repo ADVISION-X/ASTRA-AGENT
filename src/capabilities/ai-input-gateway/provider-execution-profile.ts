@@ -2,7 +2,6 @@ import {
   defaultGptWebProviderExecutionProfile,
   hashProviderExecutionProfile,
   type AiFeedProviderExecutionProfile,
-  type GptWebReasoningTier,
 } from "./schema.js";
 
 const GPT_WEB_PROVIDER = "openai-chatgpt-web" as const;
@@ -27,15 +26,6 @@ export const assertProviderExecutionProfileIntegrity = (
     );
   }
 };
-
-export const legacyReasoningEffortForProof = (
-  tier: GptWebReasoningTier,
-): string => {
-  if (tier === "extra_high") return "xhigh";
-  if (tier === "pro_standard" || tier === "pro_extended") return "pro";
-  return tier;
-};
-
 
 const defaultOwnerForRawTask = (value: Record<string, unknown>):
   "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai" => {

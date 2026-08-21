@@ -1,6 +1,5 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type {
-  AiProviderAdapterContext,
   ProviderExecutionProfileProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import { assertProviderExecutionProfileIntegrity } from "../provider-execution-profile.js";
@@ -9,9 +8,7 @@ import { assertStableWebChatDocument } from "./web-chat-page-action-contract.js"
 
 type ExecutionProfileInput = Readonly<{
   browser: BrowserTargetLease;
-  context: AiProviderAdapterContext;
   request: AiFeedInput;
-  providerUrl: string;
 }>;
 
 /**
@@ -34,8 +31,6 @@ export const enforceGptWebExecutionProfile = async (
     expectedDocumentRef,
     actionId: "verify_execution_profile",
   });
-  void input.context;
-  void input.providerUrl;
   throw new Error(
     "review_required: NOT_PRODUCTION_VERIFIED: GPT pre-submit model and reasoning controls have no exact verified readback; GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH",
   );

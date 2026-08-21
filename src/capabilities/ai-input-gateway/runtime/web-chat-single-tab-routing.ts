@@ -1,9 +1,11 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
+import { discoverChatGptConversationViaSearch } from "../providers/gpt-web-conversation-discovery.js";
 
 /**
- * Canonical routing may observe, click one predeclared row and wait. It cannot
- * open a second tab, select an active tab, execute a page script or revive a
+ * Canonical routing may observe, click one predeclared row, or use the one
+ * bounded Search chats fallback after the exact row is absent. It cannot open
+ * a second tab, select an active tab, execute a page script or revive a
  * retired controller interface.
  */
 type WebChatRoutingBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait" | "navigate">;
@@ -79,10 +81,10 @@ const verifyCanonicalMarker = async (input: {
 
 /**
  * Normal recovery stays in the one already leased physical provider tab. A
- * persisted canonical path may select only one exact sidebar row; a missing
- * row is a bounded, fail-closed condition. Search-dialog recovery is not
- * implemented here because its live DOM has not been observed in the approved
- * Chrome construction path.
+ * persisted canonical path may select only one exact sidebar row. If that row
+ * remains absent through the bounded observation window, the exact Search
+ * chats dialog is the sole discovery fallback and must re-prove the canonical
+ * path plus marker before returning.
  */
 export const focusChatGptConversationByCanonicalPath = async (input: {
   base: WebChatRoutingBrowser;
@@ -118,10 +120,17 @@ export const focusChatGptConversationByCanonicalPath = async (input: {
       await input.base.wait({ durationMs: 500 });
     }
   }
-  throw new Error(
-    "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact canonical ChatGPT conversation is not ready; "
-    + `last=${lastError?.message ?? "none"}; url=${input.conversationUrl}`,
-  );
+  if (!input.turnMarker) {
+    throw new Error(
+      "WEB_CHAT_BOUND_CONVERSATION_NOT_READY: Search chats fallback requires the exact turn marker",
+    );
+  }
+  await discoverChatGptConversationViaSearch({
+    browser: input.base,
+    canonicalConversationUrl: input.conversationUrl,
+    turnMarker: input.turnMarker,
+    timeoutMs: Math.min(input.timeoutMs ?? 15_000, 15_000),
+  });
 };
 
 const focusGeminiConversation = async (input: {

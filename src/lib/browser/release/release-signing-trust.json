@@ -1,8 +1,0 @@
-{
-  "schemaVersion": "grasseye.browser.release-signing-trust.v1",
-  "state": "PRESENT",
-  "algorithm": "ed25519",
-  "keyId": "grasseye-browser-release-primary",
-  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA/BM1Dl/xL2YKmGKrJredVQl0nt0JUcrlNfeK30HwJ9A=\n-----END PUBLIC KEY-----\n",
-  "publicKeyFingerprint": "sha256:8643bf4ad7bd6a8ca7988fa7df64ffa912ed88586bdc846b4365c736c7da829b"
-}

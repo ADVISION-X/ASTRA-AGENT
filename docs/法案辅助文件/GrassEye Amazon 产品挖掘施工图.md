@@ -640,6 +640,8 @@ Invoice upload / other prompt contract 仍 fail closed
 不得保留已完成的 Amazon GPT provider tab 干扰当前 Amazon 工作标签
 ```
 
+`web-chat-open.ts` 的 Amazon prompt-contract 前缀判定是本连续性法条的静态受检证据；它不形成独立 provider 生命周期、运行入口或兼容转运链。
+
 异常：
 
 ```txt

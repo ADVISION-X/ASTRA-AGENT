@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "GrassEye Browser Authority",
-  "version": "0.1.0",
-  "description": "Authenticated exact-target command endpoint for GrassEye.",
+  "version": "0.2.0",
+  "description": "Authenticated exact-target browser authority for the local GrassEye Workbench.",
   "background": { "service_worker": "service-worker.js", "type": "module" },
-  "permissions": ["nativeMessaging", "debugger", "tabs", "scripting"],
+  "permissions": ["debugger"],
   "action": { "default_title": "Claim this operator-approved target for GrassEye" },
   "host_permissions": [],
-  "externally_connectable": { "matches": [] }
+  "externally_connectable": { "matches": ["http://127.0.0.1/*"] },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsEQ2YAHUA2tK1fM/pla39a81peJ03vFR17ZEYjB5pN1suJLQzVY73pmTti8Qf2WSiTwkHoyfNStR90SH/MNnh8v9v+yR86nwfeEAHehgK6mOeDPkvJyxGTrMLQw1ZA0R23+BPcIdEpEOFPTlsYsGbJo9j3b+W+tTcgK79AGQA+iBPykOCdIWKW2gyy2jXLgRWiiLI2Sh76h+GywHX+JHjG8KCb6eCTelj9/MQ7i6ZIdBCSIDvwlbOOyOFNXkKxeN3CPkTCD6kyoyA4xh6OAdPzziqbUg3vbPV+JOWSOyMRZ3EWkz6xIqWm0+SwvqDwlHqrcPOHJS6ii7yyF367lmZwIDAQAB"
 }

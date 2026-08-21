@@ -8,17 +8,13 @@ import {
   pushAiInputGatewayFinding,
   requireAiInputGatewaySource,
   stringLiterals,
-  variableStringValues,
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
 
 interface FreshIdentitySources {
   canonicalBinding: SourceFile;
   managedExecution: SourceFile;
-  freshConversation: SourceFile;
   freshConversationControl: SourceFile;
-  pageActionScripts: SourceFile;
-  promptEvaluation: SourceFile;
   checkpoint: SourceFile;
   acceptance: SourceFile;
   shared: SourceFile;
@@ -35,17 +31,8 @@ const loadFreshIdentitySources = (
   const managedExecution = requireAiInputGatewaySource(
     context, findings, lawId, P.executionRuntime.managedExecutionPath,
   );
-  const freshConversation = requireAiInputGatewaySource(
-    context, findings, lawId, P.runtime.freshConversationPath,
-  );
   const freshConversationControl = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.freshConversationControlPath,
-  );
-  const pageActionScripts = requireAiInputGatewaySource(
-    context, findings, lawId, P.runtime.pageActionScriptsPath,
-  );
-  const promptEvaluation = requireAiInputGatewaySource(
-    context, findings, lawId, P.runtime.answerEvaluationPath,
   );
   const checkpoint = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.submissionCheckpointPath,
@@ -56,16 +43,12 @@ const loadFreshIdentitySources = (
   const shared = requireAiInputGatewaySource(
     context, findings, lawId, P.attachment.sharedPath,
   );
-  if (!canonicalBinding || !managedExecution || !freshConversation
-    || !freshConversationControl || !pageActionScripts || !promptEvaluation
+  if (!canonicalBinding || !managedExecution || !freshConversationControl
     || !checkpoint || !acceptance || !shared) return null;
   return {
     canonicalBinding,
     managedExecution,
-    freshConversation,
     freshConversationControl,
-    pageActionScripts,
-    promptEvaluation,
     checkpoint,
     acceptance,
     shared,
@@ -99,22 +82,8 @@ const sharedPreparationCallOrderIsValid = (source: SourceFile): boolean => {
 };
 
 const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
-  const zeroFields = variableStringValues(
-    sources.freshConversation,
-    "CHATGPT_FRESH_ZERO_STATE_FIELDS",
-  );
-  const promptHasRequiredIdentity = [
-    "promptSuffixBoundToExpectedTurn",
-    "WEB_CHAT_FOREIGN_TURN_REBOUND",
-    "visibleConversationBusy",
-  ].every((value) => identifiers(sources.promptEvaluation).has(value)
-    || literalContains(sources.promptEvaluation, value));
-  const checkpointHasRequiredIdentity = [
-    "exact_clean_prompt_and_canonical_conversation",
-    "observeSubmittedWebChatTurn",
-    "finalizeObservedWebChatSubmission",
-  ].every((value) => identifiers(sources.checkpoint).has(value)
-    || literalContains(sources.checkpoint, value));
+  const freshIds = identifiers(sources.freshConversationControl);
+  const checkpointIds = identifiers(sources.checkpoint);
   return identifiers(sources.canonicalBinding).has("assertWebChatCanonicalConversationBinding")
     && identifiers(sources.canonicalBinding).has("resolveSubmittedDraftOwnerByTurnMarker")
     && identifiers(sources.managedExecution).has("assertBinding")
@@ -122,30 +91,16 @@ const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
     && identifiers(sources.acceptance).has("assertCanonicalConversationOwnership")
     && identifiers(sources.acceptance)
       .has("assertSubmittedDraftOwnershipRequiresOneCanonicalOwner")
-    && ["userCount", "assistantCount", "composerText.length", "removeAttachmentCount"]
-      .every((value) => zeroFields.has(value))
-    && promptHasRequiredIdentity
-    && !literalContains(
-      sources.promptEvaluation,
-      "Boolean(document.querySelector('[aria-busy=\"true\"]'))",
-    )
+    && freshIds.has("isExactFreshChatGptRoot")
+    && freshIds.has("startFreshChatGptConversation")
+    && literalContains(sources.freshConversationControl, "#upload-files")
+    && literalContains(sources.freshConversationControl, "pasted content")
+    && literalContains(sources.freshConversationControl, "停止生成")
+    && freshIds.has("removeAttachmentCount")
     && sharedPreparationCallOrderIsValid(sources.shared)
-    && checkpointHasRequiredIdentity;
+    && checkpointIds.has("observeSubmittedWebChatTurn")
+    && checkpointIds.has("finalizeObservedWebChatSubmission");
 };
-
-const freshIdentityCleanupIsValid = (sources: FreshIdentitySources): boolean =>
-  literalContains(
-    sources.freshConversationControl,
-    'a[data-testid="create-new-chat-button"][data-sidebar-item="true"]',
-  )
-  && literalContains(sources.freshConversationControl, "hitAnchor")
-  && literalContains(sources.freshConversationControl, "pointerEvents")
-  && !identifiers(sources.freshConversationControl).has("exactAriaCandidates")
-  && identifiers(sources.freshConversationControl).has("clearUniquelyOwnedSubmittedRootDraft")
-  && literalContains(sources.freshConversation, "eligibleSubmittedDraftCleanup")
-  && identifiers(sources.pageActionScripts).has("buildClearProvenSubmittedRootDraftScript")
-  && literalContains(sources.freshConversationControl, "protected unknown or unproven draft")
-  && literalContains(sources.pageActionScripts, "owned stale draft guard changed before clear");
 
 export const inspectFreshConversationIdentity = (
   context: InspectorContext,
@@ -153,7 +108,7 @@ export const inspectFreshConversationIdentity = (
   lawId: string,
 ): void => {
   const sources = loadFreshIdentitySources(context, findings, lawId);
-  if (!sources || (freshIdentityCoreIsValid(sources) && freshIdentityCleanupIsValid(sources))) return;
+  if (!sources || freshIdentityCoreIsValid(sources)) return;
   pushAiInputGatewayFinding(
     findings,
     lawId,

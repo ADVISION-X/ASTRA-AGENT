@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T15:20:21.807Z",
+  "generatedAt": "2026-08-20T23:42:55.787Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -27,14 +27,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1",
+      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
       "status": "FAIL",
-      "startedAt": "2026-08-20T15:20:13.255Z",
-      "endedAt": "2026-08-20T15:20:21.807Z",
-      "durationMs": 8552,
+      "startedAt": "2026-08-20T23:42:44.364Z",
+      "endedAt": "2026-08-20T23:42:55.786Z",
+      "durationMs": 11422,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -65,6 +65,7 @@
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production-localization-contract.instructions.md",
         "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/discover-law-files.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/build/load-manifests.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/parse-apex-laws.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/source-evidence-reachability.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
@@ -192,10 +193,6 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/forensics-persistence-capability/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-core-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-inspector-support.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-release-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/media-processing-capability/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
@@ -232,6 +229,7 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/video-download-capability/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/workbench-api-boundary/inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/components/boundary-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
@@ -344,61 +342,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:25097915-e2f8-459e-a8de-b5ddf8c5aad1"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
     }
   ],
   "inspectedFiles": [
@@ -431,6 +429,7 @@
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production-localization-contract.instructions.md",
     "/Users/nexgen/Documents/AGENT/.github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/discover-law-files.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/build/load-manifests.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/parse-apex-laws.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/source-evidence-reachability.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
@@ -558,10 +557,6 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-core-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-inspector-support.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/browser-authority-release-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector-old-path-zero.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/media-processing-capability/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
@@ -598,6 +593,7 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/video-download-capability/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/workbench-api-boundary/inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/components/boundary-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",

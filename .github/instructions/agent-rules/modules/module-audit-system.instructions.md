@@ -397,7 +397,7 @@ runner 不拥有法条定义权、绑定权、顺序主权。
 若 `engine=fs`，则审计对象必须天然属于文件系统拓扑、目录落位、锚点存在性这一类结构问题。
 凡涉及 owner-boundary、import-graph、zombie reachability，`import` 与 `re-export` 都必须进入主裁图；只查 import 放过 barrel laundering 视为伪执法。
 凡涉及 entry / liveness exemption，豁免必须来自 `package.json`、generated plan、或 active law 的结构性真相；`index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别不得整类放行。
-active law 若授权 Code Purity 活性面，只能在所属法条的 `codePurityLiveness` 结构字段中精确声明 file / export / edge 三元组，并由 generated law registry 唯一投影给 inspector；禁止在 inspector 源码中再维护一份豁免数组。
+active law 若授权 Code Purity 活性面，只能在所属法条的 `codePurityLiveness` 结构字段中精确声明 file / export / edge 三元组，或精确声明仅供 owner inspector 读取的 `auditInspectionFiles`，并由 generated law registry 唯一投影给 inspector；禁止在 inspector 源码中再维护一份豁免数组。`auditInspectionFiles` 不得被当成生产入口、动态 import 或 export 豁免。
 
 ### 禁止
 禁止以下形态：

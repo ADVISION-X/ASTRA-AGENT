@@ -866,7 +866,7 @@ Executable maturity must fail when it finds:
 - dormant code kept as "maybe later", "temporary backup", or hard-coded false branch cargo
 
 Executable zombie detection must be stricter than the written minimum law.
-When liveness cannot be proven through AST + symbol graph + lawful entry manifest, the surface must fail as zombie-risk.
+When liveness cannot be proven through AST + symbol graph + lawful entry manifest, the surface must fail as zombie-risk. A source file that is a required owner-inspector evidence target is live only when its owning active law declares that exact file in `codePurityLiveness.auditInspectionFiles`; this proves static inspection only and never grants a production entry, dynamic import, export, or compatibility surface.
 
 Regular expressions are forbidden in code-purity zombie detection implementation.
 The inspector must use ts-morph AST, TypeChecker symbols, and explicit anti-evasion guards.

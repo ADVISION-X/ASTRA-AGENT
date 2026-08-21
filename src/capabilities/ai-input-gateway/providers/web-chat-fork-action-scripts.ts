@@ -86,3 +86,4 @@ if (candidates.length !== 1) {
 candidates[0].click();
 return {status: "success", message: "clicked exact branch menu item", labels: candidates.map(label)};
 `;
+

@@ -30,7 +30,6 @@ export type BrowserCommandAuthorityGuard = Readonly<{
 }>;
 
 type MutationJournalBase = Omit<BrowserMutationJournalEntry, "recordedAt" | "reason" | "state">;
-type DispatchState = { sent: boolean };
 
 const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): void => {
   assertValidCommandPermit(permit);
@@ -68,8 +67,8 @@ const assertMatchingReply = (permit: BrowserCommandPermit, reply: BrowserCommand
   }
 };
 
-const failureCode = (entry: MutationJournalBase | null, sent: boolean): "BROWSER_HOST_UNAVAILABLE" | "BROWSER_OUTCOME_UNKNOWN" =>
-  entry !== null && sent ? "BROWSER_OUTCOME_UNKNOWN" : "BROWSER_HOST_UNAVAILABLE";
+const failureCode = (entry: MutationJournalBase | null, sent: boolean): "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE" | "BROWSER_OUTCOME_UNKNOWN" =>
+  entry !== null && sent ? "BROWSER_OUTCOME_UNKNOWN" : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
 
 export class BrowserCommandActor {
   public constructor(
@@ -84,31 +83,22 @@ export class BrowserCommandActor {
     this.authorityGuard.assertCurrentAuthority(permit);
     this.budget.enter();
     const journalEntry = createMutationJournalBase(permit, command);
-    const dispatch: DispatchState = { sent: false };
+    let sent = false;
     try {
-      return await this.dispatch(permit, command, journalEntry, dispatch);
+      await recordMutation(this.journal, journalEntry, "PREPARED");
+      this.authorityGuard.assertCurrentAuthority(permit);
+      await recordMutation(this.journal, journalEntry, "SENT");
+      sent = true;
+      const reply = await this.port.send(permit, command);
+      assertMatchingReply(permit, reply);
+      this.authorityGuard.assertCurrentAuthority(permit);
+      await recordMutation(this.journal, journalEntry, "CONFIRMED");
+      return reply.result;
     } catch (error) {
-      await recordMutation(this.journal, journalEntry, dispatch.sent ? "OUTCOME_UNKNOWN" : "FAILED", error instanceof Error ? error.message : "unknown");
-      throw new Error(failureCode(journalEntry, dispatch.sent), { cause: error });
+      await recordMutation(this.journal, journalEntry, sent ? "OUTCOME_UNKNOWN" : "FAILED", error instanceof Error ? error.message : "unknown");
+      throw new Error(failureCode(journalEntry, sent), { cause: error });
     } finally {
       this.budget.leave();
     }
-  }
-
-  private async dispatch(
-    permit: BrowserCommandPermit,
-    command: BrowserGovernedCommand,
-    journalEntry: MutationJournalBase | null,
-    dispatch: DispatchState,
-  ): Promise<unknown> {
-    await recordMutation(this.journal, journalEntry, "PREPARED");
-    this.authorityGuard.assertCurrentAuthority(permit);
-    await recordMutation(this.journal, journalEntry, "SENT");
-    dispatch.sent = true;
-    const reply = await this.port.send(permit, command);
-    assertMatchingReply(permit, reply);
-    this.authorityGuard.assertCurrentAuthority(permit);
-    await recordMutation(this.journal, journalEntry, "CONFIRMED");
-    return reply.result;
   }
 }

@@ -1,183 +1,186 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { BrowserCommandActor, type BrowserCommandPort } from "../../src/lib/browser/exact-target/browser-command-actor.js";
-import { BrowserMutationIntentJournal } from "../../src/lib/browser/exact-target/browser-mutation-intent-journal.js";
-import { BrowserTargetLeaseManager } from "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
-import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
-import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
-import { BrowserTransportActor } from "../../src/lib/browser/transport/transport-actor.js";
-import { hashAuthTranscript } from "../../src/lib/browser/transport/transport-authenticator.js";
-import { BROWSER_INFRASTRUCTURE_SLOS } from "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
-import { BrowserInfrastructureSupervisor } from "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
-import { resolveProductionBrowserProfileConfig } from "../../src/lib/browser/profile/browser-profile-config.js";
-import { createBrowserProfileEnrollment } from "../../src/lib/browser/profile/browser-profile-enrollment.js";
-import { assertExtensionCommandPermit, clearExtensionPermitAuthority, setExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
-import { hashBrowserAuthorityCertificate } from "../../src/lib/browser/infrastructure/browser-authority-certificate.js";
+import { resolve } from "node:path";
 
-const retiredLegacyAcceptances = [
-  "scripts/acceptance/local-browser-artifact-contract.acceptance.ts",
-  "scripts/acceptance/local-browser-atomic-cutover.acceptance.ts",
-  "scripts/acceptance/local-browser-business-workday.acceptance.ts",
-  "scripts/acceptance/local-browser-exact-target-contract.acceptance.ts",
-  "scripts/acceptance/local-browser-native-transport.acceptance.ts",
-  "scripts/acceptance/local-browser-real-chrome-scenarios.acceptance.ts",
-  "scripts/acceptance/local-browser-real-chrome.acceptance.ts",
-  "scripts/acceptance/local-browser-target-actions.acceptance.ts",
+import {
+  assertExactWorkbenchPortSender,
+  assertPageSessionGrant,
+} from "../../src/lib/browser/chrome-extension/external-port-actor.js";
+import {
+  assertExtensionCommandPermit,
+  clearExtensionPermitAuthority,
+  setExtensionPermitAuthority,
+} from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
+import type { ExtensionExternalPort } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
+import { hashBrowserAuthorityCertificate } from "../../src/lib/browser/infrastructure/browser-authority-certificate.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { GRASSEYE_BROWSER_EXTENSION_ID } from "../../src/lib/browser/release/cws-extension-release-identity.js";
+import { BrowserTransportActor } from "../../src/lib/browser/transport/transport-actor.js";
+import {
+  WORKBENCH_EXTENSION_CHANNEL_PORT_NAME,
+  WorkbenchExtensionChannel,
+} from "../../src/lib/browser/transport/workbench-extension-channel.js";
+import type { BrowserUnsignedCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+
+const retiredPaths = [
+  "src/lib/browser/native-messaging-host",
+  "src/lib/browser/chrome-extension/native-port-actor.ts",
+  "src/lib/browser/transport/browser-native-framing.ts",
+  "src/lib/browser/transport/controller-host-command-port.ts",
+  "src/lib/browser/release/active-activation.json",
+  "src/lib/browser/release/verify-artifacts.mjs",
 ] as const;
 
-for (const retiredPath of retiredLegacyAcceptances) {
-  assert.equal(existsSync(resolve(retiredPath)), false, `Retired Browser acceptance remains: ${retiredPath}`);
+for (const retiredPath of retiredPaths) {
+  assert.equal(existsSync(resolve(retiredPath)), false, `Retired Browser path remains: ${retiredPath}`);
 }
 
 const hash = (value: string) => `sha256:${createHash("sha256").update(value).digest("hex")}` as const;
-const activationTupleHash = hash("tuple");
-const profileEnrollmentHash = hash("profile");
-const processIncarnationHash = hash("process");
-const transcript = {
-  controllerNonce: "controller-terminal",
-  hostNonce: "host-terminal",
-  extensionNonce: "extension-terminal",
-  activationTupleHash,
-  profileHash: profileEnrollmentHash,
-  processHash: processIncarnationHash,
-};
-const authenticatedProof = {
-  executionBindingHash: hash("execution"),
-  authTranscriptHash: hashAuthTranscript(transcript),
-  handshake: {
-    transcript,
-    artifactSetHash: hash("artifact"),
-    activationTupleHash,
-    releaseSecurityPolicyHash: hash("release-policy"),
-    profileEnrollmentHash,
-    processIncarnationHash,
-    controllerIncarnationHash: hash("controller-incarnation"),
-    connectionGeneration: 1,
-    hostProcessEpoch: 1,
-    nativePortEpoch: 1,
-    extensionId: "grasseye_browser_authority",
-    extensionVersion: "0.1.0",
-    protocolRevision: 1,
-    capabilitySetHash: hash("capabilities"),
-    permissionPolicyHash: hash("permissions"),
-    originPolicyHash: hash("origins"),
-    livenessPolicyHash: hash("liveness"),
-    commandAdmissionBudgetHash: hash("command-budget"),
-    artifactStreamBudgetHash: hash("artifact-budget"),
-    expiresAt: new Date(Date.now() + 10_000).toISOString(),
-  },
-};
 const issuer = new BrowserAuthorityIssuer();
 const transport = new BrowserTransportActor(issuer);
 transport.start();
-assert.equal(issuer.current().kind, "ABSENT");
-transport.commitAuthentication(authenticatedProof);
+let disconnected = false;
+
+const channel = new WorkbenchExtensionChannel({
+  authenticate: ({ extensionId, extensionVersion, pageSessionHash, sourceChannelToken }) => {
+    assert.equal(extensionId, GRASSEYE_BROWSER_EXTENSION_ID);
+    const proof = {
+      authTranscriptHash: hash("terminal-transcript"),
+      handshake: {
+        pageSessionHash,
+        extensionId,
+        extensionVersion,
+        sourceChannelToken,
+        artifactSetHash: hash("terminal-artifact"),
+        releaseSecurityPolicyHash: hash("terminal-release-policy"),
+        profileEnrollmentHash: hash("terminal-profile"),
+        connectionGeneration: 1,
+        protocolRevision: 1,
+        capabilitySetHash: hash("terminal-capabilities"),
+        permissionPolicyHash: hash("terminal-permissions"),
+        originPolicyHash: hash("terminal-origins"),
+        livenessPolicyHash: hash("terminal-liveness"),
+        commandAdmissionBudgetHash: hash("terminal-command-budget"),
+        artifactStreamBudgetHash: hash("terminal-artifact-budget"),
+        expiresAt: new Date(Date.now() + 10_000).toISOString(),
+      },
+    };
+    transport.commitAuthentication(proof);
+    return proof;
+  },
+  authorityContext: () => {
+    const slot = issuer.current();
+    if (slot.kind !== "PRESENT") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    return {
+      authorityRef: slot.authority.authorityRef,
+      authorityEpoch: slot.authority.authorityEpoch,
+      certificateHash: hashBrowserAuthorityCertificate(slot.authority),
+      channelSessionHash: slot.authority.channelSessionHash,
+      commandPermitKey: issuer.commandPermitKeyBase64(),
+    };
+  },
+  onOperatorTargetClaim: () => undefined,
+  onDisconnect: (reasonCode) => {
+    disconnected = true;
+    transport.disconnect(reasonCode);
+  },
+});
+
+channel.start();
+const opened = await channel.handle({ operation: "open" });
+assert.equal(opened.extensionId, GRASSEYE_BROWSER_EXTENSION_ID);
+assert.equal(opened.portName, WORKBENCH_EXTENSION_CHANNEL_PORT_NAME);
+assert.equal(typeof opened.pageSessionGrant, "string");
+const grant = opened.pageSessionGrant;
+if (!grant) throw new Error("grant missing");
+assert.doesNotThrow(() => assertPageSessionGrant(grant));
+assert.throws(() => assertPageSessionGrant("short"), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+
+const sourceChannelToken = "terminal-source-channel-token";
+await channel.handle({
+  operation: "inbound",
+  grant,
+  frame: {
+    kind: "extension-hello",
+    sourceChannelToken,
+    extensionId: GRASSEYE_BROWSER_EXTENSION_ID,
+    extensionVersion: "0.2.0",
+  },
+});
+assert.equal(issuer.current().kind, "PRESENT");
+const ready = await channel.handle({ operation: "next", grant });
+assert.equal((ready.frame as { kind?: string } | null)?.kind, "controller-ready");
+await assert.rejects(() => channel.handle({ operation: "open" }), /BROWSER_PAGE_SESSION_REBIND_FORBIDDEN/u);
+
 const slot = issuer.current();
-assert.equal(slot.kind, "PRESENT");
-if (slot.kind !== "PRESENT") throw new Error("unreachable");
+if (slot.kind !== "PRESENT") throw new Error("authority missing");
 setExtensionPermitAuthority({
   authorityRef: slot.authority.authorityRef,
   authorityEpoch: slot.authority.authorityEpoch,
   certificateHash: hashBrowserAuthorityCertificate(slot.authority),
-  activationTupleHash: slot.authority.activationTupleHash,
-  executionBindingHash: slot.authority.executionBindingHash,
+  channelSessionHash: slot.authority.channelSessionHash,
   commandPermitKey: issuer.commandPermitKeyBase64(),
 });
-const rejectedIssuer = new BrowserAuthorityIssuer();
-const rejectedTransport = new BrowserTransportActor(rejectedIssuer);
-rejectedTransport.start();
+const unsignedPermit: BrowserUnsignedCommandPermit = {
+  permitRef: "terminal-permit",
+  authorityRef: slot.authority.authorityRef,
+  authorityEpoch: slot.authority.authorityEpoch,
+  certificateHash: hashBrowserAuthorityCertificate(slot.authority),
+  channelSessionHash: slot.authority.channelSessionHash,
+  executionBindingHash: hash("terminal-execution"),
+  targetLeaseRef: "terminal-target-lease",
+  targetRef: "terminal-target",
+  documentRef: "terminal-document",
+  capabilityId: "browser.wait.v1",
+  commandId: "terminal-command",
+  sequence: 1,
+  mutationClass: "observation",
+  deadlineAt: new Date(Date.now() + 10_000).toISOString(),
+  replyChannelToken: "terminal-reply-channel",
+};
+const permit = { ...unsignedPermit, commandFrameMac: issuer.signCurrentCommandPermit(unsignedPermit) };
+await assert.doesNotReject(() => assertExtensionCommandPermit(permit));
+await assert.rejects(
+  () => assertExtensionCommandPermit({ ...permit, targetRef: "changed-target" }),
+  /BROWSER_COMMAND_PERMIT_INVALID/u,
+);
+const reply = channel.send(permit, { kind: "wait", durationMs: 1 });
+const command = await channel.handle({ operation: "next", grant });
+assert.equal((command.frame as { kind?: string } | null)?.kind, "controller-command");
+await channel.handle({
+  operation: "inbound",
+  grant,
+  frame: {
+    kind: "extension-reply",
+    sourceChannelToken,
+    replyChannelToken: permit.replyChannelToken,
+    sequence: permit.sequence,
+    result: { waitedMs: 1 },
+  },
+});
+assert.deepEqual(await reply, { replyChannelToken: permit.replyChannelToken, sequence: permit.sequence, result: { waitedMs: 1 } });
+
+const validPort = {
+  name: WORKBENCH_EXTENSION_CHANNEL_PORT_NAME,
+  sender: { url: "http://127.0.0.1/" },
+  postMessage: () => undefined,
+  disconnect: () => undefined,
+  onMessage: { addListener: () => undefined },
+  onDisconnect: { addListener: () => undefined },
+} satisfies ExtensionExternalPort;
+assert.doesNotThrow(() => assertExactWorkbenchPortSender(validPort));
 assert.throws(
-  () => rejectedTransport.commitAuthentication({
-    ...authenticatedProof,
-    handshake: { ...authenticatedProof.handshake, nativePortEpoch: 0 },
-  }),
+  () => assertExactWorkbenchPortSender({ ...validPort, sender: { url: "http://localhost/" } }),
+  /BROWSER_ORIGIN_REJECTED/u,
+);
+
+await assert.rejects(
+  () => channel.handle({ operation: "inbound", grant: "wrong-grant", frame: {} }),
   /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
 );
-assert.equal(
-  rejectedIssuer.current().kind,
-  "ABSENT",
-  "an incomplete Host/MV3 handshake must never mint authority",
-);
-let extensionMacTested = false;
-const port: BrowserCommandPort = {
-  send: async (permit, command) => {
-    await assertExtensionCommandPermit(permit);
-    if (!extensionMacTested) {
-      await assert.rejects(
-        () => assertExtensionCommandPermit({ ...permit, targetRef: "modified-target" }),
-        /BROWSER_COMMAND_PERMIT_INVALID/u,
-      );
-      extensionMacTested = true;
-    }
-    return {
-      replyChannelToken: permit.replyChannelToken,
-      sequence: permit.sequence,
-      result: command.kind === "navigate"
-        ? { documentRef: "document-2", targetRef: "target-1", navigationEpoch: 2 }
-        : command.kind === "screenshot"
-          ? { artifactRef: "artifact-1", contentHash: hash("image") }
-          : { ok: true },
-    };
-  },
-};
-const journalDir = await mkdtemp(join(tmpdir(), "grasseye-browser-journal-"));
-const manager = new BrowserTargetLeaseManager(
-  slot.authority,
-  {
-    kind: "local",
-    executionRef: "terminal-contract",
-    jobRefHash: hash("job"),
-    executionRefHash: hash("execution"),
-    writerLeaseEpoch: 1,
-    writerFenceHash: hash("fence"),
-    candidateHash: hash("candidate"),
-  },
-  new BrowserCommandActor(
-    new BrowserCommandAdmissionBudget(),
-    port,
-    new BrowserMutationIntentJournal(join(journalDir, "journal.ndjson")),
-    { assertCurrentAuthority: (permit) => issuer.assertCurrentCommandPermit(permit) },
-  ),
-  issuer,
-);
-const lease = manager.acquire({
-  ownerId: "terminal-contract",
-  target: {
-    target: { targetRef: "target-1", authorityEpoch: slot.authority.authorityEpoch, executionBindingHash: hash("execution") },
-    document: { documentRef: "document-1", targetRef: "target-1", navigationEpoch: 1 },
-    url: "about:blank",
-    title: "initial",
-  },
-});
-const document = await lease.navigate({ url: "https://example.invalid/", title: "terminal" });
-assert.equal(document.documentRef, "document-2");
-await lease.executeDomIntent({ kind: "find", locator: { role: "button" }, maxMatches: 1 });
-await assert.rejects(() => lease.executeDomIntent({ kind: "find", locator: { role: "button" }, maxMatches: 21 }), /BROWSER_COMMAND_PERMIT_INVALID/u);
-transport.disconnect("BROWSER_HOST_UNAVAILABLE");
-assert.deepEqual(issuer.current(), { kind: "ABSENT", reasonCode: "BROWSER_HOST_UNAVAILABLE" });
-assert.deepEqual(BROWSER_INFRASTRUCTURE_SLOS, {
-  authorityAvailabilityPercent: 99.99,
-  authorityIssuanceP99Ms: 5_000,
-  recoverableChainRebuildP99Ms: 10_000,
-  revokeToAbsentP99Ms: 10,
-});
-const supervisorDataDir = await mkdtemp(join(tmpdir(), "grasseye-browser-supervisor-"));
-const profileConfig = resolveProductionBrowserProfileConfig(supervisorDataDir);
-const supervisor = new BrowserInfrastructureSupervisor({
-  dataDir: supervisorDataDir,
-  profileConfig,
-  enrolledProfile: createBrowserProfileEnrollment({ config: profileConfig, policyHash: hash("policy"), extensionTreeHash: hash("extension") }),
-  commandPort: { send: async () => { throw new Error("BROWSER_HOST_UNAVAILABLE"); } },
-  artifactResolver: { resolveArtifact: async () => { throw new Error("BROWSER_FILE_GRANT_INVALID"); } },
-});
-await supervisor.start();
-assert.deepEqual(Object.keys(supervisor.health()).sort(), ["browserAuthority", "browserInfrastructure"]);
-assert.equal(supervisor.health().browserAuthority.ok, false);
-assert.equal(Object.values(supervisor.metrics()).every((value) => value === 0), true);
-await supervisor.stop();
+
+assert.equal(disconnected, true);
+assert.deepEqual(issuer.current(), { kind: "ABSENT", reasonCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" });
 clearExtensionPermitAuthority();
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");

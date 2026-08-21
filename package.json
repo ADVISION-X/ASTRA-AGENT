@@ -8,13 +8,13 @@
     "node": ">=20"
   },
   "scripts": {
-    "browser:verify": "node src/lib/browser/release/verify-artifacts.mjs",
-    "browser:build": "node src/lib/browser/release/build-artifacts.mjs",
+    "browser:verify": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
+    "browser:build": "node src/lib/browser/chrome-extension/build.mjs",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "acceptance:local-browser-terminal": "node --import tsx scripts/acceptance/local-browser-terminal-contract.acceptance.ts && node --import tsx scripts/acceptance/local-browser-property-model.acceptance.ts && node --import tsx scripts/acceptance/local-browser-rule-mutants.acceptance.ts && node --import tsx scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
     "acceptance:local-browser-real-chrome": "node --import tsx scripts/acceptance/local-browser-real-chrome-terminal.acceptance.ts",
-    "acceptance:local-browser-release-identity": "node --import tsx src/lib/browser/release/release-identity.acceptance.ts --require-artifact-tuple-proof-security-rollback-sbom-provenance-build-input-previous-snapshot-schemas --require-active-slot-signed-absent --reject-tuple-intersection --reject-downgrade --reject-revoked",
+    "acceptance:local-browser-release-identity": "node --import tsx scripts/acceptance/browser-extension-release-identity.acceptance.ts",
     "acceptance:browser-extension-build": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
     "acceptance:dom-automation-exact-target": "node --import tsx scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "acceptance:ai-input-gateway-exact-target": "node --import tsx scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",

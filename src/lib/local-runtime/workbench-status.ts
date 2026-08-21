@@ -70,7 +70,7 @@ const readBrowserAuthorityComponent = (
         : `Browser authority absent: ${authority.reasonCode}`,
       actionableMessage: present
         ? null
-        : "Repair the enrolled Chrome profile, signed Native Host, extension or transport identity before admitting browser work.",
+        : "Install the approved CWS extension, open the local Workbench page, then reconnect the single browser channel before admitting browser work.",
       ownerResponsible: "Browser",
     };
   } catch (error) {
@@ -91,12 +91,15 @@ export async function getHealthReport(
 ): Promise<WorkbenchHealthReport> {
   const checkedAt = new Date().toISOString();
   const productionComponent = readAiProductionComponent(aiProductionHealth);
-  const components = [
+  const startupComponents = [
     readRuntimeInitializationComponent(initialization),
     ...(productionComponent ? [productionComponent] : []),
+  ];
+  const components = [
+    ...startupComponents,
     readBrowserAuthorityComponent(assembly),
   ];
-  const allOk = components.every((component) => component.ok);
+  const allOk = startupComponents.every((component) => component.ok);
   return {
     status: allOk ? "healthy" : "degraded",
     components,

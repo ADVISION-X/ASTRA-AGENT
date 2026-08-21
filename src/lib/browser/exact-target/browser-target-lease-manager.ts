@@ -30,7 +30,7 @@ export class BrowserTargetLeaseManager {
   public acquire(input: BrowserExactTargetAcquisition): BrowserTargetLease {
     if (
       input.target.target.authorityEpoch !== this.certificate.authorityEpoch
-      || input.target.target.executionBindingHash !== this.certificate.executionBindingHash
+      || input.target.target.executionBindingHash !== this.executionBinding.executionRefHash
       || input.target.document.targetRef !== input.target.target.targetRef
     ) {
       throw new Error("BROWSER_TARGET_INVALID");
@@ -55,7 +55,7 @@ export class BrowserTargetLeaseManager {
       leaseRef,
       authorityRef: this.certificate.authorityRef,
       authorityEpoch: this.certificate.authorityEpoch,
-      executionBindingHash: this.certificate.executionBindingHash,
+      executionBindingHash: this.executionBinding.executionRefHash,
       ownerId: input.ownerId,
       agentJobRefHash: this.executionBinding.jobRefHash,
       agentExecutionRefHash: this.executionBinding.executionRefHash,
@@ -83,7 +83,7 @@ export class BrowserTargetLeaseManager {
       captureScreenshot: async ({ regionLabel }) => {
         const result = await command("browser.screenshot.v1", { kind: "screenshot", regionLabel });
         const artifact = result as { artifactRef?: unknown; contentHash?: unknown };
-        if (typeof artifact.artifactRef !== "string" || typeof artifact.contentHash !== "string") throw new Error("BROWSER_HOST_UNAVAILABLE");
+        if (typeof artifact.artifactRef !== "string" || typeof artifact.contentHash !== "string") throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
         return { artifactRef: artifact.artifactRef, contentHash: artifact.contentHash as `sha256:${string}` };
       },
       attachFile: async ({ selector, grants }: { selector: string; grants: readonly BrowserFileArtifactGrantV1[] }) => {
@@ -91,7 +91,7 @@ export class BrowserTargetLeaseManager {
           throw new Error("BROWSER_FILE_GRANT_INVALID");
         }
         for (const grant of grants) {
-          if (grant.authorityEpoch !== this.certificate.authorityEpoch || grant.executionBindingHash !== this.certificate.executionBindingHash) {
+          if (grant.authorityEpoch !== this.certificate.authorityEpoch || grant.executionBindingHash !== this.executionBinding.executionRefHash) {
             throw new Error("BROWSER_FILE_GRANT_INVALID");
           }
         }
@@ -118,8 +118,8 @@ export class BrowserTargetLeaseManager {
       authorityRef: this.certificate.authorityRef,
       authorityEpoch: this.certificate.authorityEpoch,
       certificateHash,
-      activationTupleHash: this.certificate.activationTupleHash,
-      executionBindingHash: this.certificate.executionBindingHash,
+      channelSessionHash: this.certificate.channelSessionHash,
+      executionBindingHash: this.executionBinding.executionRefHash,
       targetLeaseRef: input.leaseRef,
       targetRef: input.targetRef,
       documentRef: input.documentRef,

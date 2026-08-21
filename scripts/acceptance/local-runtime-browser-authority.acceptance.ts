@@ -50,11 +50,11 @@ try {
   assert.equal("acquireTargetLease" in assembly.browserAuthority, false, "Local Runtime must expose the Broker, not a cached target lease surface.");
   assert.equal("tryAcquireTargetLease" in assembly.browserAuthority, false, "Local Runtime must not offer startup target-lease probing.");
   assert.deepEqual(Object.keys(assembly.browserAuthority.health()).sort(), ["browserAuthority", "browserInfrastructure"]);
-  assert.equal(assembly.browserAuthority.health().browserInfrastructure.ok, false, "Unsigned activation must block Browser infrastructure startup.");
-  assert.equal(assembly.browserAuthority.health().browserAuthority.ok, false, "Unsigned activation must keep Browser authority absent.");
+  assert.equal(assembly.browserAuthority.health().browserInfrastructure.ok, true, "Workbench infrastructure must start before the extension page channel connects.");
+  assert.equal(assembly.browserAuthority.health().browserAuthority.ok, false, "Browser authority must remain absent until the exact extension authenticates through the Workbench page.");
   await assert.rejects(
     () => assembly.videoDownload.execute({} as never),
-    /BROWSER_HOST_UNAVAILABLE/u,
+    /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u,
     "Browser-dependent video work must fail closed while authority is absent.",
   );
 } finally {

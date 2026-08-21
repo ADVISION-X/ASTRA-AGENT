@@ -217,3 +217,42 @@ Required:
 
 - Raw JSON may remain available only as a collapsed audit/debug view.
 - Timeline responses that contain records must expose enough overview data for the app shell to avoid false `0` counts after refresh.
+
+## [APEX-LOCAL-APP-SHELL-006-V1] Workbench Extension Page Channel
+
+```apex-law
+{
+  "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "local-app-shell",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
+  "summary": "The one local Workbench page may carry exactly one CWS MV3 external Port for Browser owner frames, but it must remain a non-interactive transport adapter and never become a browser command or business-flow owner.",
+  "appliesTo": [
+    "src/app/**",
+    "src/lib/local-runtime/**"
+  ],
+  "forbidden": [
+    "A second workbench browser page or channel.",
+    "Browser command, selector, target, permit, or business-result creation in the page adapter.",
+    "chrome.debugger, connectNative, Native Messaging, or native host handling in src/app.",
+    "A visible browser action console, planner, or universal command input.",
+    "App routes calling browser private runtime directly."
+  ],
+  "clauses": [
+    {
+      "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
+      "statement": "Only the root Workbench page may initiate the fixed external Port and only the Browser owner may authorize its schema-bound frames; disconnect or grant expiry never triggers a UI-originated browser action.",
+      "evidenceMode": "model+acceptance+real-chrome",
+      "ownerDomain": "local-app-shell"
+    }
+  ]
+}
+```
+
+Required:
+
+- The page adapter starts without a user-operated browser control button and uses only the fixed extension ID and fixed channel name from the Browser owner contract.
+- Its same-origin routes only forward opaque schema-bound frames to the Workbench Handle's explicit Browser-channel facade.
+- A missing CWS installation, page-session grant, or accepted Port is exposed as unavailable; no fallback transport is attempted.

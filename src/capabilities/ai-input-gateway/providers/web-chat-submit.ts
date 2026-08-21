@@ -8,6 +8,7 @@ import type {
 import type { AiFeedInput } from "../schema.js";
 import { pasteTextAndSubmitInChrome } from "./web-chat-clipboard.js";
 import { focusComposer, clickChatGptSendButton } from "./web-chat-page-actions.js";
+import { dismissChatGptSearchDialogIfVisible } from "./web-chat-search-dialog-hygiene.js";
 import { verifyPromptPasted, verifyPromptSubmitted } from "./web-chat-submit-page-actions.js";
 import { captureWebChatSubmissionProof } from "./web-chat-turn-identity.js";
 
@@ -52,6 +53,7 @@ export const submitPromptViaClipboard = async (
   const expectedPrefix = prompt.slice(0, 80);
   const expectedSuffix = prompt.slice(-80);
   try {
+    await dismissChatGptSearchDialogIfVisible(input.browser, input.context);
     const focused = await focusComposer(input.browser, input.context);
     if (focused.status !== "success") throw new Error(focused.message);
     await pasteTextAndSubmitInChrome(input.browser, prompt, input.context.abortSignal);

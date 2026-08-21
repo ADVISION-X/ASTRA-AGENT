@@ -68,9 +68,8 @@ function startServer(): ReturnType<typeof createServer> {
 }
 
 async function startLocalRuntime(): Promise<void> {
-  // Browser authority is a mandatory runtime dependency. The HTTP server is not
-  // exposed until the composition root has received a current authenticated
-  // authority and has constructed the browser-dependent business owners.
+  // The HTTP server starts after the local composition root is initialized.
+  // Browser-dependent jobs perform their authority admission when requested.
   await workbench.init();
   const server = startServer();
   process.stdout.write(`GrassEye local workbench listening on ${baseUrl}\n`);

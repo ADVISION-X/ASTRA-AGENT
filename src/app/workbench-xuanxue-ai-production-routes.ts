@@ -23,6 +23,17 @@ export const handleXuanxueAiProductionRequest = async (
       writeJson(response, 400, { error: "missing_order_id" });
       return true;
     }
+    const quarantined = workbench.readXuanxueAiProductionQuarantine(orderId);
+    if (quarantined) {
+      writeJson(response, 200, {
+        order: quarantined,
+        quarantine: {
+          state: "review_required",
+          reason: quarantined.failureReason,
+        },
+      });
+      return true;
+    }
     const status = workbench.readXuanxueAiProductionStatus(orderId);
     writeJson(
       response,

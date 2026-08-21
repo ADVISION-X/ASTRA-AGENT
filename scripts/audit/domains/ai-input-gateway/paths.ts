@@ -32,16 +32,13 @@ const runtimeCoordination = {
 } as const;
 
 const runtimeConversation = {
-  freshConversationPath: "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation-script.ts",
   freshConversationControlPath: "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
   submissionCheckpointPath: "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
   responseCapturePath: "src/capabilities/ai-input-gateway/providers/web-chat-response-capture.ts",
-  answerEvaluationPath: "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
   answerSupportPath: "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
   resumePath: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
   rateLimitDialogPath: "src/capabilities/ai-input-gateway/providers/web-chat-rate-limit-dialog.ts",
   recoveryPath: "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
-  pageActionScriptsPath: "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
 } as const;
 
 const runtimeInteraction = {

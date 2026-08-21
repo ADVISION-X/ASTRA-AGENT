@@ -235,3 +235,4 @@ const composerClearedAfterVerifiedPaste = ${JSON.stringify(input.wasPromptVerifi
   && !pastedTextCardReady;
 ${WEB_CHAT_SUBMITTED_VERDICT_SCRIPT}
 `.replace("__EXPECTED_LENGTH__", String(input.expectedLength));
+

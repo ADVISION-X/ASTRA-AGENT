@@ -5,6 +5,7 @@ import type { BrowserFileArtifactGrantV1 } from "../exact-target/browser-file-ar
 import { assertCertificateLive } from "./browser-authority-certificate.js";
 import type { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { BrowserHash } from "../exact-target/browser-target-ref.js";
+import { assertLivenessLeaseLive, createLivenessLease } from "./browser-authority-liveness-lease.js";
 
 export type BrowserExecutionBinding = Readonly<{
   kind: "local" | "xuanxue";
@@ -18,7 +19,7 @@ export type BrowserExecutionBinding = Readonly<{
 
 export type BrowserAuthorityStatus =
   | Readonly<{ kind: "UNAVAILABLE"; reasonCode: string }>
-  | Readonly<{ kind: "AVAILABLE"; authorityRefHash: BrowserHash; certificateHash: BrowserHash; activationTupleHash: BrowserHash }>;
+  | Readonly<{ kind: "AVAILABLE"; authorityRefHash: BrowserHash; certificateHash: BrowserHash; channelSessionHash: BrowserHash }>;
 
 export type AuthenticatedBrowserAuthorityLease = Readonly<{
   leaseRef: string;
@@ -46,7 +47,7 @@ export class BrowserAuthorityBroker {
       kind: "AVAILABLE",
       authorityRefHash: `sha256:${slot.authority.authorityRef}`,
       certificateHash: `sha256:${slot.authority.authTranscriptHash.slice(7)}`,
-      activationTupleHash: slot.authority.activationTupleHash,
+      channelSessionHash: slot.authority.channelSessionHash,
     };
   }
 
@@ -54,25 +55,31 @@ export class BrowserAuthorityBroker {
     const slot = this.issuer.current();
     if (slot.kind === "ABSENT") throw new Error(slot.reasonCode);
     assertCertificateLive(slot.authority);
-    if (slot.authority.executionBindingHash !== binding.executionRefHash) throw new Error("BROWSER_WORKER_FENCE_INVALID");
     const manager = this.targetLeaseManagerFor(binding);
+    const livenessLease = createLivenessLease(slot.authority);
     let released = false;
+    const assertLive = (): void => {
+      if (released) throw new Error("BROWSER_LIVENESS_EXPIRED");
+      assertCertificateLive(slot.authority);
+      assertLivenessLeaseLive(livenessLease);
+    };
     return {
       leaseRef: `authority-lease-${randomUUID()}`,
       executionBinding: binding,
       acquireTargetLease: (input) => {
-        if (released) throw new Error("BROWSER_LIVENESS_EXPIRED");
+        assertLive();
         return manager.acquire(input);
       },
       issueFileArtifactGrant: async ({ artifactRef, expectedSha256, maxBytes }) => {
-        if (released || maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
+        assertLive();
+        if (maxBytes < 1) throw new Error("BROWSER_FILE_GRANT_INVALID");
         const artifact = await this.artifactResolver.resolveArtifact(artifactRef);
         if (artifact.contentHash !== expectedSha256 || artifact.sizeBytes > maxBytes) throw new Error("BROWSER_FILE_GRANT_INVALID");
         return {
           schemaVersion: "browser-file-artifact-grant-v1",
           grantRef: `grant-${randomUUID()}`,
           authorityEpoch: slot.authority.authorityEpoch,
-          executionBindingHash: slot.authority.executionBindingHash,
+          executionBindingHash: binding.executionRefHash,
           artifactRef,
           contentHash: expectedSha256,
           maxBytes,

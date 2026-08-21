@@ -59,6 +59,7 @@ FAIL = 超过红线
 - 被 generated audit plan 动态装载为 owner inspector。
 - 导出面被 reachable importer 的 namespace import 合法消费。
 - 被现役 law 明确授权为外部入口面。
+- 被所属现役 law 在 `codePurityLiveness.auditInspectionFiles` 精确声明为 owner inspector 的静态受检证据面；该证明只用于审计读取，绝不构成生产入口、动态 import、导出或兼容面。
 
 来自 zombie 文件的入边不算活性证明。
 `index.ts`、`contract.ts`、`schema.ts`、type-contract 不是天然豁免。
@@ -71,7 +72,7 @@ code-purity inspector 必须：
 
 1. 收集 active source。
 2. 构建以合法根为起点的 import / re-export reachability 图。
-3. 提取 package script entrypoints、generated-plan owner exemptions、以及 law 明示的动态 export 豁免。
+3. 提取 package script entrypoints、generated-plan owner exemptions、law 明示的动态 export 豁免，以及所属现役 law 精确声明的 audit inspection evidence files。
 4. 产出 zombie-file / zombie-export / zombie-top-level-declaration / zombie-dead-branch findings。
 5. 把整改动作写入 code-purity inventory，并保持执行态二元裁决。
 

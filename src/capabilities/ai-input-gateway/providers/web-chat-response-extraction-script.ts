@@ -286,3 +286,4 @@ ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const expectedPrompt = String(${JSON.stringify(promptText)} || "").replace(/\\s+/gu, " ").trim();
 ${PROMPT_SCOPED_CHATGPT_RESPONSE_SCRIPT}
 `;
+

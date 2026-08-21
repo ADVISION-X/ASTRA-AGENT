@@ -24,6 +24,9 @@ import {
 import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
 
+const literalContains = (source: SourceFile, value: string): boolean =>
+  [...stringLiterals(source)].some((literal) => literal.includes(value));
+
 const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   const schema = requireSourceFile(context, findings, lawId, P.attachment.schemaPath);
   const contract = requireSourceFile(context, findings, lawId, P.attachment.contractPath);
@@ -210,18 +213,17 @@ const inspectLiveGenerationProof = (
   findings: Finding[],
   lawId: string,
 ): void => {
-  const evaluation = requireSourceFile(context, findings, lawId, P.runtime.answerEvaluationPath);
-  const acceptance = requireSourceFile(context, findings, lawId, P.acceptance.sourceContractAcceptancePath);
-  if (!evaluation || !acceptance) return;
-  const acceptanceIds = identifiers(acceptance);
-  const acceptanceText = stringLiterals(acceptance);
+  const evaluation = requireSourceFile(context, findings, lawId, P.runtime.answerSupportPath);
+  if (!evaluation) return;
+  const evaluationIds = identifiers(evaluation);
   if (
-    !evaluation.getVariableDeclaration("WEB_CHAT_STATUS_TEXT_SCRIPT")
-    || !acceptanceIds.has("answerEvaluation")
-    || !acceptanceText.has("visibleProgressClass")
-    || !acceptanceText.has("[class*='shimmer']")
+    !evaluationIds.has("currentGenerationState")
+    || !evaluationIds.has("generating")
+    || !evaluationIds.has("lastGenerating")
+    || !literalContains(evaluation, "button[aria-label*='Stop']")
+    || !literalContains(evaluation, "button[aria-label*='停止']")
   ) {
-    pushFinding(findings, lawId, P.runtime.answerEvaluationPath, "ai-input-gateway/live-generation-proof", "Live loading/shimmer DOM must remain generating until the exact answer completes.");
+    pushFinding(findings, lawId, P.runtime.answerSupportPath, "ai-input-gateway/live-generation-proof", "Live loading/shimmer DOM must remain generating until the exact answer completes.");
   }
 };
 const inspectTransientPatrolRetry = (

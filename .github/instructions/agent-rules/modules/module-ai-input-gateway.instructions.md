@@ -33,6 +33,19 @@ business owner
   "evidenceMode": "law+blueprint+ast+acceptance",
   "summary": "AI Input Gateway is the single provider-transport owner and must preserve a provider-agnostic public request contract.",
   "codePurityLiveness": {
+    "auditInspectionFiles": [
+      "src/capabilities/ai-input-gateway/acceptance/attachment-script-fixture-support.ts",
+      "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-fork-action-scripts.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-generated-image-capture.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-response-extraction-script.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-submission-checkpoint.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-submit-attachment-verification.ts",
+      "src/capabilities/ai-input-gateway/providers/web-chat-submitted-attachment-evaluation.ts"
+    ],
     "lawfulDynamicRegistryConsumers": [
       {
         "consumerFilePath": "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",

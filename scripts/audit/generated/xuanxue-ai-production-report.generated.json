@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T15:20:13.147Z",
+  "generatedAt": "2026-08-20T23:42:44.247Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,18 +9,35 @@
     "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
     "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "xuanxue-ai-production/canonical-provider-identity",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
+      "message": "Canonical provider recovery must contain markerCount.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts"
+    },
+    {
+      "checkId": "xuanxue-ai-production/canonical-provider-identity",
+      "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
+      "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
+      "message": "Canonical provider recovery must contain rowCount.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts"
+    }
+  ],
   "checkRuns": [
     {
-      "runId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1a1e963e-42b2-49d4-8e2f-8c1e5e08303a",
+      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:24677240-2080-4a01-a38e-96b1a529ccde",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "status": "PASS",
-      "startedAt": "2026-08-20T15:20:12.541Z",
-      "endedAt": "2026-08-20T15:20:13.147Z",
-      "durationMs": 606,
+      "status": "FAIL",
+      "startedAt": "2026-08-20T23:42:43.576Z",
+      "endedAt": "2026-08-20T23:42:44.247Z",
+      "durationMs": 671,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
@@ -37,6 +54,7 @@
         "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
         "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -76,6 +94,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+        "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stored-order-quarantine.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
@@ -87,7 +106,7 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.store.ts",
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
       ],
-      "findingCount": 0
+      "findingCount": 2
     }
   ],
   "executedChecks": [
@@ -95,31 +114,31 @@
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1a1e963e-42b2-49d4-8e2f-8c1e5e08303a"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:24677240-2080-4a01-a38e-96b1a529ccde"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
       "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1a1e963e-42b2-49d4-8e2f-8c1e5e08303a"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:24677240-2080-4a01-a38e-96b1a529ccde"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
       "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1a1e963e-42b2-49d4-8e2f-8c1e5e08303a"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:24677240-2080-4a01-a38e-96b1a529ccde"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
       "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1a1e963e-42b2-49d4-8e2f-8c1e5e08303a"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:24677240-2080-4a01-a38e-96b1a529ccde"
     },
     {
       "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1",
       "clauseId": "grasseye-xuanxue-ai-production-005-v1-transient-lifecycle",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:60ef51af-a3c0-478a-91a1-93b5611d62bd:check:1a1e963e-42b2-49d4-8e2f-8c1e5e08303a"
+      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:24677240-2080-4a01-a38e-96b1a529ccde"
     }
   ],
   "inspectedFiles": [
@@ -138,6 +157,7 @@
     "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
     "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+    "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
@@ -177,6 +197,7 @@
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stored-order-quarantine.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",

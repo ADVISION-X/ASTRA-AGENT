@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
+import { isRoutableWebChatSubmission } from "../runtime/web-chat-single-tab-browser.js";
 
 const source = (repoPath: string): Promise<string> => readFile(path.join(process.cwd(), repoPath), "utf8");
 
@@ -49,7 +50,7 @@ const assertNoRetiredPaths = async (): Promise<void> => {
   );
 };
 
-const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, string>): void => {
+const assertAuthorityBoundLease = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.browserApi.includes("BrowserTargetLease")
       && sources.targetLease.includes("executionBindingHash")
@@ -60,6 +61,9 @@ const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, strin
       && !sources.browserApi.includes("BrowserTargetSession"),
     "AI must receive an authority-bound exact target lease, never a controller/session object",
   );
+};
+
+const assertFiniteDomIntent = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.domIntent.includes('kind: "document"')
       && sources.domIntent.includes('kind: "find"')
@@ -68,6 +72,9 @@ const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, strin
       && !sources.domIntent.includes("evaluate"),
     "Browser DOM access must be a finite, uniqueness-aware command set",
   );
+};
+
+const assertFixedDevtoolsRuntime = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.domRuntime.includes("DOM.querySelectorAll")
       && sources.domRuntime.includes("Page.getNavigationHistory")
@@ -76,6 +83,9 @@ const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, strin
       && !sources.domRuntime.includes("new Function"),
     "the extension must use fixed DevTools DOM methods rather than a page-script surface",
   );
+};
+
+const assertNativeTargetBinding = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.nativeActor.includes("controller-command")
       && sources.nativeActor.includes("claimOperatorTarget")
@@ -85,14 +95,22 @@ const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, strin
   );
 };
 
+const assertBrowserBoundary = (sources: Record<keyof typeof activeSources, string>): void => {
+  assertAuthorityBoundLease(sources);
+  assertFiniteDomIntent(sources);
+  assertFixedDevtoolsRuntime(sources);
+  assertNativeTargetBinding(sources);
+};
+
 const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
     sources.routing.includes("focusChatGptConversationByCanonicalPath")
       && sources.routing.includes("executeDomIntent")
       && sources.routing.includes("CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS")
-      && sources.routing.includes("Search-dialog recovery is not")
+      && sources.routing.includes("discoverChatGptConversationViaSearch")
+      && sources.routing.includes("Search chats dialog")
       && !sources.routing.includes(".evaluate("),
-    "canonical routing must use exact path/marker instructions and fail closed for unobserved search UI",
+    "canonical routing must use exact path/marker instructions and the observed bounded Search chats dialog",
   );
   assert.ok(
     sources.answer.includes("conversation-turn-")
@@ -118,9 +136,35 @@ const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources
   );
 };
 
+const assertTransientSubmissionDoesNotRoute = (): void => {
+  const base = {
+    transientConversationUrl: "https://chatgpt.com/c/WEB:submitted",
+    userTurnId: "conversation-turn-1",
+    previousAssistantCount: 0,
+    previousUserMessageCount: 0,
+    submittedAt: new Date().toISOString(),
+  };
+  assert.equal(
+    isRoutableWebChatSubmission({ ...base, canonicalConversationUrl: "https://chatgpt.com/c/WEB:submitted" }),
+    false,
+    "a transient WEB submission receipt must prevent resubmission without becoming a route identity",
+  );
+  assert.equal(
+    isRoutableWebChatSubmission({ ...base, canonicalConversationUrl: "https://chatgpt.com/c/canonical" }),
+    true,
+    "only a verified canonical conversation may become routable",
+  );
+  assert.equal(
+    isRoutableWebChatSubmission({ ...base, canonicalConversationUrl: "not-a-url" }),
+    false,
+    "an invalid provider URL must never become routable",
+  );
+};
+
 export const assertWebChatSourceContracts = async (): Promise<void> => {
   await assertNoRetiredPaths();
   const sources = await readActiveSources();
   assertBrowserBoundary(sources);
   assertObservedChatGptActions(sources);
+  assertTransientSubmissionDoesNotRoute();
 };

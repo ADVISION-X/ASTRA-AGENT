@@ -14,6 +14,9 @@ export {
   type XuanxueAiProductionResult,
 } from "./xuanxue-ai-production.schema.js";
 export { XuanxueAiProductionStore } from "./xuanxue-ai-production.store.js";
+export type {
+  XuanxueAiProductionQuarantinedOrder,
+} from "./xuanxue-ai-production-stored-order-quarantine.js";
 export {
   resolveXuanxueAiProductionWindow,
   XuanxueAiProductionCoordinator,

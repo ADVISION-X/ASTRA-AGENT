@@ -140,7 +140,7 @@ export const createVideoDownloadAbilityGroup = (
 };
 
 const unavailableBrowserAuthority = async (): Promise<never> => {
-  throw new Error("BROWSER_HOST_UNAVAILABLE");
+  throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
 };
 
 /**

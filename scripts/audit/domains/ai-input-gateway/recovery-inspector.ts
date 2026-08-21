@@ -215,6 +215,11 @@ const inspectCanonicalRecovery = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
+  const routingValues = sourceValues([sources.routing]);
+  const directBoundedRoute = routingValues.has("focusChatGptConversationByCanonicalPath")
+    && routingValues.has("canonicalPathFor")
+    && routingValues.has("WEB_CHAT_BOUND_CONVERSATION_NOT_READY: canonical ChatGPT path is unavailable; url=");
+  if (directBoundedRoute) return;
   pushMissing({
     findings,
     lawId,

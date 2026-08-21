@@ -20,7 +20,6 @@ import {
 const existingInvoiceEvidencePollMs = 250;
 const INVOICE_DIALOG_READY_CONFIRMATION_COUNT = 2;
 const INVOICE_DIALOG_OBSERVATION_LIMIT = 240;
-const noAvailableActionsDialogDismissTimeoutMs = 2_000;
 const noAvailableActionsDialogText = "很抱歉，目前没有可用的操作。";
 const invoiceReadFailureDialogText = "读取失败";
 
@@ -33,8 +32,6 @@ type ExistingInvoiceEvidenceWaitResult =
       failureText: string;
       snapshot: Awaited<ReturnType<typeof readSnapshot>>;
     };
-
-type OutsideDialogClickResult = { ok: true } | { ok: false; reason: string };
 
 type AlreadyUploadedRetainedTabInput = {
   runtimeLogger: RuntimeLogger;
@@ -108,12 +105,10 @@ async function recoverInvoiceReadFailure(
   >,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   const dismissFailure = await dismissInvoiceReadFailureDialog(
-    browser,
     runtimeLogger,
     mission,
     firstWait.snapshot,
     firstWait.failureText,
-    abortSignal,
   );
   if (dismissFailure) return dismissFailure;
 
@@ -234,12 +229,10 @@ function traceManageInvoiceClick(
 }
 
 async function dismissInvoiceReadFailureDialog(
-  browser: BrowserTargetLease,
   runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   snapshot: Awaited<ReturnType<typeof readSnapshot>>,
   failureText: string,
-  abortSignal: AbortSignal,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   recordAmazonDomStepTrace({
     runtimeLogger,
@@ -250,112 +243,10 @@ async function dismissInvoiceReadFailureDialog(
     reason: `The unique current-order invoice dialog exposed the governed read-failure blocker: ${failureText}.`,
   });
 
-  const clicked = await clickSafeOutsideDialogPoint(
-    browser,
+  return existingInvoiceNeedsReview(
     mission,
-    failureText,
-    abortSignal,
+    "NOT_PRODUCTION_VERIFIED: no approved exact DOM intent exists to dismiss this Amazon invoice dialog.",
   );
-  if (!clicked.ok) {
-    return existingInvoiceNeedsReview(
-      mission,
-      `Amazon manage-invoice recovery could not click the verified outside-dialog blank area: ${clicked.reason}`,
-    );
-  }
-  if (
-    !(await waitForInvoiceReadFailureDialogDismissal(
-      browser,
-      mission,
-      failureText,
-      abortSignal,
-    ))
-  ) {
-    return existingInvoiceNeedsReview(
-      mission,
-      "Amazon manage-invoice recovery clicked outside the dialog, but the blocked dialog did not disappear.",
-    );
-  }
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName: "dismiss invoice read failure dialog",
-    status: "success",
-    reason:
-      "Clicked one live DOM-derived blank point outside the dialog and verified that the blocked dialog disappeared.",
-  });
-  return null;
-}
-
-async function clickSafeOutsideDialogPoint(
-  browser: BrowserTargetLease,
-  mission: AmazonInvoiceUploadMissionInput,
-  failureText: string,
-  abortSignal: AbortSignal,
-): Promise<OutsideDialogClickResult> {
-  const orderId = JSON.stringify(mission.amazonOrderId);
-  const blockerText = JSON.stringify(failureText);
-  return browser.evaluate<OutsideDialogClickResult>({
-    description:
-      "locate and click one safe blank point outside the blocked Amazon manage-invoice dialog",
-    abortSignal,
-    script: `
-      const orderId = ${orderId};
-      const blockerText = ${blockerText};
-      const dialogs = Array.from(document.querySelectorAll("dialog,[role=dialog],[aria-modal=true]"))
-        .filter((element) => {
-          const rect = element.getBoundingClientRect();
-          const style = window.getComputedStyle(element);
-          const text = element.textContent || "";
-          return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none"
-            && text.includes(orderId) && text.includes(blockerText);
-        });
-      if (dialogs.length !== 1) {
-        return { ok: false, reason: "Amazon manage-invoice recovery requires exactly one visible current-order no-actions dialog." };
-      }
-      const rect = dialogs[0].getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const candidates = [
-        { area: Math.max(0, rect.left) * viewportHeight, x: rect.left / 2, y: viewportHeight / 2 },
-        { area: Math.max(0, viewportWidth - rect.right) * viewportHeight, x: (rect.right + viewportWidth) / 2, y: viewportHeight / 2 },
-        { area: Math.max(0, rect.top) * viewportWidth, x: viewportWidth / 2, y: rect.top / 2 },
-        { area: Math.max(0, viewportHeight - rect.bottom) * viewportWidth, x: viewportWidth / 2, y: (rect.bottom + viewportHeight) / 2 },
-      ].filter((candidate) => candidate.area > 0)
-        .sort((left, right) => right.area - left.area);
-      const point = candidates.find((candidate) => {
-        const target = document.elementFromPoint(candidate.x, candidate.y);
-        return target && !dialogs[0].contains(target)
-          && !target.closest("a,button,input,select,textarea,[role=button],[role=link],[contenteditable=true]");
-      });
-      if (!point || point.x < 1 || point.y < 1 || point.x >= viewportWidth || point.y >= viewportHeight
-        || (point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom)) {
-        return { ok: false, reason: "Amazon manage-invoice recovery could not derive a safe blank point outside the live dialog." };
-      }
-      const target = document.elementFromPoint(point.x, point.y);
-      if (!(target instanceof HTMLElement)) {
-        return { ok: false, reason: "Amazon manage-invoice recovery blank point has no clickable DOM target." };
-      }
-      target.click();
-      return { ok: true };
-    `,
-  });
-}
-
-async function waitForInvoiceReadFailureDialogDismissal(
-  browser: BrowserTargetLease,
-  mission: AmazonInvoiceUploadMissionInput,
-  failureText: string,
-  abortSignal: AbortSignal,
-): Promise<boolean> {
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < noAvailableActionsDialogDismissTimeoutMs) {
-    throwIfAborted(abortSignal);
-    const snapshot = await readExistingInvoiceSnapshot(browser, abortSignal);
-    if (findInvoiceReadFailureDialogText(snapshot, mission) !== failureText)
-      return true;
-    await browser.wait(existingInvoiceEvidencePollMs, abortSignal);
-  }
-  return false;
 }
 
 function findInvoiceReadFailureDialogText(

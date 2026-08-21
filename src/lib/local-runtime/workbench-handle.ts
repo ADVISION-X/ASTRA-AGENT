@@ -8,10 +8,12 @@ import type {
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 import type {
+  XuanxueAiProductionQuarantinedOrder,
   XuanxueAiInterventionRecord,
   XuanxueAiOrderRecord,
 } from "../../plugins/xuanxue-ai-production/index.js";
 import type { PluginInterventionRequest, PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
+import type { WorkbenchExtensionChannelRequest, WorkbenchExtensionChannelResponse } from "../browser/transport/workbench-extension-channel.js";
 
 type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceAdminOpenTask;
 type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
@@ -65,6 +67,7 @@ export type GrassEyeWorkbenchHandle = {
     sourceSystem?: string | undefined;
   }) => void;
   getDataDir: () => string;
+  workbenchBrowserExtensionChannel: (input: WorkbenchExtensionChannelRequest) => Promise<WorkbenchExtensionChannelResponse>;
   readAmazonInvoiceUploadIntervention: ReadPluginIntervention;
   pauseAmazonInvoiceUpload: RequestPluginIntervention;
   cancelAmazonInvoiceUpload: RequestPluginIntervention;
@@ -82,6 +85,9 @@ export type GrassEyeWorkbenchHandle = {
     input: WorkbenchPreflightInput,
   ) => Promise<WorkbenchPreflightResult>;
   getModeInfo: () => unknown;
+  readXuanxueAiProductionQuarantine: (
+    orderId: string,
+  ) => XuanxueAiProductionQuarantinedOrder | null;
   readXuanxueAiProductionStatus: (orderId: string) => {
     order: XuanxueAiOrderRecord;
     intervention: XuanxueAiInterventionRecord;
@@ -155,5 +161,5 @@ export type GrassEyeWorkbenchHandle = {
   exportAmazonProductMiningResult: (
     taskId: string,
   ) => AmazonProductMiningExportResult;
-  continueInterruptedAmazonProductMiningTasks: () => AmazonProductMiningAutoContinueResult;
+  continueInterruptedAmazonProductMiningTasks: () => Promise<AmazonProductMiningAutoContinueResult>;
 };

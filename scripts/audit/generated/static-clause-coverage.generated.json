@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-08-20T20:32:59.058Z",
+  "generatedAt": "2026-08-21T00:29:02.681Z",
   "summary": {
-    "activeLawCount": 220,
-    "activeClauseCount": 221,
-    "boundClauseCount": 221,
+    "activeLawCount": 221,
+    "activeClauseCount": 222,
+    "boundClauseCount": 222,
     "machineClauseCount": 207,
     "executedMachineClauseCount": 0,
-    "deferredRealChromeClauseCount": 14,
+    "deferredRealChromeClauseCount": 15,
     "realChromeClauseIds": [
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1::grasseye-amazon-invoice-upload-010-requirement",
       "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1::grasseye-amazon-invoice-upload-011-requirement",
@@ -15,12 +15,13 @@
       "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1::grasseye-app-shell-ui-physical-cleanup-001-requirement",
       "APEX-DOM-020-V1::apex-dom-020-requirement",
       "APEX-DOM-021-V1::apex-dom-021-requirement",
-      "APEX-LOCAL-BROWSER-001-V2::apex-local-browser-001-v2-exact-authority-lease",
-      "APEX-LOCAL-BROWSER-002-V2::apex-local-browser-002-v2-authority-atomicity",
-      "APEX-LOCAL-BROWSER-003-V2::apex-local-browser-003-v2-single-chain",
-      "APEX-LOCAL-BROWSER-004-V2::apex-local-browser-004-v2-governed-command-plane",
-      "APEX-LOCAL-BROWSER-005-V1::apex-local-browser-005-v1-release-identity",
-      "APEX-LOCAL-BROWSER-006-V1::apex-local-browser-006-v1-cross-repo-fence-proof",
+      "APEX-LOCAL-APP-SHELL-006-V1::apex-local-app-shell-006-v1-workbench-extension-channel",
+      "APEX-LOCAL-BROWSER-001-V3::apex-local-browser-001-v3-exact-authority-lease",
+      "APEX-LOCAL-BROWSER-002-V3::apex-local-browser-002-v3-authority-atomicity",
+      "APEX-LOCAL-BROWSER-003-V3::apex-local-browser-003-v3-single-chain",
+      "APEX-LOCAL-BROWSER-004-V3::apex-local-browser-004-v3-governed-command-plane",
+      "APEX-LOCAL-BROWSER-005-V2::apex-local-browser-005-v2-release-identity",
+      "APEX-LOCAL-BROWSER-006-V2::apex-local-browser-006-v2-cross-repo-fence-proof",
       "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5::grasseye-xuanxue-ai-production-001-v5-real-chrome-proof"
     ],
     "uncoveredMachineClauseIds": [
@@ -2675,8 +2676,25 @@
       "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-001-V2",
-      "clauseId": "apex-local-browser-001-v2-exact-authority-lease",
+      "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
+      "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
+      "capabilityDomain": "local-app-shell",
+      "evidenceMode": "model+acceptance+real-chrome",
+      "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
+      "checkIds": [
+        "local-app-shell/owner-assertion-set"
+      ],
+      "sourceEvidence": [
+        {
+          "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
+          "symbolName": "inspectDomain"
+        }
+      ],
+      "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json"
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-001-V3",
+      "clauseId": "apex-local-browser-001-v3-exact-authority-lease",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -2692,8 +2710,8 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-002-V2",
-      "clauseId": "apex-local-browser-002-v2-authority-atomicity",
+      "lawId": "APEX-LOCAL-BROWSER-002-V3",
+      "clauseId": "apex-local-browser-002-v3-authority-atomicity",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -2717,16 +2735,16 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-003-V2",
-      "clauseId": "apex-local-browser-003-v2-single-chain",
+      "lawId": "APEX-LOCAL-BROWSER-003-V3",
+      "clauseId": "apex-local-browser-003-v3-single-chain",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "browser-auth/no-host-controller-rebind",
-        "browser-auth/original-reply-channel",
+        "browser-channel/no-page-session-rebind",
+        "browser-channel/original-reply-channel",
         "browser-auth/production-fixture-zero",
-        "browser-install/safe-stale-socket-recovery"
+        "browser-channel/no-native-host-surface"
       ],
       "sourceEvidence": [
         {
@@ -2737,8 +2755,8 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-004-V2",
-      "clauseId": "apex-local-browser-004-v2-governed-command-plane",
+      "lawId": "APEX-LOCAL-BROWSER-004-V3",
+      "clauseId": "apex-local-browser-004-v3-governed-command-plane",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
@@ -2755,20 +2773,20 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-005-V1",
-      "clauseId": "apex-local-browser-005-v1-release-identity",
+      "lawId": "APEX-LOCAL-BROWSER-005-V2",
+      "clauseId": "apex-local-browser-005-v2-release-identity",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "artifact+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "checkIds": [
-        "browser-auth/exact-activation-tuple",
+        "browser-release/cws-release-identity",
         "browser-profile/dedicated-production-profile",
-        "browser-profile/process-enrollment-attestation",
-        "browser-profile/force-install-policy-readback",
-        "browser-release/artifact-activation-proof-separation",
-        "browser-release/verified-crx-hard-gate",
+        "browser-profile/installed-extension-readback",
+        "browser-profile/exact-workbench-origin-readback",
+        "browser-release/cws-identity-proof-separation",
+        "browser-release/cws-review-and-installed-readback",
         "browser-release/anti-rollback-and-revocation",
-        "browser-release/reproducible-build-identity"
+        "browser-release/no-apple-signing-gate"
       ],
       "sourceEvidence": [
         {
@@ -2779,8 +2797,8 @@
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json"
     },
     {
-      "lawId": "APEX-LOCAL-BROWSER-006-V1",
-      "clauseId": "apex-local-browser-006-v1-cross-repo-fence-proof",
+      "lawId": "APEX-LOCAL-BROWSER-006-V2",
+      "clauseId": "apex-local-browser-006-v2-cross-repo-fence-proof",
       "capabilityDomain": "local-browser-session",
       "evidenceMode": "model+acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",

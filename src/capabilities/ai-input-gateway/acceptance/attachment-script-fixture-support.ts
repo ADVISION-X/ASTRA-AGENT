@@ -14,3 +14,4 @@ export const readExpectedPageUrl = (script: string): string | null => {
   const match = script.match(/const expectedPageUrl = (null|"[^"\n]*");/u);
   return match ? JSON.parse(match[1]!) as string | null : null;
 };
+

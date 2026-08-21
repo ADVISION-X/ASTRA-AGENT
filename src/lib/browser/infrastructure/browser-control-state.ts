@@ -17,7 +17,7 @@ export type BrowserControlState = Readonly<{
   authority: BrowserAuthoritySlot;
 }>;
 
-export const absentBrowserControlState = (reasonCode = "BROWSER_HOST_UNAVAILABLE"): BrowserControlState => ({
+export const absentBrowserControlState = (reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): BrowserControlState => ({
   infrastructure: { kind: "STOPPED", epoch: 0 },
   authority: { kind: "ABSENT", reasonCode },
 });
