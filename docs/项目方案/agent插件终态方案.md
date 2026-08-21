@@ -1,9 +1,25 @@
-# AGENT 插件终态方案
+# 《AGENT 插件终态方案》——全面冻结终版
 
-版本：V1.0  
-日期：2026-08-21  
-状态：`DESIGN_ONLY / LAW_CHANGE_REQUIRED / NOT_PRODUCTION_VERIFIED`  
-适用范围：用户本人这一台 macOS 电脑上的 GrassEye AGENT、Google Chrome 和本地加载的 MV3 扩展  
+> [!IMPORTANT]
+> **全面冻结 / FULLY FROZEN**
+>
+> 本文自 2026-08-21 起作为 AGENT 本机 Chrome 插件建设的唯一终态设计合同全面冻结。后续 active law、施工图、代码、质检和真实 Chrome 验收只能向本文对齐，不得在施工中暗改目标、增加第二链、恢复付费依赖或降低验收门。
+>
+> 冻结后只有用户明确下达“解除冻结/修改终态方案”指令，才能修改本文。真实施工发现不可实现或证据冲突时，必须停止并报告，不能由实现者自行绕开、兼容或改写本文。
+>
+> 第二轮审计输入候选 SHA-256 为 `d323827f6874f109c20e7238d2e739c5513fb762b98e1237dbfc928b993bd3bb`：架构审计 `97/100 PASS`；反例审计 `88/100 FAIL` 并提出 3 项 P1。终版已逐项收口反射防护与 AEAD AAD、自哈希固定点、Chrome 更新与 72 小时 soak 递归冲突，并同时收口两份审计的全部 P2。按用户指令不再启动第三轮审计。
+>
+> 最终冻结文件 SHA-256 只在交付记录中外部计算，不把自身 hash 写入本文，避免制造自哈希固定点。
+
+版本：V1.1-FROZEN
+
+日期：2026-08-21
+
+冻结日期：2026-08-21
+
+状态：`FULLY_FROZEN_DESIGN / LAW_CHANGE_REQUIRED / NOT_PRODUCTION_VERIFIED`
+
+适用范围：用户本人这一台 macOS 电脑上的 GrassEye AGENT、Google Chrome 和本地加载的 MV3 扩展
 
 ---
 
@@ -125,6 +141,10 @@
                                                                   → 玄学网站 / 请求网站
 ```
 
+网站入口的 LNA 与 CORS 只约束真实浏览器，不能认证能够伪造 HTTP header 的本机进程。独立认证根是每个获准 Site Policy 独有的 256-bit CSPRNG API key：AGENT 仅存 owner-only `0600` credential record；获准网站运行时只能在本次受控页面内存中持有，不得编译进公开静态包、发送到远端服务、写入 URL、持久浏览器存储、日志或 Evidence。若某网站不能满足该保存边界，该 Job 保持 `BLOCKED`。
+
+每个请求必须同时绑定 `keyId + requestId + issuedAt + deadline + method + exactPath + bodySha256`，并以 API key 做 HMAC-SHA-256；`requestId` 为一次性 128-bit 随机值，deadline 最长 60 秒，AGENT 对已见 requestId 保留至少 10 分钟 replay cache。key 支持显式轮换和立即撤销；旧 key、重复 requestId、时钟/期限越界、method/path/body hash 任一不符均失败关闭。
+
 ## 1.5 唯一通信桥
 
 Native Host 删除后的唯一通信桥是：
@@ -132,7 +152,7 @@ Native Host 删除后的唯一通信桥是：
 ```text
 MV3 Extension Service Worker
   ──主动连接──>
-ws://127.0.0.1:<固定端口>/browser-authority/v1
+ws://127.0.0.1:4173/browser-authority/v1
   ──由同一 AGENT App Server 接受──>
 Browser Infrastructure Owner
 ```
@@ -140,7 +160,10 @@ Browser Infrastructure Owner
 连接由扩展主动建立，因为 Chrome 扩展不能充当本机监听服务器。连接完成双向认证后，同一 WebSocket 同时承载：
 
 - AGENT 发给扩展的受治理命令。
-- 扩展发给 AGENT 的状态、心跳、动作回执和受限产物引用。
+- 扩展发给 AGENT 的状态、心跳、动作回执和受限 Evidence 字节。
+- AGENT 发给扩展的 caller-approved 上传产物字节。
+
+控制帧与 artifact 帧只在这一条已认证 WebSocket 上按判别字段复用；它们不是第二 endpoint、第二 socket 或第二 transport。
 
 WebSocket 只负责运输，不拥有：
 
@@ -178,7 +201,7 @@ WebSocket Upgrade：唯一 Browser Authority 运输通道
 - plugin 自己的 listener。
 - capability 自己的 listener。
 
-服务只绑定精确 `127.0.0.1:<固定端口>`。禁止绑定 `0.0.0.0`、`::`、任意网卡或自动换端口。固定端口被占用时，Browser Authority 必须保持 `ABSENT` 并报告端口冲突，不能自动寻找其他端口。
+服务只绑定精确 `127.0.0.1:4173`。`4173` 同时是现有 Workbench HTTP 和 Browser Authority WebSocket upgrade 的唯一端口，不新增端口。禁止绑定 `0.0.0.0`、`::`、任意网卡或自动换端口。固定端口被占用时，Browser Authority 必须保持 `ABSENT` 并报告端口冲突，不能自动寻找其他端口。
 
 ## 1.7 安装与固定身份路线
 
@@ -186,27 +209,32 @@ WebSocket Upgrade：唯一 Browser Authority 运输通道
 
 ```text
 生成冻结扩展候选
-→ 计算扩展目录 build hash
+→ 生成内嵌 releaseBuildId 并计算外部 ExtensionDirectoryHashV1
 → 检查 manifest V3、固定 key、固定 version、固定权限
 → Chrome 打开 Developer Mode
 → 用户选择 Load unpacked
 → 选择冻结扩展目录
 → 读回 extension ID / version / permissions
-→ AGENT 核对固定 ID、版本和 build hash
+→ AGENT 核对固定 ID、版本、releaseBuildId 和外部目录 hash
 → 首次配对
 → 真实 Chrome 冒烟验证
 ```
 
 扩展必须使用固定 manifest `key` 保持本机开发安装 ID 稳定。`key`是公开身份材料，不是密钥，不能拿它代替配对认证。
 
+扩展目录哈希算法冻结为 `ExtensionDirectoryHashV1`：只接受冻结 allowlist 内的 regular files；按 UTF-8 relative path 字节序排序；每项绑定 `path + mode + byteLength + SHA-256(content)` 后再计算 canonical SHA-256。symlink、socket、device file、未登记文件和 hash exclusion 一律拒绝；mtime 不进入哈希。manifest 的 key、version 和 permissions 仍须单独读回，不能只相信目录哈希。
+
+扩展目录内部只内嵌普通 `releaseBuildId`，它作为普通字节参与 `ExtensionDirectoryHashV1`，绝不把目录 hash 自身写回目录。AGENT 候选目录外部的冻结 release record 绑定 `releaseBuildId → ExtensionDirectoryHashV1`。握手只回报 `releaseBuildId`；AGENT 分别核对“磁盘目录 hash = 外部预期 hash”和“握手 buildId = 外部预期 buildId”，禁止自哈希 placeholder、hash exclusion 或让扩展自报目录 hash。
+
 AGENT 每次启动必须核对：
 
 - 期望的 extension ID。
 - 期望的 extension version。
 - 期望的 protocol revision。
-- 冻结扩展目录完整 build hash。
-- 运行扩展握手报告的内嵌 build hash。
+- 外部 release record 冻结的 `releaseBuildId → ExtensionDirectoryHashV1`。
+- 运行扩展握手报告的内嵌 `releaseBuildId`。
 - 所需权限和禁止权限。
+- Chrome executable identity、channel 和 exact version。
 
 任一不一致只能进入：
 
@@ -221,25 +249,31 @@ Browser Authority = ABSENT
 
 ```text
 AGENT 进入 PAIRING_PENDING
-→ AGENT 生成短期、单次、高熵配对码
+→ AGENT 生成 256-bit CSPRNG base64url 配对码
 → 用户把配对码输入扩展设置页
-→ AGENT 与扩展各生成随机 nonce
-→ 双方绑定 extension ID、版本、协议、build hash 和配对 transcript
-→ 双方形成长期 enrollment secret / identity key
-→ AGENT 保存受限凭据
-→ 扩展保存到 chrome.storage.local
+→ AGENT 与扩展各生成 P-256 ECDSA 长期身份密钥
+→ 双方交换身份公钥并以配对码对 canonical pairing transcript 做 HMAC-SHA-256
+→ 双方验证同一 transcript、同一短指纹和对方 proof
+→ AGENT 保存自己的私钥和获准扩展公钥
+→ 扩展保存 non-extractable 私钥和获准 AGENT 公钥
 → 配对码立即作废
 ```
 
 配对要求：
 
-- 配对码短时间过期。
+- 配对码 5 分钟过期。
 - 配对码只能成功使用一次。
-- 错误尝试次数有上限。
+- 最多允许 3 次错误 proof；达到上限立即废弃本次 pairing。
+- pairing transcript 使用 RFC 8785 JSON Canonicalization Scheme，至少绑定双方身份公钥、extension ID/version/releaseBuildId、protocol revision、registry hash、profileInstanceId、双 nonce和 pairing generation。
+- 身份公钥和临时 ECDH 公钥统一使用 SEC1 uncompressed P-256 65-byte 编码；ECDSA-SHA-256 签名统一使用 IEEE-P1363 64-byte `r || s` 编码，禁止实现自选 DER/raw 变体。
+- `agentProof = HMAC-SHA-256(pairingCode, "grasseye-pair-agent-v1" || JCS(transcript))`；`extensionProof = HMAC-SHA-256(pairingCode, "grasseye-pair-extension-v1" || JCS(transcript))`。两个 proof 必须角色分离、不得互换或相等；双方身份公钥相等也必须拒绝。
+- `profileInstanceId` 是首次配对时在该 Chrome Profile 内生成并绑定 enrollment 的随机标识；不得从 profile 路径、Google 账号、cookie、token 或浏览器秘密推导。
+- AGENT 私钥只能进入 owner-only `0600` credential record；扩展私钥以 non-extractable Web Crypto `CryptoKey` 存入扩展自己的 IndexedDB，不使用 sync storage。
 - 配对码、长期密钥和会话密钥不得写日志。
 - 禁止把密钥放入 URL、query string、DOM 或 Evidence。
 - 扩展卸载重装、固定 ID 变化或密钥漂移时必须重新人工配对。
 - 禁止自动信任“来自 127.0.0.1”的任何客户端。
+- 禁止算法协商、共享长期明文 secret 或用 Origin/manifest key 代替密码学身份。
 
 ## 1.9 每次连接与认证路线
 
@@ -251,9 +285,11 @@ Service Worker 建立唯一 WebSocket
 → ExtensionHello
 → AgentChallenge
 → ExtensionConfirmation
-→ 双方验证完整 transcript
-→ 派生本连接 session key
-→ Capability / permission / site-policy probe
+→ 双方交换临时 P-256 ECDH 公钥
+→ 双方以角色分离域标签和长期 P-256 ECDSA 身份密钥签名完整 canonical transcript
+→ 双方验证角色签名并完成角色分离的 key confirmation
+→ HKDF-SHA-256 派生两个方向独立的 AES-256-GCM session key
+→ 对冻结 registry、permission policy 和 site-policy registry hash 做精确相等 readback
 → AUTH_PROOF_COMMITTED
 → Browser Authority: ABSENT → PRESENT
 ```
@@ -262,36 +298,42 @@ Service Worker 建立唯一 WebSocket
 
 - extension ID。
 - extension version。
-- build hash。
+- releaseBuildId。
 - protocol revision。
 - enrollment ID。
 - client nonce。
 - connection generation。
 - Chrome version。
 - capability registry hash。
-- site-policy hash。
+- site-policy registry hash。
+- 临时 ECDH 公钥和 direction-specific connection nonce prefix。
 
-每个会话必须形成全新 `connectionEpoch` 和 session key。旧会话不能 rebind 新连接，不能在线续成新身份，不能把旧任务恢复到新 authority。
+完整 connection transcript 使用 RFC 8785 canonical JSON，必须绑定双方身份公钥、双方临时 ECDH 公钥、extension ID/version/releaseBuildId、Chrome identity、protocol/command-registry/site-policy-registry hash、permission policy、双 nonce、connection generation 和 connection epoch。双方临时 ECDH 公钥相等必须拒绝。Agent 签名域为 `grasseye-conn-agent-sign-v1`，Extension 签名域为 `grasseye-conn-extension-sign-v1`，禁止互换。HKDF 的 salt 为 transcript hash，分别以 `grasseye-browser-c2s-v1`、`grasseye-browser-s2c-v1`、`grasseye-browser-confirm-agent-v1` 和 `grasseye-browser-confirm-extension-v1` 派生两个方向 AES key 与两个角色 confirmation key。key confirmation 使用对应角色 key 对 `roleLabel || transcriptHash` 做 HMAC-SHA-256；双方确认完成后才允许 commit authority。
+
+每个会话必须形成全新 `connectionEpoch`、临时 ECDH 密钥、两个方向密钥和两个随机 32-bit nonce prefix。AES-GCM 的 96-bit nonce 固定由 `direction-specific 32-bit prefix + 64-bit sequence` 组成；sequence 永不复用。旧会话不能 rebind 新连接，不能在线续成新身份，不能把旧任务恢复到新 authority。
+
+未认证连接的预算固定为：全局最多 4 个 pending handshake、首帧 3 秒、单连接 pre-auth 总字节 32 KiB。超限或错误连接只关闭自身，不得撤销当前合法 authority；只有第二客户端用已登记身份完成完整认证并产生身份冲突后，才先 revoke 当前 authority 再裁决新连接。
 
 ## 1.10 消息合同路线
 
-每条控制帧至少绑定：
+协议使用严格判别联合，禁止为不适用的帧填空字符串或 sentinel：
 
 ```text
-protocolRevision
-sessionId
-connectionEpoch
-direction
-sequence
-taskId
-executionFenceHash
-commandId
-capabilityId
-targetLeaseRef
-documentRef
-deadline
-payloadHash
-authenticationTag
+PreAuthFrame
+= Pairing | ExtensionHello | AgentChallenge | ExtensionConfirmation
+
+AuthenticatedFrameCommon
+= protocolRevision + sessionId + connectionEpoch + direction
++ sequence + frameType + deadline + payloadHash + ciphertext + authenticationTag
+
+CommandFrame / ReplyFrame
+= AuthenticatedFrameCommon + taskId + executionFenceHash
++ commandId + capabilityId + sitePolicyId + sitePolicyVersion
++ sitePolicyEntryHash + actionId + controlId
++ targetLeaseRef + documentRef + replyToken
+
+HeartbeatFrame / ControlStateFrame / ArtifactFrame
+= AuthenticatedFrameCommon + 该 frameType 自己的固定 schema
 ```
 
 消息规则：
@@ -303,13 +345,35 @@ authenticationTag
 - 协议只接受明确 schema，未知字段和未知命令失败关闭。
 - WebSocket compression 默认关闭，除非经过压缩炸弹负面验收。
 - 控制帧不能携带完整大文件、完整截图、完整 HTML 或秘密。
+- AES-GCM plaintext 是该 frame 的 payload；AAD 固定为“除 `ciphertext` 与 `authenticationTag` 外全部 frame envelope 字段”的 RFC 8785 canonical JSON。protocol、session/epoch、direction、sequence、frameType、deadline、payloadHash、command、policy、target/document 和 reply token 均必须被 AAD 认证；禁止只认证 payload。
+
+### 1.10.1 同一 WebSocket 内的 Artifact 子协议
+
+Artifact 只在同一条已认证 WebSocket 内运输：
+
+```text
+ARTIFACT_OPEN(grantRef, direction, mediaType, totalBytes, contentHash, chunkSize, deadline)
+→ ARTIFACT_CHUNK(grantRef, chunkSequence, encryptedBytes)
+→ ARTIFACT_COMPLETE(grantRef, totalBytes, contentHash)
+→ ARTIFACT_COMMITTED | ARTIFACT_FAILED
+```
+
+唯一硬边界：
+
+- `AGENT → Extension` 只允许 caller-approved upload artifact；`Extension → AGENT` 只允许 law-approved screenshot/evidence artifact。
+- raw/resolved path 永远停留在 AGENT file-grant owner 内；wire 只传 `grantRef` 和加密字节。file-grant owner 必须在 `ARTIFACT_OPEN` 前完成 open/fstat/hash，并始终从同一个已打开文件描述符流出字节；path、inode、size 或 hash 漂移立即 `ARTIFACT_FAILED`。
+- 每个 stream 绑定 authority epoch、execution fence、target/document、content hash、AEAD、deadline 和 reply token。
+- `artifactMaxBytes = 64 MiB`、`chunkSize = 64 KiB`、同一 connection 同时最多 1 个 artifact stream、最多缓冲 8 个 chunk、stream deadline = 120 秒；边界值必须做 n-1/n/n+1 验收。
+- 断流、hash 不一致、乱序、document 漂移、authority 变化或 Service Worker 重启一律 `ARTIFACT_FAILED`，销毁未提交字节，不转 raw path、不调用 native picker、不切换第二通道。
+- `upload_approved_artifact` 只能使用 Command Registry 内唯一、固定的 browser-side bytes-to-`File/FileList` 实现；必须先在本次真实 Chrome、真实目标 file input 上证明。证明前所有需要上传的 Job 均为 `BLOCKED / NOT_PRODUCTION_VERIFIED`。
 
 ## 1.11 Service Worker 生命周期路线
 
-最低 Chrome 版本冻结为能够稳定支持 MV3 WebSocket 生命周期的版本，建议不低于 Chrome 120；低于最低版本直接阻断，不建设旧版本兼容链。
+`minimum_chrome_version` 固定为 `"120"`；低于 Chrome 120 直接阻断，不建设旧版本兼容链。
 
 Service Worker 顶层且只注册一次：
 
+- `chrome.action.onClicked`。
 - `runtime.onStartup`。
 - `runtime.onInstalled`。
 - `alarms.onAlarm`。
@@ -318,13 +382,14 @@ Service Worker 顶层且只注册一次：
 
 连接存活策略：
 
-- 认证后每约 20 秒交换一次应用层心跳。
+- Extension WebSocket Transport Actor 是唯一 reconnect scheduler；Server Transport Owner 只接受、认证、拒绝或关闭连接，永不主动建立第二连接或启动重连 timer。
+- 认证后每不超过 `20,000ms` 交换一次双向认证应用层心跳。
 - 心跳只能续租已经存在的 authority，不能创建 authority。
-- 心跳丢失达到固定阈值时，第一动作是撤销 authority。
-- `chrome.alarms` 只负责唤醒唯一连接 Actor 检查连接。
+- `35,000ms` 无合法双向活动进入 soft drain；`45,000ms` 无合法双向活动时第一动作必须撤销 authority。
+- 每次 Worker 顶层启动、`runtime.onInstalled` 和 `runtime.onStartup` 都必须幂等检查并保证恰好一个 30 秒 reconnect alarm；Chrome 重启后也不得假定 alarm 仍存在。
+- `alarms.onAlarm` 在无 socket 时最多发起一次连接；单次连接尝试 deadline 为 5 秒，不启动嵌套 timer、while loop 或并发连接。
 - alarm 不拥有重试次数、业务任务、认证状态或命令恢复。
-- reconnect 只有一个 owner，使用有上限指数退避和 jitter。
-- 最大重连间隔固定，不允许无限快速重连。
+- 基础设施允许在 `AUTHORITY_ABSENT` 时由唯一 alarm 每 30 秒触发一次长期 probe；“禁止无界 reconnect”专指禁止无界频率、并发、队列和业务等待。每个 browser-required Job 有独立固定 admission deadline，超时即 `BLOCKED`。
 
 ## 1.12 业务工单运行路线
 
@@ -337,7 +402,7 @@ Website Request
 → Plugin 读取固定 Flow
 → Plugin 检查当前业务状态和 execution fence
 → BrowserAuthorityBroker 提供当前 authority lease
-→ 用户明确授权或复用依法有效的 exact target claim
+→ 核验用户手势产生且仍有效的 OperatorTargetApproval
 → 取得 exact target/document lease
 → CommandActor 逐个签发固定 capability command
 → Extension Command Registry 执行动作
@@ -380,19 +445,23 @@ Website Request
 - mutation 类别。
 - 是否需要人工最终确认。
 - 正向完成条件。
-- 相邻失败、加载、过期、重复和外国状态。
+- 非目标 origin、非目标页面身份、相邻错误态、加载态、过期态和重复态。
 - 最大观察次数、最大滚动次数和截止时间。
 - navigation/document 变化后的失效规则。
 
-新增网站不得通过运行时配置下载脚本、放宽域名或开放任意动作。
+全部 active SitePolicy canonical entries 的构建期聚合哈希固定称为 `sitePolicyRegistryHash`。每个 entry 必须有 `sitePolicyId + sitePolicyVersion + sitePolicyEntryHash`，每个允许动作必须在 `SiteActionRegistry` 中以 `actionId + controlId` 固定登记。
+
+Wire 不接受 CSS selector、XPath、任意 locator 字符串、任意 URL、任意 CDP method 或 JavaScript。`actionId/controlId` 只能由 Extension Command Registry 解析为固定实现。新增网站必须同时更新 Agent 与 Extension 的 canonical registry，产生新的 `releaseBuildId + ExtensionDirectoryHashV1 + registry hash + release`；不得通过运行时配置下载脚本、放宽域名、扩展 policy 或开放任意动作。
 
 ## 1.14 精确标签页与文档路线
 
-目标标签必须由用户通过扩展 action 明确 claim，或由已经持有合法精确身份的业务恢复过程重新核验。
+目标标签只能由用户通过顶层 `chrome.action.onClicked` 明确 claim。该用户手势产生一个 `OperatorTargetApproval`：固定 TTL 为 60 秒，绑定唯一 `approvalId + process/profile/tab/document/origin/job/sitePolicy`，不是跨 authority epoch 的 `BrowserTargetLease`；扩展将它作为只读 claim event 回传，Wire 不得存在 claim/select/activate/current/first-tab 命令，也不得创建、延长或刷新 approval。
+
+新 authority 下仅当以下事实全部未变化时，Browser owner 才可基于同一 approval 重新 acquire 新 lease：同一 Chrome process incarnation、同一 profileInstanceId、同一 tab identity、同一 document generation、同一 exact origin、同一 job/site policy，且 approval 未过期。Chrome 重启、tab close、document/navigation 变化、profile 变化、extension reinstall、approval 过期或任一身份无法读回时，必须重新人工 claim；不得通过 URL、标题或相似页面恢复。每次重连产生的新 lease 都使用新 authority epoch，旧 lease 永久失效。
 
 目标身份至少包含：
 
-- Chrome profile identity。
+- `profileInstanceId`（首次配对时在该 Profile 内随机生成并绑定 enrollment，不读取 profile path、Google 账号或浏览器秘密）。
 - tab identity。
 - window identity。
 - exact origin。
@@ -431,10 +500,9 @@ Website Request
 - owner-side business postcondition。
 - acceptance 和真实页面证据。
 
-允许的命令概念必须是受治理的原子能力，例如：
+允许的 Wire 命令概念必须是受治理的原子能力，例如：
 
 ```text
-claim_approved_tab
 observe_document
 locate_known_control
 fill_approved_value
@@ -444,7 +512,7 @@ verify_terminal_state
 capture_evidence
 ```
 
-命令只能表达“做一个固定动作”，不能表达“完成整个网站工作流”。
+用户 claim 属于 `chrome.action.onClicked` 产生的本地只读事件，不属于 Command Registry。每条 Wire 命令必须绑定 `sitePolicyId + sitePolicyVersion + sitePolicyEntryHash + actionId + controlId`；命令只能表达“做一个固定动作”，不能表达“完成整个网站工作流”。
 
 ## 1.16 Mutation 与断线恢复路线
 
@@ -456,9 +524,13 @@ PREPARED(commandId, executionFenceHash, mutationClass, payloadHash)
 → 发送精确命令
 → 扩展 admission
 → 页面动作
-→ 扩展持久化或形成 terminal receipt
-→ AGENT 写 TERMINAL_SUCCESS / TERMINAL_FAILURE
+→ 扩展生成当前 connection epoch 内的 bounded in-memory session-authenticated receipt
+→ AGENT 验证 commandId / payloadHash / postcondition
+→ AGENT fsync TERMINAL_SUCCESS / TERMINAL_FAILURE
+→ Plugin 读取 AGENT journal 终态
 ```
+
+`MutationJournal` 的唯一 durable owner 是 AGENT。扩展不得建立第二 durable mutation journal，也不得让内存 receipt 跨 Worker/connection epoch 复活。只有 AGENT 已经验证并 fsync terminal 后，系统才拥有已知终态。
 
 断线后的唯一分类：
 
@@ -467,10 +539,10 @@ PREPARED(commandId, executionFenceHash, mutationClass, payloadHash)
 | `PREPARED` 前 | `NOT_SENT` | 可以由业务 owner重新调度 |
 | `PREPARED` 后、发送前且有确定证明 | `NOT_SENT` | 可使用相同业务意图重新签发新 commandId |
 | 扩展 admission 后、动作前且有确定证明 | `NOT_EXECUTED` | 重新取得新 authority/target 后由业务 owner决定 |
-| 页面动作可能发生、terminal receipt 前 | `OUTCOME_UNKNOWN` | 禁止自动重放，必须真实页面裁决 |
-| terminal receipt 后、ACK 前 | 已有终态 | 只返回既有 receipt，禁止重复动作 |
+| 页面动作可能发生、AGENT terminal fsync 前（包括扩展已生成 receipt 但 AGENT 未 durable commit） | `OUTCOME_UNKNOWN` | 禁止自动重放，必须真实页面裁决 |
+| AGENT 已 fsync terminal、Plugin ACK 前 | 已有终态 | 只读取 AGENT journal 中既有 terminal，禁止重复动作 |
 
-同一个 command ID + 同一个 payload hash 只能返回既有结果；同一个 command ID + 不同 payload hash 是安全攻击或状态损坏，必须撤销 authority。
+同一个 command ID + 同一个 payload hash：只有 AGENT 唯一 journal 已有 durable terminal 时才返回既有 terminal；只有 `PREPARED` 或其他非终态时，必须严格按上表分类为 `NOT_SENT / NOT_EXECUTED / OUTCOME_UNKNOWN`，不得伪造结果或重执行。同一个 command ID + 不同 payload hash 是安全攻击或状态损坏，必须撤销 authority。
 
 ## 1.17 Authority 撤销路线
 
@@ -483,8 +555,8 @@ PREPARED(commandId, executionFenceHash, mutationClass, payloadHash)
 - Chrome 进程退出或重启。
 - Service Worker 重启。
 - 扩展 reload、disable 或卸载。
-- extension ID、version、build hash 或 protocol 漂移。
-- 第二客户端尝试建立 active authority。
+- extension ID、version、releaseBuildId、外部目录 hash 或 protocol 漂移。
+- 第二个已登记客户端完成完整认证并与当前身份发生冲突；普通未认证连接只关闭自身。
 - profile、site policy 或 permission policy 漂移。
 - target/document/navigation 变化。
 - DevTools 抢占 debugger。
@@ -528,6 +600,8 @@ npm run grasseye:start
 
 Workbench 可以在扩展未连接时正常打开，但所有 browser-required Job 必须保持阻断。启动成功不等于 Browser Authority 成功，更不等于业务生产完成。
 
+AGENT 每次启动和每次握手都必须读回 Chrome executable identity、channel 和 exact version。Chrome 自动更新、channel 变化或 executable identity 漂移时，第一动作是 `Browser Authority = ABSENT`，并进入 `CHROME_REVALIDATION_REQUIRED`；旧 Chrome 证据不得证明新 Chrome 候选。
+
 ## 1.19 升级与回滚路线
 
 升级固定流程：
@@ -537,7 +611,7 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 → drain 当前安全工作
 → 撤销 authority
 → 冻结 Agent + Extension 同一候选
-→ 计算 version / protocol / build hash
+→ 计算 version / protocol / releaseBuildId / ExtensionDirectoryHashV1
 → 整体替换扩展目录
 → 用户在 chrome://extensions 点击 Reload
 → 新扩展重新握手和认证
@@ -547,6 +621,8 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 ```
 
 回滚只能整体恢复上一份冻结的 Agent + Extension 候选，再执行人工 Reload 和重新认证。禁止让新 Agent 同时兼容旧扩展，也禁止让旧 Agent同时接受新扩展。
+
+Chrome 更新故障验收必须在最终 72 小时 soak 之前完成，用于证明版本漂移会先撤销 authority 并进入再准入。此后冻结最终 exact Chrome version；任何 exact version、channel 或 executable identity 变化都使本轮 soak 立即 FAIL，必须在新 Chrome 候选上重跑 WebSocket/MV3 lifecycle、debugger attach/detach、exact target、一个 observation journey、一个 mutation fault case、GPT Web、第二真实网站 smoke，并从零重新开始完整 72 小时 soak。不存在 patch delta 免验或旧证据复用。
 
 ## 1.20 施工路线图
 
@@ -565,7 +641,7 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 - 固化 Local Pinned Unpacked Release Identity。
 - 固化唯一 WebSocket owner、握手、liveness、revoke 和 recovery。
 - 同步修改 Browser 施工图、inspector manifest、acceptance 绑定。
-- 独立子智能体审计吻合度；达到用户规定门槛后才能继续。
+- 两个独立只读子智能体审计；每个都必须 `score >= 95` 且 `P0=0、P1=0` 后才能继续。
 
 ### 阶段 C：片区删除
 
@@ -602,7 +678,7 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 - Typecheck。
 - Acceptance。
 - 真实 Chrome 故障矩阵。
-- 24 小时最低、72 小时推荐 soak。
+- 72 小时强制 soak；24 小时只作为中间预检，不能签发投产状态。
 - 独立子智能体终审。
 - 最后运行 CI-FULL。
 - 所有证据绑定同一候选后才能裁决生产可用。
@@ -626,7 +702,7 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 ### 要 2：唯一认证 WebSocket
 
 - 扩展 Service Worker 主动连接本机 AGENT。
-- 只连接精确 `127.0.0.1:<固定端口>/<固定路径>`。
+- 只连接精确 `ws://127.0.0.1:4173/browser-authority/v1`。
 - 只存在一个 WebSocket client Actor。
 - 只存在一个 server-side transport owner。
 - 只存在一个 reconnect owner。
@@ -637,7 +713,7 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 - Browser 数据面只有 `ABSENT` 或 `PRESENT`。
 - 未完成身份认证时只能是 `ABSENT`。
 - 握手、连接中、退避、修复不是 authority。
-- authority 与 connection epoch、扩展身份、协议、build hash、profile 和 policy 绑定。
+- authority 与 connection epoch、扩展身份、协议、releaseBuildId、外部目录 hash、profile 和 policy 绑定。
 - 任何不连续先撤销 authority。
 
 ### 要 4：精确标签和精确文档
@@ -839,10 +915,10 @@ Workbench 可以在扩展未连接时正常打开，但所有 browser-required J
 ```text
 candidate commit
 + Agent source hash
-+ extension directory hash
++ releaseBuildId + ExtensionDirectoryHashV1
 + manifest version/key/permissions
 + protocol revision/hash
-+ site-policy hash
++ site-policy registry hash
 + audit-plan hash
 + acceptance inputs
 + Chrome version/profile identity
@@ -883,7 +959,7 @@ NOT_PRODUCTION_VERIFIED
 
 ### GOV-004：独立方案审计
 
-- 条件：新的独立只读子智能体对法案、施工图和本文逐条核对，达到用户规定吻合度。
+- 条件：两个新的独立只读子智能体对法案、施工图和本文逐条核对；每个审计均须 `score >= 95` 且 `P0=0、P1=0`。
 - 证据：绑定候选 hash 的审计报告。
 - 失败：审计未绑定候选、发现 blocking gap 或完成率低于门槛。
 
@@ -892,6 +968,12 @@ NOT_PRODUCTION_VERIFIED
 - 条件：GOV-001～GOV-004 全部 PASS 后才允许改生产代码。
 - 证据：施工准入记录。
 - 失败：先写代码后补法。
+
+### COST-001：零新增费用
+
+- 条件：构建、安装、运行、升级、回滚和验收所需账户、证书、商店、云服务及第三方服务新增支出均为 0。
+- 证据：依赖、账户、服务清单及逐项 `cost=0` 记录。
+- 失败：Apple Developer、Developer ID、CWS 注册/审核、付费签名公证、付费 relay、付费更新或新增付费服务成为运行条件。
 
 ## 3.3 旧链物理删除门
 
@@ -935,8 +1017,8 @@ NOT_PRODUCTION_VERIFIED
 
 ### ID-002：Build Hash 一致
 
-- 条件：AGENT 本地目录 hash、扩展内嵌 hash和握手 hash完全一致。
-- 证据：启动报告和认证 transcript hash。
+- 条件：外部冻结 release record 的 `releaseBuildId → ExtensionDirectoryHashV1` 映射成立；AGENT 实算目录 hash 等于外部预期，握手 `releaseBuildId` 等于外部预期。扩展内部不得包含目录 hash 自身；symlink、未登记文件或 mode/content 漂移均拒绝。
+- 证据：外部 release record、canonical file manifest、启动报告和认证 transcript。
 - 失败：任何一处不一致仍进入 PRESENT。
 
 ### ID-003：版本与协议精确匹配
@@ -967,14 +1049,14 @@ NOT_PRODUCTION_VERIFIED
 
 ### AUTH-002：配对码生命周期
 
-- 条件：配对码单次、短期、有失败次数上限。
-- 证据：过期、重用、错误码负例。
+- 条件：配对码为 256-bit CSPRNG base64url、5 分钟、单次使用、最多 3 次错误 proof；Wire 只发送带 `agent/extension` 不同固定域标签的 canonical transcript HMAC，不发送配对码本身。两个 proof 互换、相等或双方身份公钥相等必须拒绝。
+- 证据：过期、重用、错误码、proof 反射/互换、相同身份公钥负例。
 - 失败：配对码可重复使用或永久有效。
 
 ### AUTH-003：双向挑战
 
-- 条件：双方都验证对方对 enrollment secret/identity key 的持有证明。
-- 证据：握手 transcript、错 key 负例。
+- 条件：双方以不同角色域标签和长期 P-256 ECDSA 身份密钥签名同一 RFC 8785 transcript，使用固定 SEC1/P1363 编码，交换不相等的临时 P-256 ECDH 公钥，通过 HKDF-SHA-256 派生方向分离的 AES-256-GCM key 与角色分离 confirmation key，并完成 key confirmation。每个认证帧的全部 envelope 字段进入 RFC 8785 AAD。
+- 证据：握手 transcript、角色签名反射、编码变体、错 key/transcript/ECDH、相同临时公钥、key confirmation、AAD header 篡改负例。
 - 失败：只有 server 验证 client 或只有 client 验证 server。
 
 ### AUTH-004：精确来源
@@ -991,7 +1073,7 @@ NOT_PRODUCTION_VERIFIED
 
 ### AUTH-006：消息反重放
 
-- 条件：旧 epoch、重复 sequence、倒序、跳号、跨方向反射和旧帧全部拒绝。
+- 条件：旧 epoch、重复 sequence、倒序、跳号、跨方向反射、AES-GCM tag 失败和 nonce prefix/sequence 重用全部拒绝。
 - 证据：协议攻击 acceptance。
 - 失败：任一旧消息产生状态或页面副作用。
 
@@ -999,25 +1081,25 @@ NOT_PRODUCTION_VERIFIED
 
 ### WS-001：真实 MV3 连接
 
-- 条件：当前目标 Chrome Stable 的 MV3 Service Worker 能连接固定 loopback WebSocket。
+- 条件：当前目标 Chrome Stable（最低 Chrome 120）的 MV3 Service Worker 能连接 `ws://127.0.0.1:4173/browser-authority/v1`，且与现有 HTTP 共用唯一 App Server listener。
 - 证据：真实 Chrome 网络/运行日志和认证完成记录。
 - 失败：只靠文档推测或模拟 WebSocket。
 
 ### WS-002：唯一连接
 
 - 条件：运行时始终只有一个 socket、一个 client Actor、一个 server owner。
-- 证据：运行指标和 24/72 小时 soak。
+- 证据：运行指标和 72 小时 soak。
 - 失败：重复 socket、重复 listener 或并行重连 owner。
 
 ### WS-003：心跳续租
 
-- 条件：20 秒级认证心跳能保持 worker/authority；错误心跳不能 mint authority。
+- 条件：不超过 20 秒的认证心跳能保持 worker/authority；35 秒无合法双向活动进入 soft drain；45 秒硬过期先 revoke；错误心跳不能 mint authority。
 - 证据：强制 worker inactive 和心跳故障注入。
 - 失败：无心跳仍无限保持 PRESENT，或 heartbeat 自己创建 authority。
 
 ### WS-004：有界重连
 
-- 条件：重连采用固定指数退避和最大间隔；没有忙循环。
+- 条件：每次 Worker 启动均幂等保证恰好一个 30 秒 reconnect alarm；每个 alarm 最多一次 5 秒连接尝试；无嵌套 timer、忙循环、并发 socket 或业务层重连。基础设施可长期 probe，但 browser-required Job 必须在自己的固定 admission deadline 失败关闭。
 - 证据：AGENT 关闭期间的时间序列日志。
 - 失败：毫秒级永久请求、多个 timer 或业务模块自行重连。
 
@@ -1037,9 +1119,9 @@ NOT_PRODUCTION_VERIFIED
 
 ### TAB-001：用户明确 claim
 
-- 条件：只有用户明确选择的标签页可以成为 target。
-- 证据：真实 Chrome claim 操作与 readback。
-- 失败：自动使用 current/active/first tab。
+- 条件：只有顶层 `chrome.action.onClicked` 用户手势产生固定 60 秒 `OperatorTargetApproval`；它绑定 approvalId/process/profile/tab/document/origin/job/policy，Wire 不存在创建、续期、刷新、claim/select/activate 命令。新 authority 只在全部身份未变且 TTL 未过期时基于它 acquire 新 lease；其他情况必须重新人工 claim。
+- 证据：真实 Chrome claim/readback、60 秒边界、同身份重连正例，以及远程续期、Chrome 重启、导航、tab close、profile/approval 漂移负例。
+- 失败：自动使用 current/active/first tab，以 URL/标题恢复，或把旧 target lease 跨 epoch 复活。
 
 ### TAB-002：相邻假目标排除
 
@@ -1069,7 +1151,7 @@ NOT_PRODUCTION_VERIFIED
 
 ### CMD-001：固定 Registry
 
-- 条件：Wire 只能调用构建期登记的 capabilityId。
+- 条件：Wire 只能调用构建期登记的 `capabilityId + sitePolicyId/version/entryHash + actionId + controlId`；握手 `sitePolicyRegistryHash` 必须与全部 active canonical entries 精确一致。
 - 证据：registry schema 与未知 command 负例。
 - 失败：动态注册、下载命令或任意 method dispatcher。
 
@@ -1087,7 +1169,7 @@ NOT_PRODUCTION_VERIFIED
 
 ### CMD-004：有界预算
 
-- 条件：frame、queue、bytes、in-flight observation、mutation 和 artifact 都有固定上限。
+- 条件：frame、queue、bytes、in-flight observation、mutation 和 artifact 都有固定上限；artifact 固定为 64 MiB 总量、64 KiB chunk、1 个 stream、8 个 buffered chunk 和 120 秒 deadline。
 - 证据：n-1/n/n+1 边界测试。
 - 失败：无界 Map、Array、cache、stream 或等待队列。
 
@@ -1096,6 +1178,12 @@ NOT_PRODUCTION_VERIFIED
 - 条件：异步 completion 只能回原 connection epoch 和 reply token。
 - 证据：旧完成消息到新连接负例。
 - 失败：读取“当前 socket”发送历史 completion。
+
+### CMD-006：单通道 Artifact
+
+- 条件：caller-approved upload 与 law-approved screenshot/evidence 仅通过同一认证 WebSocket 的固定 Artifact 判别帧传输；raw path 留在 AGENT file-grant owner；hash、顺序、deadline、document 和 authority 全部匹配后才 commit。
+- 证据：n-1/n/n+1、断流、乱序、错 hash、Worker 重启、document 漂移和真实 file input 上传验收。
+- 失败：第二 socket/endpoint、raw path 上 Wire、native picker、未真实证明的 bytes-to-File/FileList 或 artifact 断流后继续动作。
 
 ## 3.9 多网站治理门
 
@@ -1119,9 +1207,15 @@ NOT_PRODUCTION_VERIFIED
 
 ### SITE-004：外部请求形状
 
-- 条件：网站只能传业务字段；selector、URL、browserCommand、nextAction 等全部拒绝。
+- 条件：网站和内部 Wire 都不能传 selector、XPath、任意 locator、任意 URL、raw CDP method、JavaScript、browserCommand 或 nextAction；网站只传业务字段，Wire 只传 registry ID。
 - 证据：API Boundary attack acceptance。
 - 失败：任何外部字段可以控制内部浏览器行为。
+
+### SITE-005：Local Network Access 真实入口
+
+- 条件：使用当前 Chrome Stable 和真实 HTTPS 请求网站，用户明确授予 Local Network Access 后，只有 exact origin 能调用 `127.0.0.1:4173` 的固定 AGENT route。LNA/CORS 只作为浏览器边界；独立认证根是逐站 256-bit API key 和绑定 keyId/requestId/issuedAt/deadline/method/path/bodyHash 的 HMAC。
+- 证据：真实权限 UI、CORS/preflight、实际网络请求、服务端 ingress receipt；覆盖拒绝权限、raw 本机客户端伪造 Origin、错误 preflight、无/撤销/轮换 key、重复 requestId、过期 deadline 和 body hash 篡改。
+- 失败：网站无法触发/取得 LNA 后仍宣称可用，或依赖 enterprise policy、实验 flag、浏览器降级和备用 relay 绕过。
 
 ## 3.10 Mutation、断线与幂等门
 
@@ -1133,13 +1227,13 @@ NOT_PRODUCTION_VERIFIED
 
 ### MUT-002：动作后断线未知态
 
-- 条件：页面动作后、terminal receipt 前断线，结果必须为 `OUTCOME_UNKNOWN`。
+- 条件：页面动作可能发生后至 AGENT fsync terminal 前的任何断线，包括扩展已生成内存 receipt 但 AGENT 未 durable commit，结果必须为 `OUTCOME_UNKNOWN`。
 - 证据：精确断点故障注入。
 - 失败：自动写 success、failed 或重新发送。
 
 ### MUT-003：回执后去重
 
-- 条件：terminal receipt 后、ACK 前断线，恢复只返回已有 receipt。
+- 条件：AGENT 已 fsync terminal、Plugin ACK 前断线，恢复只读取 AGENT 唯一 journal 中既有 terminal。
 - 证据：重复 commandId 测试。
 - 失败：页面动作被执行两次。
 
@@ -1177,7 +1271,7 @@ NOT_PRODUCTION_VERIFIED
 ### RST-004
 
 - 场景：两者均停止，先启动 Chrome 再启动 AGENT。
-- 通过：扩展有界等待，AGENT 上线后单连接认证。
+- 通过：扩展在 `AUTHORITY_ABSENT` 下由唯一 30 秒 alarm 每次做一次有界 probe；AGENT 上线后只有一个连接完成认证，期间无业务 Job 无界等待。
 
 ### RST-005
 
@@ -1207,7 +1301,7 @@ NOT_PRODUCTION_VERIFIED
 - 伪造 Host/path/subprotocol。
 - 错 Agent identity key。
 - 错 extension identity key。
-- 错 extension ID/version/build hash。
+- 错 extension ID/version/releaseBuildId/外部目录 hash。
 - 旧 session 帧重放。
 - sequence 重复、倒退、跳号。
 - 超大 frame 和队列淹没。
@@ -1218,6 +1312,12 @@ NOT_PRODUCTION_VERIFIED
 - API key、配对码和 session key 日志泄露检查。
 - cookie、password、token、localStorage、sessionStorage 读取检查。
 - raw file path 和 symlink/root escape 攻击。
+- pre-auth pending-handshake 淹没、首帧超时和 32 KiB 预算越界；非法连接只能关闭自身，不得撤销合法 authority。
+- Artifact 乱序、重复 chunk、错 hash、超过 64 MiB、超过 120 秒、document/authority 漂移和 Worker 中断。
+- Wire 注入 selector、XPath、locator、任意 URL、raw CDP method 和 JavaScript。
+- pairing/connection proof 角色反射、身份/临时公钥相等、SEC1/P1363 编码变体和 AES-GCM AAD 头字段篡改。
+- 扩展目录自哈希、伪造 releaseBuildId、外部 release record/hash 不匹配。
+- raw 本机客户端伪造 Origin、API key 轮换/撤销、requestId 重放、deadline 和 method/path/bodyHash 篡改。
 
 ## 3.13 真实网站完成门
 
@@ -1226,7 +1326,7 @@ NOT_PRODUCTION_VERIFIED
 ```text
 实际 Chrome 版本
 实际 profile identity ref
-实际 extension ID/version/build hash
+实际 extension ID/version/releaseBuildId/ExtensionDirectoryHashV1
 实际目标 URL/origin
 动作前页面状态
 目标控件身份和可交互状态
@@ -1250,7 +1350,9 @@ NOT_PRODUCTION_VERIFIED
 
 ## 3.14 长期稳定性门
 
-最低 24 小时，推荐 72 小时连续 soak；Browser transport/auth/profile 核心变更推荐更长窗口。
+Browser transport/auth/profile 核心候选投产必须完成连续 72 小时 soak；24 小时只允许作为中间预检，不得签发 `PRODUCTION_APPROVED_FOR_THIS_MAC`。
+
+进入最终 soak 前必须先完成一次真实 Chrome 更新/身份漂移故障验收并冻结更新后的 exact Chrome candidate。最终 72 小时窗口内不得跨 Chrome 候选；若自动更新发生，本轮立即 FAIL，在新 exact version 完成 REL-005 后从第 0 小时重开。
 
 Soak 必须覆盖：
 
@@ -1262,7 +1364,6 @@ Soak 必须覆盖：
 - 多次 AGENT 完整重启。
 - macOS 睡眠/唤醒。
 - 网络切换。
-- Chrome 自动更新后的重启。
 - GPT Web 和第二网站依次运行。
 
 Soak 零容忍指标：
@@ -1280,14 +1381,14 @@ stale target/document side effect = 0
 未分类异常退出 = 0
 ```
 
-并检查：
+资源指标固定每 60 秒采样；第 1 小时为 warm-up。硬门为：
 
-- 内存无持续增长趋势。
-- 文件描述符无持续增长趋势。
-- listener 数量稳定。
-- receipt/journal 有界。
-- reconnect 次数符合故障实际情况。
-- 所有失败有明确 reason。
+- AGENT 进程最后 12 小时 RSS p95 不得高于最初 12 小时 RSS p95 超过 64 MiB。
+- 文件描述符最大值不得超过 warm-up 结束基线 `+8`，且每轮故障恢复后回到该预算内。
+- active socket 始终为 `0 或 1`；认证后为 1；重复 listener 和重复 reconnect owner 为 0。
+- receipt/journal 记录数必须等于唯一 admitted command 与固定状态转换的可解释计数，不得出现孤儿、重复或无界内存副本。
+- AGENT 离线期间连接尝试不得超过“每 30 秒一次 alarm + 每次离线区间 1 次启动边界尝试”；禁止额外 timer 重试。
+- 所有失败都有固定 reason；任一采样越界即 FAIL，不使用“无明显趋势”“基本稳定”或人工目测裁决。
 
 ## 3.15 升级与回滚门
 
@@ -1315,6 +1416,12 @@ stale target/document side effect = 0
 - 证据：升级中断故障注入。
 - 失败：通过清库、重建任务或兼容读取掩盖失败。
 
+### REL-005：Chrome 更新再准入
+
+- 条件：每次启动和握手读回 Chrome executable identity、channel 和 exact version；任何漂移先进入 `CHROME_REVALIDATION_REQUIRED` 和 `Authority = ABSENT`。任何 exact-version 漂移都须在新 Chrome 候选重跑 MV3/WebSocket lifecycle、debugger attach/detach、exact target、一个 observation、一个 mutation fault、GPT Web 和第二网站 smoke，并从零重跑完整 72 小时 soak。
+- 证据：Chrome 更新前后候选身份和再准入 receipts。
+- 失败：Chrome 已变化仍复用旧证据或维持 PRESENT。
+
 ## 3.16 质检与最终投产门
 
 最终候选必须按顺序通过：
@@ -1329,7 +1436,7 @@ stale target/document side effect = 0
 7. GPT Web 真实 Job 验收
 8. 第二真实网站 Job 验收
 9. 重启、断线、未知态故障矩阵
-10. 24/72 小时 soak
+10. 72 小时强制 soak
 11. 独立子智能体最终候选审查
 12. CI-FULL
 ```
@@ -1611,6 +1718,7 @@ Command Registry 只执行原子动作
 - Chrome 本地加载扩展：<https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world>
 - Chrome 扩展替代安装限制：<https://developer.chrome.com/docs/extensions/how-to/distribute/install-extensions>
 - Chrome remote debugging 变更：<https://developer.chrome.com/blog/remote-debugging-port>
+- Chrome Local Network Access：<https://developer.chrome.com/blog/local-network-access>
 
 ---
 
