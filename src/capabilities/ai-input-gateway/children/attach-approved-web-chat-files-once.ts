@@ -158,7 +158,7 @@ const waitForStableAttachmentSet = async (input: {
       {
         expectedPageUrl: input.expectedPageUrl,
         baselineAttachmentCount: 0,
-        requireReady: true,
+        requireReady: false,
       },
     );
     if (evaluation.status === "review_required" || evaluation.status === "failed") {

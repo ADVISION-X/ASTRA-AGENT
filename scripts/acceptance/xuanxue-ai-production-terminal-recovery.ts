@@ -51,6 +51,46 @@ const seedLegacyTechnicalTerminal = (
   return candidate.orderId;
 };
 
+const seedLegacyWorkspaceRevokedTerminal = (
+  store: XuanxueAiProductionStore,
+): string => {
+  const candidate = order(
+    "aiprod_legacy_workspace_revoked_terminal",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  const productionOrder = {
+    ...candidate,
+    cloudExecutionIdentity: {
+      jobId: candidate.orderId, attemptId: "legacy-workspace-attempt-1",
+      requiredDeviceId: "fixture-device", leaseVersion: 1,
+      executionFenceHash: hash("legacy-workspace-terminal-fence"),
+      contractManifestHash: hash("cloud-contract-manifest"),
+      serverNow: "2026-08-21T21:20:00.000Z",
+      leaseExpiresAt: "2026-08-21T21:21:30.000Z",
+    },
+  };
+  const initial = store.createOrder(
+    productionOrder,
+    initialXuanxueStages(
+      productionOrder,
+      assertXuanxueAiOrderMatchesProfile(productionOrder),
+    ),
+  );
+  store.updateStage({
+    ...initial.stages[0]!, status: "failed", attemptCount: 1,
+    failureReason: "BROWSER_SESSION_WORKSPACE_REVOKED", progressPhase: "terminal",
+    updatedAt: "2026-08-21T21:20:30.000Z",
+  }, "fixture_legacy_workspace_revoked_terminal");
+  store.updateOrder({
+    orderId: candidate.orderId, status: "failed",
+    failureReason: "BROWSER_SESSION_WORKSPACE_REVOKED",
+    updatedAt: "2026-08-21T21:20:30.000Z",
+    eventType: "fixture_legacy_workspace_revoked_failed",
+  });
+  return candidate.orderId;
+};
+
 const legacyProfileReadbackReason =
   "review_required: NOT_PRODUCTION_VERIFIED: GPT pre-submit model and reasoning controls have no exact verified readback; GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH";
 const legacyProfileStateFollowOnReason =
@@ -103,72 +143,118 @@ const resetLegacyMigrationVersion = (dataDir: string, version = 0): void => {
   database.close();
 };
 
+const acceptWorkspaceRevokedV4 = (
+  dataDir: string,
+  orderId: string,
+  executionId: string,
+): string => {
+  resetLegacyMigrationVersion(dataDir, 3);
+  const corrected = new XuanxueAiProductionStore(dataDir);
+  const record = corrected.readOrder(orderId)!;
+  assert.equal(record.status, "recovery_pending");
+  assert.equal(record.stages[0]?.status, "recovery_pending");
+  assert.equal(record.stages[0]?.executionId, executionId,
+    "the V4 workspace-revoked correction must preserve the same order and execution");
+  assert.ok(corrected.listCloudRecoveryOrders().some(
+    (candidate) => candidate.order.orderId === orderId,
+  ));
+  const correctedAt = record.updatedAt;
+  corrected.close();
+  return correctedAt;
+};
+
+type InitialCorrectionEvidence = Readonly<{
+  orderId: string;
+  correctedAt: string;
+  profileOrderId: string;
+  profileExecutionId: string;
+  profileCorrectedAt: string;
+  workspaceOrderId: string;
+  workspaceCorrectedAt: string;
+}>;
+
+const acceptInitialCorrections = (dataDir: string): InitialCorrectionEvidence => {
+  const seed = new XuanxueAiProductionStore(dataDir);
+  const orderId = seedLegacyTechnicalTerminal(seed);
+  const profileOrderId = seedLegacyProfileReadbackTerminal(seed);
+  const executionId = seed.readOrder(orderId)!.stages[0]!.executionId;
+  const profileExecutionId = seed.readOrder(profileOrderId)!.stages[0]!.executionId;
+  seed.close();
+  resetLegacyMigrationVersion(dataDir);
+  const corrected = new XuanxueAiProductionStore(dataDir);
+  const record = corrected.readOrder(orderId)!;
+  const profileRecord = corrected.readOrder(profileOrderId)!;
+  assert.equal(record.status, "recovery_pending");
+  assert.equal(record.stages[0]?.executionId, executionId,
+    "one-time legacy proof-empty technical correction must preserve the same order and execution");
+  assert.equal(profileRecord.status, "recovery_pending");
+  assert.equal(profileRecord.stages[0]?.executionId, profileExecutionId,
+    "one-time legacy proof-empty profile correction must preserve the same order and execution");
+  const workspaceOrderId = seedLegacyWorkspaceRevokedTerminal(corrected);
+  const workspaceExecutionId = corrected.readOrder(workspaceOrderId)!.stages[0]!.executionId;
+  corrected.close();
+  return {
+    orderId, correctedAt: record.updatedAt,
+    profileOrderId, profileExecutionId, profileCorrectedAt: profileRecord.updatedAt,
+    workspaceOrderId,
+    workspaceCorrectedAt: acceptWorkspaceRevokedV4(dataDir, workspaceOrderId, workspaceExecutionId),
+  };
+};
+
+const acceptProfileStateFollowOnV3 = (
+  dataDir: string,
+  evidence: InitialCorrectionEvidence,
+): string => {
+  const store = new XuanxueAiProductionStore(dataDir);
+  assert.equal(store.readOrder(evidence.profileOrderId)?.updatedAt, evidence.profileCorrectedAt);
+  const record = store.readOrder(evidence.profileOrderId)!;
+  store.updateStage({
+    ...record.stages[0]!, status: "failed", attemptCount: 2,
+    failureReason: legacyProfileStateFollowOnReason, progressPhase: "terminal",
+    updatedAt: "2026-08-21T21:11:00.000Z",
+  }, "fixture_legacy_profile_state_followon_terminal");
+  store.updateOrder({
+    orderId: evidence.profileOrderId, status: "failed",
+    failureReason: legacyProfileStateFollowOnReason,
+    updatedAt: "2026-08-21T21:11:00.000Z",
+    eventType: "fixture_legacy_profile_state_followon_failed",
+  });
+  store.close();
+  resetLegacyMigrationVersion(dataDir, 2);
+  const corrected = new XuanxueAiProductionStore(dataDir);
+  const correctedRecord = corrected.readOrder(evidence.profileOrderId)!;
+  assert.equal(correctedRecord.status, "recovery_pending");
+  assert.equal(correctedRecord.stages[0]?.executionId, evidence.profileExecutionId,
+    "one-time legacy proof-empty profile-state follow-on correction must preserve the same order and execution");
+  corrected.close();
+  return correctedRecord.updatedAt;
+};
+
+const assertCorrectionStability = (
+  dataDir: string,
+  evidence: InitialCorrectionEvidence,
+  followOnCorrectedAt: string,
+): void => {
+  const reopened = new XuanxueAiProductionStore(dataDir);
+  assert.equal(reopened.readOrder(evidence.orderId)?.updatedAt, evidence.correctedAt,
+    "the legacy correction migration must never become a live failed-task reader");
+  assert.notEqual(
+    followOnCorrectedAt,
+    evidence.profileCorrectedAt,
+    "the profile correction migration must never become a live review-task reader",
+  );
+  assert.equal(reopened.readOrder(evidence.profileOrderId)?.updatedAt, followOnCorrectedAt,
+    "the profile-state follow-on correction migration must never become a live failed-task reader");
+  assert.equal(reopened.readOrder(evidence.workspaceOrderId)?.updatedAt, evidence.workspaceCorrectedAt);
+  reopened.close();
+};
+
 export const acceptLegacyTechnicalTerminalCorrection = async (): Promise<void> => {
   const dataDir = await mkdtemp(path.join(tmpdir(), "xuanxue-legacy-correction-"));
   try {
-    const seed = new XuanxueAiProductionStore(dataDir);
-    const orderId = seedLegacyTechnicalTerminal(seed);
-    const profileOrderId = seedLegacyProfileReadbackTerminal(seed);
-    const executionId = seed.readOrder(orderId)!.stages[0]!.executionId;
-    const profileExecutionId = seed.readOrder(profileOrderId)!
-      .stages[0]!.executionId;
-    seed.close();
-    resetLegacyMigrationVersion(dataDir);
-    const corrected = new XuanxueAiProductionStore(dataDir);
-    const record = corrected.readOrder(orderId)!;
-    assert.equal(record.status, "recovery_pending");
-    assert.equal(record.stages[0]?.status, "recovery_pending");
-    assert.equal(record.stages[0]?.executionId, executionId,
-      "one-time legacy proof-empty technical correction must preserve the same order and execution");
-    assert.ok(corrected.listCloudRecoveryOrders().some(
-      (candidate) => candidate.order.orderId === orderId,
-    ));
-    const profileRecord = corrected.readOrder(profileOrderId)!;
-    assert.equal(profileRecord.status, "recovery_pending");
-    assert.equal(profileRecord.stages[0]?.status, "recovery_pending");
-    assert.equal(profileRecord.stages[0]?.executionId, profileExecutionId,
-      "one-time legacy proof-empty profile correction must preserve the same order and execution");
-    assert.ok(corrected.listCloudRecoveryOrders().some(
-      (candidate) => candidate.order.orderId === profileOrderId,
-    ));
-    const correctedAt = record.updatedAt;
-    const profileCorrectedAt = profileRecord.updatedAt;
-    corrected.close();
-    const stableProfileCorrection = new XuanxueAiProductionStore(dataDir);
-    assert.equal(
-      stableProfileCorrection.readOrder(profileOrderId)?.updatedAt,
-      profileCorrectedAt,
-      "the profile correction migration must never become a live review-task reader",
-    );
-    const stableProfileRecord = stableProfileCorrection.readOrder(profileOrderId)!;
-    stableProfileCorrection.updateStage({
-      ...stableProfileRecord.stages[0]!, status: "failed", attemptCount: 2,
-      failureReason: legacyProfileStateFollowOnReason, progressPhase: "terminal",
-      updatedAt: "2026-08-21T21:11:00.000Z",
-    }, "fixture_legacy_profile_state_followon_terminal");
-    stableProfileCorrection.updateOrder({
-      orderId: profileOrderId, status: "failed",
-      failureReason: legacyProfileStateFollowOnReason,
-      updatedAt: "2026-08-21T21:11:00.000Z",
-      eventType: "fixture_legacy_profile_state_followon_failed",
-    });
-    stableProfileCorrection.close();
-    resetLegacyMigrationVersion(dataDir, 2);
-    const followOnCorrected = new XuanxueAiProductionStore(dataDir);
-    const followOnRecord = followOnCorrected.readOrder(profileOrderId)!;
-    assert.equal(followOnRecord.status, "recovery_pending");
-    assert.equal(followOnRecord.stages[0]?.status, "recovery_pending");
-    assert.equal(followOnRecord.stages[0]?.executionId, profileExecutionId,
-      "one-time legacy proof-empty profile-state follow-on correction must preserve the same order and execution");
-    const followOnCorrectedAt = followOnRecord.updatedAt;
-    followOnCorrected.close();
-    const reopened = new XuanxueAiProductionStore(dataDir);
-    assert.equal(reopened.readOrder(orderId)?.updatedAt, correctedAt,
-      "the legacy correction migration must never become a live failed-task reader");
-    assert.notEqual(followOnCorrectedAt, profileCorrectedAt);
-    assert.equal(reopened.readOrder(profileOrderId)?.updatedAt, followOnCorrectedAt,
-      "the profile-state follow-on correction migration must never become a live failed-task reader");
-    reopened.close();
+    const evidence = acceptInitialCorrections(dataDir);
+    const followOnCorrectedAt = acceptProfileStateFollowOnV3(dataDir, evidence);
+    assertCorrectionStability(dataDir, evidence, followOnCorrectedAt);
   } finally {
     await rm(dataDir, { recursive: true, force: true });
   }

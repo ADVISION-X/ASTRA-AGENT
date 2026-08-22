@@ -154,6 +154,7 @@ const inspectDurableFifo = (
   ]);
   for (const required of [
     "registerWebChatSchedulerWaiter",
+    "isNextWebChatSubmissionWaiter",
     "isNextWebChatPatrolWaiter",
     "scheduler_waiters",
     "scheduler_sequence",
@@ -173,6 +174,12 @@ const inspectDurableFifo = (
     ...literalTokens(sources.acceptance),
   ]);
   for (const required of [
+    "business capacity cannot be collapsed to the single physical Browser lane",
+    "registerRestartableSubmissionTicket",
+    "restart must rebind the same oldest durable submission ticket",
+    "firstSubmission",
+    "secondSubmission",
+    "a newer durable submission ticket must not overtake the oldest ticket",
     "firstPatrolPromise",
     "secondPatrolPromise",
     "durable patrol tickets must preserve FIFO admission",

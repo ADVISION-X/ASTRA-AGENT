@@ -86,6 +86,7 @@ try {
     "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
     "BROWSER_LIVENESS_EXPIRED",
     "BROWSER_SESSION_WORKSPACE_REQUIRED",
+    "BROWSER_SESSION_WORKSPACE_REVOKED",
   ]) {
     assert.equal(
       isRecoverableCloudWorkerFailure(new Error(reason)),

@@ -129,6 +129,10 @@ pro_extended
 | 模型候选 | `[role='menuitemradio']` | `GPT-5.6 Sol` 恰好一个；选中后该项 `aria-checked='true'`，全部 checked candidate 恰好一个 | 本次相邻候选 `GPT-5.5`、`o3` 不得处于 checked；目标为零/多个或 checked 冲突均失败关闭 |
 | 推理候选 | `[role='menuitemradio']` | 真实候选为 `极速 / 中 / 高 / 极高 / Pro`；请求目标恰好一个且最终唯一 checked | “最接近”选择、滑块坐标、固定 index、多个 checked 或目标缺失均失败关闭 |
 
+新对话入口先读取同一张正反边界：当前 URL 为 `https://chatgpt.com/`、用户/助手 turn 均为零、composer
+为空、附件/粘贴卡/生成态均不存在且候选唯一时，必须原地返回 no-op proof，不得再次 `Page.navigate`、reload
+或点击 New chat。只有该边界不成立时才允许一次同源根导航，并在新 Document 上重新证明全部条件。
+
 本次实证的 canonical tier 到中文 UI 的唯一映射：
 
 ```txt
@@ -586,9 +590,14 @@ hash/output 全为空。恢复保留 execution id、turn marker 和 failure ledg
 ## Bounded Parallel Web Chat
 
 ```txt
+business capacity: fixed max_in_flight=10; environment cannot collapse or enlarge it
 browser action admission: max_browser_in_flight=1
 business/provider waits: durable, no Browser lock
 provider generation wait: concurrent
+submission queue: durable SQLite strict FIFO
+submission window: oldest ticket holds clean-page -> durable submission checkpoint
+pre-checkpoint UNKNOWN: same ticket remains head; newer submission and patrol blocked
+attachment stable before prompt: exact names/count, no extra/uploading; send may still be disabled
 submission priority: before patrol
 patrol queue: durable SQLite FIFO
 ```

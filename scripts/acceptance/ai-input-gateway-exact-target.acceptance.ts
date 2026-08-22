@@ -18,6 +18,9 @@ const freshConversation = project.getSourceFile("src/capabilities/ai-input-gatew
 assert.ok(freshConversation, "The governed fresh ChatGPT conversation owner must be present.");
 const navigateAwait = freshConversation.getDescendantsOfKind(SyntaxKind.AwaitExpression)
   .find((node) => node.getExpression().getText().includes("input.browser.navigate"));
+const guardedNavigation = navigateAwait?.getFirstAncestorByKind(SyntaxKind.IfStatement);
+assert.ok(guardedNavigation?.getExpression().getText().includes("isExactFreshChatGptRoot"),
+  "An already exact empty ChatGPT root must bypass navigation as a proved no-op.");
 const firstWaitAwait = freshConversation.getDescendantsOfKind(SyntaxKind.AwaitExpression)
   .find((node) => node.getExpression().getText().includes("input.browser.wait"));
 assert.ok(navigateAwait && firstWaitAwait && firstWaitAwait.getStart() > navigateAwait.getEnd(),

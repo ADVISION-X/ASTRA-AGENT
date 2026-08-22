@@ -4,7 +4,9 @@ import path from "node:path";
 import {
   countWebChatSchedulerWaiters,
   isNextWebChatPatrolWaiter,
+  isNextWebChatSubmissionWaiter,
   registerWebChatSchedulerWaiter,
+  type WebChatSchedulerWaiter,
 } from "./web-chat-scheduler-ledger.js";
 
 type LeaseRecord = {
@@ -22,16 +24,13 @@ export type WebChatRuntimeLease = {
 };
 
 const DEFAULT_MAX_IN_FLIGHT = 10;
-const ABSOLUTE_MAX_IN_FLIGHT = 64;
 
 export const resolveWebChatMaxInFlight = (): number => {
   const raw = process.env.WEB_CHAT_MAX_IN_FLIGHT?.trim();
-  if (!raw) return DEFAULT_MAX_IN_FLIGHT;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 1 || value > ABSOLUTE_MAX_IN_FLIGHT) {
-    throw new Error(`WEB_CHAT_MAX_IN_FLIGHT must be an integer between 1 and ${ABSOLUTE_MAX_IN_FLIGHT}.`);
+  if (raw && raw !== String(DEFAULT_MAX_IN_FLIGHT)) {
+    throw new Error("WEB_CHAT_MAX_IN_FLIGHT must equal the governed fixed value 10.");
   }
-  return value;
+  return DEFAULT_MAX_IN_FLIGHT;
 };
 
 const processAlive = (pid: number): boolean => {
@@ -56,14 +55,11 @@ const delay = (signal?: AbortSignal): Promise<void> => new Promise((resolve, rej
 export const registerPendingWebChatSubmission = (
   dataDir: string,
   executionId: string,
-): (() => void) => {
-  const waiter = registerWebChatSchedulerWaiter(
+): WebChatSchedulerWaiter => registerWebChatSchedulerWaiter(
     dataDir,
     "submission",
     executionId,
   );
-  return () => waiter.release();
-};
 
 export const pendingWebChatSubmissionCount = (dataDir: string): number =>
   countWebChatSchedulerWaiters(dataDir, "submission");
@@ -148,6 +144,7 @@ export const acquireWebChatBrowserMutationLease = async (input: {
   dataDir: string;
   timeoutMs: number;
   signal?: AbortSignal;
+  submissionWaiter?: WebChatSchedulerWaiter;
 }): Promise<WebChatRuntimeLease> => {
   const root = path.join(input.dataDir, "runtime-data", "ai-input-gateway");
   await mkdir(root, { recursive: true });
@@ -155,8 +152,21 @@ export const acquireWebChatBrowserMutationLease = async (input: {
   const deadline = Date.now() + input.timeoutMs;
   while (Date.now() < deadline) {
     if (input.signal?.aborted) throw new Error("review_required: web-chat browser mutation wait aborted.");
+    if (input.submissionWaiter
+      && !isNextWebChatSubmissionWaiter(input.dataDir, input.submissionWaiter.waiterId)) {
+      await delay(input.signal);
+      continue;
+    }
     const lease = await acquireDirectoryLease({ leaseDir, kind: "browser_mutation", slot: null });
-    if (lease) return lease;
+    if (!lease) {
+      await delay(input.signal);
+      continue;
+    }
+    if (!input.submissionWaiter
+      || isNextWebChatSubmissionWaiter(input.dataDir, input.submissionWaiter.waiterId)) {
+      return lease;
+    }
+    await lease.release();
     await delay(input.signal);
   }
   throw new Error("review_required: timed out waiting for serialized web-chat browser mutation.");

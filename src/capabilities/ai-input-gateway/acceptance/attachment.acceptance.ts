@@ -61,7 +61,7 @@ class AttachmentLeaseFixture implements AttachmentMutationBrowser {
       return { tagName: "INPUT", type: "file", accept: "", multiple: true, connected: true, disabled: false, visible: false };
     }
     if (intent.kind === "inspect" && intent.selector === "#composer-submit-button[data-testid='send-button']") {
-      return { tagName: "BUTTON", visible: this.attachmentBatches.length > 0, disabled: this.attachmentBatches.length === 0 };
+      return { tagName: "BUTTON", visible: true, disabled: true };
     }
     if (intent.kind === "readText" && intent.selector === "form") {
       return this.registeredNames.join("\n");
@@ -121,6 +121,11 @@ try {
   ], "one exact document-input batch is the only attachment mutation");
   assert.equal((terminalProof as { status?: string } | null)?.status, "attachments_stable");
   assert.equal(completed.uploadedFiles.length, 2);
+  assert.equal(
+    browser.attachmentBatches.length,
+    1,
+    "exact attachments must stabilize before prompt entry even while the send button is correctly disabled",
+  );
 
   await assert.rejects(
     attachApprovedWebChatFilesOnce({

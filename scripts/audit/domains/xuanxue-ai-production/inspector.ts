@@ -53,7 +53,7 @@ const finding = (
   message: string,
 ): InspectorFinding => createFinding({
   lawId,
-  clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
+  clauseId: "apex-xuanxue-001-v5-cloud-pull-v5",
   checkId,
   filePath,
   message,
@@ -291,6 +291,7 @@ const inspectCloud = (
       "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
       "BROWSER_LIVENESS_EXPIRED",
       "BROWSER_SESSION_WORKSPACE_REQUIRED",
+      "BROWSER_SESSION_WORKSPACE_REVOKED",
     ],
   });
   requireValues(findings, {
@@ -324,11 +325,11 @@ const inspectAcceptance = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
-  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
-  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
-  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
-  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
+  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
+  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
+  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
+  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
+  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
 });
 
 const collectDomainSources = (

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T13:47:48.070Z",
+  "generatedAt": "2026-08-22T14:52:38.445Z",
   "capabilityDomain": "xuanxue-ai-production-localization-contract",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,14 +9,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2aace565-8889-4b36-9861-6e737ad3c160",
+      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:261bb9e3-97f2-4503-9eca-68e659eb48aa",
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T13:47:47.999Z",
-      "endedAt": "2026-08-22T13:47:48.070Z",
-      "durationMs": 71,
+      "startedAt": "2026-08-22T14:52:38.375Z",
+      "endedAt": "2026-08-22T14:52:38.445Z",
+      "durationMs": 70,
       "evidenceRefs": [
         "artifacts/contracts/localization-production-contract.v1.json",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -41,7 +41,7 @@
       "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V2",
       "clauseId": "grasseye-xuanxue-localization-contract-001-v2-inbound-mirror",
       "checkId": "xuanxue-ai-production-localization-contract/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2aace565-8889-4b36-9861-6e737ad3c160"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:261bb9e3-97f2-4503-9eca-68e659eb48aa"
     }
   ],
   "inspectedFiles": [

@@ -34,6 +34,15 @@ export const acceptXuanxueAiProductionConcurrency = async (input: {
     10,
     "V5 must admit exactly ten independent provider waits behind one Browser action lane",
   );
+  assert.deepEqual(
+    gateway.started.filter((value) => /aiprod_qimen_\d+:analysis$/u.test(value)),
+    [...parallelOrders]
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt)
+        || left.orderId.localeCompare(right.orderId))
+      .slice(0, 10)
+      .map((candidate) => `${candidate.orderId}:analysis`),
+    "the ten business seats must enter provider admission in durable oldest-first order",
+  );
   assert.equal(gateway.maxActive, 10);
   gateway.releaseQimen();
   const completed = await Promise.all(executions);

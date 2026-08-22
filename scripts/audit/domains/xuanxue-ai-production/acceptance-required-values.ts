@@ -1,5 +1,6 @@
 export const xuanxueAcceptanceRequiredValues = [
   "maxActive",
+  "the ten business seats must enter provider admission in durable oldest-first order",
   "providerForkRef",
   "providerContinuationRef",
   "forked_from_checkpoint",

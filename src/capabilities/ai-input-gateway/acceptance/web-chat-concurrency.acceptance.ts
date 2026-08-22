@@ -19,14 +19,11 @@ import {
   type AiProviderAdapter,
 } from "../index.js";
 import {
-  advanceStableAnswer,
-  createStableAnswerState,
-} from "../providers/web-chat-answer-support.js";
-import {
   acquireWebChatBrowserMutationLease,
   acquireWebChatBrowserPatrolLease,
   pendingWebChatSubmissionCount,
   registerPendingWebChatSubmission,
+  resolveWebChatMaxInFlight,
 } from "../runtime/web-chat-concurrency-lease.js";
 import {
   startOrResumeWebChatExecution,
@@ -39,6 +36,7 @@ import {
 import { assertWebChatSourceContracts } from "./web-chat-source-contract.acceptance-helper.js";
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 import { assertWebChatIdentityAndRecoveryPolicies } from "./web-chat-identity-recovery.acceptance-helper.js";
+import { assertPartialAnswerQuietWindow } from "./web-chat-concurrency-answer.acceptance-helper.js";
 
 const delay = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -86,7 +84,7 @@ const requestFor = (worker: number, withProfile = false): AiFeedInput => ({
     accountCapabilityRef: "acceptance:account",
     reasoningTier: "high",
     executorIdentityRef: "acceptance",
-    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V4",
     acceptanceVersion: "2026-08-22.1",
   }) } : {}),
   timeoutMs: 60_000,
@@ -161,6 +159,18 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
   );
 };
 
+const registerRestartableSubmissionTicket = async (
+  dataDir: string,
+  executionId: string,
+): Promise<void> => {
+  const waiter = registerPendingWebChatSubmission(dataDir, executionId);
+  await writeFile(
+    path.join(dataDir, "restartable-submission-ticket.json"),
+    JSON.stringify({ waiterId: waiter.waiterId, ticket: waiter.ticket }),
+    "utf8",
+  );
+};
+
 const assertTopologyProofIsRequired = async (
   dataDir: string,
 ): Promise<void> => {
@@ -197,7 +207,11 @@ const assertTopologyProofIsRequired = async (
 };
 
 const workerArgs = process.argv.slice(2);
-if (workerArgs[0] === "--worker") {
+if (workerArgs[0] === "--ticket-worker") {
+  const dataDir = workerArgs[1];
+  if (!dataDir) throw new Error("invalid restartable ticket worker arguments");
+  await registerRestartableSubmissionTicket(dataDir, "restart-oldest-submission");
+} else if (workerArgs[0] === "--worker") {
   const dataDir = workerArgs[1];
   const worker = Number(workerArgs[2]);
   if (!dataDir || !Number.isInteger(worker))
@@ -212,6 +226,11 @@ if (workerArgs[0] === "--worker") {
     path.join(os.tmpdir(), "grasseye-web-chat-concurrency-"),
   );
   const scriptPath = fileURLToPath(import.meta.url);
+  const restartTicketWorker = spawn(
+    process.execPath,
+    ["--import", "tsx", scriptPath, "--ticket-worker", dataDir],
+    { cwd: process.cwd(), stdio: "inherit" },
+  );
   const spawnWorker = (worker: number) =>
     spawn(
       process.execPath,
@@ -237,6 +256,38 @@ if (workerArgs[0] === "--worker") {
     });
 
   try {
+    const originalCapacity = process.env.WEB_CHAT_MAX_IN_FLIGHT;
+    process.env.WEB_CHAT_MAX_IN_FLIGHT = "1";
+    assert.throws(
+      () => resolveWebChatMaxInFlight(),
+      /must equal the governed fixed value 10/u,
+      "business capacity cannot be collapsed to the single physical Browser lane",
+    );
+    if (originalCapacity === undefined) delete process.env.WEB_CHAT_MAX_IN_FLIGHT;
+    else process.env.WEB_CHAT_MAX_IN_FLIGHT = originalCapacity;
+
+    await waitForExit(restartTicketWorker);
+    const persistedTicket = JSON.parse(await readFile(
+      path.join(dataDir, "restartable-submission-ticket.json"),
+      "utf8",
+    )) as { waiterId: string; ticket: number };
+    const newerAfterRestart = registerPendingWebChatSubmission(
+      dataDir,
+      "newer-after-restart",
+    );
+    const resumedOldest = registerPendingWebChatSubmission(
+      dataDir,
+      "restart-oldest-submission",
+    );
+    assert.equal(resumedOldest.waiterId, persistedTicket.waiterId);
+    assert.equal(resumedOldest.ticket, persistedTicket.ticket);
+    assert.ok(
+      resumedOldest.ticket < newerAfterRestart.ticket,
+      "restart must rebind the same oldest durable submission ticket",
+    );
+    resumedOldest.release();
+    newerAfterRestart.release();
+
     const repairInput = {
       dataDir,
       executionId: "transient-pre-submit-repair",
@@ -353,11 +404,15 @@ if (workerArgs[0] === "--worker") {
     const secondMutation = await secondMutationPromise;
     await secondMutation.release();
 
-    const releaseQueuedSubmission = registerPendingWebChatSubmission(
+    const firstSubmission = registerPendingWebChatSubmission(
       dataDir,
-      "queued-submission",
+      "first-submission",
     );
-    assert.equal(pendingWebChatSubmissionCount(dataDir), 1);
+    const secondSubmission = registerPendingWebChatSubmission(
+      dataDir,
+      "second-submission",
+    );
+    assert.equal(pendingWebChatSubmissionCount(dataDir), 2);
     const patrolEntryOrder: string[] = [];
     const firstPatrolPromise = acquireWebChatBrowserPatrolLease({
       dataDir,
@@ -382,12 +437,31 @@ if (workerArgs[0] === "--worker") {
       0,
       "provider patrol must not overtake an accepted task waiting to submit",
     );
+    let secondSubmissionEntered = false;
+    const secondSubmissionPromise = acquireWebChatBrowserMutationLease({
+      dataDir,
+      timeoutMs: 4_000,
+      submissionWaiter: secondSubmission,
+    }).then((lease) => {
+      secondSubmissionEntered = true;
+      return lease;
+    });
+    await delay(250);
+    assert.equal(
+      secondSubmissionEntered,
+      false,
+      "a newer durable submission ticket must not overtake the oldest ticket",
+    );
     const prioritySubmission = await acquireWebChatBrowserMutationLease({
       dataDir,
       timeoutMs: 2_000,
+      submissionWaiter: firstSubmission,
     });
+    firstSubmission.release();
     await prioritySubmission.release();
-    releaseQueuedSubmission();
+    const admittedSecondSubmission = await secondSubmissionPromise;
+    secondSubmission.release();
+    await admittedSecondSubmission.release();
     assert.equal(pendingWebChatSubmissionCount(dataDir), 0);
     const firstPatrolLease = await firstPatrolPromise;
     assert.deepEqual(
@@ -406,46 +480,7 @@ if (workerArgs[0] === "--worker") {
 
     await assertWebChatSourceContracts();
 
-    let stableAnswerState = createStableAnswerState();
-    const quietWindowStartedAt = stableAnswerState.lastActivityAt;
-    const partialAnswer = {
-      status: "success" as const,
-      message: "partial streamed answer",
-      answerText: '{"',
-      pageUrl: "https://chatgpt.com/c/partial",
-      generating: false,
-      assistantCount: 1,
-      userMessageCount: 1,
-      conversationTurnIds: ["conversation-turn-1", "conversation-turn-2"],
-    };
-    let stableAnswerProgress = advanceStableAnswer({
-      evaluation: partialAnswer,
-      minStableDurationMs: 3_000,
-      now: quietWindowStartedAt,
-      stableRoundsRequired: 2,
-      state: stableAnswerState,
-    });
-    stableAnswerState = stableAnswerProgress.nextState;
-    stableAnswerProgress = advanceStableAnswer({
-      evaluation: partialAnswer,
-      minStableDurationMs: 3_000,
-      now: quietWindowStartedAt + 1_500,
-      stableRoundsRequired: 2,
-      state: stableAnswerState,
-    });
-    assert.equal(
-      stableAnswerProgress.successEvaluation,
-      null,
-      "an unchanged partial stream must not complete before the quiet window",
-    );
-    stableAnswerProgress = advanceStableAnswer({
-      evaluation: partialAnswer,
-      minStableDurationMs: 3_000,
-      now: quietWindowStartedAt + 3_000,
-      stableRoundsRequired: 2,
-      state: stableAnswerProgress.nextState,
-    });
-    assert.equal(stableAnswerProgress.successEvaluation?.answerText, '{"');
+    assertPartialAnswerQuietWindow();
   } finally {
     await rm(dataDir, { recursive: true, force: true });
   }

@@ -57,10 +57,10 @@ const withDatabase = <T>(
       values(1,1) on conflict(singleton) do nothing;
     `);
     const stale = database.prepare(
-      "select distinct pid from scheduler_waiters",
+      "select distinct pid from scheduler_waiters where kind='patrol'",
     ).all() as { pid: number }[];
     const remove = database.prepare(
-      "delete from scheduler_waiters where pid=?",
+      "delete from scheduler_waiters where kind='patrol' and pid=?",
     );
     for (const candidate of stale) {
       if (!processAlive(candidate.pid)) remove.run(candidate.pid);
@@ -87,6 +87,12 @@ export const registerWebChatSchedulerWaiter = (
     select waiter_id,execution_id,pid,ticket from scheduler_waiters
     where execution_id=? and kind=?
   `).get(executionId, kind) as WaiterRow | undefined;
+  if (existing && existing.pid !== process.pid) {
+    database.prepare(`
+      update scheduler_waiters set pid=? where waiter_id=?
+    `).run(process.pid, existing.waiter_id);
+    existing.pid = process.pid;
+  }
   const row = existing ?? database.transaction(() => {
     const sequence = database.prepare(`
       select next_ticket from scheduler_sequence where singleton=1
@@ -149,6 +155,17 @@ export const isNextWebChatPatrolWaiter = (
   const row = database.prepare(`
     select waiter_id from scheduler_waiters
     where kind='patrol' order by ticket,waiter_id limit 1
+  `).get() as { waiter_id: string } | undefined;
+  return row?.waiter_id === waiterId;
+});
+
+export const isNextWebChatSubmissionWaiter = (
+  dataDir: string,
+  waiterId: string,
+): boolean => withDatabase(dataDir, (database) => {
+  const row = database.prepare(`
+    select waiter_id from scheduler_waiters
+    where kind='submission' order by ticket,waiter_id limit 1
   `).get() as { waiter_id: string } | undefined;
   return row?.waiter_id === waiterId;
 });

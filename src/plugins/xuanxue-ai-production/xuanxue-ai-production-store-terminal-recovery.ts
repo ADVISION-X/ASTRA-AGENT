@@ -11,7 +11,7 @@ const recoverablePreSubmissionReason = (reason: string | null): boolean => {
   const root = reason.match(
     /^review_required: web-chat execution is terminal: [^;]+; root=(.+)$/iu,
   )?.[1]?.trim() ?? reason.trim();
-  return /^(?:BROWSER_EXTENSION_CHANNEL_UNAVAILABLE|BROWSER_LIVENESS_EXPIRED|BROWSER_SESSION_WORKSPACE_REQUIRED|BROWSER_TARGET_INVALID|BROWSER_DOCUMENT_INVALID|BROWSER_BACKPRESSURE|BROWSER_AUTH_TRANSCRIPT_INVALID|BROWSER_CAPABILITY_REJECTED|WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID)$/u
+  return /^(?:BROWSER_EXTENSION_CHANNEL_UNAVAILABLE|BROWSER_LIVENESS_EXPIRED|BROWSER_SESSION_WORKSPACE_REQUIRED|BROWSER_SESSION_WORKSPACE_REVOKED|BROWSER_TARGET_INVALID|BROWSER_DOCUMENT_INVALID|BROWSER_BACKPRESSURE|BROWSER_AUTH_TRANSCRIPT_INVALID|BROWSER_CAPABILITY_REJECTED|WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID)$/u
     .test(root);
 };
 
@@ -148,6 +148,7 @@ const correctProofEmptyProfileStateFollowOnStages = (
 const LEGACY_TECHNICAL_TERMINAL_CORRECTION_VERSION = 1;
 const LEGACY_PROFILE_READBACK_TERMINAL_CORRECTION_VERSION = 2;
 const LEGACY_PROFILE_STATE_FOLLOWON_TERMINAL_CORRECTION_VERSION = 3;
+const LEGACY_WORKSPACE_REVOKED_TERMINAL_CORRECTION_VERSION = 4;
 
 type ReadOrder = (orderId: string) => XuanxueAiOrderRecord | null;
 
@@ -243,18 +244,46 @@ const applyProfileStateFollowOnTerminalV3 = (
   }
 };
 
+const applyWorkspaceRevokedTerminalV4 = (
+  database: Database.Database,
+  readOrder: ReadOrder,
+): void => {
+  const rows = database.prepare(`select order_id from production_orders
+    where status='failed' and failure_reason='BROWSER_SESSION_WORKSPACE_REVOKED'
+      and json_valid(order_json)=1 and ${v5ProtocolSqlPredicate}
+    order by created_at,order_id`).all() as Array<{ order_id: string }>;
+  for (const row of rows) {
+    const existing = readOrder(row.order_id);
+    if (!existing || !isProofEmptyTechnicalTerminal(existing)) continue;
+    const correctedAt = new Date().toISOString();
+    correctProofEmptyTerminalStages(database, existing, correctedAt);
+    database.prepare(`update production_orders
+      set status='recovery_pending',updated_at=?
+      where order_id=? and status='failed'`
+    ).run(correctedAt, existing.order.orderId);
+    appendXuanxueAiProductionEvent(database, {
+      orderId: existing.order.orderId, stageId: null,
+      eventType: "legacy_workspace_revoked_terminal_correction_applied",
+      fromStatus: "failed", toStatus: "recovery_pending",
+      detail: { migrationVersion: LEGACY_WORKSPACE_REVOKED_TERMINAL_CORRECTION_VERSION },
+      createdAt: correctedAt,
+    });
+  }
+};
+
 export const applyLegacyTechnicalTerminalCorrection = (
   database: Database.Database,
   readOrder: ReadOrder,
 ): void => {
   const version = database.pragma("user_version", { simple: true }) as number;
-  if (version >= LEGACY_PROFILE_STATE_FOLLOWON_TERMINAL_CORRECTION_VERSION) return;
+  if (version >= LEGACY_WORKSPACE_REVOKED_TERMINAL_CORRECTION_VERSION) return;
   database.transaction(() => {
     applyTechnicalTerminalV1(database, readOrder, version);
     applyProfileReadbackTerminalV2(database, readOrder, version);
     applyProfileStateFollowOnTerminalV3(database, readOrder);
+    applyWorkspaceRevokedTerminalV4(database, readOrder);
     database.pragma(
-      `user_version = ${LEGACY_PROFILE_STATE_FOLLOWON_TERMINAL_CORRECTION_VERSION}`,
+      `user_version = ${LEGACY_WORKSPACE_REVOKED_TERMINAL_CORRECTION_VERSION}`,
     );
   })();
 };

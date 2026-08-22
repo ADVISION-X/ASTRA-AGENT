@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T13:47:19.611Z",
+  "generatedAt": "2026-08-22T14:52:07.986Z",
   "capabilityDomain": "capability-group-governance",
   "lawIds": [
     "APEX-CAPABILITY-GROUP-001-V1",
@@ -378,6 +378,7 @@
     "src/capabilities/ai-input-gateway/acceptance/gpt-web-execution-profile.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency-answer.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
@@ -696,14 +697,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6",
+      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b",
       "capabilityDomain": "capability-group-governance",
       "checkId": "capability-group-governance/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T13:47:19.585Z",
-      "endedAt": "2026-08-22T13:47:19.611Z",
-      "durationMs": 26,
+      "startedAt": "2026-08-22T14:52:07.960Z",
+      "endedAt": "2026-08-22T14:52:07.985Z",
+      "durationMs": 25,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts",
@@ -1037,6 +1038,7 @@
         "src/capabilities/ai-input-gateway/acceptance/gpt-web-execution-profile.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-canonical-route.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency-answer.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
@@ -1360,49 +1362,49 @@
       "lawId": "APEX-CAPABILITY-GROUP-001-V1",
       "clauseId": "apex-capability-group-001-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-002-V1",
       "clauseId": "apex-capability-group-002-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-003-V1",
       "clauseId": "apex-capability-group-003-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-004-V1",
       "clauseId": "apex-capability-group-004-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-005-V1",
       "clauseId": "apex-capability-group-005-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-006-V1",
       "clauseId": "apex-capability-group-006-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-007-V1",
       "clauseId": "apex-capability-group-007-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     },
     {
       "lawId": "APEX-CAPABILITY-GROUP-008-V1",
       "clauseId": "apex-capability-group-008-requirement",
       "checkId": "capability-group-governance/owner-assertion-set",
-      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:2701583d-e830-4536-b363-c57688f7efd6"
+      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:9786b31a-29e6-4c66-980f-3ab60c92792b"
     }
   ]
 }

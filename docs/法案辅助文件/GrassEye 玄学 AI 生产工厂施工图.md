@@ -1,7 +1,7 @@
 # GrassEye 玄学 AI 生产工厂施工图
 
 状态：active V5.3 ten-job-automatic-oldest-first-resume
-法案：`APEX-XUANXUE-AI-PRODUCTION-001-V4`
+法案：`APEX-XUANXUE-AI-PRODUCTION-001-V5`
 唯一 owner：`xuanxue-ai-production`
 
 ## 接入
@@ -18,7 +18,9 @@ xuanxue-web canonical V5 manifest
 Cloud Worker 只拉取、验 V5 grant、持久化传递并回传；它不拥有业务步骤，也不直连 Browser 或
 Plugin private implementation。Plugin 固定 `max_in_flight=10` 个独立业务任务；Gateway 固定
 `max_browser_in_flight=1`，所有页面动作复用一个物理标签页和 mutation lock，Provider 思考等待释放
-该锁。Plugin 先 fsync local identity，再以
+该锁。十个任务都可占据独立业务席位，但唯一页面窗口只接纳 SQLite durable submission ticket
+全局最早的任务；该任务从 clean-page proof 到 submission checkpoint 连续占有窗口，不能在附件完成前
+或 prompt 提交确认前让后来的任务插队。Plugin 先 fsync local identity，再以
 serverNow、lease expiry、完整 RTT 与 10 秒安全边际计算相对 deadline budget。每项 checkpoint 和
 terminal 都携带 job/attempt/device/leaseVersion/fence/payload hash。
 
@@ -39,7 +41,7 @@ Workspace 只由当前连接上的人工配对与 HTTPS 标签认领原子建立
 也没有独立 approval API/UI。真实断线或 Workbench/Extension/Chrome 重启后，任务保持同一
 `recovery_pending`、job、attempt、checkpoint 与 fence；操作者重新配对认领后，Cloud claim 必须
 先恢复 `created_at + job_id` 最早的未完成任务。`BROWSER_EXTENSION_CHANNEL_UNAVAILABLE`、
-`BROWSER_LIVENESS_EXPIRED`、`BROWSER_SESSION_WORKSPACE_REQUIRED`、同一 target navigation 后
+`BROWSER_LIVENESS_EXPIRED`、`BROWSER_SESSION_WORKSPACE_REQUIRED`、`BROWSER_SESSION_WORKSPACE_REVOKED`、同一 target navigation 后
 mutation 前由 hydration/document replacement 引起的短暂 `BROWSER_TARGET_INVALID` 和网络故障
 不得写业务 `failed`，不得清理恢复现场，也不得改走第二队列。页面瞬态只能由 AI Input Gateway
 在同一 target、同一 registry action、同一 exact selector 的既有有界窗口内重新观察；到界后保留
@@ -61,7 +63,8 @@ device、manifest 一致，attempt 更换、lease version 递增、fence 更换�
 本地一次性版本含义固定：`user_version=1` 纠正旧浏览器技术终态，`user_version=2` 纠正旧 profile
 readback 占位终态，`user_version=3` 只纠正已存在 v2 纠偏事件但又被旧 Gateway execution state 误写为
 `submitted web-chat execution is missing its durable submission proof` 的同一 proof-empty order/stage/execution。
-v3 必须保留旧 failure ledger，且只运行一次，绝不能成为常驻 failed scanner。
+`user_version=4` 只纠正本次旧 failure classifier 将 `BROWSER_SESSION_WORKSPACE_REVOKED` 误写为 failed 的
+proof-empty pre-submission 原 order/stage/execution。v3/v4 必须保留旧 failure ledger，且各只运行一次，绝不能成为常驻 failed scanner。
 
 Cloud candidate query 把当前可领取的 `queued` 与 `recovery_pending` 放在同一集合，严格按不可变
 `created_at + job_id` 取全局最早记录；service class、aging、背景份额和恢复类别都不能改写顺序。
@@ -70,7 +73,10 @@ AGENT 收到 grant 后，本地 runnable order 同样按 order 的持久创建�
 
 Browser mutation 使用 `PREPARED -> SEND -> CONFIRMED | FAILED | UNKNOWN`。`UNKNOWN` 不自动
 重放；只有 owning Plugin 基于同一页面的正向确认、反向排除、唯一候选和有界停止可作 outcome
-resolution，否则 `review_required`。结果使用 first-terminal CAS；同 payload 的同 terminal 可重读，
+resolution，否则 `review_required`。submission checkpoint 前的 UNKNOWN 保留同一最早 ticket 并封锁
+新 submission 与普通 patrol，重启后仍由该 execution 先核账。附件稳定发生在 prompt 写入前，只要求
+exact 文件名/数量、无额外项、无上传中状态和唯一 composer；此时 send disabled 是正常状态，不得等待
+到超时后释放窗口。结果使用 first-terminal CAS；同 payload 的同 terminal 可重读，
 其它竞争或迟到写入不得覆盖。
 
 ## 验收边界

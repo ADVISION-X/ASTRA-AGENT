@@ -136,7 +136,7 @@ const isExactFreshChatGptRoot = async (browser: BrowserTargetLease): Promise<boo
     && snapshot.activeGenerationCount === 0;
 };
 
-/** A new chat is an exact root navigation, never a guessed sidebar click. */
+/** A new chat is an exact-root proof; an already-clean root is a no-op. */
 export const startFreshChatGptConversation = async (
   input: FreshConversationInput,
 ): Promise<void> => {
@@ -148,10 +148,12 @@ export const startFreshChatGptConversation = async (
   const startedAtMs = Date.now();
   input.emitStage({ stage: "fresh_chatgpt_conversation", status: "start", startedAtMs: null, refs: { timeoutMs: 30_000 } });
   try {
-    await input.browser.navigate({ url: "https://chatgpt.com/", title: "fresh governed ChatGPT conversation" });
-    // Page.navigate confirms navigation admission, not that ChatGPT's next
-    // document is ready for its first bounded DOM observation.
-    await input.browser.wait({ durationMs: 250 });
+    if (!(await isExactFreshChatGptRoot(input.browser))) {
+      await input.browser.navigate({ url: "https://chatgpt.com/", title: "fresh governed ChatGPT conversation" });
+      // Page.navigate confirms navigation admission, not that ChatGPT's next
+      // document is ready for its first bounded DOM observation.
+      await input.browser.wait({ durationMs: 250 });
+    }
     const deadline = Date.now() + 30_000;
     let lastTransientObservationFailure: string | null = null;
     while (Date.now() < deadline) {

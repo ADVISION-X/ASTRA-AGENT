@@ -3,7 +3,7 @@
   "executionGroup": "domain",
   "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
   "coverage": {"mode": "explicit", "bindings": [
-    {"lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V4", "clauseId": "apex-xuanxue-001-v4-cloud-pull-v5", "checkIds": ["xuanxue-ai-production/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts", "symbolName": "inspectDomain"}]}
+    {"lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V5", "clauseId": "apex-xuanxue-001-v5-cloud-pull-v5", "checkIds": ["xuanxue-ai-production/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts", "symbolName": "inspectDomain"}]}
   ]},
   "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md", "requiredAnchors": ["## 接入", "## 删除式迁移", "## 验收边界"]}]
 }

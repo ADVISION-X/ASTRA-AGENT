@@ -399,8 +399,8 @@ const buildActiveExecution = (
   state: ActiveExecutionState,
 ): ManagedWebChatExecution => {
   const releasePendingSubmission = (): void => {
-    state.releasePendingSubmission?.();
-    state.releasePendingSubmission = null;
+    state.pendingSubmission?.release();
+    state.pendingSubmission = null;
   };
   const webChatExecution = buildExecutionContext({
     source: input,
@@ -420,7 +420,11 @@ const buildActiveExecution = (
     markFailure: (error) => markActiveExecutionFailure(input, state, error),
     markPostProcessingFailure: (error) => markActivePostProcessingFailure(input, state, error),
     async release() {
-      releasePendingSubmission();
+      const unresolvedMutation = state.record.status === "review_required"
+        && /BROWSER_OUTCOME_UNKNOWN/iu.test(state.record.failures.at(-1)?.reason ?? "");
+      if (state.record.status !== "recovery_pending" && !unresolvedMutation) {
+        releasePendingSubmission();
+      }
       await state.singleTabBrowser?.releaseInitialMutationLease();
       await state.initialMutationLease?.release();
       await state.capacityLease.release();

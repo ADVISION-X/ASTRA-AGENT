@@ -395,7 +395,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-004-V1");
-  const parallelLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-005-V3");
+  const parallelLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-005-V4");
   const findings: Finding[] = [];
   for (const authorityPath of [P.authority.lawPath, P.authority.blueprintPath]) {
     if (!existsSync(resolveFromRepo(authorityPath))) {

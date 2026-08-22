@@ -97,6 +97,7 @@ const evaluateObservedAttachmentSet = (input: Readonly<{
   matchedNames: readonly string[];
   removeCount: number;
   sendReady: boolean;
+  requireReady: boolean;
 }>): WebChatEvaluation => {
   const common = {
     pageUrl: input.pageUrl,
@@ -106,7 +107,9 @@ const evaluateObservedAttachmentSet = (input: Readonly<{
   if (input.removeCount > input.expectedCount || input.matchedNames.length > input.expectedCount) {
     return { status: "review_required", message: "CHATGPT_ATTACHMENT_SET_AMBIGUOUS", ...common };
   }
-  if (input.removeCount !== input.expectedCount || input.matchedNames.length !== input.expectedCount || !input.sendReady) {
+  if (input.removeCount !== input.expectedCount
+    || input.matchedNames.length !== input.expectedCount
+    || (input.requireReady && !input.sendReady)) {
     return { status: "pending", message: "waiting for the exact ChatGPT attachment set to stabilize", ...common, sendReady: input.sendReady };
   }
   return {
@@ -131,6 +134,7 @@ const inspectObservedAttachmentSet = async (
   composerTextLength: number,
   expectedCount: number,
   expectedFileNames: readonly string[],
+  requireReady: boolean,
 ): Promise<WebChatEvaluation> => {
   const formText = await readText(browser, CHATGPT_COMPOSER_FORM_SELECTOR);
   const removeCount = await count(browser, CHATGPT_REMOVE_ATTACHMENT_SELECTOR);
@@ -142,6 +146,7 @@ const inspectObservedAttachmentSet = async (
     matchedNames: expectedFileNames.filter((fileName) => formText.includes(fileName)),
     removeCount,
     sendReady: send.tagName === "BUTTON" && send.visible === true && send.disabled === false,
+    requireReady,
   });
 };
 
@@ -166,7 +171,14 @@ const evaluateKnownAttachmentPreflight = async (
     return { status: "review_required", message: "WEB_CHAT_COMPOSER_NOT_EMPTY", pageUrl: observed.pageUrl, composerText };
   }
   if (expectedCount === 0) return emptyAttachmentState(observed.pageUrl, composerText.length);
-  return inspectObservedAttachmentSet(browser, observed.pageUrl, composerText.length, expectedCount, expectedFileNames);
+  return inspectObservedAttachmentSet(
+    browser,
+    observed.pageUrl,
+    composerText.length,
+    expectedCount,
+    expectedFileNames,
+    options.requireReady === true,
+  );
 };
 
 export const readExactAttachmentState = (

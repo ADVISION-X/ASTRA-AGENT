@@ -34,7 +34,7 @@ const productionRequest = (overrides: Partial<AiFeedInput> = {}): AiFeedInput =>
     accountCapabilityRef: "acceptance:account",
     reasoningTier: "high",
     executorIdentityRef: "acceptance",
-    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V4",
     acceptanceVersion: "2026-08-19.1",
   }),
   timeoutMs: 180_000,
@@ -53,7 +53,7 @@ const assertSemanticProfile = (): void => {
     accountCapabilityRef: "acceptance:account",
     reasoningTier: "xhigh" as never,
     executorIdentityRef: "acceptance",
-    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V4",
     acceptanceVersion: "2026-08-19.1",
   }));
   assert.throws(() => buildGptWebProviderExecutionProfile({
@@ -61,7 +61,7 @@ const assertSemanticProfile = (): void => {
     accountCapabilityRef: "acceptance:account",
     reasoningTier: "pro" as never,
     executorIdentityRef: "acceptance",
-    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V4",
     acceptanceVersion: "2026-08-19.1",
   }));
   const profile = productionRequest().providerExecutionProfile!;

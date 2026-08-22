@@ -58,8 +58,8 @@
         ]
       },
       {
-        "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-        "clauseId": "apex-ai-input-gateway-005-v3-requirement",
+        "lawId": "APEX-AI-INPUT-GATEWAY-005-V4",
+        "clauseId": "apex-ai-input-gateway-005-v4-requirement",
         "checkIds": [
           "ai-input-gateway/owner-assertion-set"
         ],

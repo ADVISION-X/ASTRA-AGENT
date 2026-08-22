@@ -4,6 +4,7 @@ import {
   registerPendingWebChatSubmission,
   type WebChatRuntimeLease,
 } from "./web-chat-concurrency-lease.js";
+import type { WebChatSchedulerWaiter } from "./web-chat-scheduler-ledger.js";
 import {
   startOrResumeWebChatExecution,
   updateWebChatExecution,
@@ -22,7 +23,7 @@ export interface ActiveExecutionState {
   initialMutationLease: WebChatRuntimeLease | null;
   singleTabBrowser: SingleTabWebChatBrowser | null;
   resume: boolean;
-  releasePendingSubmission: (() => void) | null;
+  pendingSubmission: WebChatSchedulerWaiter | null;
 }
 
 const resolveWebChatProviderKind = (
@@ -49,6 +50,7 @@ const prepareActiveBrowser = async (input: {
   source: ManagedWebChatInput;
   record: WebChatExecutionRecord;
   resume: boolean;
+  pendingSubmission: WebChatSchedulerWaiter | null;
   reportProgress: (phase: string) => Promise<void>;
 }): Promise<{
   record: WebChatExecutionRecord;
@@ -65,6 +67,9 @@ const prepareActiveBrowser = async (input: {
       initialMutationLease = await acquireWebChatBrowserMutationLease({
         dataDir: input.source.dataDir,
         timeoutMs: input.source.request.timeoutMs,
+        ...(input.pendingSubmission
+          ? { submissionWaiter: input.pendingSubmission }
+          : {}),
         ...(input.source.signal ? { signal: input.source.signal } : {}),
       });
       record = await updateWebChatExecution({
@@ -132,7 +137,7 @@ export const startActiveExecution = async (input: {
     timeoutMs: input.source.request.timeoutMs,
     ...(input.source.signal ? { signal: input.source.signal } : {}),
   });
-  let releasePendingSubmission = started.resume
+  const pendingSubmission = started.resume
     ? null
     : registerPendingWebChatSubmission(input.source.dataDir, record.executionId);
   try {
@@ -152,6 +157,7 @@ export const startActiveExecution = async (input: {
       source: input.source,
       record,
       resume: started.resume,
+      pendingSubmission,
       reportProgress: input.reportProgress,
     });
     return {
@@ -160,11 +166,9 @@ export const startActiveExecution = async (input: {
       initialMutationLease: browserState.initialMutationLease,
       singleTabBrowser: browserState.singleTabBrowser,
       resume: started.resume,
-      releasePendingSubmission,
+      pendingSubmission,
     };
   } catch (error) {
-    releasePendingSubmission?.();
-    releasePendingSubmission = null;
     await capacityLease.release();
     throw error;
   }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T13:47:59.300Z",
+  "generatedAt": "2026-08-22T14:52:50.299Z",
   "summary": {
     "activeLawCount": 135,
     "activeClauseCount": 135,
@@ -12,11 +12,11 @@
       "APEX-DOM-020-V1::apex-dom-020-requirement",
       "APEX-DOM-021-V1::apex-dom-021-requirement",
       "APEX-LOCAL-BROWSER-005-V4::apex-local-browser-005-v4-release-recovery",
-      "APEX-XUANXUE-AI-PRODUCTION-001-V4::apex-xuanxue-001-v4-cloud-pull-v5"
+      "APEX-XUANXUE-AI-PRODUCTION-001-V5::apex-xuanxue-001-v5-cloud-pull-v5"
     ],
     "deferredRealProviderFacetCount": 1,
     "realProviderFacetClauseIds": [
-      "APEX-XUANXUE-AI-PRODUCTION-001-V4::apex-xuanxue-001-v4-cloud-pull-v5"
+      "APEX-XUANXUE-AI-PRODUCTION-001-V5::apex-xuanxue-001-v5-cloud-pull-v5"
     ],
     "uncoveredMachineFacetClauseIds": [],
     "coveragePercent": 100
@@ -91,8 +91,8 @@
       "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json"
     },
     {
-      "lawId": "APEX-AI-INPUT-GATEWAY-005-V3",
-      "clauseId": "apex-ai-input-gateway-005-v3-requirement",
+      "lawId": "APEX-AI-INPUT-GATEWAY-005-V4",
+      "clauseId": "apex-ai-input-gateway-005-v4-requirement",
       "capabilityDomain": "ai-input-gateway",
       "evidenceMode": "acceptance",
       "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
@@ -2381,8 +2381,8 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json"
     },
     {
-      "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V4",
-      "clauseId": "apex-xuanxue-001-v4-cloud-pull-v5",
+      "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V5",
+      "clauseId": "apex-xuanxue-001-v5-cloud-pull-v5",
       "capabilityDomain": "xuanxue-ai-production",
       "evidenceMode": "model+acceptance+real-chrome+real-provider",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
