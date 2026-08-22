@@ -1,33 +1,15 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
-import {
-  assertCwsReleaseIdentity,
-  GRASSEYE_BROWSER_EXTENSION_ID,
-} from "../../src/lib/browser/release/cws-extension-release-identity.js";
-import { assertCwsExtensionReleasePolicy } from "../../src/lib/browser/release/cws-extension-release-policy.js";
-import {
-  assertCwsReviewedReleaseProof,
-  createCwsExtensionReleaseProof,
-} from "../../src/lib/browser/release/cws-extension-release-proof.js";
+import { hashExtensionDirectoryV1 } from "../../src/lib/browser/release/extension-directory-hash-v1.js";
+import { GRASSEYE_UNPACKED_EXTENSION_DIRECTORY, GRASSEYE_UNPACKED_EXTENSION_ID, readUnpackedExtensionReleaseIdentity } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 
-const development = createCwsExtensionReleaseProof("0.2.0", null);
-assert.equal(development.mode, "development");
-assert.equal(development.identity.installedExtensionId, GRASSEYE_BROWSER_EXTENSION_ID);
-assert.doesNotThrow(() => assertCwsReleaseIdentity(development.identity));
-assert.doesNotThrow(() => assertCwsExtensionReleasePolicy(development.identity));
-assert.throws(() => assertCwsReviewedReleaseProof(development), /BROWSER_CWS_REVIEW_REQUIRED/u);
-
-const reviewed = createCwsExtensionReleaseProof("0.2.0", "cws-review-receipt:example");
-assert.equal(reviewed.mode, "cws-reviewed");
-assert.doesNotThrow(() => assertCwsReviewedReleaseProof(reviewed));
-
-assert.throws(
-  () => assertCwsExtensionReleasePolicy(createCwsExtensionReleaseProof("0.1.1", null).identity),
-  /BROWSER_CWS_LEGACY_VERSION_FROZEN/u,
-);
-assert.throws(
-  () => assertCwsExtensionReleasePolicy(createCwsExtensionReleaseProof("0.1.9", null).identity),
-  /BROWSER_ROLLBACK_REJECTED/u,
-);
-
+const record = await readUnpackedExtensionReleaseIdentity(resolve(process.cwd(), ".grasseye-local/browser-release/release-record.json"));
+assert.equal(record.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
+assert.equal(record.extensionDirectoryHashV1, await hashExtensionDirectoryV1(resolve(process.cwd(), GRASSEYE_UNPACKED_EXTENSION_DIRECTORY)));
+assert.ok(record.releaseBuildId.startsWith("build-"));
+const loadedServiceWorker = await readFile(resolve(process.cwd(), GRASSEYE_UNPACKED_EXTENSION_DIRECTORY, "service-worker.js"), "utf8");
+assert.equal(loadedServiceWorker.includes(record.releaseBuildId), true, "the loaded service worker must carry the exact releaseBuildId admitted by Workbench");
+assert.equal(loadedServiceWorker.includes("__GRASSEYE_RELEASE_BUILD_ID__"), false, "the extension build must replace the build identity token before release");
 console.log("BROWSER_EXTENSION_RELEASE_IDENTITY_ACCEPTANCE_PASS");

@@ -52,7 +52,7 @@ export type ProviderExecutionProfileProof = {
   modelDisplayName: string;
   modelFamily: string;
   reasoningTier: AiFeedProviderExecutionProfile["reasoningTier"];
-  legacyReasoningEffort: string;
+  reasoningUiLabel: string;
   observedAt: string;
   sourceKind: "provider_ui_observation";
   noOp: boolean;
@@ -273,6 +273,12 @@ export type AiProviderAdapterContext = {
    * accepts opaque artifact identities, never source or staged filesystem
    * paths, and lets the attachment child perform one exact-target batch.
    */
+  registerBrowserFileArtifact?: (input: Readonly<{
+    artifactRef: string;
+    filePath: string;
+    contentHash: `sha256:${string}`;
+    sizeBytes: number;
+  }>) => Promise<void>;
   issueBrowserFileArtifactGrant?: (input: Readonly<{
     artifactRef: string;
     expectedSha256: `sha256:${string}`;

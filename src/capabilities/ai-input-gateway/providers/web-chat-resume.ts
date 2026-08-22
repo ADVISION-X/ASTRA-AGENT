@@ -27,7 +27,7 @@ const legacyIdentityProof = (
     modelFamily: proof.modelFamily,
     modelDisplayName: proof.modelDisplayName,
     modelIdentityStatus: "verified",
-    reasoningEffort: proof.legacyReasoningEffort,
+    reasoningEffort: proof.reasoningUiLabel,
     observedAt: proof.observedAt,
     sourceKind: proof.sourceKind,
     evidenceRef: proof.evidenceRef,
@@ -43,15 +43,13 @@ const verifyResumableTurn = async (input: {
   if (!execution?.resumeSubmission) {
     throw new Error("review_required: durable web-chat submission proof is unavailable for resume.");
   }
-  const [document, match] = await Promise.all([
-    input.browser.executeDomIntent({ kind: "document" }),
-    input.browser.executeDomIntent({
-      kind: "find",
-      selector: "[data-testid^='conversation-turn-'][data-turn='user']",
-      textContains: execution.turnMarker,
-      maxMatches: 1,
-    }),
-  ]);
+  const document = await input.browser.executeDomIntent({ kind: "document" });
+  const match = await input.browser.executeDomIntent({
+    kind: "find",
+    selector: "[data-testid^='conversation-turn-'][data-turn='user']",
+    textContains: execution.turnMarker,
+    maxMatches: 1,
+  });
   const pageUrl = typeof document === "object" && document !== null && !Array.isArray(document)
     && typeof (document as { url?: unknown }).url === "string"
     ? (document as { url: string }).url : "unknown";

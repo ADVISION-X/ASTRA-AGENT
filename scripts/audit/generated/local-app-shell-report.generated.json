@@ -1,87 +1,50 @@
 {
-  "generatedAt": "2026-08-20T23:42:42.488Z",
+  "generatedAt": "2026-08-22T02:57:31.378Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
-    "APEX-LOCAL-APP-SHELL-001-V1",
-    "APEX-LOCAL-APP-SHELL-002-V1",
-    "APEX-LOCAL-APP-SHELL-003-V1",
-    "APEX-LOCAL-APP-SHELL-004-V1",
-    "APEX-LOCAL-APP-SHELL-005-V1"
+    "APEX-LOCAL-APP-SHELL-001-V2",
+    "APEX-LOCAL-APP-SHELL-002-V2"
   ],
   "status": "PASS",
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834",
+      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:7a74a26d-86be-4fcd-b79a-11cce9a9fbf3",
       "capabilityDomain": "local-app-shell",
       "checkId": "local-app-shell/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-20T23:42:42.475Z",
-      "endedAt": "2026-08-20T23:42:42.488Z",
-      "durationMs": 13,
+      "startedAt": "2026-08-22T02:57:31.376Z",
+      "endedAt": "2026-08-22T02:57:31.378Z",
+      "durationMs": 2,
       "evidenceRefs": [
         "scripts/audit/domains/local-app-shell/inspector.ts",
-        "src/app/app-shell/amazon-invoice-workspace.ts",
-        "src/app/app-shell/app-shell-layout.ts",
-        "src/app/app-shell/app-shell.ts",
-        "src/app/app-shell/command-bar.ts",
-        "src/app/app-shell/inspector.ts",
-        "src/app/app-shell/runtime-console.ts",
-        "src/app/app-shell/sidebar.ts",
         "src/app/create-workbench-server.ts",
-        "src/app/workbench-home-client.ts",
-        "src/app/workbench-home-page.ts",
-        "src/app/workbench-home-styles.ts"
+        "src/app/workbench-browser-websocket-upgrade.ts",
+        "src/app/workbench-home-page.ts"
       ],
       "findingCount": 0
     }
   ],
   "executedChecks": [
     {
-      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
-      "clauseId": "apex-local-app-shell-001-requirement",
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V2",
+      "clauseId": "apex-local-app-shell-001-v2-single-upgrade",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:7a74a26d-86be-4fcd-b79a-11cce9a9fbf3"
     },
     {
-      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
-      "clauseId": "apex-local-app-shell-002-requirement",
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V2",
+      "clauseId": "apex-local-app-shell-002-v2-boundary",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
-    },
-    {
-      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
-      "clauseId": "apex-local-app-shell-003-requirement",
-      "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
-    },
-    {
-      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
-      "clauseId": "apex-local-app-shell-004-requirement",
-      "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
-    },
-    {
-      "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
-      "clauseId": "apex-local-app-shell-005-requirement",
-      "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:6dc82e2a-b8d0-4c04-9260-579bed6a1834"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:7a74a26d-86be-4fcd-b79a-11cce9a9fbf3"
     }
   ],
   "inspectedFiles": [
     "scripts/audit/domains/local-app-shell/inspector.ts",
-    "src/app/app-shell/amazon-invoice-workspace.ts",
-    "src/app/app-shell/app-shell-layout.ts",
-    "src/app/app-shell/app-shell.ts",
-    "src/app/app-shell/command-bar.ts",
-    "src/app/app-shell/inspector.ts",
-    "src/app/app-shell/runtime-console.ts",
-    "src/app/app-shell/sidebar.ts",
     "src/app/create-workbench-server.ts",
-    "src/app/workbench-home-client.ts",
-    "src/app/workbench-home-page.ts",
-    "src/app/workbench-home-styles.ts"
+    "src/app/workbench-browser-websocket-upgrade.ts",
+    "src/app/workbench-home-page.ts"
   ]
 }

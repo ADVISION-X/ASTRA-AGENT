@@ -50,13 +50,10 @@
     {
       "filePath": "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
       "requiredAnchors": [
-        "## 1. 总体信息架构",
-        "## 2. App Shell 总布局",
-        "## 5. Skill Registry 设计",
-        "## 8. 三级页面 / Inspector 标准",
-        "## 8.5 App Shell 本地化",
-        "## 19. Acceptance 建设",
-        "## 23. Legacy APP User-Demand Authority Physical Absence"
+        "## 唯一责任",
+        "## 原子切换",
+        "## UI contract",
+        "## 验收"
       ]
     }
   ],

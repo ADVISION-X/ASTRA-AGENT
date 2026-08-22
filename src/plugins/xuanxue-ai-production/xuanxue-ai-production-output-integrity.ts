@@ -22,13 +22,3 @@ export const xuanxueAiOutputIntegrityFailure = (
   }
   return null;
 };
-
-export const xuanxueAiOutputRequiresFreshExecution = (
-  reason: string | null,
-): boolean => Boolean(
-  reason
-  && (
-    reason.startsWith("XUANXUE_AI_PRODUCTION_OUTPUT_")
-    || reason === "XUANXUE_AI_PRODUCTION_RAW_RESPONSE_MISSING"
-  )
-);

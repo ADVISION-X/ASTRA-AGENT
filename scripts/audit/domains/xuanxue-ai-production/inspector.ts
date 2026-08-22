@@ -44,7 +44,13 @@ const finding = (
   checkId: string,
   filePath: string,
   message: string,
-): InspectorFinding => createFinding({ lawId, checkId, filePath, message });
+): InspectorFinding => createFinding({
+  lawId,
+  clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+  checkId,
+  filePath,
+  message,
+});
 
 const source = (
   context: InspectorContext,
@@ -107,22 +113,14 @@ const inspectDurability = (
       "quarantineInvalidStoredOrders",
       "stored_order_contract_quarantined",
       "XUANXUE_AI_PRODUCTION_STORED_ORDER_CONTRACT_INVALID",
-      "repairInvalidCompletedStageOutputs",
-      "invalid_completed_stage_restarted",
+      "quarantineInvalidCompletedStageOutputs",
+      "invalid_completed_stage_quarantined",
       "requestHash",
-      "recoverMissingRequiredContinuationParents",
       "trustedGeneratedFileCount",
-      "followup_parent_replay_requested",
-      "production_parent_conversation_rebuilds",
-      "parent_conversation_rebuild_recorded",
-      "resetOrderForConversationGraphRebuild",
-      "conversation_graph_rebuild_started",
-      "replay_from_first_stage_in_one_new_conversation",
-      "recordParentConversationRebuild",
-      "stage_fresh_execution_restarted",
+      "preserve_invalid_output_and_require_operator_review",
+      "stage_continuation_operator_recovery_required",
       "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER",
       "supersededExecutionId",
-      "hasProvenTerminalPreSubmitIdentityConflict",
       "providerTranscriptJsonl",
       "modelIdentityProof",
       "providerExecutionProfileProof",
@@ -137,7 +135,7 @@ const inspectDurability = (
     values,
     required: [
       "XuanxueAiProductionCoordinator",
-      "DEFAULT_PRODUCTION_WINDOW",
+      "resolveXuanxueAiProductionWindow",
       "availableCapacity",
       "scheduled",
       "waiting",
@@ -146,9 +144,24 @@ const inspectDurability = (
       "exactUrl",
       "parentStage",
       "order_parent_lane_deferred",
-      "rebuildContinuationParent",
-      "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_PAYLOAD_REQUIRED",
       "order_internal_defect_deferred",
+    ],
+  });
+  requireValues(findings, {
+    lawId: durabilityLaw,
+    checkId: "xuanxue-ai-production/browser-outcome-resolution",
+    filePath: "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
+    messagePrefix: "Owning Plugin attachment outcome resolution must contain",
+    values,
+    required: [
+      "resolveAttachmentMutations",
+      "resolvePendingMutations",
+      "assertNoPendingMutations",
+      "positiveEvidenceRef",
+      "negativeEvidenceRef",
+      "TERMINAL_SUCCESS",
+      "attachments_stable",
+      "adjacent-states-excluded",
     ],
   });
 };
@@ -234,6 +247,10 @@ const inspectCloud = (
       "stage_attachment_upload_proof",
       "onAttachmentUploadCompleted",
       "XUANXUE_AI_PRODUCTION_ATTACHMENT_CHECKPOINT_DEFERRED",
+      "isRecoverableCloudWorkerFailure",
+      "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+      "BROWSER_LIVENESS_EXPIRED",
+      "BROWSER_SESSION_WORKSPACE_REQUIRED",
     ],
   });
   requireValues(findings, {
@@ -275,13 +292,11 @@ const inspectAcceptance = (
       "a paid follow-up without an exact parent must never reach GPT",
       "orders sharing one parent GPT conversation must be serialized",
       "same-parent follow-ups must preserve FIFO order",
-      "restart must retire an invalid completed prefix and every downstream node",
       "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
-      "a missing parent chat must replay the parent first, then ask the follow-up",
-      "a cloud replay package must reconstruct an absent local parent before the follow-up",
+      "a foreign pre-submit identity must stop without creating a replacement execution",
+      "restart must preserve the invalid prefix and stop the order for review",
       "QUESTION_A_ONLY",
       "person:naming-aux-4",
-      "continuation_parent_replay",
       "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
       "article_image_generation",
       "scheduled_quality_reflection",
@@ -303,11 +318,11 @@ const inspectAcceptance = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5"),
-  durability: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5"),
-  cloud: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2"),
-  intervention: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1"),
-  transient: selectLawId(context.planEntry.lawIds, "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1"),
+  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
+  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
+  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
+  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
+  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
 });
 
 const collectDomainSources = (
@@ -390,7 +405,7 @@ const inspectDomainEvaluation = async (
   const laws = resolveLaws(context);
   const findings: InspectorFinding[] = [];
   const { sources, values } = collectDomainSources(context, findings, laws.boundary);
-  const terminalMetaphysicsProfileSources = [schemaPath, schemaRefinementsPath, "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts"]
+  const terminalMetaphysicsProfileSources = [schemaPath, schemaRefinementsPath, "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts"]
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
   inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));

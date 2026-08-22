@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   createAiInputGatewayAbilityGroup,
+  buildGptWebProviderExecutionProfile,
   type AiFeedInput,
   type AiProviderAdapter,
 } from "../index.js";
@@ -65,7 +66,7 @@ const waitFor = async (
   );
 };
 
-const requestFor = (worker: number): AiFeedInput => ({
+const requestFor = (worker: number, withProfile = false): AiFeedInput => ({
   providerKind: "gpt-web-chat",
   taskIdentity: {
     labelKey: "system_acceptance",
@@ -80,6 +81,14 @@ const requestFor = (worker: number): AiFeedInput => ({
   textPrompt: `parallel worker ${worker}`,
   inputRefs: [],
   modelName: null,
+  ...(withProfile ? { providerExecutionProfile: buildGptWebProviderExecutionProfile({
+    profileRef: "acceptance:web-chat-concurrency:v1",
+    accountCapabilityRef: "acceptance:account",
+    reasoningTier: "high",
+    executorIdentityRef: "acceptance",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceVersion: "2026-08-22.1",
+  }) } : {}),
   timeoutMs: 60_000,
   maxFileCount: 0,
   requestedBy: "acceptance-test",
@@ -173,7 +182,10 @@ const assertTopologyProofIsRequired = async (
     dataDir,
     adapters: { "gpt-web-chat": adapter },
   });
-  const result = await gateway.execute(requestFor(103), {
+  const result = await gateway.execute({
+    ...requestFor(103),
+    providerExecutionProfile: null,
+  }, {
     executionId: "unproved-topology-execution",
   });
   assert.notEqual(result.status, "success");
@@ -257,8 +269,8 @@ if (workerArgs[0] === "--worker") {
     assert.equal(repaired.resume, false);
     assert.equal(repaired.record.failures.length, 1, "repair must retain the original failure ledger");
 
-    await assertResponseCheckpointRecovery(dataDir, requestFor(101));
-    await assertFailureLedger(dataDir, requestFor(102));
+    await assertResponseCheckpointRecovery(dataDir, requestFor(101, true));
+    await assertFailureLedger(dataDir, requestFor(102, true));
     await assertTopologyProofIsRequired(dataDir);
     const firstTen = Array.from({ length: 10 }, (_, index) =>
       spawnWorker(index + 1),

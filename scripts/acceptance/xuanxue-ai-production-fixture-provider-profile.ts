@@ -68,7 +68,7 @@ export const fixtureProviderExecutionProfileProof = (
       modelDisplayName: profile.modelDisplayName,
       modelFamily: profile.modelFamily,
       reasoningTier: profile.reasoningTier,
-      legacyReasoningEffort: profile.reasoningTier.startsWith("pro_") ? "pro" : profile.reasoningTier,
+      reasoningUiLabel: profile.reasoningTier,
       observedAt,
       sourceKind: "provider_ui_observation" as const,
       noOp: false,

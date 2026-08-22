@@ -77,6 +77,10 @@ export class ExtensionExactTargetRegistry {
     this.targets.delete(targetRef);
   }
 
+  public clear(): void {
+    this.targets.clear();
+  }
+
   public invalidateTab(tabId: number): void {
     for (const [targetRef, target] of this.targets) if (target.tabId === tabId) this.targets.delete(targetRef);
   }

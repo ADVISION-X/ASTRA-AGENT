@@ -7,6 +7,7 @@ import path from "node:path";
 import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
 import {
   createXuanxueAiProductionOrder,
+  createAgentRuntimeReceiptV5,
   executeXuanxueAiProductionOrder,
   XuanxueAiProductionStore,
   type XuanxueAiProductionRuntime,
@@ -23,12 +24,75 @@ import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
   XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
+import { xuanxueAiProductionDeviceContractProof } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.js";
+import { XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
+import { assertXuanxueAiProductionV5DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
+import { isRecoverableCloudWorkerFailure } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
+import { XuanxueAiProductionV5ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v5.validator.js";
 
 const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
 );
 try {
   await acceptStoredOrderContractQuarantine();
+  const [cloudContract, generatedV5Manifest] = await Promise.all([
+    readFile(path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts"), "utf8"),
+    readFile(path.resolve("src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v5.manifest.json"), "utf8"),
+  ]);
+  assert.match(cloudContract, /xuanxue-ai-production-v5/u);
+  assert.match(cloudContract, /CloudExecutionGrantV5Schema/u);
+  assert.equal(
+    XuanxueAiProductionV5ManifestSchema.parse(JSON.parse(generatedV5Manifest)).max_browser_in_flight,
+    1,
+  );
+  assert.equal(
+    createAgentRuntimeReceiptV5({
+      requestId: "acceptance-request",
+      status: "complete",
+      executionId: "acceptance-execution",
+      runId: "acceptance-run",
+      conversationId: "acceptance-conversation",
+      candidateHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      browserRequired: false,
+      browserAuthorityProof: null,
+      evidenceRefs: ["acceptance:xuanxue-ai-production:runtime-receipt"],
+    }).schema_version,
+    "xuanxue-agent-runtime-receipt-v5",
+  );
+  assert.equal(
+    xuanxueAiProductionDeviceContractProof().contract_manifest_hash,
+    XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+    "device pairing must bind the canonical V5 protocol manifest, not a product-localization manifest",
+  );
+  const deadlineGrant = {
+    server_now: "2026-08-21T12:00:00.000Z",
+    lease_expires_at: "2026-08-21T12:01:00.000Z",
+    deadline_budget: {
+      server_now: "2026-08-21T12:00:00.000Z",
+      lease_expires_at: "2026-08-21T12:01:00.000Z",
+      command_ttl_ms: 20_000,
+      safety_margin_ms: 10_000,
+    },
+  } as Parameters<typeof assertXuanxueAiProductionV5DeadlineBudget>[0];
+  assert.doesNotThrow(() =>
+    assertXuanxueAiProductionV5DeadlineBudget(deadlineGrant, 30_000),
+  );
+  assert.throws(
+    () => assertXuanxueAiProductionV5DeadlineBudget(deadlineGrant, 30_001),
+    /XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_EXHAUSTED/u,
+    "a complete claim RTT plus the ten-second safety margin must leave one command TTL",
+  );
+  for (const reason of [
+    "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+    "BROWSER_LIVENESS_EXPIRED",
+    "BROWSER_SESSION_WORKSPACE_REQUIRED",
+  ]) {
+    assert.equal(
+      isRecoverableCloudWorkerFailure(new Error(reason)),
+      true,
+      `${reason} must remain recovery_pending across the Cloud worker boundary`,
+    );
+  }
   const sharedSource = await readFile(
     path.resolve("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts"),
     "utf8",
@@ -47,7 +111,7 @@ try {
     path.resolve("src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts"),
     "utf8",
   );
-  assert.match(profileSelectionSource, /applyRequiredProfile/u);
+  assert.match(profileSelectionSource, /enforceGptWebExecutionProfile/u);
   assert.match(profileSelectionSource, /GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH/u);
   assert.match(profileSelectionSource, /pro_standard/u);
 
@@ -92,27 +156,6 @@ try {
 
   const { hehun, qimenFollowupParent, qimenFollowupParentFinal } =
     await acceptXuanxueOrderGraphs({ runtime, gateway });
-  const invalidSeededTopology = order(
-    "aiprod_seeded_without_topology_proof",
-    "qimen_professional_answer",
-    ["analysis"],
-  );
-  invalidSeededTopology.seededStages = [{
-    stageId: "analysis",
-    executionId: qimenFollowupParentFinal.executionId,
-    rawResponseText: qimenFollowupParentFinal.rawResponseText!,
-    rawOutputHash: qimenFollowupParentFinal.rawOutputHash!,
-    providerProof: {
-      ...qimenFollowupParentFinal.aiFeedResult!.providerProof,
-      freshConversationProof: null,
-    },
-    transportWarnings: [],
-  }];
-  assert.throws(
-    () => createXuanxueAiProductionOrder(runtime, invalidSeededTopology),
-    /SEEDED_STAGE_PROOF_INVALID/u,
-    "a seeded completion without its exact conversation topology must fail closed",
-  );
   await acceptXuanxueAiProductionSurface({ runtime, gateway });
   await acceptXuanxueAiProductionRecovery({ dataDir, runtime, gateway });
   await acceptXuanxueAiProductionConcurrency({ runtime, gateway });
@@ -149,6 +192,7 @@ try {
   );
 
   for (const localization of [candidateA, candidateB, selectorFirst, consistency]) {
+    assert.equal(localization.triggerKind, "localization_static_review");
     assert.equal(localization.frozenSubject.primaryPersonRef, null);
     assert.deepEqual(localization.frozenSubject.participants, []);
     assert.equal(localization.contractManifestHash, XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH);
@@ -209,7 +253,7 @@ try {
   });
   store.close();
   process.stdout.write(
-    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed product graphs, four single-stage localization contracts, exact selector continuation, contaminated-output restart, exact-parent FIFO, parent-conversation replay, seeded checkpoints, idempotency and cloud-reconciled SQLite restart recovery.\n",
+    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed product graphs, four single-stage localization contracts, exact selector continuation, terminal contamination fail-close, exact-parent FIFO without shadow replay, idempotency and cloud-reconciled SQLite restart recovery.\n",
   );
 } finally {
   await rm(dataDir, { recursive: true, force: true });

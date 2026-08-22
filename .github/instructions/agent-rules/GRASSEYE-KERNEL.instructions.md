@@ -1,134 +1,90 @@
 ---
-name: "GrassEye Kernel"
-description: "Current GrassEye job-flow automation authority."
-applyTo: ".github/instructions/agent-rules/**"
+name: GrassEye Kernel
+status: active
+version: 2026-08-21.terminal
 ---
 
 # GrassEye Kernel
 
-status: active
-version: 2026-08-20
-
 ## System Identity
 
-GrassEye is not a universal agent. GrassEye is a job-oriented automation execution system.
+GrassEye 是本机单用户、岗位固定的自动化执行系统，不是通用 planner。法定主链只有：
 
-```txt
-Job Request / API Entry
-  -> Job Mediator
-      -> Business Flow Script
-          -> Ability Groups
-              -> Child Abilities
-                  -> Evidence and Logs
+```text
+Known job -> mediator -> owning plugin fixed flow -> capability public facade
+-> Browser Authority / evidence / runtime log -> durable business result
 ```
 
-For browser-dependent work, the ability boundary is subordinate to one authenticated Browser Authority chain:
-
-```txt
-cloud execution lease/fence
-  -> BrowserAuthorityBroker
-      -> AuthenticatedBrowserAuthorityLease
-          -> exact BrowserTargetLease
-              -> governed capability command
-```
+任何层都不得替代另一层：业务状态属于 plugin，事实 evidence 属于 forensics-persistence，诊断属于 Runtime Log Spine，法案合规属于 audit。
 
 ## Highest Formula
 
-```txt
-One job = one explicit flow script.
-One workflow = flow-owned step order.
-One user request = one mediator route to a known flow.
-One action type = one ability group.
-One ability group = same-kind child abilities.
-AI = bounded choice judge by default; a P0 job-flow law may authorize audited flow-scoped business content.
-Evidence proves every step.
-Audit is strict temple law, not a soft smoke gate.
-Browser infrastructure may exist while authority is ABSENT; browser business capability exists only as a current authenticated execution-bound authority lease.
-Every production browser action binds an exact target/document identity and a current cloud execution fence.
-Real-browser construction starts from personally observed live page structure and state order, never from a theoretically plausible browser model.
-Every production stage confirms intended identity/state, excludes adjacent false identities/states, requires one unique candidate and stops at a fixed observation boundary.
+```text
+User explicit authorization
+-> AGENTS.md
+-> this Kernel
+-> Index
+-> active domain law
+-> generated audit truth
+-> blueprint
+-> current source
 ```
+
+当前 source 不能授权旧链。法案与施工图未对齐时，禁止进入相关生产代码；generated truth 只能由 builder 生成，不能手改。
+
+## Browser Terminal Boundary
+
+Browser side effect 只允许以下单链：
+
+```text
+owning plugin fixed flow
+-> BrowserAuthorityBroker
+-> exact authority + target/document lease
+-> ws://127.0.0.1:4173/browser-authority/v1
+-> fixed-directory unpacked MV3 Extension
+-> fixed command registry
+-> exact Chrome target/document
+```
+
+- Authority 数据面只有 `ABSENT` 或 `PRESENT`。
+- Extension actor 是唯一 reconnect owner；App Server 只接受同一 listener 的 exact WebSocket upgrade。
+- pairing 使用 256-bit secret；session 使用 P-256 ECDSA/ECDH、RFC8785 JCS、HKDF 与方向性 AES-GCM；每帧带 epoch、strict sequence、AAD 和 deadline。
+- target/document/permit 必须三次检查；固定 registry 禁止 arbitrary JavaScript、raw CDP、URL、selector、coordinate 和 caller 物理资源。
+- mutation 先 durable `PREPARED`+fsync；失联未决只能 `OUTCOME_UNKNOWN`，只有 owning plugin 能用真实正反终态裁决。
+- artifact 与控制帧共用同一 socket，wire 不传 raw file path。
+
+生产中绝对禁止：CWS identity/review、`externally_connectable`、page external Port relay、Native Messaging、Native Host、polling、SSE、previous-protocol window、第二 listener、第二 transport、fallback、bridge、dual write、shadow implementation。
 
 ## Real Browser Construction Admission
 
-Any production change to Browser Authority infrastructure, the Chrome extension, DOM Automation or a flow that depends on real page controls is admitted only after Codex personally traverses the current failing state through the approved single Browser Authority chain.
+涉及浏览器、DOM、上传、下载、弹窗、LNA、MV3 生命周期或真实网站时：
 
-The pre-construction observation identifies the exact controlled target/document, current authority/execution binding, before-state, relevant DOM/shadow structure, real action receiver and observed after-state. Production code may implement only that observed structure and state order.
+1. 先记录当前受控标签、URL、DOM/author-shadow/UA-shadow 边界、控件、disabled/geometry、前后状态和日志。
+2. 只实现本次真实观察过的结构与顺序。
+3. 未观察状态必须 `UNKNOWN / NOT_PRODUCTION_VERIFIED`。
+4. 修改后用同一路径重新真实验证；失败必须先取新证据，禁止连续猜测性补丁。
 
-Typecheck, Static Audit, synthetic DOM, documentation, historical selectors, screenshots, standard control semantics and “should work” do not authorize browser production construction. An unobserved state is `UNKNOWN / NOT_PRODUCTION_VERIFIED`.
-
-After every live failure, construction returns to the exact failed page and trace before another implementation change. No speculative second edit, compatibility bridge, fallback, shadow path or parallel browser chain is allowed without new live evidence. The final candidate is traversed again through the same approved chain. Sensitive final actions remain subject to owning flow human gates and explicit user authorization.
-
-## Production Confirmation Boundary
-
-Every production stage that observes external/browser/provider/file/process/generated state must reach one owner-defined terminal boundary before the next stage starts:
-
-1. all required positive identity/state facts are present;
-2. named adjacent false/conflicting/loading/error/stale/foreign/duplicate states are absent;
-3. exactly one candidate remains when targeting one object;
-4. observation ends after an explicit maximum count or deadline;
-5. ambiguity/conflict/exhaustion returns failed/review_required and performs no later side effect.
-
-An unconditional search/observation/retry/scroll loop is forbidden. Process-lifetime workers remain alive only under their shutdown contract and may not turn process lifetime into unbounded business-stage observation.
+静态审计、Exam、real Chrome、business result、CI-FULL、release 是不同证据层，互不替代。
 
 ## Authority Split
 
-- Business flow scripts own process order and business decisions.
-- Job Mediator owns request routing/schema validation/flow selection only; never process order or browser actions.
-- DOM Automation owns its declared semantic primitives and consumes an execution-bound `BrowserTargetLease`; it does not own Browser transport or arbitrary JavaScript evaluation.
-- Browser owns infrastructure control state, authenticated authority, exact target/document identity, governed command admission, Native Messaging, profile/process identity, release activation and low-level action receipts.
-- Browser does **not** own cloud job business truth, report success, provider verdict, Dynamic Proof verdict or execution election; xuanxue database lease/fence remains the single execution-writer truth.
-- AI Choice Judge owns bounded choice by default; P0 flow law may own a separate flow-scoped content stage with explicit prompt/output/audit contracts.
-- Evidence Store owns flow evidence records; Browser infrastructure logs never become a second evidence/business truth.
-- Runtime Logs own structured FLOW/DEBUG/TRACE redacted logs.
-- Audit System owns strict law parsing, explicit owner checks, generated enforcement artifacts and blocking CI gates.
+- App：HTTP ingress、显示与唯一 WebSocket upgrade，不拥有业务步骤、浏览器动作或 evidence 真相。
+- mediator：known job schema 校验和固定 plugin 转发。
+- plugin：业务顺序、任务状态、成功/失败/review、business outcome。
+- capability：公共原子动作，不懂业务。
+- Browser Authority：pairing、transport、target/document、command、journal；不做业务裁决。
+- API Boundary：逐站 HMAC admission；不接浏览器控制字段。
+- startup：依赖、端口、health、artifact identity readback；不执行 job。
+- audit：唯一 generated-plan 执法；不改生产代码。
 
 ## AI Boundary
 
-By default AI may only return:
-
-```txt
-selectedOptionId + confidence + reason
-```
-
-An active P0 job-flow law may authorize a different output contract inside that one flow only when the law explicitly defines prompt bundle, raw persistence, downstream validation and audit coverage.
-
-AI must never return a workflow, browser command, selector, coordinate, filesystem path, action plan or next action. AI never controls payment/refund/delete/submission or other sensitive final actions.
-
-## Browser Hard Boundary
-
-Production source must not contain or expose as lawful runtime concepts:
-
-```txt
-UnauthenticatedBrowserSession
-BrowserTargetSession
-BrowserController.createTargetSession
-transportReady
-waitUntilReady
-READY_COMPATIBLE
-arbitrary evaluate(script)
-raw/resolved file path wire command
-active-tab/current-page/URL-first page identity
-second browser transport
-```
-
-Browser-dependent jobs acquire a current authority lease before a writer lane and an exact target lease before commands. Any authority/fence/document discontinuity invalidates the lease before subsequent side effects.
+AI 只按被法条授权的输入/输出合同工作，不能输出或控制 nextAction、workflow、browserCommand、selector、coordinate、filePath、付款、删除或敏感提交。
 
 ## Hard Bans
 
-- Universal agent runtime as active architecture.
-- Pure visual mission loop as active runtime.
-- AI next-action chooser.
-- General orchestration mission loop.
-- Nerve Bus or central dispatcher.
-- Geometry/coordinate grid as main controller.
-- Mouse click/scroll/text/open/screenshot/video download as standalone top-level execution owners.
-- Product-video DOM runtime as an ungoverned old mainline.
-- Muscle memory catalog/platform registry as workflow truth.
-- Compatibility, bridge or dual-truth tracks.
-- Mediator routes that secretly plan/execute/decide business steps.
-- Browser Session or target object that outlives its authority/execution epoch.
-- Business-owned browser reconnect/election/transport.
-- Audit warning-only, broad smoke-pass, manual matrix truth or runner-owned law binding.
-
-Retired terms may appear only in deletion notes, migration reports, forbidden-regression fixtures or explicit mutant tests.
+- 不增层、不增 server、不增 route bus、不增 audit runner、不增 evidence/log/provider transport。
+- 不把日志、计划、fixture 或 CI 说成真实浏览器/生产事实。
+- 不让页面、网站或外部 caller 控制 tab/window/title/marker/conversation/concurrency。
+- 不用 bridge、alias、wrapper、fallback 或 dual run 维持被退休责任片区。
+- 不把 `CI_FULL_PASS` 外推为外部服务、浏览器、部署或发布成功。

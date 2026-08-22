@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T23:42:55.787Z",
+  "generatedAt": "2026-08-22T02:57:38.087Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -14,27 +14,18 @@
     "APEX-AUDIT-009-V1",
     "APEX-AUDIT-010-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "audit-system/runner-source",
-      "lawId": "APEX-AUDIT-006-V1",
-      "clauseId": "apex-audit-006-requirement",
-      "message": "local-browser-session must execute its complete owner assertion set exactly once inside one runner-signed runAll callback; repeated work and post-hoc or hollow receipt paths are forbidden.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/local-browser-session/inspector.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556",
+      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563",
       "capabilityDomain": "audit-system",
       "checkId": "audit-system/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-20T23:42:44.364Z",
-      "endedAt": "2026-08-20T23:42:55.786Z",
-      "durationMs": 11422,
+      "status": "PASS",
+      "startedAt": "2026-08-22T02:57:32.468Z",
+      "endedAt": "2026-08-22T02:57:38.087Z",
+      "durationMs": 5619,
       "evidenceRefs": [
         ".audit-code-purity.txt",
         ".github/workflows",
@@ -68,6 +59,7 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/load-manifests.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/parse-apex-laws.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/build/source-evidence-reachability.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/inspector.ts",
@@ -75,33 +67,7 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/scheduler-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/topology-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability-checks.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-review-automation.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-runtime-truth.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/app-shell-ui/inspector-layout.ts",
@@ -193,9 +159,12 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/forensics-persistence-capability/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector-support.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/operator-admission-inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/transport-inspector.ts",
+        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/transport-payload-ceiling-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/media-processing-capability/inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/ast/ast-call-expression-resolvers.ts",
@@ -209,21 +178,14 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/browser-action-log-contract-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/catch-branch-log-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/constants.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/debug-bundle-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/event-type-registry-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/failure-class-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/forbidden-console-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/phase-runs.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-browser-runtime-preflight.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/domains/video-download-capability/inspector.ts",
@@ -242,7 +204,6 @@
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/law-contracts.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/no-regex.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/paths.ts",
-        "/Users/nexgen/Documents/AGENT/scripts/audit/shared/plugin-intervention-contract-inspector.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/project.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/repo-path-classifier.ts",
         "/Users/nexgen/Documents/AGENT/scripts/audit/shared/source-files.ts",
@@ -334,7 +295,7 @@
         "scripts/audit/shared/paths.ts",
         "scripts/audit/shared/project.ts"
       ],
-      "findingCount": 1
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -342,61 +303,61 @@
       "lawId": "APEX-AUDIT-001-V1",
       "clauseId": "apex-audit-001-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-002-V1",
       "clauseId": "apex-audit-002-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-003-V1",
       "clauseId": "apex-audit-003-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-004-V1",
       "clauseId": "apex-audit-004-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-005-V1",
       "clauseId": "apex-audit-005-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-006-V1",
       "clauseId": "apex-audit-006-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-007-V1",
       "clauseId": "apex-audit-007-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-008-V1",
       "clauseId": "apex-audit-008-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-009-V1",
       "clauseId": "apex-audit-009-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     },
     {
       "lawId": "APEX-AUDIT-010-V1",
       "clauseId": "apex-audit-010-requirement",
       "checkId": "audit-system/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:49d5238c-5939-4af8-8b0f-d182e3373556"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:9a4f2198-cb86-4da4-bb48-f3145e4a5563"
     }
   ],
   "inspectedFiles": [
@@ -432,6 +393,7 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/load-manifests.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/parse-apex-laws.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/build/source-evidence-reachability.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/inspector.ts",
@@ -439,33 +401,7 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/recovery-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/scheduler-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/ai-input-gateway/topology-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-order-readiness.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability-checks.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-app-latest-sync.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-app-surface.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-ast-shared.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-governance-surface.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-full-package.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-review-automation.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-review-governance.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-keyword-review-package-aggregation.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-package-scripts.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-product-detail-dom-contract.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-production-browser-paths.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-production-paths.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-runtime-truth.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-tab-lifecycle.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector-task-controls.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/amazon-product-mining/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/app-shell-ui/inspector-layout.ts",
@@ -557,9 +493,12 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/dom-automation/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-app-shell/inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector-support.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/operator-admission-inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/transport-inspector.ts",
+    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/local-browser-session/transport-payload-ceiling-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/media-processing-capability/inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/ast/ast-call-expression-resolvers.ts",
@@ -573,21 +512,14 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/browser-action-log-contract-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/catch-branch-log-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/constants.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/debug-bundle-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/event-type-registry-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/failure-class-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/forbidden-console-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/phase-runs.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/semantic-metrics-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-browser-runtime-preflight.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspect-initialization-truth.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/startup-entrypoint/inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/video-download-capability/components/youtube-production-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/domains/video-download-capability/inspector.ts",
@@ -606,7 +538,6 @@
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/law-contracts.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/no-regex.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/paths.ts",
-    "/Users/nexgen/Documents/AGENT/scripts/audit/shared/plugin-intervention-contract-inspector.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/project.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/repo-path-classifier.ts",
     "/Users/nexgen/Documents/AGENT/scripts/audit/shared/source-files.ts",

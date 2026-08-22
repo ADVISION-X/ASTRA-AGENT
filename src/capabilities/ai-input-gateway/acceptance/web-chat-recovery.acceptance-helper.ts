@@ -10,6 +10,7 @@ import {
   type WebChatConversationTitleState,
 } from "../index.js";
 import { classifyWebChatFailure } from "../failure-classification.js";
+import type { WebChatExecutionContext } from "../contracts/ai-provider-adapter.contract.js";
 import { readWebChatExecution } from "../runtime/web-chat-execution-state.js";
 import { readWebChatResponseCheckpoint } from "../runtime/web-chat-response-checkpoint.js";
 
@@ -62,8 +63,7 @@ const fixtureProfileProof = (
     modelDisplayName: profile.modelDisplayName,
     modelFamily: profile.modelFamily,
     reasoningTier: profile.reasoningTier,
-    legacyReasoningEffort: profile.reasoningTier === "extra_high" ? "xhigh"
-      : profile.reasoningTier.startsWith("pro_") ? "pro" : profile.reasoningTier,
+    reasoningUiLabel: profile.reasoningTier,
     observedAt,
     sourceKind: "provider_ui_observation",
     noOp: false,
@@ -234,7 +234,6 @@ export const assertResponseCheckpointRecovery = async (
     ...request,
     requestedBy: "ai-capability" as const,
     modelName: null,
-    requestedReasoningEffort: null,
   };
   const executionId = "checkpoint-recovery-execution";
   const submissionCount = { value: 0 };
@@ -275,16 +274,11 @@ const assertPermanentFailure = async (
   );
 };
 
-export const assertFailureLedger = async (
-  dataDir: string,
-  request: AiFeedInput,
-): Promise<void> => {
-  const duplicatePhysicalTab = new Error(
-    "review_required: more than one physical provider tab is open.",
-  );
-  assert.equal(classifyWebChatFailure(duplicatePhysicalTab, false), "review_required");
-  assert.equal(classifyWebChatFailure(duplicatePhysicalTab, true), "recovery_pending");
-  const executionId = "traceable-failure-execution";
+const assertTemporaryProviderFailure = async (input: {
+  dataDir: string;
+  request: AiFeedInput;
+  executionId: string;
+}): Promise<void> => {
   const adapter: AiProviderAdapter = {
     providerKind: "gpt-web-chat",
     async feed() {
@@ -292,12 +286,12 @@ export const assertFailureLedger = async (
     },
   };
   const gateway = createAiInputGatewayAbilityGroup({
-    dataDir,
+    dataDir: input.dataDir,
     adapters: { "gpt-web-chat": adapter },
   });
-  const result = await gateway.execute(request, { executionId });
-  assert.equal(result.status, "failed");
-  const record = await readWebChatExecution(dataDir, executionId);
+  const result = await gateway.execute(input.request, { executionId: input.executionId });
+  assert.equal(result.status, "recovery_pending");
+  const record = await readWebChatExecution(input.dataDir, input.executionId);
   assert.equal(record?.status, "recovery_pending");
   assert.deepEqual(record?.failures.map((failure) => ({
     classification: failure.classification,
@@ -308,24 +302,51 @@ export const assertFailureLedger = async (
     recoverable: true,
     reason: "fixture provider composer unavailable",
   }]);
+};
 
-  const { attachmentUploadProof, submission } = checkpointFixture();
-  const returnedAdapter: AiProviderAdapter = {
+const recoveredFailureSubmission = (executionId: string) => {
+  const checkpoint = checkpointFixture();
+  return {
+    attachmentUploadProof: checkpoint.attachmentUploadProof,
+    submission: {
+      ...checkpoint.submission,
+      executionId,
+      turnMarker: "traceable-failure-recovery-turn",
+      transientConversationUrl: "https://chatgpt.com/c/traceable-failure-recovery",
+      canonicalConversationUrl: "https://chatgpt.com/c/traceable-failure-recovery",
+      userTurnId: "traceable-failure-recovery-user-turn",
+    },
+  };
+};
+
+const finalizeFixtureConversationTitle = async (
+  execution: WebChatExecutionContext,
+  submission: ReturnType<typeof recoveredFailureSubmission>["submission"],
+): Promise<WebChatConversationTitleProof | null> => {
+  if (!execution.conversationTitle) return null;
+  await execution.onConversationTitleFinalizationStarted(submission.canonicalConversationUrl!);
+  const proof = fixtureTitleProof({
+    state: execution.conversationTitle,
+    canonicalConversationUrl: submission.canonicalConversationUrl!,
+  });
+  await execution.onConversationTitleVerified(proof);
+  return proof;
+};
+
+const recoverTemporaryProviderFailure = async (input: {
+  dataDir: string;
+  request: AiFeedInput;
+  executionId: string;
+}): Promise<void> => {
+  const { attachmentUploadProof, submission } = recoveredFailureSubmission(input.executionId);
+  const adapter: AiProviderAdapter = {
     providerKind: "gpt-web-chat",
     async feed(request, context) {
       const execution = context.webChatExecution!;
       await execution.onProviderExecutionProfileVerified(fixtureProfileProof(request));
       await execution.onSubmissionObserved({ submission, uploadedFiles: [], attachmentUploadProof });
       await execution.onSubmitted({ submission, uploadedFiles: [], attachmentUploadProof });
-      let conversationTitleProof: WebChatConversationTitleProof | null = null;
-      if (execution.conversationTitle) {
-        await execution.onConversationTitleFinalizationStarted(submission.canonicalConversationUrl!);
-        conversationTitleProof = fixtureTitleProof({
-          state: execution.conversationTitle,
-          canonicalConversationUrl: submission.canonicalConversationUrl!,
-        });
-        await execution.onConversationTitleVerified(conversationTitleProof);
-      }
+      const conversationTitleProof = await finalizeFixtureConversationTitle(execution, submission);
       return {
         rawText: "provider returned after temporary unavailability",
         modelName: request.providerExecutionProfile?.modelDisplayName ?? null,
@@ -341,11 +362,29 @@ export const assertFailureLedger = async (
       };
     },
   };
-  const returnedGateway = createAiInputGatewayAbilityGroup({
-    dataDir,
-    adapters: { "gpt-web-chat": returnedAdapter },
+  const gateway = createAiInputGatewayAbilityGroup({
+    dataDir: input.dataDir,
+    adapters: { "gpt-web-chat": adapter },
   });
-  const recovered = await returnedGateway.execute(request, { executionId });
-  assert.equal(recovered.status, "success");
+  const recovered = await gateway.execute(input.request, { executionId: input.executionId });
+  assert.equal(recovered.status, "success", JSON.stringify({
+    failureReason: recovered.failureReason,
+    reviewRequiredReason: recovered.reviewRequiredReason,
+    providerProof: recovered.providerProof,
+  }));
+};
+
+export const assertFailureLedger = async (
+  dataDir: string,
+  request: AiFeedInput,
+): Promise<void> => {
+  const duplicatePhysicalTab = new Error(
+    "review_required: more than one physical provider tab is open.",
+  );
+  assert.equal(classifyWebChatFailure(duplicatePhysicalTab, false), "review_required");
+  assert.equal(classifyWebChatFailure(duplicatePhysicalTab, true), "recovery_pending");
+  const executionId = "traceable-failure-execution";
+  await assertTemporaryProviderFailure({ dataDir, request, executionId });
+  await recoverTemporaryProviderFailure({ dataDir, request, executionId });
   await assertPermanentFailure(dataDir, request);
 };

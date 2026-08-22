@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T00:29:02.676Z",
+  "generatedAt": "2026-08-22T02:57:01.503Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -137,69 +137,12 @@
       "ownerInspectorPath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
-        "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1"
+        "APEX-AMAZON-INVOICE-UPLOAD-001-V2"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
+          "lawId": "APEX-AMAZON-INVOICE-UPLOAD-001-V2",
+          "clauseId": "apex-amazon-invoice-upload-001-v2-terminal-authority",
           "checkIds": [
             "amazon-invoice-upload/owner-assertion-set"
           ],
@@ -210,185 +153,15 @@
             }
           ],
           "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-010-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "real-chrome"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-011-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "real-chrome"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-014-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "real-chrome"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
-          "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
-          "checkIds": [
-            "amazon-invoice-upload/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "real-chrome"
         }
       ],
       "blueprintRefs": [
         {
           "filePath": "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
           "requiredAnchors": [
-            "## 4. Evidence Map",
-            "## 8. Route 变化",
-            "## 10. App Shell UI Download Surface 变化",
-            "## 11. Website API Integration: Amazon Tax Invoice Download",
-            "## 16. 禁止第二链路清单"
+            "## 业务主链",
+            "## Browser 接线",
+            "## 验收"
           ]
         }
       ]
@@ -399,402 +172,12 @@
       "ownerInspectorPath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
-        "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
+        "APEX-AMAZON-PRODUCT-MINING-001-V3"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
-          "clauseId": "grasseye-amazon-product-mining-001-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-          "clauseId": "grasseye-amazon-product-mining-002-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
-          "clauseId": "grasseye-amazon-product-mining-003-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
-          "clauseId": "grasseye-amazon-product-mining-004-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
-          "clauseId": "grasseye-amazon-product-mining-005-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
-          "clauseId": "grasseye-amazon-product-mining-006-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
-          "clauseId": "grasseye-amazon-product-mining-007-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
-          "clauseId": "grasseye-amazon-product-mining-008-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
-          "clauseId": "grasseye-amazon-product-mining-009-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
-          "clauseId": "grasseye-amazon-product-mining-010-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
-          "clauseId": "grasseye-amazon-product-mining-011-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
-          "clauseId": "grasseye-amazon-product-mining-012-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
-          "clauseId": "grasseye-amazon-product-mining-013-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
-          "clauseId": "grasseye-amazon-product-mining-014-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
-          "clauseId": "grasseye-amazon-product-mining-015-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
-          "clauseId": "grasseye-amazon-product-mining-016-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
-          "clauseId": "grasseye-amazon-product-mining-017-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
-          "clauseId": "grasseye-amazon-product-mining-018-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
-          "clauseId": "grasseye-amazon-product-mining-019-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
-          "clauseId": "grasseye-amazon-product-mining-020-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
-          "clauseId": "grasseye-amazon-product-mining-021-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
-          "clauseId": "grasseye-amazon-product-mining-022-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-          "clauseId": "grasseye-amazon-product-mining-023-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
-          "clauseId": "grasseye-amazon-product-mining-024-v2-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
-          "clauseId": "grasseye-amazon-product-mining-025-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
-          "clauseId": "grasseye-amazon-product-mining-maximum-visible-extraction-requirement",
-          "checkIds": [
-            "amazon-product-mining/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
-          "clauseId": "grasseye-amazon-product-mining-027-requirement",
+          "lawId": "APEX-AMAZON-PRODUCT-MINING-001-V3",
+          "clauseId": "apex-amazon-product-mining-001-v3-terminal-authority",
           "checkIds": [
             "amazon-product-mining/owner-assertion-set"
           ],
@@ -811,9 +194,9 @@
         {
           "filePath": "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
           "requiredAnchors": [
-            "## 1. 唯一流程总图",
-            "### 2.3 Audit owner",
-            "### 2.4 Acceptance"
+            "## 业务主链",
+            "## Browser 接线",
+            "## 验收"
           ]
         }
       ]
@@ -876,13 +259,10 @@
         {
           "filePath": "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
           "requiredAnchors": [
-            "## 1. 总体信息架构",
-            "## 2. App Shell 总布局",
-            "## 5. Skill Registry 设计",
-            "## 8. 三级页面 / Inspector 标准",
-            "## 8.5 App Shell 本地化",
-            "## 19. Acceptance 建设",
-            "## 23. Legacy APP User-Demand Authority Physical Absence"
+            "## 唯一责任",
+            "## 原子切换",
+            "## UI contract",
+            "## 验收"
           ]
         }
       ]
@@ -2370,17 +1750,13 @@
       "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "APEX-LOCAL-APP-SHELL-001-V1",
-        "APEX-LOCAL-APP-SHELL-002-V1",
-        "APEX-LOCAL-APP-SHELL-003-V1",
-        "APEX-LOCAL-APP-SHELL-004-V1",
-        "APEX-LOCAL-APP-SHELL-005-V1",
-        "APEX-LOCAL-APP-SHELL-006-V1"
+        "APEX-LOCAL-APP-SHELL-001-V2",
+        "APEX-LOCAL-APP-SHELL-002-V2"
       ],
       "bindings": [
         {
-          "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
-          "clauseId": "apex-local-app-shell-001-requirement",
+          "lawId": "APEX-LOCAL-APP-SHELL-001-V2",
+          "clauseId": "apex-local-app-shell-001-v2-single-upgrade",
           "checkIds": [
             "local-app-shell/owner-assertion-set"
           ],
@@ -2393,8 +1769,8 @@
           "evidenceMode": "static"
         },
         {
-          "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
-          "clauseId": "apex-local-app-shell-002-requirement",
+          "lawId": "APEX-LOCAL-APP-SHELL-002-V2",
+          "clauseId": "apex-local-app-shell-002-v2-boundary",
           "checkIds": [
             "local-app-shell/owner-assertion-set"
           ],
@@ -2405,73 +1781,16 @@
             }
           ],
           "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
-          "clauseId": "apex-local-app-shell-003-requirement",
-          "checkIds": [
-            "local-app-shell/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
-          "clauseId": "apex-local-app-shell-004-requirement",
-          "checkIds": [
-            "local-app-shell/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
-          "clauseId": "apex-local-app-shell-005-requirement",
-          "checkIds": [
-            "local-app-shell/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
-          "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
-          "checkIds": [
-            "local-app-shell/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "model+acceptance+real-chrome"
         }
       ],
       "blueprintRefs": [
         {
-          "filePath": "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
+          "filePath": "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
           "requiredAnchors": [
-            "## 本地形态",
-            "## 首屏结构",
-            "## 当前法门入口",
-            "## 对口质检",
-            "## Workbench Extension 页面通道"
+            "## 唯一责任",
+            "## 原子切换",
+            "## UI contract",
+            "## 验收"
           ]
         }
       ]
@@ -2482,20 +1801,19 @@
       "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
       "executionGroup": "foundation",
       "lawIds": [
-        "APEX-LOCAL-BROWSER-001-V3",
-        "APEX-LOCAL-BROWSER-002-V3",
-        "APEX-LOCAL-BROWSER-003-V3",
-        "APEX-LOCAL-BROWSER-004-V3",
-        "APEX-LOCAL-BROWSER-005-V2",
-        "APEX-LOCAL-BROWSER-006-V2",
+        "APEX-LOCAL-BROWSER-001-V4",
+        "APEX-LOCAL-BROWSER-002-V4",
+        "APEX-LOCAL-BROWSER-003-V6",
+        "APEX-LOCAL-BROWSER-004-V4",
+        "APEX-LOCAL-BROWSER-005-V4",
         "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2"
       ],
       "bindings": [
         {
-          "lawId": "APEX-LOCAL-BROWSER-001-V3",
-          "clauseId": "apex-local-browser-001-v3-exact-authority-lease",
+          "lawId": "APEX-LOCAL-BROWSER-001-V4",
+          "clauseId": "apex-local-browser-001-v4-single-unpacked-websocket",
           "checkIds": [
-            "browser-old-path/retired-zero"
+            "local-browser-session/owner-assertion-set"
           ],
           "sourceEvidence": [
             {
@@ -2503,21 +1821,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "model+acceptance+real-chrome"
+          "evidenceMode": "static"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-002-V3",
-          "clauseId": "apex-local-browser-002-v3-authority-atomicity",
+          "lawId": "APEX-LOCAL-BROWSER-002-V4",
+          "clauseId": "apex-local-browser-002-v4-auth-liveness",
           "checkIds": [
-            "browser-auth/no-unauth-session-type",
-            "browser-auth/no-transport-ready-boolean",
-            "browser-auth/no-preauth-command-surface",
-            "browser-auth/no-fire-and-forget-startup",
-            "browser-auth/authority-mint-only-after-proof",
-            "browser-auth/revoke-before-side-effects",
-            "browser-auth/authority-liveness-lease",
-            "browser-auth/no-command-after-liveness-expiry",
-            "browser-auth/heartbeat-cannot-mint-authority"
+            "local-browser-session/owner-assertion-set"
           ],
           "sourceEvidence": [
             {
@@ -2525,16 +1835,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "model+acceptance+real-chrome"
+          "evidenceMode": "acceptance"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-003-V3",
-          "clauseId": "apex-local-browser-003-v3-single-chain",
+          "lawId": "APEX-LOCAL-BROWSER-003-V6",
+          "clauseId": "apex-local-browser-003-v6-claim-workspace-restart-resume",
           "checkIds": [
-            "browser-channel/no-page-session-rebind",
-            "browser-channel/original-reply-channel",
-            "browser-auth/production-fixture-zero",
-            "browser-channel/no-native-host-surface"
+            "local-browser-session/owner-assertion-set"
           ],
           "sourceEvidence": [
             {
@@ -2542,14 +1849,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "model+acceptance+real-chrome"
+          "evidenceMode": "acceptance"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-004-V3",
-          "clauseId": "apex-local-browser-004-v3-governed-command-plane",
+          "lawId": "APEX-LOCAL-BROWSER-004-V4",
+          "clauseId": "apex-local-browser-004-v4-durable-mutation",
           "checkIds": [
-            "browser-command/bounded-admission-budget",
-            "browser-file/artifact-grant-no-raw-path"
+            "local-browser-session/owner-assertion-set"
           ],
           "sourceEvidence": [
             {
@@ -2557,20 +1863,13 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "model+acceptance+real-chrome"
+          "evidenceMode": "acceptance"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-005-V2",
-          "clauseId": "apex-local-browser-005-v2-release-identity",
+          "lawId": "APEX-LOCAL-BROWSER-005-V4",
+          "clauseId": "apex-local-browser-005-v4-release-recovery",
           "checkIds": [
-            "browser-release/cws-release-identity",
-            "browser-profile/dedicated-production-profile",
-            "browser-profile/installed-extension-readback",
-            "browser-profile/exact-workbench-origin-readback",
-            "browser-release/cws-identity-proof-separation",
-            "browser-release/cws-review-and-installed-readback",
-            "browser-release/anti-rollback-and-revocation",
-            "browser-release/no-apple-signing-gate"
+            "local-browser-session/owner-assertion-set"
           ],
           "sourceEvidence": [
             {
@@ -2581,25 +1880,10 @@
           "evidenceMode": "artifact+real-chrome"
         },
         {
-          "lawId": "APEX-LOCAL-BROWSER-006-V2",
-          "clauseId": "apex-local-browser-006-v2-cross-repo-fence-proof",
-          "checkIds": [
-            "browser-cross-repo/authority-proof-v2",
-            "browser-cross-repo/ordered-authority-window-chain"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/local-browser-session/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "model+acceptance+real-chrome"
-        },
-        {
           "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
           "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
           "checkIds": [
-            "browser-privacy/no-owner-boundary-leak"
+            "local-browser-session/owner-assertion-set"
           ],
           "sourceEvidence": [
             {
@@ -2614,15 +1898,11 @@
         {
           "filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
           "requiredAnchors": [
-            "## 1. 终态图",
-            "## 3. Composition Root",
-            "## 5. Authentication Commit",
-            "## 6. Liveness",
-            "## 9. Workbench Page Framing / Artifact Stream",
-            "## 12. Release",
-            "## 14. Cross-Repo Proof",
-            "## 15. Quality Mapping",
-            "## 16. Real Chrome / Release Gate"
+            "## 1. 唯一物理链",
+            "## 4. Session Workspace",
+            "## 5. Pairing、认证与 liveness",
+            "## 9. Mutation Journal 与 UNKNOWN",
+            "## 13. 质检与证明分层"
           ]
         }
       ]
@@ -2809,33 +2089,14 @@
       "ownerInspectorPath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
       "executionGroup": "foundation",
       "lawIds": [
-        "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
+        "APEX-RUNTIME-LOG-SPINE-001-V2",
         "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
         "GRASSEYE-STRUCTURED-LOGGING-001-V1"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
-          "clauseId": "grasseye-runtime-log-spine-001-requirement",
+          "lawId": "APEX-RUNTIME-LOG-SPINE-001-V2",
+          "clauseId": "apex-runtime-log-001-v2-terminal-observability",
           "checkIds": [
             "runtime-log-spine/owner-assertion-set"
           ],
@@ -2845,273 +2106,7 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
-          "clauseId": "grasseye-runtime-log-spine-002-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-          "clauseId": "grasseye-runtime-log-spine-003-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-          "clauseId": "grasseye-runtime-log-spine-004-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
-          "clauseId": "grasseye-runtime-log-spine-005-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
-          "clauseId": "grasseye-runtime-log-spine-006-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
-          "clauseId": "grasseye-runtime-log-spine-007-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
-          "clauseId": "grasseye-runtime-log-spine-008-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
-          "clauseId": "grasseye-runtime-log-spine-009-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-          "clauseId": "grasseye-runtime-log-spine-010-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
-          "clauseId": "grasseye-runtime-log-spine-011-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
-          "clauseId": "grasseye-runtime-log-spine-012-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-          "clauseId": "grasseye-runtime-log-spine-013-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-          "clauseId": "grasseye-runtime-log-spine-014-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-          "clauseId": "grasseye-runtime-log-spine-015-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-          "clauseId": "grasseye-runtime-log-spine-016-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
-          "clauseId": "grasseye-runtime-log-spine-017-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
-          "clauseId": "grasseye-runtime-log-spine-018-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
-          "clauseId": "grasseye-runtime-log-spine-019-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-020-V1",
-          "clauseId": "grasseye-runtime-log-spine-020-requirement",
-          "checkIds": [
-            "runtime-log-spine/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
+          "evidenceMode": "static"
         },
         {
           "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
@@ -3158,21 +2153,14 @@
       "capabilityDomain": "startup-entrypoint",
       "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-      "executionGroup": "domain",
+      "executionGroup": "foundation",
       "lawIds": [
-        "APEX-STARTUP-001-V1",
-        "APEX-STARTUP-002-V1",
-        "APEX-STARTUP-003-V1",
-        "APEX-STARTUP-004-V1",
-        "APEX-STARTUP-005-V1",
-        "APEX-STARTUP-006-V1",
-        "APEX-STARTUP-007-V1",
-        "APEX-STARTUP-008-V1"
+        "APEX-STARTUP-001-V2"
       ],
       "bindings": [
         {
-          "lawId": "APEX-STARTUP-001-V1",
-          "clauseId": "apex-startup-001-requirement",
+          "lawId": "APEX-STARTUP-001-V2",
+          "clauseId": "apex-startup-001-v2-unpacked-readback",
           "checkIds": [
             "startup-entrypoint/owner-assertion-set"
           ],
@@ -3183,117 +2171,15 @@
             }
           ],
           "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-STARTUP-002-V1",
-          "clauseId": "apex-startup-002-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-STARTUP-003-V1",
-          "clauseId": "apex-startup-003-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-STARTUP-004-V1",
-          "clauseId": "apex-startup-004-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-STARTUP-005-V1",
-          "clauseId": "apex-startup-005-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-STARTUP-006-V1",
-          "clauseId": "apex-startup-006-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "APEX-STARTUP-007-V1",
-          "clauseId": "apex-startup-007-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "APEX-STARTUP-008-V1",
-          "clauseId": "apex-startup-008-requirement",
-          "checkIds": [
-            "startup-entrypoint/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
         }
       ],
       "blueprintRefs": [
         {
           "filePath": "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md",
           "requiredAnchors": [
-            "## 唯一入口",
             "## 启动顺序",
-            "## 端口清理",
-            "## 热挂载",
-            "## 初始化健康状态",
-            "## 启动禁止",
-            "## 质检对口"
+            "## 预检对象",
+            "## 日志"
           ]
         }
       ]
@@ -3579,49 +2465,14 @@
       "capabilityDomain": "workbench-api-boundary",
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-      "executionGroup": "domain",
+      "executionGroup": "foundation",
       "lawIds": [
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-        "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1"
+        "APEX-WORKBENCH-API-BOUNDARY-001-V3"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1",
-          "clauseId": "grasseye-workbench-api-boundary-001-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1",
-          "clauseId": "grasseye-workbench-api-boundary-002-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1",
-          "clauseId": "grasseye-workbench-api-boundary-003-requirement",
+          "lawId": "APEX-WORKBENCH-API-BOUNDARY-001-V3",
+          "clauseId": "apex-workbench-api-boundary-001-v3-external-hmac-excludes-xuanxue",
           "checkIds": [
             "workbench-api-boundary/owner-assertion-set"
           ],
@@ -3632,90 +2483,15 @@
             }
           ],
           "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1",
-          "clauseId": "grasseye-workbench-api-boundary-004-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1",
-          "clauseId": "grasseye-workbench-api-boundary-005-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1",
-          "clauseId": "grasseye-workbench-api-boundary-006-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-007-V1",
-          "clauseId": "grasseye-workbench-api-boundary-007-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1",
-          "clauseId": "grasseye-workbench-api-boundary-008-requirement",
-          "checkIds": [
-            "workbench-api-boundary/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "primaryEvidence": {
-            "engine": "ast",
-            "sourceEvidenceIndex": 0
-          },
-          "evidenceMode": "static"
         }
       ],
       "blueprintRefs": [
         {
           "filePath": "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md",
           "requiredAnchors": [
-            "## 3. 单链架构",
-            "## 4. 新增文件",
-            "## 14. 审计规则",
-            "## 15. 验收测试"
+            "## 处理顺序",
+            "## 站点 policy",
+            "## 验收"
           ]
         }
       ]
@@ -3726,15 +2502,12 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
-        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
-        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
-        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1"
+        "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V2"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
-          "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
+          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V2",
+          "clauseId": "grasseye-xuanxue-localization-contract-001-v2-inbound-mirror",
           "checkIds": [
             "xuanxue-ai-production-localization-contract/owner-assertion-set"
           ],
@@ -3744,62 +2517,16 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
-          "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
-          "checkIds": [
-            "xuanxue-ai-production-localization-contract/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
-          "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
-          "checkIds": [
-            "xuanxue-ai-production-localization-contract/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
-          "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
-          "checkIds": [
-            "xuanxue-ai-production-localization-contract/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "static"
+          "evidenceMode": "acceptance"
         }
       ],
       "blueprintRefs": [
         {
           "filePath": "docs/法案辅助文件/GrassEye 玄学 AI 本地化生产对接终态施工图.md",
           "requiredAnchors": [
-            "## 2. 唯一产品图",
-            "## 3. 合同镜像",
-            "## 4. 启动握手",
-            "## 5. Claim",
-            "## 8. Feed",
-            "## 9. Stage 完成门",
-            "## 12. 已废止活动图"
+            "## 合同方向",
+            "## Plugin 接线",
+            "## 验收"
           ]
         }
       ]
@@ -3810,16 +2537,12 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
-        "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1"
+        "APEX-XUANXUE-AI-PRODUCTION-001-V3"
       ],
       "bindings": [
         {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-          "clauseId": "grasseye-xuanxue-ai-production-001-v5-requirement",
+          "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V3",
+          "clauseId": "apex-xuanxue-001-v3-cloud-pull-v5",
           "checkIds": [
             "xuanxue-ai-production/owner-assertion-set"
           ],
@@ -3829,90 +2552,16 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-001-V5",
-          "clauseId": "grasseye-xuanxue-ai-production-001-v5-real-chrome-proof",
-          "checkIds": [
-            "xuanxue-ai-production/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "real-chrome"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-002-V5",
-          "clauseId": "grasseye-xuanxue-ai-production-002-v5-requirement",
-          "checkIds": [
-            "xuanxue-ai-production/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-003-V2",
-          "clauseId": "grasseye-xuanxue-ai-production-003-v2-requirement",
-          "checkIds": [
-            "xuanxue-ai-production/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1",
-          "clauseId": "grasseye-xuanxue-ai-production-004-requirement",
-          "checkIds": [
-            "xuanxue-ai-production/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
-        },
-        {
-          "lawId": "GRASSEYE-XUANXUE-AI-PRODUCTION-005-V1",
-          "clauseId": "grasseye-xuanxue-ai-production-005-v1-transient-lifecycle",
-          "checkIds": [
-            "xuanxue-ai-production/owner-assertion-set"
-          ],
-          "sourceEvidence": [
-            {
-              "filePath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
-              "symbolName": "inspectDomain"
-            }
-          ],
-          "evidenceMode": "acceptance"
+          "evidenceMode": "model+acceptance+real-chrome"
         }
       ],
       "blueprintRefs": [
         {
           "filePath": "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
           "requiredAnchors": [
-            "## Boundary",
-            "## Product Profiles",
-            "## Production Window",
-            "## Durable Ledger",
-            "## Outbound Cloud Protocol",
-            "## File Plan",
-            "## Acceptance"
+            "## 接入",
+            "## 删除式迁移",
+            "## 验收边界"
           ]
         }
       ]

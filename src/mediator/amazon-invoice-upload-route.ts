@@ -27,26 +27,13 @@ export const runResumeAmazonInvoiceUploadInterventionRoute = (rawInput: Paramete
 
 export const runAmazonInvoiceAdminOpenRoute = (
   rawInput: unknown,
-  browser: Parameters<typeof startAmazonInvoiceAdminOpenTask>[0],
-) => startAmazonInvoiceAdminOpenTask(
-  browser,
-  AmazonInvoiceUploadAdminOpenInputSchema.parse(rawInput),
-);
+): ReturnType<typeof startAmazonInvoiceAdminOpenTask> =>
+  startAmazonInvoiceAdminOpenTask(AmazonInvoiceUploadAdminOpenInputSchema.parse(rawInput));
 
 export const runAmazonInvoiceUploadMissionRoute = (
   rawInput: unknown,
-  runtime: Parameters<typeof startAmazonInvoiceUploadMission> extends [
-    infer Browser,
-    infer Logger,
-    infer Evidence,
-    unknown,
-  ] ? readonly [Browser, Logger, Evidence] : never,
-) => startAmazonInvoiceUploadMission(
-  runtime[0],
-  runtime[1],
-  runtime[2],
-  AmazonInvoiceUploadMissionInputSchema.parse(rawInput),
-);
+): ReturnType<typeof startAmazonInvoiceUploadMission> =>
+  startAmazonInvoiceUploadMission(AmazonInvoiceUploadMissionInputSchema.parse(rawInput));
 
 export const runAmazonInvoiceUploadTaskRoute = (
   rawInput: unknown,

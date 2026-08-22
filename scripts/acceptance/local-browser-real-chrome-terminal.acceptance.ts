@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { GRASSEYE_BROWSER_EXTENSION_ID } from "../../src/lib/browser/release/cws-extension-release-identity.js";
+import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 
 type RealChromeEvidence = Readonly<{
   status: "CHROME_VERIFIED";
   extensionId: string;
   extensionVersion: string;
-  releaseMode: "cws-reviewed";
+  releaseMode: "unpacked-manual-reload";
   workbenchUrl: string;
   checks: Readonly<{
     pageChannelConnected: true;
@@ -27,16 +27,15 @@ const fail = (reason: string): never => {
 };
 
 if (evidenceArgument === -1 || !process.argv[evidenceArgument + 1]) {
-  fail("Real Chrome evidence is required. Run the exact installed CWS MV3 to Workbench page journey, save its evidence JSON, then pass --evidence <path>.");
+  fail("Real Chrome evidence is required. Manually Reload the fixed unpacked MV3, complete pairing and the loopback WebSocket journey, then pass its evidence JSON.");
 }
 
 try {
   const evidencePath = resolve(process.argv[evidenceArgument + 1]!);
   const evidence = JSON.parse(readFileSync(evidencePath, "utf8")) as RealChromeEvidence;
   assert.equal(evidence.status, "CHROME_VERIFIED");
-  assert.equal(evidence.extensionId, GRASSEYE_BROWSER_EXTENSION_ID);
-  assert.notEqual(evidence.extensionVersion, "0.1.1");
-  assert.equal(evidence.releaseMode, "cws-reviewed");
+  assert.equal(evidence.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
+  assert.equal(evidence.releaseMode, "unpacked-manual-reload");
   assert.equal(evidence.workbenchUrl, "http://127.0.0.1:4173/");
   assert.deepEqual(evidence.checks, {
     pageChannelConnected: true,

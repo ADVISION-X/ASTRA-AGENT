@@ -401,7 +401,7 @@ const buildFailureProviderProof = (input: {
 const buildFailureResult = (input: {
   request: AiFeedInput;
   childCapabilityId: AiInputGatewayChildCapabilityId;
-  status: "failed" | "review_required";
+  status: "recovery_pending" | "failed" | "review_required";
   reason: string;
   providerProof: AiFeedProviderProof;
 }): AiFeedResult => AiFeedResultSchema.parse({
@@ -420,7 +420,7 @@ const buildFailureResult = (input: {
   parsedJson: null,
   schemaValidationStatus: input.request.expectedOutputSchemaRef ? "invalid" : "not_applicable",
   providerProof: input.providerProof,
-  failureReason: input.status === "failed" ? input.reason : null,
+  failureReason: input.status === "review_required" ? null : input.reason,
   reviewRequiredReason: input.status === "review_required" ? input.reason : null,
 });
 
@@ -430,7 +430,7 @@ export const buildAiFeedFailure = (input: {
   inputPackage: AiFeedInputPackage;
   startedAt: string;
   transport: "api" | "web-chat";
-  status: "failed" | "review_required";
+  status: "recovery_pending" | "failed" | "review_required";
   reason: string;
   cooldownMs?: number;
   providerLeaseId?: string | null;

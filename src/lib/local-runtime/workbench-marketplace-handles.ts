@@ -33,16 +33,11 @@ export const buildSettingsHandle = (dataDir: string) => ({
   },
 });
 
-const buildAmazonMiningRuntime = async (assembly: WorkbenchAssembly, dataDir: string) => ({
-  dataDir,
-  browser: await assembly.browserAuthority.acquireTargetLease("amazon-product-mining"),
-  aiInputGateway: assembly.aiInputGateway,
-  runtimeLogger: assembly.runtimeLogger,
-});
+const buildAmazonMiningRuntime = (dataDir: string) => ({ dataDir });
 
 export const buildAmazonMiningHandle = (assembly: WorkbenchAssembly, dataDir: string) => ({
-  async startAmazonProductMiningMission(rawInput: unknown) {
-    return runAmazonProductMiningRoute(rawInput, await buildAmazonMiningRuntime(assembly, dataDir));
+  startAmazonProductMiningMission(rawInput: unknown) {
+    return runAmazonProductMiningRoute(rawInput, buildAmazonMiningRuntime(dataDir));
   },
   getAmazonProductMiningTaskStatus(taskId: string) {
     return getAmazonProductMiningTaskStatus({ dataDir, taskId });
@@ -60,7 +55,7 @@ export const buildAmazonMiningHandle = (assembly: WorkbenchAssembly, dataDir: st
     return getAmazonProductMiningKeywordReview({ dataDir, reviewId });
   },
   async continueInterruptedAmazonProductMiningTasks() {
-    return runContinueAmazonProductMiningRoute({}, await buildAmazonMiningRuntime(assembly, dataDir));
+    return runContinueAmazonProductMiningRoute({}, buildAmazonMiningRuntime(dataDir));
   },
   ...buildAmazonMiningInterventionHandle(assembly, dataDir),
 });
@@ -72,8 +67,6 @@ const buildAmazonMiningInterventionHandle = (assembly: WorkbenchAssembly, dataDi
   async takeoverAmazonProductMining(input: Parameters<typeof runTakeoverAmazonProductMiningRoute>[0]) { return runTakeoverAmazonProductMiningRoute(input, dataDir); },
   async resumeAmazonProductMining(input: Parameters<typeof runResumeAmazonProductMiningRoute>[0]) {
     const snapshot = runResumeAmazonProductMiningRoute(input, dataDir);
-    assembly.aiInputGateway.resumeProviderTargetAfterOperator?.(`amazon-product-mining:${input.taskId}`);
-    void runContinueAmazonProductMiningRoute({}, await buildAmazonMiningRuntime(assembly, dataDir));
     return snapshot;
   },
 });

@@ -32,9 +32,9 @@ export type {
 } from "./xuanxue-ai-production-cloud-contract.js";
 export { createXuanxueAiProductionWorkbenchOwner } from "./xuanxue-ai-production.workbench-owner.js";
 export {
-  createAgentRuntimeReceiptV2,
-  produceAgentBrowserAuthorityProofV2,
-  type AgentBrowserAuthorityProofV2,
-  type AgentBrowserAuthorityWindowProofV2,
-  type AgentRuntimeReceiptV2,
+  createAgentRuntimeReceiptV5,
+  produceAgentBrowserAuthorityProofV5,
+  type AgentBrowserAuthorityProofV5,
+  type AgentBrowserAuthorityWindowProofV5,
+  type AgentRuntimeReceiptV5,
 } from "./xuanxue-ai-production-browser-proof.js";

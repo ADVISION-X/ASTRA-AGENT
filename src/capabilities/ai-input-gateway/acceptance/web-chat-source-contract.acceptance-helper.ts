@@ -30,11 +30,16 @@ const activeSources = {
   targetLease: "src/lib/browser/exact-target/browser-target-lease.ts",
   domIntent: "src/lib/browser/exact-target/browser-dom-intent.ts",
   domRuntime: "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
-  nativeActor: "src/lib/browser/chrome-extension/native-port-actor.ts",
+  extensionSocket: "src/lib/browser/chrome-extension/websocket-actor.ts",
+  extensionTarget: "src/lib/browser/chrome-extension/extension-target-authority.ts",
+  transportAuthenticator: "src/lib/browser/transport/transport-authenticator.ts",
   routing: "src/capabilities/ai-input-gateway/runtime/web-chat-single-tab-routing.ts",
   answer: "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
   attachment: "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
   attachmentPreflight: "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
+  freshConversation: "src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts",
+  submissionState: "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
+  resume: "src/capabilities/ai-input-gateway/providers/web-chat-resume.ts",
 } as const;
 
 const readActiveSources = async (): Promise<Record<keyof typeof activeSources, string>> => {
@@ -87,11 +92,13 @@ const assertFixedDevtoolsRuntime = (sources: Record<keyof typeof activeSources, 
 
 const assertNativeTargetBinding = (sources: Record<keyof typeof activeSources, string>): void => {
   assert.ok(
-    sources.nativeActor.includes("controller-command")
-      && sources.nativeActor.includes("claimOperatorTarget")
-      && sources.nativeActor.includes("sourceChannelToken")
-      && !sources.nativeActor.includes("tabs.query"),
-    "the native actor must bind only the operator-claimed target and authenticated command channel",
+    sources.extensionSocket.includes('const SOCKET_URL = "ws://127.0.0.1:4173/browser-authority/v1"')
+      && sources.extensionSocket.includes("claimActiveTarget")
+      && sources.extensionTarget.includes("tabs.query({ active: true, currentWindow: true })")
+      && sources.extensionTarget.includes("claimOperatorTarget")
+      && !sources.extensionTarget.includes("tabs.create")
+      && sources.transportAuthenticator.includes("sourceChannelToken"),
+    "the single authenticated extension socket must bind only the operator-claimed active HTTPS target",
   );
 };
 
@@ -108,7 +115,7 @@ const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources
       && sources.routing.includes("executeDomIntent")
       && sources.routing.includes("CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS")
       && sources.routing.includes("discoverChatGptConversationViaSearch")
-      && sources.routing.includes("Search chats dialog")
+      && sources.routing.includes("Search chats fallback")
       && !sources.routing.includes(".evaluate("),
     "canonical routing must use exact path/marker instructions and the observed bounded Search chats dialog",
   );
@@ -123,7 +130,7 @@ const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources
     sources.attachment.includes("#upload-files")
       && sources.attachment.includes("issueBrowserFileArtifactGrant")
       && sources.attachment.includes("attachFile")
-      && sources.attachment.includes("NOT_PRODUCTION_VERIFIED")
+      && sources.attachment.includes("detectedFileCount: 0")
       && !sources.attachment.includes("setFileInputFiles"),
     "attachment selection must use one opaque-grant batch and may not claim unobserved post-selection proof",
   );
@@ -134,6 +141,16 @@ const assertObservedChatGptActions = (sources: Record<keyof typeof activeSources
       && !sources.attachmentPreflight.includes(".evaluate("),
     "attachment preflight must preserve an unknown draft and inspect only the observed composer/input topology",
   );
+};
+
+const assertSerialProviderBrowserActions = (sources: Record<keyof typeof activeSources, string>): void => {
+  for (const sourceKey of ["freshConversation", "attachmentPreflight", "submissionState", "resume"] as const) {
+    assert.equal(
+      sources[sourceKey].includes("Promise.all(") || sources[sourceKey].includes("Promise.allSettled("),
+      false,
+      `${sourceKey} must await BrowserTargetLease commands serially instead of bypassing the single browser mutation lane`,
+    );
+  }
 };
 
 const assertTransientSubmissionDoesNotRoute = (): void => {
@@ -166,5 +183,6 @@ export const assertWebChatSourceContracts = async (): Promise<void> => {
   const sources = await readActiveSources();
   assertBrowserBoundary(sources);
   assertObservedChatGptActions(sources);
+  assertSerialProviderBrowserActions(sources);
   assertTransientSubmissionDoesNotRoute();
 };

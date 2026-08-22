@@ -52,6 +52,11 @@ try {
   assert.deepEqual(Object.keys(assembly.browserAuthority.health()).sort(), ["browserAuthority", "browserInfrastructure"]);
   assert.equal(assembly.browserAuthority.health().browserInfrastructure.ok, true, "Workbench infrastructure must start before the extension page channel connects.");
   assert.equal(assembly.browserAuthority.health().browserAuthority.ok, false, "Browser authority must remain absent until the exact extension authenticates through the Workbench page.");
+  const pairing = assembly.browserAuthority.readOperatorPairingState();
+  assert.equal(pairing.authority, "absent");
+  assert.match(pairing.pairingSecret ?? "", /^[a-f0-9]{64}$/u, "Cold start must issue one memory-only 256-bit operator pairing secret.");
+  assert.equal(JSON.stringify(assembly.browserAuthority.health()).includes(pairing.pairingSecret ?? ""), false, "Pairing secret must not enter health output.");
+  assert.equal("approveSessionWorkspace" in assembly.browserAuthority, false, "Pair plus claim must be the only operator admission; a second workspace approval surface is forbidden.");
   await assert.rejects(
     () => assembly.videoDownload.execute({} as never),
     /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u,

@@ -133,9 +133,8 @@ Forbidden:
 
 Required:
 
-- DOM primitive imports from `src/capabilities/dom-automation/index.ts` are allowed only through the registered business bridge file.
-- The allowlisted Amazon invoice upload bridge is `src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts`.
+- No current business plugin is authorized to import DOM primitives from `src/capabilities/dom-automation/index.ts` directly.
 
 Forbidden:
 
-- Plugin, app, mediator, local-runtime, or acceptance files importing any of the six DOM primitives—`readDomSnapshotOnce`, `locateDomElementOnce`, `fillDomElementOnce`, `clickDomElementOnce`, `uploadApprovedFileOnce`, or `verifyDomStateOnce`—outside the allowlisted bridge.
+- Plugin, app, mediator, local-runtime, or acceptance files importing any of the six DOM primitives—`readDomSnapshotOnce`, `locateDomElementOnce`, `fillDomElementOnce`, `clickDomElementOnce`, `uploadApprovedFileOnce`, or `verifyDomStateOnce`—directly.

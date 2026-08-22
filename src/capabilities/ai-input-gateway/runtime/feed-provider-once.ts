@@ -7,6 +7,7 @@ import type {
   AiProviderUploadedFileProof,
   WebChatAttachmentUploadProof,
   WebChatExecutionContext,
+  WebChatPageActionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type {
   AiFeedInput,
@@ -45,6 +46,7 @@ type ExecuteAiFeedOnceInput = {
   webChatExecution?: WebChatExecutionContext;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
+  onPageActionCommitted?: (proof: WebChatPageActionProof) => Promise<void>;
 };
 
 const uploadedFilesFromError = (error: unknown): AiProviderUploadedFileProof[] => {
@@ -119,7 +121,7 @@ const buildProviderFailure = (input: {
     inputPackage: input.inputPackage,
     startedAt: input.startedAt,
     transport: input.transport,
-    status: input.classification === "review_required" ? "review_required" : "failed",
+    status: input.classification,
     reason: input.error instanceof Error ? input.error.message : String(input.error),
     cooldownMs: input.cooldownMs,
     providerLeaseId: input.providerLeaseId,
@@ -129,7 +131,13 @@ const buildProviderFailure = (input: {
 
 const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
   dataDir: input.dataDir,
-  ...(input.browser ? { browser: input.browser } : {}),
+  ...(input.browser ? {
+    browser: input.browser,
+    registerBrowserFileArtifact: (artifact: Parameters<BrowserTargetLease["registerFileArtifact"]>[0]) =>
+      input.browser!.registerFileArtifact(artifact),
+    issueBrowserFileArtifactGrant: (grant: Parameters<BrowserTargetLease["issueFileArtifactGrant"]>[0]) =>
+      input.browser!.issueFileArtifactGrant(grant),
+  } : {}),
   ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
   ...(input.signal ? { abortSignal: input.signal } : {}),
   ...(input.webChatExecution ? { webChatExecution: input.webChatExecution } : {}),

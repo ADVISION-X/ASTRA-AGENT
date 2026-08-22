@@ -77,6 +77,18 @@ No new DOM child ability may be added until this law and its construction bluepr
   "enforcementMode": "machine-blocking",
   "evidenceMode": "fs+ast",
   "summary": "DOM Automation must remain business-neutral and must not contain platform-specific workflow logic.",
+  "codePurityLiveness": {
+    "externalEntryFiles": [
+      "src/capabilities/dom-automation/index.ts"
+    ],
+    "externalEntryExports": [
+      { "filePath": "src/capabilities/dom-automation/index.ts", "exportName": "readDomSnapshotOnce" },
+      { "filePath": "src/capabilities/dom-automation/index.ts", "exportName": "locateDomElementOnce" },
+      { "filePath": "src/capabilities/dom-automation/index.ts", "exportName": "fillDomElementOnce" },
+      { "filePath": "src/capabilities/dom-automation/index.ts", "exportName": "uploadApprovedFileOnce" },
+      { "filePath": "src/capabilities/dom-automation/index.ts", "exportName": "verifyDomStateOnce" }
+    ]
+  },
   "appliesTo": [
     "src/capabilities/dom-automation/**/*.{ts,tsx,js,jsx,mjs}"
   ],

@@ -3,7 +3,10 @@ import {
   isLawfulZombieExport,
   pushZombieFinding,
 } from "./zombie-surface-shared.js";
-import type { ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
+import {
+  isLawfulManifestEntryExport,
+  type ZombieExemptionManifest,
+} from "./zombie-exemption-manifest.js";
 import type { ZombieModuleGraph, ZombieReachability } from "./zombie-module-graph.js";
 import type { ZombieNamespaceUsageReport } from "./zombie-namespace-usage.js";
 import type { ZombieExportSymbol, ZombieSymbolGraph } from "./zombie-symbol-graph.js";
@@ -27,6 +30,15 @@ const countNamespacePropertyUsage = (
   namespaceUsage.propertyUsages.filter(
     (usage) => usage.targetFilePath === exportSymbol.exportingFile && usage.propertyName === exportSymbol.exportName,
   ).length;
+
+const isLawfullyReexportedEntry = (
+  exportSymbol: ZombieExportSymbol,
+  manifest: ZombieExemptionManifest,
+  symbolGraph: ZombieSymbolGraph,
+): boolean => [...symbolGraph.exportsByFile.values()].some((symbols) => symbols.some((candidate) =>
+  candidate.exportName === exportSymbol.exportName
+  && candidate.declaringFile === exportSymbol.declaringFile
+  && isLawfulManifestEntryExport(manifest, candidate.exportingFile, candidate.exportName)));
 
 const scanZombieFiles = (
   collector: InventoryFindingCollector,
@@ -143,6 +155,10 @@ const scanZombieExportSymbol = (
   },
   exportSymbol: ZombieExportSymbol,
 ): "live" | "skip" | "zombie" => {
+  if (isLawfulManifestEntryExport(input.manifest, exportSymbol.exportingFile, exportSymbol.exportName)
+    || isLawfullyReexportedEntry(exportSymbol, input.manifest, input.symbolGraph)) {
+    return "live";
+  }
   if (isLawfulZombieExport(input.governedFile, exportSymbol.exportName, input.manifest)) {
     return "skip";
   }

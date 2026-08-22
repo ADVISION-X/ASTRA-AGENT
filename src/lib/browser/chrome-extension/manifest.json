@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
+  "minimum_chrome_version": "120",
   "name": "GrassEye Browser Authority",
-  "version": "0.2.0",
-  "description": "Authenticated exact-target browser authority for the local GrassEye Workbench.",
+  "version": "1.0.0",
+  "description": "GrassEye 工作台的固定目录本地浏览器授权扩展。",
   "background": { "service_worker": "service-worker.js", "type": "module" },
-  "permissions": ["debugger"],
-  "action": { "default_title": "Claim this operator-approved target for GrassEye" },
-  "host_permissions": [],
-  "externally_connectable": { "matches": ["http://127.0.0.1/*"] },
+  "permissions": ["debugger", "activeTab"],
+  "action": { "default_title": "为 GrassEye 配对并认领当前操作员确认的标签页", "default_popup": "pairing.html" },
+  "host_permissions": ["http://127.0.0.1/*"],
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsEQ2YAHUA2tK1fM/pla39a81peJ03vFR17ZEYjB5pN1suJLQzVY73pmTti8Qf2WSiTwkHoyfNStR90SH/MNnh8v9v+yR86nwfeEAHehgK6mOeDPkvJyxGTrMLQw1ZA0R23+BPcIdEpEOFPTlsYsGbJo9j3b+W+tTcgK79AGQA+iBPykOCdIWKW2gyy2jXLgRWiiLI2Sh76h+GywHX+JHjG8KCb6eCTelj9/MQ7i6ZIdBCSIDvwlbOOyOFNXkKxeN3CPkTCD6kyoyA4xh6OAdPzziqbUg3vbPV+JOWSOyMRZ3EWkz6xIqWm0+SwvqDwlHqrcPOHJS6ii7yyF367lmZwIDAQAB"
 }

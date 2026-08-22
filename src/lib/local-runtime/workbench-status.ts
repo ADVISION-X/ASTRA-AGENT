@@ -8,7 +8,9 @@ import type {
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 
-type WorkbenchStatusAssembly = Pick<WorkbenchAssembly, "browserAuthority">;
+type WorkbenchStatusAssembly = Readonly<{
+  browserAuthority: Pick<WorkbenchAssembly["browserAuthority"], "broker">;
+}>;
 type AiProductionHealthSnapshot = {
   readonly status: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
   readonly contractManifestHash: string;
@@ -70,7 +72,7 @@ const readBrowserAuthorityComponent = (
         : `Browser authority absent: ${authority.reasonCode}`,
       actionableMessage: present
         ? null
-        : "Install the approved CWS extension, open the local Workbench page, then reconnect the single browser channel before admitting browser work.",
+        : "Load the fixed unpacked extension, complete a fresh local pairing, then let the extension actor establish the one loopback WebSocket before admitting browser work.",
       ownerResponsible: "Browser",
     };
   } catch (error) {

@@ -16,7 +16,7 @@ const finding = (
   checkId: string,
   filePath: string,
   message: string,
-): InspectorFinding => createFinding({ lawId, checkId, filePath, message });
+): InspectorFinding => createFinding({ lawId, clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", checkId, filePath, message });
 
 const inspectCanonicalProviderIdentity = (
   findings: InspectorFinding[],
@@ -26,8 +26,9 @@ const inspectCanonicalProviderIdentity = (
   const required = [
     "focusChatGptConversationByCanonicalPath",
     "WEB_CHAT_BOUND_CONVERSATION_NOT_READY",
-    "markerCount",
-    "rowCount",
+    "observeOne",
+    "verifyCanonicalMarker",
+    "CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS",
   ];
   for (const value of required) {
     if (values.has(value)) continue;
@@ -68,9 +69,7 @@ const inspectTerminalAttachmentGuard = (
       "Factory flow must define hasTerminalAttachmentTransportProof."));
     return;
   }
-  for (const functionName of [
-    "restartRecoverableStage", "executeStage", "executeStageUntilSettled",
-  ]) {
+  for (const functionName of ["executeStage", "executeStageUntilSettled"]) {
     const guarded = flow.getVariableDeclaration(functionName)?.getInitializer()
       ?.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().asKind(SyntaxKind.Identifier)

@@ -9,6 +9,9 @@ import type { BrowserControlledTarget, BrowserDocumentRef } from "./browser-targ
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
+import type { BrowserSessionWorkspace, SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
+import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
+export type { SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
 
 export type BrowserExactTargetAcquisition = Readonly<{
   target: BrowserControlledTarget;
@@ -19,15 +22,52 @@ export type BrowserCommandPermitSigner = Readonly<{
   signCurrentCommandPermit(permit: BrowserUnsignedCommandPermit): `sha256:${string}`;
 }>;
 
+type LeaseState = {
+  current: BrowserControlledTarget;
+  closed: boolean;
+  sequence: number;
+  pendingMutationCommandIds: string[];
+};
+
+type LeaseCommand = (
+  capabilityId: BrowserCapabilityId,
+  value: Parameters<BrowserCommandActor["execute"]>[1],
+) => Promise<unknown>;
+
 export class BrowserTargetLeaseManager {
   public constructor(
     private readonly certificate: BrowserAuthorityCertificateV1,
     private readonly executionBinding: BrowserExecutionBinding,
     private readonly commandActor: BrowserCommandActor,
     private readonly permitSigner: BrowserCommandPermitSigner,
+    private readonly workspace: BrowserSessionWorkspace | undefined,
+    private readonly resolveCurrentTarget: () => BrowserControlledTarget | null,
+    private readonly resolveGrantPaths: (
+      grants: readonly BrowserFileArtifactGrantV1[],
+    ) => Promise<readonly string[]>,
   ) {}
 
   public acquire(input: BrowserExactTargetAcquisition): BrowserTargetLease {
+    this.assertAcquisition(input);
+    const state: LeaseState = {
+      current: input.target,
+      closed: false,
+      sequence: 0,
+      pendingMutationCommandIds: [],
+    };
+    const leaseRef = `target-lease-${randomUUID()}`;
+    const command = this.createLeaseCommand(input, state, leaseRef);
+    return this.createTargetLease(input, state, leaseRef, command);
+  }
+
+  private assertAcquisition(input: BrowserExactTargetAcquisition): void {
+    if (!this.workspace) throw new Error("BROWSER_SESSION_WORKSPACE_REQUIRED");
+    this.workspace.assertCurrent();
+    if (!Number.isInteger(this.executionBinding.commandTtlMs)
+      || this.executionBinding.commandTtlMs < 1
+      || this.executionBinding.commandTtlMs > 3_600_000) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
     if (
       input.target.target.authorityEpoch !== this.certificate.authorityEpoch
       || input.target.target.executionBindingHash !== this.executionBinding.executionRefHash
@@ -35,22 +75,51 @@ export class BrowserTargetLeaseManager {
     ) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
-    let current = input.target;
-    let closed = false;
-    const leaseRef = `target-lease-${randomUUID()}`;
-    let sequence = 0;
-    const command = async (capabilityId: BrowserCapabilityId, value: Parameters<BrowserCommandActor["execute"]>[1]): Promise<unknown> => {
-      if (closed) throw new Error("BROWSER_TARGET_INVALID");
+  }
+
+  private createLeaseCommand(
+    input: BrowserExactTargetAcquisition,
+    state: LeaseState,
+    leaseRef: string,
+  ): LeaseCommand {
+    return async (capabilityId, value) => {
+      if (state.closed) throw new Error("BROWSER_TARGET_INVALID");
+      this.workspace?.assertCurrent();
+      const currentTarget = this.resolveCurrentTarget();
+      if (!currentTarget
+        || currentTarget.target.targetRef !== input.target.target.targetRef
+        || currentTarget.target.authorityEpoch !== input.target.target.authorityEpoch
+        || currentTarget.target.executionBindingHash !== this.executionBinding.executionRefHash
+        || currentTarget.document.targetRef !== currentTarget.target.targetRef
+        || currentTarget.document.navigationEpoch < state.current.document.navigationEpoch) {
+        throw new Error("BROWSER_DOCUMENT_INVALID");
+      }
+      state.current = currentTarget;
       const permit = this.permit({
         leaseRef,
-        sequence: ++sequence,
+        sequence: ++state.sequence,
         targetRef: input.target.target.targetRef,
-        documentRef: current.document.documentRef,
+        documentRef: state.current.document.documentRef,
         capabilityId,
         mutationClass: this.mutationClass(value),
       });
-      return this.commandActor.execute(permit, value);
+      try {
+        const result = await this.commandActor.execute(permit, value);
+        if (this.mutationClass(value) === "mutation") state.pendingMutationCommandIds.push(permit.commandId);
+        return result;
+      } catch (error) {
+        if (this.commandActor.hasUnknownMutation(permit.commandId)) state.pendingMutationCommandIds.push(permit.commandId);
+        throw error;
+      }
     };
+  }
+
+  private createTargetLease(
+    input: BrowserExactTargetAcquisition,
+    state: LeaseState,
+    leaseRef: string,
+    command: LeaseCommand,
+  ): BrowserTargetLease {
     return {
       leaseRef,
       authorityRef: this.certificate.authorityRef,
@@ -62,44 +131,89 @@ export class BrowserTargetLeaseManager {
       writerLeaseEpoch: this.executionBinding.writerLeaseEpoch,
       writerFenceHash: this.executionBinding.writerFenceHash,
       target: input.target.target,
-      get document() { return current.document; },
-      navigate: async ({ url, title }) => {
-        const result = await command("browser.navigate.v1", { kind: "navigate", url, title });
-        const document = result as BrowserDocumentRef;
-        if (
-          !document
-          || typeof document.documentRef !== "string"
-          || document.targetRef !== input.target.target.targetRef
-          || !Number.isInteger(document.navigationEpoch)
-          || document.navigationEpoch <= current.document.navigationEpoch
-        ) {
-          throw new Error("BROWSER_DOCUMENT_INVALID");
-        }
-        current = { ...current, document, url, title };
-        return document;
-      },
+      get document() { return state.current.document; },
+      navigate: ({ url, title }) => this.navigate(input, state, command, url, title),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
-      captureScreenshot: async ({ regionLabel }) => {
-        const result = await command("browser.screenshot.v1", { kind: "screenshot", regionLabel });
-        const artifact = result as { artifactRef?: unknown; contentHash?: unknown };
-        if (typeof artifact.artifactRef !== "string" || typeof artifact.contentHash !== "string") throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-        return { artifactRef: artifact.artifactRef, contentHash: artifact.contentHash as `sha256:${string}` };
+      captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),
+      attachFile: ({ selector, grants }) => this.attachFile(command, selector, grants),
+      registerFileArtifact: async () => {
+        throw new Error("BROWSER_FILE_GRANT_INVALID");
       },
-      attachFile: async ({ selector, grants }: { selector: string; grants: readonly BrowserFileArtifactGrantV1[] }) => {
-        if (grants.length === 0 || grants.length > 20 || new Set(grants.map((grant) => grant.grantRef)).size !== grants.length) {
-          throw new Error("BROWSER_FILE_GRANT_INVALID");
-        }
-        for (const grant of grants) {
-          if (grant.authorityEpoch !== this.certificate.authorityEpoch || grant.executionBindingHash !== this.executionBinding.executionRefHash) {
-            throw new Error("BROWSER_FILE_GRANT_INVALID");
-          }
-        }
-        await command("browser.file-input.v1", { kind: "file-input", selector, grantRefs: grants.map((grant) => grant.grantRef) });
+      issueFileArtifactGrant: async () => {
+        throw new Error("BROWSER_FILE_GRANT_INVALID");
       },
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
-      close: async ({ reason }) => { await command("browser.close-target.v1", { kind: "close-target", reason }); closed = true; },
+      close: async ({ reason }) => { await command("browser.close-target.v1", { kind: "close-target", reason }); state.closed = true; },
+      resolvePendingMutations: (receipt) => this.resolvePendingMutations(state, receipt),
+      assertNoPendingMutations: () => {
+        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      },
     };
+  }
+
+  private async navigate(
+    input: BrowserExactTargetAcquisition,
+    state: LeaseState,
+    command: LeaseCommand,
+    url: string,
+    title: string,
+  ): Promise<BrowserDocumentRef> {
+    const result = await command("browser.navigate.v1", { kind: "navigate", url, title });
+    const document = result as BrowserDocumentRef;
+    if (!document || typeof document.documentRef !== "string"
+      || document.targetRef !== input.target.target.targetRef
+      || !Number.isInteger(document.navigationEpoch)
+      || document.navigationEpoch <= state.current.document.navigationEpoch) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    state.current = { ...state.current, document, url, title };
+    return document;
+  }
+
+  private async captureScreenshot(command: LeaseCommand, regionLabel: string): Promise<Readonly<{
+    artifactRef: string;
+    contentHash: `sha256:${string}`;
+  }>> {
+    const result = await command("browser.screenshot.v1", { kind: "screenshot", regionLabel });
+    const artifact = result as { artifactRef?: unknown; contentHash?: unknown };
+    if (typeof artifact.artifactRef !== "string" || typeof artifact.contentHash !== "string") {
+      throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    }
+    return { artifactRef: artifact.artifactRef, contentHash: artifact.contentHash as `sha256:${string}` };
+  }
+
+  private async attachFile(
+    command: LeaseCommand,
+    selector: string,
+    grants: readonly BrowserFileArtifactGrantV1[],
+  ): Promise<void> {
+    if (grants.length === 0 || grants.length > 20 || new Set(grants.map((grant) => grant.grantRef)).size !== grants.length) {
+      throw new Error("BROWSER_FILE_GRANT_INVALID");
+    }
+    if (grants.some((grant) => grant.authorityEpoch !== this.certificate.authorityEpoch
+      || grant.executionBindingHash !== this.executionBinding.executionRefHash)) {
+      throw new Error("BROWSER_FILE_GRANT_INVALID");
+    }
+    const resolvedFilePaths = await this.resolveGrantPaths(grants);
+    await command("browser.file-input.v1", {
+      kind: "file-input",
+      selector,
+      grantRefs: grants.map((grant) => grant.grantRef),
+      resolvedFilePaths,
+    });
+  }
+
+  private async resolvePendingMutations(
+    state: LeaseState,
+    receipt: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
+  ): Promise<number> {
+    const commandIds = [...state.pendingMutationCommandIds];
+    for (const commandId of commandIds) {
+      await this.commandActor.resolveUnknownMutation({ ...receipt, commandId });
+      state.pendingMutationCommandIds.splice(state.pendingMutationCommandIds.indexOf(commandId), 1);
+    }
+    return commandIds.length;
   }
 
   private permit(input: Readonly<{
@@ -120,6 +234,15 @@ export class BrowserTargetLeaseManager {
       certificateHash,
       channelSessionHash: this.certificate.channelSessionHash,
       executionBindingHash: this.executionBinding.executionRefHash,
+      writerFenceHash: this.executionBinding.writerFenceHash,
+      candidateHash: this.executionBinding.candidateHash,
+      contractManifestHash: this.executionBinding.contractManifestHash,
+      ownerPluginId: this.executionBinding.ownerPluginId,
+      jobId: this.executionBinding.jobId,
+      attemptId: this.executionBinding.attemptId,
+      deviceId: this.executionBinding.deviceId,
+      leaseVersion: this.executionBinding.leaseVersion,
+      localOrderId: this.executionBinding.localOrderId,
       targetLeaseRef: input.leaseRef,
       targetRef: input.targetRef,
       documentRef: input.documentRef,
@@ -127,7 +250,8 @@ export class BrowserTargetLeaseManager {
       commandId,
       sequence: input.sequence,
       mutationClass: input.mutationClass,
-      deadlineAt: new Date(Date.now() + 30_000).toISOString(),
+      workspaceRef: this.workspace?.ref() ?? "",
+      commandTtlMs: this.executionBinding.commandTtlMs,
       replyChannelToken,
     };
     return {
@@ -137,7 +261,7 @@ export class BrowserTargetLeaseManager {
   }
 
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
-    if (command.kind === "close-target") return "lifecycle";
+    if (command.kind === "navigate" || command.kind === "close-target") return "lifecycle";
     if (command.kind === "file-input") return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "fill")) return "mutation";
     return "observation";

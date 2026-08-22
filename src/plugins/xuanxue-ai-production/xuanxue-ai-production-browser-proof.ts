@@ -1,4 +1,4 @@
-export type AgentBrowserAuthorityWindowProofV2 = Readonly<{
+export type AgentBrowserAuthorityWindowProofV5 = Readonly<{
   window_index: number;
   worker_identity_hash: string;
   worker_lease_epoch_hash: string;
@@ -13,8 +13,8 @@ export type AgentBrowserAuthorityWindowProofV2 = Readonly<{
   auth_transcript_hash: string;
   liveness_lease_chain_hash: string;
   controller_incarnation_hash: string;
-  connection_generation_hash: string;
-  native_port_epoch_hash: string;
+  websocket_connection_generation_hash: string;
+  session_workspace_approval_hash: string;
   capability_set_hash: string;
   execution_fence_hash: string;
   first_command_sequence: string;
@@ -23,10 +23,10 @@ export type AgentBrowserAuthorityWindowProofV2 = Readonly<{
   closed_reason: "COMPLETED" | "CHECKPOINT_HANDOVER" | "FAILED" | "OUTCOME_UNKNOWN";
 }>;
 
-export type AgentBrowserAuthorityProofV2 = Readonly<{
-  schema_version: "xuanxue-agent-browser-authority-proof-v2";
+export type AgentBrowserAuthorityProofV5 = Readonly<{
+  schema_version: "xuanxue-agent-browser-authority-proof-v5";
   browser_required: true;
-  windows: readonly AgentBrowserAuthorityWindowProofV2[];
+  windows: readonly AgentBrowserAuthorityWindowProofV5[];
   elected_worker_chain_hash: string;
   handover_receipt_chain_hash: string;
   browser_action_receipt_root_hash: string;
@@ -34,12 +34,17 @@ export type AgentBrowserAuthorityProofV2 = Readonly<{
   unresolved_outcome_unknown_count: 0;
 }>;
 
-export type AgentRuntimeReceiptV2 = Readonly<{
-  schema_version: "xuanxue-agent-runtime-receipt-v2";
-  execution_ref: string;
+export type AgentRuntimeReceiptV5 = Readonly<{
+  schema_version: "xuanxue-agent-runtime-receipt-v5";
+  request_id: string;
+  status: "complete" | "failed" | "blocked";
+  execution_id: string;
+  run_id: string;
+  conversation_id: string;
+  candidate_hash: string;
   browser_required: boolean;
-  browser_authority_proof: AgentBrowserAuthorityProofV2 | null;
-  dynamic_proof_verdict_ref: string | null;
+  browser_proof: AgentBrowserAuthorityProofV5 | null;
+  evidence_refs: readonly string[];
 }>;
 
 const requireNonEmpty = (value: string, field: string): string => {
@@ -47,10 +52,10 @@ const requireNonEmpty = (value: string, field: string): string => {
   return value;
 };
 
-export const produceAgentBrowserAuthorityProofV2 = (
-  proof: AgentBrowserAuthorityProofV2,
-): AgentBrowserAuthorityProofV2 => {
-  if (proof.schema_version !== "xuanxue-agent-browser-authority-proof-v2") {
+export const produceAgentBrowserAuthorityProofV5 = (
+  proof: AgentBrowserAuthorityProofV5,
+): AgentBrowserAuthorityProofV5 => {
+  if (proof.schema_version !== "xuanxue-agent-browser-authority-proof-v5") {
     throw new Error("XUANXUE_BROWSER_PROOF_SCHEMA_INVALID");
   }
   if (!proof.browser_required || !proof.no_action_during_authority_absence) {
@@ -65,6 +70,8 @@ export const produceAgentBrowserAuthorityProofV2 = (
     }
     requireNonEmpty(window.worker_execution_fence_hash, "worker_execution_fence_hash");
     requireNonEmpty(window.authority_certificate_hash, "authority_certificate_hash");
+    requireNonEmpty(window.websocket_connection_generation_hash, "websocket_connection_generation_hash");
+    requireNonEmpty(window.session_workspace_approval_hash, "session_workspace_approval_hash");
     requireNonEmpty(window.first_command_sequence, "first_command_sequence");
     requireNonEmpty(window.last_command_sequence, "last_command_sequence");
     requireNonEmpty(window.action_receipt_subtree_hash, "action_receipt_subtree_hash");
@@ -75,24 +82,38 @@ export const produceAgentBrowserAuthorityProofV2 = (
   return Object.freeze(proof);
 };
 
-export const createAgentRuntimeReceiptV2 = (input: {
-  executionRef: string;
+export const createAgentRuntimeReceiptV5 = (input: {
+  requestId: string;
+  status: "complete" | "failed" | "blocked";
+  executionId: string;
+  runId: string;
+  conversationId: string;
+  candidateHash: string;
   browserRequired: boolean;
-  browserAuthorityProof: AgentBrowserAuthorityProofV2 | null;
-  dynamicProofVerdictRef: string | null;
-}): AgentRuntimeReceiptV2 => {
-  if (!input.executionRef.trim()) throw new Error("XUANXUE_RUNTIME_RECEIPT_EXECUTION_REF_EMPTY");
+  browserAuthorityProof: AgentBrowserAuthorityProofV5 | null;
+  evidenceRefs: readonly string[];
+}): AgentRuntimeReceiptV5 => {
+  if (!input.requestId.trim() || !input.executionId.trim() || !input.runId.trim()
+    || !input.conversationId.trim() || !input.candidateHash.trim()
+    || input.evidenceRefs.length === 0 || input.evidenceRefs.some((ref) => !ref.trim())) {
+    throw new Error("XUANXUE_RUNTIME_RECEIPT_V5_IDENTITY_INVALID");
+  }
   if (input.browserRequired && !input.browserAuthorityProof) {
     throw new Error("XUANXUE_RUNTIME_RECEIPT_BROWSER_PROOF_MISSING");
   }
   const browserAuthorityProof = input.browserAuthorityProof
-    ? produceAgentBrowserAuthorityProofV2(input.browserAuthorityProof)
+    ? produceAgentBrowserAuthorityProofV5(input.browserAuthorityProof)
     : null;
   return Object.freeze({
-    schema_version: "xuanxue-agent-runtime-receipt-v2" as const,
-    execution_ref: input.executionRef,
+    schema_version: "xuanxue-agent-runtime-receipt-v5" as const,
+    request_id: input.requestId,
+    status: input.status,
+    execution_id: input.executionId,
+    run_id: input.runId,
+    conversation_id: input.conversationId,
+    candidate_hash: input.candidateHash,
     browser_required: input.browserRequired,
-    browser_authority_proof: browserAuthorityProof,
-    dynamic_proof_verdict_ref: input.dynamicProofVerdictRef,
+    browser_proof: browserAuthorityProof,
+    evidence_refs: [...input.evidenceRefs],
   });
 };

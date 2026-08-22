@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T23:42:42.387Z",
+  "generatedAt": "2026-08-22T02:57:31.314Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -7,27 +7,18 @@
     "GRASSEYE-APP-SHELL-UI-002-V1",
     "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "app-shell-ui/skill-workspace",
-      "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
-      "clauseId": "grasseye-app-shell-ui-001-requirement",
-      "message": "src/app/app-shell/app-shell-layout.ts must expose data-skill-workspace.",
-      "severity": "fatal",
-      "filePath": "src/app/app-shell/app-shell-layout.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:0f0f571b-9ebf-4388-a5a1-f661d77329a0",
+      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:6f5c3ee0-2d7d-4884-8ccf-ed70ed835ff8",
       "capabilityDomain": "app-shell-ui",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-20T23:42:42.173Z",
-      "endedAt": "2026-08-20T23:42:42.387Z",
-      "durationMs": 214,
+      "status": "PASS",
+      "startedAt": "2026-08-22T02:57:31.132Z",
+      "endedAt": "2026-08-22T02:57:31.314Z",
+      "durationMs": 182,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
         "MIGRATION_FILE_DECISION_TABLE.md",
@@ -69,6 +60,7 @@
         "src/app/workbench-amazon-product-mining-routes.ts",
         "src/app/workbench-amazon-routes.ts",
         "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-browser-websocket-upgrade.ts",
         "src/app/workbench-home-amazon-invoice-client.ts",
         "src/app/workbench-home-amazon-product-mining-review-client.ts",
         "src/app/workbench-home-client.ts",
@@ -82,7 +74,7 @@
         "src/app/workbench-xuanxue-ai-production-client.ts",
         "src/app/workbench-xuanxue-ai-production-routes.ts"
       ],
-      "findingCount": 1
+      "findingCount": 0
     }
   ],
   "executedChecks": [
@@ -90,13 +82,13 @@
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
       "clauseId": "grasseye-app-shell-ui-001-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:0f0f571b-9ebf-4388-a5a1-f661d77329a0"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:6f5c3ee0-2d7d-4884-8ccf-ed70ed835ff8"
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
       "clauseId": "grasseye-app-shell-ui-002-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:0f0f571b-9ebf-4388-a5a1-f661d77329a0"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:6f5c3ee0-2d7d-4884-8ccf-ed70ed835ff8"
     }
   ],
   "inspectedFiles": [
@@ -140,6 +132,7 @@
     "src/app/workbench-amazon-product-mining-routes.ts",
     "src/app/workbench-amazon-routes.ts",
     "src/app/workbench-api-boundary.ts",
+    "src/app/workbench-browser-websocket-upgrade.ts",
     "src/app/workbench-home-amazon-invoice-client.ts",
     "src/app/workbench-home-amazon-product-mining-review-client.ts",
     "src/app/workbench-home-client.ts",

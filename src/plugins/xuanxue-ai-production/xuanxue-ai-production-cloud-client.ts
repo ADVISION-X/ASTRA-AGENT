@@ -1,10 +1,9 @@
 import {
   XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
+  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
   XuanxueAiProductionCloudClaimedJobSchema,
-  XuanxueAiProductionCloudLeaseEnvelopeSchema,
   type XuanxueAiProductionCloudClaimedJob,
   type XuanxueAiProductionCloudCredential,
-  type XuanxueAiProductionCloudLeaseEnvelope,
 } from "./xuanxue-ai-production-cloud-contract.js";
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
@@ -56,7 +55,7 @@ const agentBuildFingerprint = (): string =>
   || "grasseye-localization-contract-v1";
 
 export const xuanxueAiProductionDeviceContractProof = () => ({
-  contract_manifest_hash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  contract_manifest_hash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
   supported_product_contracts: XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
   agent_build_fingerprint: agentBuildFingerprint(),
 });
@@ -91,6 +90,8 @@ const leaseHeaders = (
 ): Record<string, string> => ({
   "x-ai-lease-token": job.lease_token,
   "x-ai-lease-version": String(job.lease_version),
+  "x-ai-attempt-id": job.grant.attempt_id,
+  "x-ai-execution-fence-hash": job.grant.execution_fence.fence_hash,
 });
 
 export async function heartbeatXuanxueAiProductionDevice(
@@ -138,32 +139,6 @@ const reportUnaddressableClaim = (raw: unknown, error: unknown): void => {
   })}\n`);
 };
 
-const nackMalformedClaim = async (
-  credential: XuanxueAiProductionCloudCredential,
-  envelope: XuanxueAiProductionCloudLeaseEnvelope,
-  reason: string,
-): Promise<void> => {
-  await cloudRequest(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(envelope.job_id)}/failure`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        protocol_version: XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-        lease_token: envelope.lease_token,
-        lease_version: envelope.lease_version,
-        idempotency_key:
-          `${envelope.job_id}:lease:${envelope.lease_version}:failure:XUANXUE_AI_PRODUCTION_CLAIM_CONTRACT_INVALID`,
-        status: "review_required",
-        code: "XUANXUE_AI_PRODUCTION_CLAIM_CONTRACT_INVALID",
-        reason,
-        recoverable: false,
-        local_order_id: null,
-      }),
-    },
-  );
-};
-
 export async function claimXuanxueAiProductionJobs(
   credential: XuanxueAiProductionCloudCredential,
   limit: number,
@@ -186,30 +161,10 @@ export async function claimXuanxueAiProductionJobs(
       accepted.push(parsed.data);
       continue;
     }
-    const envelope = XuanxueAiProductionCloudLeaseEnvelopeSchema.safeParse(rawJob);
-    const reason = claimFailureReason(parsed.error);
-    if (!envelope.success) {
-      reportUnaddressableClaim(rawJob, parsed.error);
-      continue;
-    }
-    try {
-      await nackMalformedClaim(credential, envelope.data, reason);
-    } catch (nackError) {
-      process.stderr.write(`${JSON.stringify({
-        level: "error",
-        owner: "xuanxue-ai-production",
-        code: "XUANXUE_AI_PRODUCTION_CLAIM_NACK_FAILED",
-        job_id: envelope.data.job_id,
-        product_id: envelope.data.product_id,
-        contract_manifest_hash:
-          envelope.data.contract_manifest_hash ?? null,
-        product_contract_hash:
-          envelope.data.product_contract_hash ?? null,
-        reason: claimFailureReason(nackError),
-        original_schema_reason: reason,
-        at: new Date().toISOString(),
-      })}\n`);
-    }
+    // A malformed V5 grant is not an authority to call any lifecycle endpoint.
+    // The Cloud lease expires into its own recovery path; the Worker never
+    // manufactures a partial terminal request from an old envelope.
+    reportUnaddressableClaim(rawJob, parsed.error);
   }
   return accepted;
 }
@@ -378,6 +333,8 @@ export async function checkpointXuanxueAiProductionJob(
           XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
         lease_token: job.lease_token,
         lease_version: job.lease_version,
+        attempt_id: job.grant.attempt_id,
+        execution_fence_hash: job.grant.execution_fence.fence_hash,
         idempotency_key:
           `${job.job_id}:lease:${job.lease_version}:${input.status}`
           + (input.attachmentUploadProof
@@ -407,6 +364,8 @@ export async function completeXuanxueAiProductionJob(
           XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
         lease_token: job.lease_token,
         lease_version: job.lease_version,
+        attempt_id: job.grant.attempt_id,
+        execution_fence_hash: job.grant.execution_fence.fence_hash,
         idempotency_key:
           `${job.job_id}:completed:${result.requestHash}`,
         result_json: result,
@@ -436,6 +395,8 @@ export async function failXuanxueAiProductionJob(
           XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
         lease_token: job.lease_token,
         lease_version: job.lease_version,
+        attempt_id: job.grant.attempt_id,
+        execution_fence_hash: job.grant.execution_fence.fence_hash,
         idempotency_key:
           `${job.job_id}:lease:${job.lease_version}:failure:${input.code}`,
         status: input.status,

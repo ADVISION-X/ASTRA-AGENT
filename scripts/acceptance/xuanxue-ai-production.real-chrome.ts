@@ -1,215 +1,116 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 
+import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import {
-  createAiInputGatewayAbilityGroup,
-  type AiFeedInput,
-  type AiFeedResult,
-  type AiInputGatewayAbilityGroup,
-} from "../../src/capabilities/ai-input-gateway/index.js";
-import { CurrentChromeBrowserController } from "../../src/lib/browser/current-chrome-browser-controller.js";
-import { resolveProductionBrowserProfileEnrollment } from "../../src/lib/browser/profile/browser-profile-config.js";
-import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
-import {
-  XuanxueAiProductionStore,
-  type XuanxueAiProductionRuntime,
+  createAgentRuntimeReceiptV5,
+  type AgentRuntimeReceiptV5,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
-import { acceptXuanxueOrderGraphs } from "./xuanxue-ai-production-order-graph-acceptance.js";
+import {
+  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
 
-const runId = randomUUID();
-const runRoot = await mkdtemp(
-  path.join(tmpdir(), "xuanxue-ai-production-real-chrome-"),
-);
-const browserDataDir = path.resolve(
-  process.env.GRASSEYE_BROWSER_DATA_DIR?.trim() || ".grasseye-local",
-);
-const profileEnrollment = resolveProductionBrowserProfileEnrollment({ platform: process.platform });
-const browser = await CurrentChromeBrowserController.create({
-  profileEnrollment,
-  screenshotDir: path.join(runRoot, "browser-captures"),
-  dataDir: browserDataDir,
-});
-const browserTarget = browser.createTargetSession("xuanxue-ai-production:real-chrome");
-const prepared = await browserTarget.open({
-  url: "https://chatgpt.com/",
-  title: "prepare ChatGPT for xuanxue production graph acceptance",
-  reusePolicy: "reuse-exact-url",
-});
-assert.equal(prepared.ok, true, prepared.message);
+type XuanxueRealChromeEvidenceV5 = Readonly<{
+  schemaVersion: "xuanxue-ai-production-real-chrome-evidence.v5";
+  contractManifestHash: `sha256:${string}`;
+  extensionId: string;
+  releaseMode: "unpacked-manual-reload";
+  workbenchUrl: string;
+  realRunRoot: string;
+  runtimeReceipt: AgentRuntimeReceiptV5;
+  evidenceRefs: readonly string[];
+}>;
 
-const provider = createAiInputGatewayAbilityGroup({ dataDir: runRoot }, browserTarget);
+const sha256Pattern = /^sha256:[a-f0-9]{64}$/u;
+const evidenceArgument = process.argv.indexOf("--evidence");
 
-class RecordingRealGateway implements AiInputGatewayAbilityGroup {
-  readonly abilityGroupId = "ai-input-gateway" as const;
-  readonly requests: AiFeedInput[] = [];
-  readonly results: AiFeedResult[] = [];
-  readonly tokens = new Map<string, string>();
-
-  listChildCapabilityIds() {
-    return provider.listChildCapabilityIds();
-  }
-
-  getRuntimeCapacity(): number {
-    return provider.getRuntimeCapacity();
-  }
-
-  async execute(
-    input: unknown,
-    options?: Parameters<AiInputGatewayAbilityGroup["execute"]>[1],
-  ): Promise<AiFeedResult> {
-    const request = input as AiFeedInput;
-    this.requests.push(request);
-    const token = this.tokens.get(request.taskIdentity.sourceTaskId)
-      ?? `XUANXUE_${runId.slice(0, 8)}_${String(this.tokens.size + 1).padStart(2, "0")}`;
-    this.tokens.set(request.taskIdentity.sourceTaskId, token);
-    const fileCount = request.inputRefs.filter((ref) => ref.filePath).length;
-    const actual = await provider.execute({
-      ...request,
-      expectedOutputSchemaRef: null,
-      textPrompt: [
-        "这是玄学 AI 生产工厂真实会话拓扑验收。",
-        fileCount > 0
-          ? `已附加 ${fileCount} 个经过系统校验的文件；请先读取，但不要复述其内容。`
-          : "本轮没有附件。",
-        "只回复一个 JSON 对象，不要代码块，不要解释。",
-        `token 必须逐字等于 ${token}。`,
-        `stage 必须逐字等于 ${request.roundId}。`,
-      ].join("\n"),
-      timeoutMs: Math.max(request.timeoutMs, 600_000),
-    }, options);
-    assert.equal(
-      actual.status,
-      "success",
-      actual.failureReason
-        ?? actual.reviewRequiredReason
-        ?? `real provider failed: ${request.taskIdentity.sourceTaskId}`,
-    );
-    assert.match(actual.rawResponseText ?? "", new RegExp(token, "u"));
-    this.results.push(actual);
-    return actual;
-  }
-
-  async close(): Promise<void> {
-    await provider.close?.();
-  }
-}
-
-const gateway = new RecordingRealGateway();
-const store = new XuanxueAiProductionStore(runRoot);
-const runtime: XuanxueAiProductionRuntime = {
-  dataDir: runRoot,
-  aiInputGateway: gateway,
-  mediaProcessing: createMediaProcessingAbilityGroupFromFilesystem({
-    dataDir: runRoot,
-  }),
-  store,
+const fail = (reason: string): never => {
+  process.stderr.write(`${JSON.stringify({
+    status: "NOT_PRODUCTION_VERIFIED",
+    reason,
+  })}\n`);
+  process.exit(1);
 };
 
+const assertSha256 = (value: string, field: string): void => {
+  assert.match(value, sha256Pattern, field);
+};
+
+if (evidenceArgument === -1 || !process.argv[evidenceArgument + 1]) {
+  fail(
+    "The unique Cloud Worker -> Mediator -> Plugin -> Browser Authority journey must emit a real Chrome evidence envelope; pass it with --evidence.",
+  );
+}
+
 try {
-  await acceptXuanxueOrderGraphs({
-    runtime,
-    gateway,
-  });
+  const evidencePath = resolve(process.argv[evidenceArgument + 1]!);
+  const evidence = JSON.parse(
+    readFileSync(evidencePath, "utf8"),
+  ) as XuanxueRealChromeEvidenceV5;
+  assert.equal(
+    evidence.schemaVersion,
+    "xuanxue-ai-production-real-chrome-evidence.v5",
+  );
+  assert.equal(
+    evidence.contractManifestHash,
+    XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  );
+  assert.equal(evidence.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
+  assert.equal(evidence.releaseMode, "unpacked-manual-reload");
+  assert.equal(evidence.workbenchUrl, "http://127.0.0.1:4173/");
+  assert.ok(statSync(resolve(evidence.realRunRoot)).isDirectory());
+  assert.ok(
+    Array.isArray(evidence.evidenceRefs)
+      && evidence.evidenceRefs.length > 0
+      && evidence.evidenceRefs.every((ref) => ref.trim().length > 0),
+  );
 
-  assert.equal(gateway.requests.length, gateway.results.length);
-  for (const [index, result] of gateway.results.entries()) {
-    const request = gateway.requests[index]!;
-    const expectedMode = request.providerForkRef
-      ? "forked_from_checkpoint"
-      : request.providerContinuationRef
-        ? "same_conversation"
-        : "fresh";
-    assert.equal(result.providerProof.conversationMode, expectedMode);
-    assert.ok(
-      expectedMode === "fresh"
-        ? result.providerProof.freshConversationProof
-        : expectedMode === "same_conversation"
-          ? result.providerProof.sameConversationProof
-          : result.providerProof.forkedFromCheckpointProof,
-      `exact ${expectedMode} proof missing for ${request.taskIdentity.sourceTaskId}`,
-    );
-  }
-
-  const tokenEntries = [...gateway.tokens.entries()];
-  for (const [index, result] of gateway.results.entries()) {
-    const ownSource = gateway.requests[index]!.taskIdentity.sourceTaskId;
-    for (const [otherSource, otherToken] of tokenEntries) {
-      if (otherSource !== ownSource) {
-        assert.doesNotMatch(
-          result.rawResponseText ?? "",
-          new RegExp(otherToken, "u"),
-          `provider response for ${ownSource} leaked sibling ${otherSource}`,
-        );
-      }
+  const receipt = evidence.runtimeReceipt;
+  assert.equal(receipt.schema_version, "xuanxue-agent-runtime-receipt-v5");
+  assert.equal(receipt.status, "complete");
+  assert.equal(receipt.browser_required, true);
+  assert.ok(receipt.browser_proof);
+  assertSha256(receipt.candidate_hash, "candidate_hash");
+  assert.equal(receipt.browser_proof.unresolved_outcome_unknown_count, 0);
+  assert.equal(receipt.browser_proof.no_action_during_authority_absence, true);
+  assert.ok(receipt.browser_proof.windows.length > 0);
+  for (const window of receipt.browser_proof.windows) {
+    for (const [field, value] of Object.entries(window)) {
+      if (field.endsWith("_hash")) assertSha256(String(value), field);
     }
   }
-
-  const proofFor = (sourceTaskId: string): AiFeedResult => {
-    const index = gateway.requests.findIndex(
-      (request) => request.taskIdentity.sourceTaskId === sourceTaskId,
-    );
-    assert.notEqual(index, -1, `missing request ${sourceTaskId}`);
-    return gateway.results[index]!;
-  };
-  const nm01Author = proofFor("aiprod_nm01:naming_author");
-  const nm01Files = nm01Author.providerProof.uploadedFiles ?? [];
-  assert.equal(nm01Files.length, 6);
-  assert.ok(nm01Files.some((file) =>
-    file.inputRefId.endsWith(":typed-participant-manifest")));
-  assert.equal(new Set(nm01Files.map((file) => file.fileName)).size, 6);
-
-  const hehunFinal = proofFor("aiprod_hehun_final:final_compatibility");
-  const hehunFiles = hehunFinal.providerProof.uploadedFiles ?? [];
-  assert.equal(hehunFiles.length, 3);
-  assert.ok(hehunFiles.some((file) =>
-    file.inputRefId.endsWith(":typed-participant-manifest")));
-
-  const nm02Author = proofFor("aiprod_nm02:naming_author");
-  const nm02Files = nm02Author.providerProof.uploadedFiles ?? [];
-  assert.equal(nm02Files.length, 6);
-  assert.ok(nm02Files.some((file) =>
-    file.inputRefId.startsWith("selected-report:")));
-  assert.ok(nm02Files.some((file) =>
-    file.inputRefId.endsWith(":typed-participant-manifest")));
-
-  const scopeUrls = new Map<string, Set<string>>();
-  for (const [index, request] of gateway.requests.entries()) {
-    const url = gateway.results[index]!.providerProof.webChatUrl;
-    assert.ok(url);
-    const urls = scopeUrls.get(request.conversationScopeRef ?? "")
-      ?? new Set<string>();
-    urls.add(url);
-    scopeUrls.set(request.conversationScopeRef ?? "", urls);
+  for (const field of [
+    "elected_worker_chain_hash",
+    "handover_receipt_chain_hash",
+    "browser_action_receipt_root_hash",
+  ] as const) {
+    assertSha256(receipt.browser_proof[field], field);
   }
-  assert.ok([...scopeUrls.values()].every((urls) => urls.size === 1));
+
+  const revalidated = createAgentRuntimeReceiptV5({
+    requestId: receipt.request_id,
+    status: receipt.status,
+    executionId: receipt.execution_id,
+    runId: receipt.run_id,
+    conversationId: receipt.conversation_id,
+    candidateHash: receipt.candidate_hash,
+    browserRequired: receipt.browser_required,
+    browserAuthorityProof: receipt.browser_proof,
+    evidenceRefs: receipt.evidence_refs,
+  });
+  assert.deepEqual(revalidated, receipt);
+  assert.deepEqual(evidence.evidenceRefs, receipt.evidence_refs);
 
   process.stdout.write(`${JSON.stringify({
-    marker: "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-GRAPH]",
-    runRoot,
-    runId,
-    requestCount: gateway.requests.length,
-    modeCounts: gateway.results.reduce<Record<string, number>>(
-      (counts, result) => {
-        const mode = result.providerProof.conversationMode ?? "missing";
-        counts[mode] = (counts[mode] ?? 0) + 1;
-        return counts;
-      },
-      {},
-    ),
-    nm01UploadedFiles: nm01Files.map((file) => file.fileName),
-    hehunUploadedFiles: hehunFiles.map((file) => file.fileName),
-    nm02UploadedFiles: nm02Files.map((file) => file.fileName),
-    conversations: gateway.requests.map((request, index) => ({
-      sourceTaskId: request.taskIdentity.sourceTaskId,
-      conversationScopeRef: request.conversationScopeRef,
-      mode: gateway.results[index]!.providerProof.conversationMode,
-      url: gateway.results[index]!.providerProof.webChatUrl,
-    })),
-    status: "PASS",
-  }, null, 2)}\n`);
-} finally {
-  await gateway.close();
+    marker: "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V5]",
+    status: "CHROME_VERIFIED",
+    contractManifestHash: evidence.contractManifestHash,
+    extensionId: evidence.extensionId,
+    requestId: receipt.request_id,
+    executionId: receipt.execution_id,
+    windowCount: receipt.browser_proof.windows.length,
+  })}\n`);
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
 }

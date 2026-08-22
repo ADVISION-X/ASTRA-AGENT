@@ -13,7 +13,6 @@ import type {
   XuanxueAiOrderRecord,
 } from "../../plugins/xuanxue-ai-production/index.js";
 import type { PluginInterventionRequest, PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
-import type { WorkbenchExtensionChannelRequest, WorkbenchExtensionChannelResponse } from "../browser/transport/workbench-extension-channel.js";
 
 type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceAdminOpenTask;
 type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
@@ -30,14 +29,14 @@ type GetAmazonProductMiningKeywordReview = typeof import("../../plugins/amazon-p
 type ExportAmazonProductMiningResult = typeof import("../../plugins/amazon-product-mining/index.js").exportAmazonProductMiningResult;
 type ContinueInterruptedAmazonProductMiningTasks = typeof import("../../plugins/amazon-product-mining/index.js").continueInterruptedAmazonProductMiningTasks;
 
-type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
+type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[0];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
-type AmazonInvoiceUploadMissionInput = Parameters<StartAmazonInvoiceUploadMission>[3];
+type AmazonInvoiceUploadMissionInput = Parameters<StartAmazonInvoiceUploadMission>[0];
 type AmazonInvoiceUploadMissionStartResult = Awaited<ReturnType<StartAmazonInvoiceUploadMission>>;
 type AmazonInvoiceUploadTaskStartInput = Parameters<StartAmazonInvoiceUploadTask>[0]["task"];
 type AmazonInvoiceUploadTaskResumeInput = { taskId: string };
 type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GetAmazonInvoiceUploadTaskStatus>>;
-type AmazonInvoiceUploadLedgerRecord = ReturnType<ListAmazonInvoiceUploadLedger>[number];
+type AmazonInvoiceUploadLedgerRecord = Awaited<ReturnType<ListAmazonInvoiceUploadLedger>>[number];
 type AmazonTaxInvoiceDownloadMissionInput = Parameters<StartAmazonTaxInvoiceDownloadTask>[0]["mission"];
 type AmazonTaxInvoiceDownloadTaskRecord = Awaited<ReturnType<GetAmazonTaxInvoiceDownloadTaskStatus>>;
 type AmazonTaxInvoiceDownloadArtifactMetadata = ReturnType<GetAmazonTaxInvoiceDownloadArtifact>;
@@ -67,7 +66,8 @@ export type GrassEyeWorkbenchHandle = {
     sourceSystem?: string | undefined;
   }) => void;
   getDataDir: () => string;
-  workbenchBrowserExtensionChannel: (input: WorkbenchExtensionChannelRequest) => Promise<WorkbenchExtensionChannelResponse>;
+  acceptBrowserAuthoritySocket: (input: Readonly<{ send(payload: string): void; close(code?: number): void }>) => Readonly<{ receive(payload: string): void; disconnect(reasonCode?: string, refs?: Readonly<Record<string, string>>): void }>;
+  readBrowserAuthorityPairingState: () => Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }>;
   readAmazonInvoiceUploadIntervention: ReadPluginIntervention;
   pauseAmazonInvoiceUpload: RequestPluginIntervention;
   cancelAmazonInvoiceUpload: RequestPluginIntervention;

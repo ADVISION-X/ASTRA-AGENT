@@ -1,10 +1,6 @@
 export {
-  repairInvalidCompletedStageOutputs,
-  repairRecoverableProviderFailures,
+  quarantineInvalidCompletedStageOutputs,
 } from "./xuanxue-ai-production-stage-output-recovery.js";
-export {
-  recoverMissingRequiredContinuationParents,
-} from "./xuanxue-ai-production-conversation-graph-recovery.js";
 export {
   quarantineInvalidStoredOrders,
   readQuarantinedStoredOrder,

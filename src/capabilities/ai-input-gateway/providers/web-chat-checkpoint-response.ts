@@ -68,7 +68,7 @@ const legacyModelIdentityProof = (
     modelFamily: proof.modelFamily,
     modelDisplayName: proof.modelDisplayName,
     modelIdentityStatus: "verified",
-    reasoningEffort: proof.legacyReasoningEffort,
+    reasoningEffort: proof.reasoningUiLabel,
     observedAt: proof.observedAt,
     sourceKind: proof.sourceKind,
     evidenceRef: proof.evidenceRef,

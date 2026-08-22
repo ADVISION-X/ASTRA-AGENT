@@ -63,7 +63,7 @@ export const XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS = {
   },
   localization_static_review_candidate: {
     stage_id: "localization_candidate",
-    trigger_kind: "terminal_localization",
+    trigger_kind: "localization_static_review",
     product_contract_hash:
       "sha256:2bdc7a50507354740e748101dbee52a84aeb530adb1eece38a8b697c7431577a",
     roles: ["candidate_a", "candidate_b"],
@@ -71,7 +71,7 @@ export const XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS = {
   },
   localization_static_review_selector: {
     stage_id: "localization_selector",
-    trigger_kind: "terminal_localization",
+    trigger_kind: "localization_static_review",
     product_contract_hash:
       "sha256:9cc85d8b374d98cde912013405d17dc9f90b0487e692842b23afec2eddcb11bd",
     roles: ["selector_first", "selector_swap", "consistency"],

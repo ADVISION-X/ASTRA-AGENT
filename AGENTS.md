@@ -122,7 +122,7 @@ Codex 必须把四件事分开：
 | `src/plugins/<job-id>/**` | 一个目录拥有一个明确业务岗位 | 拥有业务顺序、业务状态、成功/失败/复核和业务结果；不得跨插件 import，不得造通用 planner |
 | `src/capabilities/<group-id>/**` | 一个目录拥有一类可复用动作 | 只做同类动作，不懂业务；不得 import plugin，不得跨 capability owner 偷私有实现 |
 | `src/capabilities/<group-id>/runtime/**` 或 `children/**` | 原子子能力实现 | 一次只做一个动作；不得隐藏完整工作流或决定下一步 |
-| `src/lib/browser/**` | BrowserController 和本地真实 Chrome 基础设施 | 负责打开、等待、当前受控标签、截图和文件输入基础；不得拥有业务顺序、AI 判断或证据真相 |
+| `src/lib/browser/**` | Browser Authority 与本地真实 Chrome 基础设施 | 只通过 public facade 签发 Session Workspace 下的动态 Authority/Target/Document 租约，并执行固定 registry action；不得拥有业务顺序、AI 判断或证据真相 |
 | `src/lib/local-runtime/**` | Workbench 依赖组装和 public handle | 只能组装 owner 并通过 public facade 接线；不得变成第二 mediator、第二流程引擎或业务 owner |
 | `src/lib/runtime-logs/**` | 唯一 Runtime Log Spine | 只写经过脱敏的 FLOW/DEBUG/TRACE 诊断日志；日志不得冒充证据或任务数据库 |
 | `src/lib/storage/**` | 低层本地存储适配 | 只提供存储机制；不得决定业务状态或流程 |
@@ -303,7 +303,7 @@ src/lib/local-runtime/workbench-handle.ts
 
 `workbench-assembly.ts` 负责创建并连接：
 
-- 一个 BrowserController。
+- 一个 Browser Authority public facade；Session Workspace 由 operator 签发，业务只消费注入的动态 Authority/Target/Document lease。
 - 一个 Runtime Logger。
 - 一个 Evidence Store。
 - 一个 Video Download ability group。
@@ -344,7 +344,7 @@ Mediator 可以 import 对应 plugin 的 public facade。
 
 Mediator 不得：
 
-- import BrowserController 或 capability private runtime。
+- import Browser Authority private runtime、raw transport 或 capability private runtime。
 - 点击、填写、上传、截图、下载或读取 DOM。
 - 保存业务状态。
 - 决定平台或研究等业务步骤。
@@ -374,7 +374,7 @@ src/plugins/<job-id>/**
 Plugin 允许：
 
 - 通过 `src/capabilities/<group-id>/index.ts` 调能力组 public API。
-- 接收 Local Runtime 注入的 BrowserController、logger、evidence store 等合法依赖。
+- 接收 Local Runtime 注入的 Browser Authority public facade、logger、evidence store 等合法依赖；Plugin 不得自行签发 Workspace 或直连 transport。
 - 写本 job 自己的 task state。
 
 Plugin 禁止：
@@ -476,17 +476,17 @@ GPT Web 当前物理边界：
 - 登录、CAPTCHA、2FA、风控、身份歧义、多物理 provider tab 必须进入 `review_required`。
 - 外部 caller 不能提供 title、tab id、window、marker、selector、browser command 或 concurrency。
 
-### 0.1.12 BrowserController：司机，只听固定流程的命令
+### 0.1.12 Browser Authority：司机，只听固定流程的 registry action
 
-BrowserController 负责：
+Browser Authority public facade 负责：
 
-- 复用操作者授权的本地 Chrome profile。
-- 打开 URL、等待页面、读取当前受控标签状态。
-- 在当前受控物理标签页执行受限 evaluate/输入/点击/滚动。
-- 截图 evidence 和 file-input 基础动作。
-- 离开预期 provider origin 时失败关闭。
+- 复用操作者对固定 profile、Extension ID、release、目录 hash 与 site policy 签发的最长八小时 Session Workspace；不得自动续期。
+- 在每条命令前重新取得当前 authenticated Authority、恰好一个 Target 与恰好一个 Document，并在 admission、send、completion 三处复核。
+- 仅把固定 `actionId` 解析到唯一 SiteActionRegistry/CommandRegistry 动作；wire 不携带 URL、selector、坐标、任意 JavaScript、raw CDP 或物理 tab/window 身份。
+- 在一个物理标签页和一个 mutation lock 下执行有界输入、点击、观察、截图与 file-input 动作。
+- 断线、reload、Chrome restart、identity/release/site-policy drift、TTL 到期或 revoke 时先撤销 Authority；离开预期 provider origin 时失败关闭。
 
-BrowserController 不负责：
+Browser Authority 不负责：
 
 - 业务步骤顺序。
 - AI 判断。
@@ -494,6 +494,8 @@ BrowserController 不负责：
 - evidence 持久化真相。
 - 自动登录、验证码绕过、账号轮换。
 - 读取 cookies、localStorage、sessionStorage、密码或 token。
+
+Browser mutation 必须先 `PREPARED + fsync` 再发送；没有可信 terminal reply 时进入 `UNKNOWN`。Transport 不得自动重放或推测业务成功，只有 owning Plugin 能依据真实页面的正向确认、反向排除、唯一性和有界性形成 `OutcomeResolutionReceipt`。
 
 登录由人完成；遇到登录墙、CAPTCHA、2FA 或风控，返回失败或人工复核，不能绕过。
 
@@ -887,7 +889,7 @@ shadow implementation 或通用确认框架。
 
 #### 6.1.1 真实页面先验施工准入
 
-凡修改 BrowserController、Chrome 插件、DOM Automation，或任何依赖真实网页控件、
+凡修改 Browser Authority、历史 BrowserController consumer、Chrome 插件、DOM Automation，或任何依赖真实网页控件、
 弹窗、Shadow DOM、文件输入、按钮和页面状态顺序的生产代码，Codex 必须在写代码前亲自
 使用仓库批准的 Chrome 插件或真实浏览器路径进入本次故障现场。
 

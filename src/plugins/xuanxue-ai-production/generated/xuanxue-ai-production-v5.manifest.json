@@ -1,0 +1,16 @@
+{
+  "schema_version": "xuanxue-ai-production-contract-manifest.v5",
+  "protocol_version": "xuanxue-ai-production-v5",
+  "max_browser_in_flight": 1,
+  "browser_workspace_ttl_ms": 28800000,
+  "required_structures": [
+    "CloudExecutionGrantV5",
+    "ExecutionFenceV5",
+    "DeadlineBudgetV5",
+    "SessionWorkspaceApprovalV5",
+    "BrowserCommandV5",
+    "MutationJournalV5",
+    "FirstTerminalCasV5",
+    "CancelRecoveryHandoverV5"
+  ]
+}

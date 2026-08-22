@@ -141,8 +141,12 @@ const createBrowserFacade = (
     () => input.base.attachFile(value),
     { route: routeByDefault },
   ),
+  registerFileArtifact: (value) => input.base.registerFileArtifact(value),
+  issueFileArtifactGrant: (value) => input.base.issueFileArtifactGrant(value),
   wait: ({ durationMs }) => delay(durationMs, input.signal),
   close: (value) => withMutation(() => input.base.close(value), { route: false }),
+  resolvePendingMutations: (value) => input.base.resolvePendingMutations(value),
+  assertNoPendingMutations: () => input.base.assertNoPendingMutations(),
 });
 
 const bindObservedConversation = (

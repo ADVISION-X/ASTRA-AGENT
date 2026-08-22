@@ -1,4 +1,3 @@
-import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type {
   XuanxueAiOrderRecord,
   XuanxueAiProductionOrder,
@@ -109,10 +108,6 @@ export const assertPersonParentMatches = (input: {
   }
 };
 
-type ParentConversationRebuild = ReturnType<
-  XuanxueAiProductionRuntime["store"]["readParentConversationRebuild"]
->;
-
 const assertOriginalParent = (input: {
   order: XuanxueAiOrderRecord;
   stage: XuanxueAiStageRecord;
@@ -130,44 +125,9 @@ const assertOriginalParent = (input: {
   }
 };
 
-const requireRebuiltParent = (input: {
-  runtime: XuanxueAiProductionRuntime;
-  parentRef: NonNullable<XuanxueAiOrderRecord["order"]["conversationParent"]>;
-  rebuild: NonNullable<ParentConversationRebuild>;
-}): { order: XuanxueAiOrderRecord; stage: XuanxueAiStageRecord } => {
-  if (
-    !input.rebuild.rebuiltJobId
-    || !input.rebuild.rebuiltExecutionId
-    || input.rebuild.rebuiltRawOutputHash !== input.parentRef.rawOutputHash
-    || input.rebuild.rebuiltInputBundleHash !== input.parentRef.inputBundleHash
-    || input.rebuild.rebuiltConversationScopeRef
-      !== input.parentRef.conversationScopeRef
-  ) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
-  }
-  const order = input.runtime.store.readOrder(input.rebuild.rebuiltJobId);
-  if (!order || order.status !== "completed") {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
-  }
-  const stage = requireXuanxueStage(order, input.parentRef.stageId);
-  if (
-    stage.status !== "completed"
-    || stage.executionId !== input.rebuild.rebuiltExecutionId
-    || stage.rawOutputHash !== input.rebuild.rebuiltRawOutputHash
-    || order.order.inputBundleHash !== input.rebuild.rebuiltInputBundleHash
-    || order.order.conversationScopeRef
-      !== input.rebuild.rebuiltConversationScopeRef
-  ) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
-  }
-  return { order, stage };
-};
-
 export const physicalParentRecord = (input: {
-  runtime: XuanxueAiProductionRuntime;
   originalParent: XuanxueAiOrderRecord;
   parentRef: NonNullable<XuanxueAiOrderRecord["order"]["conversationParent"]>;
-  rebuild: ParentConversationRebuild;
 }): { order: XuanxueAiOrderRecord; stage: XuanxueAiStageRecord } => {
   const stage = requireXuanxueStage(
     input.originalParent,
@@ -178,11 +138,5 @@ export const physicalParentRecord = (input: {
     stage,
     parentRef: input.parentRef,
   });
-  return input.rebuild
-    ? requireRebuiltParent({
-        runtime: input.runtime,
-        parentRef: input.parentRef,
-        rebuild: input.rebuild,
-      })
-    : { order: input.originalParent, stage };
+  return { order: input.originalParent, stage };
 };

@@ -17,6 +17,11 @@ type CandidateRow = {
   status: XuanxueAiOrderStatus;
 };
 
+type RestorableRow = {
+  order_id: string;
+  order_json: string;
+};
+
 type QuarantinedOrderRow = {
   order_id: string;
   failure_reason: string;
@@ -72,6 +77,36 @@ export const quarantineInvalidStoredOrders = (
         detail: {
           reasonCode: STORED_ORDER_CONTRACT_INVALID,
           policy: "preserve_raw_order_and_exclude_from_automatic_recovery",
+        },
+        createdAt: quarantinedAt,
+      });
+    }
+
+    const restorable = database.prepare(`
+      select order_id,order_json from production_orders
+      where status='review_required' and failure_reason=?
+      order by created_at,order_id
+    `).all(STORED_ORDER_CONTRACT_INVALID) as RestorableRow[];
+    for (const candidate of restorable) {
+      if (!isCurrentStoredOrder(candidate.order_json)) continue;
+      database.prepare(`
+        update production_orders
+        set status='recovery_pending',failure_reason=null,updated_at=?
+        where order_id=? and status='review_required' and failure_reason=?
+      `).run(
+        quarantinedAt,
+        candidate.order_id,
+        STORED_ORDER_CONTRACT_INVALID,
+      );
+      appendXuanxueAiProductionEvent(database, {
+        orderId: candidate.order_id,
+        stageId: null,
+        eventType: "stored_order_contract_restored",
+        fromStatus: "review_required",
+        toStatus: "recovery_pending",
+        detail: {
+          previousReasonCode: STORED_ORDER_CONTRACT_INVALID,
+          policy: "resume_only_after_current_contract_validation",
         },
         createdAt: quarantinedAt,
       });

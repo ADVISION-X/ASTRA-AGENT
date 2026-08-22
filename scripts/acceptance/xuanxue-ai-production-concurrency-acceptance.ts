@@ -31,10 +31,10 @@ export const acceptXuanxueAiProductionConcurrency = async (input: {
   await new Promise<void>((resolve) => setTimeout(resolve, 100));
   assert.equal(
     gateway.started.filter((value) => /aiprod_qimen_\d+:analysis$/u.test(value)).length,
-    10,
-    "the eleventh order must remain outside the ten-order production window",
+    1,
+    "V5 must admit exactly one local production order at a time",
   );
-  assert.equal(gateway.maxActive, 10);
+  assert.equal(gateway.maxActive, 1);
   gateway.releaseQimen();
   const completed = await Promise.all(executions);
   assert.ok(completed.every((record) => record.status === "completed"));

@@ -26,6 +26,38 @@ export type XuanxueAiOrderReader = (
   orderId: string,
 ) => XuanxueAiOrderRecord | null;
 
+type CloudExecutionIdentity = NonNullable<XuanxueAiProductionOrder["cloudExecutionIdentity"]>;
+
+const cloudIdentitiesMatch = (
+  existing: CloudExecutionIdentity | undefined,
+  incoming: CloudExecutionIdentity | undefined,
+): boolean => existing === undefined && incoming === undefined
+  || existing !== undefined && incoming !== undefined
+    && existing.jobId === incoming.jobId
+    && existing.attemptId === incoming.attemptId
+    && existing.requiredDeviceId === incoming.requiredDeviceId
+    && existing.leaseVersion === incoming.leaseVersion
+    && existing.executionFenceHash === incoming.executionFenceHash
+    && existing.contractManifestHash === incoming.contractManifestHash;
+
+const isExactSameJobRecovery = (
+  existing: XuanxueAiOrderRecord,
+  incoming: XuanxueAiProductionOrder,
+): boolean => {
+  const existingCloud = existing.order.cloudExecutionIdentity;
+  const incomingCloud = incoming.cloudExecutionIdentity;
+  if (existing.status !== "recovery_pending" || !existingCloud || !incomingCloud) return false;
+  const existingBusinessOrder = { ...existing.order, cloudExecutionIdentity: undefined };
+  const incomingBusinessOrder = { ...incoming, cloudExecutionIdentity: undefined };
+  return JSON.stringify(existingBusinessOrder) === JSON.stringify(incomingBusinessOrder)
+    && incomingCloud.jobId === existingCloud.jobId
+    && incomingCloud.requiredDeviceId === existingCloud.requiredDeviceId
+    && incomingCloud.contractManifestHash === existingCloud.contractManifestHash
+    && incomingCloud.attemptId !== existingCloud.attemptId
+    && incomingCloud.leaseVersion > existingCloud.leaseVersion
+    && incomingCloud.executionFenceHash !== existingCloud.executionFenceHash;
+};
+
 export const readXuanxueAiProductionOrder = (
   database: Database.Database,
   orderId: string,
@@ -58,12 +90,43 @@ const resolveIdentityCollision = (input: {
   database: Database.Database;
   existing: XuanxueAiOrderRecord;
   incoming: XuanxueAiProductionOrder;
-  stages: readonly XuanxueAiStageRecord[];
   readOrder: XuanxueAiOrderReader;
   conflictCode: string;
 }): XuanxueAiOrderRecord => {
-  if (input.existing.order.requestHash === input.incoming.requestHash) {
+  const existingCloud = input.existing.order.cloudExecutionIdentity;
+  const incomingCloud = input.incoming.cloudExecutionIdentity;
+  if (input.existing.order.requestHash === input.incoming.requestHash
+    && cloudIdentitiesMatch(existingCloud, incomingCloud)) {
     return input.existing;
+  }
+  if (isExactSameJobRecovery(input.existing, input.incoming) && existingCloud && incomingCloud) {
+    input.database.transaction(() => {
+      input.database.prepare(`
+        update production_orders set order_json=?,updated_at=?
+        where order_id=? and status='recovery_pending'
+      `).run(
+        JSON.stringify(input.incoming),
+        incomingCloud.serverNow,
+        input.existing.order.orderId,
+      );
+      appendXuanxueAiProductionEvent(input.database, {
+        orderId: input.existing.order.orderId,
+        stageId: null,
+        eventType: "cloud_execution_identity_rebound",
+        fromStatus: "recovery_pending",
+        toStatus: "recovery_pending",
+        detail: {
+          previousAttemptId: existingCloud.attemptId,
+          attemptId: incomingCloud.attemptId,
+          previousLeaseVersion: existingCloud.leaseVersion,
+          leaseVersion: incomingCloud.leaseVersion,
+          executionFenceHash: incomingCloud.executionFenceHash,
+          evidencePolicy: "preserve_same_order_stages_events_and_results",
+        },
+        createdAt: incomingCloud.serverNow,
+      });
+    })();
+    return input.readOrder(input.existing.order.orderId)!;
   }
   throw new Error(input.conflictCode);
 };
@@ -126,7 +189,6 @@ export const createXuanxueAiProductionOrder = (
       database,
       existing,
       incoming: order,
-      stages,
       readOrder,
       conflictCode: "XUANXUE_AI_PRODUCTION_ORDER_IDENTITY_CONFLICT",
     });
@@ -143,7 +205,6 @@ export const createXuanxueAiProductionOrder = (
       database,
       existing: sourceRecord,
       incoming: order,
-      stages,
       readOrder,
       conflictCode: "XUANXUE_AI_PRODUCTION_SOURCE_TASK_CONFLICT",
     });

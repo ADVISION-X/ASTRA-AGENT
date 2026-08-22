@@ -2,11 +2,10 @@ import assert from "node:assert/strict";
 
 import {
   assertProviderExecutionProfileIntegrity,
-  governProductionGptExecutionProfileInput,
 } from "../provider-execution-profile.js";
 import {
+  AiFeedInputSchema,
   buildGptWebProviderExecutionProfile,
-  normalizeGptWebReasoningTier,
   type AiFeedInput,
 } from "../schema.js";
 import {
@@ -49,8 +48,22 @@ const productionRequest = (overrides: Partial<AiFeedInput> = {}): AiFeedInput =>
 });
 
 const assertSemanticProfile = (): void => {
-  assert.equal(normalizeGptWebReasoningTier("xhigh"), "extra_high");
-  assert.equal(normalizeGptWebReasoningTier("pro"), "pro_standard");
+  assert.throws(() => buildGptWebProviderExecutionProfile({
+    profileRef: "acceptance:invalid:xhigh",
+    accountCapabilityRef: "acceptance:account",
+    reasoningTier: "xhigh" as never,
+    executorIdentityRef: "acceptance",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceVersion: "2026-08-19.1",
+  }));
+  assert.throws(() => buildGptWebProviderExecutionProfile({
+    profileRef: "acceptance:invalid:pro",
+    accountCapabilityRef: "acceptance:account",
+    reasoningTier: "pro" as never,
+    executorIdentityRef: "acceptance",
+    acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
+    acceptanceVersion: "2026-08-19.1",
+  }));
   const profile = productionRequest().providerExecutionProfile!;
   assert.doesNotThrow(() => assertProviderExecutionProfileIntegrity(profile));
   assert.throws(
@@ -62,20 +75,17 @@ const assertSemanticProfile = (): void => {
   );
 };
 
-const assertGatewayAdmissionFreezesProfile = (): void => {
+const assertGatewayAdmissionRequiresProfile = (): void => {
   const raw = {
     ...productionRequest(),
     providerExecutionProfile: undefined,
   };
-  const governed = governProductionGptExecutionProfileInput(raw) as AiFeedInput;
-  assert.equal(governed.providerExecutionProfile?.schemaVersion, "gpt-web-execution-profile.v1");
-  assert.equal(governed.providerExecutionProfile?.modelDisplayName, "GPT-5.6 Sol");
   assert.throws(
-    () => governProductionGptExecutionProfileInput({
-      ...raw,
-      requestedReasoningEffort: "high",
-    }),
-    /GPT_SPLIT_PROFILE_FORBIDDEN/u,
+    () => AiFeedInputSchema.parse(raw),
+    /GPT_EXECUTION_PROFILE_REQUIRED/u,
+  );
+  assert.throws(
+    () => AiFeedInputSchema.parse({ ...raw, requestedReasoningEffort: "high" }),
   );
 };
 
@@ -135,9 +145,8 @@ const assertVerifiedTitleProofIsExact = (): void => {
 
 export const assertGptWebSessionControllerContracts = (): void => {
   assertSemanticProfile();
-  assertGatewayAdmissionFreezesProfile();
+  assertGatewayAdmissionRequiresProfile();
   assertPrivacySafeTitle();
   assertContinuationDoesNotFakeLegacyTitleProof();
   assertVerifiedTitleProofIsExact();
 };
-

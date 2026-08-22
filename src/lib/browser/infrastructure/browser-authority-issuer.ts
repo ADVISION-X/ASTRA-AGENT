@@ -16,12 +16,14 @@ import {
 export type BrowserAuthenticationProof = Readonly<{
   handshake: BrowserTransportHandshake;
   authTranscriptHash: BrowserHash;
+  commandPermitKey: Buffer;
 }>;
 
 export class BrowserAuthorityIssuer {
+  private readonly issuerKey = randomBytes(32);
   private slot: BrowserAuthoritySlot = { kind: "ABSENT", reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE" };
   private nextEpoch = 1;
-  private readonly issuerKey = randomBytes(32);
+  private commandPermitKey: Buffer | null = null;
 
   public current(): BrowserAuthoritySlot {
     return this.slot;
@@ -30,6 +32,7 @@ export class BrowserAuthorityIssuer {
   /** The reducer may call this only after the Workbench-page/MV3 handshake agrees. */
   public commitAuthenticationProof(proof: BrowserAuthenticationProof): BrowserAuthorityCertificateV1 {
     assertAuthenticatedTransportHandshake(proof.handshake);
+    if (proof.commandPermitKey.byteLength !== 32) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const authorityEpoch = this.nextEpoch;
     const issuedAt = new Date().toISOString();
     const certificateWithoutMac = {
@@ -55,16 +58,17 @@ export class BrowserAuthorityIssuer {
       livenessLeaseEpoch: authorityEpoch,
       issuedAt,
       issuedAtMonotonicNs: process.hrtime.bigint().toString(),
-      expiresAt: proof.handshake.expiresAt,
     };
-    const issuerMac = `sha256:${createHmac("sha256", this.issuerKey).update(JSON.stringify(certificateWithoutMac)).digest("hex")}` as BrowserHash;
+    const issuerMac = `sha256:${createHmac("sha256", proof.commandPermitKey).update(JSON.stringify(certificateWithoutMac)).digest("hex")}` as BrowserHash;
     const certificate: BrowserAuthorityCertificateV1 = { ...certificateWithoutMac, issuerMac };
     this.nextEpoch += 1;
+    this.commandPermitKey = Buffer.from(proof.commandPermitKey);
     this.slot = { kind: "PRESENT", authority: certificate };
     return certificate;
   }
 
   public revokeCurrent(reasonCode: string): void {
+    this.commandPermitKey = null;
     this.slot = { kind: "ABSENT", reasonCode };
   }
 
@@ -75,13 +79,14 @@ export class BrowserAuthorityIssuer {
    */
   public signCurrentCommandPermit(permit: BrowserUnsignedCommandPermit): BrowserHash {
     this.assertPermitBoundToCurrentAuthority(permit);
-    return `sha256:${createHmac("sha256", this.issuerKey)
+    const key = this.requireCommandPermitKey();
+    return `sha256:${createHmac("sha256", key)
       .update(browserCommandPermitMacPayload(permit))
       .digest("hex")}` as BrowserHash;
   }
 
   public commandPermitKeyBase64(): string {
-    return this.issuerKey.toString("base64");
+    return this.requireCommandPermitKey().toString("base64");
   }
 
   /**
@@ -115,5 +120,10 @@ export class BrowserAuthorityIssuer {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
     return authority;
+  }
+
+  private requireCommandPermitKey(): Buffer {
+    if (this.commandPermitKey === null) throw new Error("BROWSER_LIVENESS_EXPIRED");
+    return this.commandPermitKey;
   }
 }

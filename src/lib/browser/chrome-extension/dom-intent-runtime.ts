@@ -132,8 +132,20 @@ const documentState = async (runtime: ExtensionDebuggerRuntime, tabId: number): 
 const describeNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<DevToolsRecord> => record(record(await runtime.send(tabId, "DOM.describeNode", { nodeId, depth: 0 })).node);
 
 const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
-  const outerHtml = stringValue(record(await runtime.send(tabId, "DOM.getOuterHTML", { nodeId })).outerHTML, "BROWSER_TARGET_INVALID");
-  return new DOMParser().parseFromString(outerHtml, "text/html").body.textContent ?? "";
+  const described = record(await runtime.send(tabId, "DOM.describeNode", {
+    nodeId,
+    depth: -1,
+    pierce: true,
+  }));
+  return collectNodeText(record(described.node));
+};
+
+const collectNodeText = (node: DevToolsRecord): string => {
+  const own = typeof node.nodeValue === "string" ? node.nodeValue : "";
+  const children = Array.isArray(node.children)
+    ? node.children.map((child) => collectNodeText(record(child))).join("")
+    : "";
+  return `${own}${children}`;
 };
 
 const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unknown>> = {

@@ -1,101 +1,10 @@
 {
   "capabilityDomain": "local-app-shell",
-  "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
   "executionGroup": "domain",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
-        "clauseId": "apex-local-app-shell-001-requirement",
-        "checkIds": [
-          "local-app-shell/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
-        "clauseId": "apex-local-app-shell-002-requirement",
-        "checkIds": [
-          "local-app-shell/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
-        "clauseId": "apex-local-app-shell-003-requirement",
-        "checkIds": [
-          "local-app-shell/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
-        "clauseId": "apex-local-app-shell-004-requirement",
-        "checkIds": [
-          "local-app-shell/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
-        "clauseId": "apex-local-app-shell-005-requirement",
-        "checkIds": [
-          "local-app-shell/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
-        "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
-        "checkIds": [
-          "local-app-shell/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/local-app-shell/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
-      "requiredAnchors": [
-        "## 本地形态",
-        "## 首屏结构",
-        "## 当前法门入口",
-        "## 对口质检",
-        "## Workbench Extension 页面通道"
-      ]
-    }
-  ],
-  "description": "Local app shell owner inspector."
+  "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
+  "coverage": {"mode": "explicit", "bindings": [
+    {"lawId": "APEX-LOCAL-APP-SHELL-001-V2", "clauseId": "apex-local-app-shell-001-v2-single-upgrade", "checkIds": ["local-app-shell/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-app-shell/inspector.ts", "symbolName": "inspectDomain"}]},
+    {"lawId": "APEX-LOCAL-APP-SHELL-002-V2", "clauseId": "apex-local-app-shell-002-v2-boundary", "checkIds": ["local-app-shell/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-app-shell/inspector.ts", "symbolName": "inspectDomain"}]}
+  ]},
+  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye App Shell UI 施工图.md", "requiredAnchors": ["## 唯一责任", "## 原子切换", "## UI contract", "## 验收"]}]
 }

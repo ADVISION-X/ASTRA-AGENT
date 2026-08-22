@@ -27,7 +27,7 @@ const createInvalidStoredOrder = () => ({
     ["localization_candidate"],
     "candidate_a",
   ),
-  triggerKind: "localization_static_review",
+  triggerKind: "legacy_localization",
 });
 
 type InvalidStoredOrder = ReturnType<typeof createInvalidStoredOrder>;
@@ -101,10 +101,44 @@ const assertStoredOrderEvidence = (
   assert.equal(evidence.row.failure_reason, storedOrderFailureCode);
   assert.equal(
     JSON.parse(evidence.row.order_json).triggerKind,
-    "localization_static_review",
+    "legacy_localization",
     "quarantine must preserve the original invalid order instead of migrating it",
   );
   assert.equal(evidence.event.event_type, "stored_order_contract_quarantined");
+};
+
+const restoreCurrentStoredOrderContract = (
+  dataDir: string,
+  invalidOrder: InvalidStoredOrder,
+): void => {
+  const database = new Database(databasePath(dataDir));
+  database.prepare(`
+    update production_orders set order_json=? where order_id=?
+  `).run(
+    JSON.stringify({
+      ...invalidOrder,
+      triggerKind: "localization_static_review",
+    }),
+    invalidOrder.orderId,
+  );
+  database.close();
+};
+
+const assertRestoredOrder = (dataDir: string, orderId: string): void => {
+  const reopened = new XuanxueAiProductionStore(dataDir);
+  assert.equal(reopened.readQuarantinedOrder(orderId), null);
+  assert.equal(
+    reopened.listCloudRecoveryOrders().some((record) =>
+      record.order.orderId === orderId && record.status === "recovery_pending"),
+    true,
+    "an exactly quarantined order must resume only after its raw contract validates",
+  );
+  reopened.close();
+
+  const evidence = readStoredOrderEvidence(dataDir, orderId);
+  assert.equal(evidence.row.status, "recovery_pending");
+  assert.equal(evidence.row.failure_reason, null);
+  assert.equal(evidence.event.event_type, "stored_order_contract_restored");
 };
 
 export const acceptStoredOrderContractQuarantine = async (): Promise<void> => {
@@ -116,6 +150,8 @@ export const acceptStoredOrderContractQuarantine = async (): Promise<void> => {
     insertInvalidStoredOrder(dataDir, invalidOrder);
     assertQuarantinedOrder(dataDir, invalidOrder);
     assertStoredOrderEvidence(readStoredOrderEvidence(dataDir, invalidOrder.orderId));
+    restoreCurrentStoredOrderContract(dataDir, invalidOrder);
+    assertRestoredOrder(dataDir, invalidOrder.orderId);
   } finally {
     await rm(dataDir, { recursive: true, force: true });
   }

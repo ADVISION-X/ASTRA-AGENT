@@ -23,7 +23,7 @@ import {
   waitForRecoveryRetry,
   type XuanxueAiProductionExecutionObserver,
 } from "./xuanxue-ai-production-stage-execution.js";
-import { xuanxueAiOutputRequiresFreshExecution } from "./xuanxue-ai-production-output-integrity.js";
+import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.runtime.js";
 export type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 export type { XuanxueAiProductionExecutionObserver } from "./xuanxue-ai-production-stage-execution.js";
 
@@ -73,54 +73,20 @@ export const hasTerminalAttachmentTransportProof = (
   return status === "failed" || status === "review_required";
 };
 
-const hasProvenTerminalPreSubmitIdentityConflict = (
-  reason: string | null,
-): boolean => Boolean(
-  reason
-  && /WEB_CHAT_(?:FOREIGN_TURN_REBOUND|FRESH_CONVERSATION_REBOUND|CANONICAL_CONVERSATION_ALREADY_BOUND|TURN_MARKER_AMBIGUOUS)/u
-    .test(reason),
-);
-
-const restartRecoverableStage = (
-  runtime: XuanxueAiProductionRuntime,
-  stage: XuanxueAiStageRecord,
-): XuanxueAiStageRecord => {
-  if (hasTerminalAttachmentTransportProof(stage)) return stage;
-  const terminalGatewayExecution = stage.aiFeedResult?.status === "failed"
-    || stage.aiFeedResult?.status === "review_required";
-  const hasDurableSubmission = Boolean(stage.aiFeedResult?.providerProof.webChatUrl);
-  const freshExecutionRequired = terminalGatewayExecution
-    && !hasDurableSubmission
-    && !stage.supersededExecutionId
-    && hasProvenTerminalPreSubmitIdentityConflict(stage.failureReason);
-  const outputRequiresFreshExecution = xuanxueAiOutputRequiresFreshExecution(stage.failureReason);
-  if (stage.status !== "recovery_pending"
-    || (!freshExecutionRequired && !outputRequiresFreshExecution)) return stage;
-  return runtime.store.updateStage({
-    ...stage,
-    executionId: `${stage.orderId}:${stage.stageId}:restart:${stage.attemptCount + 1}`,
-    supersededExecutionId: stage.executionId,
-    status: "queued",
-    aiFeedResult: null,
-    attachmentUploadProof: null,
-    rawResponseText: null,
-    rawOutputHash: null,
-    progressPhase: "queued",
-    failureReason: null,
-    updatedAt: nowIso(),
-  }, "stage_fresh_execution_restarted");
-};
-
 const executeStage = async (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
   definition: XuanxueAiStageDefinition,
   observer?: XuanxueAiProductionExecutionObserver,
+  deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
 ): Promise<XuanxueAiStageRecord> => {
   const current = runtime.store.readOrder(orderId);
   if (!current) throw new Error("XUANXUE_AI_PRODUCTION_ORDER_NOT_FOUND");
-  let stage = restartRecoverableStage(runtime, requireXuanxueStage(current, definition.stageId));
-  if (stage.status === "completed" || hasTerminalAttachmentTransportProof(stage)) return stage;
+  let stage = requireXuanxueStage(current, definition.stageId);
+  if (stage.status === "completed"
+    || stage.status === "failed"
+    || stage.status === "review_required"
+    || hasTerminalAttachmentTransportProof(stage)) return stage;
   await acknowledgeInterventionSafePoint(runtime, orderId, `before-stage-feed:${definition.stageId}`);
   const feedInput = await buildXuanxueAiFeedInput(runtime, current, stage, definition);
   stage = runtime.store.updateStage({
@@ -136,6 +102,7 @@ const executeStage = async (
     stage,
     feedInput,
     ...(observer ? { observer } : {}),
+    ...(deadlineBudget ? { deadlineBudget } : {}),
   });
   const persisted = persistStageResult(runtime, orderId, stage, gatewayResult);
   await acknowledgeInterventionSafePoint(runtime, orderId, `after-response-checkpoint:${definition.stageId}`);
@@ -147,30 +114,45 @@ const executeStageUntilSettled = async (
   orderId: string,
   definition: XuanxueAiStageDefinition,
   observer?: XuanxueAiProductionExecutionObserver,
+  deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
 ): Promise<XuanxueAiStageRecord> => {
+  const requireOperatorContinuationRecovery = (
+    reason: string,
+  ): XuanxueAiStageRecord => {
+    const current = runtime.store.readOrder(orderId);
+    if (!current) throw new Error("XUANXUE_AI_PRODUCTION_ORDER_NOT_FOUND");
+    const stage = requireXuanxueStage(current, definition.stageId);
+    return runtime.store.updateStage({
+      ...stage,
+      status: "review_required",
+      progressPhase: "terminal",
+      failureReason:
+        `XUANXUE_AI_PRODUCTION_CONTINUATION_OPERATOR_RECOVERY_REQUIRED:${reason}`
+          .slice(0, 1_000),
+      updatedAt: nowIso(),
+    }, "stage_continuation_operator_recovery_required");
+  };
   while (true) {
     let stage: XuanxueAiStageRecord;
     try {
-      stage = await executeStage(runtime, orderId, definition, observer);
+      stage = await executeStage(
+        runtime,
+        orderId,
+        definition,
+        observer,
+        deadlineBudget,
+      );
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       if (definition.continuationFrom && continuationConversationUnavailable(reason)) {
-        const rebuilt = runtime.store.resetOrderForConversationGraphRebuild(orderId, {
-          triggeringStageId: definition.stageId,
-          reason,
-        });
-        return requireXuanxueStage(rebuilt, definition.stageId);
+        return requireOperatorContinuationRecovery(reason);
       }
       throw error;
     }
     if (definition.continuationFrom
       && stage.status === "recovery_pending"
       && continuationConversationUnavailable(stage.failureReason)) {
-      const rebuilt = runtime.store.resetOrderForConversationGraphRebuild(orderId, {
-        triggeringStageId: definition.stageId,
-        reason: stage.failureReason!,
-      });
-      return requireXuanxueStage(rebuilt, definition.stageId);
+      return requireOperatorContinuationRecovery(stage.failureReason!);
     }
     if (hasTerminalAttachmentTransportProof(stage)) return stage;
     if (stage.status !== "recovery_pending" || !await waitForRecoveryRetry(stage)) return stage;
@@ -181,6 +163,7 @@ export const executeXuanxueAiProductionOrder = async (
   runtime: XuanxueAiProductionRuntime,
   orderId: string,
   observer?: XuanxueAiProductionExecutionObserver,
+  deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
 ): Promise<XuanxueAiOrderRecord> => {
   let record = runtime.store.readOrder(orderId);
   if (!record) throw new Error("XUANXUE_AI_PRODUCTION_ORDER_NOT_FOUND");
@@ -221,7 +204,13 @@ export const executeXuanxueAiProductionOrder = async (
     }
     await Promise.all(
       runnable.map((definition) =>
-        executeStageUntilSettled(runtime, orderId, definition, observer)),
+        executeStageUntilSettled(
+          runtime,
+          orderId,
+          definition,
+          observer,
+          deadlineBudget,
+        )),
     );
     record = runtime.store.readOrder(orderId)!;
     const blocking = firstBlockingStage(record);

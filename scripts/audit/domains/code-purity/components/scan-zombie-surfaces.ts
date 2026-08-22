@@ -133,6 +133,7 @@ const scanAntiEvasionFindings = (
     }),
     collector,
     governedFiles,
+    manifest: state.manifest,
     moduleGraph: state.moduleGraph,
     namespaceUsage: state.namespaceUsage,
     reachability: state.reachability,

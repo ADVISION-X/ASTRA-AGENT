@@ -1,69 +1,9 @@
 {
   "capabilityDomain": "xuanxue-ai-production-localization-contract",
-  "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
   "executionGroup": "domain",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V1",
-        "clauseId": "grasseye-xuanxue-localization-contract-001-requirement",
-        "checkIds": ["xuanxue-ai-production-localization-contract/owner-assertion-set"],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-002-V1",
-        "clauseId": "grasseye-xuanxue-localization-contract-002-requirement",
-        "checkIds": ["xuanxue-ai-production-localization-contract/owner-assertion-set"],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-003-V1",
-        "clauseId": "grasseye-xuanxue-localization-contract-003-requirement",
-        "checkIds": ["xuanxue-ai-production-localization-contract/owner-assertion-set"],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-004-V1",
-        "clauseId": "grasseye-xuanxue-localization-contract-004-requirement",
-        "checkIds": ["xuanxue-ai-production-localization-contract/owner-assertion-set"],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye 玄学 AI 本地化生产对接终态施工图.md",
-      "requiredAnchors": [
-        "## 2. 唯一产品图",
-        "## 3. 合同镜像",
-        "## 4. 启动握手",
-        "## 5. Claim",
-        "## 8. Feed",
-        "## 9. Stage 完成门",
-        "## 12. 已废止活动图"
-      ]
-    }
-  ],
-  "description": "Static owner contract for the website-owned localization manifest, four single-stage products, claim isolation and fail-closed provider identity."
+  "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
+  "coverage": {"mode": "explicit", "bindings": [
+    {"lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V2", "clauseId": "grasseye-xuanxue-localization-contract-001-v2-inbound-mirror", "checkIds": ["xuanxue-ai-production-localization-contract/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts", "symbolName": "inspectDomain"}]}
+  ]},
+  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye 玄学 AI 本地化生产对接终态施工图.md", "requiredAnchors": ["## 合同方向", "## Plugin 接线", "## 验收"]}]
 }

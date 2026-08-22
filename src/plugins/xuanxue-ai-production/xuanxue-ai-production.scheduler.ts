@@ -1,46 +1,22 @@
-import { createHash, randomUUID } from "node:crypto";
-
 import {
-  createXuanxueAiProductionOrder,
   executeXuanxueAiProductionOrder,
   type XuanxueAiProductionExecutionObserver,
   type XuanxueAiProductionRuntime,
 } from "./xuanxue-ai-production.flow.js";
 import {
-  isXuanxueAiRequiredContinuationProduct,
-  isAllowedXuanxueConversationParent,
-} from "./xuanxue-ai-production-conversation-policy.js";
-import {
   type XuanxueAiOrderRecord,
 } from "./xuanxue-ai-production.schema.js";
-import { requireXuanxueStage } from "./xuanxue-ai-production-feed.js";
+import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.runtime.js";
 
 interface ScheduledOrder {
   readonly orderId: string;
   readonly promise: Promise<XuanxueAiOrderRecord>;
   readonly resolve: (record: XuanxueAiOrderRecord) => void;
   readonly observers: Set<XuanxueAiProductionExecutionObserver>;
+  deadlineBudget?: XuanxueAiExecutionDeadlineBudget;
 }
 
-const DEFAULT_PRODUCTION_WINDOW = 10;
-const ABSOLUTE_PRODUCTION_WINDOW = 64;
-
-export const resolveXuanxueAiProductionWindow = (): number => {
-  const raw = process.env.XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT?.trim();
-  if (!raw) return DEFAULT_PRODUCTION_WINDOW;
-  const value = Number(raw);
-  if (
-    !Number.isInteger(value)
-    || value < 1
-    || value > ABSOLUTE_PRODUCTION_WINDOW
-  ) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT must be an integer "
-      + `between 1 and ${ABSOLUTE_PRODUCTION_WINDOW}.`,
-    );
-  }
-  return value;
-};
+export const resolveXuanxueAiProductionWindow = (): 1 => 1;
 
 const terminal = (record: XuanxueAiOrderRecord): boolean =>
   record.status === "completed"
@@ -51,122 +27,6 @@ const terminal = (record: XuanxueAiOrderRecord): boolean =>
 const permanentExecutionDefect = (reason: string): boolean =>
   /(?:PROFILE_MISMATCH|IDENTITY_CONFLICT|SOURCE_TASK_CONFLICT|ORDER_NOT_FOUND|STAGE_MISSING|DEPENDENCY_HASH_MISMATCH|INPUT_.*INVALID|REQUEST_.*INVALID)/u
     .test(reason);
-
-const continuationRebuildDefect = (reason: string): boolean =>
-  /(?:PARENT_LOCAL|PARENT_PROFILE|PARENT_.*PROOF|CONTINUATION_.*INVALID|CHATGPT_FORK_PARENT|CHATGPT_FORK_CHECKPOINT)/u
-    .test(reason);
-
-const rebuildRequestHash = (
-  originalHash: string,
-  rebuildId: string,
-): `sha256:${string}` => `sha256:${createHash("sha256")
-  .update(`${originalHash}:${rebuildId}`, "utf8")
-  .digest("hex")}`;
-
-const parentRebuildShadow = (
-  parent: XuanxueAiOrderRecord,
-): XuanxueAiOrderRecord["order"] => {
-  const rebuildId = randomUUID();
-  return {
-    ...parent.order,
-    orderId: `${parent.order.orderId}:parent-rebuild:${rebuildId}`,
-    sourceTaskId:
-      `${parent.order.sourceTaskId}:parent-rebuild:${rebuildId}`,
-    requestHash: rebuildRequestHash(parent.order.requestHash, rebuildId),
-    createdAt: new Date().toISOString(),
-  };
-};
-
-const requireContinuationParent = (
-  runtime: XuanxueAiProductionRuntime,
-  child: XuanxueAiOrderRecord,
-): {
-  parentRef: NonNullable<XuanxueAiOrderRecord["order"]["conversationParent"]>;
-  parent: XuanxueAiOrderRecord;
-} => {
-  const parentRef = child.order.conversationParent;
-  if (!parentRef || !isXuanxueAiRequiredContinuationProduct(child.order.productId)) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REBUILD_BINDING_MISSING");
-  }
-  const parent = runtime.store.readOrder(parentRef.jobId);
-  if (!parent) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REPLAY_PAYLOAD_REQUIRED");
-  }
-  if (!isAllowedXuanxueConversationParent({
-    childProductId: child.order.productId,
-    parentProductId: parent.order.productId,
-    parentStageId: parentRef.stageId,
-  })) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REBUILD_PROFILE_INVALID");
-  }
-  return { parentRef, parent };
-};
-
-const rebuiltTurnMarker = (
-  rebuiltStage: XuanxueAiOrderRecord["stages"][number],
-): string => {
-  const marker = rebuiltStage.aiFeedResult?.providerProof.forkedFromCheckpointProof
-    ?.childFirstTurnMarker
-    ?? rebuiltStage.aiFeedResult?.providerProof.sameConversationProof?.newTurnMarker
-    ?? rebuiltStage.aiFeedResult?.providerProof.freshConversationProof?.firstTurnMarker;
-  if (!marker) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_REBUILD_TURN_MARKER_MISSING");
-  }
-  return marker;
-};
-
-const rebuildContinuationParent = async (
-  runtime: XuanxueAiProductionRuntime,
-  child: XuanxueAiOrderRecord,
-): Promise<void> => {
-  const { parentRef, parent } = requireContinuationParent(runtime, child);
-  const replayOrderId = parent.status === "completed"
-    ? (() => {
-        const shadow = parentRebuildShadow(parent);
-        createXuanxueAiProductionOrder(runtime, shadow);
-        return shadow.orderId;
-      })()
-    : parent.order.orderId;
-  const rebuilt = await executeXuanxueAiProductionOrder(
-    runtime,
-    replayOrderId,
-  );
-  const rebuiltStage = requireXuanxueStage(
-    rebuilt,
-    parentRef.stageId,
-  );
-  const providerPageUrl =
-    rebuiltStage.aiFeedResult?.providerProof.webChatUrl;
-  if (
-    rebuilt.status !== "completed"
-    || rebuiltStage.status !== "completed"
-    || !rebuiltStage.aiFeedResult
-    || !rebuiltStage.rawOutputHash
-    || !providerPageUrl?.startsWith("https://chatgpt.com/")
-  ) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_INCOMPLETE",
-    );
-  }
-  if (rebuiltStage.rawOutputHash !== parentRef.rawOutputHash) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REBUILD_HASH_MISMATCH",
-    );
-  }
-  runtime.store.recordParentConversationRebuild({
-    parentJobId: parentRef.jobId,
-    parentStageId: parentRef.stageId,
-    originalRawOutputHash: parentRef.rawOutputHash,
-    rebuiltRawOutputHash: rebuiltStage.rawOutputHash,
-    rebuiltJobId: rebuilt.order.orderId,
-    rebuiltExecutionId: rebuiltStage.executionId,
-    rebuiltTurnMarker: rebuiltTurnMarker(rebuiltStage),
-    rebuiltInputBundleHash: rebuilt.order.inputBundleHash,
-    rebuiltConversationScopeRef: rebuilt.order.conversationScopeRef,
-    providerPageUrl,
-    rebuiltAt: new Date().toISOString(),
-  });
-};
 
 const precedes = (
   left: XuanxueAiOrderRecord,
@@ -210,10 +70,12 @@ export class XuanxueAiProductionCoordinator {
   async execute(
     orderId: string,
     observer?: XuanxueAiProductionExecutionObserver,
+    deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
   ): Promise<XuanxueAiOrderRecord> {
     const alreadyScheduled = this.scheduled.get(orderId);
     if (alreadyScheduled) {
       if (observer) alreadyScheduled.observers.add(observer);
+      if (deadlineBudget) alreadyScheduled.deadlineBudget = deadlineBudget;
       return alreadyScheduled.promise;
     }
     const existing = this.runtime.store.readOrder(orderId);
@@ -246,7 +108,7 @@ export class XuanxueAiProductionCoordinator {
         ) this.register(predecessor.order.orderId);
       }
     }
-    const scheduled = this.register(orderId);
+    const scheduled = this.register(orderId, deadlineBudget);
     if (observer) scheduled.observers.add(observer);
     this.requestPump();
     return scheduled.promise;
@@ -266,9 +128,15 @@ export class XuanxueAiProductionCoordinator {
     await Promise.all([...this.active.values()]);
   }
 
-  private register(orderId: string): ScheduledOrder {
+  private register(
+    orderId: string,
+    deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
+  ): ScheduledOrder {
     const existing = this.scheduled.get(orderId);
-    if (existing) return existing;
+    if (existing) {
+      if (deadlineBudget) existing.deadlineBudget = deadlineBudget;
+      return existing;
+    }
     let resolve!: (record: XuanxueAiOrderRecord) => void;
     const promise = new Promise<XuanxueAiOrderRecord>((accept) => {
       resolve = accept;
@@ -278,6 +146,7 @@ export class XuanxueAiProductionCoordinator {
       promise,
       resolve,
       observers: new Set<XuanxueAiProductionExecutionObserver>(),
+      ...(deadlineBudget ? { deadlineBudget } : {}),
     };
     this.scheduled.set(orderId, scheduled);
     this.waiting.push(orderId);
@@ -389,6 +258,7 @@ export class XuanxueAiProductionCoordinator {
             }
           },
         },
+        scheduled.deadlineBudget,
       );
     } catch (error) {
       reason = error instanceof Error ? error.message : String(error);
@@ -397,28 +267,6 @@ export class XuanxueAiProductionCoordinator {
       if (reason.startsWith("XUANXUE_AI_INTERVENTION_STOPPED:")) {
         scheduled.resolve(existing);
         return;
-      }
-      if (continuationRebuildDefect(reason)) {
-        try {
-          await rebuildContinuationParent(this.runtime, existing);
-          record = await executeXuanxueAiProductionOrder(
-            this.runtime,
-            scheduled.orderId,
-            {
-              onAttachmentUploadCompleted: async (input) => {
-                for (const observer of scheduled.observers) {
-                  await observer.onAttachmentUploadCompleted?.(input);
-                }
-              },
-            },
-          );
-          scheduled.resolve(record);
-          return;
-        } catch (rebuildError) {
-          reason = rebuildError instanceof Error
-            ? rebuildError.message
-            : String(rebuildError);
-        }
       }
       const permanent = permanentExecutionDefect(reason);
       record = this.runtime.store.updateOrder({

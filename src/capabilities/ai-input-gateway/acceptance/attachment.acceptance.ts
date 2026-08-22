@@ -50,6 +50,7 @@ const buildRequest = async (directory: string, fileCount: number) => {
 
 class AttachmentLeaseFixture implements AttachmentMutationBrowser {
   readonly attachmentBatches: Array<Parameters<AttachmentMutationBrowser["attachFile"]>[0]> = [];
+  readonly registeredNames: string[] = [];
 
   public async executeDomIntent(intent: Parameters<AttachmentMutationBrowser["executeDomIntent"]>[0]): Promise<unknown> {
     if (intent.kind === "document") return { url: "https://chatgpt.com/c/attachment-acceptance", title: "ChatGPT" };
@@ -58,6 +59,15 @@ class AttachmentLeaseFixture implements AttachmentMutationBrowser {
     }
     if (intent.kind === "inspect" && intent.selector === "#upload-files") {
       return { tagName: "INPUT", type: "file", accept: "", multiple: true, connected: true, disabled: false, visible: false };
+    }
+    if (intent.kind === "inspect" && intent.selector === "#composer-submit-button[data-testid='send-button']") {
+      return { tagName: "BUTTON", visible: this.attachmentBatches.length > 0, disabled: this.attachmentBatches.length === 0 };
+    }
+    if (intent.kind === "readText" && intent.selector === "form") {
+      return this.registeredNames.join("\n");
+    }
+    if (intent.kind === "find" && intent.selector?.includes("Remove file")) {
+      return { count: this.attachmentBatches.at(-1)?.grants.length ?? 0 };
     }
     throw new Error("BROWSER_TARGET_INVALID");
   }
@@ -91,23 +101,26 @@ try {
 
   const browser = new AttachmentLeaseFixture();
   let terminalProof: unknown = null;
-  await assert.rejects(
-    attachApprovedWebChatFilesOnce({
-      browser,
-      request: await buildRequest(dataDir, 2),
-      context: {
-        dataDir,
-        issueBrowserFileArtifactGrant: async (input) => grantFor(input.artifactRef, input.expectedSha256, input.maxBytes),
-        onAttachmentUploadCompleted: async (proof) => { terminalProof = proof; },
+  const registered: string[] = [];
+  const completed = await attachApprovedWebChatFilesOnce({
+    browser,
+    request: await buildRequest(dataDir, 2),
+    context: {
+      dataDir,
+      registerBrowserFileArtifact: async (input) => {
+        registered.push(input.artifactRef);
+        browser.registeredNames.push(path.basename(input.filePath));
       },
-    }),
-    (error: unknown) => error instanceof WebChatAttachmentCapabilityFailure
-      && /NOT_PRODUCTION_VERIFIED/u.test(error.message),
-  );
+      issueBrowserFileArtifactGrant: async (input) => grantFor(input.artifactRef, input.expectedSha256, input.maxBytes),
+      onAttachmentUploadCompleted: async (proof) => { terminalProof = proof; },
+    },
+  });
+  assert.equal(registered.length, 2);
   assert.deepEqual(browser.attachmentBatches.map((batch) => ({ selector: batch.selector, grantCount: batch.grants.length })), [
     { selector: "#upload-files", grantCount: 2 },
   ], "one exact document-input batch is the only attachment mutation");
-  assert.equal((terminalProof as { status?: string } | null)?.status, "review_required");
+  assert.equal((terminalProof as { status?: string } | null)?.status, "attachments_stable");
+  assert.equal(completed.uploadedFiles.length, 2);
 
   await assert.rejects(
     attachApprovedWebChatFilesOnce({
@@ -121,4 +134,4 @@ try {
   await rm(dataDir, { recursive: true, force: true });
 }
 
-process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child fails closed until real post-selection DOM is observed\n");
+process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child registers staged artifacts, issues opaque grants and submits one exact-target batch\n");

@@ -101,6 +101,14 @@ const styleModulePaths = [
   "src/app/app-shell/app-shell-inspector-console-styles.ts",
 ] as const;
 
+const workspaceModulePaths = [
+  paths.layout,
+  paths.amazonWorkspace,
+  "src/app/skills/media-optimizer/media-optimizer-workspace.ts",
+  "src/app/app-shell/amazon-invoice-workspace.ts",
+  "src/app/app-shell/xuanxue-ai-production-workspace.ts",
+] as const;
+
 type AppShellLayoutSources = {
   amazonHistory: SourceFile | undefined;
   amazonWorkspace: SourceFile | undefined;
@@ -112,6 +120,7 @@ type AppShellLayoutSources = {
   runtime: SourceFile | undefined;
   sidebar: SourceFile | undefined;
   styleFiles: SourceFile[];
+  workspaceFiles: SourceFile[];
 };
 
 const loadAppShellLayoutSources = (context: InspectorContext): AppShellLayoutSources => ({
@@ -125,6 +134,9 @@ const loadAppShellLayoutSources = (context: InspectorContext): AppShellLayoutSou
   runtime: sourcePath(context, paths.runtime),
   sidebar: sourcePath(context, paths.sidebar),
   styleFiles: styleModulePaths
+    .map((repoPath) => sourcePath(context, repoPath))
+    .filter((sourceFile): sourceFile is SourceFile => sourceFile !== undefined),
+  workspaceFiles: workspaceModulePaths
     .map((repoPath) => sourcePath(context, repoPath))
     .filter((sourceFile): sourceFile is SourceFile => sourceFile !== undefined),
 });
@@ -181,9 +193,16 @@ const inspectStructureTokens = (
   lawId: string,
   sources: AppShellLayoutSources,
 ): void => {
+  requireAstTokenInAny({
+    findings,
+    lawId,
+    sourceFiles: sources.workspaceFiles,
+    repoPath: paths.layout,
+    token: "data-skill-workspace",
+    checkId: "app-shell-ui/skill-workspace",
+  });
   for (const [repoPath, sourceFile, token, checkId] of [
     [paths.appShell, sources.appShell, "data-app-shell", "app-shell-ui/root-marker"],
-    [paths.layout, sources.layout, "data-skill-workspace", "app-shell-ui/skill-workspace"],
     [paths.layout, sources.layout, "data-workspace-page-nav", "app-shell-ui/secondary-level2-page-nav"],
     [paths.layout, sources.layout, "data-workspace-surface", "app-shell-ui/secondary-level2-surfaces"],
     [paths.inspector, sources.inspector, "data-app-shell-inspector", "app-shell-ui/right-inspector"],

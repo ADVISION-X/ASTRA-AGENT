@@ -1,413 +1,47 @@
 {
-  "generatedAt": "2026-08-20T23:42:42.163Z",
+  "generatedAt": "2026-08-22T02:57:31.125Z",
   "capabilityDomain": "amazon-product-mining",
-  "status": "FAIL",
-  "findingCount": 6,
-  "tabLifecycleDebug": {
-    "dedicatedWorkspaceTabCalls": [],
-    "pageNavigationCalls": []
-  },
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
-    "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1"
+    "APEX-AMAZON-PRODUCT-MINING-001-V3"
   ],
-  "findings": [
-    {
-      "checkId": "amazon-mining/keyword-full-package-handoff",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
-      "clauseId": "grasseye-amazon-product-mining-025-requirement",
-      "message": "Keyword opportunity review must build and upload a keyword full package transport archive; inline navigation cannot be the sole review evidence.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-      "evidence": "packageOk=true;reviewOk=true;gatewayOk=true;webChatAttachmentOk=false;webChatExactAttachmentBindingOk=true;acceptanceOk=true"
-    },
-    {
-      "checkId": "amazon-mining/gpt-web-chat-amazon-fresh-conversation",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
-      "clauseId": "grasseye-amazon-product-mining-003-requirement",
-      "message": "Amazon keyword mining through GPT Web Chat must require a fresh ChatGPT conversation to avoid cross-task answer contamination.",
-      "severity": "fatal",
-      "filePath": "src/capabilities/ai-input-gateway/providers/web-chat-open.ts"
-    },
-    {
-      "checkId": "amazon-mining/page-navigation-open-missing",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-      "clauseId": "grasseye-amazon-product-mining-002-requirement",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.search.ts must own a BrowserController.open call for page navigation.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.search.ts"
-    },
-    {
-      "checkId": "amazon-mining/page-navigation-open-missing",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-      "clauseId": "grasseye-amazon-product-mining-002-requirement",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts must own a BrowserController.open call for page navigation.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts"
-    },
-    {
-      "checkId": "amazon-mining/page-navigation-open-missing",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-      "clauseId": "grasseye-amazon-product-mining-002-requirement",
-      "message": "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts must own a BrowserController.open call for page navigation.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts"
-    },
-    {
-      "checkId": "amazon-mining/dedicated-workspace-tab-missing",
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-      "clauseId": "grasseye-amazon-product-mining-002-requirement",
-      "message": "amazon-product-mining.flow.ts must create one dedicated workspace tab before page-loop navigation begins.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-      "evidence": "reusePolicies=<none>"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b",
+      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:12c027fc-4d10-4379-a358-624365cd8e2e",
       "capabilityDomain": "amazon-product-mining",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-20T23:42:41.166Z",
-      "endedAt": "2026-08-20T23:42:42.162Z",
-      "durationMs": 996,
+      "status": "PASS",
+      "startedAt": "2026-08-22T02:57:31.125Z",
+      "endedAt": "2026-08-22T02:57:31.125Z",
+      "durationMs": 0,
       "evidenceRefs": [
-        ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-        "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
-        "package.json",
-        "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-keyword-dedup.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-keyword-review-boundary.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-package-final-gate.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-production-attacks.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
-        "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
         "scripts/audit/domains/amazon-product-mining/inspector.ts",
-        "src/app/app-shell/sidebar.ts",
-        "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
-        "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
-        "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
-        "src/app/workbench-amazon-product-mining-routes.ts",
-        "src/app/workbench-api-boundary.ts",
-        "src/app/workbench-home-amazon-product-mining-review-client.ts",
-        "src/app/workbench-home-client.ts",
-        "src/app/workbench-home-page.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-        "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-        "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
-        "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-        "src/lib/local-runtime/workbench-handle.ts",
         "src/lib/local-runtime/workbench-marketplace-handles.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.flow-packaging.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-review-entries.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-review-evidence.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+        "src/mediator/amazon-product-mining-route.ts",
         "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.search-extract-script.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
-        "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-        "src/plugins/amazon-product-mining/index.ts"
+        "src/plugins/amazon-product-mining/index.ts",
+        "src/plugins/amazon-product-mining/terminal-product-mining-owner.ts"
       ],
-      "findingCount": 6
+      "findingCount": 0
     }
   ],
   "executedChecks": [
     {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-001-V1",
-      "clauseId": "grasseye-amazon-product-mining-001-requirement",
+      "lawId": "APEX-AMAZON-PRODUCT-MINING-001-V3",
+      "clauseId": "apex-amazon-product-mining-001-v3-terminal-authority",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-002-V1",
-      "clauseId": "grasseye-amazon-product-mining-002-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-003-V1",
-      "clauseId": "grasseye-amazon-product-mining-003-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-004-V1",
-      "clauseId": "grasseye-amazon-product-mining-004-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-005-V1",
-      "clauseId": "grasseye-amazon-product-mining-005-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-006-V1",
-      "clauseId": "grasseye-amazon-product-mining-006-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-007-V1",
-      "clauseId": "grasseye-amazon-product-mining-007-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-008-V1",
-      "clauseId": "grasseye-amazon-product-mining-008-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-009-V1",
-      "clauseId": "grasseye-amazon-product-mining-009-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-010-V1",
-      "clauseId": "grasseye-amazon-product-mining-010-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-011-V1",
-      "clauseId": "grasseye-amazon-product-mining-011-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-012-V1",
-      "clauseId": "grasseye-amazon-product-mining-012-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-013-V1",
-      "clauseId": "grasseye-amazon-product-mining-013-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-014-V1",
-      "clauseId": "grasseye-amazon-product-mining-014-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-015-V1",
-      "clauseId": "grasseye-amazon-product-mining-015-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-016-V1",
-      "clauseId": "grasseye-amazon-product-mining-016-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-017-V1",
-      "clauseId": "grasseye-amazon-product-mining-017-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-018-V1",
-      "clauseId": "grasseye-amazon-product-mining-018-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-019-V1",
-      "clauseId": "grasseye-amazon-product-mining-019-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-020-V1",
-      "clauseId": "grasseye-amazon-product-mining-020-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-021-V1",
-      "clauseId": "grasseye-amazon-product-mining-021-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-022-V1",
-      "clauseId": "grasseye-amazon-product-mining-022-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-023-V1",
-      "clauseId": "grasseye-amazon-product-mining-023-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-024-V2",
-      "clauseId": "grasseye-amazon-product-mining-024-v2-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-025-V1",
-      "clauseId": "grasseye-amazon-product-mining-025-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-MAXIMUM-VISIBLE-EXTRACTION-V1",
-      "clauseId": "grasseye-amazon-product-mining-maximum-visible-extraction-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-PRODUCT-MINING-027-V1",
-      "clauseId": "grasseye-amazon-product-mining-027-requirement",
-      "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:fb189e01-a512-4337-a82f-2c1128edd07b"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:12c027fc-4d10-4379-a358-624365cd8e2e"
     }
   ],
   "inspectedFiles": [
-    ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
-    "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
-    "package.json",
-    "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-detail-page.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-flow.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-full-cycle.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-keyword-dedup.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-keyword-opportunity-review.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-keyword-review-boundary.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-package-final-gate.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-package-zip.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-package.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-production-attacks.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-review-pagination.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-search-page.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-storage.acceptance.ts",
-    "scripts/acceptance/amazon-product-mining-web-chat-restore.acceptance.ts",
     "scripts/audit/domains/amazon-product-mining/inspector.ts",
-    "src/app/app-shell/sidebar.ts",
-    "src/app/skills/amazon-product-mining/amazon-product-mining-keyword-history.ts",
-    "src/app/skills/amazon-product-mining/amazon-product-mining-task-publish.ts",
-    "src/app/skills/amazon-product-mining/amazon-product-mining-workspace.ts",
-    "src/app/workbench-amazon-product-mining-routes.ts",
-    "src/app/workbench-api-boundary.ts",
-    "src/app/workbench-home-amazon-product-mining-review-client.ts",
-    "src/app/workbench-home-client.ts",
-    "src/app/workbench-home-page.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-recovery.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-    "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-    "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
-    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-    "src/lib/local-runtime/workbench-handle.ts",
     "src/lib/local-runtime/workbench-marketplace-handles.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.flow-packaging.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.flow-support.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.flow.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.handoff.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-full-package.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-evidence.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review-support.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.keyword-review.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.keyword.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.master-report.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-artifact-builders.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-completeness.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-integrity.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-keyword-review-entries.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-layout.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-manifest.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-product-evidence.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-review-evidence.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-runtime-state.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package-zip.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.package.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.pdf.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail-script.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.product-detail.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.result.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.reviews.ts",
+    "src/mediator/amazon-product-mining-route.ts",
     "src/plugins/amazon-product-mining/amazon-product-mining.schema.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.search-extract-script.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.search.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.storage-schema.ts",
-    "src/plugins/amazon-product-mining/amazon-product-mining.storage.ts",
-    "src/plugins/amazon-product-mining/index.ts"
+    "src/plugins/amazon-product-mining/index.ts",
+    "src/plugins/amazon-product-mining/terminal-product-mining-owner.ts"
   ]
 }

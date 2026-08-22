@@ -19,6 +19,90 @@ interface RestartAcceptanceInput {
   readonly runtime: XuanxueAiProductionRuntime;
   readonly completedOrderId: string;
 }
+
+const markSameJobCloudRecoveryPending = (
+  runtime: XuanxueAiProductionRuntime,
+  initial: ReturnType<typeof createXuanxueAiProductionOrder>,
+): void => {
+  runtime.store.updateStage({
+    ...initial.stages[0]!,
+    status: "recovery_pending",
+    attemptCount: 1,
+    failureReason: "fixture recoverable transport interruption",
+    progressPhase: "recovery_pending",
+    updatedAt: "2026-08-21T20:00:30.000Z",
+  }, "fixture_same_job_recovery_pending");
+  runtime.store.updateOrder({
+    orderId: initial.order.orderId,
+    status: "recovery_pending",
+    failureReason: "fixture recoverable transport interruption",
+    updatedAt: "2026-08-21T20:00:30.000Z",
+    eventType: "fixture_same_job_recovery_pending",
+  });
+};
+
+const acceptSameJobCloudRecoveryRebind = (
+  runtime: XuanxueAiProductionRuntime,
+): void => {
+  const candidate = order(
+    "aiprod_same_job_cloud_recovery_rebind",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  const firstIdentity = {
+    jobId: candidate.orderId,
+    attemptId: "attempt-1",
+    requiredDeviceId: "fixture-device",
+    leaseVersion: 1,
+    executionFenceHash: hash("execution-fence-1"),
+    contractManifestHash: hash("cloud-contract-manifest"),
+    serverNow: "2026-08-21T20:00:00.000Z",
+    leaseExpiresAt: "2026-08-21T20:01:30.000Z",
+  };
+  const firstOrder = { ...candidate, cloudExecutionIdentity: firstIdentity };
+  const initial = createXuanxueAiProductionOrder(runtime, firstOrder);
+  markSameJobCloudRecoveryPending(runtime, initial);
+  const reboundOrder = {
+    ...candidate,
+    cloudExecutionIdentity: {
+      ...firstIdentity,
+      attemptId: "attempt-2",
+      leaseVersion: 2,
+      executionFenceHash: hash("execution-fence-2"),
+      serverNow: "2026-08-21T20:02:00.000Z",
+      leaseExpiresAt: "2026-08-21T20:03:30.000Z",
+    },
+  };
+  const rebound = createXuanxueAiProductionOrder(runtime, reboundOrder);
+  assert.equal(rebound.order.cloudExecutionIdentity?.attemptId, "attempt-2");
+  assert.equal(rebound.order.cloudExecutionIdentity?.leaseVersion, 2);
+  assert.equal(rebound.status, "recovery_pending");
+  assert.equal(rebound.stages[0]?.attemptCount, 1);
+  assert.equal(rebound.stages[0]?.status, "recovery_pending");
+  assert.throws(
+    () => createXuanxueAiProductionOrder(runtime, firstOrder),
+    /XUANXUE_AI_PRODUCTION_ORDER_IDENTITY_CONFLICT/u,
+    "a superseded cloud attempt and fence must fail closed",
+  );
+  assert.throws(
+    () => createXuanxueAiProductionOrder(runtime, {
+      ...reboundOrder,
+      requestHash: hash("mutated-business-request"),
+      cloudExecutionIdentity: {
+        ...reboundOrder.cloudExecutionIdentity,
+        attemptId: "attempt-3",
+        leaseVersion: 3,
+        executionFenceHash: hash("execution-fence-3"),
+      },
+    }),
+    /XUANXUE_AI_PRODUCTION_ORDER_IDENTITY_CONFLICT/u,
+    "a new lease must not authorize any business-order drift",
+  );
+  runtime.store.cancelCloudRecoveryOrder(
+    candidate.orderId,
+    "fixture recovery rebind acceptance settled",
+  );
+};
 const seedRecoverableBacklog = (
   runtime: XuanxueAiProductionRuntime,
 ): XuanxueAiProductionOrder[] => {
@@ -264,7 +348,7 @@ const assertReopenedLedgerIdentity = (
   );
   assert.equal(
     reopened.listRecoverableOrders().length,
-    fixtures.recoverable.length + 2,
+    fixtures.recoverable.length + 1,
     "restart discovery must never truncate an offline backlog",
   );
 };
@@ -289,15 +373,15 @@ const assertReopenedRepairState = (
   const repairedInvalid = reopened.readOrder(
     fixtures.invalidPrefix.orderId,
   );
-  assert.equal(repairedInvalid?.status, "recovery_pending");
+  assert.equal(repairedInvalid?.status, "review_required");
   assert.deepEqual(
     repairedInvalid?.stages.map((stage) => stage.status),
-    ["queued", "queued", "queued"],
-    "restart must retire an invalid completed prefix and every downstream node",
+    ["review_required", "running", "queued"],
+    "restart must preserve the invalid prefix and stop the order for review",
   );
   assert.match(
-    repairedInvalid?.stages[0]?.executionId ?? "",
-    /output-integrity-recovery/u,
+    repairedInvalid?.stages[0]?.rawResponseText ?? "",
+    /filecite/u,
   );
 };
 
@@ -326,16 +410,16 @@ const resumeReopenedLedger = async (
   ), "all persisted offline orders must resume without a 64-order ceiling");
   assert.equal(
     reopened.readOrder(fixtures.invalidPrefix.orderId)?.status,
-    "completed",
+    "review_required",
   );
   assert.equal(
     reopened.readOrder(fixtures.submittedContinuation.order.orderId)
       ?.status,
     "completed",
   );
-  assert.doesNotMatch(
+  assert.match(
     reopened.readOrder(fixtures.invalidPrefix.orderId)
-      ?.result?.stages[0]?.rawResponseText ?? "",
+      ?.stages[0]?.rawResponseText ?? "",
     /filecite/u,
   );
   assert.equal(reopened.listRecoverableOrders().length, 0);
@@ -352,6 +436,7 @@ const acceptReopenedLedger = async (
 };
 
 export const acceptXuanxueRestartRecovery = async (input: RestartAcceptanceInput): Promise<void> => {
+  acceptSameJobCloudRecoveryRebind(input.runtime);
   const fixtures = {
     recoverable: seedRecoverableBacklog(input.runtime),
     invalidPrefix: seedInvalidCompletedPrefix(input.runtime),

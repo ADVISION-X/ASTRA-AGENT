@@ -1,8 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "grasseye.browser.authority-liveness-lease.v1",
-  "heartbeatIntervalMs": 5000,
-  "hardExpiryMs": 15000,
-  "maxAuthorityAgeMs": 28800000,
-  "required": ["authorityRef", "authorityEpoch", "leaseEpoch", "expiresAt", "sequence"]
-}

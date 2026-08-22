@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
@@ -9,20 +9,14 @@ const execFile = promisify(execFileCallback);
 const workspaceRoot = resolve(process.cwd());
 const sourceRoot = resolve(workspaceRoot, "src/lib/browser/chrome-extension");
 const buildRoot = resolve(workspaceRoot, ".grasseye-local/browser-build");
+const fixedOutputDirectory = resolve(buildRoot, "extension");
+const releaseRecordPath = resolve(workspaceRoot, ".grasseye-local/browser-release/release-record.json");
 const esbuildBinary = resolve(workspaceRoot, "node_modules/esbuild/bin/esbuild");
 
 const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const canonical = (value) => JSON.stringify(value);
 
-const resolveOutputDirectory = (argv) => {
-  const outFlag = argv.indexOf("--out");
-  const output = outFlag === -1
-    ? resolve(buildRoot, "extension")
-    : resolve(workspaceRoot, argv[outFlag + 1] ?? "");
-  assert.notEqual(output, buildRoot, "Browser extension build output must be a dedicated child directory.");
-  assert.ok(output.startsWith(`${buildRoot}${sep}`), "Browser extension build output must remain below .grasseye-local/browser-build.");
-  return output;
-};
+const resolveOutputDirectory = () => fixedOutputDirectory;
 
 const readJson = async (filePath) => JSON.parse(await readFile(filePath, "utf8"));
 
@@ -34,16 +28,17 @@ const sourceManifest = async () => {
   return manifestPath;
 };
 
-const runEsbuild = async (outputDirectory, metafilePath) => {
+const runEsbuild = async (inputPath, outputPath, metafilePath, defines = {}) => {
   const args = [
-    resolve(sourceRoot, "service-worker.ts"),
+    inputPath,
     "--bundle",
     "--format=esm",
     "--platform=browser",
     "--target=chrome120",
-    `--outfile=${resolve(outputDirectory, "service-worker.js")}`,
+    `--outfile=${outputPath}`,
     `--metafile=${metafilePath}`,
     "--log-level=warning",
+    ...Object.entries(defines).map(([name, value]) => `--define:${name}=${JSON.stringify(value)}`),
   ];
   await execFile(esbuildBinary, args, { cwd: workspaceRoot });
   const { stdout } = await execFile(esbuildBinary, ["--version"], { cwd: workspaceRoot });
@@ -68,28 +63,71 @@ const outputEntries = async (outputDirectory) => Promise.all(
     .map(async (name) => ({ path: name, sha256: sha256(await readFile(resolve(outputDirectory, name))) })),
 );
 
-export const buildChromeExtension = async (argv = process.argv.slice(2)) => {
-  const outputDirectory = resolveOutputDirectory(argv);
+const prepareOutputDirectory = async (outputDirectory) => {
   const manifestPath = await sourceManifest();
   await rm(outputDirectory, { recursive: true, force: true });
   await mkdir(outputDirectory, { recursive: true, mode: 0o700 });
-  const metafilePath = resolve(outputDirectory, "esbuild-metafile.json");
-  const esbuildVersion = await runEsbuild(outputDirectory, metafilePath);
-  const metafile = await readJson(metafilePath);
-  await rm(metafilePath, { force: true });
   await copyFile(manifestPath, resolve(outputDirectory, "manifest.json"));
-  const inputs = await inputEntries(metafile);
-  const files = await outputEntries(outputDirectory);
+  await copyFile(resolve(sourceRoot, "pairing.html"), resolve(outputDirectory, "pairing.html"));
+};
+
+const bundleExtensionSources = async (outputDirectory, releaseBuildId) => {
+  const serviceMetafilePath = resolve(outputDirectory, "service-worker-metafile.json");
+  const popupMetafilePath = resolve(outputDirectory, "pairing-popup-metafile.json");
+  const esbuildVersion = await runEsbuild(
+    resolve(sourceRoot, "service-worker.ts"),
+    resolve(outputDirectory, "service-worker.js"),
+    serviceMetafilePath,
+    { __GRASSEYE_RELEASE_BUILD_ID__: releaseBuildId },
+  );
+  const popupEsbuildVersion = await runEsbuild(
+    resolve(sourceRoot, "pairing-popup.ts"),
+    resolve(outputDirectory, "pairing-popup.js"),
+    popupMetafilePath,
+  );
+  assert.equal(popupEsbuildVersion, esbuildVersion, "Extension build must use one esbuild version.");
+  const [serviceMetafile, popupMetafile] = await Promise.all([
+    readJson(serviceMetafilePath),
+    readJson(popupMetafilePath),
+  ]);
+  await Promise.all([rm(serviceMetafilePath, { force: true }), rm(popupMetafilePath, { force: true })]);
+  return { esbuildVersion, metafile: { inputs: { ...serviceMetafile.inputs, ...popupMetafile.inputs } } };
+};
+
+const writeExtensionBuildManifest = async (outputDirectory, esbuildVersion, metafile) => {
+  const [inputs, files] = await Promise.all([inputEntries(metafile), outputEntries(outputDirectory)]);
   const extensionTreeHash = sha256(canonical(files));
-  const buildManifest = {
-    schemaVersion: "grasseye.browser.extension-build.v1",
-    esbuildVersion,
-    inputs,
-    files,
-    extensionTreeHash,
-  };
+  const buildManifest = { schemaVersion: "grasseye.browser.extension-build.v1", esbuildVersion, inputs, files, extensionTreeHash };
   await writeFile(resolve(outputDirectory, "extension-build-manifest.json"), `${JSON.stringify(buildManifest, null, 2)}\n`, { mode: 0o600 });
-  return Object.freeze({ outputDirectory, ...buildManifest });
+  return buildManifest;
+};
+
+const writeExtensionReleaseRecord = async (outputDirectory, extensionTreeHash, releaseBuildId) => {
+  const manifestSource = await readFile(resolve(outputDirectory, "manifest.json"));
+  const releaseRecord = {
+    schemaVersion: "grasseye.browser.unpacked-release.v1",
+    releaseBuildId,
+    extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+    version: JSON.parse(manifestSource.toString("utf8")).version,
+    extensionDirectoryHashV1: extensionTreeHash,
+    manifestHash: sha256(manifestSource),
+    protocolHash: sha256(await readFile(resolve(workspaceRoot, "src/lib/browser/protocol/browser-protocol.schema.json"))),
+    sitePolicyHash: sha256(await readFile(resolve(workspaceRoot, "src/lib/browser/exact-target/browser-site-policy-registry.ts"))),
+    createdAt: new Date().toISOString(),
+  };
+  await mkdir(dirname(releaseRecordPath), { recursive: true, mode: 0o700 });
+  await writeFile(releaseRecordPath, `${JSON.stringify(releaseRecord, null, 2)}\n`, { mode: 0o600 });
+  return releaseRecord;
+};
+
+export const buildChromeExtension = async (argv = process.argv.slice(2)) => {
+  const outputDirectory = resolveOutputDirectory(argv);
+  const releaseBuildId = `build-${randomUUID()}`;
+  await prepareOutputDirectory(outputDirectory);
+  const { esbuildVersion, metafile } = await bundleExtensionSources(outputDirectory, releaseBuildId);
+  const buildManifest = await writeExtensionBuildManifest(outputDirectory, esbuildVersion, metafile);
+  const releaseRecord = await writeExtensionReleaseRecord(outputDirectory, buildManifest.extensionTreeHash, releaseBuildId);
+  return Object.freeze({ outputDirectory, ...buildManifest, releaseRecordPath, releaseBuildId: releaseRecord.releaseBuildId });
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {

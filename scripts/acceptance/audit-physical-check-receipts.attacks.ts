@@ -6,7 +6,9 @@ import {
   inspectPhysicalCheckReceiptContract,
   inspectRetiredEnforcementSurfaces,
 } from "../audit/domains/audit-system/physical-check-receipt-inspector.js";
-import { inspectOwnerRegistrations } from "../audit/domains/audit-system/owner-registration-inspector.js";
+import {
+  inspectOwnerRegistrations,
+} from "../audit/domains/audit-system/owner-registration-inspector.js";
 import { appendDomainArtifactsFromIndexes } from "../audit/build/compose-artifact-domain-artifacts.js";
 import { discoverLawFiles } from "../audit/build/discover-law-files.js";
 import { loadManifests } from "../audit/build/load-manifests.js";
@@ -23,6 +25,7 @@ import {
 } from "./audit-source-evidence-reachability.attacks.js";
 import { runGrasseyeRunnerLawTruthAttack } from "./audit-runner-law-truth.attacks.js";
 import { assertStandaloneAuditEntrypointRejected } from "./audit-standalone-entry.attacks.js";
+import { runOwnerAssertionSetAliasAttack } from "./audit-owner-assertion-set-alias.attacks.js";
 
 const mediaProcessingInspectorPath = resolveFromRepo("scripts/audit/domains/media-processing-capability/inspector.ts");
 const legacyFixturePath = resolveFromRepo("scripts/audit/shared/legacy-receipt-attack.fixture.ts");
@@ -467,6 +470,7 @@ const runOwnerCallbackNestedReturnAttack = (): void => {
 
 export const runPhysicalCheckReceiptAttacks = async (): Promise<void> => {
   runRegistrationAttack();
+  runOwnerAssertionSetAliasAttack();
   runLegacyHelperAttack();
   assertStandaloneAuditEntrypointRejected(resetAttackProject(), buildContext);
   await runGrasseyeRunnerLawTruthAttack();

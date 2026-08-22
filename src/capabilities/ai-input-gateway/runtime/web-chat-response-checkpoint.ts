@@ -8,6 +8,7 @@ export type WebChatResponseCheckpoint = {
   byteCount: number;
   capturedAt: string;
   pageUrl: string;
+  providerExecutionProfileProof: Readonly<{ profileHash: `sha256:${string}` }> | null;
 };
 
 const responseCheckpointPath = (dataDir: string, executionId: string): string =>
@@ -24,6 +25,7 @@ export const persistWebChatResponseCheckpoint = async (input: {
   executionId: string;
   answerText: string;
   pageUrl: string;
+  providerExecutionProfileProof: Readonly<{ profileHash: `sha256:${string}` }> | null;
 }): Promise<WebChatResponseCheckpoint> => {
   const destination = responseCheckpointPath(input.dataDir, input.executionId);
   const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
@@ -37,6 +39,7 @@ export const persistWebChatResponseCheckpoint = async (input: {
     byteCount: bytes.byteLength,
     capturedAt: new Date().toISOString(),
     pageUrl: input.pageUrl,
+    providerExecutionProfileProof: input.providerExecutionProfileProof,
   };
 };
 

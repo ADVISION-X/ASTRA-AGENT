@@ -1,2 +1,0 @@
-export const WAIT_REPORT_READY_TIMEOUT_MS = 180_000;
-export const WAIT_REPORT_READY_POLL_MS = 15_000;

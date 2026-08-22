@@ -2,6 +2,7 @@ import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
+import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
 export type BrowserTargetLease = Readonly<{
   leaseRef: string;
@@ -20,6 +21,21 @@ export type BrowserTargetLease = Readonly<{
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
   captureScreenshot(input: Readonly<{ regionLabel: string }>): Promise<Readonly<{ artifactRef: string; contentHash: `sha256:${string}` }>>;
   attachFile(input: Readonly<{ selector: string; grants: readonly BrowserFileArtifactGrantV1[] }>): Promise<void>;
+  registerFileArtifact(input: Readonly<{
+    artifactRef: string;
+    filePath: string;
+    contentHash: `sha256:${string}`;
+    sizeBytes: number;
+  }>): Promise<void>;
+  issueFileArtifactGrant(input: Readonly<{
+    artifactRef: string;
+    expectedSha256: `sha256:${string}`;
+    maxBytes: number;
+  }>): Promise<BrowserFileArtifactGrantV1>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
+  resolvePendingMutations(
+    input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
+  ): Promise<number>;
+  assertNoPendingMutations(): void;
 }>;

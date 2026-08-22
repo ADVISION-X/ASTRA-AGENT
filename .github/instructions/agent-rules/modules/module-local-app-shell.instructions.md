@@ -1,258 +1,31 @@
 ---
-name: "GrassEye Local App Shell"
-description: "Governs the local HTTP workbench and its first-page job entry surface."
-applyTo: "src/app/**, src/lib/local-runtime/**"
----
-
-# GrassEye Local App Shell
-
+name: GrassEye Local App Shell
 status: active
-version: 2026-05-22
-capabilityDomain: local-app-shell
+version: 2026-08-21.terminal
+applyTo: src/app/**,scripts/audit/domains/local-app-shell/**,scripts/acceptance/**
+
+# GrassEye Local App Shell｜终态法案
 
 ## Boundary
 
-The local app shell is the workbench surface opened by startup. It shows lawful
-job flow entry points, health, mode, task status, evidence references, and local
-settings when needed. It does not own workflow order, browser actions, AI
-judgment, evidence truth, or CI truth.
+App Shell 是唯一本地 UI、唯一 HTTP server surface 和唯一 listener。它收集 known job 结构化输入、显示 durable status/evidence refs/runtime diagnostics，并把请求交给 Workbench Handle。它不拥有业务步骤、DOM/Chrome 动作、AI 判断、task truth、evidence truth 或浏览器重连。
 
-`src/lib/local-runtime/**` may consume plugin and ability owners only through
-their public facades. It must not import private plugin files, private ability
-files, or hidden business helper slices behind those facades.
+## Single Browser Upgrade Surface
 
-## [APEX-LOCAL-APP-SHELL-001-V1] Local Workbench Surface
+App Server 的唯一 Browser transport 责任是，在既有 4173 listener 上接收精确 path /browser-authority/v1 的 WebSocket upgrade，并将已认证 frame transport 注入 Browser Authority owner。App 不能创建第二 listener、page session、extension Port client、polling、SSE、open/inbound/next relay 或浏览器 command route。
 
-```apex-law
-{
-  "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-app-shell",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "fs",
-  "summary": "The root page must be a local workbench surface with health, mode, and lawful job flow entry points.",
-  "appliesTo": [
-    "src/app/**"
-  ],
-  "forbidden": [
-    "Root page as endpoint documentation only.",
-    "Root page as marketing page.",
-    "Root page without health or mode visibility.",
-    "Root page without lawful job flow entry points."
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-app-shell-001-requirement",
-      "statement": "The root page must be a local workbench surface with health, mode, and lawful job flow entry points.",
-      "evidenceMode": "static",
-      "ownerDomain": "local-app-shell"
-    }
-  ]
-}
-```
+workbench-home-page 只能显示 Browser Authority 的 ABSENT/PRESENT、release identity readback、redacted failure reason 和 evidence refs；不能 connect extension、生成 browser command、保存 target/permit、解析 raw frame 或维护 second dashboard truth。
 
-Required:
+## Input and status discipline
 
-- The root page exposes `/api/health` and `/api/mode` status.
-- The root page exposes lawful job flow entry points.
-- Amazon invoice upload is the first active job entry point.
+外部/页面输入只能是显式 known job schema。外部 caller 不可携带 selector、coordinate、URL、browserCommand、actionPlan、nextAction、tab/window/title/marker/conversation/concurrency。UI 不能将 localStorage、fixture、logs 或 raw JSON 当业务或 evidence 真相。
 
-## [APEX-LOCAL-APP-SHELL-002-V1] Job Card Input Discipline
+## Law
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-app-shell",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "fs",
-  "summary": "Workbench input surfaces must collect structured inputs for explicit job flows and must not become a natural-language task planner.",
-  "appliesTo": [
-    "src/app/**"
-  ],
-  "forbidden": [
-    "Natural-language universal task box.",
-    "AI generated action plan input.",
-    "Generic mission dashboard entry.",
-    "Single form mixing unrelated job flows."
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-app-shell-002-requirement",
-      "statement": "Workbench input surfaces must collect structured inputs for explicit job flows and must not become a natural-language task planner.",
-      "evidenceMode": "static",
-      "ownerDomain": "local-app-shell"
-    }
-  ]
-}
+{"lawId":"APEX-LOCAL-APP-SHELL-001-V2","status":"active","tier":"P0","capabilityDomain":"local-app-shell","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome","summary":"The existing App Server is the only UI/HTTP surface and owns exactly one /browser-authority/v1 WebSocket upgrade, never a Browser relay or business flow.","required":["one existing listener","exact WebSocket path","Workbench Handle only","display-only Browser status"],"forbidden":["page relay","extension Port client","polling","SSE","second listener","browser command route","business flow in App"],"clauses":[{"clauseId":"apex-local-app-shell-001-v2-single-upgrade","statement":"The replacement WebSocket upgrade and all consumer migration are atomic; old relay files have no active consumer.","evidenceMode":"static","ownerDomain":"local-app-shell"}]}
 ```
-
-Required:
-
-- Each visible job flow has its own bounded input surface.
-- Amazon invoice upload collects order id, seller URL, invoice number, approved PDF, marketplace, and human final-submit choice.
-- Job inputs submit to the app-shell HTTP API; workflow order remains inside the owning job flow.
-
-## [APEX-LOCAL-APP-SHELL-003-V1] Status And Evidence Window
 
 ```apex-law
-{
-  "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-app-shell",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "fs",
-  "summary": "The workbench must expose task status, failure reasons, and evidence references without replacing the evidence store.",
-  "appliesTo": [
-    "src/app/**",
-    "src/lib/local-runtime/**"
-  ],
-  "forbidden": [
-    "UI fabricating task success.",
-    "UI replacing evidence records.",
-    "UI hiding failureReason or review-required state.",
-    "Status panel pretending to be runtime logs or CI."
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-app-shell-003-requirement",
-      "statement": "The workbench must expose task status, failure reasons, and evidence references without replacing the evidence store.",
-      "evidenceMode": "static",
-      "ownerDomain": "local-app-shell"
-    }
-  ]
-}
+{"lawId":"APEX-LOCAL-APP-SHELL-002-V2","status":"active","tier":"P0","capabilityDomain":"local-app-shell","enforcementMode":"machine-blocking","evidenceMode":"ast+acceptance","summary":"App inputs and displays stay at their owner boundary.","required":["known schema inputs","same-DOM localization","durable result/evidence refs"],"forbidden":["browser control fields","frontend truth","second dashboard","raw evidence secret display"],"clauses":[{"clauseId":"apex-local-app-shell-002-v2-boundary","statement":"App cannot create or reinterpret Browser authority, business state or evidence.","evidenceMode":"static","ownerDomain":"local-app-shell"}]}
 ```
-
-Required:
-
-- The workbench shows task or run status.
-- The workbench shows `failureReason`, `reason`, or review state when present.
-- Evidence references may be displayed as references only.
-
-## [APEX-LOCAL-APP-SHELL-004-V1] No Second Runtime Dashboard
-
-```apex-law
-{
-  "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-app-shell",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "fs+ast",
-  "summary": "The local app shell must not resurrect universal dashboards, command consoles, visual runtime control panels, planners, or second orchestration.",
-  "appliesTo": [
-    "src/app/**",
-    "src/lib/local-runtime/**"
-  ],
-  "forbidden": [
-    "Universal mission dashboard.",
-    "Old commander console as active architecture.",
-    "Visual-runtime control panel.",
-    "AI next-action planner.",
-    "Browser or DOM action controller in the app shell.",
-    "src/lib/local-runtime importing plugin files outside plugin public facades.",
-    "src/lib/local-runtime importing ability files outside ability public facades.",
-    "App shell deciding business flow steps."
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-app-shell-004-requirement",
-      "statement": "The local app shell must not resurrect universal dashboards, command consoles, visual runtime control panels, planners, or second orchestration.",
-      "evidenceMode": "static",
-      "ownerDomain": "local-app-shell"
-    }
-  ]
-}
-```
-
-Forbidden:
-
-- Universal mission dashboard.
-- Old command console as active architecture.
-- Product-video dashboard as an ungoverned runtime.
-- Visual runtime control panel.
-- App-shell next-action planner.
-- Browser/DOM control buttons owned by the app shell.
-- `src/lib/local-runtime/**` importing plugin files outside `src/plugins/<job-id>/index.ts`.
-- `src/lib/local-runtime/**` importing ability files outside `src/capabilities/<group-id>/index.ts`.
-
-## [APEX-LOCAL-APP-SHELL-005-V1] Completed Job Delivery Surface
-
-```apex-law
-{
-  "lawId": "APEX-LOCAL-APP-SHELL-005-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-app-shell",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "fs+ast",
-  "summary": "Completed workbench jobs must surface durable deliverables, persisted counts, export references, and evidence references as the primary result view instead of raw JSON alone.",
-  "appliesTo": [
-    "src/app/**",
-    "src/lib/local-runtime/**"
-  ],
-  "forbidden": [
-    "Completed result visible only as raw JSON.",
-    "UI showing zero persisted record counts when timeline records, answers, or exports exist.",
-    "Final report hidden behind raw record inspection only.",
-    "Export artifacts hidden from the primary delivery surface.",
-    "Raw JSON replacing final report, export refs, or evidence refs."
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-app-shell-005-requirement",
-      "statement": "Completed workbench jobs must surface durable deliverables, persisted counts, export references, and evidence references as the primary result view instead of raw JSON alone.",
-      "evidenceMode": "static",
-      "ownerDomain": "local-app-shell"
-    }
-  ]
-}
-```
-
-Required:
-
-- Raw JSON may remain available only as a collapsed audit/debug view.
-- Timeline responses that contain records must expose enough overview data for the app shell to avoid false `0` counts after refresh.
-
-## [APEX-LOCAL-APP-SHELL-006-V1] Workbench Extension Page Channel
-
-```apex-law
-{
-  "lawId": "APEX-LOCAL-APP-SHELL-006-V1",
-  "status": "active",
-  "tier": "P0",
-  "capabilityDomain": "local-app-shell",
-  "enforcementMode": "machine-blocking",
-  "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
-  "summary": "The one local Workbench page may carry exactly one CWS MV3 external Port for Browser owner frames, but it must remain a non-interactive transport adapter and never become a browser command or business-flow owner.",
-  "appliesTo": [
-    "src/app/**",
-    "src/lib/local-runtime/**"
-  ],
-  "forbidden": [
-    "A second workbench browser page or channel.",
-    "Browser command, selector, target, permit, or business-result creation in the page adapter.",
-    "chrome.debugger, connectNative, Native Messaging, or native host handling in src/app.",
-    "A visible browser action console, planner, or universal command input.",
-    "App routes calling browser private runtime directly."
-  ],
-  "clauses": [
-    {
-      "clauseId": "apex-local-app-shell-006-v1-workbench-extension-channel",
-      "statement": "Only the root Workbench page may initiate the fixed external Port and only the Browser owner may authorize its schema-bound frames; disconnect or grant expiry never triggers a UI-originated browser action.",
-      "evidenceMode": "model+acceptance+real-chrome",
-      "ownerDomain": "local-app-shell"
-    }
-  ]
-}
-```
-
-Required:
-
-- The page adapter starts without a user-operated browser control button and uses only the fixed extension ID and fixed channel name from the Browser owner contract.
-- Its same-origin routes only forward opaque schema-bound frames to the Workbench Handle's explicit Browser-channel facade.
-- A missing CWS installation, page-session grant, or accepted Port is exposed as unavailable; no fallback transport is attempted.

@@ -1,5 +1,4 @@
 import {
-  defaultGptWebProviderExecutionProfile,
   hashProviderExecutionProfile,
   type AiFeedProviderExecutionProfile,
 } from "./schema.js";
@@ -27,30 +26,10 @@ export const assertProviderExecutionProfileIntegrity = (
   }
 };
 
-const defaultOwnerForRawTask = (value: Record<string, unknown>):
-  "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai" => {
-  const task = value.taskIdentity && typeof value.taskIdentity === "object"
-    ? value.taskIdentity as Record<string, unknown>
-    : {};
-  const sourceProject = String(task.sourceProject ?? "").toLowerCase();
-  const labelKey = String(task.labelKey ?? "").toLowerCase();
-  if (sourceProject === "xuanxue-web" || labelKey.includes("bazi")
-    || labelKey.includes("qimen") || labelKey.includes("hehun")
-    || labelKey.includes("naming") || labelKey.includes("seo")) {
-    return "xuanxue-ai-production";
-  }
-  if (sourceProject.includes("amazon-product-mining")
-    || labelKey === "amazon_product_mining") {
-    return "amazon-product-mining";
-  }
-  return "generic-ai";
-};
-
 /**
- * Single Gateway admission normalizer. It does not create another transport
- * route: it freezes a canonical default profile before AiFeedInputSchema
- * parsing/input hashing when a legacy production caller has not yet projected
- * its own governed profile. Split GPT controls are never promoted.
+ * The only production GPT admission preflight. It preserves the caller's
+ * canonical profile verbatim: profile inference, defaulting and split-control
+ * compatibility are all rejected before schema parsing and input hashing.
  */
 export const governProductionGptExecutionProfileInput = (
   rawInput: unknown,
@@ -60,15 +39,11 @@ export const governProductionGptExecutionProfileInput = (
   if (value.providerKind !== "gpt-web-chat" || value.requestedBy !== "ai-capability") {
     return rawInput;
   }
-  if (value.providerExecutionProfile) return rawInput;
-  if (value.modelName != null || value.requestedReasoningEffort != null) {
+  if (value.providerExecutionProfile == null) {
+    throw new Error("AI_INPUT_GATEWAY_GPT_EXECUTION_PROFILE_REQUIRED");
+  }
+  if (value.modelName != null || "requestedReasoningEffort" in value) {
     throw new Error("AI_INPUT_GATEWAY_GPT_SPLIT_PROFILE_FORBIDDEN");
   }
-  return {
-    ...value,
-    providerExecutionProfile: defaultGptWebProviderExecutionProfile({
-      owner: defaultOwnerForRawTask(value),
-      reasoningTier: "high",
-    }),
-  };
+  return rawInput;
 };

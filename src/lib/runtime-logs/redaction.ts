@@ -6,7 +6,7 @@ import type { RuntimeLogEvent } from "./schema.js";
 
 const REDACTED = "[REDACTED]";
 const API_KEY_PATTERN = /api_key|api-key|apiKey/iu;
-const SECRET_KEYS = /^(cookie|cookies|token|authorization|password|api[_-]?key|secret|session|auth|bearer|localStorage|sessionStorage)$/i;
+const SECRET_KEYS = /^(cookie|cookies|token|authorization|password|api[_-]?key|secret|pairingSecret|privateKey|sharedSecret|signature|session|auth|bearer|localStorage|sessionStorage|rawBody|rawPath|artifactBytes|providerSecret|prompt|payload)$/i;
 const BASE64_PATTERN = /^data:[^;]+;base64,/;
 const SIGNED_URL_QUERY_KEY = /(token|sig|signature|expires|auth|key|policy|session|credential|x-amz-|googleaccessid)/i;
 const INLINE_SECRET_VALUE = /(bearer\s+[a-z0-9._-]+|authorization\s*[:=]|password\s*[:=]|api[_-]?key\s*[:=]|token\s*[:=])/iu;

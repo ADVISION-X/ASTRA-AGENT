@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { Node, SyntaxKind } from "ts-morph";
 
 import { createAuditProject } from "../audit/shared/project.js";
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
@@ -84,52 +85,21 @@ project.createSourceFile(
   `,
   { overwrite: true },
 );
-project.createSourceFile(
-  resolveFromRepo("src/plugins/runtime-log-browser-action-unbound.fixture.ts"),
-  `
-    import type { BrowserTargetSession } from "../lib/browser/browser-controller.js";
-    import type { RuntimeLogger } from "../lib/runtime-logs/index.js";
-    import {
-      emitAmazonOrderDetailNavigationStarted,
-      emitAmazonOrderDetailNavigationTerminal,
-    } from "./amazon-invoice-upload/amazon-dom-step-trace.js";
-
-    declare const browser: BrowserTargetSession;
-    declare const logger: RuntimeLogger;
-
-    export async function runUnboundBrowserAction(): Promise<void> {
-      const browserActionId = "browser:governed";
-      const unrelatedActionId = "browser:unrelated";
-      emitAmazonOrderDetailNavigationStarted({
-        runtimeLogger: logger,
-        executionId: "execution:fixture",
-        browserActionId: unrelatedActionId,
-        beforeHash: "before",
-        runtimeLogRef: "runtime-logs/workbench.jsonl",
-        amazonOrderId: "fixture-order",
-      });
-      await browser.open({
-        url: "https://sellercentral.amazon.ae/orders-v3/order/fixture",
-        title: "fixture",
-        browserActionId: browserActionId,
-      });
-      emitAmazonOrderDetailNavigationTerminal({
-        runtimeLogger: logger,
-        executionId: "execution:fixture",
-        browserActionId: unrelatedActionId,
-        runtimeLogRef: "runtime-logs/workbench.jsonl",
-        actionResult: "success",
-        beforeHash: "before",
-        afterHash: "after",
-        durationMs: 1,
-        navigationMode: "reused_host_tab",
-        observedUrlMatchesRequest: true,
-        reason: "fixture",
-      });
-    }
-  `,
-  { overwrite: true },
+const browserActorPath = resolveFromRepo(
+  "src/lib/browser/exact-target/browser-command-actor.ts",
 );
+const browserActor = project.getSourceFileOrThrow(browserActorPath);
+const startedCall = browserActor.getDescendantsOfKind(SyntaxKind.CallExpression)
+  .find((call) => call.getExpression().getText() === "emitBrowserCommandStarted");
+const startedInput = startedCall?.getArguments()[0];
+if (!Node.isObjectLiteralExpression(startedInput)) {
+  throw new Error("Browser command started-log fixture is missing.");
+}
+const permitProperty = startedInput.getProperty("permit");
+if (!Node.isShorthandPropertyAssignment(permitProperty)) {
+  throw new Error("Browser command permit binding fixture is missing.");
+}
+permitProperty.replaceWithText('permit: { ...permit, commandId: "browser:unrelated" }');
 
 const planEntry: InspectorContext["planEntry"] = {
     capabilityDomain: "runtime-log-spine",
@@ -190,7 +160,7 @@ assert.ok(antiFakeFindings.some((finding) => finding.checkId === "runtime-log-sp
 assert.ok(
   browserActionFindings.some((finding) =>
     finding.checkId === "runtime-log-spine/browser-action-log-contract"
-    && finding.file === "src/plugins/runtime-log-browser-action-unbound.fixture.ts"),
+    && finding.file === "src/lib/browser/exact-target/browser-command-actor.ts"),
   "caller-correlated browser logs must use the same browserActionId binding as the governed action",
 );
 

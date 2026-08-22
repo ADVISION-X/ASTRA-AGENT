@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CloudExecutionGrantV5Schema } from "./generated/xuanxue-ai-production-v5.validator.js";
 
 import {
   XuanxueAiProductionTriggerKindSchema,
@@ -18,7 +19,16 @@ import {
 } from "./xuanxue-ai-production-terminal-profile.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
-  "xuanxue-ai-production-v4" as const;
+  "xuanxue-ai-production-v5" as const;
+
+/**
+ * Generated projection of the xuanxue-web canonical V5 manifest.  This is
+ * deliberately distinct from the localization product-contract manifest:
+ * device pairing and Cloud grants bind the production protocol, while an
+ * individual localization order still carries its own product contract hash.
+ */
+export const XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH =
+  "sha256:d6a4ddcb49ed2e06c4b90681f0542303d549633b23e87687dc43640f5fae7826" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
@@ -92,6 +102,8 @@ export const XuanxueAiProductionCloudInputSchema = z.object({
   sha256: hashSchema,
   byte_count: z.number().int().nonnegative(),
   object_ref: z.string().min(1),
+  storage_class: z.enum(["shared_static", "private_owner_scoped"]),
+  owner_scope_hash: hashSchema.nullable(),
   material_role: z.enum([
     "control_capsule", "complete_case", "question_case", "parent_report",
     "prior_private_interpretation", "ready_book_text", "ready_book_index",
@@ -202,15 +214,6 @@ const CloudStageMaterialSchema = z.discriminatedUnion("control_plane", [
   }).strict(),
 ]);
 
-const CloudSeededStageSchema = z.object({
-  stage_id: XuanxueAiStageIdSchema,
-  execution_id: z.string().min(1),
-  raw_response_text: z.string(),
-  raw_output_hash: hashSchema,
-  provider_proof: z.record(z.string(), z.unknown()),
-  transport_warnings: z.array(z.string()),
-}).strict();
-
 const cloudSemanticIdentityShape = {
   contract_manifest_hash: hashSchema.nullable(),
   product_contract_hash: hashSchema.nullable(),
@@ -236,7 +239,6 @@ const cloudReplayOrderShape = {
   ...cloudSemanticIdentityShape,
   frozen_subject: CloudFrozenSubjectSchema,
   conversation_scope_ref: z.string().min(1),
-  seeded_stages: z.array(CloudSeededStageSchema).max(5),
   materials: z.array(CloudStageMaterialSchema).min(1).max(5),
   created_at: z.string().min(1),
 } as const;
@@ -300,7 +302,6 @@ const cloudClaimIdentityShape = {
 const cloudClaimConversationShape = {
   conversation_parent: CloudConversationParentSchema.nullable(),
   join_parents: z.array(CloudJoinParentSchema).max(32),
-  seeded_stages: z.array(CloudSeededStageSchema).max(5).default([]),
   continuation_parent_replay: CloudParentReplaySchema.nullable(),
   execution_lane: z.literal("supervised_local_gpt_web"),
   materials: z.array(CloudStageMaterialSchema).min(1).max(5),
@@ -317,6 +318,7 @@ const cloudClaimLeaseShape = {
   updated_at: z.string().min(1),
   lease_token: z.string().min(1),
   lease_version: z.number().int().positive(),
+  grant: CloudExecutionGrantV5Schema,
 } as const;
 
 const XuanxueAiProductionCloudClaimedJobBaseSchema = z.object({
@@ -458,25 +460,19 @@ const inspectLocalizationTopology = (
 
 export const XuanxueAiProductionCloudClaimedJobSchema =
 XuanxueAiProductionCloudClaimedJobBaseSchema.superRefine((job, context) => {
+  if (job.grant.job_id !== job.job_id
+    || job.grant.required_device_id !== job.lease_owner
+    || job.grant.lease_token !== job.lease_token
+    || job.grant.lease_version !== job.lease_version
+    || job.grant.lease_expires_at !== job.lease_expires_at) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_V5_CLAIM_GRANT_MISMATCH", path: ["grant"] });
+  }
   inspectParentReplay(job, context);
   inspectLocalizationClaim(job, context);
 });
 
-export const XuanxueAiProductionCloudLeaseEnvelopeSchema = z.object({
-  job_id: z.string().min(1),
-  product_id: z.string().min(1),
-  contract_manifest_hash: hashSchema.nullable().optional(),
-  product_contract_hash: hashSchema.nullable().optional(),
-  localization_role: XuanxueLocalizationRoleSchema.nullable().optional(),
-  lease_token: z.string().min(1),
-  lease_version: z.number().int().positive(),
-}).passthrough();
-
 export type XuanxueAiProductionCloudClaimedJob = z.infer<
   typeof XuanxueAiProductionCloudClaimedJobSchema
->;
-export type XuanxueAiProductionCloudLeaseEnvelope = z.infer<
-  typeof XuanxueAiProductionCloudLeaseEnvelopeSchema
 >;
 
 export interface XuanxueAiProductionCloudCredential {

@@ -20,14 +20,12 @@ import {
 import {
   xuanxueAiOutputIntegrityFailure,
 } from "./xuanxue-ai-production-output-integrity.js";
-import {
-  isXuanxueLocalizationProduct,
-} from "./xuanxue-ai-production-localization-contract.js";
-import {
-  isXuanxueTerminalMetaphysicsProduct,
-  isXuanxueTerminalMetaphysicsProfile,
-  xuanxueTerminalMetaphysicsProviderProfile,
-} from "./xuanxue-ai-production-terminal-profile.js";
+import { xuanxueProviderEvidenceFailure } from "./xuanxue-ai-production-provider-evidence.js";
+import type { WebChatPageActionProof } from "../../capabilities/ai-input-gateway/index.js";
+import type {
+  XuanxueAiBrowserTargetLease,
+  XuanxueAiExecutionDeadlineBudget,
+} from "./xuanxue-ai-production.runtime.js";
 
 export interface XuanxueAiProductionExecutionObserver {
   readonly onAttachmentUploadCompleted?: (input: {
@@ -40,6 +38,101 @@ export interface XuanxueAiProductionExecutionObserver {
 const nowIso = (): string => new Date().toISOString();
 const RECOVERY_RETRY_DELAY_MS = 1_000;
 const MAX_RECOVERY_RETRY_DELAY_MS = 10_000;
+
+const browserHash = (value: string): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const requireBrowserHash = (value: string): `sha256:${string}` => {
+  if (!/^sha256:[a-f0-9]{64}$/u.test(value)) {
+    throw new Error("XUANXUE_AI_PRODUCTION_BROWSER_BINDING_HASH_INVALID");
+  }
+  return value as `sha256:${string}`;
+};
+
+const acquireStageBrowser = async (input: {
+  runtime: XuanxueAiProductionRuntime;
+  orderId: string;
+  stage: XuanxueAiStageRecord;
+  deadlineBudget?: XuanxueAiExecutionDeadlineBudget;
+}): Promise<XuanxueAiBrowserTargetLease | undefined> => {
+  const record = input.runtime.store.readOrder(input.orderId);
+  const identity = record?.order.cloudExecutionIdentity;
+  if (!identity) return undefined;
+  if (!input.runtime.browserAuthority || !input.deadlineBudget) {
+    throw new Error("XUANXUE_AI_PRODUCTION_BROWSER_AUTHORITY_REQUIRED");
+  }
+  const remainingMs = Math.floor(
+    input.deadlineBudget.expiresAtMonotonic - performance.now(),
+  );
+  const commandTtlMs = Math.min(
+    input.deadlineBudget.commandTtlMs,
+    remainingMs,
+  );
+  if (commandTtlMs < 1) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_EXHAUSTED");
+  }
+  const executionRef = `${identity.jobId}:${identity.attemptId}:${input.stage.executionId}`;
+  return input.runtime.browserAuthority.acquireOperatorClaimedTargetLease({
+    kind: "xuanxue",
+    ownerPluginId: "xuanxue-ai-production",
+    jobId: identity.jobId,
+    attemptId: identity.attemptId,
+    deviceId: identity.requiredDeviceId,
+    leaseVersion: identity.leaseVersion,
+    localOrderId: record.order.orderId,
+    contractManifestHash: requireBrowserHash(identity.contractManifestHash),
+    executionRef,
+    jobRefHash: browserHash(identity.jobId),
+    executionRefHash: browserHash(executionRef),
+    writerLeaseEpoch: identity.leaseVersion,
+    writerFenceHash: requireBrowserHash(identity.executionFenceHash),
+    candidateHash: requireBrowserHash(record.order.requestHash),
+    commandTtlMs,
+  }, `xuanxue-ai-production:${record.order.orderId}`);
+};
+
+const resolvePageActionMutations = async (
+  browser: XuanxueAiBrowserTargetLease,
+  proof: WebChatPageActionProof,
+): Promise<void> => {
+  if (proof.candidateCount !== 1
+    || proof.semantics.length === 0
+    || !proof.targetRefHash
+    || !proof.documentRefHash) return;
+  await browser.resolvePendingMutations({
+    schemaVersion: "grasseye.browser.outcome-resolution.v1",
+    ownerPluginId: "xuanxue-ai-production",
+    outcome: proof.result === "committed" || proof.result === "no_op"
+      ? "TERMINAL_SUCCESS"
+      : "TERMINAL_FAILURE",
+    positiveEvidenceRef: proof.evidenceRef,
+    negativeEvidenceRef: proof.evidenceRef,
+    uniqueTargetRef: browser.target.targetRef,
+    boundedAt: proof.endedAt,
+  });
+};
+
+const resolveAttachmentMutations = async (
+  browser: XuanxueAiBrowserTargetLease,
+  orderId: string,
+  stageId: XuanxueAiStageRecord["stageId"],
+  proof: WebChatAttachmentUploadProof,
+): Promise<void> => {
+  if (proof.status !== "attachments_stable"
+    || proof.expectedFileCount < 1
+    || proof.detectedFileCount !== proof.expectedFileCount
+    || proof.files.length !== proof.expectedFileCount) return;
+  const prefix = `xuanxue-stage:${orderId}:${stageId}:attachment:${proof.uploadAttemptId}`;
+  await browser.resolvePendingMutations({
+    schemaVersion: "grasseye.browser.outcome-resolution.v1",
+    ownerPluginId: "xuanxue-ai-production",
+    outcome: "TERMINAL_SUCCESS",
+    positiveEvidenceRef: `${prefix}:exact-files-stable`,
+    negativeEvidenceRef: `${prefix}:adjacent-states-excluded`,
+    uniqueTargetRef: browser.target.targetRef,
+    boundedAt: proof.endedAt,
+  });
+};
 
 export const continuationConversationUnavailable = (
   reason: string | null,
@@ -110,101 +203,37 @@ const isPublicKnowledgePreSubmitAttachmentBlock = (
     && !result.providerProof.forkedFromCheckpointProof;
 };
 
-const record = (value: unknown): Readonly<Record<string, unknown>> | null =>
-  value && typeof value === "object" && !Array.isArray(value)
-    ? value as Readonly<Record<string, unknown>>
-    : null;
-
-const localizationTranscriptValid = (transcript: string): boolean => {
-  if (!transcript.trim()) return false;
-  const forbidden = new Set([
-    "tool_call",
-    "tool_result",
-    "browser_action",
-    "computer_call",
-    "function_call",
-    "command_execution",
-  ]);
-  for (const line of transcript.trim().split("\n")) {
-    let event: unknown;
-    try {
-      event = JSON.parse(line);
-    } catch {
-      return false;
-    }
-    const eventRecord = record(event);
-    const item = record(eventRecord?.item);
-    const kinds = [
-      eventRecord?.type,
-      eventRecord?.event,
-      item?.type,
-    ].filter((value): value is string => typeof value === "string");
-    if (kinds.some((kind) => forbidden.has(kind))) return false;
-  }
-  return true;
-};
-
-const localizationProviderEvidenceFailure = (
+const immediateTerminalStage = (
   result: AiFeedResult,
-  order: XuanxueAiOrderRecord["order"],
-): string | null => {
-  if (!isXuanxueLocalizationProduct(order.productId)) return null;
-  const expected = order.providerExecutionProfile;
-  const identity = result.providerProof.modelIdentityProof;
-  const transcript = result.providerProof.providerTranscriptJsonl;
-  const transcriptHash = result.providerProof.providerTranscriptHash;
-  const actualTranscriptHash = transcript
-    ? `sha256:${createHash("sha256").update(transcript).digest("hex")}`
-    : null;
-  if (
-    !expected
-    || !identity
-    || identity.proofStatus !== "verified"
-    || identity.modelFamily !== expected.model_family
-    || identity.modelDisplayName !== expected.model_label
-    || identity.reasoningEffort !== expected.reasoning_effort
-  ) {
-    return "XUANXUE_AI_PRODUCTION_LOCALIZATION_MODEL_IDENTITY_MISMATCH";
-  }
-  if (
-    !transcript
-    || !transcriptHash
-    || transcriptHash !== actualTranscriptHash
-    || !localizationTranscriptValid(transcript)
-  ) {
-    return "XUANXUE_AI_PRODUCTION_LOCALIZATION_PROVIDER_TRANSCRIPT_INVALID";
-  }
-  return null;
-};
-
-const terminalMetaphysicsProviderEvidenceFailure = (
-  result: AiFeedResult,
-  order: XuanxueAiOrderRecord["order"],
-): string | null => {
-  if (!isXuanxueTerminalMetaphysicsProduct(order.productId)) return null;
-  const expected = order.providerExecutionProfile as Record<string, unknown> | null;
-  const profileProof = result.providerProof.providerExecutionProfileProof;
-  const identity = result.providerProof.modelIdentityProof;
-  if (!isXuanxueTerminalMetaphysicsProfile(expected)) {
-    return "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH";
-  }
-  if (
-    !profileProof
-    || profileProof.proofStatus !== "verified"
-    || profileProof.provider !== "openai-chatgpt-web"
-    || profileProof.transport !== "gpt-web-chat"
-    || profileProof.modelDisplayName !== xuanxueTerminalMetaphysicsProviderProfile.modelLabel
-    || profileProof.modelFamily !== xuanxueTerminalMetaphysicsProviderProfile.modelFamily
-    || profileProof.reasoningTier !== xuanxueTerminalMetaphysicsProviderProfile.reasoningTier
-    || !identity
-    || identity.proofStatus !== "verified"
-    || identity.modelIdentityStatus !== "verified"
-    || identity.modelDisplayName !== xuanxueTerminalMetaphysicsProviderProfile.modelLabel
-    || identity.modelFamily !== xuanxueTerminalMetaphysicsProviderProfile.modelFamily
-    || identity.reasoningEffort !== xuanxueTerminalMetaphysicsProviderProfile.reasoningUiLabel
-  ) {
-    return "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROVIDER_PROOF_MISMATCH";
-  }
+  stage: XuanxueAiStageRecord,
+  productId: XuanxueAiOrderRecord["order"]["productId"],
+): Pick<XuanxueAiStageRecord, "status" | "failureReason"> | null => {
+  if (isPublicKnowledgePreSubmitAttachmentBlock(result, stage, productId)) return {
+    status: "failed",
+    failureReason: `${XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION}:${terminalAttachmentReason(result)}`,
+  };
+  if (result.status === "recovery_pending") return {
+    status: "recovery_pending",
+    failureReason: result.failureReason ?? "provider recovery pending",
+  };
+  if (result.status === "review_required") return {
+    status: "review_required",
+    failureReason: result.reviewRequiredReason ?? "provider review required",
+  };
+  if (result.status === "failed") return {
+    status: "failed",
+    failureReason: result.failureReason ?? "provider execution failed",
+  };
+  if (!result.rawResponseText || !result.rawOutputHash) return {
+    status: "failed",
+    failureReason: "XUANXUE_AI_PRODUCTION_RAW_RESPONSE_MISSING",
+  };
+  const integrityFailure = xuanxueAiOutputIntegrityFailure(result.rawResponseText);
+  if (integrityFailure) return { status: "failed", failureReason: integrityFailure };
+  if (result.parseStatus === "json_invalid" && result.schemaValidationStatus !== "not_applicable") return {
+    status: "failed",
+    failureReason: "XUANXUE_AI_PRODUCTION_OUTPUT_JSON_INVALID",
+  };
   return null;
 };
 
@@ -213,65 +242,10 @@ const terminalStageFromResult = (
   stage: XuanxueAiStageRecord,
   order: XuanxueAiOrderRecord["order"],
 ): Pick<XuanxueAiStageRecord, "status" | "failureReason"> => {
-  if (isPublicKnowledgePreSubmitAttachmentBlock(result, stage, order.productId)) {
-    return {
-      status: "failed",
-      failureReason:
-        `${XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION}:`
-        + terminalAttachmentReason(result),
-    };
-  }
-  if (result.status === "review_required") {
-    return {
-      status: "recovery_pending",
-      failureReason:
-        result.reviewRequiredReason ?? "provider review required",
-    };
-  }
-  if (result.status === "failed") {
-    return {
-      status: "recovery_pending",
-      failureReason: result.failureReason ?? "provider execution failed",
-    };
-  }
-  if (!result.rawResponseText || !result.rawOutputHash) {
-    return {
-      status: "recovery_pending",
-      failureReason: "XUANXUE_AI_PRODUCTION_RAW_RESPONSE_MISSING",
-    };
-  }
-  const integrityFailure = xuanxueAiOutputIntegrityFailure(
-    result.rawResponseText,
-  );
-  if (integrityFailure) {
-    return {
-      status: "recovery_pending",
-      failureReason: integrityFailure,
-    };
-  }
-  if (
-    result.parseStatus === "json_invalid"
-    && result.schemaValidationStatus !== "not_applicable"
-  ) {
-    return {
-      status: "recovery_pending",
-      failureReason: "XUANXUE_AI_PRODUCTION_OUTPUT_JSON_INVALID",
-    };
-  }
-  const localizationEvidenceFailure = localizationProviderEvidenceFailure(
-    result,
-    order,
-  );
-  const terminalMetaphysicsEvidenceFailure = terminalMetaphysicsProviderEvidenceFailure(
-    result,
-    order,
-  );
-  if (localizationEvidenceFailure || terminalMetaphysicsEvidenceFailure) {
-    return {
-      status: "recovery_pending",
-      failureReason: localizationEvidenceFailure ?? terminalMetaphysicsEvidenceFailure,
-    };
-  }
+  const immediate = immediateTerminalStage(result, stage, order.productId);
+  if (immediate) return immediate;
+  const evidenceFailure = xuanxueProviderEvidenceFailure(result, order);
+  if (evidenceFailure) return { status: "failed", failureReason: evidenceFailure };
   return { status: "completed", failureReason: null };
 };
 
@@ -351,7 +325,9 @@ export const persistStageResult = (
     aiFeedResult: result,
     rawResponseText: result.rawResponseText ?? null,
     rawOutputHash: result.rawOutputHash,
-    progressPhase: terminal.status === "completed" || terminal.status === "failed"
+    progressPhase: terminal.status === "completed"
+      || terminal.status === "failed"
+      || terminal.status === "review_required"
       ? "terminal"
       : "recovery_pending",
     updatedAt: nowIso(),
@@ -385,14 +361,14 @@ export const executeGatewayStage = async (input: {
   stage: XuanxueAiStageRecord;
   feedInput: Awaited<ReturnType<typeof buildXuanxueAiFeedInput>>;
   observer?: XuanxueAiProductionExecutionObserver;
-}): Promise<AiFeedResult> => normalizeGeneratedImageResult(
-  input.runtime,
-  input.orderId,
-  input.stage.stageId,
-  canonicalizeStageResult(await input.runtime.aiInputGateway.execute(
+  deadlineBudget?: XuanxueAiExecutionDeadlineBudget;
+}): Promise<AiFeedResult> => {
+  const browser = await acquireStageBrowser(input);
+  const result = canonicalizeStageResult(await input.runtime.aiInputGateway.execute(
     input.feedInput,
     {
       executionId: input.stage.executionId,
+      ...(browser ? { browser } : {}),
       ...(input.stage.supersededExecutionId && input.stage.attemptCount === 2
         ? { supersededExecutionId: input.stage.supersededExecutionId }
         : {}),
@@ -415,7 +391,26 @@ export const executeGatewayStage = async (input: {
           stageId: input.stage.stageId,
           proof,
         });
+        if (browser) {
+          await resolveAttachmentMutations(
+            browser,
+            input.orderId,
+            input.stage.stageId,
+            proof,
+          );
+        }
       },
+      ...(browser ? {
+        onPageActionCommitted: (proof) =>
+          resolvePageActionMutations(browser, proof),
+      } : {}),
     },
-  )),
-);
+  ));
+  browser?.assertNoPendingMutations();
+  return normalizeGeneratedImageResult(
+    input.runtime,
+    input.orderId,
+    input.stage.stageId,
+    result,
+  );
+};

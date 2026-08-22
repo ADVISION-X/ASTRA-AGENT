@@ -10,6 +10,15 @@ export type BrowserCommandPermit = Readonly<{
   certificateHash: BrowserHash;
   channelSessionHash: BrowserHash;
   executionBindingHash: BrowserHash;
+  writerFenceHash: BrowserHash;
+  candidateHash: BrowserHash;
+  contractManifestHash: BrowserHash;
+  ownerPluginId: string;
+  jobId: string;
+  attemptId: string;
+  deviceId: string;
+  leaseVersion: number;
+  localOrderId: string;
   targetLeaseRef: string;
   targetRef: string;
   documentRef: string;
@@ -17,7 +26,8 @@ export type BrowserCommandPermit = Readonly<{
   commandId: string;
   sequence: number;
   mutationClass: BrowserMutationClass;
-  deadlineAt: string;
+  workspaceRef: string;
+  commandTtlMs: number;
   replyChannelToken: string;
   commandFrameMac: BrowserHash;
 }>;
@@ -32,6 +42,15 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.certificateHash,
   permit.channelSessionHash,
   permit.executionBindingHash,
+  permit.writerFenceHash,
+  permit.candidateHash,
+  permit.contractManifestHash,
+  permit.ownerPluginId,
+  permit.jobId,
+  permit.attemptId,
+  permit.deviceId,
+  permit.leaseVersion,
+  permit.localOrderId,
   permit.targetLeaseRef,
   permit.targetRef,
   permit.documentRef,
@@ -39,29 +58,50 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.commandId,
   permit.sequence,
   permit.mutationClass,
-  permit.deadlineAt,
+  permit.workspaceRef,
+  permit.commandTtlMs,
   permit.replyChannelToken,
 ]);
 
-export const assertValidCommandPermit = (permit: BrowserCommandPermit, now = Date.now()): void => {
+const hasCompletePermitIdentity = (permit: BrowserCommandPermit): boolean => [
+  permit.authorityRef,
+  permit.targetLeaseRef,
+  permit.targetRef,
+  permit.documentRef,
+  permit.commandId,
+  permit.replyChannelToken,
+  permit.workspaceRef,
+  permit.ownerPluginId,
+  permit.jobId,
+  permit.attemptId,
+  permit.deviceId,
+  permit.localOrderId,
+].every((value) => value.length > 0);
+
+const hasValidPermitNumbers = (permit: BrowserCommandPermit): boolean =>
+  Number.isInteger(permit.leaseVersion)
+  && permit.leaseVersion >= 1
+  && permit.authorityEpoch >= 1
+  && permit.sequence >= 1
+  && Number.isInteger(permit.commandTtlMs)
+  && permit.commandTtlMs >= 1
+  && permit.commandTtlMs <= 3_600_000;
+
+const hasValidPermitHashes = (permit: BrowserCommandPermit): boolean => {
   const hashes = [
     permit.certificateHash,
     permit.channelSessionHash,
     permit.executionBindingHash,
+    permit.writerFenceHash,
+    permit.candidateHash,
+    permit.contractManifestHash,
     permit.commandFrameMac,
   ];
-  if (
-    permit.authorityRef.length === 0
-    || permit.targetLeaseRef.length === 0
-    || permit.targetRef.length === 0
-    || permit.documentRef.length === 0
-    || permit.commandId.length === 0
-    || permit.replyChannelToken.length === 0
-    || permit.authorityEpoch < 1
-    || permit.sequence < 1
-    || Date.parse(permit.deadlineAt) <= now
-    || hashes.some((value) => !/^sha256:[a-f0-9]{64}$/u.test(value))
-  ) {
+  return hashes.every((value) => /^sha256:[a-f0-9]{64}$/u.test(value));
+};
+
+export const assertValidCommandPermit = (permit: BrowserCommandPermit): void => {
+  if (!hasCompletePermitIdentity(permit) || !hasValidPermitNumbers(permit) || !hasValidPermitHashes(permit)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };

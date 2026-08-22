@@ -57,42 +57,7 @@ const initializeProductionTables = (database: Database.Database): void => {
       requested_at text,
       updated_at text not null
     );
-    create table if not exists production_parent_conversation_rebuilds (
-      parent_job_id text not null,
-      parent_stage_id text not null,
-      original_raw_output_hash text not null,
-      rebuilt_raw_output_hash text not null,
-      rebuilt_job_id text,
-      rebuilt_execution_id text,
-      rebuilt_turn_marker text,
-      rebuilt_input_bundle_hash text,
-      rebuilt_conversation_scope_ref text,
-      provider_page_url text not null,
-      rebuilt_at text not null,
-      primary key(
-        parent_job_id,parent_stage_id,original_raw_output_hash
-      )
-    );
   `);
-};
-
-const ensureConversationRebuildColumns = (database: Database.Database): void => {
-  const rebuildColumns = new Set((database.prepare(
-    "pragma table_info(production_parent_conversation_rebuilds)",
-  ).all() as Array<{ name: string }>).map((column) => column.name));
-  for (const [name, type] of [
-    ["rebuilt_job_id", "text"],
-    ["rebuilt_execution_id", "text"],
-    ["rebuilt_turn_marker", "text"],
-    ["rebuilt_input_bundle_hash", "text"],
-    ["rebuilt_conversation_scope_ref", "text"],
-  ] as const) {
-    if (!rebuildColumns.has(name)) {
-      database.exec(
-        `alter table production_parent_conversation_rebuilds add column ${name} ${type}`,
-      );
-    }
-  }
 };
 
 export const openXuanxueAiProductionDatabase = (
@@ -102,8 +67,9 @@ export const openXuanxueAiProductionDatabase = (
   mkdirSync(path.dirname(filePath), { recursive: true });
   const database = new Database(filePath);
   database.pragma("journal_mode = WAL");
+  database.pragma("synchronous = FULL");
   database.pragma("foreign_keys = ON");
   initializeProductionTables(database);
-  ensureConversationRebuildColumns(database);
+  database.exec("drop table if exists production_parent_conversation_rebuilds");
   return database;
 };

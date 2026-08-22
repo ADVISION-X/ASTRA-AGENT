@@ -1,100 +1,99 @@
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { renderRuntimeLogSpineMarkdown, toInspectorFinding } from "./generated-report-writer.js";
-import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
-import { collectRedactionFindings } from "./redaction-inspector.js";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
-type RuntimeLogSpineFinding = CollectedPhaseRuns["phaseRuns"][number]["findings"][number];
+import { createFinding } from "../../shared/finding-utils.js";
+import type { InspectorContext, InspectorFinding, InspectorOutput, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
-const phaseStatus = (findings: readonly RuntimeLogSpineFinding[]): "PASS" | "FAIL" =>
-  findings.length === 0 ? "PASS" : "FAIL";
+const checkId = "runtime-log-spine/terminal-authority";
+const laws = {
+  terminal: { lawId: "APEX-RUNTIME-LOG-SPINE-001-V2", clauseId: "apex-runtime-log-001-v2-terminal-observability" },
+  singleSpine: { lawId: "GRASSEYE-STRUCTURED-LOGGING-001-V1", clauseId: "grasseye-structured-logging-001-requirement" },
+  redaction: { lawId: "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1", clauseId: "grasseye-security-privacy-log-001-requirement" },
+} as const;
 
-const buildInspectorReportJson = (collected: CollectedPhaseRuns) => {
-  const findings = collected.phaseRuns.flatMap((phase) => phase.findings);
-  const inspectedFiles = [...new Set(collected.phaseRuns.flatMap((phase) => phase.inspectedFiles))].sort();
-  const phases = buildInspectorPhases(collected);
-  const counts = buildInspectorCounts(collected, findings, inspectedFiles);
-  return {
-    generatedAt: new Date().toISOString(),
-    status: findings.length === 0 ? "PASS" : "FAIL",
-    scannedFiles: inspectedFiles.length,
-    inspectedFiles,
-    ...counts,
-    phases,
-    findings,
-  } as const;
-};
+const sourceAt = (context: InspectorContext, path: string): SourceFile | undefined =>
+  context.project.getSourceFile(resolveFromRepo(path));
 
-const buildInspectorPhases = (collected: CollectedPhaseRuns) => collected.phaseRuns.map((phase) => ({
-  name: phase.name,
-  status: phaseStatus(phase.findings),
-  findingCount: phase.findings.length,
-  scannedFiles: phase.inspectedFiles.length,
-  ...(phase.metrics ? { metrics: phase.metrics } : {}),
-}));
+const identifiers = (file: SourceFile): ReadonlySet<string> =>
+  new Set(file.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
 
-const buildInspectorCounts = (
-  collected: CollectedPhaseRuns,
-  findings: RuntimeLogSpineFinding[],
-  inspectedFiles: string[],
-) => ({
-  emitCallCount: collected.semanticMetrics.metrics.emitCallCount,
-  consoleCallCount: collected.forbiddenConsole.consoleViolationCount,
-  consoleEscapeCount: collected.forbiddenConsole.consoleViolationCount,
-  eventTypeLiteralCount: collected.eventRegistry.findings.length,
-  missingModeVisibilityCount: collected.modeVisibility.findings.filter((finding) => finding.checkId.includes("mode-visibility")).length,
-  missingTraceContractCount: collected.emitContract.findings.filter((finding) => finding.lawId === "GRASSEYE-RUNTIME-LOG-SPINE-003-V1").length,
-  catchBranchCount: collected.semanticMetrics.metrics.catchClauseCount,
-  catchBranchWithoutLogCount: collected.catchBranches.findings.length,
-  failureBranchCount: collected.semanticMetrics.metrics.failureBranchCount,
-  failureWithoutClassCount: collected.failureClasses.failureWithoutClassCount,
-  stageStartCount: collected.semanticMetrics.metrics.stageStartCount,
-  stageTerminalCount: collected.semanticMetrics.metrics.stageTerminalCount,
-  stagePairViolationCount: collected.stagePairs.findings.length,
-  heavyPayloadFlowViolationCount: collected.modeVisibility.findings.filter((finding) => finding.checkId.includes("heavy-payload")).length,
-  redactionViolationCount: collected.redaction.findings.length,
-  summary: {
-    totalFindings: findings.length,
-    fatalFindings: findings.length,
-    scannedFiles: inspectedFiles.length,
-    emitCallCount: collected.semanticMetrics.metrics.emitCallCount,
-    consoleViolationCount: collected.forbiddenConsole.consoleViolationCount,
-    failureWithoutClassCount: collected.failureClasses.failureWithoutClassCount,
-    stageCoveragePercent: collected.stagePairs.stageCoveragePercent,
-  },
-});
-
-
+const finding = (
+  law: (typeof laws)[keyof typeof laws],
+  path: string,
+  message: string,
+): InspectorFinding => createFinding({ checkId, lawId: law.lawId, clauseId: law.clauseId, filePath: path, message });
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
-  const report = buildInspectorReportJson(collected);
+  const findings: InspectorFinding[] = [];
+  const eventPath = "src/lib/runtime-logs/event-types.ts";
+  const eventFile = sourceAt(context, eventPath);
+  const browserLifecycleEvents = [
+    "BROWSER_INFRASTRUCTURE_READY", "BROWSER_AUTH_WAITING_FOR_PAIRING",
+    "BROWSER_AUTH_PAIRING_STARTED", "BROWSER_AUTH_PAIRING_COMPLETED", "BROWSER_AUTH_PAIRING_FAILED",
+    "BROWSER_SOCKET_AUTHENTICATED", "BROWSER_LIVENESS_HEARTBEAT", "BROWSER_AUTH_REVOKED", "BROWSER_EXTENSION_FAILURE",
+    "BROWSER_TARGET_CLAIMED", "BROWSER_TARGET_LEASE_INVALIDATED",
+  ];
+  const requiredEvents = [
+    ...browserLifecycleEvents,
+    "BROWSER_COMMAND_ADMISSION", "BROWSER_COMMAND_COMPLETED", "BROWSER_ARTIFACT_COMPLETED",
+    "BROWSER_MUTATION_PREPARED", "BROWSER_OUTCOME_UNKNOWN", "SITE_INGRESS_AUTHENTICATED",
+    "SITE_INGRESS_REPLAY_REJECTED", "SITE_CREDENTIAL_ROTATED", "SITE_CREDENTIAL_REVOKED",
+  ];
+  if (!eventFile) {
+    findings.push(finding(laws.terminal, eventPath, "terminal event registry source is missing"));
+  } else {
+    const present = identifiers(eventFile);
+    for (const name of requiredEvents) {
+      if (!present.has(name)) findings.push(finding(laws.terminal, toRepoPath(eventFile.getFilePath()), `terminal Runtime Log event is absent: ${name}`));
+    }
+    if (!present.has("RuntimeLogEventType")) findings.push(finding(laws.singleSpine, eventPath, "the sole structured event registry is missing"));
+  }
+
+  const browserRuntimePath = "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts";
+  const browserRuntime = sourceAt(context, browserRuntimePath);
+  if (!browserRuntime) {
+    findings.push(finding(laws.terminal, browserRuntimePath, "Browser Authority runtime log producer is missing"));
+  } else {
+    const emitted = identifiers(browserRuntime);
+    for (const name of browserLifecycleEvents) {
+      if (!emitted.has(name)) findings.push(finding(laws.terminal, browserRuntimePath, `Browser Authority does not emit required Runtime Log event: ${name}`));
+    }
+  }
+
+  const runtimeRoot = "src/lib/runtime-logs";
+  for (const file of context.project.getSourceFiles().filter((candidate) =>
+    toRepoPath(candidate.getFilePath()).startsWith(`${runtimeRoot}/`))) {
+    for (const symbol of ["console", "localStorage"]) {
+      if (identifiers(file).has(symbol)) {
+        findings.push(finding(laws.singleSpine, toRepoPath(file.getFilePath()), `Runtime Log Spine cannot own alternate output/truth symbol ${symbol}`));
+      }
+    }
+  }
+
+  const redactionPath = "src/lib/runtime-logs/redaction.ts";
+  const redaction = sourceAt(context, redactionPath);
+  if (!redaction) {
+    findings.push(finding(laws.redaction, redactionPath, "redaction implementation is missing"));
+  } else {
+    const present = identifiers(redaction);
+    for (const name of ["redactRuntimeLogRecord", "redactRuntimeLogEvent", "redactUrlForLog"]) {
+      if (!present.has(name)) findings.push(finding(laws.redaction, toRepoPath(redaction.getFilePath()), `required redaction boundary is absent: ${name}`));
+    }
+  }
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-
-    findings: report.findings.map(toInspectorFinding),
-    inspectedFiles: report.inspectedFiles,
-    reportJson: report,
-    reportMarkdown: renderRuntimeLogSpineMarkdown(report),
+    findings,
+    inspectedFiles: [eventPath, browserRuntimePath, redactionPath, runtimeRoot],
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   if (!context.checks) throw new Error("runtime-log-spine requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {
     const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
+    return { findings: evaluation.findings, evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles] };
   });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return context.checks.output({ reportMarkdown: "# Runtime Log Spine terminal ownership\n\nOne runner-signed evaluation covers the event registry, sole logging boundary, and redaction entrypoints." });
 };

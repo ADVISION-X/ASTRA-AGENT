@@ -11,6 +11,10 @@ import {
   XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
   expectedLocalizationProviderProfile,
 } from "../../../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
+import {
+  XuanxueAiProductIdSchema,
+  XuanxueAiProductionTriggerKindSchema,
+} from "../../../../src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
@@ -34,6 +38,7 @@ const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-result.ts",
 ] as const;
 
@@ -84,13 +89,15 @@ const hasMappedSchemaParse = (source: SourceFile): boolean => source
         }));
   });
 
-export function inspectXuanxueLocalizationContract(project: Project = createAuditProject()): void {
-  const projection = JSON.parse(readFileSync(projectionPath, "utf8")) as {
-    schema_version: string;
-    contract_manifest_hash: string;
-    products: Record<string, string>;
-    roles: Record<string, string>;
-  };
+type LocalizationProjection = Readonly<{
+  schema_version: string;
+  contract_manifest_hash: string;
+  products: Record<string, string>;
+  roles: Record<string, string>;
+}>;
+
+const readAndAssertProjection = (): LocalizationProjection => {
+  const projection = JSON.parse(readFileSync(projectionPath, "utf8")) as LocalizationProjection;
   assert.equal(
     projection.schema_version,
     XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_VERSION,
@@ -103,6 +110,10 @@ export function inspectXuanxueLocalizationContract(project: Project = createAudi
     Object.keys(projection.products).sort(),
     Object.keys(XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS).sort(),
   );
+  return projection;
+};
+
+const assertProjectionBindings = (projection: LocalizationProjection): void => {
   for (const [productId, contractHash] of Object.entries(
     XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
   )) {
@@ -122,14 +133,22 @@ export function inspectXuanxueLocalizationContract(project: Project = createAudi
     XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_selector.roles,
     ["selector_first", "selector_swap", "consistency"],
   );
+  assert.equal(
+    XuanxueAiProductionTriggerKindSchema.safeParse("localization_static_review").success,
+    true,
+    "website-owned static review trigger must remain admissible",
+  );
+  assert.equal(
+    XuanxueAiProductIdSchema.safeParse("localization_static_review").success,
+    false,
+    "legacy monolithic static review product must remain forbidden",
+  );
+};
+
+const assertRuntimeSources = (project: Project): void => {
   for (const relative of criticalRuntimeFiles) {
     const source = project.getSourceFile(resolveFromRepo(relative));
     assert.ok(source, `${relative} is missing from the audit project`);
-    assert.equal(
-      hasStringLiteral(source, "localization_static_review"),
-      false,
-      `${relative} reintroduced legacy localization_static_review product`,
-    );
     for (const legacy of forbiddenLegacyIds) {
       assert.equal(
         hasStringLiteral(source, legacy),
@@ -143,19 +162,26 @@ export function inspectXuanxueLocalizationContract(project: Project = createAudi
   ));
   assert.ok(client);
   assert.equal(hasSafeParseOfRawJob(client), true);
-  assert.equal(hasCall(client, "nackMalformedClaim"), true);
+  assert.equal(hasCall(client, "reportUnaddressableClaim"), true);
+  assert.equal(hasCall(client, "nackMalformedClaim"), false);
   assert.equal(hasMappedSchemaParse(client), false);
   const worker = project.getSourceFile(resolveFromRepo(
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
   ));
   assert.ok(worker);
   assert.equal(hasCall(worker, "heartbeatXuanxueAiProductionDevice"), true);
-  const execution = project.getSourceFile(resolveFromRepo(
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts",
+  const providerEvidence = project.getSourceFile(resolveFromRepo(
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts",
   ));
-  assert.ok(execution);
-  assert.equal(hasCall(execution, "localizationProviderEvidenceFailure"), true);
-  assert.equal(hasIdentifier(execution, "providerTranscriptHash"), true);
+  assert.ok(providerEvidence);
+  assert.equal(hasCall(providerEvidence, "localizationProviderEvidenceFailure"), true);
+  assert.equal(hasIdentifier(providerEvidence, "providerTranscriptHash"), true);
+};
+
+export function inspectXuanxueLocalizationContract(project: Project = createAuditProject()): void {
+  const projection = readAndAssertProjection();
+  assertProjectionBindings(projection);
+  assertRuntimeSources(project);
 }
 
 const inspectDomainEvaluation = (

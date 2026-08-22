@@ -4,7 +4,6 @@ import path from "node:path";
 
 import {
   buildGptWebProviderExecutionProfile,
-  defaultGptWebProviderExecutionProfile,
   type AiFeedInput,
   type AiFeedResult,
   type AiTaskLabelKey,
@@ -34,7 +33,6 @@ import {
   type XuanxueAiStageId,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
-import { xuanxueAiOutputIntegrityFailure } from "./xuanxue-ai-production-output-integrity.js";
 import { publicKnowledgeImagePromptBoundary } from "./generated-image-policy.js";
 import { buildTypedJoinInputs } from "./xuanxue-ai-production-typed-join-inputs.js";
 
@@ -62,65 +60,27 @@ const labelForStage = (
   return "generic_ai";
 };
 
-const seededAiResult = (
-  seeded: XuanxueAiProductionOrder["seededStages"][number],
-): AiFeedResult => ({
-  abilityGroupId: "ai-input-gateway",
-  childCapabilityId: "feed-gpt-web-chat-once",
-  providerKind: "gpt-web-chat",
-  status: "success",
-  outputKind: "text",
-  outputArtifacts: [],
-  rawResponseText: seeded.rawResponseText,
-  transportWarnings: seeded.transportWarnings,
-  normalizedText: seeded.rawResponseText,
-  rawOutputRef: (seeded.providerProof.outputRefs as string[] | undefined)?.[0] ?? null,
-  rawOutputHash: seeded.rawOutputHash,
-  parseStatus: "not_requested",
-  parsedJson: null,
-  schemaValidationStatus: "not_applicable",
-  providerProof: seeded.providerProof as AiFeedResult["providerProof"],
-  failureReason: null,
-  reviewRequiredReason: null,
-});
-
 export const initialXuanxueStages = (
   order: XuanxueAiProductionOrder,
   profile: XuanxueAiProductionProfile,
-): XuanxueAiStageRecord[] => profile.stages.map((definition, ordinal) => {
-  const seeded = order.seededStages.find((stage) => stage.stageId === definition.stageId);
-  const seededFailure = seeded
-    ? xuanxueAiOutputIntegrityFailure(seeded.rawResponseText)
-    : null;
-  const seededAccepted = Boolean(seeded && !seededFailure);
-  return {
+): XuanxueAiStageRecord[] => profile.stages.map((definition, ordinal) => ({
     orderId: order.orderId,
     stageId: definition.stageId,
     ordinal,
-    executionId: seededAccepted
-      ? seeded!.executionId
-      : `${XUANXUE_AI_PRODUCTION_JOB_ID}:${order.orderId}:${definition.stageId}`,
-    supersededExecutionId: seededFailure ? seeded!.executionId : null,
-    status: seededAccepted
-      ? "completed"
-      : seededFailure ? "recovery_pending" : "queued",
-    attemptCount: seeded ? 1 : 0,
+    executionId: `${XUANXUE_AI_PRODUCTION_JOB_ID}:${order.orderId}:${definition.stageId}`,
+    supersededExecutionId: null,
+    status: "queued",
+    attemptCount: 0,
     material: order.materials[ordinal]!,
-    aiFeedResult: seededAccepted ? seededAiResult(seeded!) : null,
-    attachmentUploadProof: seededAccepted
-      ? (seededAiResult(seeded!).providerProof.attachmentUploadProof
-        ?? null) as XuanxueAiStageRecord["attachmentUploadProof"]
-      : null,
-    rawResponseText: seededAccepted ? seeded!.rawResponseText : null,
-    rawOutputHash: seededAccepted ? seeded!.rawOutputHash : null,
-    progressPhase: seededAccepted
-      ? "terminal"
-      : seededFailure ? "recovery_pending" : "queued",
-    failureReason: seededFailure,
+    aiFeedResult: null,
+    attachmentUploadProof: null,
+    rawResponseText: null,
+    rawOutputHash: null,
+    progressPhase: "queued",
+    failureReason: null,
     createdAt: order.createdAt,
     updatedAt: order.createdAt,
-  };
-});
+}));
 
 const generatedStageDirectory = (
   runtime: XuanxueAiProductionRuntime,
@@ -247,16 +207,9 @@ const requireParentConversationProof = (
     if (!primaryPersonRef) throw new Error("XUANXUE_AI_PRODUCTION_PRIMARY_PERSON_NOT_FROZEN");
     assertPersonParentMatches({ child: record, parent: parentOrder, personRef: primaryPersonRef });
   }
-  const rebuild = runtime.store.readParentConversationRebuild({
-    parentJobId: parentRef.jobId,
-    parentStageId: parentRef.stageId,
-    originalRawOutputHash: parentRef.rawOutputHash,
-  });
   const physical = physicalParentRecord({
-    runtime,
     originalParent: parentOrder,
     parentRef,
-    rebuild,
   });
   const parentStage = physical.stage;
   const parentRawOutputHash = parentStage.rawOutputHash
@@ -265,14 +218,10 @@ const requireParentConversationProof = (
   const providerPageUrl = parentStage.aiFeedResult?.providerProof.webChatUrl;
   if (!parentRawOutputHash
     || parentRawOutputHash !== parentRef.rawOutputHash
-    || !providerPageUrl
-    || (rebuild && providerPageUrl !== rebuild.providerPageUrl)) {
+    || !providerPageUrl) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
   }
   const parentMarker = providerTurnMarker(parentStage.aiFeedResult!.providerProof);
-  if (rebuild?.rebuiltTurnMarker && parentMarker !== rebuild.rebuiltTurnMarker) {
-    throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_PROOF_MISMATCH");
-  }
   return { parentStage, parentRawOutputHash, providerPageUrl, parentMarker };
 };
 
@@ -359,20 +308,17 @@ const prepareStageFeedInputs = async (
 
 const xuanxueProviderExecutionProfile = (
   record: XuanxueAiOrderRecord,
-): NonNullable<AiFeedInput["providerExecutionProfile"]> => {
+): NonNullable<AiFeedInput["providerExecutionProfile"]> | null => {
   const source = record.order.providerExecutionProfile;
-  if (!source) {
-    return defaultGptWebProviderExecutionProfile({
-      owner: "xuanxue-ai-production",
-      reasoningTier: "high",
-    });
-  }
+  if (!source) return null;
   return buildGptWebProviderExecutionProfile({
-    profileRef: `agent-normalized:${source.profile_ref}`,
+    profileRef: `agent-canonical:${source.profile_ref}`,
     accountCapabilityRef: source.account_capability_ref,
     modelDisplayName: source.model_label,
     modelFamily: source.model_family,
-    reasoningTier: source.reasoning_effort,
+    reasoningTier: source.reasoning_effort === "xhigh"
+      ? "extra_high"
+      : source.reasoning_effort,
     executorIdentityRef: source.executor_identity_ref,
     acceptanceRef: source.ai_acceptance_ref,
     acceptanceVersion: source.ai_acceptance_version,
@@ -389,6 +335,7 @@ export const buildXuanxueAiFeedInput = async (
 ): Promise<AiFeedInput> => {
   const prepared = await prepareStageFeedInputs(runtime, record, stage, definition);
   const continuation = prepared.parent?.continuation ?? continuationFor(record, definition);
+  const providerExecutionProfile = xuanxueProviderExecutionProfile(record);
   const taskLabel = prepared.parent?.taskLabel
     ?? labelForStage(record.order.productId, stage.stageId);
   return {
@@ -408,7 +355,7 @@ export const buildXuanxueAiFeedInput = async (
       : stage.material.textPrompt,
     inputRefs: prepared.inputRefs,
     modelName: null,
-    providerExecutionProfile: xuanxueProviderExecutionProfile(record),
+    ...(providerExecutionProfile ? { providerExecutionProfile } : {}),
     timeoutMs: stage.material.timeoutMs,
     maxFileCount: stage.material.maxFileCount + prepared.trustedGeneratedFileCount,
     requestedBy: "ai-capability",

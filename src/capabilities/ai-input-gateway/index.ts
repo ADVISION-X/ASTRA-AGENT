@@ -2,7 +2,6 @@ export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
 export {
   AiFeedProviderExecutionProfileSchema,
   buildGptWebProviderExecutionProfile,
-  defaultGptWebProviderExecutionProfile,
   type AiFeedInput,
   type AiFeedProviderExecutionProfile,
   type AiFeedResult,

@@ -1,6 +1,6 @@
 # GrassEye AI 投喂能立组施工图 V3
 
-版本：2026-08-19.1  
+版本：2026-08-21.2
 状态：active blueprint  
 适用 owner：`src/capabilities/ai-input-gateway/**`
 
@@ -13,7 +13,7 @@
 ```txt
 business owner
 → AiInputGatewayAbilityGroup.execute
-→ production GPT admission normalization
+→ canonical production GPT profile admission
 → managed web-chat execution
 → gpt-web-chat adapter
 → Web Chat Session Controller
@@ -28,7 +28,7 @@ business owner
 
 - 业务 owner 只提供任务、提示词、输入引用、输出合同、拓扑父引用与受治理执行档案；不提供 selector、坐标、tab id、标题、marker、浏览器命令或 action plan。
 - AI Input Gateway 只负责 provider transport、页面动作、原始回答与 transport evidence，不做八字、奇门、合婚、起名、SEO、选品等业务判断。
-- `BrowserAuthorityBroker` 发出的认证 authority lease 与短生命周期 exact `BrowserTargetLease` 是唯一浏览器物理执行基础；一个 ChatGPT 物理标签页承载多条逻辑会话，业务不得缓存或复活旧 session。
+- Local Runtime 只把 Browser public facade 注入 Gateway；Gateway 消费 operator Session Workspace 下已经签发的认证 authority lease 与短生命周期 exact `BrowserTargetLease`，不得自行签发 Workspace、打开私有 transport 或缓存旧 session。一个 ChatGPT 物理标签页承载多条逻辑会话。
 - canonical `/c/...` URL + logical turn marker + response hash 是逻辑会话身份；标题永远只是人类可读的次级 evidence。
 - 所有新页面动作都进入同一个 Session Controller；禁止增加 `provider-title-owner`、`chat-manager`、`rename-worker`、`model-picker-v2` 等平行 owner。
 
@@ -92,7 +92,7 @@ pro_standard
 pro_extended
 ```
 
-网页中文/英文标签只属于观察层映射。旧 `xhigh` 可在进入 Gateway 前归一为 `extra_high`；旧 `pro` 必须归一为一个明确 tier，不能在运行时继续用模糊 `pro`。
+网页中文/英文标签只属于 registry 内部观察映射。生产请求在 input hash 之前只接受上述 canonical tier；`xhigh`、无限定 `pro` 或其他非 canonical 值直接失败关闭，不存在 alias、默认值或归一 reader。
 
 执行规则：
 
@@ -141,7 +141,6 @@ verify_execution_profile
 attach_approved_files
 submit_prompt
 focus_canonical_conversation
-discover_conversation_via_search
 ack_rate_limit
 capture_response
 capture_generated_image
@@ -149,6 +148,10 @@ rename_exact_conversation
 verify_exact_conversation_title
 cleanup_owned_provider_ui
 ```
+
+`discover_conversation_via_search` 不是独立 actionId；它只是
+`focus_canonical_conversation` 在 sidebar 未物化精确 row 时的有界内部观察步骤，
+不得被 caller 选择、单独记账或成为第二会话路由动作。
 
 页面元素本身不穿越 extension transport；运行时只保存受限标量、坐标、identity hash 和结果。
 
@@ -266,9 +269,9 @@ short patrol lease
 
 进程重启时允许使用 `reuse-exact-url` 重新绑定物理 target，但绑定完成后逻辑切换继续走 sidebar DOM；不把 URL open 变成日常路由器。
 
-## Search Discovery Fallback
+## Canonical Conversation Registry Action
 
-较旧会话的 sidebar row 暂时未物化时允许一个 bounded discovery transaction：
+现有会话路由只有一个 registry action。它先从已物化 sidebar 解析精确 canonical pathname；精确 row 尚未物化时，同一 action 才执行以下有界内部 discovery step，不建立另一动作或调用方可选路径：
 
 ```txt
 close only exact stale Search chats dialog if present
@@ -354,7 +357,7 @@ acquire existing exclusive patrol lease
 
 新协议父会话的 same-conversation child 继承同一个 `expectedTitle/expectedTitleHash`；如果用户/Provider 改了标题，child 封口时修复。
 
-legacy parent 没有 title proof 时 child 不伪造成功，不强行收编未知标题。
+current V5 parent 缺少或不匹配 title proof 时 child 进入 `review_required`，不得伪造成功或收编未知标题。
 
 fork child 是新 conversation，生成新标题。
 
@@ -422,7 +425,7 @@ input refs
 - title text used as logical conversation identity。
 - arbitrary menu closing / Escape universal cleanup。
 - refresh/reload as recovery default。
-- archive/delete/share/pin/project-move/global settings/history edit unless a future active law explicitly authorizes。
+- archive/delete/share/pin/project-move/global settings/history edit。
 
 ## Response Capture
 
@@ -487,7 +490,7 @@ failed
 - `response_checkpointed` = Provider 结果真相已经安全，不许重投。
 - `title_verified` = Session Controller 已完成会话标题封口。
 - `finalized` = 这个 title-managed GPT Web 执行可以正式发布完成。
-- legacy unmanaged continuation 可以保持旧兼容完成语义，但不能伪造 title proof。
+- continuation 没有当前 canonical profile/title proof 时只能 `recovery_pending | review_required`；不存在 unmanaged、legacy 或兼容完成语义。
 
 checkpoint patrol 仍必须在 provider branch success/failure/final publication 的 finally 生命周期停止。
 
@@ -521,24 +524,21 @@ responseHash
 failure ledger
 ```
 
-v2 记录允许原地 migration 到 v3，但：
-
-- 不伪造新 profile proof。
-- 不伪造 title proof。
-- 不恢复旧 `systemChatTitle/chatTitleRename` debt。
-- old title fields 只被剥离，不成为身份。
+旧 execution 记录只保留为不可变历史，不进入 active production reader。不得通过 migration reader、alias、默认值或兼容分支补造 profile/title proof，也不得恢复旧 `systemChatTitle/chatTitleRename` debt。
 
 ## Bounded Parallel Web Chat
 
 ```txt
-capacity lease: N bounded, default >=10
-browser mutation lease: N=1
+browser action admission: max_browser_in_flight=1
+business/provider waits: durable, no Browser lock
 provider generation wait: concurrent
 submission priority: before patrol
 patrol queue: durable SQLite FIFO
 ```
 
 一个物理 ChatGPT tab，不建 tab pool。
+
+同一次 provider 页面观察即使只读，也必须按 `document -> inspect/find/readText -> terminal evaluation` 逐条 `await`。禁止把同一 `BrowserTargetLease` 上的 `executeDomIntent`、`navigate`、`attachFile` 或其他 Browser action 放入 `Promise.all`、`allSettled`、未等待 Promise 或等价 fan-out；这不是并行提速，而是绕过唯一 mutation lane 并触发确定性的 `BROWSER_BACKPRESSURE`。
 
 title transaction 使用已有 patrol/mutation 机制，不新增 title lease scheduler。
 
@@ -579,8 +579,8 @@ AiFeedResult schema valid
 2. 同语义 retry 不重复发送。
 3. canonical URL 占用冲突。
 4. `/c/WEB:` 只作 anti-resubmission evidence。
-5. ten in-flight + N+1 wait。
-6. mutation N=1 + patrol FIFO。
+5. one Browser action in-flight + next action durable wait。
+6. single mutation lock + patrol FIFO。
 7. exact target/document binding。
 8. semantic profile `high / extra_high / pro_standard / pro_extended`。
 9. profile 已正确时 no-op。
@@ -592,17 +592,18 @@ AiFeedResult schema valid
 15. title menu/textbox 暂未 ready 保留 checkpoint 并 recovery_pending。
 16. wrong marker/multiple row review_required。
 17. same-conversation title proof inheritance。
-18. legacy parent 无 title proof 不伪造。
+18. current V5 parent 缺失或错误 title proof 时 review_required。
 19. fork child 新标题。
 20. title 不参与 route identity。
-21. old sidebar row 的 marker search discovery。
+21. fresh/upload/submit/resume 的复合页面观察逐条串行，源码出现 Browser action fan-out 即审计失败。
+21. 唯一 canonical-conversation registry action 的有界 marker discovery step。
 22. search result 必须 canonical path + marker 双证明。
 23. search dialog finally close。
 24. response checkpoint 后崩溃恢复不重投，继续标题封口。
 25. provider post-processing 无 detached `void` 第二链。
 26. generated image exact outer turn + viewer save identity。
 27. title/model 旧实现文件保持删除。
-28. v2 → v3 migration 不伪造证明。
+28. legacy execution active reader/alias/default/compatibility 为零。
 29. providerProof 投影 execution profile + title proof。
 30. xuanxue production profile source identity 保留 sourceProfileRef/sourceProfileHash。
 

@@ -1,23 +1,15 @@
-# GrassEye 逐插件本地干预施工图
+# GrassEye 逐插件本地干预终态施工图
 
-版本：2026-08-14
-状态：active construction map
-权威边界：本文件只解释 active law 的落位；不创建中央干预 owner，不替代各插件 task store。
+status: active
+version: 2026-08-21.terminal
 
-## 1. 唯一主链
+## 唯一主链
 
-```txt
-Local Workbench
-  -> explicit plugin route
-    -> GrassEyeWorkbenchHandle named method
-      -> plugin public facade
-        -> plugin-owned task store expectedRevision CAS
-          -> plugin-owned safe point acknowledgement
-```
+Local Workbench -> explicit plugin route -> named Workbench Handle method -> plugin public facade -> plugin-owned task store expectedRevision CAS -> plugin-owned safe point acknowledgement。
 
-`pause / cancel / takeover / resume` 都是整任务请求。Route、App、Mediator、Local Runtime 不保存状态、不决定下一步、不访问 Browser 私有实现。每个插件先持久化请求事件，再以 `taskId + expectedRevision` 做 CAS；stale revision 必须零写入失败。成功 ACK 后，不得开始下一条 Browser、AI 或下载命令。已经提交的外部副作用只等待既有 checkpoint/timeout，结果不明进入 `review_required`，禁止自动重放。
+pause/cancel/takeover/resume 是整任务请求。Route/App/Mediator/Local Runtime 不保存状态、不决定下一步、不访问 Browser 私有实现。Plugin 先持久化请求事件，再按 `taskId + expectedRevision` 做 CAS；stale revision 必须零写入失败。成功 ACK 后不得开始下一条 Browser、AI 或下载命令。外部副作用结果不明进入 `review_required`，禁止自动重放。
 
-持久化共性字段只是一致语义，不是共享中央表：
+Plugin 自有状态只复用各自 task store，不建立中央干预表：
 
 ```txt
 interventionRevision
@@ -26,44 +18,39 @@ pendingIntervention { requestId, action, reason, requestedAt, expectedRevision }
 checkpoint
 ```
 
-允许状态由各 owner 收窄，但不得保留旧兼容枚举：
+状态只允许 `running | pause_requested | paused | cancel_requested | cancelled | takeover_requested | taken_over | review_required`；不得保留旧枚举、别名或兼容 reader。
+
+## Owner 与安全点
+
+| Plugin owner | 唯一持久化 owner | 必须命中的安全点 | 不确定结果 |
+| --- | --- | --- | --- |
+| `amazon-invoice-upload` | invoice task/ledger store | item 前后、file attach 前、submit 前、result/ledger 后 | 已提交无可信结果即 `review_required`，不重传 |
+| `amazon-product-mining` | mining task store | keyword、search、detail、reviews、AI submit/raw checkpoint、package commit | AI 结果不明即 `review_required`，不重提 |
+| `xuanxue-ai-production` | xuanxue SQLite/WAL order store | Cloud order fsync、stage feed、response checkpoint、join、terminal CAS 前 | mutation `UNKNOWN` 只由该 Plugin 有界裁决；无法确认即 `review_required` |
+
+## Browser 规则
+
+BrowserTargetRef/BrowserDocumentRef 只属于当前 Browser Authority epoch，不能持久化 raw tab/window/debuggee。pause/cancel/takeover、navigation、detach、revoke 后旧 ref 失效；resume 必须从 owning plugin checkpoint 经 Browser public facade 重新验证当前 Session Workspace，并为每条命令动态取得唯一 Authority/Target/Document，不存在逐 job 或 operator-claimed Target/Document approval。没有 active-tab/URL-first/first-page fallback、OS 输入、系统 picker 或第二控制链。
+
+`xuanxue-ai-production` 的唯一业务入口是：
 
 ```txt
-running | pause_requested | paused | cancel_requested | cancelled
-| takeover_requested | taken_over | review_required
+outbound Cloud Worker
+-> V5 grant/manifest/fence/deadline verification
+-> unique Mediator route
+-> xuanxue-ai-production Plugin durable local order
 ```
 
-## 2. Owner 矩阵
+干预只作用于已经由 Cloud Worker fsync 后交给 Plugin 的本地订单。Cloud Worker 继续只拥有出站 claim/heartbeat/download/checkpoint/first-terminal-CAS transport，不接受人工 action 或 stage mutation，不直连 Browser/capability/private Plugin 文件。不存在 inbound whole-order、HMAC/LNA/localhost business route、Cloud callback、第二 worker、第二 ledger 或第二结果通道。
 
-| Plugin owner | Active law | 持久化 owner | 必须命中的安全点 | 不确定结果 |
-| --- | --- | --- | --- | --- |
-| amazon-invoice-upload | GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1 | invoice task/ledger store | item 前后、file attach 前、submit 前、result/ledger 后 | 已提交但无结果即 `review_required`，不重传 |
-| amazon-product-mining | GRASSEYE-AMAZON-PRODUCT-MINING-027-V1 | mining SQLite/store | keyword、search、detail、reviews、AI submit/raw checkpoint、package commit | AI 结果不明即 `review_required`，不重提 |
-| xuanxue-ai-production | GRASSEYE-XUANXUE-AI-PRODUCTION-004-V1 | xuanxue SQLite order store | dequeue、stage feed、response checkpoint、join、hash commit、cloud publish | 只允许本地整单入口；cloud 无人工命令 |
+## 响应预算与恢复
 
-## 3. 响应预算
+- queue/dequeue 边界 1 秒内停止新命令；一般 DOM/item/round 边界 3 秒；xuanxue 新 stage 边界 2 秒。
+- 已提交 provider/download/upload 只等待 owner 既有 timeout/checkpoint；等待期间不得触发新的页面动作。
+- timeout 不是继续运行授权；owner 必须留下 failure reason、checkpoint 与 evidence refs。
+- takeover ACK 先撤销当前 Target/Document；resume 从同一 Plugin checkpoint 经 Browser public facade 重新取得当前 Workspace/Authority/Target/Document，旧 ref 永久不可复活。
 
-- queue/dequeue 边界：1 秒内停止新命令。
-- 一般 DOM/item/round 边界：3 秒内停止新命令。
-- xuanxue 新 stage：2 秒内停止。
-- image transfer：允许当前传输最多 10 秒到 owning checkpoint，之后不得开始下一项。
-- 已提交 provider/download/upload：只等该 owner 现有 timeout 与 checkpoint；等待期间不得触发页面动作。
-
-预算超时不是继续运行授权。Owner 必须写 `review_required` 或相应终态，并把 failure reason、最后 checkpoint 和 evidence refs 留在自己的账内。
-
-## 4. 精确 Tab 与恢复
-
-- `BrowserTargetRef` 和 `BrowserDocumentRef` 只存在当前进程；禁止持久化 raw `tabId/windowId/debuggee`。
-- pause/cancel 后旧 document generation 失效。
-- takeover ACK 必须先向扩展发送精确 `release_target`，解除该 Tab 的 `chrome.debugger` 附着但不关闭用户标签页，然后销毁旧 target/document refs。
-- takeover/resume 必须从 owner checkpoint 重新 acquire 精确 target，核验 origin、业务身份和已持久化 hash，再继续；旧 refs 永久不可复活。
-- Product Mining、xuanxue-ai-production 接管 provider Tab 时，AI Input Gateway 必须登记精确 owner key，并阻塞全部新 Web AI 操作；只有同一 owner 的显式 resume 才解除阻塞。
-- 不得恢复 active-tab、front-window、URL-first、first-page、same-path 或 host-tab fallback。
-- DOM/Browser 动作只走插件精确 target；系统文件选择器、OS 鼠标、OS 键盘和焦点租约均不存在。
-
-## 5. Workbench 接线
-
-每个 active plugin 只暴露具名方法：
+Workbench 只暴露逐 Plugin 具名方法：
 
 ```txt
 read<Task>InterventionStatus(taskId)
@@ -73,20 +60,8 @@ takeover<Task>({ taskId, expectedRevision, reason, requestId })
 resume<Task>({ taskId, expectedRevision, reason, requestId })
 ```
 
-HTTP route 必须逐 plugin、逐 method allowlist。外部输入不得含 `stageId / selector / coordinate / browserCommand / nextAction / actionPlan / rawTabId / windowId`。UI 只展示 owner 返回的 revision、state、checkpoint、pending request 和 failure reason。
+外部输入不得含 `stageId/selector/coordinate/browserCommand/nextAction/actionPlan/rawTabId/windowId`。UI 只投影 Plugin 返回的 revision、state、checkpoint、pending request 和 failure reason。
 
-`xuanxue-ai-production` 固定使用本地 Workbench 整单入口。Cloud worker 只继续现役 claim/heartbeat/checkpoint/result/failure 出站协议，任何 cloud payload 出现人工干预 action 或 stage mutation 都是 machine-blocking finding。
+## 验收
 
-## 6. 质检与删除完成标准
-
-每个插件至少有确定性 acceptance，覆盖：
-
-1. 安全点 pause；
-2. 下一命令前 cancel；
-3. checkpoint 后 takeover；
-4. 同 task/order resume；
-5. stale revision 零写入；
-6. 外部副作用不重复；
-7. owner 边界与禁止字段。
-
-静态 inspector 必须证明 named facade、owner store 字段、安全点调用、route/handle 纯转发和禁用旧枚举/第二入口。真实 Chrome/provider acceptance 另证目标绑定、零普通焦点、实际暂停预算和恢复身份；静态 Audit、typecheck 或 fixture 不得冒充这部分证据。
+每个 active plugin deterministic acceptance 覆盖 safe point、CAS、stale zero write、external side effect non-replay、owner boundary 与禁字段。real Chrome/provider acceptance 单列证明真实 target、暂停预算和恢复；静态/fixture 不替代。

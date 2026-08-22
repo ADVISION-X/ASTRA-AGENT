@@ -12,12 +12,41 @@ export class BrowserOwnerLock {
 
   public async acquire(): Promise<void> {
     await mkdir(dirname(this.lockPath), { recursive: true });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        this.handle = await open(this.lockPath, "wx", OWNER_LOCK_MODE);
+        await this.handle.writeFile(`${process.pid}\n`, "utf8");
+        return;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== EEXIST) throw error;
+        if (attempt === 0 && await this.removeProvenDeadOwnerLock()) continue;
+        throw new Error("BROWSER_DUAL_ACTIVE_WORKER");
+      }
+    }
+  }
+
+  private async removeProvenDeadOwnerLock(): Promise<boolean> {
+    const candidate = await open(this.lockPath, "r");
     try {
-      this.handle = await open(this.lockPath, "wx", OWNER_LOCK_MODE);
-      await this.handle.writeFile(`${process.pid}\n`, "utf8");
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === EEXIST) throw new Error("BROWSER_DUAL_ACTIVE_WORKER");
-      throw error;
+      const stat = await candidate.stat();
+      const ownerUid = typeof process.getuid === "function" ? process.getuid() : null;
+      if (!stat.isFile() || (stat.mode & 0o077) !== 0 || (ownerUid !== null && stat.uid !== ownerUid)) {
+        throw new Error("BROWSER_REPAIR_REQUIRED");
+      }
+      const rawPid = (await candidate.readFile("utf8")).trim();
+      if (!/^[1-9][0-9]*$/u.test(rawPid)) throw new Error("BROWSER_REPAIR_REQUIRED");
+      try {
+        process.kill(Number(rawPid), 0);
+        return false;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ESRCH") return false;
+      }
+      const current = await lstat(this.lockPath);
+      if (current.dev !== stat.dev || current.ino !== stat.ino) return false;
+      await unlink(this.lockPath);
+      return true;
+    } finally {
+      await candidate.close();
     }
   }
 

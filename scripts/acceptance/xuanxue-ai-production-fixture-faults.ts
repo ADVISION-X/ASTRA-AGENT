@@ -25,6 +25,11 @@ const withoutOutput = (result: AiFeedResult): AiFeedResult => ({
   failureReason: "不能获取对象。 (-1728)",
 });
 
+const recoveryPendingFailure = (result: AiFeedResult): AiFeedResult => ({
+  ...withoutOutput(result),
+  status: "recovery_pending",
+});
+
 const terminalAttachmentFailure = (
   result: AiFeedResult,
 ): AiFeedResult => {
@@ -146,8 +151,13 @@ export class FixtureGatewayFaults {
       emitsRecoveryProgress: false,
     };
     if (this.take(this.freshConversationPending, key)) return {
-      result: preSubmitReviewFailure(result,
+      result: {
+        ...preSubmitReviewFailure(result,
         "review_required: ChatGPT fresh conversation was not established; last=pending: ChatGPT fresh conversation pending; pageUrl=https://chatgpt.com/"),
+        status: "recovery_pending",
+        failureReason: "ChatGPT fresh conversation pending",
+        reviewRequiredReason: null,
+      },
       emitsRecoveryProgress: true,
     };
     if (this.take(this.preSubmitIdentityConflict, key)) return {
@@ -160,7 +170,7 @@ export class FixtureGatewayFaults {
       emitsRecoveryProgress: false,
     };
     if (this.take(this.transient, key)) return {
-      result: withoutOutput(result),
+      result: recoveryPendingFailure(result),
       emitsRecoveryProgress: true,
     };
     if (this.take(this.contaminated, key)) return {

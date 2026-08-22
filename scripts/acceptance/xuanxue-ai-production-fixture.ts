@@ -203,23 +203,6 @@ const bareHashResult = (
   },
 });
 
-const divergentParentRebuildResult = (
-  result: AiFeedResult,
-): AiFeedResult => {
-  const rawResponseText = `${result.rawResponseText}\nDIVERGENT_PARENT_REBUILD`;
-  const rawOutputHash = hash(rawResponseText);
-  return {
-    ...result,
-    rawResponseText,
-    normalizedText: rawResponseText,
-    rawOutputHash,
-    providerProof: {
-      ...result.providerProof,
-      outputHash: rawOutputHash,
-    },
-  };
-};
-
 export class FixtureGateway implements AiInputGatewayAbilityGroup {
   readonly abilityGroupId = "ai-input-gateway" as const;
   readonly requests: AiFeedInput[] = [];
@@ -232,7 +215,6 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
   readonly maxActiveByContinuation = new Map<string, number>();
   holdQimen = false;
   bareOutputHashes = false;
-  divergeParentRebuilds = false;
   readonly faults = new FixtureGatewayFaults();
   private releaseHeldQimen: (() => void) | null = null;
   private readonly heldQimen = new Promise<void>((resolve) => {
@@ -308,10 +290,6 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
         this.requests.length,
         this.generatedImageArtifact,
       );
-      if (
-        this.divergeParentRebuilds
-        && request.taskIdentity.sourceTaskId.includes(":parent-rebuild:")
-      ) return divergentParentRebuildResult(result);
       const fault = this.faults.consume(request, result);
       if (fault?.emitsRecoveryProgress) {
         await options?.onProgress?.({
@@ -371,6 +349,10 @@ const fixtureTriggerKind = (
   productId: XuanxueAiProductionOrder["productId"],
   localization: boolean,
 ): XuanxueAiProductionOrder["triggerKind"] => {
+  if (
+    productId === "localization_static_review_candidate"
+    || productId === "localization_static_review_selector"
+  ) return "localization_static_review";
   if (localization) return "terminal_localization";
   if (productId === "scheduled_quality_reflection") return "scheduled_quality_reflection";
   if (productId === "public_knowledge_article_pipeline") return "scheduled_public_content";
@@ -411,7 +393,7 @@ export const order = (
   const contract = localization ? XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS[productId] : null;
   if (localization && !localizationRole) throw new Error("fixture localization role is required");
   return {
-  protocolVersion: "xuanxue-ai-production-v4",
+  protocolVersion: "xuanxue-ai-production-v5",
   orderId,
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,
@@ -432,7 +414,6 @@ export const order = (
   conversationScopeRef: `conversation-scope:${orderId}`,
   conversationParent: null,
   joinParents: [],
-  seededStages: [],
   materials: stageIds.map((stageId) => material(stageId, localization)),
   createdAt: new Date().toISOString(),
   };

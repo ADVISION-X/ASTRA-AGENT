@@ -32,15 +32,11 @@ export const buildAmazonInvoiceHandle = (
 });
 
 const buildAmazonInvoiceMissionHandle = (assembly: WorkbenchAssembly) => ({
-  async openAdminInvoicePage(input: Parameters<typeof startAmazonInvoiceAdminOpenTask>[1]) {
-    return runAmazonInvoiceAdminOpenRoute(input, await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"));
+  async openAdminInvoicePage(input: Parameters<typeof startAmazonInvoiceAdminOpenTask>[0]) {
+    return runAmazonInvoiceAdminOpenRoute(input);
   },
   async startAmazonInvoiceUploadMission(input: Parameters<typeof runAmazonInvoiceUploadMissionRoute>[0]) {
-    return runAmazonInvoiceUploadMissionRoute(input, [
-      await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
-      assembly.runtimeLogger,
-      assembly.evidenceStore,
-    ]);
+    return runAmazonInvoiceUploadMissionRoute(input);
   },
 });
 
@@ -50,17 +46,11 @@ const buildAmazonInvoiceTaskHandle = (
 ) => ({
   async startAmazonInvoiceUploadTask(input: Parameters<typeof runAmazonInvoiceUploadTaskRoute>[0]) {
     return runAmazonInvoiceUploadTaskRoute(input, {
-      browser: await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
-      runtimeLogger: assembly.runtimeLogger,
-      evidenceStore: assembly.evidenceStore,
       dataDir,
     });
   },
   async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
     return runAmazonInvoiceUploadResumeRoute(input, {
-      browser: await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
-      runtimeLogger: assembly.runtimeLogger,
-      evidenceStore: assembly.evidenceStore,
       dataDir,
     });
   },
@@ -99,8 +89,6 @@ const buildAmazonInvoiceDownloadHandle = (
 ) => ({
   async startAmazonTaxInvoiceDownloadTask(input: Parameters<typeof runAmazonTaxInvoiceDownloadRoute>[0]) {
     return runAmazonTaxInvoiceDownloadRoute(input, {
-      browser: await assembly.browserAuthority.acquireTargetLease("amazon-invoice-upload"),
-      runtimeLogger: assembly.runtimeLogger,
       dataDir,
     });
   },
@@ -111,6 +99,6 @@ const buildAmazonInvoiceDownloadHandle = (
     return getLatestAmazonTaxInvoiceDownloadTaskFromPlugin({ dataDir, ...(input ?? {}) });
   },
   async getAmazonTaxInvoiceDownloadArtifact(taskId: string) {
-    return getAmazonTaxInvoiceDownloadArtifactFromPlugin({ dataDir, taskId });
+    return getAmazonTaxInvoiceDownloadArtifactFromPlugin(taskId);
   },
 });

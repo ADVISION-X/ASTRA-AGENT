@@ -1,8 +1,5 @@
 import type { XuanxueAiProductionProfile } from "./xuanxue-ai-production.profile.js";
-import {
-  createAgentRuntimeReceiptV2,
-  type AgentBrowserAuthorityProofV2,
-} from "./xuanxue-ai-production-browser-proof.js";
+import type { AgentRuntimeReceiptV5 } from "./xuanxue-ai-production-browser-proof.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type {
   XuanxueAiOrderRecord,
@@ -62,17 +59,9 @@ export const completeXuanxueAiProductionOrder = (
   runtime: XuanxueAiProductionRuntime,
   record: XuanxueAiOrderRecord,
   profile: XuanxueAiProductionProfile,
-  browserAuthorityProof?: AgentBrowserAuthorityProofV2,
+  runtimeReceipt?: AgentRuntimeReceiptV5,
 ): XuanxueAiOrderRecord => {
   const updatedAt = new Date().toISOString();
-  const runtimeReceipt = browserAuthorityProof
-    ? createAgentRuntimeReceiptV2({
-      executionRef: record.order.orderId,
-      browserRequired: true,
-      browserAuthorityProof,
-      dynamicProofVerdictRef: null,
-    })
-    : undefined;
   const result: XuanxueAiProductionResult = {
     orderId: record.order.orderId,
     sourceTaskId: record.order.sourceTaskId,

@@ -79,9 +79,6 @@ export const extractMarkdownHeadings = (text: string): ReadonlySet<string> => {
 export const containsAny = (text: string, tokens: readonly string[]): boolean =>
   tokens.some((token) => text.includes(token));
 
-export const escapeMarkdownCell = (value: string): string =>
-  value.split("|").join("\\|").split("\n").join(" ");
-
 export const pathSegments = (repoPath: string): string[] => repoPath.split("/").filter((segment) => segment.length > 0);
 
 export const isPluginOwnerPath = (repoPath: string): boolean => {
@@ -102,15 +99,6 @@ export const isPrivateCapabilityRuntimePath = (repoPath: string): boolean => {
 export const isPublicCapabilityFacadePath = (repoPath: string): boolean => {
   const segments = pathSegments(repoPath);
   return isCapabilityOwnerPath(repoPath) && segments.length === 4 && segments[3] === "index.ts";
-};
-
-export const isPublicPluginFacadePath = (repoPath: string): boolean => {
-  const segments = pathSegments(repoPath);
-  if (!isPluginOwnerPath(repoPath) || segments.length !== 4) {
-    return false;
-  }
-  const fileName = segments[3] ?? "";
-  return fileName === "index.ts" || fileName.endsWith(".public.ts");
 };
 
 export const isTopLevelPluginFile = (repoPath: string): boolean => {

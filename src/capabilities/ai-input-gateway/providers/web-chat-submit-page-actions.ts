@@ -71,12 +71,10 @@ export const verifyPromptPasted = async (
 ): Promise<WebChatEvaluation> => {
   const unavailable = await providerUnavailable(browser);
   if (unavailable) return unavailable;
-  const [pageUrl, composer, text, send] = await Promise.all([
-    documentUrl(browser),
-    inspectComposer(browser),
-    readText(browser, CHATGPT_COMPOSER_SELECTOR, { expectedMatches: 1 }),
-    browser.executeDomIntent({ kind: "inspect", selector: CHATGPT_SEND_SELECTOR, fields: ["tagName", "visible", "disabled"] }),
-  ]);
+  const pageUrl = await documentUrl(browser);
+  const composer = await inspectComposer(browser);
+  const text = await readText(browser, CHATGPT_COMPOSER_SELECTOR, { expectedMatches: 1 });
+  const send = await browser.executeDomIntent({ kind: "inspect", selector: CHATGPT_SEND_SELECTOR, fields: ["tagName", "visible", "disabled"] });
   const sendState = record(send);
   const promptPrefixVisible = input.expectedPrefix.length > 0 && text.includes(input.expectedPrefix);
   const promptSuffixVisible = input.expectedSuffix.length > 0 && text.includes(input.expectedSuffix);
@@ -169,17 +167,58 @@ export const verifyLastUserMessageAttachments = async (
   browser: BrowserTargetLease,
   _context: AiProviderAdapterContext,
   expectedCount: number,
-  _expectedKind: "image" | "file",
-  _expectedFileNames: readonly string[],
-  _promptText: string,
+  expectedKind: "image" | "file",
+  expectedFileNames: readonly string[],
+  promptText: string,
 ): Promise<WebChatEvaluation> => {
   const pageUrl = await documentUrl(browser);
   if (expectedCount === 0) {
     return { status: "success", message: "no submitted attachment was requested", pageUrl, boundAttachmentCount: 0 };
   }
+  if (!pageUrl.startsWith("https://chatgpt.com/")) {
+    return { status: "review_required", message: "WEB_CHAT_PROVIDER_IDENTITY_DRIFT", pageUrl };
+  }
+  const promptPrefix = promptText.slice(0, Math.min(48, promptText.length));
+  if (promptPrefix.length === 0) {
+    return { status: "review_required", message: "CHATGPT_SUBMITTED_PROMPT_IDENTITY_MISSING", pageUrl };
+  }
+  const candidateCount = await count(browser, CHATGPT_USER_TURN_SELECTOR, 1, promptPrefix);
+  if (candidateCount !== 1) {
+    return { status: "pending", message: "waiting for one exact submitted ChatGPT user turn", pageUrl, boundAttachmentCount: 0 };
+  }
+  const turnId = await browser.executeDomIntent({
+    kind: "readAttribute",
+    selector: CHATGPT_USER_TURN_SELECTOR,
+    name: "data-testid",
+    textContains: promptPrefix,
+    expectedMatches: 1,
+    maxChars: 128,
+  });
+  if (typeof turnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(turnId)) {
+    throw new Error("BROWSER_TARGET_INVALID");
+  }
+  const submittedText = await readText(
+    browser,
+    `[data-testid=${JSON.stringify(turnId)}][data-turn='user']`,
+    { expectedMatches: 1 },
+  );
+  const boundNames = expectedFileNames.filter((fileName) => submittedText.includes(fileName));
+  const promptBound = submittedText.includes(promptPrefix)
+    && submittedText.includes(promptText.slice(-Math.min(48, promptText.length)));
+  if (boundNames.length === expectedCount && promptBound) {
+    return {
+      status: "success",
+      message: `one submitted ChatGPT user turn binds the approved prompt and ${expectedKind} attachment set`,
+      pageUrl,
+      boundAttachmentCount: boundNames.length,
+      attachmentNames: boundNames,
+    };
+  }
   return {
-    status: "review_required",
-    message: "NOT_PRODUCTION_VERIFIED: submitted ChatGPT attachment DOM has not been observed",
+    status: "pending",
+    message: "submitted ChatGPT turn has not bound the exact approved attachment names",
     pageUrl,
+    boundAttachmentCount: boundNames.length,
+    attachmentNames: boundNames,
   };
 };

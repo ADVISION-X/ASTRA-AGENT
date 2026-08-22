@@ -152,17 +152,6 @@ const stageMaterials = async (
   return staged;
 };
 
-const seededStages = (
-  stages: XuanxueAiProductionCloudClaimedJob["seeded_stages"],
-): XuanxueAiProductionOrder["seededStages"] => stages.map((stage) => ({
-  stageId: stage.stage_id,
-  executionId: stage.execution_id,
-  rawResponseText: stage.raw_response_text,
-  rawOutputHash: stage.raw_output_hash,
-  providerProof: stage.provider_proof,
-  transportWarnings: stage.transport_warnings,
-}));
-
 const frozenSubject = (
   subject: XuanxueAiProductionCloudClaimedJob["frozen_subject"],
 ): XuanxueAiProductionOrder["frozenSubject"] => ({
@@ -213,7 +202,7 @@ const childOrder = (
   job: XuanxueAiProductionCloudClaimedJob,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v4",
+  protocolVersion: "xuanxue-ai-production-v5",
   orderId: job.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: job.source_task_id,
@@ -226,6 +215,16 @@ const childOrder = (
   inputBundleRef: job.input_bundle_ref,
   inputBundleHash: job.input_bundle_hash,
   requestHash: job.request_hash,
+  cloudExecutionIdentity: {
+    jobId: job.grant.job_id,
+    attemptId: job.grant.attempt_id,
+    requiredDeviceId: job.grant.required_device_id,
+    leaseVersion: job.grant.lease_version,
+    executionFenceHash: job.grant.execution_fence.fence_hash,
+    contractManifestHash: job.grant.contract_manifest_hash,
+    serverNow: job.grant.server_now,
+    leaseExpiresAt: job.grant.lease_expires_at,
+  },
   ...semanticIdentity(job),
   frozenSubject: frozenSubject(job.frozen_subject),
   conversationScopeRef: job.conversation_scope_ref,
@@ -240,7 +239,6 @@ const childOrder = (
     rawOutputHash: parent.raw_output_hash,
     conversationScopeRef: parent.conversation_scope_ref,
   })),
-  seededStages: seededStages(job.seeded_stages),
   materials,
   createdAt: job.created_at,
 });
@@ -279,7 +277,7 @@ const parentReplayOrder = (
   replay: CloudParentReplay | CloudDependencyReplay,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v4",
+  protocolVersion: "xuanxue-ai-production-v5",
   orderId: replay.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: replay.source_task_id,
@@ -306,7 +304,6 @@ const parentReplayOrder = (
     rawOutputHash: parent.raw_output_hash,
     conversationScopeRef: parent.conversation_scope_ref,
   })),
-  seededStages: seededStages(replay.seeded_stages),
   materials,
   createdAt: replay.created_at,
 });

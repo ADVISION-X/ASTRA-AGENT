@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
@@ -63,6 +64,17 @@ const verifyInitializationHealth = async (): Promise<void> => {
 
 };
 
+const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
+  const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+    scripts?: Record<string, string>;
+  };
+  assert.equal(
+    packageJson.scripts?.["grasseye:start"],
+    "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
+    "the sole startup command must make the enrolled cloud worker configuration available without a second environment loader",
+  );
+};
+
 const verifyHealthProbe = async (): Promise<void> => {
   let status: "degraded" | "healthy" = "degraded";
   const server = createServer((_request, response) => {
@@ -101,16 +113,19 @@ const verifyHealthProbe = async (): Promise<void> => {
 
 };
 
-const verifyCwsPageChannelPreflight = async (): Promise<void> => {
+const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
   const preflight = await runBrowserRuntimePreflight();
   assert.equal(preflight.status, "READY");
-  assert.equal(preflight.releaseState, "CWS_PAGE_CHANNEL");
+  assert.equal(preflight.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
+  assert.equal(preflight.authorityState, "BROWSER_AUTHORITY_ABSENT");
+  assert.equal(preflight.failureReason, "BROWSER_CHROME_PROFILE_READBACK_NOT_PRODUCTION_VERIFIED");
 };
 
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
+  await verifySingleLocalEnvironmentInjection();
   await verifyInitializationHealth();
   await verifyHealthProbe();
-  await verifyCwsPageChannelPreflight();
+  await verifyUnpackedWebSocketPreflight();
 }
 
 await runStartupInitializationHealthAcceptance();

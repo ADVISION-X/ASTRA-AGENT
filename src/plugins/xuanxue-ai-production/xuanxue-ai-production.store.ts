@@ -19,16 +19,6 @@ import {
   quarantineForeignCloudRecoveryOrderInStore,
 } from "./xuanxue-ai-production-store-cloud-recovery.js";
 import {
-  type RecoverProviderLease,
-  repairCompletedCheckpointProviderProofsInStore,
-} from "./xuanxue-ai-production-store-checkpoint-proof.js";
-import {
-  type XuanxueAiParentConversationRebuild,
-  readParentConversationRebuildFromStore,
-  recordParentConversationRebuildInStore,
-  resetOrderForConversationGraphRebuildInStore,
-} from "./xuanxue-ai-production-store-conversation-rebuild.js";
-import {
   openXuanxueAiProductionDatabase,
 } from "./xuanxue-ai-production-store-database.js";
 import {
@@ -40,16 +30,10 @@ import {
   updateXuanxueAiProductionStage,
 } from "./xuanxue-ai-production-store-orders.js";
 import {
-  recoverMissingRequiredContinuationParents,
   quarantineInvalidStoredOrders,
   readQuarantinedStoredOrder,
-  repairInvalidCompletedStageOutputs,
-  repairRecoverableProviderFailures,
+  quarantineInvalidCompletedStageOutputs,
 } from "./xuanxue-ai-production-store-recovery.js";
-
-export type {
-  XuanxueAiParentConversationRebuild,
-} from "./xuanxue-ai-production-store-conversation-rebuild.js";
 
 const RECOVERABLE_STATUSES = [
   "queued",
@@ -70,9 +54,7 @@ export class XuanxueAiProductionStore {
     this.dataDir = dataDir;
     this.database = openXuanxueAiProductionDatabase(dataDir);
     quarantineInvalidStoredOrders(this.database);
-    repairInvalidCompletedStageOutputs(this.database);
-    repairRecoverableProviderFailures(this.database);
-    recoverMissingRequiredContinuationParents(this.database);
+    quarantineInvalidCompletedStageOutputs(this.database);
   }
 
   close(): void {
@@ -157,22 +139,6 @@ export class XuanxueAiProductionStore {
     );
   }
 
-  repairCompletedCheckpointProviderProofs(
-    recoverProviderLease: RecoverProviderLease,
-  ): Promise<number> {
-    return repairCompletedCheckpointProviderProofsInStore(
-      this.database,
-      {
-        dataDir: this.dataDir,
-        readOrder: (orderId) => this.readOrder(orderId),
-        updateStage: (stage, eventType) =>
-          this.updateStage(stage, eventType),
-        updateOrder: (input) => this.updateOrder(input),
-      },
-      recoverProviderLease,
-    );
-  }
-
   quarantineForeignCloudRecoveryOrder(
     orderId: string,
     reason: string,
@@ -216,29 +182,4 @@ export class XuanxueAiProductionStore {
     );
   }
 
-  readParentConversationRebuild(input: {
-    parentJobId: string;
-    parentStageId: string;
-    originalRawOutputHash: string;
-  }): XuanxueAiParentConversationRebuild | null {
-    return readParentConversationRebuildFromStore(this.database, input);
-  }
-
-  resetOrderForConversationGraphRebuild(
-    orderId: string,
-    input: { readonly triggeringStageId: string; readonly reason: string },
-  ): XuanxueAiOrderRecord {
-    return resetOrderForConversationGraphRebuildInStore(
-      this.database,
-      (candidateId) => this.readOrder(candidateId),
-      orderId,
-      input,
-    );
-  }
-
-  recordParentConversationRebuild(
-    input: XuanxueAiParentConversationRebuild,
-  ): void {
-    recordParentConversationRebuildInStore(this.database, input);
-  }
 }

@@ -128,6 +128,18 @@ const sessionOutputIsContextBound = (
     && directReturns[0]?.getExpression() === calls[0];
 };
 
+export const ownerReceiptIdsAreCanonical = (
+  capabilityDomain: string,
+  physicalIds: readonly string[],
+  manifestIds: ReadonlySet<string>,
+): boolean => {
+  const canonicalId = `${capabilityDomain}/owner-assertion-set`;
+  return physicalIds.length === 1
+    && physicalIds[0] === canonicalId
+    && manifestIds.size === 1
+    && manifestIds.has(canonicalId);
+};
+
 const physicalReceiptIdsMatchManifest = (
   entry: InspectorContext["planEntry"],
   physicalIds: readonly string[],
@@ -135,7 +147,7 @@ const physicalReceiptIdsMatchManifest = (
   const manifest = loadManifests().manifests.find((candidate) => candidate.manifestPath === entry.manifestPath);
   if (!manifest) return false;
   const manifestIds = new Set(manifest.coverage.bindings.flatMap((binding) => binding.checkIds));
-  return physicalIds.length === manifestIds.size && physicalIds.every((checkId) => manifestIds.has(checkId));
+  return ownerReceiptIdsAreCanonical(entry.capabilityDomain, physicalIds, manifestIds);
 };
 
 const pushOwnerRegistrationFindings = (
@@ -149,7 +161,7 @@ const pushOwnerRegistrationFindings = (
   const physicalIds = [...new Set(entry.bindings.flatMap((binding) => binding.checkIds))].sort();
   if (!physicalReceiptIdsMatchManifest(entry, physicalIds)) findings.push(createFinding({
     checkId: "audit-system/runner-source", lawId, filePath: entry.ownerInspectorPath,
-    message: `${entry.capabilityDomain} physical receipt identities must exactly match its manifest declaration.`,
+    message: `${entry.capabilityDomain} must expose exactly one canonical ${entry.capabilityDomain}/owner-assertion-set physical receipt identity.`,
     evidence: JSON.stringify({ physicalCheckIds: physicalIds }),
   }));
   const inspectDomain = source.getFunction("inspectDomain")

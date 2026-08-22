@@ -181,10 +181,12 @@ const runRealChromeDecoyFilterAttack = (): void => {
     const initializer = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
       .find((declaration) => declaration.getName() === variableName)
       ?.getInitializerOrThrow();
-    const realFilter = initializer?.getDescendantsOfKind(SyntaxKind.BinaryExpression)
-      .find((expression) => expression.getRight().getText() === '"real-chrome"');
-    if (!realFilter) throw new Error(`${variableName} real-Chrome filter fixture is missing.`);
-    realFilter.replaceWithText('binding.evidenceMode === "real-chrome"');
+    const filter = initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+      Node.isPropertyAccessExpression(call.getExpression())
+      && call.getExpression().asKindOrThrow(SyntaxKind.PropertyAccessExpression).getName() === "filter");
+    const callback = filter?.getArguments()[0];
+    if (!Node.isArrowFunction(callback)) throw new Error(`${variableName} real-Chrome filter fixture is missing.`);
+    callback.getBody().replaceWithText("true");
     sourceFile.addStatements('const realChromeDecoy = [{ evidenceMode: "static" }].filter((binding) => binding.evidenceMode !== "real-chrome");');
   }
   const result = inspectRound8Surface(buildContext(project), "APEX-AUDIT-005-V1");
@@ -196,7 +198,6 @@ const runRealChromeDecoyFilterAttack = (): void => {
     "receipt governance must reject decoy real-Chrome filters that do not govern executed mappings.",
   );
 };
-
 const runRealChromeDiscardedInnerFilterAttack = (): void => {
   const project = resetAttackProject();
   for (const [filePath, variableName] of [
@@ -473,7 +474,6 @@ const runWorkerCleanupUnreachableDecoyAttack = (): void => {
     && finding.message.includes("hard deadline")), true,
   "receipt governance must reject worker termination evidence that exists only in an unreachable branch.");
 };
-
 
 export const runRound8PhysicalReceiptAttacks = (): void => {
   runCommandCleanupUncalledDecoyAttack();

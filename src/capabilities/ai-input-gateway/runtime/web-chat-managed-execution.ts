@@ -40,6 +40,7 @@ export type ManagedWebChatInput = {
   executionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
+  onPageActionCommitted?: (proof: WebChatPageActionProof) => Promise<void>;
 };
 
 export type ManagedWebChatExecution = {
@@ -170,6 +171,7 @@ const buildGovernanceCallbacks = (
 > => ({
   onPageActionCommitted: async (proof) => {
     await update({ pageActionLedger: appendPageAction(input.getRecord(), proof) });
+    await input.source.onPageActionCommitted?.(proof);
   },
   onProviderExecutionProfileVerified: async (proof) => {
     const binding = input.getRecord().providerExecutionProfileBinding;
@@ -241,13 +243,16 @@ const buildResponseCheckpointCallback = (
   update: ExecutionUpdater,
 ): Pick<WebChatExecutionContext, "onResponseCaptured"> => ({
   onResponseCaptured: async ({ answerText, pageUrl }) => {
+    const record = input.getRecord();
     const checkpoint = await persistWebChatResponseCheckpoint({
       dataDir: input.source.dataDir,
-      executionId: input.getRecord().executionId,
+      executionId: record.executionId,
       answerText,
       pageUrl,
+      providerExecutionProfileProof: record.providerExecutionProfileProof
+        ? { profileHash: record.providerExecutionProfileProof.profileHash }
+        : null,
     });
-    const record = input.getRecord();
     await update({
       status: record.conversationTitle
         ? "title_finalization_pending" : "response_checkpointed",

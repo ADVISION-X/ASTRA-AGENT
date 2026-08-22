@@ -10,9 +10,6 @@ import {
   xuanxueAiRequiredContinuationProfiles,
 } from "./xuanxue-ai-production-conversation-policy.js";
 import {
-  assertSeededStages,
-} from "./xuanxue-ai-production-seeded-proof.js";
-import {
   assertXuanxueLocalizationContract,
   isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
@@ -377,10 +374,6 @@ export const assertXuanxueAiOrderMatchesProfile = (
   const profile = resolveXuanxueAiProductionProfile(order.productId);
   assertSingleConversationStageChain(profile);
   assertMaterialProfile(order, profile);
-  assertSeededStages(
-    order,
-    profile.stages.map((stage) => stage.stageId),
-  );
   assertContinuationProfile(order);
   assertFrozenSubjectAndTypedJoin(order);
   assertLocalizationProfile(order);

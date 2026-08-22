@@ -1,368 +1,268 @@
-# GrassEye Browser Authority 生产终态施工图
+# GrassEye 本地真实 Chrome 会话与登录态持久化施工图
 
-版本：2026-08-21.1<br>
-状态：active final-state blueprint  
-上级权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`  
-目标方案：`docs/项目方案/AGENT-插件生产级实施方案.md`
+版本：2026-08-22.3
+状态：active final-state blueprint
+上级权威：`.github/instructions/agent-rules/modules/module-local-browser-session.instructions.md`
+法案：`APEX-LOCAL-BROWSER-001-V4`、`002-V4`、`003-V6`、`004-V4`、`005-V4`
 
-> 本施工图只投影终态，不描述“可上线阶段”。任何未落地项均为实现缺口，不能用过渡对象、兼容层或第二链路合法化。
->
-> 不提供本地可执行文件、Native Messaging 或 Apple 签名/公证链；它们不得出现在最终候选中。
+> 本施工图只投影终态结构、owner、合同、状态与验收边界。它不保留迁移阶段、兼容接口或第二链路，也不以当前源码偏差降低法案。
 
-## 1. 终态图
+## 1. 唯一物理链
 
 ```txt
-xuanxue durable job + current writer fence
-  -> BrowserAuthorityBroker
-      -> AuthenticatedBrowserAuthorityLease
-          -> BrowserTargetLeaseManager
-                  -> BrowserTargetLease
-                      -> BrowserCommandActor
-                          -> WorkbenchExtensionChannel
-                              -> exact Workbench page session
-                                  -> CWS MV3 ExtensionExternalPortActor
-                                      -> CommandRegistry
-                                          -> chrome.debugger exact target/document
+owning Plugin fixed flow
+-> injected Browser public facade
+-> BrowserAuthorityBroker
+-> claim-bound SessionWorkspaceBindingV6 + authenticated BrowserAuthorityLease
+-> exact BrowserTargetLease + BrowserDocumentRef
+-> BrowserCommandActor
+-> ws://127.0.0.1:4173/browser-authority/v1
+-> fixed-directory unpacked MV3 Extension
+-> fixed SiteActionRegistry / CommandRegistry
+-> exact Chrome target/document
+-> ActionReceipt / mutation journal
+-> owning Plugin business outcome
 ```
 
-控制面唯一图：
+控制面只有现有 App Server 的一个 WebSocket upgrade。Extension 是唯一 socket owner，Agent 不反向连接 Extension；认证中断后由操作者使用 Workbench 新密钥重新配对，不存在无凭证假重连。物理 provider tab 恰好一个，mutation lock 恰好一个；provider 等待不占 lock，但任何 Browser action 都必须串行。
 
-```txt
-BrowserExtensionReleaseVerifier
- -> verify CWS release identity + release security policy
- -> verify approved local profile + installed extension identity + page-session issuer
- -> BrowserInfrastructureSupervisor
-     -> exclusive BrowserOwnerLock
-     -> TransportActor / Reducer
-     -> TransportAuthenticator
-     -> BrowserAuthorityIssuer
-     -> retry / repair / activation / rollback
-```
+物理不存在：external Port、`externally_connectable`、Workbench page relay、open/inbound/next polling、SSE、CWS runtime、Native Messaging、Native Host、第二 listener、第二 Browser transport、previous-protocol consumer、per-job Browser approval、active/front/first-tab fallback。
 
-## 2. 目录终态
+## 2. Owner 矩阵
+
+| 真相 | 唯一 owner | 只负责 | 禁止 |
+| --- | --- | --- | --- |
+| Session Workspace | operator claim + `browser-session-workspace.ts` | 人工配对并认领后，绑定当前 connection generation 与固定 profile/release/directory/site policy | 独立批准、墙上时间到期、自动续期、逐 job approval、进入 Cloud fence |
+| Browser authority | Broker/Issuer/Supervisor | authenticated PRESENT/ABSENT、certificate、liveness、revoke | 业务步骤、heartbeat mint authority |
+| exact target/document | `browser-target-lease-manager.ts` | 当前 authority epoch 下唯一 Target/Document 和三次复核 | URL-first、title、active tab、raw tab/window 身份 |
+| Site action | Extension `command-registry.ts` | 固定 actionId、schema、field safety budget、artifact resource budget、mutation class、postcondition | prompt/message byte ceiling、任意 JS、raw CDP、caller selector/coordinate |
+| mutation journal | `browser-mutation-intent-journal.ts` | PREPARED/fsync/SEND/terminal 与 identity binding | 自动 replay、业务 verdict |
+| UNKNOWN outcome | owning Plugin | 真实页面正反证据、唯一性、有界性与 `OutcomeResolutionReceipt` | transport/UI/worker 推测成功 |
+| Cloud writer fence | xuanxue cloud durable owner | job/attempt/device/leaseVersion/token binding 与 terminal CAS | 混入 Workspace hash、由 Browser owner签发 |
+| Browser proof | AGENT Browser owner；网站 Dynamic Proof 只消费 | authority window、action receipt、handover、UNKNOWN count | 第二 Browser verdict、冒充业务结果 |
+
+App、Route、Mediator、Cloud Worker、AI Input Gateway 和 DOM Automation 都不得 import Browser private runtime。所有 consumer 只从 `src/lib/browser/browser-authority-api.ts` 进入；public facade 不重导出 socket、Chrome id、transport actor、raw command 或 registry 私有实现。
+
+## 3. 目录与唯一落点
 
 ```txt
 src/lib/browser/
   browser-authority-api.ts
-  profile/
-    browser-profile-config.ts
-    browser-profile-state.ts
-    dedicated-profile-policy.ts
-    browser-profile-enrollment.ts
-    browser-profile-enrollment-receipt.ts
-    browser-profile-process-attestation.ts
-    managed-policy-readback.ts
-    browser-process-supervisor.ts
   infrastructure/
     browser-infrastructure-supervisor.ts
-    browser-control-state.ts
-    browser-owner-lock.ts
     browser-authority-broker.ts
-    browser-authority-lease.ts
     browser-authority-issuer.ts
     browser-authority-certificate.ts
-    browser-authority-liveness-lease.ts
-    browser-worker-membership.ts
-    browser-worker-handover.ts
-    browser-retry-policy.ts
-    browser-repair.ts
-  transport/
-    transport-event.ts
-    transport-reducer.ts
-    transport-actor.ts
-    transport-authenticator.ts
-    transport-transcript.ts
-    command-permit.ts
-    reply-channel-token.ts
-    authenticated-heartbeat.ts
-    browser-command-admission-budget.ts
-    workbench-extension-channel.ts
+    browser-control-state.ts
+    browser-owner-lock.ts
   exact-target/
+    browser-session-workspace.ts
+    browser-site-policy-registry.ts
     browser-target-ref.ts
-    browser-document-ref.ts
     browser-target-lease.ts
     browser-target-lease-manager.ts
     browser-command-actor.ts
     browser-mutation-intent-journal.ts
-    browser-dom-intent.ts
+    browser-outcome-resolver.ts
     browser-file-artifact-grant.ts
-    browser-artifact-stream.ts
-  protocol/
-    browser-protocol.schema.json
-    browser-authority-certificate.schema.json
-    browser-authority-liveness-lease.schema.json
-    browser-profile-enrollment.schema.json
-    browser-file-artifact-grant.schema.json
-    browser-capabilities.json
-    browser-errors.json
-    generated/
-      browser-protocol.generated.ts
-  release/
-    cws-extension-release-identity.ts
-    cws-extension-release-proof.ts
-    browser-release-security-policy.schema.json
-    browser-rollback-receipt.schema.json
-    browser-build-inputs.schema.json
-    browser-sbom.schema.json
-    browser-provenance.schema.json
-    browser-previous-activation-snapshot.schema.json
-    pinned-browser-toolchain.json
-    browser-build.config.json
+  transport/
+    browser-authority-websocket.ts
+    browser-authority-session-crypto.ts
+    browser-authority-frame-codec.ts
+    transport-actor.ts
+    transport-reducer.ts
+    transport-authenticator.ts
+    command-permit.ts
+    browser-command-admission-budget.ts
   chrome-extension/
     manifest.json
     service-worker.ts
-    external-port-actor.ts
+    pairing.html
+    pairing-popup.ts
+    websocket-actor.ts
+    websocket-actor-crypto.ts
+    extension-target-authority.ts
     command-registry.ts
     command-permit-validator.ts
-    debugger-runtime.ts
     exact-target-runtime.ts
     dom-intent-runtime.ts
-    artifact-stream.ts
-    authenticated-heartbeat.ts
-scripts/
-  audit/domains/local-browser-session/
-    manifest.json
-    inspector.ts
-    local-browser-check-coverage.acceptance.ts
-  acceptance/
-    local-browser-terminal-contract.acceptance.ts
-    local-browser-rule-mutants.acceptance.ts
-    local-browser-property-model.acceptance.ts
-    local-runtime-browser-authority.acceptance.ts
-    local-browser-real-chrome-terminal.acceptance.ts
+    debugger-runtime.ts
+  release/
+    extension-directory-hash-v1.ts
+    unpacked-extension-release-identity.ts
 ```
 
-最终候选不得包含：`BrowserTargetSession`、`BrowserController.createTargetSession`、`targetSessionsByOwner`、任意脚本执行合同、raw-path wire contract、第二 Browser transport、Native Messaging、Native Host、本地 macOS launcher、Apple 签名/公证门、runtime capability intersection 或 production fixture authority。
+`service-worker.ts` 与 `pairing-popup.ts` 是分别由 MV3 manifest 和 `pairing.html` 装载的两个精确 Browser 外部源码入口，并由 `APEX-LOCAL-BROWSER-001-V4.codePurityLiveness.externalEntryFiles` 投影给 Code Purity。`service-worker.ts -> websocket-actor.ts` 是该法条唯一声明的 side-effect import；它只负责启动唯一 actor，不构成第二 transport。其他 extension 文件必须从这两个入口的 import 图可达。
 
-### 2.1 施工图与法案的逐项落点
+任何第二 Broker、Workspace owner、WebSocket actor、reconnect loop、Target manager、CommandRegistry、journal、outcome resolver 或 Browser public API 都是第二链。
 
-以下表只把现役法案已经定义的对象落到唯一终态路径；它不新建 owner，也不降低法条。
+## 4. Session Workspace
 
-| 法案对象 | 唯一终态路径 |
-| --- | --- |
-| 业务 Browser 入口 | `src/lib/browser/browser-authority-api.ts` → `infrastructure/browser-authority-broker.ts` |
-| control state / issuer / liveness | `src/lib/browser/infrastructure/browser-control-state.ts`、`browser-authority-issuer.ts`、`browser-authority-liveness-lease.ts`；每个 execution authority lease 在 target 或 artifact 动作前同时核验 certificate 与其同 epoch liveness lease |
-| 专用 profile / process | `src/lib/browser/profile/browser-profile-enrollment.ts`、`browser-process-supervisor.ts` |
-| exact target / document / command | `src/lib/browser/exact-target/**` + `transport/command-permit.ts` |
-| 唯一 CWS MV3 / Workbench page 传输 | `src/lib/browser/chrome-extension/**` + `transport/workbench-extension-channel.ts` + `src/app/workbench-browser-extension-channel-*.ts` |
-| CWS release identity / policy / proof | `src/lib/browser/release/**` |
-| health / errors / metrics | `src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts` 只发布 `browserInfrastructure` / `browserAuthority`；`protocol/browser-errors.json` 是唯一 Browser error-code 合同；运行指标只由 infrastructure supervisor 的有界 telemetry 输出 |
-| 26 项 Browser 核心 + 1 项 P0 隐私 machine-blocking 质检 | `scripts/audit/domains/local-browser-session/manifest.json` + `inspector.ts`，每项独立 receipt，只通过现有 generated-plan runner 生成 |
-| 终态验收 | `scripts/acceptance/local-browser-terminal-contract.acceptance.ts`、`local-browser-rule-mutants.acceptance.ts`、`local-browser-property-model.acceptance.ts`、`local-runtime-browser-authority.acceptance.ts`、`local-browser-real-chrome-terminal.acceptance.ts`；只证明各自合同，不拥有生产逻辑 |
-
-`BrowserProcessSupervisor` 的唯一目标路径固定为：
+`SessionWorkspaceBindingV6` 只绑定：
 
 ```txt
-src/lib/browser/profile/browser-process-supervisor.ts
+workspaceRef
+authorityRef / authorityEpoch / connectionGeneration
+operatorClaimRef
+profileEnrollmentHash
+extensionId
+releaseBuildId
+extensionDirectoryHash
+sitePolicyHash
+establishedAt
 ```
 
-任何第二个 process supervisor、browser public API、transport、controller 或审计 runner 都是法案违反，不是替代实现。
+- 人工配对后第一次成功认领 HTTPS 标签页时原子建立 Workspace；没有第二个批准按钮或批准 API。
+- Workspace 和认证 certificate 不设置墙上时间到期，也不后台续期；普通空闲或长时间生产不能撤权。
+- 真实 socket disconnect、Workbench/Extension/Chrome restart、Extension reload、profile/release/directory/site-policy/connection identity drift、explicit revoke 立即使 Workspace 失效。
+- 重启后 operator 重新配对并认领，系统为新 connection generation 建立新 Workspace，生产 owner 必须从最早未完成 job 的持久 checkpoint 继续，不得先执行较新的任务。
+- Workspace 不授予某个 job 的业务许可；每条 Browser command 仍要有当前 Cloud lease/fence、Authority、Target、Document 和 action permit。
+- `workspaceApprovalHash` 不进入 Cloud `executionFenceHash`；两者只在 command/journal/proof 上并列绑定。
 
-### 2.2 MV3 的唯一外部活入口
+## 5. Pairing、认证与 liveness
 
-`src/lib/browser/chrome-extension/manifest.json` 的 `background.service_worker = service-worker.js`
-对应唯一的源码入口 `src/lib/browser/chrome-extension/service-worker.ts`。它不是 package script、
-也不是 inspector 内部白名单：只由 `APEX-LOCAL-BROWSER-003-V3` 的
-`codePurityLiveness.externalEntryFiles` 投影进 generated law registry，再由 Code Purity 的
-symbol graph 向下证明其静态 import 子图。
+固定握手：256-bit 一次性 pairing secret -> P-256 ECDSA mutual challenge -> P-256 ECDH -> RFC8785 JCS transcript -> HKDF directional keys -> AES-GCM directional frames。pairing secret 只参与握手，不进入日志、evidence、receipt 或持久业务状态。
 
-Browser owner inspector 必须同时确认 MV3 manifest、`service-worker.js` 和
-`service-worker.ts` 三者精确对应。任何第二 service worker、改以 package script 伪造活性、
-或在 inspector 源码另存 exemption 数组，都属于第二链，必须失败。
+认证完成时 Extension 必须立即调用一次 `chrome.runtime.getPlatformInfo()` 作为同 Service Worker 存活脉冲；之后每 20 秒先执行该脉冲、再在唯一 authenticated WebSocket 上发送 heartbeat；不设置 alarm、offscreen document 或第二 keepalive。只有连续 45 分钟未收到有效 heartbeat 才能 hard expiry。认证握手 deadline 只约束握手帧；认证 certificate 与 Workspace 只绑定当前连接，不设置运行时长上限；每次执行必须查询唯一 WebSocket 的当前 heartbeat 状态。认领成功后空闲、20 秒心跳间隔、普通 runtime diagnostic 都不允许主动 close/revoke。真实 socket disconnect 必须在下一次人工配对前清掉 session/permit/Target/Document 并物理 detach 旧 debugger；一次性密钥认证后销毁，不持久化、不自动续权、不假重连。所有程序主动 close 必须携带明确 close code/reason；无程序 reason 的 peer `1001` 直接归类为 Chrome/worker 外部终止。liveness 只维持已经认证的 PRESENT，不能 mint authority。MAC、sequence、AAD、nonce、release/profile、second active client 或认证 deadline 任一不合法时，顺序固定为：关闭 socket -> revoke Authority/Target/Document -> pending command 归类 terminal/UNKNOWN -> 保持 ABSENT。
 
-## 3. Composition Root
+构建器在 bundle 前生成唯一 `releaseBuildId` 并编译进 `service-worker.js`，固定目录外 release record 保存同一值。PAIR_HELLO 的签名/MAC transcript 必须携带该值，Workbench 必须与启动时冻结的 release record 精确比较。这样磁盘已经更新但 Chrome 仍运行缓存旧 Service Worker 时，旧 worker 在认证门直接失败，不能凭相同 `1.0.0` 版本号伪装成当前构建。
 
-Base Workbench 不以“Chrome 此刻在线”决定进程能否存在。它只构造 Browser infrastructure control plane 与 `BrowserAuthorityBroker`：
+普通 Extension `unhandledrejection`、worker error、action runtime error 使用 authenticated `DIAGNOSTIC` frame 上报并形成 `BROWSER_EXTENSION_FAILURE`；它只写脱敏诊断，不改变 Authority/Target/Document。认证 frame 解密、MAC、sequence、AAD、nonce、canonical body 或 exact identity 失败才使用 `REVOKE`。禁止把日志上报实现成主动断开链路。
+
+## 6. Authority、Target、Document 三次准入
 
 ```txt
-create base runtime
--> verify browser install/profile contract
--> start BrowserInfrastructureSupervisor
--> create BrowserAuthorityBroker (no raw command surface)
--> register browser-dependent mission factories
--> expose only browserInfrastructure / browserAuthority health
+Admission
+-> Before Send
+-> Completion
 ```
 
-### 3.1 Health / Errors / Metrics 的终态边界
+每次验证必须同时成立：Workspace 未撤销且仍绑定当前 connection generation、Authority certificate/liveness 连续、Cloud lease/fence 当前、target 候选恰好一个、document generation 当前、site policy 和 capability 匹配、actionId 注册、相对 TTL 有余量、原 reply channel 未漂移。
 
-Health component 只有两个合法值：`browserInfrastructure`、`browserAuthority`。不得恢复
-`browserSession`、`transportReady`、`session not authenticated` 或 `wait for authentication`
-等旧生产语义。
+navigation、document generation change、debugger detach、target close、operator takeover、authority revoke、Workspace revoke、lease/fence expiry 或 release/profile drift 使旧 Target/Document 立即失效。零候选、多候选、相邻假目标、正反证据冲突或到界不明确只允许 `failed | review_required`，不得猜测 target。
 
-`protocol/browser-errors.json` 必须覆盖 CWS install、origin、extension、release identity、transcript、
-capability、profile、process、policy、liveness、worker-fence、dual-active、backpressure、file-grant、
-rollback、revocation、permit、target、document、devtools、outcome-unknown、repair；错误代码不是
-第二状态机，最终 authority 仍只为 `ABSENT` 或 `PRESENT`。
+同一 Target 的站内 navigation 由 Extension 生成递增的 `navigationEpoch` 和新 `documentRef`。Extension 必须在 navigation terminal REPLY 前，经唯一 authenticated WebSocket 发送同 targetRef 的 TARGET_CLAIM 更新并等到 Agent acknowledgement；Broker 先替换当前 Document，旧 Document 再失败关闭。该更新是现役 Exact Document 生命周期的一部分，不是第二 target、第二认领链或自动续权。
 
-唯一 Browser telemetry 必须证明以下零值：未认证 authority 签发、无有效 authority command、
-stale-event side effect、旧 completion 写入新 port、非幂等自动重放、错误 profile/process 签发、
-liveness 到期后 command、authority 缺失时动作、dual-active worker、被撤销或回退 release identity 激活、
-Browser admission budget 违规。验收同时验证 supported-runtime-window availability ≥99.99%、
-authority issuance p99 ≤5s、recoverable chain rebuild p99 ≤10s、revoke→ABSENT p99 ≤10ms，
-并要求 unbounded queue/cache/stream=0。上述健康、错误与指标只由
-`browser-infrastructure-supervisor.ts` 的 owner 输出；`ACC-032` 的 deterministic terminal
-contract 和 `ACC-036`/`ACC-037` 的 HA/soak receipts 分别验证结构边界和运行读数。
+AI 双候选或多 conversation 只能在 Provider 等待阶段并存。每个排队后的 Browser action 在签发 Permit 前都调用 Broker 注入的 `resolveCurrentTarget`，用当前 claim 刷新该 execution lease 的 Document；因此先创建的 execution 不会在别的 conversation 导航后继续携带旧 documentRef。刷新只读唯一 Broker，不创建全局 target cache、第二 registry 或自动重试。
 
-Browser-dependent job admission：
+## 7. 固定 SiteActionRegistry
+
+Browser wire 只承载：
 
 ```txt
-cloud job readable
--> current lease/fence valid
--> Broker returns current AuthenticatedBrowserAuthorityLease
--> writer lane admitted
--> exact target lease acquired
--> governed commands execute
+actionId
+opaque workspace/authority/target/document/permit refs
+typed owner-admitted payload or artifact grant ref
+relative commandTtlMs
+sequence / reply-channel binding
 ```
 
-Authority ABSENT 时 base runtime 可 degraded 运行，但 Browser-dependent worker 不领取 Browser writer lane，业务不能持有半成品 Browser object。
+这里的 sequence 必须分成两个命名域：`requestSequence` 是 authenticated WebSocket transport frame 序号，只用于 pending frame correlation；`permitSequence` 是 target lease 内的 command permit 序号，只用于 command identity。Extension 的 REPLY 同时回显二者与 `replyChannelToken`，Agent 分别校验；READY、TARGET_CLAIM acknowledgement、heartbeat 或 diagnostic 插入 transport 序列后，不得拿 transport 序号与 permit 序号比较。
 
-## 4. Transport Reducer
+每个 registry entry 固定声明：site policy、capability、request/response schema、mutation class、field safety budget、artifact resource budget、target/document requirement、business/browser postcondition、human gate、evidence 和 acceptance。field safety budget 与 artifact resource budget 不得成为 prompt/message byte ceiling。
 
-所有 I/O callback 只提交 `BrowserTransportEvent`。Reducer 维护唯一：
+wire 和 caller 物理禁止：URL、selector、coordinate、tab/window/title/marker/conversation、absolute monotonic deadline、raw file path、JavaScript、CDP/debugger command、`eval`、`new Function`、browserCommand、nextAction、actionPlan、workflow 或 concurrency。
+
+Extension private implementation 可以为固定 actionId 保存站点结构知识，但 selector 不是 public alias，不得由 Cloud、website、AI、Plugin 或 capability 动态拼接。未注册 actionId 返回 `BROWSER_CAPABILITY_REJECTED`，不得转入 generic executor。
+
+### 7.1 投喂传输禁区
+
+- `65,535` 只决定 RFC 6455 使用 16-bit 还是 64-bit length，不能触发拒绝。
+- owner schema 与 provider/model window 已接纳的完整 prompt command，使用同一 authenticated WebSocket message 的 64-bit frame 或标准 continuation frame 原样传输。
+- Agent、App Server、Browser transport、Extension、AI Input Gateway 与 xuanxue production flow 均不得设置 64 KiB、256 KiB、512 KiB、1 MiB、100 MB 或其他 prompt/message byte ceiling；100 MB 只是已知回归场景，不是新门槛。
+- 禁止截断、拆成多个业务 prompt、静默丢字、自动摘要、HTTP/file/artifact fallback、第二 socket 或 compatibility path。
+- 允许保留与投喂无关的 artifact/file identity 大小、媒体处理资源和下载资源安全边界；它们不得反向限制 prompt command。
+- Runtime Log 必须记录失败 frame kind/sequence、encoded byte length、close/error code 与 reason；不得记录 raw prompt/payload。
+
+## 8. Deadline 与有界停止
+
+Cloud grant 提供 `serverNow` 和 `leaseExpiresAt`。Cloud Worker 使用完整 request RTT 与固定 10 秒安全边际计算本地 monotonic budget；跨进程只传剩余相对 TTL。Browser command 的 `commandTtlMs` 不得超过 Cloud budget、Workspace 剩余 TTL、Authority/Target/Document/permit 剩余 TTL 中的最小值。
+
+Extension 只用自己的 monotonic clock 扣减 `commandTtlMs`；wall clock rollback、sleep/wake discontinuity、reconnect 或 document drift 都不能延长权限。到界先终止动作并撤销相应租约，禁止继续观察、滚动、搜索或切第二动作。
+
+## 9. Mutation Journal 与 UNKNOWN
+
+每个 mutation journal entry 必须绑定：
 
 ```txt
-controlState
-authoritySlot
-supervisorEpoch
-controllerIncarnation
-connectionGeneration
-appServerEpoch
-externalPortEpoch
-sequence
-currentSourceChannelToken
+candidateHash / contractManifestHash
+jobId / attemptId / deviceId / leaseVersion / executionFenceHash
+localOrderId / workspaceApprovalHash
+authorityCertificateHash / targetRefHash / documentRefHash
+actionId / commandSequence / commandTtlMs
+payloadHash / artifactRefs / preparedAtMonotonic
 ```
-
-每个 event 先执行 generation/fence check，再允许 state mutation。Disconnect/expiry reducer transition 第一行语义必须 revoke current authority；后续才 fail pending、invalidate leases、log、cleanup、schedule reconnect。
-
-## 5. Authentication Commit
-
-Authority 只从 `AUTH_PROOF_COMMITTED` reducer event 产生。固定 `WORKBENCH_PAGE_PATH = "/"` 与 `WORKBENCH_EXTENSION_CHANNEL_PORT_NAME = "grasseye-browser-authority-v1"`。MV3 manifest 的 `permissions` 只能是 `debugger`，`host_permissions` 必须为空，`externally_connectable.matches` 只能是 `http://127.0.0.1/*`。握手顺序固定为：验证 CWS item、installed extension ID/version、source/package hash、manifest permission/origin policy；签发一次性 page-session grant；根 Workbench 页面以固定 extension ID 和固定 port 名称连接；MV3 以 URL 语义严格验证 `port.sender.url` 的协议 `http:`、host `127.0.0.1`、当前 App Server port 和 path `/`；actor 收到该 Port 的第一帧后，在获得 authority、接受命令或产生浏览器副作用之前验证 grant、release identity 与双向 transcript。任何一步缺失均不 commit。所有字段 hash 进入 certificate。
-
-页面与唯一 App Server 只有三个同源承载 route：`POST /api/browser-extension-channel/open`、`POST /api/browser-extension-channel/inbound`、`GET /api/browser-extension-channel/next`。它们均要求当前 grant，且只调用 Workbench Handle 的窄 channel facade；它们不得生成 command、selector、target、permit、业务状态或成功结论。断开、刷新、grant 过期、release identity 漂移、reply token/sequence 不一致、liveness 到期或 writer fence 失效时，第一动作必须 revoke 为 `ABSENT`，不得重绑 Port 或重放 mutation。
-
-`pendingAuthority` 不是业务对象；commit 之前 Broker 永远返回 unavailable。
-
-## 6. Liveness
-
-Workbench page/Extension 双 watchdog 使用同一 generated policy。Heartbeat 只续 PRESENT。Hard expiry、sleep/wake discontinuity、event-loop stall、silent half-open、max authority age 都触发完整撤销和 fresh page/Port/authority window，不在线 rekey。
-
-## 7. Exact Target / DOM Intent
-
-每个 TargetLease 与 authority epoch + execution fence 绑定。DOM observation 不接收 script string；只接收 versioned intent，例如：
-
-```ts
-type BrowserDomIntent =
-  | { kind: "inspect"; selector: string; fields: readonly BrowserDomField[] }
-  | { kind: "find"; locator: BrowserSemanticLocator; maxMatches: number }
-  | { kind: "readText"; selector: string; maxChars: number }
-  | { kind: "readAttribute"; selector: string; name: string; maxChars: number };
-```
-
-Extension 根据 registry 执行固定逻辑，不执行任意 JavaScript expression。
-
-## 8. Command Admission / Mutation Journal
-
-Actor 先验证 execution fence + authority + capability + target/document + deadline + queue budget，再签发 permit。Send 前再次确认 source channel/authority；completion 再确认原 reply token/sequence/authority。
-
-Mutation journal `PREPARED -> fsync -> send -> terminal`。non-idempotent uncertain 必须 `OUTCOME_UNKNOWN`，transport 无 replay 权。
-
-## 9. Workbench Page Framing / Artifact Stream
-
-Canonical schema 生成 TypeScript limits。Workbench page 与 MV3 的 control frame 双向 <=256KiB；Extension→Workbench page artifact chunk <=4MiB；Workbench page 不得向 extension 发送 artifact payload。截图、附件等大对象不放 control JSON，使用 content-addressed stream。
-
-File input：业务先向 Browser owner申请 artifact grant；grant 内部保存 canonical path/inode/hash，但 wire 只传 grantRef/content identity。发送前二次 readback，完成或 TTL 到期后确定性销毁。
-
-## 10. Profile / Process / Policy
-
-`BrowserExtensionReleaseVerifier` 创建 dedicated profile enrollment。Production verify 每次读回 CWS item/review receipt、extension ID/version、source/package hash、permission/origin policy 与 installed extension identity；`BrowserProcessSupervisor` 产生 process incarnation。page-session attestation 必须绑定批准 process start token；错误 profile/process 或错误 Workbench origin 即使 extension ID 相同也不能进入 `AUTH_PROOF_COMMITTED`。
-
-## 11. Owner Lock
-
-`BrowserOwnerLock` 在创建 page-session 之前 acquire。只有锁持有者能终结过期内存 grant；活 owner 的 grant 永远不会被另一进程接管或复用。
-
-## 12. Release
-
-Build-once 输出 immutable CWS package。`CwsExtensionReleaseIdentity` 绑定 CWS item、extension ID/version、审核 receipt、上传包/source hash 与 manifest permission/origin policy；SecurityPolicy 决定 minimum sequence/revocation/current+previous protocol window；ProofManifest 绑定治理、静态、真实 Chrome、soak 与跨仓证据。纯治理变化只重签 ProofManifest，不重建 software bytes。
-
-CWS N/N+1 异步更新只允许有限 current + previous protocol window；同一时刻只接受一个 installed release identity。Rollback 只改变最低接受序列和协议兼容策略，不依赖 extension downgrade。
-
-## 13. HA / Writer Fence
-
-xuanxue 现有 `lease_owner + lease_token_hash + lease_version + lease_expires_at` 是选主根。终态将 execution fence 定义为不可伪造的 current lease binding hash，并在 checkpoint/handover receipt 中封存。AGENT Browser 不建自己的云端 election。
-
-Failover 只从 sealed checkpoint + new lease version/fence 开始。每个 authority window绑定一个 worker/fence；窗口之间零 browser action。
-
-## 14. Cross-Repo Proof
-
-`AgentRuntimeReceiptV2` 对 browser-required execution包含：
 
 ```txt
-AgentBrowserAuthorityProofV2
-  windows[]
-    worker identity/fence
-    authority certificate
-    profile/process
-    CWS release identity/security policy
-    auth transcript/liveness
-    connection/port/capability
-    first/last command sequence
-    action receipt subtree
-    closed reason
-  elected worker chain hash
-  handover receipt chain hash
-  browser action Merkle root
-  no_action_during_authority_absence=true
-  unresolved_outcome_unknown_count=0
+PREPARED
+-> durable append + fsync
+-> SEND
+-> CONFIRMED | FAILED | UNKNOWN
 ```
 
-Dynamic Proof 仍是唯一网站动态 verdict；Browser proof 是 receipt 内 evidence，不产生第二 verdict。
+只有 Extension 的原 reply channel、同 sequence、同 identity terminal receipt 才能写 `CONFIRMED | FAILED`。断线、进程崩溃、response loss、late/duplicate/conflicting receipt、completion identity drift 一律 `UNKNOWN`。Transport、Worker、UI、API、retry loop 不得 replay。
 
-## 15. Quality Mapping
+owning Plugin 的 `OutcomeResolutionReceipt` 必须同时证明：目标业务身份和目标终态成立；已知相邻假目标、错误态、加载态、过期态、重复态全部不成立；候选恰好一个；在固定次数/截止时间内结束。无法闭合即 `review_required`，Cloud terminal complete 不可写入。
 
-26 个 Browser 核心 checkIds 与 1 个独立的现役 P0 隐私 checkId 必须在唯一 `local-browser-session` manifest 中逐项绑定并由同一 inspector 逐项运行；禁止 `owner-assertion-set` 代替 P0，也禁止一个 broad check 代替多个 ID。
+## 10. Artifact 与文件输入
+
+大对象走同一 authenticated WebSocket 的单一 artifact subprotocol，不进入 control JSON。file grant 在 Agent 内绑定 canonical path/inode/hash/size，但 wire 只发送 opaque grant ref 和 content identity；Extension 根据固定 file-input actionId 消费。发送前重验文件身份，完成/TTL/revoke 后确定性销毁 grant。
+
+禁止 raw path 上线、base64 大对象塞入 command、系统文件选择器、OS 鼠标键盘、DOM value assignment、第二 file transport 或把 `file-selected` 当业务 upload success。
+
+## 11. 状态与失败矩阵
+
+| 事件 | Browser 状态 | Pending mutation | 允许恢复 |
+| --- | --- | --- | --- |
+| auth 未完成/失败 | `ABSENT` | 零 side effect | operator 重新 pairing |
+| heartbeat 过期/socket 断开 | 先 revoke 为 `ABSENT` | 已 SEND 无 terminal -> `UNKNOWN` | 新认证 window；UNKNOWN 先由 Plugin 裁决 |
+| Workspace 到期/revoke | `ABSENT` | 未 SEND -> failed；已 SEND 按 receipt/UNKNOWN | operator 新签 Workspace，不续期 |
+| navigation/document drift | Authority 可在，旧 Document 失效 | 当前动作 failed/UNKNOWN | 同 execution 重新观察并取得新 Document |
+| Cloud lease/fence 失效 | writer action count=0 | 未 SEND failed；已 SEND 不得覆盖 Cloud terminal | 人工 handover 新 attempt/fence |
+| zero/multi target | 不签 TargetLease | 零 side effect | 真实页面消歧或 `review_required` |
+| release/profile/directory drift | `ABSENT` | 全部 lease 撤销 | exact readback + re-pair；无旧链 fallback |
+
+## 12. Evidence、日志与跨仓 receipt
+
+日志只记录 opaque ref、hash、sequence、状态、reason code 与 duration；pairing secret、session key、device token、cookie、password、用户输入、provider response 和 raw file path 不得记录。
+
+`AgentRuntimeReceiptV5` 的 Browser-required 分支包含有序 `AgentBrowserAuthorityProofV5` windows。每个 window 绑定两仓 candidate、Cloud attempt/lease/fence、Workspace、authority certificate、profile/process/release/artifact、WebSocket generation、Target/Document、first/last command sequence、ActionReceipt subtree 与 closed reason。window 间 action 数为零；`unresolved_outcome_unknown_count=0` 才能 complete。
+
+xuanxue-web `DynamicProofController` 只验证同候选 receipt 和原始 evidence，不读取或控制本地 AGENT，不产生第二 Browser verdict，也不能代替 owning Plugin 的业务终态。
+
+## 13. 质检与证明分层
+
+Static/Exam 必须覆盖：
+
+1. one unpacked MV3 / one WebSocket / one socket actor / one tab / one mutation lock；
+2. Session Workspace identity、无墙上时间到期与全部真实失效事件；
+3. P-256/JCS/HKDF/AES-GCM known-answer、frame/AAD/nonce/sequence/deadline mutants；
+4. Authority/Target/Document 三次准入与零/多候选；
+5. registry-only action、wire 禁字段与 unknown action fail-close；
+6. Cloud fence 与 Workspace 分离；
+7. PREPARED+fsync、response loss、late/duplicate/conflicting receipt、UNKNOWN no replay；
+8. artifact grant 无 raw path、预算和销毁；
+9. old Port/CWS/Native/previous protocol/per-job approval consumer 为零；
+10. secret/PII 日志 redaction。
+
+真实 Chrome 必须另证 pairing/liveness、MV3 service-worker restart、Extension reload、Chrome restart、sleep/wake、exact target/document、固定 GPT Web action、file input、disconnect/清理/人工重配对、release update/rollback 和真实 UNKNOWN resolution。真实 Provider/Cloud/DB、fault、72 小时 soak、push 与 release 各自需要对应授权与同候选 receipt。
+
+`scripts/acceptance/xuanxue-ai-production.real-chrome.ts` 只核验唯一 Cloud Worker → Mediator → Plugin → Browser Authority 真实旅程产出的 V5 evidence envelope 和 `AgentRuntimeReceiptV5`；它不创建 BrowserController、不连接第二 WebSocket、不执行 Provider，也不铸造动态证据。`src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts` 独立核验同一 real-run-root 下的真实 Provider checkpoint。两者均由该条款标记为 deferred dynamic evidence，普通 CI 不得执行或冒充通过。
+
+`typecheck`、Static、acceptance、Exam、CI-FULL 都不能替代真实 Chrome。未获得真实页面前后取证的状态必须写 `UNKNOWN / NOT_PRODUCTION_VERIFIED`，不得按截图、历史 selector、浏览器常识或模拟 DOM 实现后续动作。
+
+## 14. 终态删除分母
 
 ```txt
-browser-auth/no-unauth-session-type
-browser-auth/no-transport-ready-boolean
-browser-auth/no-preauth-command-surface
-browser-auth/no-fire-and-forget-startup
-browser-auth/authority-mint-only-after-proof
-browser-auth/revoke-before-side-effects
-browser-channel/no-page-session-rebind
-browser-channel/original-reply-channel
-browser-channel/no-native-host-surface
-browser-auth/authority-liveness-lease
-browser-auth/no-command-after-liveness-expiry
-browser-auth/heartbeat-cannot-mint-authority
-browser-auth/production-fixture-zero
-browser-profile/dedicated-production-profile
-browser-profile/installed-extension-readback
-browser-profile/exact-workbench-origin-readback
-browser-release/cws-release-identity
-browser-release/cws-identity-proof-separation
-browser-release/cws-review-and-installed-readback
-browser-release/no-apple-signing-gate
-browser-release/anti-rollback-and-revocation
-browser-release/reproducible-build-identity
-browser-cross-repo/authority-proof-v2
-browser-cross-repo/ordered-authority-window-chain
-browser-command/bounded-admission-budget
-browser-file/artifact-grant-no-raw-path
-browser-old-path/retired-zero
+BrowserController.createTargetSession
+BrowserTargetSession / per-job Browser approval
+runtime.onConnectExternal / externally_connectable / external Port
+Workbench page relay / open-inbound-next routes
+CWS / Native Messaging / Native Host
+previous protocol / compatibility transport / alias / fallback
+activeTab / frontWindow / firstTab / URL-first identity
+caller selector / coordinate / arbitrary JS / raw CDP / raw file path
+automatic UNKNOWN replay / transport business verdict
 ```
 
-每项必须具有自己的 source evidence 和负例、性质、model、mutant 或运行时证据；generated truth 只由现有 builder/runner 生成。负面类型测试必须证明 Supervisor/ControlState 无 command/createTarget，旧 Session 类型不可导入，revoked lease不能执行。
-
-`chrome-extension/authenticated-heartbeat.ts` 只保存 heartbeat 的静态认证边界：它不能 mint 或恢复 authority，且在尚无本次真实 Chrome 帧观察时不取得独立运行入口。
-
-Property/model 必须随机证明 auth failure->ABSENT、disconnect先revoke、stale event零副作用、old completion不跨Port、heartbeat不能mint、wrong process/policy不能mint、budget reject、revoked CWS release identity reject、handover窗口间零动作。
-
-每个 check 都必须有独立负例；page framing/auth/file/admission fuzz 覆盖0/1/n-1/n/n+1、truncated JSON、乱序/重复chunk/hash drift。
-
-## 16. Real Chrome / Release Gate
-
-同一 CWS-reviewed package 覆盖 Stable/CfT、wrong install/origin/id/hash/release identity/profile/process/policy、Workbench page/MV3/Chrome crash、sleep/wake/half-open、HA handover、update/rollback、foreground isolation、navigation stale、DevTools conflict、CJK/繁中/日韩/RTL/emoji/contenteditable/shadow DOM/iframe/file、大对象与反压。
-
-核心 transport/auth/profile/HA变更要求168h连续soak；非核心 capability/release至少24h。auth storm、stale side effect、old reply->new Port、auto mutation replay任一发生，soak 证据失效。
-
-最终只有同一 candidate/CWS package/release identity/proof/cross-repo receipt hash 闭合，required checks/branch protection 实际开启，独立复核 blocking finding=0，才可从 BLOCKED 转为 PRODUCTION_APPROVED。未审核、未安装或仅 load-unpacked 的版本一律 `NOT_PRODUCTION_VERIFIED`。
+只有上述删除分母、active law、施工图、owner inspector、acceptance、两仓同候选 CI 与真实 Chrome/Provider/Dynamic receipts 分层闭合，才能作出相应层级的 PASS；任何较低层证据不得外推为生产可用或发布完成。

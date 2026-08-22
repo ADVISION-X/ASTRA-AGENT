@@ -7,13 +7,6 @@ import { startFreshChatGptConversation } from "./web-chat-fresh-conversation.js"
 import { emitSubmitStage } from "./web-chat-submit-stage-log.js";
 
 const CHATGPT_COMPOSER_SELECTOR = "#prompt-textarea";
-const AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX = "amazon-product-mining-" as const;
-
-export const isAmazonProductMiningGptRequest = (input: {
-  providerUrl: string;
-  request: AiFeedInput;
-}): boolean => new URL(input.providerUrl).host === "chatgpt.com"
-  && input.request.promptContractId.startsWith(AMAZON_PRODUCT_MINING_PROMPT_CONTRACT_PREFIX);
 
 type ProviderPageInput = Readonly<{
   browser: BrowserTargetLease;

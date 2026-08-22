@@ -8,11 +8,14 @@ import {
   startXuanxueAiProductionCloudWorker,
   type XuanxueAiProductionWorkerHealth,
 } from "./xuanxue-ai-production-cloud-worker.js";
-import type { XuanxueAiProductionCloudWorkerHandle } from "./xuanxue-ai-production-cloud-contract.js";
 import {
-  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-} from "./xuanxue-ai-production-localization-contract.js";
-import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
+  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  type XuanxueAiProductionCloudWorkerHandle,
+} from "./xuanxue-ai-production-cloud-contract.js";
+import type {
+  XuanxueAiBrowserAuthorityPort,
+  XuanxueAiProductionRuntime,
+} from "./xuanxue-ai-production.runtime.js";
 import type { XuanxueAiInterventionRequest } from "./xuanxue-ai-production.schema.js";
 
 type XuanxueAiInterventionAction = "pause" | "cancel" | "takeover" | "resume";
@@ -28,18 +31,16 @@ const startOwnerCloudWorker = (input: {
   coordinator: XuanxueAiProductionCoordinator;
   aiInputGateway: AiInputGatewayAbilityGroup;
   createOrderRoute: CreateOrderRoute;
+  browserAuthority: XuanxueAiBrowserAuthorityPort;
   onStatus: (status: XuanxueAiProductionWorkerHealth) => void;
 }) => startXuanxueAiProductionCloudWorker({
   dataDir: input.dataDir,
   onStatus: input.onStatus,
   execution: {
     createOrder: (order) => input.createOrderRoute(order, input.runtime),
-    executeOrder: (orderId, observer) =>
-      input.coordinator.execute(orderId, observer),
+    executeOrder: (orderId, observer, deadlineBudget) =>
+      input.coordinator.execute(orderId, observer, deadlineBudget),
     listCloudRecoveryOrders: () => input.store.listCloudRecoveryOrders(),
-    repairCompletedCheckpointProviderProofs: () => input.store.repairCompletedCheckpointProviderProofs(
-      (proof) => input.aiInputGateway.recoverCheckpointedProviderLease?.(proof) ?? Promise.resolve(null),
-    ),
     quarantineForeignCloudRecoveryOrder: (orderId, reason) => input.store.quarantineForeignCloudRecoveryOrder(orderId, reason),
     cancelCloudRecoveryOrder: (orderId, reason) => input.store.cancelCloudRecoveryOrder(orderId, reason),
     availableCapacity: () => input.coordinator.availableCapacity(),
@@ -59,6 +60,7 @@ type OwnerDependencies = {
   aiInputGateway: AiInputGatewayAbilityGroup;
   mediaProcessing: MediaProcessingAbilityGroup;
   createOrderRoute: CreateOrderRoute;
+  browserAuthority: XuanxueAiBrowserAuthorityPort;
 };
 
 const requireStore = (state: OwnerState): XuanxueAiProductionStore => {
@@ -83,7 +85,7 @@ const startupFailureHealth = (error: unknown): XuanxueAiProductionWorkerHealth =
     status: /(?:CONTRACT|MANIFEST|PRODUCT_CONTRACT)/iu.test(reason)
       ? "contract_blocked"
       : "transient_degraded",
-    contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+    contractManifestHash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
     activeCount: 0,
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: reason.split(":").slice(0, 2).join(":"),
@@ -100,6 +102,7 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
     aiInputGateway: dependencies.aiInputGateway,
     mediaProcessing: dependencies.mediaProcessing,
     store: state.store,
+    browserAuthority: dependencies.browserAuthority,
   };
   state.coordinator = new XuanxueAiProductionCoordinator(runtime);
   if (!process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim()) return;
@@ -111,6 +114,7 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
       coordinator: state.coordinator,
       aiInputGateway: dependencies.aiInputGateway,
       createOrderRoute: dependencies.createOrderRoute,
+      browserAuthority: dependencies.browserAuthority,
       onStatus: (status) => {
         state.workerHealth = status;
       },
@@ -154,8 +158,15 @@ export const createXuanxueAiProductionWorkbenchOwner = (
   aiInputGateway: AiInputGatewayAbilityGroup,
   mediaProcessing: MediaProcessingAbilityGroup,
   createOrderRoute: CreateOrderRoute,
+  browserAuthority: XuanxueAiBrowserAuthorityPort,
 ) => {
-  const dependencies = { dataDir, aiInputGateway, mediaProcessing, createOrderRoute };
+  const dependencies = {
+    dataDir,
+    aiInputGateway,
+    mediaProcessing,
+    createOrderRoute,
+    browserAuthority,
+  };
   const state: OwnerState = {
     worker: null,
     workerHealth: null,

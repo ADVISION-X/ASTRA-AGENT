@@ -33,6 +33,18 @@ for (const reason of [
   );
 }
 
+for (const reason of [
+  "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+  "BROWSER_LIVENESS_EXPIRED",
+  "BROWSER_SESSION_WORKSPACE_REQUIRED",
+]) {
+  assert.equal(
+    classifyWebChatFailure(new Error(reason), false),
+    "recovery_pending",
+    `browser authority discontinuity must preserve the production checkpoint: ${reason}`,
+  );
+}
+
 const request = AiFeedInputSchema.parse({
   providerKind: "gpt-web-chat",
   taskIdentity: {

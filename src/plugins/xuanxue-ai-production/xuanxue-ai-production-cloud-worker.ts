@@ -7,14 +7,13 @@ import {
   heartbeatXuanxueAiProductionJob,
   recoverXuanxueAiProductionJob,
 } from "./xuanxue-ai-production-cloud-client.js";
-import type {
+import {
+  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  type
   XuanxueAiProductionCloudClaimedJob,
   XuanxueAiProductionCloudCredential,
   XuanxueAiProductionCloudWorkerHandle,
 } from "./xuanxue-ai-production-cloud-contract.js";
-import {
-  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-} from "./xuanxue-ai-production-localization-contract.js";
 import { readXuanxueAiProductionCloudCredential } from "./xuanxue-ai-production-cloud-credential.js";
 import {
   publishXuanxueAiProductionCloudOrder,
@@ -28,15 +27,26 @@ import {
   cleanXuanxueAiProductionGeneratedInputs,
   reconcileXuanxueAiProductionGeneratedInputOrphans,
 } from "./xuanxue-ai-production-transient-lifecycle.js";
+import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.runtime.js";
+import type { CloudExecutionGrantV5 } from "./generated/xuanxue-ai-production-v5.validator.js";
+import {
+  cloudWorkerPollIntervalMs,
+  isRecoverableCloudWorkerFailure,
+  isWorkerContractFailure,
+  reportCloudWorkerError,
+  safeWorkerReason,
+  waitForCloudWorker,
+  workerErrorCode,
+} from "./xuanxue-ai-production-cloud-worker-support.js";
 
 interface XuanxueAiProductionExecutionPort {
   createOrder(input: unknown): XuanxueAiOrderRecord;
   executeOrder(
     orderId: string,
     observer?: import("./xuanxue-ai-production.flow.js").XuanxueAiProductionExecutionObserver,
+    deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
   ): Promise<XuanxueAiOrderRecord>;
   listCloudRecoveryOrders(): XuanxueAiOrderRecord[];
-  repairCompletedCheckpointProviderProofs(): Promise<number>;
   quarantineForeignCloudRecoveryOrder(
     orderId: string,
     reason: string,
@@ -77,9 +87,45 @@ type StagedCloudJob = Awaited<ReturnType<
   typeof stageXuanxueAiProductionCloudJob
 >>;
 
+/**
+ * The Worker measures the complete claim round trip with a local monotonic
+ * clock.  It never turns a server timestamp into a local absolute deadline:
+ * only the remaining relative budget can admit work to the Plugin.
+ */
+export const assertXuanxueAiProductionV5DeadlineBudget = (
+  grant: CloudExecutionGrantV5,
+  claimRoundTripMs: number,
+): XuanxueAiExecutionDeadlineBudget => {
+  const serverNowMs = Date.parse(grant.deadline_budget.server_now);
+  const leaseExpiresMs = Date.parse(grant.deadline_budget.lease_expires_at);
+  const roundTripMs = Math.ceil(claimRoundTripMs);
+  if (
+    !Number.isFinite(serverNowMs)
+    || !Number.isFinite(leaseExpiresMs)
+    || !Number.isFinite(roundTripMs)
+    || roundTripMs < 0
+    || grant.deadline_budget.server_now !== grant.server_now
+    || grant.deadline_budget.lease_expires_at !== grant.lease_expires_at
+    || grant.deadline_budget.safety_margin_ms !== 10_000
+  ) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_INVALID");
+  }
+  const remainingCommandBudgetMs = leaseExpiresMs
+    - serverNowMs
+    - roundTripMs
+    - grant.deadline_budget.safety_margin_ms;
+  if (remainingCommandBudgetMs < grant.deadline_budget.command_ttl_ms) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_EXHAUSTED");
+  }
+  return {
+    expiresAtMonotonic: performance.now() + remainingCommandBudgetMs,
+    commandTtlMs: grant.deadline_budget.command_ttl_ms,
+  };
+};
+
 const currentHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth => ({
   status: state.healthStatus,
-  contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
+  contractManifestHash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
   activeCount: state.active.size,
   lastSuccessfulHeartbeatAt: state.lastSuccessfulHeartbeatAt,
   lastErrorCode: state.lastErrorCode,
@@ -98,64 +144,13 @@ const markWorkerReady = (state: WorkerState): void => {
   publishHealth(state);
 };
 
-const safeReason = (error: unknown): string => (
-  error instanceof Error ? error.message : String(error)
-).slice(0, 1_000);
-
-const errorCode = (error: unknown): string =>
-  safeReason(error).split(":").slice(0, 2).join(":");
-
-const contractFailure = (error: unknown): boolean =>
-  /(?:CONTRACT|MANIFEST|LOCALIZATION_.*PROFILE|PRODUCT_CONTRACT)/iu.test(
-    safeReason(error),
-  );
-
 const markWorkerError = (state: WorkerState, error: unknown): void => {
-  state.healthStatus = contractFailure(error)
+  state.healthStatus = isWorkerContractFailure(error)
     ? "contract_blocked"
     : "transient_degraded";
-  state.lastErrorCode = errorCode(error);
-  state.lastErrorReason = safeReason(error);
+  state.lastErrorCode = workerErrorCode(error);
+  state.lastErrorReason = safeWorkerReason(error);
   publishHealth(state);
-};
-
-const pollIntervalMs = (): number => {
-  const value = Number(
-    process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS,
-  );
-  return Number.isFinite(value) && value >= 1_000 && value <= 60_000
-    ? value
-    : 5_000;
-};
-
-const wait = async (ms: number, signal: AbortSignal): Promise<void> => {
-  if (signal.aborted) return;
-  await new Promise<void>((resolve) => {
-    let settled = false;
-    const finish = (): void => {
-      if (settled) return;
-      settled = true;
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    };
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      finish();
-    };
-    const timer = setTimeout(finish, ms);
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
-};
-
-const reportWorkerError = (code: string, error: unknown): void => {
-  process.stderr.write(`${JSON.stringify({
-    level: "error",
-    owner: "xuanxue-ai-production",
-    code,
-    reason_code: errorCode(error),
-    contract_manifest_hash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-    at: new Date().toISOString(),
-  })}\n`);
 };
 
 const executeReplayOrder = async (
@@ -206,7 +201,7 @@ const heartbeatUntilSettled = async (
   while (!settled && !state.abort.signal.aborted) {
     await Promise.race([
       tracked,
-      wait(20_000, state.abort.signal),
+      waitForCloudWorker(20_000, state.abort.signal),
     ]);
     if (!settled && !state.abort.signal.aborted) {
       await heartbeatXuanxueAiProductionJob(state.credential, job);
@@ -231,7 +226,7 @@ const checkpointAttachmentUpload = async (
       attachmentUploadProof: toXuanxueAiProductionAttachmentCheckpoint(input),
     });
   } catch (error) {
-    reportWorkerError(
+    reportCloudWorkerError(
       "XUANXUE_AI_PRODUCTION_ATTACHMENT_CHECKPOINT_DEFERRED",
       error,
     );
@@ -242,6 +237,7 @@ const executeCloudJobStages = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
   onLocalOrderId: (orderId: string) => void,
+  deadlineBudget: XuanxueAiExecutionDeadlineBudget,
 ): Promise<XuanxueAiOrderRecord> => {
   const staged = await stageXuanxueAiProductionCloudJob(
     state.dataDir,
@@ -250,6 +246,16 @@ const executeCloudJobStages = async (
   );
   await executeXuanxueAiProductionCloudReplayGraph(state.execution, staged);
   const created = state.execution.createOrder(staged.order);
+  const identity = created.order.cloudExecutionIdentity;
+  if (!identity
+    || identity.jobId !== job.grant.job_id
+    || identity.attemptId !== job.grant.attempt_id
+    || identity.requiredDeviceId !== job.grant.required_device_id
+    || identity.leaseVersion !== job.grant.lease_version
+    || identity.executionFenceHash !== job.grant.execution_fence.fence_hash
+    || identity.contractManifestHash !== job.grant.contract_manifest_hash) {
+    throw new Error("XUANXUE_AI_PRODUCTION_LOCAL_ORDER_IDENTITY_INVALID");
+  }
   onLocalOrderId(created.order.orderId);
   await checkpointXuanxueAiProductionJob(state.credential, job, {
     status: "factory_running",
@@ -261,22 +267,38 @@ const executeCloudJobStages = async (
     state.execution.executeOrder(created.order.orderId, {
       onAttachmentUploadCompleted: async ({ stageId, proof }) =>
         checkpointAttachmentUpload(state, job, created.order.orderId, { stageId, proof }),
-    }),
+    }, deadlineBudget),
   );
 };
 
 const executeCloudJob = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
+  claimRoundTripMs: number,
 ): Promise<void> => {
   let localOrderId: string | undefined;
   try {
+    if (job.grant.required_device_id !== state.credential.device_id
+      || job.grant.execution_fence.lease_version !== job.lease_version
+      || job.grant.execution_fence.fence_hash.length !== 71
+      || Date.parse(job.grant.lease_expires_at) <= Date.parse(job.grant.server_now)) {
+      throw new Error("XUANXUE_AI_PRODUCTION_V5_GRANT_REJECTED");
+    }
+    const deadlineBudget = assertXuanxueAiProductionV5DeadlineBudget(
+      job.grant,
+      claimRoundTripMs,
+    );
     await checkpointXuanxueAiProductionJob(state.credential, job, {
       status: "inputs_downloading",
     });
-    const terminal = await executeCloudJobStages(state, job, (orderId) => {
-      localOrderId = orderId;
-    });
+    const terminal = await executeCloudJobStages(
+      state,
+      job,
+      (orderId) => {
+        localOrderId = orderId;
+      },
+      deadlineBudget,
+    );
     await publishXuanxueAiProductionCloudOrder({
       credential: state.credential,
       dataDir: state.dataDir,
@@ -287,10 +309,8 @@ const executeCloudJob = async (
       await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, terminal.order.orderId);
     }
   } catch (error) {
-    const reason = safeReason(error);
-    const recoverable =
-      /CLOUD_API_FAILED|INPUT_DOWNLOAD_FAILED|RECOVERY|WORKER_STOPPED|network|fetch failed/iu
-        .test(reason);
+    const reason = safeWorkerReason(error);
+    const recoverable = isRecoverableCloudWorkerFailure(error);
     try {
       await failXuanxueAiProductionJob(state.credential, job, {
         status: recoverable ? "recovery_pending" : "failed",
@@ -308,7 +328,7 @@ const executeCloudJob = async (
         }
       }
     } catch (reportError) {
-      reportWorkerError(
+      reportCloudWorkerError(
         "XUANXUE_AI_PRODUCTION_FAILURE_REPORT_DEFERRED",
         reportError,
       );
@@ -319,7 +339,6 @@ const executeCloudJob = async (
 const reconcileDurableLocalOrders = async (
   state: WorkerState,
 ): Promise<void> => {
-  await state.execution.repairCompletedCheckpointProviderProofs();
   const records = state.execution.listCloudRecoveryOrders();
   await reconcileXuanxueAiProductionGeneratedInputOrphans(
     { dataDir: state.dataDir },
@@ -364,7 +383,7 @@ const reconcileDurableLocalOrders = async (
         );
       }
     } catch (error) {
-      const reason = safeReason(error);
+      const reason = safeWorkerReason(error);
       const foreignLedger = reason.includes(
         "AI_PRODUCTION_LOCAL_RECOVERY_DEVICE_MISMATCH",
       );
@@ -372,7 +391,7 @@ const reconcileDurableLocalOrders = async (
         state.execution.quarantineForeignCloudRecoveryOrder(orderId, reason);
         state.reconciledLocalOrders.add(orderId);
       }
-      reportWorkerError(
+      reportCloudWorkerError(
         foreignLedger
           ? "XUANXUE_AI_PRODUCTION_FOREIGN_LEDGER_SKIPPED"
           : "XUANXUE_AI_PRODUCTION_LEDGER_RECOVERY_RETRY",
@@ -392,15 +411,18 @@ const workerLoop = async (state: WorkerState): Promise<void> => {
       }
       await reconcileDurableLocalOrders(state);
       const available = Math.min(
+        1,
         state.execution.availableCapacity(),
         state.credential.max_in_flight - state.active.size,
       );
+      const claimStartedAt = performance.now();
       const jobs = available > 0
         ? await claimXuanxueAiProductionJobs(state.credential, available)
         : [];
+      const claimRoundTripMs = performance.now() - claimStartedAt;
       for (const job of jobs) {
         if (state.active.has(job.job_id)) continue;
-        const tracked = executeCloudJob(state, job).finally(() => {
+        const tracked = executeCloudJob(state, job, claimRoundTripMs).finally(() => {
           state.active.delete(job.job_id);
           publishHealth(state);
         });
@@ -409,9 +431,9 @@ const workerLoop = async (state: WorkerState): Promise<void> => {
       markWorkerReady(state);
     } catch (error) {
       markWorkerError(state, error);
-      reportWorkerError("XUANXUE_AI_PRODUCTION_POLL_RETRY", error);
+      reportCloudWorkerError("XUANXUE_AI_PRODUCTION_POLL_RETRY", error);
     }
-    await wait(pollIntervalMs(), state.abort.signal);
+    await waitForCloudWorker(cloudWorkerPollIntervalMs(), state.abort.signal);
   }
 };
 
@@ -423,6 +445,9 @@ export async function startXuanxueAiProductionCloudWorker(input: {
   const credential = await readXuanxueAiProductionCloudCredential(
     input.dataDir,
   );
+  if (credential.max_in_flight !== 1) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V5_SINGLE_IN_FLIGHT_REQUIRED");
+  }
   const configuredBase =
     process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL
       ?.trim()

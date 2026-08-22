@@ -40,7 +40,7 @@ export async function createWorkbenchAssembly(
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   const structuredLogBus = createWorkbenchStructuredLogBus();
 
-  const browserAuthority = await createWorkbenchBrowserAuthority(dataDir);
+  const browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
 
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
   const videoDownload = createUnavailableVideoDownloadAbilityGroup();

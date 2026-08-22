@@ -1,309 +1,51 @@
 {
-  "generatedAt": "2026-08-20T23:42:41.149Z",
+  "generatedAt": "2026-08-22T02:57:31.123Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-010-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-011-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-014-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
-    "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1"
+    "APEX-AMAZON-INVOICE-UPLOAD-001-V2"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "amazon-invoice-upload/download-flow-step-id",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "Download flow must cite Evidence Map step AID-09.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/download-flow-step-id",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "Download flow must cite Evidence Map step AID-11.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/download-flow-dom-trace",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "Download flow must call recordAmazonDomStepTrace.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/download-flow-manual-required",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "Download flow must expose manual_required gates.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/current-request-row-gate",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "Download flow must reject rows that are not proven to be the current requested CSV report.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/aid-07-current-row-state-read",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "AID-07 must read the latest Seller Central tax invoice row state before deciding whether a request is already pending.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/aid-07-must-not-skip-on-downloadable",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "message": "AID-07 must not skip requesting CSV because the latest row or snapshot is already downloadable; downloadable may be an old report.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
-      "message": "Amazon invoice upload stability guard missing: required source missing: src/lib/browser/browser-controller.ts.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
-      "message": "Amazon invoice upload stability guard missing: required source missing: src/lib/browser/exact-target/browser-command-runtime.ts.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
-      "message": "Amazon invoice upload stability guard missing: required source missing: src/lib/browser/exact-target/exact-browser-target-session.ts.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/upload-stability-refresh-retry",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
-      "message": "Amazon invoice upload stability guard missing: required source missing: src/lib/browser/exact-target/exact-browser-target-session.ts.",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/exact-target-technical-integrity",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
-      "message": "order-detail observation exceptions must return a distinct technical_failure branch",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
-    },
-    {
-      "checkId": "amazon-invoice-upload/exact-target-technical-integrity",
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-016-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-016-requirement",
-      "message": "technical observation failure must fail closed as review_required before later upload actions",
-      "severity": "fatal",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f",
+      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:128b8d5e-e609-4f3c-b00b-1117602051cf",
       "capabilityDomain": "amazon-invoice-upload",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "status": "FAIL",
-      "startedAt": "2026-08-20T23:42:41.007Z",
-      "endedAt": "2026-08-20T23:42:41.149Z",
-      "durationMs": 142,
+      "status": "PASS",
+      "startedAt": "2026-08-22T02:57:31.123Z",
+      "endedAt": "2026-08-22T02:57:31.123Z",
+      "durationMs": 0,
       "evidenceRefs": [
-        ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-        "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
-        "docs/法案辅助文件/amazon_invoice_upload_process.md",
-        "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
-        "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
-        "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
-        "scripts/acceptance/amazon-invoice-upload-smoke.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
-        "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
         "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-        "src/app/app-shell/amazon-invoice-workspace.ts",
-        "src/app/app-shell/app-shell-layout.ts",
-        "src/app/workbench-amazon-routes.ts",
-        "src/app/workbench-api-boundary.ts",
-        "src/app/workbench-home-amazon-invoice-client.ts",
-        "src/app/workbench-home-client.ts",
-        "src/lib/browser/browser-controller.ts",
-        "src/lib/browser/exact-target/browser-command-runtime.ts",
-        "src/lib/browser/exact-target/exact-browser-target-session.ts",
-        "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
-        "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-        "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
-        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
-        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
-        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
-        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
-        "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+        "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+        "src/mediator/amazon-invoice-upload-route.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.ts",
+        "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts",
+        "src/plugins/amazon-invoice-upload/index.ts",
+        "src/plugins/amazon-invoice-upload/mission.schema.ts",
+        "src/plugins/amazon-invoice-upload/terminal-invoice-owner.ts"
       ],
-      "findingCount": 13
+      "findingCount": 0
     }
   ],
   "executedChecks": [
     {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-001-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-001-requirement",
+      "lawId": "APEX-AMAZON-INVOICE-UPLOAD-001-V2",
+      "clauseId": "apex-amazon-invoice-upload-001-v2-terminal-authority",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-002-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-002-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-003-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-003-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-004-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-004-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-005-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-005-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-006-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-006-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-007-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-007-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-008-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-009-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-009-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-012-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-013-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-013-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
-    },
-    {
-      "lawId": "GRASSEYE-AMAZON-INVOICE-UPLOAD-015-V1",
-      "clauseId": "grasseye-amazon-invoice-upload-015-requirement",
-      "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:4f07ac94-e601-4d15-b2dd-b78d8cc67b2f"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:128b8d5e-e609-4f3c-b00b-1117602051cf"
     }
   ],
   "inspectedFiles": [
-    ".github/instructions/agent-rules/modules/module-amazon-invoice-upload.instructions.md",
-    "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
-    "docs/法案辅助文件/amazon_invoice_upload_process.md",
-    "scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts",
-    "scripts/acceptance/amazon-invoice-upload-smoke-boundary.ts",
-    "scripts/acceptance/amazon-invoice-upload-smoke-support.ts",
-    "scripts/acceptance/amazon-invoice-upload-smoke.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-amount-gate.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-batch.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-download-flow.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-download-row-guards.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-exact-target-technical.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-ledger.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-route-sanitizer.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-runtime-stability.ts",
-    "scripts/audit/domains/amazon-invoice-upload/inspector-upload-stability.ts",
     "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-    "src/app/app-shell/amazon-invoice-workspace.ts",
-    "src/app/app-shell/app-shell-layout.ts",
-    "src/app/workbench-amazon-routes.ts",
-    "src/app/workbench-api-boundary.ts",
-    "src/app/workbench-home-amazon-invoice-client.ts",
-    "src/app/workbench-home-client.ts",
-    "src/lib/browser/browser-controller.ts",
-    "src/lib/browser/exact-target/browser-command-runtime.ts",
-    "src/lib/browser/exact-target/exact-browser-target-session.ts",
-    "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-amount-check.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-ledger.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
-    "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-    "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
-    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-evidence.ts",
-    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-local-artifact.ts",
-    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-page-state.ts",
-    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download-runtime-helpers.ts",
-    "src/plugins/amazon-invoice-upload/amazon-tax-invoice-download.flow.ts"
+    "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
+    "src/mediator/amazon-invoice-upload-route.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts",
+    "src/plugins/amazon-invoice-upload/index.ts",
+    "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/amazon-invoice-upload/terminal-invoice-owner.ts"
   ]
 }

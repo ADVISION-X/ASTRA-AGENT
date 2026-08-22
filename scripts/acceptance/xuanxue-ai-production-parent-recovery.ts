@@ -12,9 +12,6 @@ import {
   hash,
   order,
 } from "./xuanxue-ai-production-fixture.js";
-import {
-  acceptXuanxueParentRebuilds,
-} from "./xuanxue-ai-production-parent-rebuild-acceptance.js";
 
 interface ParentAcceptanceInput {
   readonly runtime: XuanxueAiProductionRuntime;
@@ -85,5 +82,4 @@ export const acceptXuanxueParentRecovery = async (
   input: ParentAcceptanceInput,
 ): Promise<void> => {
   await acceptSameParentFifo(input);
-  await acceptXuanxueParentRebuilds(input);
 };

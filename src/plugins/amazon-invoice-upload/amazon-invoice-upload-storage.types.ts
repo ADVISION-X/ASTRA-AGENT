@@ -1,69 +1,49 @@
-import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
+import type { PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 import type {
   AmazonInvoiceUploadMissionInput,
   AmazonTaxInvoiceDownloadMissionInput,
 } from "./mission.schema.js";
-import type { PluginInterventionSnapshot } from "../../types/plugin-intervention.js";
 
-export type AmazonInvoiceUploadPdfFile = {
-  filename: string;
-  mimeType: string;
-  bytes: Buffer;
-};
-
-export type AmazonInvoiceUploadTaskRecord = AmazonInvoiceUploadTaskResult & {
+export type AmazonInvoiceUploadTaskRecord = Readonly<{
   taskId: string;
   mission: AmazonInvoiceUploadMissionInput;
-  createdAt: string;
-  updatedAt: string;
-  intervention: PluginInterventionSnapshot;
-};
-
-export type AmazonTaxInvoiceDownloadStatus =
-  | "received"
-  | "downloading"
-  | "download_requested"
-  | "waiting_report_ready"
-  | "download_ready"
-  | "artifact_persisted"
-  | "completed"
-  | "manual_required"
-  | "failed";
-
-export type AmazonTaxInvoiceDownloadArtifactMetadata = {
-  artifactRef: string;
-  artifactName: string;
-  mimeType: "text/csv";
-  fileSize: number;
-  sha256: string;
-  createdAt: string;
-};
-
-export type AmazonTaxInvoiceDownloadTaskResult = {
-  ok: boolean;
-  status: AmazonTaxInvoiceDownloadStatus;
+  ok: false;
+  status: string;
   reason: string;
   reachedStep: string;
-  evidenceStepId?: string;
-  downloadArtifactRef?: string;
-  downloadedFileName?: string;
-  downloadedFileSize?: number;
-  downloadedFileSha256?: string;
-  downloadedAt?: string;
-  evidenceRef?: string;
-  runtimeLogRef?: string;
-  reviewRequired?: boolean;
-};
+  amazonOrderId: string;
+  invoiceNo: string;
+  reviewRequired: boolean;
+  intervention: PluginInterventionSnapshot;
+  createdAt: string;
+  updatedAt: string;
+}>;
 
-export type AmazonTaxInvoiceDownloadTaskRecord =
-  AmazonTaxInvoiceDownloadTaskResult & {
-    taskId: string;
-    taskKind: "tax_invoice_download";
-    mission: AmazonTaxInvoiceDownloadMissionInput;
-    sourceSystem?: string;
-    requestId?: string;
-    callbackStatus?: "not_configured" | "pending" | "sent" | "failed";
-    artifact?: AmazonTaxInvoiceDownloadArtifactMetadata;
-    createdAt: string;
-    updatedAt: string;
-  };
+export type AmazonInvoiceUploadLedgerRecord = Readonly<{
+  taskId: string;
+  amazonOrderId: string;
+  invoiceNo: string;
+  status: string;
+  reason: string;
+  reachedStep: string;
+  evidenceRef: null;
+  runtimeLogRef: null;
+  navigationEvidenceRef: null;
+  reviewRequired: boolean;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type AmazonTaxInvoiceDownloadTaskRecord = Readonly<{
+  taskId: string;
+  taskKind: "tax_invoice_download";
+  mission: AmazonTaxInvoiceDownloadMissionInput;
+  ok: boolean;
+  status: "completed" | "manual_required";
+  reason: string;
+  reachedStep: string;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type AmazonTaxInvoiceDownloadArtifactMetadata = null;

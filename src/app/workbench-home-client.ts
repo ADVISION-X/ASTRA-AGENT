@@ -195,6 +195,40 @@ const refreshShell = async () => {
     writeActivity("shell refresh failed: " + error.message, "failed");
   }
 };
+const openBrowserPairing = async () => {
+  try {
+    const pairing = await readJson("/api/browser-authority/pairing", { cache: "no-store" });
+    if (pairing.authority === "present") {
+      openInspector({
+        kind: "browser authority",
+        title: "浏览器扩展已经完成认证",
+        payload: {
+          "下一步": "切换到要控制的 HTTPS 标签页，在扩展弹窗中点击“认领当前 HTTPS 标签页”。认领成功会建立本次连接的工作区并恢复最早未完成任务。",
+        },
+      });
+      writeActivity("browser authority already authenticated", "completed");
+      return;
+    }
+    if (typeof pairing.pairingSecret !== "string" || !/^[a-f0-9]{64}$/.test(pairing.pairingSecret)) {
+      throw new Error("BROWSER_PAIRING_SECRET_UNAVAILABLE");
+    }
+    await navigator.clipboard.writeText(pairing.pairingSecret);
+    openInspector({
+      kind: "browser authority",
+      title: "一次性配对密钥已复制",
+      payload: {
+        "一次性配对密钥": pairing.pairingSecret,
+        "第 1 步": "点击 Chrome 工具栏中的 GrassEye Browser Authority 扩展。",
+        "第 2 步": "粘贴密钥并点击“配对固定扩展”。",
+        "第 3 步": "切换到要控制的 HTTPS 标签页并点击“认领当前 HTTPS 标签页”。",
+        "第 4 步": "认领成功后直接继续；本次连接不设置运行时长到期。",
+      },
+    });
+    writeActivity("one-time browser pairing secret copied", "completed");
+  } catch (error) {
+    writeActivity("browser pairing preparation failed: " + error.message, "failed");
+  }
+};
 ${renderAmazonProductMiningReviewClient()}
 ${renderAmazonInvoiceClient({
   downloadStart: "/api/plugins/amazon-invoice-upload/download/start",
@@ -315,6 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-amazon-form]")?.addEventListener("submit", startAmazon);
   qs("[data-amazon-product-mining-form]")?.addEventListener("submit", startAmazonProductMining);
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
+  qs("[data-browser-pairing]")?.addEventListener("click", openBrowserPairing);
   document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
     tab.addEventListener("click", () => {
       if (tab.dataset.amazonProductMiningPage === "latest") {

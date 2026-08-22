@@ -163,7 +163,7 @@ const inspectLocalizationTopology = (
   const staticReview = order.productId === "localization_static_review_candidate"
     || order.productId === "localization_static_review_selector";
   const staticSubjectInvalid = staticReview && (
-    order.triggerKind !== "terminal_localization"
+    order.triggerKind !== "localization_static_review"
     || order.frozenSubject.privacyOwnerRef !== "localization-catalog"
     || order.frozenSubject.primaryPersonRef !== null
     || order.frozenSubject.participants.length !== 0

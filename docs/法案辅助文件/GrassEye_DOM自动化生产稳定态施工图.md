@@ -119,7 +119,7 @@ observe / locate / retry / scroll 都必须有固定次数或截止时间，不�
 
 ## 7. Observation / Mutation 分权
 
-`BrowserTargetLease.executeDomIntent` 与 `observeCapability` 只允许声明式、版本化的观察：
+`BrowserTargetLease.executeDomIntent` 与 `observeCapability` 只接受 registry-owned `actionId` 和版本化 payload/observation。selector、坐标和 element mechanics 只能存在于 Extension 私有 SiteActionRegistry 实现，不得进入 caller 或 Browser wire：
 
 ```txt
 read attributes / text / role / value
@@ -143,11 +143,11 @@ file assignment
 页面修改只允许：
 
 ```txt
-click  -> executeDomIntent({ kind: "click" })
-fill   -> executeDomIntent({ kind: "fill" })
+click  -> executeDomIntent({ actionId, payload })
+fill   -> executeDomIntent({ actionId, payload })
           -> Browser owner revalidates the same host and editable receiver object
           -> Browser owner applies the approved text and verifies exact retained value
-upload -> attachFile({ grant })  -> browser.file-input.v1
+upload -> attachFile({ actionId, grant })  -> browser.file-input.v1
 ```
 
 三种 mutation 都必须在同一 exact target/current document 上执行。没有 active/current/front/first tab fallback，没有系统鼠标键盘，没有 caller-local evaluator。
@@ -185,7 +185,7 @@ validate caller-approved local path equality
   -> revalidate input[type=file] and current document
       -> classify topology
           -> LIGHT_DOM_SUPPORTED
-              -> BrowserTargetLease.attachFile({ grant })
+              -> BrowserTargetLease.attachFile({ actionId, grant })
                   -> browser.file-input.v1
                       -> observe selected-file metadata
 ```
@@ -216,13 +216,13 @@ DOM runtime 只依赖现役 `BrowserTargetLease` 窄口：
 interface BrowserTargetLease {
   readonly target: { targetRef: string };
   readonly document: { documentRef: string };
-  observeCapability(input: { capabilityId: "dom.snapshot.structural.v1"; timeoutMs?: number }): Promise<unknown>;
-  executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
-  attachFile(input: { selector: string; grant: BrowserFileArtifactGrantV1 }): Promise<void>;
+  observeCapability(input: { actionId: BrowserSiteActionId; observation: BrowserObservationV1; timeoutMs?: number }): Promise<unknown>;
+  executeDomIntent(input: { actionId: BrowserSiteActionId; payload: BrowserActionPayloadV1 }): Promise<unknown>;
+  attachFile(input: { actionId: BrowserSiteActionId; grant: BrowserFileArtifactGrantV1 }): Promise<void>;
 }
 ```
 
-DOM intent 到 Browser command registry 的固定实现只属于 `src/lib/browser/exact-target/**` 与唯一 MV3 command registry。DOM 不包装、不 `eval`、不 `new Function`，也不接受 caller script。
+`BrowserSiteActionId` 只能来自 owning flow 获准的固定 registry entry；它不是 selector alias，也不能由 caller 自由拼接。DOM intent 到 Browser command registry 的固定实现只属于 `src/lib/browser/exact-target/**` 与唯一 MV3 command registry。DOM 不包装、不 `eval`、不 `new Function`，也不接受 caller script。
 
 ## 13. Evidence / Logs / Business Truth
 

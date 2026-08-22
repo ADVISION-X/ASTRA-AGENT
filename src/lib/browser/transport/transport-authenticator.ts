@@ -16,7 +16,6 @@ export type BrowserTransportHandshake = Readonly<{
   livenessPolicyHash: BrowserHash;
   commandAdmissionBudgetHash: BrowserHash;
   artifactStreamBudgetHash: BrowserHash;
-  expiresAt: string;
 }>;
 
 const assertHash = (value: string): asserts value is BrowserHash => {
@@ -43,7 +42,6 @@ export const assertAuthenticatedTransportHandshake = (handshake: BrowserTranspor
     || handshake.extensionId.length === 0
     || handshake.extensionVersion.length === 0
     || handshake.sourceChannelToken.length < 16
-    || Date.parse(handshake.expiresAt) <= Date.now()
   ) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }

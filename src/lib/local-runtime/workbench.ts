@@ -46,7 +46,8 @@ const buildWorkbenchHandle = (
     getMissionStartPreflight: async (input) =>
       getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
-    workbenchBrowserExtensionChannel: (input) => assembly.browserAuthority.workbenchExtensionChannel(input),
+    acceptBrowserAuthoritySocket: (input) => assembly.browserAuthority.acceptBrowserAuthoritySocket(input),
+    readBrowserAuthorityPairingState: () => assembly.browserAuthority.readOperatorPairingState(),
     getMediaProcessingAbilityGroup: () => assembly.mediaProcessing,
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
@@ -60,7 +61,7 @@ const authorityAbsentComponent = () => ({
   name: "browserAuthority",
   ok: false,
   detail: "Browser authority is absent while runtime initialization is incomplete.",
-  actionableMessage: "Install the exact MV3 extension, open the local Workbench page, then reconnect the one browser authority channel before admitting browser work.",
+  actionableMessage: "Load the fixed unpacked MV3 extension, complete a fresh local pairing, then let its actor establish the one browser authority WebSocket before admitting browser work.",
   ownerResponsible: "Browser",
 });
 
@@ -98,6 +99,7 @@ export class GrassEyeWorkbench {
         assembly.aiInputGateway,
         assembly.mediaProcessing,
         runXuanxueAiProductionRoute,
+        assembly.browserAuthority,
       );
       await prepareVideoDownloadRuntimeDependencies();
       await xuanxueAiProduction.init();

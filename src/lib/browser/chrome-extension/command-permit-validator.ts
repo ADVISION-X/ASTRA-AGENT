@@ -10,6 +10,15 @@ export type ExtensionCommandPermit = Readonly<{
   certificateHash: BrowserHash;
   channelSessionHash: BrowserHash;
   executionBindingHash: BrowserHash;
+  writerFenceHash: BrowserHash;
+  candidateHash: BrowserHash;
+  contractManifestHash: BrowserHash;
+  ownerPluginId: string;
+  jobId: string;
+  attemptId: string;
+  deviceId: string;
+  leaseVersion: number;
+  localOrderId: string;
   targetLeaseRef: string;
   targetRef: string;
   documentRef: string;
@@ -17,7 +26,8 @@ export type ExtensionCommandPermit = Readonly<{
   commandId: string;
   sequence: number;
   mutationClass: "observation" | "mutation" | "lifecycle";
-  deadlineAt: string;
+  workspaceRef: string;
+  commandTtlMs: number;
   replyChannelToken: string;
   commandFrameMac: BrowserHash;
 }>;
@@ -31,6 +41,7 @@ export type ExtensionPermitAuthorityContext = Readonly<{
 }>;
 
 let currentAuthority: ExtensionPermitAuthorityContext | null = null;
+const permitReceivedMonotonic = new Map<string, number>();
 
 export const setExtensionPermitAuthority = (context: ExtensionPermitAuthorityContext): void => {
   currentAuthority = context;
@@ -49,15 +60,28 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
   permit.capabilityId,
   permit.commandId,
   permit.replyChannelToken,
+  permit.workspaceRef,
+  permit.ownerPluginId,
+  permit.jobId,
+  permit.attemptId,
+  permit.deviceId,
+  permit.localOrderId,
 ].every(Boolean);
 
 const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => permit.authorityEpoch >= 1
   && Number.isInteger(permit.sequence)
   && permit.sequence >= 1
-  && Date.parse(permit.deadlineAt) > Date.now()
+  && Number.isInteger(permit.leaseVersion)
+  && permit.leaseVersion >= 1
+  && Number.isInteger(permit.commandTtlMs)
+  && permit.commandTtlMs >= 1
+  && permit.commandTtlMs <= 3_600_000
   && isHash(permit.certificateHash)
   && isHash(permit.channelSessionHash)
   && isHash(permit.executionBindingHash)
+  && isHash(permit.writerFenceHash)
+  && isHash(permit.candidateHash)
+  && isHash(permit.contractManifestHash)
   && isHash(permit.commandFrameMac);
 
 const hasValidPermitShape = (permit: ExtensionCommandPermit): boolean => hasRequiredPermitReferences(permit)
@@ -76,6 +100,13 @@ export async function assertExtensionCommandPermit(permit: ExtensionCommandPermi
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   const authority = currentAuthority;
+  const now = performance.now();
+  const receivedAt = permitReceivedMonotonic.get(permit.permitRef) ?? now;
+  permitReceivedMonotonic.set(permit.permitRef, receivedAt);
+  if (now - receivedAt > permit.commandTtlMs) {
+    permitReceivedMonotonic.delete(permit.permitRef);
+    throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+  }
   if (!authority || !matchesPermitAuthority(permit, authority)
     || !await hasValidPermitMac(permit, authority.commandPermitKey)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

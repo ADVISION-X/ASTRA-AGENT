@@ -105,8 +105,7 @@ assert.equal(unsealedPlan.slice(5, -1).every((step) => step[3] === null && step[
   "unsealed acceptance leaves must not claim law or owner authority before artifact rebuild.");
 const lawForLeaf = (filePath: string): string | null => acceptanceSteps.find((step) => step[2] === filePath)?.[3] ?? null;
 assert.equal(lawForLeaf("scripts/acceptance/app-shell-localization.acceptance.ts"), "GRASSEYE-APP-SHELL-UI-002-V1", "localization must bind its own law instead of the owner's first law.");
-assert.equal(lawForLeaf("scripts/acceptance/amazon-invoice-upload-batch.acceptance.ts"), "GRASSEYE-AMAZON-INVOICE-UPLOAD-012-V1", "Amazon batch acceptance must bind the batch law.");
-assert.equal(lawForLeaf("scripts/acceptance/amazon-invoice-upload-smoke.ts"), "GRASSEYE-AMAZON-INVOICE-UPLOAD-008-V1", "Amazon fixture smoke must bind machine acceptance authority, not deferred Chrome proof.");
+assert.equal(lawForLeaf("scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts"), "APEX-AMAZON-INVOICE-UPLOAD-001-V2", "Amazon terminal acceptance must bind the active terminal-authority law.");
 assert.equal(lawForLeaf("src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts"), "APEX-AI-INPUT-GATEWAY-002-V1", "Provider boundary acceptance must bind the governed browser and raw-response contract.");
 assert.equal(lawForLeaf("src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts"), "APEX-AI-INPUT-GATEWAY-003-V1", "Attachment routing acceptance must bind the fixed transport-routing contract.");
 assert.equal(lawForLeaf("src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts"), "APEX-AI-INPUT-GATEWAY-004-V1", "Attachment proof acceptance must bind the aggregate stability and identity contract.");

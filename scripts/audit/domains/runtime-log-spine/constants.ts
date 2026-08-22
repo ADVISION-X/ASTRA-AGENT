@@ -27,23 +27,3 @@ export type RuntimeLogSpineFinding = {
   hint: string;
   checkId: string;
 };
-
-export type RuntimeLogSpinePhase = {
-  name: string;
-  status: "PASS" | "FAIL";
-  findingCount: number;
-  scannedFiles?: number;
-  metrics?: Record<string, number>;
-};
-
-export const RUNTIME_LOG_REQUIRED_FILES = [
-  "src/lib/runtime-logs/event-types.ts",
-  "src/lib/runtime-logs/failure-classes.ts",
-  "src/lib/runtime-logs/redaction.ts",
-  "src/lib/runtime-logs/sinks.ts",
-  "src/lib/runtime-logs/trace-context.ts",
-  "src/lib/runtime-logs/event-factory.ts",
-  "src/lib/runtime-logs/stage-logger.ts",
-  "src/lib/runtime-logs/debug-bundle.ts",
-  "src/lib/runtime-logs/debug-bundle-index.ts",
-] as const;

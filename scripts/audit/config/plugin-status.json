@@ -4,7 +4,7 @@
       "pluginId": "amazon-invoice-upload",
       "status": "active",
       "owner": "plugin:amazon-invoice-upload",
-      "phase": "validated-mainline",
+      "phase": "terminal-authority-gated",
       "mediatorRoute": "src/mediator/amazon-invoice-upload-route.ts",
       "mediatorBindings": [
         {
@@ -60,16 +60,8 @@
         "src/lib/local-runtime/workbench.ts",
         "src/lib/local-runtime/workbench-handle.ts"
       ],
-      "allowedAcceptanceTests": [
-        "acceptance:amazon-invoice-upload-batch",
-        "acceptance:amazon-invoice-upload-download",
-        "acceptance:amazon-invoice-upload-smoke"
-      ],
-      "allowedNpmScripts": [
-        "acceptance:amazon-invoice-upload-batch",
-        "acceptance:amazon-invoice-upload-download",
-        "acceptance:amazon-invoice-upload-smoke"
-      ],
+      "allowedAcceptanceTests": ["acceptance:amazon-invoice-upload-terminal"],
+      "allowedNpmScripts": ["acceptance:amazon-invoice-upload-terminal"],
       "exposureTokens": [
         "amazon-invoice-upload"
       ],
@@ -81,7 +73,7 @@
       "pluginId": "amazon-product-mining",
       "status": "active",
       "owner": "plugin:amazon-product-mining",
-      "phase": "law-governed-active",
+      "phase": "terminal-authority-gated",
       "mediatorRoute": "src/mediator/amazon-product-mining-route.ts",
       "mediatorBindings": [
         {
@@ -125,10 +117,9 @@
       "allowedAcceptanceTests": [
         "acceptance:amazon-product-mining"
       ],
-      "allowedNpmScripts": [
-        "acceptance:amazon-product-mining",
-        "amazon-product-mining:package:fixture"
-      ],
+  "allowedNpmScripts": [
+    "acceptance:amazon-product-mining"
+  ],
       "exposureTokens": [
         "amazon-product-mining"
       ],

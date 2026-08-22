@@ -23,6 +23,7 @@ import {
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
+import { inspectAttachmentChild } from "./attachment-inspector.js";
 
 const literalContains = (source: SourceFile, value: string): boolean =>
   [...stringLiterals(source)].some((literal) => literal.includes(value));
@@ -63,41 +64,6 @@ const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], l
   for (const required of ["taskIdentity", "AiTaskLabelKeySchema"]) {
     if (!identifiers(schema).has(required)) {
       pushFinding(findings, lawId, P.attachment.schemaPath, "ai-input-gateway/structured-task-identity", `AI feed schema must declare ${required}.`);
-    }
-  }
-};
-
-const inspectAttachmentChild = (context: InspectorContext, findings: Finding[], routingLawId: string, proofLawId: string): void => {
-  const child = requireSourceFile(context, findings, routingLawId, P.attachment.childPath);
-  const shared = requireSourceFile(context, findings, routingLawId, P.attachment.sharedPath);
-  const adapterContract = requireSourceFile(context, findings, proofLawId, P.attachment.adapterContractPath);
-  if (!child || !shared || !adapterContract) return;
-  const childIds = identifiers(child);
-  const childStrings = stringLiterals(child);
-  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "attachByExactTargetFileInputBatch", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
-    if (!childIds.has(requiredIdentifier)) {
-      pushFinding(findings, proofLawId, P.attachment.childPath, "ai-input-gateway/attachment-child-structure", `${P.attachment.childPath} must contain ${requiredIdentifier}.`);
-    }
-  }
-  for (const requiredLiteral of ["skipped", "exact_target_file_input_batch", "attachments_stable"]) {
-    if (!childStrings.has(requiredLiteral)) {
-      pushFinding(findings, routingLawId, P.attachment.childPath, "ai-input-gateway/fixed-routing-literal", `${P.attachment.childPath} must declare ${requiredLiteral}.`);
-    }
-  }
-  const forbiddenImports = child
-    .getImportDeclarations()
-    .map((declaration) => declaration.getModuleSpecifierValue())
-    .filter((specifier) => specifier.includes("web-chat-submit") || specifier.includes("web-chat-answer"));
-  for (const specifier of forbiddenImports) {
-    pushFinding(findings, routingLawId, P.attachment.childPath, "ai-input-gateway/attachment-child-terminal-boundary", `Attachment child must not import ${specifier}.`);
-  }
-  if (!identifiers(shared).has("attachApprovedWebChatFilesOnce")) {
-    pushFinding(findings, routingLawId, P.attachment.sharedPath, "ai-input-gateway/shared-child-integration", "The web-chat main flow must delegate attachments to the standard child.");
-  }
-  const proofProperties = typePropertyNames(adapterContract, "WebChatAttachmentUploadProof");
-  for (const field of ["uploadAttemptId", "transportKind", "expectedFileCount", "detectedFileCount", "stagingManifestHash", "files", "startedAt", "endedAt", "status", "failureReason", "reviewRequiredReason"]) {
-    if (!proofProperties.has(field)) {
-      pushFinding(findings, proofLawId, P.attachment.adapterContractPath, "ai-input-gateway/aggregate-proof-field", `Aggregate attachment proof must contain ${field}.`);
     }
   }
 };
@@ -155,6 +121,30 @@ const inspectBoundedParallelExecution = (context: InspectorContext, findings: Fi
   if (!sources) return;
   inspectParallelIdentifiers(sources, findings, lawId);
   inspectParallelAcceptanceProof(sources[7]!, findings, lawId);
+};
+
+const inspectSerialProviderBrowserActions = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  for (const repoPath of P.serialBrowserActionPaths) {
+    const source = requireSourceFile(context, findings, lawId, repoPath);
+    if (!source) continue;
+    const parallelBrowserBatch = source
+      .getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some((call) => astExpressionPath(call.getExpression()) === "Promise.all"
+        || astExpressionPath(call.getExpression()) === "Promise.allSettled");
+    if (parallelBrowserBatch) {
+      pushFinding(
+        findings,
+        lawId,
+        repoPath,
+        "ai-input-gateway/serial-provider-browser-actions",
+        "Provider page observations must await BrowserTargetLease commands one at a time; Promise fan-out bypasses the single browser mutation lane.",
+      );
+    }
+  }
 };
 
 const inspectNoChatGptPageRefresh = (context: InspectorContext, findings: Finding[], lawId: string): void => {
@@ -422,6 +412,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectAttachmentChild(context, findings, routingLawId, proofLawId);
   inspectRemovedRegion(findings, routingLawId);
   inspectBoundedParallelExecution(context, findings, parallelLawId);
+  inspectSerialProviderBrowserActions(context, findings, parallelLawId);
   inspectFreshConversationIdentity(context, findings, parallelLawId);
   inspectNoChatGptPageRefresh(context, findings, parallelLawId);
   inspectCanonicalConversationIdentity(context, findings, parallelLawId);

@@ -11,6 +11,10 @@ import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { ZombieModuleGraph, ZombieReachability } from "./zombie-module-graph.js";
 import type { ZombieNamespaceUsageReport } from "./zombie-namespace-usage.js";
 import type { ZombieBarrelLaunderingSurface } from "./zombie-reexport-trace.js";
+import {
+  isLawfulManifestEntryExport,
+  type ZombieExemptionManifest,
+} from "./zombie-exemption-manifest.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
 
 const readPackageScripts = (): Record<string, string> => {
@@ -253,6 +257,7 @@ export const scanZombieAntiEvasion = (input: {
   barrelLaunderingSurfaces: readonly ZombieBarrelLaunderingSurface[];
   collector: InventoryFindingCollector;
   governedFiles: readonly GovernedFile[];
+  manifest: ZombieExemptionManifest;
   moduleGraph: ZombieModuleGraph;
   namespaceUsage: ZombieNamespaceUsageReport;
   reachability: ZombieReachability;
@@ -270,6 +275,13 @@ export const scanZombieAntiEvasion = (input: {
   });
 
   for (const surface of input.barrelLaunderingSurfaces) {
+    if (isLawfulManifestEntryExport(
+      input.manifest,
+      surface.exportingFile,
+      surface.exportName,
+    )) {
+      continue;
+    }
     const governedFile = input.moduleGraph.filesByPath.get(surface.exportingFile);
     if (!governedFile) {
       continue;

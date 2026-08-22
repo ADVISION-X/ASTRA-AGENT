@@ -10,7 +10,7 @@ import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 import { handleXuanxueAiProductionRequest } from "./workbench-xuanxue-ai-production-routes.js";
-import { handleWorkbenchBrowserExtensionChannelRequest } from "./workbench-browser-extension-channel-routes.js";
+import { upgradeWorkbenchBrowserAuthoritySocket } from "./workbench-browser-websocket-upgrade.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
 
@@ -125,15 +125,19 @@ const handleWorkbenchMetaRequest = async (input: {
   workbench: GrassEyeWorkbenchHandle;
   url: URL;
 }): Promise<boolean> => {
-  if (input.request.method !== "GET") {
-    return false;
-  }
-  if (input.url.pathname === "/api/health") {
+  if (input.request.method === "GET" && input.url.pathname === "/api/health") {
     writeJson(input.response, 200, await input.workbench.getHealthReport());
     return true;
   }
-  if (input.url.pathname === "/api/mode") {
+  if (input.request.method === "GET" && input.url.pathname === "/api/mode") {
     writeJson(input.response, 200, { mode: input.workbench.getModeInfo() });
+    return true;
+  }
+  if (input.request.method === "GET" && input.url.pathname === "/api/browser-authority/pairing") {
+    writeJson(input.response, 200, input.workbench.readBrowserAuthorityPairingState(), {
+      "cache-control": "no-store, max-age=0",
+      "referrer-policy": "no-referrer",
+    });
     return true;
   }
   return false;
@@ -160,9 +164,6 @@ const handleKnownWorkbenchApiRequest = async (input: {
   workbench: GrassEyeWorkbenchHandle;
   url: URL;
 }): Promise<boolean> => {
-  if (await handleWorkbenchBrowserExtensionChannelRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
   if (await handleWorkbenchMetaRequest(input)) {
     return true;
   }
@@ -245,7 +246,7 @@ export function createWorkbenchServer(input: {
   workbench: GrassEyeWorkbenchHandle;
   baseUrl: string;
 }): ReturnType<typeof createServer> {
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     try {
       await handleRequest(request, response, input.workbench, input.baseUrl);
     } catch (error) {
@@ -257,4 +258,8 @@ export function createWorkbenchServer(input: {
       response.end(JSON.stringify({ error: "workbench_request_failed", failureReason }));
     }
   });
+  server.on("upgrade", (request, socket, head) => {
+    if (!upgradeWorkbenchBrowserAuthoritySocket({ request, socket, head, workbench: input.workbench })) socket.destroy();
+  });
+  return server;
 }

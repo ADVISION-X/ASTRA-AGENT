@@ -50,13 +50,13 @@ const acceptTerminalAttachmentRecovery = async ({ dataDir, runtime }: RecoveryIn
     terminalAttachmentRuntime,
     terminalAttachmentOrder.orderId,
   );
-  assert.equal(result.status, "recovery_pending");
+  assert.equal(result.status, "failed");
   assert.equal(terminalAttachmentGateway.requests.length - callsBefore, 1);
   const replay = await executeXuanxueAiProductionOrder(
     terminalAttachmentRuntime,
     terminalAttachmentOrder.orderId,
   );
-  assert.equal(replay.status, "recovery_pending");
+  assert.equal(replay.status, "failed");
   assert.equal(terminalAttachmentGateway.requests.length - callsBefore, 1);
   assert.equal(
     replay.stages[0]?.aiFeedResult?.providerProof.attachmentUploadProof?.uploadAttemptId,
@@ -130,11 +130,12 @@ const acceptRetryRecovery = async ({ runtime, gateway }: RecoveryInput): Promise
   gateway.faults.submittedReview.set(`${monitoredOrder.orderId}:analysis`, 1);
   const beforeMonitor = gateway.requests.length;
   const monitoredResult = await executeXuanxueAiProductionOrder(runtime, monitoredOrder.orderId);
-  assert.equal(monitoredResult.status, "completed");
+  assert.equal(monitoredResult.status, "review_required");
+  assert.equal(gateway.requests.length - beforeMonitor, 1);
   assert.equal(
     new Set(gateway.executionIds.slice(beforeMonitor)).size,
     1,
-    "a submitted turn interrupted by a second physical monitor tab must resume the same execution without another logical submission",
+    "a submitted turn interrupted by a second physical tab must stop without another logical submission",
   );
   assert.equal(gateway.supersededExecutionIds.slice(beforeMonitor).filter(Boolean).length, 0);
 
@@ -145,12 +146,12 @@ const acceptRetryRecovery = async ({ runtime, gateway }: RecoveryInput): Promise
   const beforeContaminated = gateway.requests.length;
   createXuanxueAiProductionOrder(runtime, contaminatedNaming);
   const contaminated = await executeXuanxueAiProductionOrder(runtime, contaminatedNaming.orderId);
-  assert.equal(contaminated.status, "completed");
-  assert.equal(gateway.requests.length - beforeContaminated, 2);
+  assert.equal(contaminated.status, "failed");
+  assert.equal(gateway.requests.length - beforeContaminated, 1);
   const ids = gateway.executionIds.slice(beforeContaminated);
-  assert.equal(new Set(ids).size, 2);
-  assert.equal(gateway.supersededExecutionIds.at(-1), ids[0]);
-  assert.doesNotMatch(contaminated.result?.stages[0]?.rawResponseText ?? "", /filecite/u);
+  assert.equal(new Set(ids).size, 1);
+  assert.equal(gateway.supersededExecutionIds.slice(beforeContaminated).filter(Boolean).length, 0);
+  assert.match(contaminated.stages[0]?.rawResponseText ?? "", /filecite/u);
   assert.equal(transientResult.stages[0]?.attemptCount, 2);
 };
 
@@ -173,19 +174,14 @@ const acceptIdentityRecovery = async ({ runtime, gateway }: RecoveryInput): Prom
   gateway.faults.preSubmitIdentityConflict.set(`${boundedOrder.orderId}:analysis`, 2);
   const beforeBounded = gateway.requests.length;
   const bounded = await executeXuanxueAiProductionOrder(runtime, boundedOrder.orderId);
-  assert.equal(bounded.status, "completed");
+  assert.equal(bounded.status, "review_required");
   const ids = gateway.executionIds.slice(beforeBounded);
-  assert.equal(new Set(ids).size, 2);
-  assert.equal(ids[1], ids[2]);
-  assert.equal(
-    ids[1] === ids[2],
-    true,
-    "a second identity conflict must recover on the replacement execution instead of minting restart:2",
-  );
+  assert.equal(new Set(ids).size, 1);
+  assert.equal(ids.length, 1);
   assert.equal(
     gateway.supersededExecutionIds.slice(beforeBounded).filter(Boolean).length,
-    1,
-    "a stage may replace one proven foreign pre-submit identity only once",
+    0,
+    "a foreign pre-submit identity must stop without creating a replacement execution",
   );
 };
 

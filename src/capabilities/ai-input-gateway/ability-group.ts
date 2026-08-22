@@ -11,7 +11,6 @@ import {
   type AiFeedResult,
   type AiInputGatewayChildCapabilityId,
 } from "./schema.js";
-import { governProductionGptExecutionProfileInput } from "./provider-execution-profile.js";
 import { feedGeminiApiOnce } from "./runtime/feed-gemini-api-once.js";
 import { feedGeminiWebChatOnce } from "./runtime/feed-gemini-web-chat-once.js";
 import { feedGptWebChatOnce } from "./runtime/feed-gpt-web-chat-once.js";
@@ -19,6 +18,7 @@ import { resolveWebChatMaxInFlight } from "./runtime/web-chat-concurrency-lease.
 import { recoverCheckpointedWebChatProviderLease } from "./providers/web-chat-checkpoint-response.js";
 import { classifyWebChatFailure } from "./failure-classification.js";
 import { createProviderOperatorControl } from "./runtime/provider-operator-control.js";
+import { governProductionGptExecutionProfileInput } from "./provider-execution-profile.js";
 
 const CHILD_CAPABILITY_IDS: AiInputGatewayChildCapabilityId[] = [
   "feed-gemini-api-once",
@@ -64,6 +64,9 @@ const executeGeminiWebChat = (input: WebChatExecutionInput): Promise<AiFeedResul
     ...(input.options?.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted } : {}),
     ...(input.options?.onProgress ? { onProgress: input.options.onProgress } : {}),
+    ...(input.options?.onPageActionCommitted
+      ? { onPageActionCommitted: input.options.onPageActionCommitted }
+      : {}),
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.context.adapters?.["gemini-web-chat"]
       ? { adapter: input.context.adapters["gemini-web-chat"] } : {}),
@@ -81,6 +84,9 @@ const executeGptWebChat = (input: WebChatExecutionInput): Promise<AiFeedResult> 
     ...(input.options?.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted } : {}),
     ...(input.options?.onProgress ? { onProgress: input.options.onProgress } : {}),
+    ...(input.options?.onPageActionCommitted
+      ? { onPageActionCommitted: input.options.onPageActionCommitted }
+      : {}),
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.context.adapters?.["gpt-web-chat"]
       ? { adapter: input.context.adapters["gpt-web-chat"] } : {}),
@@ -113,13 +119,16 @@ const buildAiInputGatewaySurface = (
   recoverCheckpointedProviderLease: (input) =>
     recoverCheckpointedWebChatProviderLease({ dataDir: context.dataDir, ...input }),
   async execute(rawInput: unknown, options): Promise<AiFeedResult> {
-    const request = AiFeedInputSchema.parse(
-      governProductionGptExecutionProfileInput(rawInput),
-    );
+    const request = AiFeedInputSchema.parse(governProductionGptExecutionProfileInput(rawInput));
     if (browser && request.providerKind !== "gemini-api") {
       await operatorControl.waitForRelease(options?.signal);
     }
-    return executeParsedRequest({ context, browser, request, options });
+    return executeParsedRequest({
+      context,
+      browser: options?.browser ?? browser,
+      request,
+      options,
+    });
   },
 });
 

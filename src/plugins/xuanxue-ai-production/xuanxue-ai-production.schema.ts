@@ -16,7 +16,7 @@ import {
 import {
   xuanxueTerminalMetaphysicsProviderProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
-import type { AgentRuntimeReceiptV2 } from "./xuanxue-ai-production-browser-proof.js";
+import type { AgentRuntimeReceiptV5 } from "./xuanxue-ai-production-browser-proof.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
 export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
@@ -73,6 +73,7 @@ export const XuanxueAiProductionTriggerKindSchema = z.enum([
   "scheduled_public_content",
   "scheduled_quality_reflection",
   "terminal_localization",
+  "localization_static_review",
 ]);
 
 const XuanxueAiMaterialRefSchema = z.object({
@@ -87,6 +88,17 @@ const XuanxueAiMaterialRefSchema = z.object({
 }).strict();
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+
+const XuanxueAiCloudExecutionIdentitySchema = z.object({
+  jobId: z.string().min(1).max(200),
+  attemptId: z.string().min(1).max(200),
+  requiredDeviceId: z.string().min(1).max(200),
+  leaseVersion: z.number().int().positive(),
+  executionFenceHash: hashSchema,
+  contractManifestHash: hashSchema,
+  serverNow: z.string().datetime(),
+  leaseExpiresAt: z.string().datetime(),
+}).strict();
 
 const FrozenParticipantBindingSchema = z.object({
   slotRef: z.string().min(1),
@@ -164,7 +176,7 @@ const XuanxueStoredProviderExecutionProfileSchema = z.union([
 ]);
 
 export const XuanxueAiStoredProductionOrderSchema = z.object({
-  protocolVersion: z.literal("xuanxue-ai-production-v4"),
+  protocolVersion: z.literal("xuanxue-ai-production-v5"),
   orderId: z.string().min(1).max(200),
   sourceProject: z.literal("xuanxue-web"),
   sourceTaskId: z.string().min(1).max(240),
@@ -177,6 +189,7 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   inputBundleRef: z.string().min(1).max(500),
   inputBundleHash: hashSchema,
   requestHash: hashSchema,
+  cloudExecutionIdentity: XuanxueAiCloudExecutionIdentitySchema.optional(),
   contractManifestHash: hashSchema.nullable(),
   productContractHash: hashSchema.nullable(),
   localizationRole: XuanxueLocalizationRoleSchema.nullable(),
@@ -185,14 +198,6 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   conversationScopeRef: z.string().min(1),
   conversationParent: ConversationParentBindingSchema.nullable(),
   joinParents: z.array(TypedJoinParentBindingSchema).max(32),
-  seededStages: z.array(z.object({
-    stageId: XuanxueAiStageIdSchema,
-    executionId: z.string().min(1),
-    rawResponseText: z.string(),
-    rawOutputHash: hashSchema,
-    providerProof: z.record(z.string(), z.unknown()),
-    transportWarnings: z.array(z.string()),
-  }).strict()).max(5).default([]),
   materials: z.array(XuanxueAiStageMaterialSchema).min(1).max(5),
   createdAt: z.string().datetime(),
 }).strict();
@@ -317,7 +322,7 @@ export interface XuanxueAiProductionResult {
     readonly transportWarnings: readonly string[];
     readonly artifact?: XuanxueAiGeneratedImageArtifact;
   }[];
-  readonly runtimeReceipt?: AgentRuntimeReceiptV2;
+  readonly runtimeReceipt?: AgentRuntimeReceiptV5;
   readonly failureReason: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;

@@ -40,8 +40,8 @@ const required = (name: string): string => {
 };
 
 const enrollmentConfig = () => {
-  const maxInFlight = Number(process.env.XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT ?? "10");
-  if (!Number.isInteger(maxInFlight) || maxInFlight < 1 || maxInFlight > 64) {
+  const maxInFlight = Number(process.env.XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT ?? "1");
+  if (maxInFlight !== 1) {
     throw new Error("XUANXUE_AI_PRODUCTION_MAX_IN_FLIGHT_INVALID");
   }
   return {

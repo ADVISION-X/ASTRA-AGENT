@@ -22,6 +22,7 @@ const requireValues = (
     if (input.values.has(required)) continue;
     findings.push(createFinding({
       lawId: input.lawId,
+      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
       checkId: input.checkId,
       filePath: input.filePath,
       message: `${input.messagePrefix} ${required}.`,
@@ -44,6 +45,7 @@ const forbidValues = (
     if (!input.values.has(forbidden)) continue;
     findings.push(createFinding({
       lawId: input.lawId,
+      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
       checkId: input.checkId,
       filePath: input.filePath,
       message: `${input.messagePrefix} ${forbidden}.`,
@@ -92,7 +94,7 @@ const inspectWholeOrderContract = (
   messagePrefix: "Whole-order contract must contain",
   values,
   required: [
-    "xuanxue-ai-production-v4", "bazi_chart_interpretation", "bazi_ai_full_analysis",
+    "xuanxue-ai-production-v5", "bazi_chart_interpretation", "bazi_ai_full_analysis",
     "bazi_report_followup", "qimen_professional_answer", "qimen_report_followup",
     "hehun_ai_analysis", "hehun_report_followup", "naming_bazi_analysis_and_naming",
     "naming_from_existing_bazi_report", "bazi_canonical_base_interpretation",
@@ -121,9 +123,9 @@ const inspectFixedProfiles = (
   required: [
     "resolveXuanxueAiProductionProfile", "assertXuanxueAiOrderMatchesProfile", "dependsOn",
     "continuationFrom", "generatedInputsFrom", "party_a_interpretation", "party_b_interpretation",
-    "final_compatibility", "seededStages", "conversationParent", "joinParents",
+    "final_compatibility", "conversationParent", "joinParents",
     "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED", "XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH",
-    "XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED", "XUANXUE_AI_PRODUCTION_SEEDED_STAGE_PROOF_INVALID",
+    "XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED",
     "xuanxueAiPaidFollowupProfiles", "xuanxueAiReusableBaseConsumerProfiles",
     "xuanxueAiRequiredContinuationProfiles", "isXuanxueAiPaidFollowupProduct",
     "isXuanxueAiRequiredContinuationProduct", "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",

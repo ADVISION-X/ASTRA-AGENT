@@ -1,15 +1,34 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "grasseye.browser.protocol.v1",
-  "revision": 1,
-  "controlFrameMaxBytes": 262144,
-  "artifactChunkMaxBytes": 4194304,
+  "$id": "grasseye.browser.authority.websocket.v1",
+  "revision": 2,
+  "transport": {
+    "kind": "single-authenticated-loopback-websocket",
+    "path": "/browser-authority/v1",
+    "artifactChunkMaxBytes": 4194304,
+    "agentReconnect": false,
+    "extensionReconnectOwner": true
+  },
+  "handshake": {
+    "pairingSecretBits": 256,
+    "signature": "P-256-ECDSA",
+    "keyAgreement": "P-256-ECDH",
+    "canonicalization": "RFC8785-JCS-compatible-canonical-json",
+    "sessionCipher": "HKDF-SHA-256/AES-256-GCM-directional",
+    "preAuthFrameBudget": 3,
+    "strictSequence": true
+  },
+  "liveness": {
+    "heartbeatMs": 20000,
+    "mv3AlarmMs": 30000,
+    "missedHeartbeatToleranceMs": 2700000,
+    "authorityLifetime": "authenticated-connection"
+  },
   "commandAdmission": {
     "maxQueuedCommands": 64,
-    "maxInFlightCommands": 1,
+    "maxInFlightCommandsPerTarget": 1,
     "defaultDeadlineMs": 30000
   },
-  "commandKinds": ["navigate", "dom-intent", "screenshot", "file-input", "wait", "close-target"],
-  "requiredFrameFields": ["revision", "sequence", "authorityEpoch", "sourceChannelToken", "payload"],
-  "additionalProperties": false
+  "frameKinds": ["PAIR_HELLO", "PAIR_CHALLENGE", "PAIR_PROOF", "AUTHENTICATED", "READY", "HEARTBEAT", "COMMAND", "REPLY", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE", "ARTIFACT_CHUNK"],
+  "forbidden": ["external-port", "page-relay", "native-messaging", "cws", "previous-protocol"]
 }

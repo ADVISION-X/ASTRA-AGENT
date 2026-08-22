@@ -17,7 +17,12 @@ const AiInputGatewayChildCapabilityIdSchema = z.enum([
   "feed-gpt-web-chat-once",
 ]);
 
-const AiFeedStatusSchema = z.enum(["success", "failed", "review_required"]);
+const AiFeedStatusSchema = z.enum([
+  "success",
+  "recovery_pending",
+  "failed",
+  "review_required",
+]);
 const AiFeedParseStatusSchema = z.enum(["json_valid", "json_invalid", "not_requested"]);
 const AiFeedSchemaValidationStatusSchema = z.enum(["valid", "invalid", "not_applicable"]);
 const AiFeedTransportSchema = z.enum(["api", "web-chat"]);
@@ -86,24 +91,6 @@ export const GPT_WEB_EXECUTION_PROFILE_SCHEMA_VERSION =
 const GPT_WEB_PROVIDER = "openai-chatgpt-web" as const;
 const GPT_WEB_TRANSPORT = "gpt-web-chat" as const;
 
-export const normalizeGptWebReasoningTier = (
-  value: string | null | undefined,
-): GptWebReasoningTier => {
-  const normalized = String(value ?? "high").trim().toLowerCase();
-  if (["medium", "中"].includes(normalized)) return "medium";
-  if (["high", "高"].includes(normalized)) return "high";
-  if (["xhigh", "extra_high", "extra high", "极高"].includes(normalized)) {
-    return "extra_high";
-  }
-  if (["pro", "pro_standard", "pro standard"].includes(normalized)) {
-    return "pro_standard";
-  }
-  if (["pro_extended", "pro extended", "extended pro"].includes(normalized)) {
-    return "pro_extended";
-  }
-  throw new Error(`AI_INPUT_GATEWAY_REASONING_TIER_UNSUPPORTED:${value ?? "null"}`);
-};
-
 const canonicalProfilePayload = (
   profile: Omit<AiFeedProviderExecutionProfile, "profileHash">,
 ): string => JSON.stringify({
@@ -132,7 +119,7 @@ export const buildGptWebProviderExecutionProfile = (input: {
   accountCapabilityRef: string;
   modelDisplayName?: string;
   modelFamily?: string;
-  reasoningTier?: string | null;
+  reasoningTier: GptWebReasoningTier;
   executorIdentityRef: string;
   acceptanceRef: string;
   acceptanceVersion: string;
@@ -147,7 +134,9 @@ export const buildGptWebProviderExecutionProfile = (input: {
     accountCapabilityRef: input.accountCapabilityRef,
     modelDisplayName: input.modelDisplayName ?? "GPT-5.6 Sol",
     modelFamily: input.modelFamily ?? "gpt-5.6",
-    reasoningTier: normalizeGptWebReasoningTier(input.reasoningTier),
+    reasoningTier: AiFeedProviderExecutionProfileSchema.shape.reasoningTier.parse(
+      input.reasoningTier,
+    ),
     executorIdentityRef: input.executorIdentityRef,
     acceptanceRef: input.acceptanceRef,
     acceptanceVersion: input.acceptanceVersion,
@@ -156,18 +145,6 @@ export const buildGptWebProviderExecutionProfile = (input: {
   };
   return { ...payload, profileHash: hashProviderExecutionProfile(payload) };
 };
-
-export const defaultGptWebProviderExecutionProfile = (input: {
-  owner: "amazon-product-mining" | "xuanxue-ai-production" | "generic-ai";
-  reasoningTier?: string | null;
-}): AiFeedProviderExecutionProfile => buildGptWebProviderExecutionProfile({
-  profileRef: `agent:${input.owner}:gpt-web-production:v1`,
-  accountCapabilityRef: "agent:gpt-web-chat:supervised-production",
-  reasoningTier: input.reasoningTier ?? "high",
-  executorIdentityRef: "supervised_local_gpt_web",
-  acceptanceRef: "APEX-AI-INPUT-GATEWAY-005-V3",
-  acceptanceVersion: "2026-08-19.1",
-});
 
 const ConversationTitleProofSchema = z.object({
   proofStatus: z.literal("verified"),
@@ -212,10 +189,7 @@ export const AiFeedInputSchema = z.object({
   expectedOutputKind: z.enum(["text", "generated_image"]).default("text"),
   textPrompt: z.string().min(1),
   inputRefs: z.array(AiFeedInputRefSchema).default([]),
-  // Legacy split controls remain parseable only for non-production / non-GPT fixtures.
-  // Production GPT Web tasks must carry one hash-bound providerExecutionProfile.
   modelName: z.string().min(1).nullable().default(null),
-  requestedReasoningEffort: z.enum(["high", "xhigh", "pro"]).nullable().optional(),
   providerExecutionProfile: AiFeedProviderExecutionProfileSchema.nullable().optional(),
   timeoutMs: z.number().int().positive().default(180_000),
   maxFileCount: z.number().int().nonnegative().default(3),
@@ -257,8 +231,7 @@ export const AiFeedInputSchema = z.object({
       path: ["providerExecutionProfile"],
     });
   }
-  if (input.providerExecutionProfile
-    && (input.modelName !== null || input.requestedReasoningEffort != null)) {
+  if (input.providerExecutionProfile && input.modelName !== null) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "AI_INPUT_GATEWAY_GPT_SPLIT_PROFILE_FORBIDDEN",
@@ -276,7 +249,7 @@ const ProviderExecutionProfileProofSchema = z.object({
   modelDisplayName: z.string().min(1),
   modelFamily: z.string().min(1),
   reasoningTier: AiFeedProviderExecutionProfileSchema.shape.reasoningTier,
-  legacyReasoningEffort: z.string().min(1),
+  reasoningUiLabel: z.string().min(1),
   observedAt: z.string().datetime(),
   sourceKind: z.literal("provider_ui_observation"),
   noOp: z.boolean(),

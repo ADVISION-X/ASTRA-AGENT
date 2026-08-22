@@ -6,6 +6,8 @@ import type {
 import type { AiProviderAdapter } from "./contracts/ai-provider-adapter.contract.js";
 import type { WebChatAttachmentUploadProof } from "./contracts/ai-provider-adapter.contract.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
+import type { WebChatPageActionProof } from "./contracts/ai-provider-adapter.contract.js";
 
 type AiInputGatewayAbilityGroupId = "ai-input-gateway";
 
@@ -17,10 +19,12 @@ export type AiInputGatewayExecutionContext = {
 
 export type AiInputGatewayExecuteOptions = {
   signal?: AbortSignal;
+  browser?: BrowserTargetLease;
   executionId?: string;
   supersededExecutionId?: string;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
+  onPageActionCommitted?: (proof: WebChatPageActionProof) => Promise<void>;
 };
 
 export type AiInputGatewayProgress = {

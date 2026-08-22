@@ -11,6 +11,8 @@ export const attachment = {
   sharedPath: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
   exactTargetTransportPath: "src/capabilities/ai-input-gateway/providers/web-chat-exact-target-file-input-attachment.ts",
   attachmentTransportPath: "src/capabilities/ai-input-gateway/providers/web-chat-attachment-transport.ts",
+  attachmentStatePath: "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
+  submittedAttachmentStatePath: "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
   browserContractPath: "src/lib/browser/browser-authority-api.ts",
   exactTargetRefPath: "src/lib/browser/exact-target/browser-target-ref.ts",
   exactTargetRuntimePath: "src/lib/browser/exact-target/browser-command-actor.ts",
@@ -79,6 +81,13 @@ export const acceptance = {
   sourceContractAcceptancePath: "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
   sessionControllerAcceptancePath: "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
 } as const;
+
+export const serialBrowserActionPaths = [
+  runtime.freshConversationControlPath,
+  attachment.attachmentStatePath,
+  attachment.submittedAttachmentStatePath,
+  runtime.resumePath,
+] as const;
 
 export const removed = {
   removedProviderInputPreflightPath: "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",

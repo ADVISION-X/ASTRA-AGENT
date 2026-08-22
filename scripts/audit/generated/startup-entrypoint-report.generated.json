@@ -1,134 +1,43 @@
 {
-  "generatedAt": "2026-08-20T23:42:43.294Z",
+  "generatedAt": "2026-08-22T02:57:31.039Z",
   "capabilityDomain": "startup-entrypoint",
-  "executionGroup": "domain",
+  "executionGroup": "foundation",
   "lawIds": [
-    "APEX-STARTUP-001-V1",
-    "APEX-STARTUP-002-V1",
-    "APEX-STARTUP-003-V1",
-    "APEX-STARTUP-004-V1",
-    "APEX-STARTUP-005-V1",
-    "APEX-STARTUP-006-V1",
-    "APEX-STARTUP-007-V1",
-    "APEX-STARTUP-008-V1"
+    "APEX-STARTUP-001-V2"
   ],
   "status": "PASS",
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220",
+      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:e8701c0d-9f9d-4f17-8e58-9322c26382be",
       "capabilityDomain": "startup-entrypoint",
       "checkId": "startup-entrypoint/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-20T23:42:43.240Z",
-      "endedAt": "2026-08-20T23:42:43.294Z",
-      "durationMs": 54,
+      "startedAt": "2026-08-22T02:57:31.037Z",
+      "endedAt": "2026-08-22T02:57:31.039Z",
+      "durationMs": 2,
       "evidenceRefs": [
         "package.json",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
         "scripts/startup/launch-grasseye.mjs",
-        "scripts/startup/lib/browser-runtime-preflight.d.mts",
-        "scripts/startup/lib/browser-runtime-preflight.mjs",
-        "scripts/startup/lib/dependency-check.mjs",
-        "scripts/startup/lib/dependency-package-utils.mjs",
-        "scripts/startup/lib/dependency-state-analysis.mjs",
-        "scripts/startup/lib/open-workbench-page.mjs",
-        "scripts/startup/lib/port-listener-ops.mjs",
-        "scripts/startup/lib/process-control.mjs",
-        "scripts/startup/lib/service-process.mjs",
-        "scripts/startup/lib/service-readiness.d.mts",
-        "scripts/startup/lib/service-readiness.mjs",
-        "scripts/startup/lib/source-fingerprint.mjs",
-        "scripts/startup/lib/startup-failure-bundle.mjs",
-        "scripts/startup/lib/startup-failure-handler.mjs",
-        "scripts/startup/lib/startup-log-helpers.mjs",
-        "scripts/startup/lib/startup-main-support.mjs",
-        "scripts/startup/lib/terminal-structured-log.mjs",
-        "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
-        "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-        "src/app/server.ts",
-        "src/lib/local-runtime/workbench-status.ts",
-        "src/lib/local-runtime/workbench.ts"
+        "scripts/startup/lib/browser-runtime-preflight.mjs"
       ],
       "findingCount": 0
     }
   ],
   "executedChecks": [
     {
-      "lawId": "APEX-STARTUP-001-V1",
-      "clauseId": "apex-startup-001-requirement",
+      "lawId": "APEX-STARTUP-001-V2",
+      "clauseId": "apex-startup-001-v2-unpacked-readback",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-002-V1",
-      "clauseId": "apex-startup-002-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-003-V1",
-      "clauseId": "apex-startup-003-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-004-V1",
-      "clauseId": "apex-startup-004-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-005-V1",
-      "clauseId": "apex-startup-005-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-006-V1",
-      "clauseId": "apex-startup-006-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-007-V1",
-      "clauseId": "apex-startup-007-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
-    },
-    {
-      "lawId": "APEX-STARTUP-008-V1",
-      "clauseId": "apex-startup-008-requirement",
-      "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:ab6d8125-d4e6-48c8-88c7-da49d6d64c09:check:a4115be6-de3e-4036-9079-1f68df977220"
+      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:e8701c0d-9f9d-4f17-8e58-9322c26382be"
     }
   ],
   "inspectedFiles": [
     "package.json",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
     "scripts/startup/launch-grasseye.mjs",
-    "scripts/startup/lib/browser-runtime-preflight.d.mts",
-    "scripts/startup/lib/browser-runtime-preflight.mjs",
-    "scripts/startup/lib/dependency-check.mjs",
-    "scripts/startup/lib/dependency-package-utils.mjs",
-    "scripts/startup/lib/dependency-state-analysis.mjs",
-    "scripts/startup/lib/open-workbench-page.mjs",
-    "scripts/startup/lib/port-listener-ops.mjs",
-    "scripts/startup/lib/process-control.mjs",
-    "scripts/startup/lib/service-process.mjs",
-    "scripts/startup/lib/service-readiness.d.mts",
-    "scripts/startup/lib/service-readiness.mjs",
-    "scripts/startup/lib/source-fingerprint.mjs",
-    "scripts/startup/lib/startup-failure-bundle.mjs",
-    "scripts/startup/lib/startup-failure-handler.mjs",
-    "scripts/startup/lib/startup-log-helpers.mjs",
-    "scripts/startup/lib/startup-main-support.mjs",
-    "scripts/startup/lib/terminal-structured-log.mjs",
-    "scripts/startup/lib/terminal-structured-runtime-relay.mjs",
-    "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
-    "src/app/server.ts",
-    "src/lib/local-runtime/workbench-status.ts",
-    "src/lib/local-runtime/workbench.ts"
+    "scripts/startup/lib/browser-runtime-preflight.mjs"
   ]
 }

@@ -16,10 +16,8 @@ const assertStagedFileIntegrity = async (file: StagedWebChatAttachment): Promise
   }
 };
 
-/**
- * The public contract never carries a filesystem path.  Until attachment
- * chips, file names and the required stability window are observed in a real
- * production session, this candidate admits no file-selection side effect.
+/** Filesystem paths remain inside the Browser authority boundary. The provider
+ * receives only short-lived opaque grants and performs one fixed-selector batch.
  */
 export const attachByExactTargetFileInputBatch = async (
   input: WebChatAttachmentTransportInput,
@@ -27,7 +25,8 @@ export const attachByExactTargetFileInputBatch = async (
   if (input.request.providerKind !== "gpt-web-chat") {
     throw new Error("review_required: EXACT_TARGET_FILE_INPUT_PROVIDER_NOT_APPROVED");
   }
-  if (!input.context.issueBrowserFileArtifactGrant) {
+  if (!input.context.registerBrowserFileArtifact
+    || !input.context.issueBrowserFileArtifactGrant) {
     throw new Error("review_required: BROWSER_FILE_GRANT_INVALID");
   }
   await Promise.all(input.files.map(assertStagedFileIntegrity));
@@ -46,7 +45,32 @@ export const attachByExactTargetFileInputBatch = async (
       detectedFileCount: 0,
     };
   }
-  throw new Error(
-    "review_required: NOT_PRODUCTION_VERIFIED: exact ChatGPT attachment chips, names and thirty-second stability must be observed before any file-selection side effect is admitted",
-  );
+  for (const file of input.files) {
+    await input.context.registerBrowserFileArtifact({
+      artifactRef: file.artifactRef,
+      filePath: file.stagedFilePath,
+      contentHash: file.sha256,
+      sizeBytes: file.byteCount,
+    });
+  }
+  const grants = await Promise.all(input.files.map((file) =>
+    input.context.issueBrowserFileArtifactGrant!({
+      artifactRef: file.artifactRef,
+      expectedSha256: file.sha256,
+      maxBytes: file.byteCount,
+    })));
+  await input.browser.attachFile({ selector: "#upload-files", grants });
+  return {
+    transportKind: "exact_target_file_input_batch",
+    uploadedFiles: input.files.map((file) => ({
+      inputRefId: file.inputRefId,
+      step: file.order,
+      fileName: file.displayFileName,
+      sha256: file.sha256,
+      byteCount: file.byteCount,
+      expectedAttachmentCount: input.files.length,
+      detectedAttachmentCount: 0,
+    })),
+    detectedFileCount: 0,
+  };
 };

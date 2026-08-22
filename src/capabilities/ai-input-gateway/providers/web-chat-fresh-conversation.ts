@@ -67,18 +67,16 @@ type FreshRootSnapshot = {
 };
 
 const readFreshRootSnapshot = async (browser: BrowserTargetLease): Promise<FreshRootSnapshot> => {
-  const [document, composer, formCount, form, fileInput, userCount, assistantCount, removeAttachmentCount, pastedCardCount, activeGenerationCount] = await Promise.all([
-    browser.executeDomIntent({ kind: "document" }),
-    inspect(browser, CHATGPT_COMPOSER_SELECTOR, ["tagName", "visible", "disabled", "text"]),
-    count(browser, CHATGPT_COMPOSER_FORM_SELECTOR),
-    inspect(browser, CHATGPT_COMPOSER_FORM_SELECTOR, ["text"]).catch(() => null),
-    inspect(browser, CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR, ["tagName", "type", "value", "accept", "multiple", "connected", "visible", "disabled"]),
-    count(browser, CHATGPT_USER_TURN_SELECTOR),
-    count(browser, CHATGPT_ASSISTANT_TURN_SELECTOR),
-    count(browser, CHATGPT_REMOVE_ATTACHMENT_SELECTOR),
-    count(browser, CHATGPT_PASTED_TEXT_CARD_SELECTOR),
-    count(browser, CHATGPT_ACTIVE_GENERATION_SELECTOR),
-  ]);
+  const document = await browser.executeDomIntent({ kind: "document" });
+  const composer = await inspect(browser, CHATGPT_COMPOSER_SELECTOR, ["tagName", "visible", "disabled", "text"]);
+  const formCount = await count(browser, CHATGPT_COMPOSER_FORM_SELECTOR);
+  const form = await inspect(browser, CHATGPT_COMPOSER_FORM_SELECTOR, ["text"]).catch(() => null);
+  const fileInput = await inspect(browser, CHATGPT_DOCUMENT_FILE_INPUT_SELECTOR, ["tagName", "type", "value", "accept", "multiple", "connected", "visible", "disabled"]);
+  const userCount = await count(browser, CHATGPT_USER_TURN_SELECTOR);
+  const assistantCount = await count(browser, CHATGPT_ASSISTANT_TURN_SELECTOR);
+  const removeAttachmentCount = await count(browser, CHATGPT_REMOVE_ATTACHMENT_SELECTOR);
+  const pastedCardCount = await count(browser, CHATGPT_PASTED_TEXT_CARD_SELECTOR);
+  const activeGenerationCount = await count(browser, CHATGPT_ACTIVE_GENERATION_SELECTOR);
   if (formCount !== 1 || form === null) {
     throw new Error("BROWSER_TARGET_INVALID");
   }

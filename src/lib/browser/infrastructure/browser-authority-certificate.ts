@@ -4,7 +4,8 @@ import type { BrowserHash } from "../exact-target/browser-target-ref.js";
 
 /**
  * Process-memory authority only. A target lease must identify the exact
- * CWS extension, Workbench page-session and policy that created it.
+ * fixed-directory unpacked extension, Workbench authority session and policy
+ * that created it.
  */
 export type BrowserAuthorityCertificateV1 = Readonly<{
   schemaVersion: "browser-authority-certificate-v1";
@@ -29,13 +30,8 @@ export type BrowserAuthorityCertificateV1 = Readonly<{
   livenessLeaseEpoch: number;
   issuedAt: string;
   issuedAtMonotonicNs: string;
-  expiresAt: string;
   issuerMac: BrowserHash;
 }>;
-
-export const assertCertificateLive = (certificate: BrowserAuthorityCertificateV1, now = Date.now()): void => {
-  if (Date.parse(certificate.expiresAt) <= now) throw new Error("BROWSER_LIVENESS_EXPIRED");
-};
 
 export const hashBrowserAuthorityCertificate = (certificate: BrowserAuthorityCertificateV1): BrowserHash =>
   `sha256:${createHash("sha256").update(JSON.stringify(certificate)).digest("hex")}`;
