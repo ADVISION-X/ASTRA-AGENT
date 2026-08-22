@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-08-22T14:52:50.299Z",
+  "generatedAt": "2026-08-22T18:42:27.095Z",
   "summary": {
     "activeLawCount": 135,
     "activeClauseCount": 135,
     "boundClauseCount": 135,
-    "machineFacetClauseCount": 132,
-    "executedMachineFacetClauseCount": 132,
+    "machineFacetClauseCount": 133,
+    "executedMachineFacetClauseCount": 133,
     "deferredRealChromeFacetCount": 5,
     "realChromeFacetClauseIds": [
       "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1::grasseye-app-shell-ui-physical-cleanup-001-requirement",
@@ -1611,7 +1611,7 @@
       "lawId": "APEX-DOM-021-V1",
       "clauseId": "apex-dom-021-requirement",
       "capabilityDomain": "dom-automation",
-      "evidenceMode": "real-chrome",
+      "evidenceMode": "acceptance+real-chrome",
       "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
       "checkIds": [
         "dom-automation/owner-assertion-set"

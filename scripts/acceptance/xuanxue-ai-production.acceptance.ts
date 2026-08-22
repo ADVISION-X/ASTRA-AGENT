@@ -28,12 +28,15 @@ import { xuanxueAiProductionDeviceContractProof } from "../../src/plugins/xuanxu
 import { XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
 import { assertXuanxueAiProductionV5DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
 import { isRecoverableCloudWorkerFailure } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
+import { buildXuanxueAiSubmissionAdmission } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.js";
 import { XuanxueAiProductionV5ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v5.validator.js";
+import { runXuanxueAdmissionInspectorAttacks } from "./xuanxue-ai-production-admission-inspector.attacks.js";
 
 const dataDir = await mkdtemp(
   path.join(tmpdir(), "xuanxue-ai-production-acceptance-"),
 );
 try {
+  runXuanxueAdmissionInspectorAttacks();
   await acceptStoredOrderContractQuarantine();
   const [cloudContract, generatedV5Manifest] = await Promise.all([
     readFile(path.resolve("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts"), "utf8"),
@@ -81,6 +84,45 @@ try {
     () => assertXuanxueAiProductionV5DeadlineBudget(deadlineGrant, 30_001),
     /XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_EXHAUSTED/u,
     "a complete claim RTT plus the ten-second safety margin must leave one command TTL",
+  );
+  const cloudIdentity = {
+    jobId: "aiprod_oldest",
+    attemptId: "attempt-1",
+    requiredDeviceId: "fixture-device",
+    leaseVersion: 1,
+    executionFenceHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
+    contractManifestHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const,
+    serverNow: "2026-08-21T12:00:00.000Z",
+    leaseExpiresAt: "2026-08-21T12:01:00.000Z",
+  };
+  const firstAdmission = buildXuanxueAiSubmissionAdmission({
+    identity: cloudIdentity,
+    orderCreatedAt: "2026-08-21T11:00:00.000Z",
+    orderId: cloudIdentity.jobId,
+    stageExecutionId: "stage-execution-1",
+    stageOrdinal: 1,
+  });
+  const freshGrantAdmission = buildXuanxueAiSubmissionAdmission({
+    identity: {
+      ...cloudIdentity,
+      attemptId: "attempt-2",
+      leaseVersion: 2,
+      executionFenceHash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    },
+    orderCreatedAt: "2026-08-21T11:00:00.000Z",
+    orderId: cloudIdentity.jobId,
+    stageExecutionId: "stage-execution-1",
+    stageOrdinal: 1,
+  });
+  assert.notEqual(
+    freshGrantAdmission.admissionRef,
+    firstAdmission.admissionRef,
+    "the same durable execution must receive a fresh admission hash from a fresh Cloud grant",
+  );
+  assert.equal(
+    freshGrantAdmission.priorityKey,
+    firstAdmission.priorityKey,
+    "a fresh Cloud grant must not change the durable task's oldest-first business priority",
   );
   for (const reason of [
     "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",

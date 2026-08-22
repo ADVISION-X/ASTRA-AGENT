@@ -47,8 +47,16 @@ side effect。每个订单同一时刻最多一个执行；每台生产设备固
 任务，等待 Provider 结果不占用浏览器 mutation lock，而真实页面动作仍固定
 `max_browser_in_flight=1` 并在同一物理标签页串行。十个任务各自保留业务席位，但只有 durable
 submission ticket 全局最早的任务能进入物理页面窗口；它必须连续完成空白页确认、profile、附件稳定、
-prompt 填写和 submission checkpoint 后才释放窗口。重启必须恢复同一 durable identity / execution
-checkpoint 和最早 ticket，禁止重复创建订单、重复提交 prompt 或重放 `UNKNOWN` mutation。
+prompt 填写和 submission checkpoint 后才释放窗口。本地 submission waiter 只绑定存活进程和当前合格
+Cloud grant；进程死亡必须删除其失效 waiter，不得让没有当前 grant 的旧票堵住可领取任务。同一 durable
+identity / execution / checkpoint 只能在 Cloud 重新签发合格 grant 后续跑，并按全局最早可领取顺序取得
+新的本地 ticket；禁止重复创建订单、重复提交 prompt 或重放 `UNKNOWN` mutation。
+Plugin 必须从同一次当前 grant 核验结果生成 opaque submission admission hash，绑定 job、attempt、device、
+lease version、fence、contract、stage execution 与不可变 `created_at + job_id + stage ordinal` priority key，
+再随合法 Gateway public execute options 传入。Gateway 只持久化和比较该 opaque admission，不解释 Cloud
+业务 schema；反向异步注册仍按该 priority key 让全局最早可领取任务先进入，local ticket 只作同优先级
+tie-break 和统计。存活 waiter 的 admission 不得原地替换；进程死亡清除旧 waiter 后，同一 execution 只有
+凭新 grant 生成的新 admission 才能取得新 waiter。
 
 Cloud 只提供 lease、grant、checkpoint、terminal、cancel 与人工 handover API。所有 mutation
 精确绑定当前 job、attempt、device、lease version、fence 与 idempotency payload hash。第一个
@@ -99,7 +107,15 @@ lease、material 或安全准入的记录不属于当前可领取集合，也不
 `CONFIRMED`、`FAILED` 或 `UNKNOWN`。`UNKNOWN` 禁止自动 replay；Plugin 只能根据同一真实页面
 的正向确认、反向排除、唯一性和有界停止形成 outcome resolution，否则固化
 `review_required`。submission checkpoint 以前的 `UNKNOWN` 必须让原 execution/ticket 继续占据
-队首，所有新 submission 和普通 patrol 都不得进入同一物理页面；不得把未确认现场当作空闲窗口释放。
+当前存活进程的队首，所有新 submission 和普通 patrol 都不得进入同一物理页面；进程重启后旧 waiter
+必须清除，但该 execution 仍只能在新 Cloud grant 下核账，且 exact clean-page / same-execution 核验必须在
+任何新任务 mutation 前失败关闭污染现场，不得把未确认现场当作空闲窗口或自动 replay。
+
+所有页面原子动作统一执行 `IF + AND -> THEN`。`IF` 读取同一当前 Document 的目标状态，`AND`
+同时证明精确语义、唯一候选并排除相邻文本、错误态、加载态与重复态，`THEN` 才发送恰好一个
+mutation。每个 mutation 只能由它自己的后置读回 proof 解析；未解析前不得发送下一 mutation，
+也不得用后一动作的 proof 批量确认。固定 sleep、等待满某段时间或达到重试次数都不能推进生产
+状态；相对 deadline 只在到界时安全停止并保留 checkpoint/recovery 语义。
 附件阶段发生在 prompt 写入以前，因此 exact 文件名、数量、无额外项和无上传中状态成立即为稳定，
 此时发送按钮禁用是正常前置状态，不能据此超时或让下一个任务进入。日志不是 evidence，Browser receipt 不是业务结果；二者都不替代 Plugin
 state 或 Cloud terminal CAS。

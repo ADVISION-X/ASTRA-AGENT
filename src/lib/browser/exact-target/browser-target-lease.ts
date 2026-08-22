@@ -34,7 +34,7 @@ export type BrowserTargetLease = Readonly<{
   }>): Promise<BrowserFileArtifactGrantV1>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
-  resolvePendingMutations(
+  resolvePendingMutation(
     input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
   ): Promise<number>;
   assertNoPendingMutations(): void;

@@ -1,6 +1,9 @@
 export const xuanxueAcceptanceRequiredValues = [
   "maxActive",
   "the ten business seats must enter provider admission in durable oldest-first order",
+  "the same durable execution must receive a fresh admission hash from a fresh Cloud grant",
+  "a fresh Cloud grant must not change the durable task's oldest-first business priority",
+  "an unreachable compliant call plus caller-supplied effective admission must produce an enforcement failure",
   "providerForkRef",
   "providerContinuationRef",
   "forked_from_checkpoint",

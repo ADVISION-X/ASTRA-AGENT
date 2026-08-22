@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:36.968Z",
+  "generatedAt": "2026-08-22T18:42:12.566Z",
   "capabilityDomain": "amazon-invoice-upload",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,14 +9,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:16cc968d-f4d9-4ff0-a965-5781dd91ae0b",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:b5438835-93a8-4a95-8716-79903551821c",
       "capabilityDomain": "amazon-invoice-upload",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:36.968Z",
-      "endedAt": "2026-08-22T14:52:36.968Z",
-      "durationMs": 0,
+      "startedAt": "2026-08-22T18:42:12.565Z",
+      "endedAt": "2026-08-22T18:42:12.566Z",
+      "durationMs": 1,
       "evidenceRefs": [
         "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
         "src/lib/local-runtime/workbench-amazon-invoice-handle.ts",
@@ -35,7 +35,7 @@
       "lawId": "APEX-AMAZON-INVOICE-UPLOAD-001-V2",
       "clauseId": "apex-amazon-invoice-upload-001-v2-terminal-authority",
       "checkId": "amazon-invoice-upload/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:16cc968d-f4d9-4ff0-a965-5781dd91ae0b"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:b5438835-93a8-4a95-8716-79903551821c"
     }
   ],
   "inspectedFiles": [

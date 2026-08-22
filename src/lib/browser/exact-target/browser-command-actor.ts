@@ -144,22 +144,35 @@ const hashLogValue = (value: unknown): string => {
   }
 };
 
+const verifiedMutationResult = (
+  command: Extract<BrowserGovernedCommand, { kind: "dom-intent" }>,
+  result: unknown,
+): Readonly<{ retainedValueVerified?: true; postconditionVerified?: true }> => {
+  const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const retained = command.intent.kind === "fill" && value.retainedValueVerified === true;
+  const postcondition = command.intent.kind === "click"
+    && Boolean(command.intent.postClickAttribute) && value.postconditionVerified === true;
+  if (value.candidateCount !== 1 || value.identityRevalidated !== true || value.mutationCount !== 1
+    || (command.intent.kind === "fill" && !retained)
+    || (command.intent.kind === "click" && command.intent.postClickAttribute && !postcondition)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return {
+    ...(retained ? { retainedValueVerified: true as const } : {}),
+    ...(postcondition ? { postconditionVerified: true as const } : {}),
+  };
+};
+
 const domMutationResultSummary = (
   command: BrowserGovernedCommand,
   result: unknown,
 ): BrowserProofCommandEvent["resultSummary"] | undefined => {
   if (command.kind !== "dom-intent" || (command.intent.kind !== "click" && command.intent.kind !== "fill")) return undefined;
-  const record = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  const retainedValueVerified = command.intent.kind === "fill" ? record.retainedValueVerified === true : undefined;
-  if (record.candidateCount !== 1 || record.identityRevalidated !== true
-    || record.mutationCount !== 1 || (command.intent.kind === "fill" && !retainedValueVerified)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
   return {
     candidateCount: 1,
     identityRevalidated: true,
     mutationCount: 1,
-    ...(retainedValueVerified ? { retainedValueVerified } : {}),
+    ...verifiedMutationResult(command, result),
   };
 };
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:04.319Z",
+  "generatedAt": "2026-08-22T18:41:38.778Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -1657,7 +1657,7 @@
             "engine": "ast",
             "sourceEvidenceIndex": 0
           },
-          "evidenceMode": "real-chrome"
+          "evidenceMode": "acceptance+real-chrome"
         }
       ],
       "blueprintRefs": [

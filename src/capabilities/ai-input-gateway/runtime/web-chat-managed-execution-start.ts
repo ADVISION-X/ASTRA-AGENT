@@ -139,7 +139,11 @@ export const startActiveExecution = async (input: {
   });
   const pendingSubmission = started.resume
     ? null
-    : registerPendingWebChatSubmission(input.source.dataDir, record.executionId);
+    : registerPendingWebChatSubmission(
+        input.source.dataDir,
+        record.executionId,
+        input.source.submissionAdmission,
+      );
   try {
     record = await updateWebChatExecution({
       dataDir: input.source.dataDir,
@@ -169,6 +173,7 @@ export const startActiveExecution = async (input: {
       pendingSubmission,
     };
   } catch (error) {
+    pendingSubmission?.release();
     await capacityLease.release();
     throw error;
   }

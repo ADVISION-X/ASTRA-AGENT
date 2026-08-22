@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:38.367Z",
+  "generatedAt": "2026-08-22T18:42:14.090Z",
   "capabilityDomain": "xuanxue-ai-production",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,17 +9,18 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:d650b888-f39c-4bb5-97e8-1049efdb46e7",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:fd3ac9da-51cb-4693-87f3-43d8a4f425c5",
       "capabilityDomain": "xuanxue-ai-production",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:37.715Z",
-      "endedAt": "2026-08-22T14:52:38.367Z",
-      "durationMs": 652,
+      "startedAt": "2026-08-22T18:42:13.376Z",
+      "endedAt": "2026-08-22T18:42:14.090Z",
+      "durationMs": 714,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
         "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
+        "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
         "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
@@ -40,6 +41,7 @@
         "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
         "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/manifest.json",
         "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
@@ -98,12 +100,13 @@
       "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V5",
       "clauseId": "apex-xuanxue-001-v5-cloud-pull-v5",
       "checkId": "xuanxue-ai-production/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:d650b888-f39c-4bb5-97e8-1049efdb46e7"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:fd3ac9da-51cb-4693-87f3-43d8a4f425c5"
     }
   ],
   "inspectedFiles": [
     ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
     "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
+    "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
     "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
@@ -124,6 +127,7 @@
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
     "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/manifest.json",
     "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",

@@ -2,7 +2,7 @@ import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
 import type { WebChatAttachmentUploadProof, WebChatPageActionProof } from "../contracts/ai-provider-adapter.contract.js";
-import type { AiInputGatewayProgress } from "../contract.js";
+import type { AiInputGatewayProgress, AiInputGatewaySubmissionAdmission } from "../contract.js";
 import { gptWebChatAdapter } from "../providers/gpt-web-chat.adapter.js";
 import type {
   AiFeedInput,
@@ -19,6 +19,7 @@ export const feedGptWebChatOnce = async (input: {
   signal?: AbortSignal;
   executionId?: string;
   supersededExecutionId?: string;
+  submissionAdmission?: AiInputGatewaySubmissionAdmission;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
   onPageActionCommitted?: (proof: WebChatPageActionProof) => Promise<void>;
@@ -35,6 +36,9 @@ export const feedGptWebChatOnce = async (input: {
     ...(input.executionId ? { executionId: input.executionId } : {}),
     ...(input.supersededExecutionId
       ? { supersededExecutionId: input.supersededExecutionId }
+      : {}),
+    ...(input.submissionAdmission
+      ? { submissionAdmission: input.submissionAdmission }
       : {}),
     ...(input.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.onAttachmentUploadCompleted }

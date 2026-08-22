@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:04.319Z",
+  "generatedAt": "2026-08-22T18:41:38.778Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -89,7 +89,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-input-gateway",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+ast+acceptance",
+      "evidenceMode": "acceptance",
       "summary": "Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
       "clauses": [
         {
@@ -101,9 +101,11 @@
       ],
       "required": [
         "GPT Web adapters consume the operator-authorized Browser authority lease and exact target/document lease injected through the Browser public facade; they never self-issue a Session Workspace, open a private Browser transport, or cache a legacy session. Exactly one controlled physical ChatGPT target is used at a time, while independent tasks live in separately created ChatGPT conversations rather than separate browser tabs.",
-        "The serialized browser-mutation lease covers only bounded page mutations such as fresh-conversation establishment, exact conversation switching, profile control, attachment selection, prompt entry, submission proof, title finalization, DOM capture and cleanup; provider generation wait never holds that lease. Submission and patrol waiters use one SQLite ticket ledger. A newly admitted submission may acquire the physical page only when its durable submission ticket is globally oldest; the same ticket and execution retain the serving window from clean-page proof through durable submission checkpoint, and ordinary patrol cannot overtake it.",
+        "The serialized browser-mutation lease covers only bounded page mutations such as fresh-conversation establishment, exact conversation switching, profile control, attachment selection, prompt entry, submission proof, title finalization, DOM capture and cleanup; provider generation wait never holds that lease. Submission and patrol waiters use one SQLite ticket ledger. A Cloud-owned production submission carries an opaque owner-minted admissionRef plus immutable created_at, job_id and stage priority key; Gateway persists those values and admits the globally oldest priority key, using its monotonic local ticket only as a deterministic tie-break and accounting receipt. The same waiter and execution retain the serving window from clean-page proof through durable submission checkpoint, and ordinary patrol cannot overtake it.",
         "Independent submitted feeds may remain durably waiting for provider responses, but V5 admits exactly one Browser action in flight through the single physical tab and mutation lock. Browser capacity is fixed by the canonical V5 contract, is never caller-controlled, and has no configurable increase or alternate scheduler.",
         "A provider-side compound observation is an ordered sequence of Browser commands, not a parallel batch. Calls on the same BrowserTargetLease, including document, inspect, find, readText, navigate, attachFile and other DOM intents, must be awaited one at a time; Promise.all, allSettled, detached promises or equivalent fan-out over Browser actions is forbidden because it bypasses the single mutation lane and deterministically produces backpressure instead of a page snapshot.",
+        "Every provider mutation is one IF plus AND then THEN transaction: current Document and exact semantic target are positively proved, adjacent labels and invalid states are excluded and uniqueness is one before exactly one mutation; that mutation receives its own postcondition proof and is resolved before another mutation. A page-action proof cannot drain or confirm an accumulated mutation batch.",
+        "Exact semantic choices use normalized equality rather than substring containment, so adjacent labels such as high and extra high remain distinct. Fixed sleep and elapsed time never establish provider state; request deadline or timeout only stops unresolved observation safely.",
         "When a plugin-owned task acknowledges takeover, AI Input Gateway records that exact owner key, releases the single provider target to the operator, and makes all new web-chat executions wait without reacquiring the tab until that same owner explicitly resumes.",
         "Login, CAPTCHA, 2FA, risk control, account limits, ambiguous DOM, ambiguous page controls, and unproved native selection return review_required.",
         "Captured response checkpoints, model/profile proof, title proof, provider URL, timing, warnings, continuation topology and failure evidence survive later cleanup or projection failures."
@@ -113,6 +115,7 @@
         "automatic login, CAPTCHA bypass, account rotation, security-barrier bypass, or unbounded retry",
         "patrol, submission or another task reacquiring the provider target while any plugin takeover owner remains active",
         "parallel or detached BrowserTargetLease commands within one provider page operation",
+        "a later page-action proof resolving earlier unrelated mutations, a second mutation before the prior one is resolved, substring identity for exact semantic choices, or fixed sleep used as a production transition",
         "downgrading or erasing a completely captured provider response because later title, artifact or cleanup work failed",
         "using application activation, whichever Chrome window is foreground, accessibility window ordering, or a second physical provider tab as page identity"
       ],
@@ -154,9 +157,9 @@
         "GPT Web page actions are governed as one action-state contract. Each committed mutation may append bounded evidence containing registry action id, execution id, exact target/document reference hashes, before/after canonical page identity, candidate count, semantic labels, result and evidence hash. A BrowserDocumentRef change invalidates all prior observations and element references; the action must restart registry-owned observation on the same execution and may never reuse or transmit a coordinate or selector.",
         "Immediately after a same-target navigation, React hydration or document replacement may invalidate an otherwise exact DOM node before any mutation. The Session Controller must serially reacquire the current BrowserDocumentRef and repeat only the same registry-owned exact observation inside the existing bounded action window. It may not widen the selector, change target, reload, invoke another action, or create a fallback route. Exhaustion before a mutation is recovery_pending with a durable failure-ledger entry, never terminal failed solely because the transient node id became invalid.",
         "Existing conversation routing uses one registry-owned canonical-conversation action in the one physical tab. That action first resolves the exact canonical pathname from the materialized sidebar; when the exact row is not materialized, its only internal discovery step uses the exact turn marker and accepts exactly one result only when its href resolves to the already persisted canonical pathname. After either internal branch, canonical pathname plus unique marker are re-proved and the exact Search chats dialog is closed and verified. Search title matching never becomes identity authority, and no alternate routing action, fallback chain or caller choice exists.",
-        "Exactly ten business/provider executions may be in flight, but the single physical submission window admits their durable submission tickets in strict FIFO order. The admitted execution retains that window continuously from exact clean-page proof through profile verification, attachment stabilization, prompt entry and fsynced submission checkpoint; only then does it release the window while Provider generation continues. A pre-checkpoint restart rebinds the same oldest ticket and execution before any newer task. An unresolved UNKNOWN keeps that ticket at the head and blocks every newer submission and ordinary patrol until the owning Plugin resolves it or records review_required; the window is never released as if the page were clean.",
+        "Exactly ten business/provider executions may be in flight, but the single physical submission window admits Cloud-owned production waiters by immutable created_at plus job_id plus stage ordinal, never by async registration timing; the monotonic ticket only breaks an exact priority tie. The admitted execution retains that window continuously from exact clean-page proof through profile verification, attachment stabilization, prompt entry and fsynced submission checkpoint; only then does it release the window while Provider generation continues. A production waiter is valid only when its live process registration carries the opaque admission hash minted by the owning Plugin from the current eligible Cloud job, attempt, device, lease version, fence, contract, execution and priority key. Process death removes that stale waiter; the same durable execution and checkpoint may resume only after a fresh eligible grant and then receives a different waiter and new local ticket without changing its business priority. A live waiter cannot replace its admission in place. An unresolved UNKNOWN in a live process keeps its current waiter at the head and blocks every newer submission and ordinary patrol until the owning Plugin resolves it or records review_required. After restart it is never replayed, and exact clean-page or same-execution reconciliation must fail closed before any newer task can mutate a contaminated page.",
         "Attachment stabilization before prompt entry proves the exact approved names and count, zero extra or ambiguous attachment, stable composer ownership and absence of upload-progress state. Because the prompt is intentionally still empty at this phase, a disabled send button is expected and must not cause a timeout; send readiness is proved only after the governed prompt is written.",
-        "Submitted feeds release the browser-mutation lease before provider generation completes. Submission and patrol waiters use one durable SQLite ticket ledger with strict FIFO submission admission and strict FIFO patrol admission after submissions drain. Rate-limit acknowledgement remains the highest-priority process-wide survival action and never refreshes the page.",
+        "Submitted feeds release the browser-mutation lease before provider generation completes. Submission and patrol waiters use one durable SQLite ledger: admitted production submissions use immutable business-age priority plus monotonic ticket tie-break, while patrol remains strict ticket FIFO after submissions drain. Rate-limit acknowledgement remains the highest-priority process-wide survival action and never refreshes the page.",
         "Every page operation binds to the internally held exact ChatGPT BrowserTargetRef and current BrowserDocumentRef through the authenticated extension transport. After process restart, a submitted execution may reacquire only its exact persisted canonical URL: one exact-URL tab binds, multiple exact-URL tabs is identity ambiguity, absent exact URL opens that URL, unrelated same-origin tabs are ignored. After binding, normal conversation switching is sidebar DOM routing, not URL-first navigation.",
         "Every execution failure appends a bounded durable ledger entry with occurrence time, attempt id, pre-failure phase, classification, recoverability and reason. Temporary provider unavailability, capacity, rate limiting, browser extension or authority discontinuity, target/document invalidation, command backpressure, authenticated transcript discontinuity, temporary capability admission loss, temporarily absent canonical row, page hydration, profile-menu not ready, title UI not ready and bounded search discovery are recovery_pending while no mutation outcome is UNKNOWN and no immutable business failure exists. Login/captcha/2FA/security barriers or ambiguous identity require review_required. Immutable profile/input/hash mismatch is failed.",
         "Process recovery never resubmits a captured provider turn. A valid checkpoint is loaded before browser reacquisition; for title-managed production GPT, recovery continues profile/title finalization on the exact canonical URL and marker before publication. Without a checkpoint, recovery trusts only persisted input identity, ordered attachment proof, canonical conversation identity and marker, never the caller's disposable source path. Legacy execution records remain immutable history and are not readable by the active production executor; no migration reader, alias, default or compatibility path may mint current profile or title proof.",
@@ -173,7 +176,7 @@
         "routing, retrying, deduplicating, continuing, forking or recovering a task from provider title text",
         "binding or routing a transient /c/WEB: URL as a canonical conversation",
         "same-origin tab fallback, active/front/first tab selection, foreground-window dependence or offscreen blind click",
-        "in-memory-only submission priority, unordered submission or patrol races, releasing an unsubmitted ticket to let a newer task touch the physical page, or a second scheduler ledger",
+        "in-memory-only submission priority, unordered submission or patrol races, preserving a dead-process waiter without a current eligible Cloud grant, releasing a live current-grant submission ticket before checkpoint or terminal recovery classification, or a second scheduler ledger",
         "fixed reasoning-slider indexes, coordinate-to-reasoning arithmetic, model fallback, reasoning downgrade, caller split model/reasoning controls after production admission, or profile proof that does not match the hash-bound request profile",
         "caller-supplied chat title, title text derived from prompt/user/report content, machine title used as primary identity, title search used as final route proof, rename debt worker, periodic title housekeeping or a second rename implementation",
         "publishing a title-managed production GPT checkpoint before exact profile/title proof exists",
@@ -2474,6 +2477,9 @@
         }
       ],
       "required": [
+        "Every atomic action is IF plus AND then THEN: IF identifies the current exact Document and candidate, AND proves exact identity, visibility, enabled state, uniqueness and adjacent-state exclusion, and THEN performs exactly one mutation; the following action starts only after that mutation's own postcondition is resolved.",
+        "Text identity that distinguishes adjacent labels such as high and extra high uses exact normalized equality rather than substring containment.",
+        "Timeout and deadline only bound observation and fail closed; fixed sleep, elapsed duration or retry count cannot establish success or authorize mutation.",
         "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
         "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
         "DOM actions and file input use target-bound Chrome extension commands without foreground focus; native picker, clipboard and PhysicalFocusLease paths are absent.",
@@ -2481,6 +2487,9 @@
         "The uniquely clause-bound deferred real-Chrome verifier must read the Browser owner's canonical hash-chain journal, bind the current source candidate and thirty-minute window, and require one completed document observation followed by one exact click PREPARED/SEND/UNKNOWN/CONFIRMED chain on the same target and document."
       ],
       "forbidden": [
+        "one postcondition or OutcomeResolutionReceipt confirming more than one mutation",
+        "a second mutation while the prior mutation is unresolved",
+        "substring matching used as exact identity or fixed sleep used as a production transition",
         "evaluateActiveTab or any active/current/first page fallback",
         "raw tab, target, session or window identifiers in DOM public contracts",
         "reusing an element ref after document generation changes",
@@ -2527,13 +2536,13 @@
       "tier": "P0",
       "capabilityDomain": "dom-automation",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "ast+acceptance+real-chrome",
+      "evidenceMode": "acceptance+real-chrome",
       "summary": "DOM click and fill must each use one dedicated exact-target Chrome command that revalidates the located identity and performs the mutation on that same resolved object without a coordinate or focus time gap.",
       "clauses": [
         {
           "clauseId": "apex-dom-021-requirement",
-          "statement": "DOM click and fill must each bind identity revalidation, uniqueness checks and mutation into one dedicated exact-target Chrome command.",
-          "evidenceMode": "real-chrome",
+          "statement": "DOM click and fill must each implement IF plus AND then one THEN mutation, bind exact identity revalidation and uniqueness into one Chrome command, and require that mutation's own postcondition before any next mutation; timeout only fails closed.",
+          "evidenceMode": "acceptance+real-chrome",
           "ownerDomain": "dom-automation"
         }
       ],
@@ -2791,12 +2800,12 @@
       "tier": "P0",
       "capabilityDomain": "local-browser-session",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+ast+fault-injection+real-chrome",
-      "summary": "Mutation intent is durable before send and UNKNOWN is never automatically replayed.",
+      "evidenceMode": "acceptance",
+      "summary": "Mutation intent is durable before send; every atomic action is IF plus AND then one mutation, and UNKNOWN is never automatically replayed.",
       "clauses": [
         {
           "clauseId": "apex-local-browser-004-v4-durable-mutation",
-          "statement": "Only the owning Plugin can resolve an UNKNOWN mutation after real positive and negative terminal evidence.",
+          "statement": "Only the owning Plugin can resolve one UNKNOWN mutation with that same atomic action's real positive and negative terminal evidence; IF plus AND, never elapsed time, authorizes the single THEN mutation and the next action cannot begin before resolution.",
           "evidenceMode": "acceptance",
           "ownerDomain": "local-browser-session"
         }
@@ -2807,10 +2816,17 @@
         "SEND then CONFIRMED FAILED or UNKNOWN",
         "terminal/readback conflict detection",
         "Plugin-only OutcomeResolutionReceipt with distinct positive and negative evidence refs",
+        "IF and AND prove one exact current target before THEN sends one mutation",
+        "one receipt resolves exactly its own mutation before another mutation may be sent",
+        "timeout only stops unresolved work and never authorizes a production transition",
         "single-socket artifact subprotocol"
       ],
       "forbidden": [
         "automatic mutation replay",
+        "one receipt resolving multiple mutations",
+        "a new mutation while an earlier mutation is unresolved",
+        "substring identity used where exact text equality is required",
+        "fixed sleep or elapsed time used as a success condition",
         "path on wire",
         "transport business verdict",
         "unbounded stream",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:50.297Z",
+  "generatedAt": "2026-08-22T18:42:27.093Z",
   "status": "PASS",
   "inspectorFileCount": 21,
   "generatedPlanEntryCount": 21,
@@ -27,6 +27,7 @@
     "scripts/audit/core/run-generated-plan-worker.mjs",
     "scripts/audit/core/run-generated-plan-worker.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -185,6 +186,7 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -214,14 +216,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:a5ea05b9-a149-45a1-aacd-e2c011a5220a",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:6e3543f1-dd00-4695-85c3-4a3def25cc8c",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:44.205Z",
-      "endedAt": "2026-08-22T14:52:50.297Z",
-      "durationMs": 6092,
+      "startedAt": "2026-08-22T18:42:20.296Z",
+      "endedAt": "2026-08-22T18:42:27.093Z",
+      "durationMs": 6797,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -246,6 +248,7 @@
         "scripts/audit/core/run-generated-plan-worker.mjs",
         "scripts/audit/core/run-generated-plan-worker.ts",
         "scripts/audit/core/run-generated-plan.ts",
+        "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -404,6 +407,7 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -431,19 +435,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:a5ea05b9-a149-45a1-aacd-e2c011a5220a"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:6e3543f1-dd00-4695-85c3-4a3def25cc8c"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:a5ea05b9-a149-45a1-aacd-e2c011a5220a"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:6e3543f1-dd00-4695-85c3-4a3def25cc8c"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:a5ea05b9-a149-45a1-aacd-e2c011a5220a"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:6e3543f1-dd00-4695-85c3-4a3def25cc8c"
     }
   ]
 }

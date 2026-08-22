@@ -18,8 +18,6 @@ import {
 } from "./ci-full-phase-plan.js";
 import { writeCiFullSummary, type CiFullFirstFailure, type CiFullLawCoverage, type CiFullOwnerReport, type StepResult } from "./ci-full-summary.js";
 import { resolveFromRepo } from "./shared/paths.js";
-export { ciFullSummaryPath, writeCiFullSummary } from "./ci-full-summary.js";
-export { createFailFast } from "./ci-fail-fast.js";
 export type { CiFullFirstFailure, CiFullLawCoverage, CiFullOwnerReport, CiFullSkippedStep, StepResult } from "./ci-full-summary.js";
 type GeneratedReportJson = {
   findings?: Array<{

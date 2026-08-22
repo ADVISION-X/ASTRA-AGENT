@@ -5,7 +5,7 @@
   "deadBranchCount": 0,
   "executionGroup": "foundation",
   "findings": [],
-  "generatedAt": "2026-08-22T14:52:36.661Z",
+  "generatedAt": "2026-08-22T18:42:12.203Z",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
     "scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts",
@@ -16,6 +16,7 @@
     "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/acceptance/app-shell-ui.real-chrome.ts",
     "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+    "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
     "scripts/acceptance/audit-binary-verdict.attacks.ts",
     "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
     "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -47,6 +48,7 @@
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+    "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
     "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -74,6 +76,7 @@
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -117,6 +120,7 @@
     "scripts/audit/core/run-generated-plan-worker.mjs",
     "scripts/audit/core/run-generated-plan-worker.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -256,6 +260,7 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -343,6 +348,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -790,6 +796,12 @@
       "filePath": "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
       "reason": "package.json script acceptance:constitutional-boundary-anti-escape",
       "scriptName": "acceptance:constitutional-boundary-anti-escape"
+    },
+    {
+      "entryKind": "package-script",
+      "filePath": "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
+      "reason": "package.json script acceptance:dom-automation-exact-target",
+      "scriptName": "acceptance:dom-automation-exact-target"
     },
     {
       "entryKind": "package-script",
@@ -1302,9 +1314,9 @@
       "scriptName": "acceptance:xuanxue-ai-production"
     }
   ],
-  "liveExportCount": 1702,
+  "liveExportCount": 1719,
   "orphanDeclarationCount": 0,
-  "reachableFileCount": 647,
+  "reachableFileCount": 653,
   "status": "PASS",
   "unreachableFileCount": 0,
   "uselessCodeInventory": [],
@@ -1316,23 +1328,23 @@
     "antiEvasionFindingCount": 0,
     "commentedOutCodeCount": 0,
     "deadBranchCount": 0,
-    "liveExportCount": 1702,
+    "liveExportCount": 1719,
     "orphanDeclarationCount": 0,
-    "reachableFileCount": 647,
+    "reachableFileCount": 653,
     "unreachableFileCount": 0,
     "uselessCodeInventoryCount": 0,
     "zombieExportCount": 0
   },
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b",
       "capabilityDomain": "code-purity",
       "checkId": "code-purity/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:08.006Z",
-      "endedAt": "2026-08-22T14:52:36.660Z",
-      "durationMs": 28654,
+      "startedAt": "2026-08-22T18:41:42.665Z",
+      "endedAt": "2026-08-22T18:42:12.202Z",
+      "durationMs": 29537,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts",
@@ -1343,6 +1355,7 @@
         "scripts/acceptance/app-shell-ui.acceptance.ts",
         "scripts/acceptance/app-shell-ui.real-chrome.ts",
         "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+        "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
         "scripts/acceptance/audit-binary-verdict.attacks.ts",
         "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
         "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -1374,6 +1387,7 @@
         "scripts/acceptance/ci-summary-truth.acceptance.ts",
         "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
         "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+        "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
         "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -1401,6 +1415,7 @@
         "scripts/acceptance/video-download-youtube-production.acceptance.ts",
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
         "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -1444,6 +1459,7 @@
         "scripts/audit/core/run-generated-plan-worker.mjs",
         "scripts/audit/core/run-generated-plan-worker.ts",
         "scripts/audit/core/run-generated-plan.ts",
+        "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -1583,6 +1599,7 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -1670,6 +1687,7 @@
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -1990,145 +2008,145 @@
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "apex-code-purity-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-002-V1",
       "clauseId": "apex-code-purity-002-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-003-V1",
       "clauseId": "apex-code-purity-003-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-004-V1",
       "clauseId": "apex-code-purity-004-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-005-V1",
       "clauseId": "apex-code-purity-005-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-006-V1",
       "clauseId": "apex-code-purity-006-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-007-V1",
       "clauseId": "apex-code-purity-007-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-008-V1",
       "clauseId": "apex-code-purity-008-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-009-V1",
       "clauseId": "apex-code-purity-009-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-010-V1",
       "clauseId": "apex-code-purity-010-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-011-V1",
       "clauseId": "apex-code-purity-011-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-012-V1",
       "clauseId": "apex-code-purity-012-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "apex-code-purity-013-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-014-V1",
       "clauseId": "apex-code-purity-014-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "apex-code-purity-015-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-016-V1",
       "clauseId": "apex-code-purity-016-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "apex-code-purity-017-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-018-V1",
       "clauseId": "apex-code-purity-018-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-019-V1",
       "clauseId": "apex-code-purity-019-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-020-V1",
       "clauseId": "apex-code-purity-020-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-021-V1",
       "clauseId": "apex-code-purity-021-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-022-V1",
       "clauseId": "apex-code-purity-022-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-023-V1",
       "clauseId": "apex-code-purity-023-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     },
     {
       "lawId": "APEX-CODE-PURITY-USELESS-ABSTRACTION-001-V1",
       "clauseId": "apex-code-purity-useless-abstraction-001-requirement",
       "checkId": "code-purity/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:4f7e76e8-76a9-4532-86df-086a3b28dcb9"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:d7bc6f0e-442b-4228-b261-dd13830ac81b"
     }
   ]
 }

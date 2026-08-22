@@ -84,6 +84,9 @@ export class BrowserTargetLeaseManager {
   ): LeaseCommand {
     return async (capabilityId, value) => {
       if (state.closed) throw new Error("BROWSER_TARGET_INVALID");
+      if (this.mutationClass(value) === "mutation" && state.pendingMutationCommandIds.length > 0) {
+        throw new Error("BROWSER_OUTCOME_UNKNOWN");
+      }
       this.workspace?.assertCurrent();
       const currentTarget = this.resolveCurrentTarget();
       if (!currentTarget
@@ -145,7 +148,7 @@ export class BrowserTargetLeaseManager {
       },
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
       close: async ({ reason }) => { await command("browser.close-target.v1", { kind: "close-target", reason }); state.closed = true; },
-      resolvePendingMutations: (receipt) => this.resolvePendingMutations(state, receipt),
+      resolvePendingMutation: (receipt) => this.resolvePendingMutation(state, receipt),
       assertNoPendingMutations: () => {
         if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_OUTCOME_UNKNOWN");
       },
@@ -204,16 +207,16 @@ export class BrowserTargetLeaseManager {
     });
   }
 
-  private async resolvePendingMutations(
+  private async resolvePendingMutation(
     state: LeaseState,
     receipt: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
   ): Promise<number> {
     const commandIds = [...state.pendingMutationCommandIds];
-    for (const commandId of commandIds) {
-      await this.commandActor.resolveUnknownMutation({ ...receipt, commandId });
-      state.pendingMutationCommandIds.splice(state.pendingMutationCommandIds.indexOf(commandId), 1);
-    }
-    return commandIds.length;
+    const commandId = commandIds[0];
+    if (commandIds.length !== 1 || commandId === undefined) throw new Error("BROWSER_OUTCOME_UNKNOWN");
+    await this.commandActor.resolveUnknownMutation({ ...receipt, commandId });
+    state.pendingMutationCommandIds.splice(state.pendingMutationCommandIds.indexOf(commandId), 1);
+    return 1;
   }
 
   private permit(input: Readonly<{

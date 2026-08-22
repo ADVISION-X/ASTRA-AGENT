@@ -8,7 +8,7 @@ import type {
   WebChatExecutionContext,
   WebChatPageActionProof,
 } from "../contracts/ai-provider-adapter.contract.js";
-import type { AiInputGatewayProgress } from "../contract.js";
+import type { AiInputGatewayProgress, AiInputGatewaySubmissionAdmission } from "../contract.js";
 import type { AiFeedInput } from "../schema.js";
 import {
   classifyWebChatFailure,
@@ -38,6 +38,7 @@ export type ManagedWebChatInput = {
   runtimeLogger?: RuntimeLogger;
   signal?: AbortSignal;
   executionId?: string;
+  submissionAdmission?: AiInputGatewaySubmissionAdmission;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
   onPageActionCommitted?: (proof: WebChatPageActionProof) => Promise<void>;
@@ -410,6 +411,7 @@ const buildActiveExecution = (
     resume: state.resume,
     releasePendingSubmission,
   });
+  state.singleTabBrowser?.bindExecutionContext(webChatExecution);
   return {
     request: input.request,
     ...(state.singleTabBrowser ? { browser: state.singleTabBrowser.browser } : {}),
@@ -422,7 +424,7 @@ const buildActiveExecution = (
     async release() {
       const unresolvedMutation = state.record.status === "review_required"
         && /BROWSER_OUTCOME_UNKNOWN/iu.test(state.record.failures.at(-1)?.reason ?? "");
-      if (state.record.status !== "recovery_pending" && !unresolvedMutation) {
+      if (!unresolvedMutation) {
         releasePendingSubmission();
       }
       await state.singleTabBrowser?.releaseInitialMutationLease();

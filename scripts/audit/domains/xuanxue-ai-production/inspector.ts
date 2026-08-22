@@ -37,6 +37,10 @@ import {
   collectXuanxueSourceValues,
   inspectXuanxueLocalIntervention,
 } from "./components/local-intervention-inspector.js";
+import {
+  inspectSubmissionAdmissionBinding,
+  submissionAdmissionInspectorPath,
+} from "./inspect-submission-admission.js";
 
 type Laws = {
   boundary: string;
@@ -170,7 +174,7 @@ const inspectDurability = (
     values,
     required: [
       "resolveAttachmentMutations",
-      "resolvePendingMutations",
+      "resolvePendingMutation",
       "assertNoPendingMutations",
       "positiveEvidenceRef",
       "negativeEvidenceRef",
@@ -403,6 +407,7 @@ const inspectDomainPolicy = (
   inspectCloud(context, findings, laws.cloud, values);
   inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
   inspectTransientLifecycleContract(context, findings, laws.transient, values);
+  inspectSubmissionAdmissionBinding(context, findings, laws.durability);
   inspectAcceptance(context, findings, laws.durability);
 };
 
@@ -420,7 +425,7 @@ const inspectDomainEvaluation = async (
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [...authorityPaths, ...pluginPaths],
+    inspectedFiles: [...authorityPaths, submissionAdmissionInspectorPath, ...pluginPaths],
   };
 };
 

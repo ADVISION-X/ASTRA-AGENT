@@ -26,6 +26,7 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/browser-extension-build.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", evidenceFacet: "artifact", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
   ["scripts/acceptance/browser-extension-release-identity.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", evidenceFacet: "artifact", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
   ["scripts/acceptance/dom-automation-exact-target.acceptance.ts", { clauseId: "apex-dom-005-requirement", lawId: "APEX-DOM-005-V1" }],
+  ["scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts", { clauseId: "apex-dom-021-requirement", evidenceFacet: "acceptance", lawId: "APEX-DOM-021-V1" }],
   ["scripts/acceptance/dom-automation-exact-target.real-chrome.ts", { clauseId: "apex-dom-020-requirement", evidenceFacet: "real-chrome", lawId: "APEX-DOM-020-V1", producerFilePath: "src/lib/browser/exact-target/browser-command-actor.ts" }],
   ["scripts/acceptance/dom-automation.real-chrome.ts", { clauseId: "apex-dom-021-requirement", evidenceFacet: "real-chrome", lawId: "APEX-DOM-021-V1", producerFilePath: "src/lib/browser/exact-target/browser-command-actor.ts" }],
   ["scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v4-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V4" }],

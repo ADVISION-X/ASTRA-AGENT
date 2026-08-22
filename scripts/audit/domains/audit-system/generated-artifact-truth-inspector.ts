@@ -1,4 +1,5 @@
 import { Node, SyntaxKind, type ArrowFunction, type Node as MorphNode, type SourceFile } from "ts-morph";
+import { readdirSync } from "node:fs";
 
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
@@ -12,6 +13,41 @@ const requiredGeneratedFiles = new Set([
   "scripts/audit/generated/enforcement-matrix.generated.json",
   "scripts/audit/generated/static-clause-coverage.generated.json",
 ]);
+
+const fixedGeneratedFileNames = [
+  "audit-conflicts.generated.json",
+  "audit-plan.generated.json",
+  "ci-full-summary.generated.json",
+  "enforcement-matrix.generated.json",
+  "enforcement-matrix.generated.yaml",
+  "law-registry.generated.json",
+  "static-clause-coverage.generated.json",
+] as const;
+
+export const generatedArtifactFileSetIsExact = (
+  actualFileNames: readonly string[],
+  capabilityDomains: readonly string[],
+): boolean => {
+  const expected = new Set([
+    ...fixedGeneratedFileNames,
+    ...capabilityDomains.map((domain) => `${domain}-report.generated.json`),
+    "local-app-shell-report.generated.md",
+    "local-browser-session-report.generated.md",
+    "runtime-log-spine-report.generated.md",
+  ]);
+  return actualFileNames.length === expected.size
+    && new Set(actualFileNames).size === expected.size
+    && actualFileNames.every((fileName) => expected.has(fileName));
+};
+
+const generatedDirectoryIsClosed = (context: InspectorContext): boolean => {
+  const entries = readdirSync(resolveFromRepo("scripts/audit/generated"), { withFileTypes: true });
+  if (entries.some((entry) => !entry.isFile())) return false;
+  return generatedArtifactFileSetIsExact(
+    entries.map((entry) => entry.name),
+    context.generatedPlan.map((entry) => entry.capabilityDomain),
+  );
+};
 
 const flattenConjunction = (node: MorphNode): MorphNode[] => {
   if (Node.isBinaryExpression(node)
@@ -135,14 +171,15 @@ export const inspectGeneratedArtifactTruthContract = (
     && verifierCoverageIsComplete(verifier)
     && callHasArtifactLaw(source, verifier, "createStepResult")
     && callHasArtifactLaw(source, verifier, "createFirstFailure")
-    && ciOrderClosesGeneratedTruth(source));
+    && ciOrderClosesGeneratedTruth(source)
+    && generatedDirectoryIsClosed(context));
   return {
     inspectedFiles: [ciFullPath],
     findings: closed ? [] : [createFinding({
       checkId: "audit-system/generated-artifact-truth",
       lawId,
       filePath: ciFullPath,
-      message: "CI-FULL must rebuild generated truth, run every owner, then fail closed on the complete 100% owner machine-facet coverage contract with APEX-AUDIT-004 receipt identity.",
+      message: "CI-FULL must rebuild generated truth, run every owner, reject every extra or orphan generated artifact, then fail closed on the complete 100% owner machine-facet coverage contract with APEX-AUDIT-004 receipt identity.",
     })],
   };
 };

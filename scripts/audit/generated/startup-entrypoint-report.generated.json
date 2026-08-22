@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:36.878Z",
+  "generatedAt": "2026-08-22T18:42:12.470Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "foundation",
   "lawIds": [
@@ -9,14 +9,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:3b54bb25-ec0b-4df2-9a95-a96ef1b2fc49",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:3cd90012-f491-49e5-b4e7-accdfef3ef0e",
       "capabilityDomain": "startup-entrypoint",
       "checkId": "startup-entrypoint/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:36.875Z",
-      "endedAt": "2026-08-22T14:52:36.877Z",
-      "durationMs": 2,
+      "startedAt": "2026-08-22T18:42:12.468Z",
+      "endedAt": "2026-08-22T18:42:12.469Z",
+      "durationMs": 1,
       "evidenceRefs": [
         "package.json",
         "scripts/audit/domains/startup-entrypoint/inspector.ts",
@@ -31,7 +31,7 @@
       "lawId": "APEX-STARTUP-001-V2",
       "clauseId": "apex-startup-001-v2-unpacked-readback",
       "checkId": "startup-entrypoint/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:3b54bb25-ec0b-4df2-9a95-a96ef1b2fc49"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:3cd90012-f491-49e5-b4e7-accdfef3ef0e"
     }
   ],
   "inspectedFiles": [

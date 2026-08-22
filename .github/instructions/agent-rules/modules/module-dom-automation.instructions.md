@@ -848,6 +848,9 @@ Forbidden:
   "evidenceMode": "law+blueprint+ast+acceptance+real-chrome",
   "summary": "Every DOM ref and action must remain bound to one opaque BrowserTargetRef and one current BrowserDocumentRef.",
   "required": [
+    "Every atomic action is IF plus AND then THEN: IF identifies the current exact Document and candidate, AND proves exact identity, visibility, enabled state, uniqueness and adjacent-state exclusion, and THEN performs exactly one mutation; the following action starts only after that mutation's own postcondition is resolved.",
+    "Text identity that distinguishes adjacent labels such as high and extra high uses exact normalized equality rather than substring containment.",
+    "Timeout and deadline only bound observation and fail closed; fixed sleep, elapsed duration or retry count cannot establish success or authorize mutation.",
     "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
     "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
     "DOM actions and file input use target-bound Chrome extension commands without foreground focus; native picker, clipboard and PhysicalFocusLease paths are absent.",
@@ -855,6 +858,9 @@ Forbidden:
     "The uniquely clause-bound deferred real-Chrome verifier must read the Browser owner's canonical hash-chain journal, bind the current source candidate and thirty-minute window, and require one completed document observation followed by one exact click PREPARED/SEND/UNKNOWN/CONFIRMED chain on the same target and document."
   ],
   "forbidden": [
+    "one postcondition or OutcomeResolutionReceipt confirming more than one mutation",
+    "a second mutation while the prior mutation is unresolved",
+    "substring matching used as exact identity or fixed sleep used as a production transition",
     "evaluateActiveTab or any active/current/first page fallback",
     "raw tab, target, session or window identifiers in DOM public contracts",
     "reusing an element ref after document generation changes",
@@ -981,7 +987,7 @@ DOM Automation may be called production-stable only when all are true:
   "tier": "P0",
   "capabilityDomain": "dom-automation",
   "enforcementMode": "machine-blocking",
-  "evidenceMode": "ast+acceptance+real-chrome",
+  "evidenceMode": "acceptance+real-chrome",
   "summary": "DOM click and fill must each use one dedicated exact-target Chrome command that revalidates the located identity and performs the mutation on that same resolved object without a coordinate or focus time gap.",
   "appliesTo": [
     "src/capabilities/dom-automation/**/*.{ts,tsx,js,jsx,mjs}",
@@ -1006,8 +1012,8 @@ DOM Automation may be called production-stable only when all are true:
   "clauses": [
     {
       "clauseId": "apex-dom-021-requirement",
-      "statement": "DOM click and fill must each bind identity revalidation, uniqueness checks and mutation into one dedicated exact-target Chrome command.",
-      "evidenceMode": "real-chrome",
+      "statement": "DOM click and fill must each implement IF plus AND then one THEN mutation, bind exact identity revalidation and uniqueness into one Chrome command, and require that mutation's own postcondition before any next mutation; timeout only fails closed.",
+      "evidenceMode": "acceptance+real-chrome",
       "ownerDomain": "dom-automation"
     }
   ]

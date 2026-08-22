@@ -70,6 +70,36 @@ const readOneText = async (browser: BrowserTargetLease, selector: string): Promi
   return value.trim();
 };
 
+const findExactOne = async (browser: BrowserTargetLease, selector: string, textEquals?: string): Promise<void> => {
+  const value = record(await browser.executeDomIntent({
+    kind: "find",
+    selector,
+    ...(textEquals === undefined ? {} : { textEquals }),
+    maxMatches: 20,
+  }));
+  if (value.count !== 1) throw new Error("review_required: CHATGPT_TITLE_TARGET_AMBIGUOUS_OR_ABSENT");
+};
+
+const recordTitleMutation = async (input: {
+  browser: BrowserTargetLease;
+  context: AiProviderAdapterContext;
+  canonicalUrl: string;
+  startedAt: string;
+  semantics: readonly string[];
+}): Promise<void> => {
+  await recordWebChatPageAction({
+    browser: input.browser,
+    context: input.context,
+    actionId: "rename_exact_conversation",
+    startedAt: input.startedAt,
+    beforeUrl: input.canonicalUrl,
+    afterUrl: input.canonicalUrl,
+    result: "committed",
+    candidateCount: 1,
+    semantics: input.semantics,
+  });
+};
+
 const assertExactConversationState = async (input: {
   browser: BrowserTargetLease;
   canonicalUrl: string;
@@ -83,38 +113,73 @@ const assertExactConversationState = async (input: {
   await findOne(input.browser, CHATGPT_USER_TURN_SELECTOR, input.turnMarker);
 };
 
-const renameObservedSidebarRow = async (input: {
+type RenameTitleInput = Readonly<{
   browser: BrowserTargetLease;
+  context: AiProviderAdapterContext;
+  canonicalUrl: string;
   rowSelector: string;
   expectedTitle: string;
-}): Promise<void> => {
+  timeoutMs: number;
+}>;
+
+const openRenameEditor = async (input: RenameTitleInput): Promise<void> => {
+  let startedAt = new Date().toISOString();
   await input.browser.executeDomIntent({
     kind: "click",
     selector: `${input.rowSelector} button[data-trailing-button]`,
     expectedMatches: 1,
   });
-  await input.browser.wait({ durationMs: 250 });
+  await findExactOne(input.browser, "[role='menuitem']", "重命名");
+  await recordTitleMutation({ ...input, startedAt, semantics: ["one exact sidebar row", "rename menu ready"] });
+  startedAt = new Date().toISOString();
   await input.browser.executeDomIntent({
     kind: "click",
     selector: "[role='menuitem']",
-    expectedText: "重命名",
+    expectedTextEquals: "重命名",
     expectedMatches: 1,
   });
-  await input.browser.wait({ durationMs: 250 });
-  await input.browser.executeDomIntent({
+  await findExactOne(input.browser, CHATGPT_TITLE_INPUT_SELECTOR);
+  await recordTitleMutation({ ...input, startedAt, semantics: ["one rename menu item", "one title input ready"] });
+};
+
+const fillRenameTitle = async (input: RenameTitleInput): Promise<void> => {
+  const startedAt = new Date().toISOString();
+  const fillResult = record(await input.browser.executeDomIntent({
     kind: "fill",
     selector: CHATGPT_TITLE_INPUT_SELECTOR,
     approvedText: input.expectedTitle,
     clearBeforeType: true,
     expectedMatches: 1,
-  });
+  }));
+  if (fillResult.candidateCount !== 1 || fillResult.retainedValueVerified !== true) {
+    throw new Error("review_required: CHATGPT_TITLE_INPUT_NOT_RETAINED");
+  }
+  await recordTitleMutation({ ...input, startedAt, semantics: ["one title input", "exact title retained"] });
+};
+
+const commitRenameTitle = async (input: RenameTitleInput): Promise<void> => {
   /** The observed UI commits the inline title when its focus moves to the composer. */
+  const startedAt = new Date().toISOString();
   await input.browser.executeDomIntent({
     kind: "click",
     selector: CHATGPT_COMPOSER_SELECTOR,
     expectedMatches: 1,
   });
-  await input.browser.wait({ durationMs: 500 });
+  const deadline = Date.now() + Math.max(1, input.timeoutMs);
+  while (Date.now() < deadline) {
+    if (await readOneText(input.browser, input.rowSelector) === input.expectedTitle) {
+      await recordTitleMutation({ ...input, startedAt, semantics: ["one composer commit target", "exact sidebar title committed"] });
+      return;
+    }
+    await input.browser.wait({ durationMs: 100 });
+  }
+  throw new Error("review_required: CHATGPT_TITLE_COMMIT_NOT_CONFIRMED");
+};
+
+const renameObservedSidebarRow = async (input: RenameTitleInput): Promise<void> => {
+  await openRenameEditor(input);
+  await fillRenameTitle(input);
+  await commitRenameTitle(input);
 };
 
 const buildProof = (input: {
@@ -158,6 +223,7 @@ const finalizeObservedTitle = async (input: {
   state: TitleState;
   canonicalUrl: string;
   request: AiFeedInput;
+  context: AiProviderAdapterContext;
 }): Promise<WebChatConversationTitleProof> => {
   const rowSelector = exactSidebarRowSelector(input.canonicalUrl);
   await focusChatGptConversationByCanonicalPath({
@@ -165,6 +231,7 @@ const finalizeObservedTitle = async (input: {
     conversationUrl: input.canonicalUrl,
     turnMarker: input.execution.turnMarker,
     timeoutMs: Math.min(input.request.timeoutMs, 15_000),
+    context: input.context,
   });
   await assertExactConversationState({
     browser: input.browser,
@@ -176,8 +243,11 @@ const finalizeObservedTitle = async (input: {
   if (previousObservedTitle !== input.state.expectedTitle) {
     await renameObservedSidebarRow({
       browser: input.browser,
+      context: input.context,
+      canonicalUrl: input.canonicalUrl,
       rowSelector,
       expectedTitle: input.state.expectedTitle,
+      timeoutMs: Math.min(input.request.timeoutMs, 15_000),
     });
   }
   await assertExactConversationState({
@@ -214,6 +284,7 @@ export const finalizeGptWebConversationTitle = async (
     state,
     canonicalUrl: exactCanonicalUrl,
     request: input.request,
+    context: input.context,
   }));
   await execution.onConversationTitleVerified(proof);
   await recordWebChatPageAction({

@@ -1,10 +1,13 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
+import type { AiProviderAdapterContext, WebChatPageActionId } from "../contracts/ai-provider-adapter.contract.js";
+import { recordWebChatPageAction } from "./web-chat-page-action-contract.js";
 
 type DiscoveryInput = Readonly<{
-  browser: Pick<BrowserTargetLease, "executeDomIntent" | "wait">;
+  browser: BrowserTargetLease;
   canonicalConversationUrl: string;
   turnMarker: string;
   timeoutMs?: number;
+  context?: AiProviderAdapterContext;
 }>;
 
 const CHATGPT_SEARCH_BUTTON_SELECTOR = 'button[aria-label="搜索聊天"]';
@@ -54,21 +57,39 @@ const documentUrl = async (browser: DiscoveryInput["browser"]): Promise<string> 
   return (value as { url: string }).url;
 };
 
-const closeSearchDialog = async (browser: DiscoveryInput["browser"]): Promise<void> => {
+const recordMutation = async (input: DiscoveryInput, actionId: WebChatPageActionId, startedAt: string, semantics: readonly string[]): Promise<void> => {
+  if (!input.context) return;
+  await recordWebChatPageAction({
+    browser: input.browser,
+    context: input.context,
+    actionId,
+    startedAt,
+    beforeUrl: null,
+    afterUrl: null,
+    result: "committed",
+    candidateCount: 1,
+    semantics,
+    allowDocumentChange: actionId === "discover_conversation_via_search",
+  });
+};
+
+const closeSearchDialog = async (input: DiscoveryInput): Promise<void> => {
+  const browser = input.browser;
   const dialogCount = await count(browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 });
   if (dialogCount === 0) return;
   if (dialogCount !== 1 || await count(browser, { selector: CHATGPT_SEARCH_CLOSE_SELECTOR, maxMatches: 1 }) !== 1) {
     throw new Error("review_required: CHATGPT_SEARCH_DIALOG_CLOSE_AMBIGUOUS");
   }
+  const startedAt = new Date().toISOString();
   await browser.executeDomIntent({
     kind: "click",
     selector: CHATGPT_SEARCH_CLOSE_SELECTOR,
     expectedMatches: 1,
   });
-  await browser.wait({ durationMs: 250 });
   if (await count(browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 }) !== 0) {
     throw new Error("review_required: CHATGPT_SEARCH_DIALOG_CLOSE_UNCONFIRMED");
   }
+  await recordMutation(input, "cleanup_owned_transient_ui", startedAt, ["one search dialog closed"]);
 };
 
 const resolveCanonicalTarget = (input: DiscoveryInput): { targetPath: string; deadline: number } => {
@@ -83,35 +104,47 @@ const resolveCanonicalTarget = (input: DiscoveryInput): { targetPath: string; de
   };
 };
 
-const openSearchDialog = async (input: DiscoveryInput): Promise<void> => {
-  if (await count(input.browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 }) === 1) return;
+const openSearchDialog = async (input: DiscoveryInput): Promise<string | null> => {
+  if (await count(input.browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 }) === 1) return null;
   if (await count(input.browser, { selector: CHATGPT_SEARCH_BUTTON_SELECTOR, maxMatches: 1 }) !== 1) {
     throw new Error("review_required: CHATGPT_SEARCH_CONTROL_AMBIGUOUS");
   }
+  const startedAt = new Date().toISOString();
   await input.browser.executeDomIntent({
     kind: "click",
     selector: CHATGPT_SEARCH_BUTTON_SELECTOR,
     expectedMatches: 1,
   });
+  return startedAt;
 };
 
-const waitForSearchInput = async (input: DiscoveryInput, deadline: number): Promise<void> => {
+const waitForSearchInput = async (input: DiscoveryInput, deadline: number, openStartedAt: string | null): Promise<void> => {
   while (Date.now() < deadline) {
     if (await count(input.browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 }) !== 1) {
-      await input.browser.wait({ durationMs: 250 });
+      await input.browser.wait({ durationMs: 100 });
       continue;
     }
     if (await count(input.browser, { selector: CHATGPT_SEARCH_INPUT_SELECTOR, maxMatches: 1 }) !== 1) {
-      await input.browser.wait({ durationMs: 250 });
+      await input.browser.wait({ durationMs: 100 });
       continue;
     }
-    await input.browser.executeDomIntent({
+    if (openStartedAt) {
+      await recordMutation(input, "discover_conversation_via_search", openStartedAt, ["one search control", "one search dialog and input ready"]);
+    }
+    const startedAt = new Date().toISOString();
+    const result = await input.browser.executeDomIntent({
       kind: "fill",
       selector: CHATGPT_SEARCH_INPUT_SELECTOR,
       approvedText: input.turnMarker,
       clearBeforeType: true,
       expectedMatches: 1,
     });
+    if (typeof result !== "object" || result === null || Array.isArray(result)
+      || (result as { candidateCount?: unknown }).candidateCount !== 1
+      || (result as { retainedValueVerified?: unknown }).retainedValueVerified !== true) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
+    await recordMutation(input, "discover_conversation_via_search", startedAt, ["one search input", "exact marker retained"]);
     return;
   }
   throw new Error("WEB_CHAT_BOUND_CONVERSATION_NOT_READY: Search chats dialog did not become ready");
@@ -129,7 +162,7 @@ const selectSearchResult = async (
       maxMatches: 20,
     });
     if (resultCount === 0) {
-      await input.browser.wait({ durationMs: 250 });
+      await input.browser.wait({ durationMs: 100 });
       continue;
     }
     if (resultCount !== 1) throw new Error("review_required: CHATGPT_SEARCH_RESULT_AMBIGUOUS");
@@ -137,13 +170,13 @@ const selectSearchResult = async (
     if (href.origin !== "https://chatgpt.com" || href.pathname !== targetPath) {
       throw new Error("review_required: CHATGPT_SEARCH_RESULT_CANONICAL_PATH_MISMATCH");
     }
+    const startedAt = new Date().toISOString();
     await input.browser.executeDomIntent({
       kind: "click",
       selector: CHATGPT_SEARCH_RESULT_SELECTOR,
       expectedText: input.turnMarker,
       expectedMatches: 1,
     });
-    await input.browser.wait({ durationMs: 500 });
     if (await count(input.browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 }) !== 0) {
       throw new Error("review_required: CHATGPT_SEARCH_DIALOG_CLOSE_UNCONFIRMED");
     }
@@ -157,6 +190,7 @@ const selectSearchResult = async (
       maxMatches: 20,
     });
     if (markerCount !== 1) throw new Error("review_required: CHATGPT_SEARCH_RESULT_MARKER_AMBIGUOUS");
+    await recordMutation(input, "discover_conversation_via_search", startedAt, [targetPath, input.turnMarker, "one canonical result"]);
     return;
   }
   throw new Error("WEB_CHAT_BOUND_CONVERSATION_NOT_READY: exact Search chats result did not materialize");
@@ -168,13 +202,13 @@ export const discoverChatGptConversationViaSearch = async (
   const { targetPath, deadline } = resolveCanonicalTarget(input);
   let dialogOpen = false;
   try {
-    await openSearchDialog(input);
+    const openStartedAt = await openSearchDialog(input);
     dialogOpen = true;
-    await waitForSearchInput(input, deadline);
+    await waitForSearchInput(input, deadline, openStartedAt);
     await selectSearchResult(input, targetPath, deadline);
   } finally {
     if (dialogOpen && await count(input.browser, { selector: CHATGPT_SEARCH_DIALOG_SELECTOR, maxMatches: 1 }) !== 0) {
-      await closeSearchDialog(input.browser);
+      await closeSearchDialog(input);
     }
   }
 };

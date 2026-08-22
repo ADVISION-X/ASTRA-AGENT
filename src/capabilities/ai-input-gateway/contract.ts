@@ -17,11 +17,17 @@ export type AiInputGatewayExecutionContext = {
   adapters?: Partial<Record<AiInputGatewayProviderKind, AiProviderAdapter>>;
 };
 
+export type AiInputGatewaySubmissionAdmission = Readonly<{
+  admissionRef: `sha256:${string}`;
+  priorityKey: string;
+}>;
+
 export type AiInputGatewayExecuteOptions = {
   signal?: AbortSignal;
   browser?: BrowserTargetLease;
   executionId?: string;
   supersededExecutionId?: string;
+  submissionAdmission?: AiInputGatewaySubmissionAdmission;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;
   onPageActionCommitted?: (proof: WebChatPageActionProof) => Promise<void>;

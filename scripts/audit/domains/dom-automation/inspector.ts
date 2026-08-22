@@ -5,6 +5,7 @@ import { inspectDomFoundationGates } from "./components/inspect-dom-foundation-g
 import { inspectDomRuntimeGuards } from "./components/inspect-dom-runtime-guards.js";
 import { createDomFindingCollector } from "./components/dom-inspector-support.js";
 import { createFinding } from "../../shared/finding-utils.js";
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { Node, SyntaxKind, type FunctionDeclaration, type SourceFile } from "ts-morph";
 import { resolveFromRepo } from "../../shared/paths.js";
 
@@ -133,6 +134,7 @@ const inspectRealChromeProofRoute = (
     "readBrowserProofJournal", "buildStartupSourceFingerprint", "mutationChain",
     "recordCommand", "previousEntryHash", "entryHash", "transportSequence", "permitSequence",
     "resultSummary", "accessibilityValue", "retainedValueVerified",
+    "postconditionVerified", "nodesWithExactText",
   ]) if (!identifiers.has(required)) findings.push(createFinding({
     checkId: "dom-automation/real-chrome-proof-route", lawId: "APEX-DOM-021-V1",
     clauseId: "apex-dom-021-requirement", filePath: paths[0],
@@ -147,6 +149,108 @@ const inspectRealChromeProofRoute = (
     }));
   }
   return findings;
+};
+
+const strictExactTextMatcher = (runtime: SourceFile): boolean => {
+  const matcher = runtime.getVariableDeclaration("nodesWithExactText")?.getInitializer();
+  if (!matcher) return false;
+  if (matcher.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+    {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === "includes";
+    })) return false;
+  const expected = matcher.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "expected")?.getInitializer();
+  if (!Node.isCallExpression(expected)
+    || astExpressionPath(expected.getExpression()) !== "expectedText.trim") return false;
+  const loop = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement);
+  if (loop.length !== 1) return false;
+  const loopBody = loop[0]!.getStatement();
+  if (!Node.isBlock(loopBody)) return false;
+  const comparison = loopBody.getStatements()[0];
+  if (!Node.isIfStatement(comparison)) return false;
+  const condition = comparison.getExpression();
+  return Node.isBinaryExpression(condition)
+    && condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && astIdentifierName(condition.getRight()) === "expected";
+};
+
+const exactChoiceFlowsIntoRuntime = (runtime: SourceFile): boolean => {
+  const click = runtime.getVariableDeclaration("executeClickIntent")?.getInitializer();
+  if (!click) return false;
+  const calls = click.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => astExpressionPath(call.getExpression()) === "nodesWithExactText");
+  if (calls.length !== 1) return false;
+  const arguments_ = calls[0]!.getArguments();
+  return astExpressionPath(arguments_[0]) === "debuggerRuntime"
+    && astExpressionPath(arguments_[1]) === "target.tabId"
+    && astExpressionPath(arguments_[2]) === "nodes"
+    && astExpressionPath(arguments_[3]) === "intent.expectedTextEquals";
+};
+
+const postconditionFlowsIntoJournal = (runtime: SourceFile, actor: SourceFile): boolean => {
+  const click = runtime.getVariableDeclaration("executeClickIntent")?.getInitializer();
+  const verified = actor.getVariableDeclaration("verifiedMutationResult")?.getInitializer();
+  if (!click || !verified) return false;
+  const runtimeComparisons = click.getDescendantsOfKind(SyntaxKind.BinaryExpression);
+  const actorComparisons = verified.getDescendantsOfKind(SyntaxKind.BinaryExpression);
+  const runtimeProof = runtimeComparisons.some((binary) =>
+    binary.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && astExpressionPath(binary.getRight()) === "intent.postClickAttribute.equals");
+  const actorProof = actorComparisons.some((binary) =>
+    binary.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && astExpressionPath(binary.getLeft()) === "value.postconditionVerified"
+    && binary.getRight().getKind() === SyntaxKind.TrueKeyword);
+  return runtimeProof && actorProof
+    && verified.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
+      .some((property) => property.getName() === "postconditionVerified");
+};
+
+export const domAtomicIfAndThenContractIsExact = (
+  intent: SourceFile,
+  runtime: SourceFile,
+  actor: SourceFile,
+): boolean => {
+  const clickAssertion = intent.getVariableDeclaration("assertClickIntent")?.getInitializer();
+  const clickType = intent.getTypeAlias("BrowserDomIntent")?.getTypeNode();
+  if (!clickAssertion || !clickType) return false;
+  const typeProperties = new Set(clickType.getDescendantsOfKind(SyntaxKind.PropertySignature)
+    .map((property) => property.getName()));
+  const assertionPaths = new Set(clickAssertion.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .map(astExpressionPath).filter((path): path is string => path !== undefined));
+  return typeProperties.has("expectedTextEquals")
+    && typeProperties.has("postClickAttribute")
+    && assertionPaths.has("intent.expectedText")
+    && assertionPaths.has("intent.expectedTextEquals")
+    && assertionPaths.has("intent.postClickAttribute.name")
+    && assertionPaths.has("intent.postClickAttribute.equals")
+    && strictExactTextMatcher(runtime)
+    && exactChoiceFlowsIntoRuntime(runtime)
+    && postconditionFlowsIntoJournal(runtime, actor);
+};
+
+const inspectAtomicDomIfAndThen = (
+  context: InspectorContext,
+  inspectedFiles: Set<string>,
+): InspectorFinding[] => {
+  const paths = [
+    "src/lib/browser/exact-target/browser-dom-intent.ts",
+    "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
+    "src/lib/browser/exact-target/browser-command-actor.ts",
+  ] as const;
+  const sources = paths.map((filePath) => {
+    inspectedFiles.add(filePath);
+    return context.project.getSourceFile(resolveFromRepo(filePath));
+  });
+  if (sources.some((source) => !source)
+    || domAtomicIfAndThenContractIsExact(sources[0]!, sources[1]!, sources[2]!)) return [];
+  return [createFinding({
+    checkId: "dom-automation/owner-assertion-set",
+    lawId: "APEX-DOM-021-V1",
+    clauseId: "apex-dom-021-requirement",
+    filePath: paths.find((_, index) => !sources[index]) ?? paths[0],
+    message: "The effective DOM exact-choice path must enforce adjacent-label exclusion, strict equality and same-command postcondition dataflow into the Browser journal.",
+  })];
 };
 
 
@@ -164,6 +268,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   collector.findings.push(...inspectExactTargetBinding(context));
   collector.findings.push(...inspectObservationMutationSeparation(context));
   collector.findings.push(...inspectRealChromeProofRoute(context, inspectedFileSet));
+  collector.findings.push(...inspectAtomicDomIfAndThen(context, inspectedFileSet));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

@@ -589,14 +589,28 @@ hash/output 全为空。恢复保留 execution id、turn marker 和 failure ledg
 
 ## Bounded Parallel Web Chat
 
+### 原子页面动作
+
+每个 provider mutation 都是独立的 `IF + AND -> THEN` 交易：先在同一当前 Document 读取目标，
+再以精确相等、候选唯一和相邻错误态排除组成 AND，最后只做一个 mutation。mutation 后立即读取
+同一动作的正反终态并形成专属 page-action proof；这张 proof 只能解析这一个 mutation。未解析 mutation
+会封锁下一 mutation，不允许积攒后批量确认。
+
+观察循环只有“状态证据成立”才能返回成功。固定 `sleep/wait`、经过多少毫秒或重试了多少次都不
+构成状态证据；相对 deadline/timeout 只负责到界后 `recovery_pending/review_required` 安全停止。
+语义选项必须精确相等；例如“高”不能以 substring 同时命中“高”和“极高”。
+
 ```txt
 business capacity: fixed max_in_flight=10; environment cannot collapse or enlarge it
 browser action admission: max_browser_in_flight=1
 business/provider waits: durable, no Browser lock
 provider generation wait: concurrent
-submission queue: durable SQLite strict FIFO
-submission window: oldest ticket holds clean-page -> durable submission checkpoint
-pre-checkpoint UNKNOWN: same ticket remains head; newer submission and patrol blocked
+submission queue: one durable SQLite ledger; production order is immutable priority_key then ticket tie-break
+submission window: globally oldest claimable priority holds clean-page -> durable submission checkpoint
+admission: owner-minted opaque hash binds current grant and execution; Gateway does not duplicate Cloud schema
+ticket lifetime: live process + exact admissionRef; dead-process waiter is removed and live admission drift fails closed
+restart: same execution/checkpoint needs a fresh eligible grant, new admissionRef and new waiter/ticket while retaining business priority
+pre-checkpoint UNKNOWN: live-process ticket remains head; after restart never replay and fail closed on page reconciliation
 attachment stable before prompt: exact names/count, no extra/uploading; send may still be disabled
 submission priority: before patrol
 patrol queue: durable SQLite FIFO

@@ -8,6 +8,7 @@ import {
   registerWebChatSchedulerWaiter,
   type WebChatSchedulerWaiter,
 } from "./web-chat-scheduler-ledger.js";
+import type { AiInputGatewaySubmissionAdmission } from "../contract.js";
 
 type LeaseRecord = {
   leaseId: string;
@@ -55,11 +56,13 @@ const delay = (signal?: AbortSignal): Promise<void> => new Promise((resolve, rej
 export const registerPendingWebChatSubmission = (
   dataDir: string,
   executionId: string,
+  submissionAdmission?: AiInputGatewaySubmissionAdmission,
 ): WebChatSchedulerWaiter => registerWebChatSchedulerWaiter(
-    dataDir,
-    "submission",
-    executionId,
-  );
+  dataDir,
+  "submission",
+  executionId,
+  submissionAdmission,
+);
 
 export const pendingWebChatSubmissionCount = (dataDir: string): number =>
   countWebChatSchedulerWaiters(dataDir, "submission");

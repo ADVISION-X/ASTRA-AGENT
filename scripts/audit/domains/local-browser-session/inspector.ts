@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type SourceFile } from "ts-morph";
 
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
 import { splitLines } from "../../shared/no-regex.js";
 import {
@@ -128,6 +128,188 @@ const inspectRegistryAndMutationBoundary = (
     }
   }
   inspectExtensionExecutionBoundary(sources, findings, lawId);
+};
+
+const inspectAtomicIfAndThenBoundary = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const manager = requireSource(context, findings, lawId, sourcePaths[5]);
+  const commandActor = requireSource(context, findings, lawId, sourcePaths[6]);
+  const domRuntime = requireSource(context, findings, lawId, sourcePaths[19]);
+  const leaseContract = requireSource(
+    context,
+    findings,
+    lawId,
+    "src/lib/browser/exact-target/browser-target-lease.ts",
+  );
+  if (!manager || !commandActor || !domRuntime || !leaseContract) return;
+  const contractIdentifiers = identifiers(leaseContract);
+  if (!browserMutationLedgerIsAtomic(manager)
+    || !contractIdentifiers.has("resolvePendingMutation")
+    || contractIdentifiers.has("resolvePendingMutations")) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/terminal-authority",
+      lawId,
+      filePath: sourcePaths[5],
+      message: "Browser mutation orchestration must enforce IF current exact state AND one terminal receipt THEN resolve exactly one mutation; a second mutation and batch drain must remain impossible.",
+    }));
+  }
+  if (!exactTextMatcherIsStrict(domRuntime)) findings.push(createLocalFinding({
+    checkId: "browser-authority/terminal-authority",
+    lawId,
+    filePath: sourcePaths[19],
+    message: "The effective exact-text matcher must use normalized strict equality and cannot be replaced by substring containment or an unreachable decoy.",
+  }));
+  requireIdentifiers(domRuntime, ["postconditionVerified"], findings, lawId,
+    "The DOM executor must retain same-command postcondition evidence.");
+  requireIdentifiers(commandActor, ["postconditionVerified", "retainedValueVerified"], findings, lawId,
+    "The Browser transcript must reject mutation replies that omit their declared atomic postcondition.");
+};
+
+const throwsOutcomeUnknown = (statement: Node): boolean => {
+  if (Node.isBlock(statement)) {
+    const statements = statement.getStatements();
+    return statements.length === 1 && throwsOutcomeUnknown(statements[0]!);
+  }
+  if (!Node.isThrowStatement(statement)) return false;
+  const expression = statement.getExpression();
+  if (!Node.isNewExpression(expression)
+    || astIdentifierName(expression.getExpression()) !== "Error") return false;
+  const argument = expression.getArguments()[0];
+  return Node.isStringLiteral(argument) && argument.getLiteralValue() === "BROWSER_OUTCOME_UNKNOWN";
+};
+
+const isNumericComparison = (
+  node: Node,
+  path: string,
+  operator: SyntaxKind,
+  value: number,
+): boolean => Node.isBinaryExpression(node)
+  && astExpressionPath(node.getLeft()) === path
+  && node.getOperatorToken().getKind() === operator
+  && (() => {
+    const right = node.getRight();
+    return Node.isNumericLiteral(right) && right.getLiteralValue() === value;
+  })();
+
+const isUndefinedComparison = (node: Node, path: string): boolean =>
+  Node.isBinaryExpression(node)
+  && astExpressionPath(node.getLeft()) === path
+  && node.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+  && astIdentifierName(node.getRight()) === "undefined";
+
+const isMutationClassification = (node: Node): boolean => {
+  if (!Node.isBinaryExpression(node)) return false;
+  const right = node.getRight();
+  if (node.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken
+    || !Node.isStringLiteral(right)
+    || right.getLiteralValue() !== "mutation") return false;
+  const call = node.getLeft();
+  return Node.isCallExpression(call)
+    && astExpressionPath(call.getExpression()) === "this.mutationClass"
+    && astIdentifierName(call.getArguments()[0]) === "value";
+};
+
+const resolveOneMutationGuardIsExact = (managerClass: ClassDeclaration): boolean => {
+  const resolveMethod = managerClass?.getMethod("resolvePendingMutation");
+  const resolveBody = resolveMethod?.getBody();
+  const resolveStatements = Node.isBlock(resolveBody) ? resolveBody.getStatements() : [];
+  const resolveGuard = resolveStatements[2];
+  if (!Node.isIfStatement(resolveGuard)) return false;
+  const resolveCondition = resolveGuard.getExpression();
+  if (!Node.isBinaryExpression(resolveCondition)
+    || resolveCondition.getOperatorToken().getKind() !== SyntaxKind.BarBarToken
+    || !isNumericComparison(resolveCondition.getLeft(), "commandIds.length", SyntaxKind.ExclamationEqualsEqualsToken, 1)
+    || !isUndefinedComparison(resolveCondition.getRight(), "commandId")
+    || !throwsOutcomeUnknown(resolveGuard.getThenStatement())
+    || (resolveMethod?.getDescendantsOfKind(SyntaxKind.ForOfStatement).length ?? 0) > 0
+    || (resolveMethod?.getDescendantsOfKind(SyntaxKind.ForStatement).length ?? 0) > 0) return false;
+  return true;
+};
+
+const newMutationGuardIsExact = (managerClass: ClassDeclaration): boolean => {
+  const createMethod = managerClass?.getMethod("createLeaseCommand");
+  const createBody = createMethod?.getBody();
+  const returnStatement = Node.isBlock(createBody)
+    ? createBody.getStatements().find(Node.isReturnStatement) : undefined;
+  const worker = returnStatement?.getExpression();
+  if (!Node.isArrowFunction(worker)) return false;
+  const workerBody = worker.getBody();
+  if (!Node.isBlock(workerBody)) return false;
+  const mutationGuard = workerBody.getStatements()[1];
+  if (!Node.isIfStatement(mutationGuard)) return false;
+  const mutationCondition = mutationGuard.getExpression();
+  return Node.isBinaryExpression(mutationCondition)
+    && mutationCondition.getOperatorToken().getKind() === SyntaxKind.AmpersandAmpersandToken
+    && isMutationClassification(mutationCondition.getLeft())
+    && isNumericComparison(
+      mutationCondition.getRight(),
+      "state.pendingMutationCommandIds.length",
+      SyntaxKind.GreaterThanToken,
+      0,
+    )
+    && throwsOutcomeUnknown(mutationGuard.getThenStatement());
+};
+
+export const browserMutationLedgerIsAtomic = (manager: SourceFile): boolean => {
+  const managerClass = manager.getClass("BrowserTargetLeaseManager");
+  return managerClass !== undefined
+    && resolveOneMutationGuardIsExact(managerClass)
+    && newMutationGuardIsExact(managerClass);
+};
+
+const normalizedExpectedIsExact = (matcher: MorphNode): boolean => {
+  const includesCall = matcher.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === "includes";
+    });
+  const expected = matcher.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "expected")?.getInitializer();
+  return !includesCall && Node.isCallExpression(expected)
+    && Node.isPropertyAccessExpression(expected.getExpression())
+    && astExpressionPath(expected.getExpression()) === "expectedText.trim";
+};
+
+const effectiveExactComparison = (matcher: MorphNode): MorphNode | null => {
+  const loops = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement);
+  if (loops.length !== 1) return null;
+  const body = loops[0]!.getStatement();
+  if (!Node.isBlock(body)) return null;
+  const comparison = body.getStatements()[0];
+  return Node.isIfStatement(comparison) ? comparison.getExpression() : null;
+};
+
+const isTrimmedObservedNodeText = (left: MorphNode): boolean => {
+  if (!Node.isCallExpression(left)) return false;
+  const trimExpression = left.getExpression();
+  if (!Node.isPropertyAccessExpression(trimExpression)
+    || trimExpression.getName() !== "trim") return false;
+  const trimOwner = trimExpression.getExpression();
+  if (!Node.isParenthesizedExpression(trimOwner)) return false;
+  const observedText = trimOwner.getExpression();
+  if (!Node.isAwaitExpression(observedText)) return false;
+  const nodeTextCall = observedText.getExpression();
+  return Node.isCallExpression(nodeTextCall)
+    && astExpressionPath(nodeTextCall.getExpression()) === "nodeText"
+    && astIdentifierName(nodeTextCall.getArguments()[2]) === "nodeId";
+};
+
+const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
+  const condition = effectiveExactComparison(matcher);
+  return condition !== null && Node.isBinaryExpression(condition)
+    && condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && astIdentifierName(condition.getRight()) === "expected"
+    && isTrimmedObservedNodeText(condition.getLeft());
+};
+
+export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
+  const matcher = domRuntime.getVariableDeclaration("nodesWithExactText")?.getInitializer();
+  return matcher !== undefined
+    && normalizedExpectedIsExact(matcher)
+    && exactComparisonIsStrict(matcher);
 };
 
 const inspectReleaseAndRetiredPaths = (findings: InspectorFinding[], lawId: string): void => {
@@ -286,6 +468,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectBlueprintWorkspaceContract(findings, workspaceLawId);
   inspectOperatorAdmission(context, findings, workspaceLawId);
   inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-004-V4"));
+  inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-004-V4"));
   inspectAuthenticatedRuntimeRegressionGuards(context, findings);
   inspectRealChromeProofRoute(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-005-V4"));
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));

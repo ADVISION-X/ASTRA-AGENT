@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:37.237Z",
+  "generatedAt": "2026-08-22T18:42:12.860Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -23,14 +23,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14",
       "capabilityDomain": "dom-automation",
       "checkId": "dom-automation/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:37.173Z",
-      "endedAt": "2026-08-22T14:52:37.237Z",
-      "durationMs": 64,
+      "startedAt": "2026-08-22T18:42:12.792Z",
+      "endedAt": "2026-08-22T18:42:12.860Z",
+      "durationMs": 68,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts",
@@ -41,6 +41,7 @@
         "scripts/acceptance/app-shell-ui.acceptance.ts",
         "scripts/acceptance/app-shell-ui.real-chrome.ts",
         "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+        "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
         "scripts/acceptance/audit-binary-verdict.attacks.ts",
         "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
         "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -72,6 +73,7 @@
         "scripts/acceptance/ci-summary-truth.acceptance.ts",
         "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
         "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+        "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
         "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -99,6 +101,7 @@
         "scripts/acceptance/video-download-youtube-production.acceptance.ts",
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
         "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -142,6 +145,7 @@
         "scripts/audit/core/run-generated-plan-worker.mjs",
         "scripts/audit/core/run-generated-plan-worker.ts",
         "scripts/audit/core/run-generated-plan.ts",
+        "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -281,6 +285,7 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -368,6 +373,7 @@
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -688,79 +694,85 @@
       "lawId": "APEX-DOM-001-V1",
       "clauseId": "apex-dom-001-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-002-V1",
       "clauseId": "apex-dom-002-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-003-V1",
       "clauseId": "apex-dom-003-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-004-V1",
       "clauseId": "apex-dom-004-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-005-V1",
       "clauseId": "apex-dom-005-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-006-V1",
       "clauseId": "apex-dom-006-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-007-V1",
       "clauseId": "apex-dom-007-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-008-V1",
       "clauseId": "apex-dom-008-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-009-V1",
       "clauseId": "apex-dom-009-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-010-V1",
       "clauseId": "apex-dom-010-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-011-V1",
       "clauseId": "apex-dom-011-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-012-V1",
       "clauseId": "apex-dom-012-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     },
     {
       "lawId": "APEX-DOM-013-V1",
       "clauseId": "apex-dom-013-requirement",
       "checkId": "dom-automation/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:528d6a6f-57a6-43e4-9816-8110b0ac3ad0"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
+    },
+    {
+      "lawId": "APEX-DOM-021-V1",
+      "clauseId": "apex-dom-021-requirement",
+      "checkId": "dom-automation/owner-assertion-set",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:a3b92e6b-c173-42a8-b2eb-1d2a0d965c14"
     }
   ],
   "inspectedFiles": [
@@ -773,6 +785,7 @@
     "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/acceptance/app-shell-ui.real-chrome.ts",
     "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+    "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
     "scripts/acceptance/audit-binary-verdict.attacks.ts",
     "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
     "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -804,6 +817,7 @@
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+    "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
     "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -831,6 +845,7 @@
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -874,6 +889,7 @@
     "scripts/audit/core/run-generated-plan-worker.mjs",
     "scripts/audit/core/run-generated-plan-worker.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -1013,6 +1029,7 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -1100,6 +1117,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",

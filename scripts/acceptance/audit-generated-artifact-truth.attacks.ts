@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { Node, Project, SyntaxKind } from "ts-morph";
 
 import { loadGeneratedAuditPlan } from "../audit/core/load-audit-plan.js";
-import { inspectGeneratedArtifactTruthContract } from "../audit/domains/audit-system/generated-artifact-truth-inspector.js";
+import {
+  generatedArtifactFileSetIsExact,
+  inspectGeneratedArtifactTruthContract,
+} from "../audit/domains/audit-system/generated-artifact-truth-inspector.js";
 import { createInspectorCheckSession } from "../audit/shared/inspector-check-session.js";
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
 import { resolveFromRepo } from "../audit/shared/paths.js";
@@ -90,10 +93,31 @@ const runOrderAttack = (): void => {
     "meta governance must reject generated truth verification scheduled before owner execution.");
 };
 
+const runExtraGeneratedArtifactAttack = (): void => {
+  const generatedPlan = loadGeneratedAuditPlan();
+  const domains = generatedPlan.map((entry) => entry.capabilityDomain);
+  const valid = [
+    "audit-conflicts.generated.json", "audit-plan.generated.json",
+    "ci-full-summary.generated.json", "enforcement-matrix.generated.json",
+    "enforcement-matrix.generated.yaml", "law-registry.generated.json",
+    "static-clause-coverage.generated.json",
+    ...domains.map((domain) => `${domain}-report.generated.json`),
+    "local-app-shell-report.generated.md", "local-browser-session-report.generated.md",
+    "runtime-log-spine-report.generated.md",
+  ];
+  assert.equal(generatedArtifactFileSetIsExact(valid, domains), true);
+  assert.equal(
+    generatedArtifactFileSetIsExact([...valid, "retired-owner-report.generated.json"], domains),
+    false,
+    "an extra retired generated truth artifact must change the audit-system verdict",
+  );
+};
+
 export const runGeneratedArtifactTruthAttacks = (): void => {
   assert.equal(hasFinding(freshProject()), false, "current generated truth contract must satisfy meta governance.");
   runCoverageAttack();
   runProviderCoverageAttack();
   runReceiptLawAttack();
   runOrderAttack();
+  runExtraGeneratedArtifactAttack();
 };

@@ -23,6 +23,12 @@ Plugin private implementation。Plugin 固定 `max_in_flight=10` 个独立业务
 或 prompt 提交确认前让后来的任务插队。Plugin 先 fsync local identity，再以
 serverNow、lease expiry、完整 RTT 与 10 秒安全边际计算相对 deadline budget。每项 checkpoint 和
 terminal 都携带 job/attempt/device/leaseVersion/fence/payload hash。
+Plugin 在同一次当前 grant 与相对 deadline 核验后生成 opaque `submissionAdmission`：hash 绑定
+job、attempt、device、lease version、fence、contract、stage execution 与不可变
+`created_at + job_id + stage ordinal` priority key。Gateway 只持久化 opaque hash 和 priority key，
+不复制 Cloud schema；SQLite 按 priority key 全局最早优先，ticket 只在完全同优先级时 tie-break。
+活 waiter 禁止原地换 admission；死进程清理后，同一 execution 只有凭新 grant 取得新 admission 和
+新 waiter，才能继续原 checkpoint。
 
 ## 删除式迁移
 
@@ -74,10 +80,17 @@ AGENT 收到 grant 后，本地 runnable order 同样按 order 的持久创建�
 Browser mutation 使用 `PREPARED -> SEND -> CONFIRMED | FAILED | UNKNOWN`。`UNKNOWN` 不自动
 重放；只有 owning Plugin 基于同一页面的正向确认、反向排除、唯一候选和有界停止可作 outcome
 resolution，否则 `review_required`。submission checkpoint 前的 UNKNOWN 保留同一最早 ticket 并封锁
-新 submission 与普通 patrol，重启后仍由该 execution 先核账。附件稳定发生在 prompt 写入前，只要求
+当前存活进程的新 submission 与普通 patrol。进程死亡后旧 waiter 必须删除；同一 execution/checkpoint 只有
+取得新 Cloud grant 后才按全局最早可领取顺序取得新 ticket，并在任何新任务 mutation 前通过 exact clean-page /
+same-execution 核验失败关闭污染现场，绝不 replay UNKNOWN。附件稳定发生在 prompt 写入前，只要求
 exact 文件名/数量、无额外项、无上传中状态和唯一 composer；此时 send disabled 是正常状态，不得等待
 到超时后释放窗口。结果使用 first-terminal CAS；同 payload 的同 terminal 可重读，
 其它竞争或迟到写入不得覆盖。
+
+每个页面原子动作按 `IF + AND -> THEN` 串接：同一 current Document 的精确状态与候选唯一性成立，
+并排除相邻标签、错误态、加载态和重复态后，才发送一个 mutation；该 mutation 的专属后置 proof
+解析完成后，下一个动作才可进入。禁止一张 proof 批量确认此前 mutation，禁止用 substring 充当精确
+语义，禁止用固定 sleep 或“已经等了多久”推进生产步骤。相对 deadline 只作兜底停止。
 
 ## 验收边界
 

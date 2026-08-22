@@ -334,6 +334,7 @@ const failureReceiptPrecedesSummary = (context: InspectorContext): boolean => {
   const factory = source?.getVariableDeclaration("createFailFast")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
   const handler = factory?.getBody();
   const completed = factory?.getParameters()[0];
+  const summaryWriter = factory?.getParameters()[4];
   const failed = Node.isArrowFunction(handler) ? handler.getParameters()[2] : undefined;
   const calls = Node.isArrowFunction(handler) ? directCalls(handler) : [];
   const push = completed && failed ? calls.find((call) => {
@@ -344,8 +345,16 @@ const failureReceiptPrecedesSummary = (context: InspectorContext): boolean => {
   }) : undefined;
   const writer = source?.getImportDeclarations().find((item) => item.getModuleSpecifierValue() === "./ci-full-summary.js")
     ?.getNamedImports().find((item) => item.getName() === "writeCiFullSummary");
-  const write = writer ? calls.find((call) => resolvesTo(call.getExpression(), writer)) : undefined;
-  return push !== undefined && write !== undefined && push.getStart() < write.getStart();
+  const write = summaryWriter
+    ? calls.find((call) => resolvesTo(call.getExpression(), summaryWriter))
+    : undefined;
+  const defaultWriter = summaryWriter?.getInitializer();
+  return push !== undefined
+    && write !== undefined
+    && writer !== undefined
+    && defaultWriter !== undefined
+    && resolvesTo(defaultWriter, writer)
+    && push.getStart() < write.getStart();
 };
 
 const inspectRetiredWriters = (context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {

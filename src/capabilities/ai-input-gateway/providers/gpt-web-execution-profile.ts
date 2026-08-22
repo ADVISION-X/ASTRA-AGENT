@@ -17,6 +17,7 @@ const PROFILE_CHOICE_SELECTOR = "[role='menuitemradio']";
 const CHECKED_PROFILE_CHOICE_SELECTOR = "[role='menuitemradio'][aria-checked='true']";
 const MODEL_LABEL = "模型";
 const REASONING_LABEL = "推理强度";
+const PROFILE_OBSERVATION_YIELD_MS = 100;
 
 const reasoningUiLabels: Partial<Record<GptWebReasoningTier, string>> = {
   medium: "中",
@@ -46,12 +47,13 @@ const record = (value: unknown): Record<string, unknown> => {
 const findCount = async (
   browser: BrowserTargetLease,
   selector: string,
-  textContains?: string,
+  text?: Readonly<{ contains?: string; equals?: string }>,
 ): Promise<number> => {
   const result = record(await browser.executeDomIntent({
     kind: "find",
     selector,
-    ...(textContains === undefined ? {} : { textContains }),
+    ...(text?.contains === undefined ? {} : { textContains: text.contains }),
+    ...(text?.equals === undefined ? {} : { textEquals: text.equals }),
     maxMatches: 20,
   }));
   if (typeof result.count !== "number") throw new Error("BROWSER_TARGET_INVALID");
@@ -77,74 +79,14 @@ const readAttribute = async (
 const clickOne = async (
   browser: BrowserTargetLease,
   selector: string,
-  expectedText?: string,
-): Promise<void> => {
-  await browser.executeDomIntent({
+  text?: Readonly<{ contains?: string; equals?: string }>,
+): Promise<Record<string, unknown>> => record(await browser.executeDomIntent({
     kind: "click",
     selector,
-    ...(expectedText === undefined ? {} : { expectedText }),
+    ...(text?.contains === undefined ? {} : { expectedText: text.contains }),
+    ...(text?.equals === undefined ? {} : { expectedTextEquals: text.equals }),
     expectedMatches: 1,
-  });
-  await browser.wait({ durationMs: 150 });
-};
-
-const openAdvancedProfileMenu = async (browser: BrowserTargetLease): Promise<void> => {
-  if (await findCount(browser, PROFILE_TRIGGER_SELECTOR) !== 1) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_TRIGGER_AMBIGUOUS");
-  }
-  const expanded = await readAttribute(browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded");
-  if (expanded !== "true") await clickOne(browser, PROFILE_TRIGGER_SELECTOR);
-
-  const closedCount = await findCount(browser, ADVANCED_CLOSED_SELECTOR);
-  const openCount = await findCount(browser, ADVANCED_OPEN_SELECTOR);
-  if (closedCount + openCount !== 1) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_AMBIGUOUS");
-  }
-  if (closedCount === 1) await clickOne(browser, ADVANCED_CLOSED_SELECTOR);
-  if (await findCount(browser, ADVANCED_OPEN_SELECTOR) !== 1
-    || await findCount(browser, PROFILE_SUBMENU_SELECTOR) !== 2
-    || await findCount(browser, PROFILE_SUBMENU_SELECTOR, MODEL_LABEL) !== 1
-    || await findCount(browser, PROFILE_SUBMENU_SELECTOR, REASONING_LABEL) !== 1) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_READBACK_MISMATCH");
-  }
-};
-
-const observeSubmenuSelection = async (
-  browser: BrowserTargetLease,
-  parentLabel: string,
-  expectedValue: string,
-): Promise<SelectionObservation> => {
-  await openAdvancedProfileMenu(browser);
-  await clickOne(browser, PROFILE_SUBMENU_SELECTOR, parentLabel);
-  const candidateCount = await findCount(browser, PROFILE_CHOICE_SELECTOR);
-  const expectedCount = await findCount(browser, PROFILE_CHOICE_SELECTOR, expectedValue);
-  const selectedCount = await findCount(browser, CHECKED_PROFILE_CHOICE_SELECTOR);
-  const expectedSelectedCount = await findCount(
-    browser,
-    CHECKED_PROFILE_CHOICE_SELECTOR,
-    expectedValue,
-  );
-  if (candidateCount < 1 || expectedCount !== 1 || selectedCount !== 1
-    || expectedSelectedCount > 1) {
-    throw new Error(`review_required: GPT_WEB_EXECUTION_PROFILE_${parentLabel}_AMBIGUOUS`);
-  }
-  return { candidateCount, selected: expectedSelectedCount === 1 };
-};
-
-const selectExactProfileValue = async (
-  browser: BrowserTargetLease,
-  parentLabel: string,
-  expectedValue: string,
-): Promise<SelectionObservation> => {
-  const before = await observeSubmenuSelection(browser, parentLabel, expectedValue);
-  if (before.selected) return before;
-  await clickOne(browser, PROFILE_CHOICE_SELECTOR, expectedValue);
-  const after = await observeSubmenuSelection(browser, parentLabel, expectedValue);
-  if (!after.selected) {
-    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
-  }
-  return after;
-};
+  }));
 
 const readDocumentUrl = async (browser: BrowserTargetLease): Promise<string> => {
   const state = record(await browser.executeDomIntent({ kind: "document" }));
@@ -154,6 +96,193 @@ const readDocumentUrl = async (browser: BrowserTargetLease): Promise<string> => 
     throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_PROVIDER_PAGE_INVALID");
   }
   return `${url.origin}${url.pathname}`;
+};
+
+const waitForProfileEvidence = async <T>(
+  input: ExecutionProfileInput,
+  observe: () => Promise<T | null>,
+  failureCode: string,
+): Promise<T> => {
+  const deadline = Date.now() + input.request.timeoutMs;
+  while (Date.now() < deadline) {
+    if (input.context.abortSignal?.aborted) throw new Error(`recovery_pending: ${failureCode}`);
+    try {
+      const evidence = await observe();
+      if (evidence !== null) return evidence;
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "BROWSER_TARGET_INVALID") throw error;
+    }
+    const remainingMs = deadline - Date.now();
+    if (remainingMs > 0) {
+      await input.browser.wait({ durationMs: Math.min(PROFILE_OBSERVATION_YIELD_MS, remainingMs) });
+    }
+  }
+  throw new Error(`recovery_pending: ${failureCode}`);
+};
+
+const clickAndProve = async <T>(input: {
+  execution: ExecutionProfileInput;
+  selector: string;
+  expectedText?: Readonly<{ contains?: string; equals?: string }>;
+  semantics: readonly string[];
+  observePostcondition: () => Promise<T | null>;
+  failureCode: string;
+}): Promise<T> => {
+  const beforeUrl = await readDocumentUrl(input.execution.browser);
+  const startedAt = new Date().toISOString();
+  await clickOne(input.execution.browser, input.selector, input.expectedText);
+  const evidence = await waitForProfileEvidence(
+    input.execution,
+    input.observePostcondition,
+    input.failureCode,
+  );
+  const afterUrl = await readDocumentUrl(input.execution.browser);
+  if (afterUrl !== beforeUrl) throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
+  await recordWebChatPageAction({
+    browser: input.execution.browser,
+    context: input.execution.context,
+    actionId: "apply_execution_profile",
+    startedAt,
+    beforeUrl,
+    afterUrl,
+    result: "committed",
+    candidateCount: 1,
+    semantics: input.semantics,
+  });
+  return evidence;
+};
+
+const clickExactChoiceAndProve = async (input: {
+  execution: ExecutionProfileInput;
+  expectedValue: string;
+  semantics: readonly string[];
+}): Promise<void> => {
+  const beforeUrl = await readDocumentUrl(input.execution.browser);
+  const startedAt = new Date().toISOString();
+  const result = record(await input.execution.browser.executeDomIntent({
+    kind: "click",
+    selector: PROFILE_CHOICE_SELECTOR,
+    expectedTextEquals: input.expectedValue,
+    expectedMatches: 1,
+    postClickAttribute: { name: "aria-checked", equals: "true" },
+  }));
+  if (result.candidateCount !== 1
+    || result.mutationCount !== 1
+    || result.identityRevalidated !== true
+    || result.postconditionVerified !== true) {
+    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
+  }
+  const afterUrl = await readDocumentUrl(input.execution.browser);
+  if (afterUrl !== beforeUrl) throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
+  await recordWebChatPageAction({
+    browser: input.execution.browser,
+    context: input.execution.context,
+    actionId: "apply_execution_profile",
+    startedAt,
+    beforeUrl,
+    afterUrl,
+    result: "committed",
+    candidateCount: 1,
+    semantics: input.semantics,
+  });
+};
+
+const advancedProfileTopologyReady = async (browser: BrowserTargetLease): Promise<boolean> =>
+  await findCount(browser, ADVANCED_OPEN_SELECTOR) === 1
+  && await findCount(browser, PROFILE_SUBMENU_SELECTOR) === 2
+  && await findCount(browser, PROFILE_SUBMENU_SELECTOR, { contains: MODEL_LABEL }) === 1
+  && await findCount(browser, PROFILE_SUBMENU_SELECTOR, { contains: REASONING_LABEL }) === 1;
+
+const openAdvancedProfileMenu = async (input: ExecutionProfileInput): Promise<void> => {
+  const browser = input.browser;
+  if (await findCount(browser, PROFILE_TRIGGER_SELECTOR) !== 1) {
+    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_TRIGGER_AMBIGUOUS");
+  }
+  const expanded = await readAttribute(browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded");
+  if (expanded !== "true") {
+    await clickAndProve({
+      execution: input,
+      selector: PROFILE_TRIGGER_SELECTOR,
+      semantics: ["profile-trigger", "expanded=true"],
+      failureCode: "GPT_WEB_EXECUTION_PROFILE_TRIGGER_NOT_OPEN",
+      observePostcondition: async () =>
+        await readAttribute(browser, PROFILE_TRIGGER_SELECTOR, "aria-expanded") === "true"
+          ? true : null,
+    });
+  }
+
+  const closedCount = await findCount(browser, ADVANCED_CLOSED_SELECTOR);
+  const openCount = await findCount(browser, ADVANCED_OPEN_SELECTOR);
+  if (closedCount + openCount !== 1) {
+    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_AMBIGUOUS");
+  }
+  if (closedCount === 1) {
+    await clickAndProve({
+      execution: input,
+      selector: ADVANCED_CLOSED_SELECTOR,
+      semantics: ["advanced-profile", "open"],
+      failureCode: "GPT_WEB_EXECUTION_PROFILE_ADVANCED_READBACK_MISMATCH",
+      observePostcondition: async () => await advancedProfileTopologyReady(browser) ? true : null,
+    });
+  }
+  if (!(await advancedProfileTopologyReady(browser))) {
+    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_ADVANCED_READBACK_MISMATCH");
+  }
+};
+
+const readOpenSubmenuSelection = async (
+  browser: BrowserTargetLease,
+  parentLabel: string,
+  expectedValue: string,
+): Promise<SelectionObservation | null> => {
+  const candidateCount = await findCount(browser, PROFILE_CHOICE_SELECTOR);
+  if (candidateCount < 1) return null;
+  const expectedCount = await findCount(browser, PROFILE_CHOICE_SELECTOR, { equals: expectedValue });
+  const selectedCount = await findCount(browser, CHECKED_PROFILE_CHOICE_SELECTOR);
+  const expectedSelectedCount = await findCount(
+    browser,
+    CHECKED_PROFILE_CHOICE_SELECTOR,
+    { equals: expectedValue },
+  );
+  if (expectedCount !== 1 || selectedCount !== 1 || expectedSelectedCount > 1) {
+    throw new Error(`review_required: GPT_WEB_EXECUTION_PROFILE_${parentLabel}_AMBIGUOUS`);
+  }
+  return { candidateCount, selected: expectedSelectedCount === 1 };
+};
+
+const observeSubmenuSelection = async (
+  input: ExecutionProfileInput,
+  parentLabel: string,
+  expectedValue: string,
+): Promise<SelectionObservation> => {
+  await openAdvancedProfileMenu(input);
+  return clickAndProve({
+    execution: input,
+    selector: PROFILE_SUBMENU_SELECTOR,
+    expectedText: { contains: parentLabel },
+    semantics: ["profile-submenu", parentLabel],
+    failureCode: `GPT_WEB_EXECUTION_PROFILE_${parentLabel}_NOT_READY`,
+    observePostcondition: () => readOpenSubmenuSelection(input.browser, parentLabel, expectedValue),
+  });
+};
+
+const selectExactProfileValue = async (
+  input: ExecutionProfileInput,
+  parentLabel: string,
+  expectedValue: string,
+): Promise<SelectionObservation> => {
+  const before = await observeSubmenuSelection(input, parentLabel, expectedValue);
+  if (before.selected) return before;
+  await clickExactChoiceAndProve({
+    execution: input,
+    expectedValue,
+    semantics: ["profile-choice", parentLabel, expectedValue, "aria-checked=true"],
+  });
+  const after = await observeSubmenuSelection(input, parentLabel, expectedValue);
+  if (!after.selected) {
+    throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
+  }
+  return after;
 };
 
 const buildProof = (input: {
@@ -200,28 +329,28 @@ type AppliedProfile = Readonly<{
 }>;
 
 const applyExactExecutionProfile = async (
-  browser: BrowserTargetLease,
+  input: ExecutionProfileInput,
   modelDisplayName: string,
   reasoningUiLabel: string,
 ): Promise<AppliedProfile> => {
   const modelBefore = await observeSubmenuSelection(
-    browser, MODEL_LABEL, modelDisplayName,
+    input, MODEL_LABEL, modelDisplayName,
   );
   const reasoningBefore = await observeSubmenuSelection(
-    browser, REASONING_LABEL, reasoningUiLabel,
+    input, REASONING_LABEL, reasoningUiLabel,
   );
   const noOp = modelBefore.selected && reasoningBefore.selected;
   if (!modelBefore.selected) {
-    await selectExactProfileValue(browser, MODEL_LABEL, modelDisplayName);
+    await selectExactProfileValue(input, MODEL_LABEL, modelDisplayName);
   }
   if (!reasoningBefore.selected) {
-    await selectExactProfileValue(browser, REASONING_LABEL, reasoningUiLabel);
+    await selectExactProfileValue(input, REASONING_LABEL, reasoningUiLabel);
   }
   const model = await observeSubmenuSelection(
-    browser, MODEL_LABEL, modelDisplayName,
+    input, MODEL_LABEL, modelDisplayName,
   );
   const reasoning = await observeSubmenuSelection(
-    browser, REASONING_LABEL, reasoningUiLabel,
+    input, REASONING_LABEL, reasoningUiLabel,
   );
   if (!model.selected || !reasoning.selected) {
     throw new Error("review_required: GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH");
@@ -251,12 +380,6 @@ const persistExecutionProfileProof = async (input: {
     noOp: input.selection.noOp,
     modelCandidateCount: input.selection.model.candidateCount,
     reasoningCandidateCount: input.selection.reasoning.candidateCount,
-  });
-  if (!input.selection.noOp) await recordWebChatPageAction({
-    browser: input.execution.browser, context: input.execution.context,
-    actionId: "apply_execution_profile", startedAt: input.startedAt,
-    beforeUrl: input.beforeUrl, afterUrl: input.afterUrl, result: "committed",
-    candidateCount, semantics,
   });
   await input.execution.context.webChatExecution
     ?.onProviderExecutionProfileVerified(proof);
@@ -291,7 +414,7 @@ export const enforceGptWebExecutionProfile = async (
   });
 
   const selection = await applyExactExecutionProfile(
-    input.browser, profile.modelDisplayName, reasoningUiLabel,
+    input, profile.modelDisplayName, reasoningUiLabel,
   );
   assertStableWebChatDocument({
     browser: input.browser,

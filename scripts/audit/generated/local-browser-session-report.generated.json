@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:36.846Z",
+  "generatedAt": "2026-08-22T18:42:12.438Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -14,14 +14,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:36.742Z",
-      "endedAt": "2026-08-22T14:52:36.846Z",
-      "durationMs": 104,
+      "startedAt": "2026-08-22T18:42:12.325Z",
+      "endedAt": "2026-08-22T18:42:12.438Z",
+      "durationMs": 113,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
         "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
@@ -68,37 +68,37 @@
       "lawId": "APEX-LOCAL-BROWSER-001-V4",
       "clauseId": "apex-local-browser-001-v4-single-unpacked-websocket",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-002-V4",
       "clauseId": "apex-local-browser-002-v4-auth-liveness",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-003-V6",
       "clauseId": "apex-local-browser-003-v6-claim-workspace-restart-resume",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-004-V4",
       "clauseId": "apex-local-browser-004-v4-durable-mutation",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-005-V4",
       "clauseId": "apex-local-browser-005-v4-release-recovery",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
       "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:27ed9150-0b73-4b38-b80f-fa968b98ce10"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:94c979d5-f4fe-4d7c-8e8b-d82cebf56610"
     }
   ],
   "inspectedFiles": [

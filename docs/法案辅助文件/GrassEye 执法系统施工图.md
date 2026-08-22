@@ -193,7 +193,7 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 1. audit-system 负责 law / manifest / generated artifact / runner 主链完整性。
 2. audit-truth 负责 owner inspector 的 AST-first 执法真值与 generated-plan owner coverage 真值。
 3. code-purity 负责 active source 的结构真值。
-4. runtime-truth 负责 completed evidence contract 真值。
+4. owning Plugin/Capability inspector 负责其 completed evidence contract 的结构真值。
 5. ci-full-summary 只汇报已真实执行的步骤与结果，不制造第二真相。
 
 补充要求：
@@ -202,11 +202,6 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - generated plan 漏接真实 owner inspector 视为 CI 真绿硬边界失效。
 - 旧 summary、旧 report、旧 generated artifact 不得被当作当前 run 的通过证明。
 - ci-full-summary 的每个 step 必须记录 `command`、`startedAt`、`endedAt`、`durationMs`，否则不构成当前 run 的可审计执行证据。
-
-## Runtime Evidence Truth 链路
-
-1. completed 结果必须由 runtime contract 本身携带证据字段，而不是依赖调用者脑补。
-2. 若 schema / result contract 在结构上允许 completed 但没有证据字段，runtime-truth 必须直接 FAIL。
 
 ## Code Purity 生产级终局肃清链路
 

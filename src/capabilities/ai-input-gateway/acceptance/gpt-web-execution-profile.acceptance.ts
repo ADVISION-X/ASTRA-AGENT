@@ -59,10 +59,18 @@ class ProfileBrowserFixture {
       }
       return this.expanded ? "true" : "false";
     }
-    if (intent.kind === "find") return { count: this.find(intent.selector!, intent.textContains) };
+    if (intent.kind === "find") {
+      return { count: this.find(intent.selector!, intent.textContains, intent.textEquals) };
+    }
     if (intent.kind !== "click") throw new Error(`unexpected intent ${intent.kind}`);
-    this.click(intent.selector, intent.expectedText);
-    return { clicked: true };
+    this.click(intent.selector, intent.expectedTextEquals ?? intent.expectedText);
+    return {
+      clicked: true,
+      candidateCount: 1,
+      identityRevalidated: true,
+      mutationCount: 1,
+      ...(intent.postClickAttribute ? { postconditionVerified: true } : {}),
+    };
   };
 
   public asLease(): BrowserTargetLease {
@@ -92,7 +100,7 @@ class ProfileBrowserFixture {
       },
       wait: this.wait,
       close: async () => {},
-      resolvePendingMutations: async () => 0,
+      resolvePendingMutation: async () => 1,
       assertNoPendingMutations: () => {},
     };
   }
@@ -128,8 +136,11 @@ class ProfileBrowserFixture {
     return lookup();
   }
 
-  private find(selector: string, textContains?: string): number {
+  private find(selector: string, textContains?: string, textEquals?: string): number {
     const values = this.valuesForSelector(selector);
+    if (textEquals !== undefined) {
+      return values.filter((value) => value.trim() === textEquals.trim()).length;
+    }
     return textContains === undefined
       ? values.length
       : values.filter((value) => value.includes(textContains)).length;
@@ -250,10 +261,10 @@ const acceptExactMutationAndReadback = async (): Promise<void> => {
   assert.equal(proof?.reasoningUiLabel, "极高");
   assert.equal(proof?.noOp, false);
   assert.equal(receipts.profile?.profileHash, proof?.profileHash);
-  assert.deepEqual(receipts.actions.map((entry) => entry.actionId), [
-    "apply_execution_profile",
-    "verify_execution_profile",
-  ]);
+  assert.equal(receipts.actions.at(-1)?.actionId, "verify_execution_profile");
+  assert.ok(receipts.actions.slice(0, -1).every(
+    (entry) => entry.actionId === "apply_execution_profile" && entry.candidateCount === 1,
+  ));
   assert.ok(browser.actions.indexOf("高级") < browser.actions.indexOf("模型"));
   assert.ok(browser.actions.indexOf("选择:GPT-5.6 Sol") < browser.actions.indexOf("选择:极高"));
 };
@@ -268,7 +279,10 @@ const acceptNoOpAndExclusion = async (): Promise<void> => {
   });
   assert.equal(proof?.noOp, true);
   assert.equal(browser.actions.some((action) => action.startsWith("选择:")), false);
-  assert.deepEqual(receipts.actions.map((entry) => entry.actionId), ["verify_execution_profile"]);
+  assert.equal(receipts.actions.at(-1)?.actionId, "verify_execution_profile");
+  assert.ok(receipts.actions.slice(0, -1).every(
+    (entry) => entry.actionId === "apply_execution_profile" && entry.candidateCount === 1,
+  ));
 
   const ambiguous = new ProfileBrowserFixture("GPT-5.5", "高", true);
   await assert.rejects(

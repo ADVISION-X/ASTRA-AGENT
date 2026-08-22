@@ -4,6 +4,7 @@ import {
   type CiFullFirstFailure,
   type CiFullLawCoverage,
   type CiFullOwnerReport,
+  type CiFullSummaryInput,
   type StepResult,
 } from "./ci-full-summary.js";
 
@@ -18,9 +19,10 @@ export const createFailFast = (
   getLawCoverage: () => CiFullLawCoverage,
   getOwnerReports: () => readonly CiFullOwnerReport[],
   getPlannedSteps: () => readonly PlannedStep[],
+  writeSummary: (summary: CiFullSummaryInput) => void = writeCiFullSummary,
 ): FailFast => (failingStepIndex, failure, failedStep) => {
   completedSteps.push(failedStep);
-  writeCiFullSummary({
+  writeSummary({
     status: "FAIL",
     firstFailure: failure,
     completedSteps,

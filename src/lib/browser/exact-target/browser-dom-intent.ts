@@ -21,11 +21,20 @@ export type BrowserDomIntent =
     locator?: BrowserSemanticLocator;
     selector?: string;
     textContains?: string;
+    textEquals?: string;
     maxMatches: number;
   }>
   | Readonly<{ kind: "readText"; selector: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; scope?: BrowserDomReadScope }>
   | Readonly<{ kind: "readAttribute"; selector: string; name: string; maxChars: number; maxMatches?: number; expectedMatches?: number; matchIndex?: number; textContains?: string; scope?: BrowserDomReadScope }>
-  | Readonly<{ kind: "click"; selector: string; expectedText?: string; expectedMatches?: number }>
+  | Readonly<{
+    kind: "click";
+    selector: string;
+    expectedText?: string;
+    expectedTextEquals?: string;
+    expectedMatches?: number;
+    /** Same-node state that must be true immediately after the one click. */
+    postClickAttribute?: Readonly<{ name: "aria-checked"; equals: "true" }>;
+  }>
   | Readonly<{ kind: "fill"; selector: string; approvedText: string; clearBeforeType: boolean; expectedMatches?: number }>;
 
 export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomIntent => {
@@ -33,7 +42,18 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
   if (intent.kind === "find") assertFindIntent(intent);
   if (intent.kind === "readText" || intent.kind === "readAttribute") assertReadIntent(intent);
   if (intent.kind === "click" || intent.kind === "fill") assertOptionalExpectedMatches(intent.expectedMatches);
+  if (intent.kind === "click") assertClickIntent(intent);
   return intent;
+};
+
+const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
+  if (intent.expectedText !== undefined && !isBoundedText(intent.expectedText, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.expectedTextEquals !== undefined && !isBoundedText(intent.expectedTextEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.expectedText !== undefined && intent.expectedTextEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.postClickAttribute
+    && (intent.postClickAttribute.name !== "aria-checked" || intent.postClickAttribute.equals !== "true")) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
 };
 
 const assertSelector = (intent: BrowserDomIntent): void => {
@@ -46,6 +66,8 @@ const assertFindIntent = (intent: Extract<BrowserDomIntent, { kind: "find" }>): 
   if ((intent.selector === undefined) === (intent.locator === undefined)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.maxMatches < 1 || intent.maxMatches > 20) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.textContains !== undefined && !isBoundedText(intent.textContains, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.textEquals !== undefined && !isBoundedText(intent.textEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.textContains !== undefined && intent.textEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 
 const assertReadIntent = (intent: Extract<BrowserDomIntent, { kind: "readText" | "readAttribute" }>): void => {

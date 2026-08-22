@@ -15,9 +15,11 @@ const executeFindIntent = async (
 ): Promise<unknown> => {
   const selector = intent.selector ?? selectorForLocator(intent.locator!);
   const candidates = await queryAll(debuggerRuntime, target.tabId, selector, intent.maxMatches + 1);
-  const nodes = intent.textContains === undefined
-    ? candidates
-    : await nodesContainingText(debuggerRuntime, target.tabId, candidates, intent.textContains);
+  const nodes = intent.textEquals !== undefined
+    ? await nodesWithExactText(debuggerRuntime, target.tabId, candidates, intent.textEquals)
+    : intent.textContains !== undefined
+      ? await nodesContainingText(debuggerRuntime, target.tabId, candidates, intent.textContains)
+      : candidates;
   if (nodes.length > intent.maxMatches) throw new Error("BROWSER_TARGET_INVALID");
   return { count: nodes.length };
 };
@@ -29,16 +31,31 @@ const executeClickIntent = async (
 ): Promise<unknown> => {
   const expectedMatches = intent.expectedMatches ?? 1;
   const nodes = await queryAll(debuggerRuntime, target.tabId, intent.selector, expectedMatches + 1);
-  const matchingNodes = intent.expectedText === undefined
-    ? nodes
-    : await nodesContainingText(debuggerRuntime, target.tabId, nodes, intent.expectedText);
+  const matchingNodes = intent.expectedTextEquals !== undefined
+    ? await nodesWithExactText(debuggerRuntime, target.tabId, nodes, intent.expectedTextEquals)
+    : intent.expectedText !== undefined
+      ? await nodesContainingText(debuggerRuntime, target.tabId, nodes, intent.expectedText)
+      : nodes;
   if (matchingNodes.length !== expectedMatches) throw new Error("BROWSER_TARGET_INVALID");
   const nodeId = matchingNodes[0];
   if (nodeId === undefined) throw new Error("BROWSER_TARGET_INVALID");
   const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
-  return { clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1 };
+  const postconditionVerified = intent.postClickAttribute === undefined
+    ? undefined
+    : attribute(
+      await describeNode(debuggerRuntime, target.tabId, nodeId),
+      intent.postClickAttribute.name,
+    ) === intent.postClickAttribute.equals;
+  if (postconditionVerified === false) throw new Error("BROWSER_TARGET_INVALID");
+  return {
+    clicked: true,
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    ...(postconditionVerified === undefined ? {} : { postconditionVerified }),
+  };
 };
 
 const executeValueIntent = async (
@@ -123,6 +140,20 @@ const nodesContainingText = async (
 ): Promise<readonly number[]> => {
   const matches: number[] = [];
   for (const nodeId of nodeIds) if ((await nodeText(runtime, tabId, nodeId)).includes(expectedText)) matches.push(nodeId);
+  return matches;
+};
+
+const nodesWithExactText = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeIds: readonly number[],
+  expectedText: string,
+): Promise<readonly number[]> => {
+  const expected = expectedText.trim();
+  const matches: number[] = [];
+  for (const nodeId of nodeIds) {
+    if ((await nodeText(runtime, tabId, nodeId)).trim() === expected) matches.push(nodeId);
+  }
   return matches;
 };
 

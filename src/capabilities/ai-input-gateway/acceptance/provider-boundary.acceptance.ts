@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { runAiInputGatewayAtomicInspectorAttacks } from
+  "../../../../scripts/acceptance/atomic-if-and-then-inspector.attacks.js";
 
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { classifyWebChatFailure } from "../failure-classification.js";
@@ -79,5 +81,6 @@ const response = buildWebChatRawResponse({
 assert.equal(response.rawText, exactRawResponse, "raw provider response bytes must remain exact");
 assert.equal(response.transport, "web-chat");
 assert.equal(response.webChatUrl, "https://chatgpt.com/c/provider-boundary");
+runAiInputGatewayAtomicInspectorAttacks();
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway provider boundary PASS\n");

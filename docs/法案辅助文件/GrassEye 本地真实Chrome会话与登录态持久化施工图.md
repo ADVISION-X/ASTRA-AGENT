@@ -28,6 +28,21 @@ owning Plugin fixed flow
 
 物理不存在：external Port、`externally_connectable`、Workbench page relay、open/inbound/next polling、SSE、CWS runtime、Native Messaging、Native Host、第二 listener、第二 Browser transport、previous-protocol consumer、per-job Browser approval、active/front/first-tab fallback。
 
+### 原子动作 IF + AND -> THEN
+
+```txt
+IF   current Document + exact target + required current state
+AND  exact semantic equality + candidate_count=1
+     + adjacent/error/loading/duplicate states excluded
+THEN one mutation only
+->   re-observe the same target and persist one dedicated outcome receipt
+->   only after resolution may the next atomic action begin
+```
+
+Browser lease 不得累积 mutation 后由后一张 receipt 批量清账。需要区分相邻文案时使用精确相等，
+不得使用 substring。固定 sleep 不得成为步骤之间的承上启下条件；deadline/timeout 只在状态始终未
+成立时安全停止。
+
 ## 2. Owner 矩阵
 
 | 真相 | 唯一 owner | 只负责 | 禁止 |

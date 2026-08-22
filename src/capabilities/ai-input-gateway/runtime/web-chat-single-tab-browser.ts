@@ -1,5 +1,5 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
-import type { WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
+import type { WebChatExecutionContext, WebChatSubmissionProof } from "../contracts/ai-provider-adapter.contract.js";
 import {
   acquireWebChatBrowserPatrolLease,
   acquireWebChatBrowserMutationLease,
@@ -22,6 +22,7 @@ type SingleTabBrowserInput = Readonly<{
 type SingleTabState = {
   initialMutationLease: WebChatRuntimeLease | null;
   submission: WebChatSubmissionProof | null;
+  executionContext: WebChatExecutionContext | null;
 };
 
 export const isRoutableWebChatSubmission = (
@@ -57,6 +58,7 @@ export type SingleTabWebChatBrowser = Readonly<{
   bindObservedConversation(submission: WebChatSubmissionProof): void;
   bindConversationIdentity(submission: WebChatSubmissionProof): void;
   releaseInitialMutationLease(): Promise<void>;
+  bindExecutionContext(context: WebChatExecutionContext): void;
 }>;
 
 type MutationOptions = Readonly<{ route?: boolean }>;
@@ -75,6 +77,11 @@ const routeToBoundConversation = async (
     providerKind: input.providerKind,
     submission: state.submission,
     turnMarker: input.turnMarker,
+    context: {
+      dataDir: input.dataDir,
+      ...(input.signal ? { abortSignal: input.signal } : {}),
+      ...(state.executionContext ? { webChatExecution: state.executionContext } : {}),
+    },
     ...(input.signal ? { signal: input.signal } : {}),
   });
 };
@@ -145,7 +152,7 @@ const createBrowserFacade = (
   issueFileArtifactGrant: (value) => input.base.issueFileArtifactGrant(value),
   wait: ({ durationMs }) => delay(durationMs, input.signal),
   close: (value) => withMutation(() => input.base.close(value), { route: false }),
-  resolvePendingMutations: (value) => input.base.resolvePendingMutations(value),
+  resolvePendingMutation: (value) => input.base.resolvePendingMutation(value),
   assertNoPendingMutations: () => input.base.assertNoPendingMutations(),
 });
 
@@ -177,6 +184,7 @@ export const createSingleTabWebChatBrowser = (
     submission: isRoutableWebChatSubmission(input.resumeSubmission)
       ? input.resumeSubmission
       : null,
+    executionContext: null,
   };
   const submissionThenPatrol = createMutationRunner(input, state, "submission_then_patrol");
   const globalSurvival = createMutationRunner(input, state, "global_survival");
@@ -199,6 +207,7 @@ export const createSingleTabWebChatBrowser = (
     },
     bindObservedConversation: (submission) => bindObservedConversation(state, submission),
     bindConversationIdentity: (submission) => bindConversationIdentity(state, submission),
+    bindExecutionContext: (context) => { state.executionContext = context; },
     releaseInitialMutationLease: () => releaseInitialMutationLease(state),
   };
 };

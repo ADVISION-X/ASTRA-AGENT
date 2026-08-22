@@ -65,6 +65,20 @@ try {
   await writeFile(wrongFencePath, `\`\`\`apex-law\n${JSON.stringify(crossDomainMetadata)}\n\`\`\`\n`, "utf8");
   assert.equal(parseApexLaws([wrongFencePath]).conflicts.length > 0, true,
     "a law clause spanning a second capability domain must fail closed");
+  const atomicEvidenceMismatch = JSON.parse(metadata) as {
+    capabilityDomain: string;
+    clauses: Array<{ evidenceMode: string; ownerDomain: string }>;
+    evidenceMode: string;
+    lawId: string;
+  };
+  atomicEvidenceMismatch.lawId = "APEX-LOCAL-BROWSER-004-V4";
+  atomicEvidenceMismatch.capabilityDomain = "local-browser-session";
+  atomicEvidenceMismatch.evidenceMode = "law+ast+fault-injection+real-chrome";
+  atomicEvidenceMismatch.clauses[0]!.ownerDomain = "local-browser-session";
+  atomicEvidenceMismatch.clauses[0]!.evidenceMode = "acceptance";
+  await writeFile(wrongFencePath, `\`\`\`apex-law\n${JSON.stringify(atomicEvidenceMismatch)}\n\`\`\`\n`, "utf8");
+  assert.equal(parseApexLaws([wrongFencePath]).conflicts.length > 0, true,
+    "an atomic law cannot advertise evidence facets that its routed clause denominator drops");
 } finally {
   await rm(root, { recursive: true, force: true });
 }

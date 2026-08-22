@@ -45,6 +45,7 @@ export const openGovernedContinuation = async (
       ? { turnMarker: input.request.providerContinuationRef.priorTurnMarker }
       : {}),
     timeoutMs: 15_000,
+    context: input.context,
     ...(input.context.abortSignal ? { signal: input.context.abortSignal } : {}),
   });
   await input.waitForComposer();

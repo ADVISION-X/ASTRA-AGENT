@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:07.954Z",
+  "generatedAt": "2026-08-22T18:41:42.614Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -300,6 +300,7 @@
     "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/acceptance/app-shell-ui.real-chrome.ts",
     "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+    "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
     "scripts/acceptance/audit-binary-verdict.attacks.ts",
     "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
     "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -331,6 +332,7 @@
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+    "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
     "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -358,6 +360,7 @@
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -402,6 +405,7 @@
     "scripts/audit/core/run-generated-plan-worker.mjs",
     "scripts/audit/core/run-generated-plan-worker.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -541,6 +545,7 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -628,6 +633,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -943,14 +949,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:06.141Z",
-      "endedAt": "2026-08-22T14:52:07.953Z",
-      "durationMs": 1812,
+      "startedAt": "2026-08-22T18:41:41.233Z",
+      "endedAt": "2026-08-22T18:41:42.613Z",
+      "durationMs": 1380,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -965,6 +971,7 @@
         "scripts/acceptance/app-shell-ui.acceptance.ts",
         "scripts/acceptance/app-shell-ui.real-chrome.ts",
         "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+        "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
         "scripts/acceptance/audit-binary-verdict.attacks.ts",
         "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
         "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -996,6 +1003,7 @@
         "scripts/acceptance/ci-summary-truth.acceptance.ts",
         "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
         "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+        "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
         "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -1023,6 +1031,7 @@
         "scripts/acceptance/video-download-youtube-production.acceptance.ts",
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
         "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -1067,6 +1076,7 @@
         "scripts/audit/core/run-generated-plan-worker.mjs",
         "scripts/audit/core/run-generated-plan-worker.ts",
         "scripts/audit/core/run-generated-plan.ts",
+        "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -1206,6 +1216,7 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -1293,6 +1304,7 @@
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -1613,85 +1625,85 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "APEX-ARCH-012-V1",
       "clauseId": "apex-arch-012-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:25f5559a-a14c-400c-9f90-2d84b86a2840"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
     }
   ]
 }

@@ -61,6 +61,8 @@ const executeGeminiWebChat = (input: WebChatExecutionInput): Promise<AiFeedResul
     ...(input.options?.executionId ? { executionId: input.options.executionId } : {}),
     ...(input.options?.supersededExecutionId
       ? { supersededExecutionId: input.options.supersededExecutionId } : {}),
+    ...(input.options?.submissionAdmission
+      ? { submissionAdmission: input.options.submissionAdmission } : {}),
     ...(input.options?.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted } : {}),
     ...(input.options?.onProgress ? { onProgress: input.options.onProgress } : {}),
@@ -81,6 +83,8 @@ const executeGptWebChat = (input: WebChatExecutionInput): Promise<AiFeedResult> 
     ...(input.options?.executionId ? { executionId: input.options.executionId } : {}),
     ...(input.options?.supersededExecutionId
       ? { supersededExecutionId: input.options.supersededExecutionId } : {}),
+    ...(input.options?.submissionAdmission
+      ? { submissionAdmission: input.options.submissionAdmission } : {}),
     ...(input.options?.onAttachmentUploadCompleted
       ? { onAttachmentUploadCompleted: input.options.onAttachmentUploadCompleted } : {}),
     ...(input.options?.onProgress ? { onProgress: input.options.onProgress } : {}),

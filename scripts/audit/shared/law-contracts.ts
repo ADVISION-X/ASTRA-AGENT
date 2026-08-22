@@ -16,6 +16,7 @@ export const lawIdSchema = z.string().refine(isLawId, "Law id must start with AP
 export const clauseEvidenceModeSchema = z.enum([
   "static",
   "acceptance",
+  "acceptance+real-chrome",
   "real-chrome",
   "model+acceptance+real-chrome+real-provider",
   "artifact+real-chrome",
@@ -144,6 +145,20 @@ export const lawMetadataSchema = lawMetadataBaseSchema.superRefine((law, context
   const addIssue = (path: Array<string | number>, message: string): void => {
     context.addIssue({ code: z.ZodIssueCode.custom, message, path });
   };
+  const atomicEvidenceLawIds = new Set([
+    "APEX-AI-INPUT-GATEWAY-002-V1",
+    "APEX-DOM-021-V1",
+    "APEX-LOCAL-BROWSER-004-V4",
+  ]);
+  if (atomicEvidenceLawIds.has(law.lawId)) {
+    const topLevel = clauseEvidenceModeSchema.safeParse(law.evidenceMode);
+    if (!topLevel.success || law.clauses.some((clause) => clause.evidenceMode !== law.evidenceMode)) {
+      addIssue(
+        ["evidenceMode"],
+        "Atomic IF-AND-THEN laws must use one canonical routed evidenceMode shared by the law and every clause.",
+      );
+    }
+  }
   for (const [key, value] of Object.entries(law)) {
     if (key.toLowerCase().includes("inspector")) {
       addIssue([key], `Law metadata must not hard-bind inspector field ${key}.`);

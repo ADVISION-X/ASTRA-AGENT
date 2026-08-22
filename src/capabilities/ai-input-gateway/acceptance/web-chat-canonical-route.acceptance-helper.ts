@@ -7,17 +7,23 @@ type RoutingBrowser = Pick<BrowserTargetLease, "executeDomIntent" | "wait" | "na
 
 class CanonicalRouteBrowser implements RoutingBrowser {
   readonly observedIntents: unknown[] = [];
+  private currentUrl = "https://chatgpt.com/";
 
   public constructor(private readonly findResults: Array<unknown>) {}
 
   public async executeDomIntent(intent: Parameters<BrowserTargetLease["executeDomIntent"]>[0]): Promise<unknown> {
     this.observedIntents.push(intent);
+    if (intent.kind === "document") return { url: this.currentUrl, title: "ChatGPT" };
     if (intent.kind === "find") {
       const result = this.findResults.shift();
       if (result instanceof Error) throw result;
       return result ?? { count: 1 };
     }
-    if (intent.kind === "click") return { clicked: true };
+    if (intent.kind === "click") {
+      const match = /a\[href="([^"]+)"\]/u.exec(intent.selector);
+      if (match?.[1]) this.currentUrl = new URL(match[1], "https://chatgpt.com").href;
+      return { clicked: true };
+    }
     throw new Error("BROWSER_TARGET_INVALID");
   }
 
@@ -36,8 +42,10 @@ export const assertDuplicateCanonicalDomRowsAreOneLogicalRoute = async (): Promi
     turnMarker: "GRASSEYE_TURN_exact_canonical",
   }));
   assert.deepEqual(browser.observedIntents, [
+    { kind: "document" },
     { kind: "find", selector: 'a[href="/c/exact-canonical"]', maxMatches: 1 },
     { kind: "click", selector: 'a[href="/c/exact-canonical"]', expectedMatches: 1 },
+    { kind: "document" },
     {
       kind: "find",
       selector: "[data-testid^='conversation-turn-'][data-turn='user']",

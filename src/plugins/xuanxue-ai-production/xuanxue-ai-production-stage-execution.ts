@@ -1,6 +1,7 @@
 import type {
   AiFeedResult,
   AiInputGatewayProgress,
+  AiInputGatewaySubmissionAdmission,
   WebChatAttachmentUploadProof,
 } from "../../capabilities/ai-input-gateway/index.js";
 import { createHash } from "node:crypto";
@@ -15,6 +16,7 @@ import { normalizeGeneratedImageResult } from "./xuanxue-ai-production-image-res
 import {
   XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
   type XuanxueAiOrderRecord,
+  type XuanxueAiProductionOrder,
   type XuanxueAiStageRecord,
 } from "./xuanxue-ai-production.schema.js";
 import {
@@ -49,15 +51,59 @@ const requireBrowserHash = (value: string): `sha256:${string}` => {
   return value as `sha256:${string}`;
 };
 
+const outcomeResolvingPageActions = new Set<WebChatPageActionProof["actionId"]>([
+  "apply_execution_profile",
+  "dismiss_known_search_dialog",
+  "focus_exact_composer",
+  "write_exact_prompt",
+  "submit_exact_turn",
+  "switch_exact_conversation",
+  "discover_conversation_via_search",
+  "rename_exact_conversation",
+  "cleanup_owned_transient_ui",
+]);
+
+type StageBrowserAdmission = Readonly<{
+  browser?: XuanxueAiBrowserTargetLease;
+  submissionAdmission?: AiInputGatewaySubmissionAdmission;
+}>;
+
+export const buildXuanxueAiSubmissionAdmission = (input: {
+  identity: NonNullable<XuanxueAiProductionOrder["cloudExecutionIdentity"]>;
+  orderCreatedAt: string;
+  orderId: string;
+  stageExecutionId: string;
+  stageOrdinal: number;
+}): AiInputGatewaySubmissionAdmission => {
+  const priorityKey = [
+    input.orderCreatedAt,
+    input.orderId,
+    String(input.stageOrdinal).padStart(4, "0"),
+  ].join(":");
+  return {
+    admissionRef: browserHash(JSON.stringify({
+      jobId: input.identity.jobId,
+      attemptId: input.identity.attemptId,
+      requiredDeviceId: input.identity.requiredDeviceId,
+      leaseVersion: input.identity.leaseVersion,
+      executionFenceHash: input.identity.executionFenceHash,
+      contractManifestHash: input.identity.contractManifestHash,
+      executionId: input.stageExecutionId,
+      priorityKey,
+    })),
+    priorityKey,
+  };
+};
+
 const acquireStageBrowser = async (input: {
   runtime: XuanxueAiProductionRuntime;
   orderId: string;
   stage: XuanxueAiStageRecord;
   deadlineBudget?: XuanxueAiExecutionDeadlineBudget;
-}): Promise<XuanxueAiBrowserTargetLease | undefined> => {
+}): Promise<StageBrowserAdmission> => {
   const record = input.runtime.store.readOrder(input.orderId);
   const identity = record?.order.cloudExecutionIdentity;
-  if (!identity) return undefined;
+  if (!identity) return {};
   if (!input.runtime.browserAuthority || !input.deadlineBudget) {
     throw new Error("XUANXUE_AI_PRODUCTION_BROWSER_AUTHORITY_REQUIRED");
   }
@@ -72,7 +118,14 @@ const acquireStageBrowser = async (input: {
     throw new Error("XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_EXHAUSTED");
   }
   const executionRef = `${identity.jobId}:${identity.attemptId}:${input.stage.executionId}`;
-  return input.runtime.browserAuthority.acquireOperatorClaimedTargetLease({
+  const submissionAdmission = buildXuanxueAiSubmissionAdmission({
+    identity,
+    orderCreatedAt: record.order.createdAt,
+    orderId: record.order.orderId,
+    stageExecutionId: input.stage.executionId,
+    stageOrdinal: input.stage.ordinal,
+  });
+  const browser = await input.runtime.browserAuthority.acquireOperatorClaimedTargetLease({
     kind: "xuanxue",
     ownerPluginId: "xuanxue-ai-production",
     jobId: identity.jobId,
@@ -89,17 +142,23 @@ const acquireStageBrowser = async (input: {
     candidateHash: requireBrowserHash(input.runtime.candidateHash),
     commandTtlMs,
   }, `xuanxue-ai-production:${record.order.orderId}`);
+  return {
+    browser,
+    submissionAdmission,
+  };
 };
 
 const resolvePageActionMutations = async (
   browser: XuanxueAiBrowserTargetLease,
   proof: WebChatPageActionProof,
 ): Promise<void> => {
-  if (proof.candidateCount !== 1
+  if (!outcomeResolvingPageActions.has(proof.actionId)
+    || proof.result !== "committed"
+    || proof.candidateCount !== 1
     || proof.semantics.length === 0
     || !proof.targetRefHash
     || !proof.documentRefHash) return;
-  await browser.resolvePendingMutations({
+  await browser.resolvePendingMutation({
     schemaVersion: "grasseye.browser.outcome-resolution.v1",
     ownerPluginId: "xuanxue-ai-production",
     outcome: proof.result === "committed" || proof.result === "no_op"
@@ -123,7 +182,7 @@ const resolveAttachmentMutations = async (
     || proof.detectedFileCount !== proof.expectedFileCount
     || proof.files.length !== proof.expectedFileCount) return;
   const prefix = `xuanxue-stage:${orderId}:${stageId}:attachment:${proof.uploadAttemptId}`;
-  await browser.resolvePendingMutations({
+  await browser.resolvePendingMutation({
     schemaVersion: "grasseye.browser.outcome-resolution.v1",
     ownerPluginId: "xuanxue-ai-production",
     outcome: "TERMINAL_SUCCESS",
@@ -363,11 +422,12 @@ export const executeGatewayStage = async (input: {
   observer?: XuanxueAiProductionExecutionObserver;
   deadlineBudget?: XuanxueAiExecutionDeadlineBudget;
 }): Promise<AiFeedResult> => {
-  const browser = await acquireStageBrowser(input);
+  const { browser, submissionAdmission } = await acquireStageBrowser(input);
   const result = canonicalizeStageResult(await input.runtime.aiInputGateway.execute(
     input.feedInput,
     {
       executionId: input.stage.executionId,
+      ...(submissionAdmission ? { submissionAdmission } : {}),
       ...(browser ? { browser } : {}),
       ...(input.stage.supersededExecutionId && input.stage.attemptCount === 2
         ? { supersededExecutionId: input.stage.supersededExecutionId }

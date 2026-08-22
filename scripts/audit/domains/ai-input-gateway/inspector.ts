@@ -24,6 +24,7 @@ import {
 import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
 import { inspectAttachmentChild } from "./attachment-inspector.js";
+import { inspectAtomicIfAndThenActions } from "./atomic-if-and-then-inspector.js";
 
 const literalContains = (source: SourceFile, value: string): boolean =>
   [...stringLiterals(source)].some((literal) => literal.includes(value));
@@ -391,11 +392,13 @@ const inspectGeneratedImageCapture = (
     }
   }
 };
+
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-004-V1");
   const parallelLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-005-V4");
+  const atomicLawId = selectLawId(context.planEntry.lawIds, "APEX-AI-INPUT-GATEWAY-002-V1");
   const findings: Finding[] = [];
   for (const authorityPath of [P.authority.lawPath, P.authority.blueprintPath]) {
     if (!existsSync(resolveFromRepo(authorityPath))) {
@@ -424,6 +427,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId);
   inspectTransientOverlayHygiene(context, findings, parallelLawId);
   inspectGeneratedImageCapture(context, findings, parallelLawId);
+  inspectAtomicIfAndThenActions(context, findings, atomicLawId);
   inspectConversationTopology(context, findings, parallelLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

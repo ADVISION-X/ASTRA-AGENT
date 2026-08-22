@@ -52,8 +52,8 @@ const typePropertyTargets: readonly TypePropertyTarget[] = [
   },
   {
     filePath: "scripts/audit/ci-full-summary.ts",
-    declarationName: "writeCiFullSummary",
-    ownerKind: "parameter",
+    declarationName: "CiFullSummaryInput",
+    ownerKind: "type",
     propertyNames: ["status", "finalDecision"],
   },
 ] as const;

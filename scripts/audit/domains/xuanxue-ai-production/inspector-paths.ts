@@ -41,6 +41,7 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-real-proof-support.ts",
   "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
   "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
   "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",

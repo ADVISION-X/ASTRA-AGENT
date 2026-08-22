@@ -1,6 +1,9 @@
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import type { AiInputGatewayProgress } from "../contract.js";
+import type {
+  AiInputGatewayProgress,
+  AiInputGatewaySubmissionAdmission,
+} from "../contract.js";
 import type {
   AiProviderAdapter,
   AiProviderRawResponse,
@@ -43,6 +46,7 @@ type ExecuteAiFeedOnceInput = {
   signal?: AbortSignal;
   executionId?: string;
   supersededExecutionId?: string;
+  submissionAdmission?: AiInputGatewaySubmissionAdmission;
   webChatExecution?: WebChatExecutionContext;
   onAttachmentUploadCompleted?: (proof: WebChatAttachmentUploadProof) => Promise<void>;
   onProgress?: (progress: AiInputGatewayProgress) => Promise<void>;

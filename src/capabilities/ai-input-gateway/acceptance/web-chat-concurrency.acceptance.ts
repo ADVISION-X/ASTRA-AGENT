@@ -37,6 +37,10 @@ import { assertWebChatSourceContracts } from "./web-chat-source-contract.accepta
 import { assertTransientPatrolRemainsRetryable } from "./web-chat-transient-patrol.acceptance-helper.js";
 import { assertWebChatIdentityAndRecoveryPolicies } from "./web-chat-identity-recovery.acceptance-helper.js";
 import { assertPartialAnswerQuietWindow } from "./web-chat-concurrency-answer.acceptance-helper.js";
+import {
+  assertWebChatSchedulerAdmissionRecovery,
+  registerDeadProcessSubmissionTicket,
+} from "./web-chat-scheduler-admission.acceptance-helper.js";
 
 const delay = (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
@@ -159,18 +163,6 @@ const runWorker = async (dataDir: string, worker: number): Promise<void> => {
   );
 };
 
-const registerRestartableSubmissionTicket = async (
-  dataDir: string,
-  executionId: string,
-): Promise<void> => {
-  const waiter = registerPendingWebChatSubmission(dataDir, executionId);
-  await writeFile(
-    path.join(dataDir, "restartable-submission-ticket.json"),
-    JSON.stringify({ waiterId: waiter.waiterId, ticket: waiter.ticket }),
-    "utf8",
-  );
-};
-
 const assertTopologyProofIsRequired = async (
   dataDir: string,
 ): Promise<void> => {
@@ -209,8 +201,8 @@ const assertTopologyProofIsRequired = async (
 const workerArgs = process.argv.slice(2);
 if (workerArgs[0] === "--ticket-worker") {
   const dataDir = workerArgs[1];
-  if (!dataDir) throw new Error("invalid restartable ticket worker arguments");
-  await registerRestartableSubmissionTicket(dataDir, "restart-oldest-submission");
+  if (!dataDir) throw new Error("invalid dead-process ticket worker arguments");
+  await registerDeadProcessSubmissionTicket(dataDir, "dead-process-submission");
 } else if (workerArgs[0] === "--worker") {
   const dataDir = workerArgs[1];
   const worker = Number(workerArgs[2]);
@@ -267,26 +259,11 @@ if (workerArgs[0] === "--ticket-worker") {
     else process.env.WEB_CHAT_MAX_IN_FLIGHT = originalCapacity;
 
     await waitForExit(restartTicketWorker);
-    const persistedTicket = JSON.parse(await readFile(
-      path.join(dataDir, "restartable-submission-ticket.json"),
+    const deadProcessTicket = JSON.parse(await readFile(
+      path.join(dataDir, "dead-process-submission-ticket.json"),
       "utf8",
     )) as { waiterId: string; ticket: number };
-    const newerAfterRestart = registerPendingWebChatSubmission(
-      dataDir,
-      "newer-after-restart",
-    );
-    const resumedOldest = registerPendingWebChatSubmission(
-      dataDir,
-      "restart-oldest-submission",
-    );
-    assert.equal(resumedOldest.waiterId, persistedTicket.waiterId);
-    assert.equal(resumedOldest.ticket, persistedTicket.ticket);
-    assert.ok(
-      resumedOldest.ticket < newerAfterRestart.ticket,
-      "restart must rebind the same oldest durable submission ticket",
-    );
-    resumedOldest.release();
-    newerAfterRestart.release();
+    await assertWebChatSchedulerAdmissionRecovery(dataDir, deadProcessTicket);
 
     const repairInput = {
       dataDir,

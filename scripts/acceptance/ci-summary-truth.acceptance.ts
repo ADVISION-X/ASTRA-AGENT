@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
+import { createFailFast } from "../audit/ci-fail-fast.js";
+import type {
+  CiFullFirstFailure,
+  CiFullLawCoverage,
+  CiFullOwnerReport,
+  StepResult,
+} from "../audit/ci-full-summary.js";
 import {
-  ciFullSummaryPath,
-  createFailFast,
-  writeCiFullSummary,
-  type CiFullFirstFailure,
-  type CiFullLawCoverage,
-  type CiFullOwnerReport,
-  type StepResult,
-} from "../audit/ci-full.js";
+  serializeCiFullSummary,
+  type CiFullSummaryInput,
+} from "../audit/ci-full-summary.js";
 import { acceptanceLawBindings } from "../audit/ci-acceptance-law-bindings.js";
 import {
   buildAcceptanceLeafSkeletons,
@@ -34,6 +38,13 @@ import { runRound8PhysicalReceiptAttacks } from "./audit-physical-check-receipts
 import { runAuditRunIdentityAttacks } from "./audit-run-identity.attacks.js";
 import { runWorkerLifecycleAttacks } from "./audit-worker-lifecycle.attacks.js";
 import { runDynamicProofDenominatorAttacks } from "./ci-dynamic-proof-denominator.acceptance-support.js";
+
+const fixtureSummaryDir = mkdtempSync(path.join(os.tmpdir(), "grasseye-ci-summary-"));
+const fixtureSummaryPath = path.join(fixtureSummaryDir, "ci-summary-fixture.json");
+const writeFixtureSummary = (summary: CiFullSummaryInput): void => {
+  writeFileSync(fixtureSummaryPath, serializeCiFullSummary(summary));
+};
+process.once("exit", () => rmSync(fixtureSummaryDir, { recursive: true, force: true }));
 
 const { acceptanceSteps, plannedSteps } = buildCiPhasePlan();
 const unsealedPlan = buildCiPlanSkeleton(buildAcceptancePackageSkeletons());
@@ -227,13 +238,14 @@ const facetFailFast = createFailFast(
   () => lawCoverage,
   () => ownerReports,
   () => facetFailurePlan,
+  writeFixtureSummary,
 );
 assert.throws(
   () => sealCiPhasePlanOrFail(facetFailureSkeletons, facetFailFast, missingCompositeFacetBindings),
   (error) => error instanceof Error && error.message === "ci:full failed",
   "the real acceptance-authority phase must route a missing composite facet through fail-fast",
 );
-const facetFailureSummary = JSON.parse(readFileSync(ciFullSummaryPath, "utf8")) as {
+const facetFailureSummary = JSON.parse(readFileSync(fixtureSummaryPath, "utf8")) as {
   finalDecision: string;
   firstFailure: { message?: string } | null;
   skippedAfterFailure: Array<{ authorityStatus: string }>;
@@ -257,13 +269,15 @@ assert.throws(
   "the generated-plan parent must reject worker message fields outside the authenticated schema.",
 );
 
-const failFast = createFailFast([], () => lawCoverage, () => ownerReports, () => plannedSteps);
+const failFast = createFailFast(
+  [], () => lawCoverage, () => ownerReports, () => plannedSteps, writeFixtureSummary,
+);
 assert.throws(
   () => failFast(4, firstFailure, { ...sampleSteps[0]!, status: "FAIL", error: "typecheck failed" }),
   (error) => error instanceof Error && error.message === "ci:full failed",
   "the real fail-fast control path must terminate after writing its summary",
 );
-const failedPathSummary = JSON.parse(readFileSync(ciFullSummaryPath, "utf8")) as {
+const failedPathSummary = JSON.parse(readFileSync(fixtureSummaryPath, "utf8")) as {
   completedSteps: StepResult[];
   skippedAfterFailure: Array<{ status: string; startedAt: null; endedAt: null; durationMs: number }>;
 };
@@ -272,12 +286,14 @@ assert.equal(failedPathSummary.completedSteps[0]?.durationMs, 42, "the failing p
 assert.equal(failedPathSummary.skippedAfterFailure.every((step) => step.status === "SKIPPED"), true, "all not-started steps must carry explicit SKIPPED receipts.");
 assert.equal(failedPathSummary.skippedAfterFailure.every((step) => step.startedAt === null && step.endedAt === null && step.durationMs === 0), true, "skipped receipts must prove that execution never started.");
 
-const earlyFailFast = createFailFast([], () => lawCoverage, () => [], () => unsealedPlan);
+const earlyFailFast = createFailFast(
+  [], () => lawCoverage, () => [], () => unsealedPlan, writeFixtureSummary,
+);
 assert.throws(() => earlyFailFast(0, firstFailure, {
   ...sampleSteps[0]!, name: "codex-entry-gate", phase: "codex-entry-gate", status: "FAIL",
 }), (error) => error instanceof Error && error.message === "ci:full failed",
 "entry failure must enter the same terminal writer.");
-const earlySummary = JSON.parse(readFileSync(ciFullSummaryPath, "utf8")) as {
+const earlySummary = JSON.parse(readFileSync(fixtureSummaryPath, "utf8")) as {
   skippedAfterFailure: Array<{ authorityStatus: string; lawId: string | null; ownerId: string | null }>;
 };
 assert.equal(earlySummary.skippedAfterFailure.length, unsealedPlan.length - 1,
@@ -286,7 +302,7 @@ assert.equal(earlySummary.skippedAfterFailure.slice(4, -1).every((step) =>
   step.authorityStatus === "authority_not_reached" && step.lawId === null && step.ownerId === null), true,
 "early failure must not fill acceptance authority from stale generated truth.");
 
-writeCiFullSummary({
+writeFixtureSummary({
   status: "FAIL",
   firstFailure,
   completedSteps: sampleSteps,
@@ -312,7 +328,7 @@ writeCiFullSummary({
   finalDecision: "FAIL",
 });
 
-const parsed = JSON.parse(readFileSync(ciFullSummaryPath, "utf8")) as {
+const parsed = JSON.parse(readFileSync(fixtureSummaryPath, "utf8")) as {
   completedSteps: StepResult[];
   finalDecision: "PASS" | "FAIL";
   firstFailure: CiFullFirstFailure | null;

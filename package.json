@@ -17,7 +17,7 @@
     "acceptance:local-browser-real-chrome": "node --import tsx scripts/acceptance/local-browser.real-chrome.ts",
     "acceptance:local-browser-release-identity": "node --import tsx scripts/acceptance/browser-extension-release-identity.acceptance.ts",
     "acceptance:browser-extension-build": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
-    "acceptance:dom-automation-exact-target": "node --import tsx scripts/acceptance/dom-automation-exact-target.acceptance.ts",
+    "acceptance:dom-automation-exact-target": "node --import tsx scripts/acceptance/dom-automation-exact-target.acceptance.ts && node --import tsx scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
     "acceptance:dom-automation-exact-target:real-chrome": "node --import tsx scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
     "acceptance:dom-automation:real-chrome": "node --import tsx scripts/acceptance/dom-automation.real-chrome.ts",
     "acceptance:ai-input-gateway-exact-target": "node --import tsx scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",

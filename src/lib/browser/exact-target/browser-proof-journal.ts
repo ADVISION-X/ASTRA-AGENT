@@ -45,6 +45,7 @@ export type BrowserProofCommandEvent = Readonly<{
     identityRevalidated: boolean;
     mutationCount: number;
     retainedValueVerified?: boolean;
+    postconditionVerified?: boolean;
   }>;
   transportSequence?: number;
   permitSequence?: number;

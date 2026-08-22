@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import type { AiInputGatewaySubmissionAdmission } from "../contract.js";
 
 type WaiterKind = "submission" | "patrol";
 
@@ -10,6 +11,8 @@ interface WaiterRow {
   execution_id: string;
   pid: number;
   ticket: number;
+  admission_ref: string | null;
+  priority_key: string | null;
 }
 
 const ledgerPath = (dataDir: string): string => path.join(
@@ -47,6 +50,8 @@ const withDatabase = <T>(
         pid integer not null,
         ticket integer not null,
         created_at text not null,
+        admission_ref text,
+        priority_key text,
         unique(execution_id,kind)
       );
       create table if not exists scheduler_sequence (
@@ -56,11 +61,21 @@ const withDatabase = <T>(
       insert into scheduler_sequence(singleton,next_ticket)
       values(1,1) on conflict(singleton) do nothing;
     `);
+    const waiterColumns = new Set(
+      (database.prepare("pragma table_info(scheduler_waiters)").all() as { name: string }[])
+        .map((column) => column.name),
+    );
+    if (!waiterColumns.has("admission_ref")) {
+      database.exec("alter table scheduler_waiters add column admission_ref text");
+    }
+    if (!waiterColumns.has("priority_key")) {
+      database.exec("alter table scheduler_waiters add column priority_key text");
+    }
     const stale = database.prepare(
-      "select distinct pid from scheduler_waiters where kind='patrol'",
+      "select distinct pid from scheduler_waiters",
     ).all() as { pid: number }[];
     const remove = database.prepare(
-      "delete from scheduler_waiters where kind='patrol' and pid=?",
+      "delete from scheduler_waiters where pid=?",
     );
     for (const candidate of stale) {
       if (!processAlive(candidate.pid)) remove.run(candidate.pid);
@@ -78,49 +93,74 @@ export interface WebChatSchedulerWaiter {
   release(): void;
 }
 
-export const registerWebChatSchedulerWaiter = (
-  dataDir: string,
+const validateSubmissionAdmission = (
+  kind: WaiterKind,
+  submissionAdmission?: AiInputGatewaySubmissionAdmission,
+): void => {
+  if (!submissionAdmission) return;
+  if (kind !== "submission") {
+    throw new Error("WEB_CHAT_SUBMISSION_ADMISSION_KIND_INVALID");
+  }
+  if (!/^sha256:[a-f0-9]{64}$/u.test(submissionAdmission.admissionRef)
+    || submissionAdmission.priorityKey.trim().length === 0) {
+    throw new Error("WEB_CHAT_SUBMISSION_ADMISSION_INVALID");
+  }
+};
+
+const existingWaiterRow = (
+  database: Database.Database,
   kind: WaiterKind,
   executionId: string,
-): WebChatSchedulerWaiter => withDatabase(dataDir, (database) => {
+  submissionAdmission?: AiInputGatewaySubmissionAdmission,
+): WaiterRow | undefined => {
   const existing = database.prepare(`
-    select waiter_id,execution_id,pid,ticket from scheduler_waiters
+    select waiter_id,execution_id,pid,ticket,admission_ref,priority_key from scheduler_waiters
     where execution_id=? and kind=?
   `).get(executionId, kind) as WaiterRow | undefined;
   if (existing && existing.pid !== process.pid) {
-    database.prepare(`
-      update scheduler_waiters set pid=? where waiter_id=?
-    `).run(process.pid, existing.waiter_id);
-    existing.pid = process.pid;
+    throw new Error("WEB_CHAT_SCHEDULER_WAITER_OWNED_BY_LIVE_PROCESS");
   }
-  const row = existing ?? database.transaction(() => {
-    const sequence = database.prepare(`
-      select next_ticket from scheduler_sequence where singleton=1
-    `).get() as { next_ticket: number };
-    database.prepare(`
-      update scheduler_sequence set next_ticket=next_ticket+1
-      where singleton=1
-    `).run();
-    const created: WaiterRow = {
-      waiter_id: `web-chat-${kind}:${randomUUID()}`,
-      execution_id: executionId,
-      pid: process.pid,
-      ticket: sequence.next_ticket,
-    };
-    database.prepare(`
-      insert into scheduler_waiters(
-        waiter_id,execution_id,kind,pid,ticket,created_at
-      ) values(?,?,?,?,?,?)
-    `).run(
-      created.waiter_id,
-      created.execution_id,
-      kind,
-      created.pid,
-      created.ticket,
-      new Date().toISOString(),
-    );
-    return created;
-  }).immediate();
+  if (existing && (
+    existing.admission_ref !== (submissionAdmission?.admissionRef ?? null)
+    || existing.priority_key !== (submissionAdmission?.priorityKey ?? null)
+  )) {
+    throw new Error("WEB_CHAT_SUBMISSION_ADMISSION_DRIFT");
+  }
+  return existing;
+};
+
+const createWaiterRow = (
+  database: Database.Database,
+  kind: WaiterKind,
+  executionId: string,
+  submissionAdmission?: AiInputGatewaySubmissionAdmission,
+): WaiterRow => database.transaction(() => {
+  const sequence = database.prepare(`
+    select next_ticket from scheduler_sequence where singleton=1
+  `).get() as { next_ticket: number };
+  database.prepare(`
+    update scheduler_sequence set next_ticket=next_ticket+1 where singleton=1
+  `).run();
+  const created: WaiterRow = {
+    waiter_id: `web-chat-${kind}:${randomUUID()}`,
+    execution_id: executionId,
+    pid: process.pid,
+    ticket: sequence.next_ticket,
+    admission_ref: submissionAdmission?.admissionRef ?? null,
+    priority_key: submissionAdmission?.priorityKey ?? null,
+  };
+  database.prepare(`
+    insert into scheduler_waiters(
+      waiter_id,execution_id,kind,pid,ticket,created_at,admission_ref,priority_key
+    ) values(?,?,?,?,?,?,?,?)
+  `).run(
+    created.waiter_id, created.execution_id, kind, created.pid, created.ticket,
+    new Date().toISOString(), created.admission_ref, created.priority_key,
+  );
+  return created;
+}).immediate();
+
+const waiterHandle = (dataDir: string, row: WaiterRow): WebChatSchedulerWaiter => {
   let released = false;
   return {
     waiterId: row.waiter_id,
@@ -129,13 +169,25 @@ export const registerWebChatSchedulerWaiter = (
     release() {
       if (released) return;
       released = true;
-      withDatabase(dataDir, (releaseDatabase) => {
-        releaseDatabase.prepare(`
+      withDatabase(dataDir, (database) => {
+        database.prepare(`
           delete from scheduler_waiters where waiter_id=? and pid=?
         `).run(row.waiter_id, process.pid);
       });
     },
   };
+};
+
+export const registerWebChatSchedulerWaiter = (
+  dataDir: string,
+  kind: WaiterKind,
+  executionId: string,
+  submissionAdmission?: AiInputGatewaySubmissionAdmission,
+): WebChatSchedulerWaiter => withDatabase(dataDir, (database) => {
+  validateSubmissionAdmission(kind, submissionAdmission);
+  const row = existingWaiterRow(database, kind, executionId, submissionAdmission)
+    ?? createWaiterRow(database, kind, executionId, submissionAdmission);
+  return waiterHandle(dataDir, row);
 });
 
 export const countWebChatSchedulerWaiters = (
@@ -165,7 +217,8 @@ export const isNextWebChatSubmissionWaiter = (
 ): boolean => withDatabase(dataDir, (database) => {
   const row = database.prepare(`
     select waiter_id from scheduler_waiters
-    where kind='submission' order by ticket,waiter_id limit 1
+    where kind='submission'
+    order by priority_key is null,priority_key,ticket,waiter_id limit 1
   `).get() as { waiter_id: string } | undefined;
   return row?.waiter_id === waiterId;
 });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T14:52:36.731Z",
+  "generatedAt": "2026-08-22T18:42:12.279Z",
   "status": "PASS",
   "inspectedFiles": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
@@ -11,6 +11,7 @@
     "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/acceptance/app-shell-ui.real-chrome.ts",
     "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+    "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
     "scripts/acceptance/audit-binary-verdict.attacks.ts",
     "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
     "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -42,6 +43,7 @@
     "scripts/acceptance/ci-summary-truth.acceptance.ts",
     "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+    "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
     "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
     "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -69,6 +71,7 @@
     "scripts/acceptance/video-download-youtube-production.acceptance.ts",
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
     "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
     "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -112,6 +115,7 @@
     "scripts/audit/core/run-generated-plan-worker.mjs",
     "scripts/audit/core/run-generated-plan-worker.ts",
     "scripts/audit/core/run-generated-plan.ts",
+    "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
     "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -251,6 +255,7 @@
     "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -338,6 +343,7 @@
     "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+    "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
     "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -671,14 +677,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:e657cbbf-894d-4764-964b-78f9eeea6132",
+      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:35a883b8-bad1-410e-a050-4a43cde31ce4",
       "capabilityDomain": "constitutional-boundary",
       "checkId": "constitutional-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T14:52:36.667Z",
-      "endedAt": "2026-08-22T14:52:36.730Z",
-      "durationMs": 63,
+      "startedAt": "2026-08-22T18:42:12.206Z",
+      "endedAt": "2026-08-22T18:42:12.279Z",
+      "durationMs": 73,
       "evidenceRefs": [
         "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
         "scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts",
@@ -689,6 +695,7 @@
         "scripts/acceptance/app-shell-ui.acceptance.ts",
         "scripts/acceptance/app-shell-ui.real-chrome.ts",
         "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+        "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
         "scripts/acceptance/audit-binary-verdict.attacks.ts",
         "scripts/acceptance/audit-control-flow-reachability.attacks.ts",
         "scripts/acceptance/audit-delivery-isolation.attacks.ts",
@@ -720,6 +727,7 @@
         "scripts/acceptance/ci-summary-truth.acceptance.ts",
         "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
         "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
+        "scripts/acceptance/dom-automation-atomic-if-and-then.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
         "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
         "scripts/acceptance/dom-automation.real-chrome.ts",
@@ -747,6 +755,7 @@
         "scripts/acceptance/video-download-youtube-production.acceptance.ts",
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
         "scripts/acceptance/workbench-api-boundary.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
         "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
         "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
@@ -790,6 +799,7 @@
         "scripts/audit/core/run-generated-plan-worker.mjs",
         "scripts/audit/core/run-generated-plan-worker.ts",
         "scripts/audit/core/run-generated-plan.ts",
+        "scripts/audit/domains/ai-input-gateway/atomic-if-and-then-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/attachment-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/identity-inspector.ts",
         "scripts/audit/domains/ai-input-gateway/inspector-helpers.ts",
@@ -929,6 +939,7 @@
         "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
@@ -1016,6 +1027,7 @@
         "src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-identity-recovery.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-recovery.acceptance-helper.ts",
+        "src/capabilities/ai-input-gateway/acceptance/web-chat-scheduler-admission.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-session-controller.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-source-contract.acceptance-helper.ts",
         "src/capabilities/ai-input-gateway/acceptance/web-chat-transient-patrol.acceptance-helper.ts",
@@ -1336,25 +1348,25 @@
       "lawId": "APEX-CAPABILITY-FACADE-SYMBOL-001-V1",
       "clauseId": "apex-capability-facade-symbol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:e657cbbf-894d-4764-964b-78f9eeea6132"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:35a883b8-bad1-410e-a050-4a43cde31ce4"
     },
     {
       "lawId": "APEX-CONSTITUTIONAL-BOUNDARY-001-V1",
       "clauseId": "apex-constitutional-boundary-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:e657cbbf-894d-4764-964b-78f9eeea6132"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:35a883b8-bad1-410e-a050-4a43cde31ce4"
     },
     {
       "lawId": "APEX-DOM-AUTOMATION-BRIDGE-001-V1",
       "clauseId": "apex-dom-automation-bridge-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:e657cbbf-894d-4764-964b-78f9eeea6132"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:35a883b8-bad1-410e-a050-4a43cde31ce4"
     },
     {
       "lawId": "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1",
       "clauseId": "apex-plugin-no-capability-protocol-001-requirement",
       "checkId": "constitutional-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:e68a55e3-fe9e-4e0e-8c1c-63a78a2952a3:check:e657cbbf-894d-4764-964b-78f9eeea6132"
+      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:35a883b8-bad1-410e-a050-4a43cde31ce4"
     }
   ]
 }

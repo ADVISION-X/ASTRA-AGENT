@@ -59,9 +59,7 @@ export type CiFullOwnerReport = {
   status: "PASS" | "FAIL";
 };
 
-export const ciFullSummaryPath = resolve(generatedDir, "ci-full-summary.generated.json");
-
-export const writeCiFullSummary = (summary: {
+export type CiFullSummaryInput = {
   completedSteps: readonly StepResult[];
   finalDecision: "PASS" | "FAIL";
   firstFailure: CiFullFirstFailure | null;
@@ -69,24 +67,28 @@ export const writeCiFullSummary = (summary: {
   ownerReports: readonly CiFullOwnerReport[];
   skippedAfterFailure: readonly CiFullSkippedStep[];
   status: "PASS" | "FAIL";
-}): void => {
+};
+
+export const ciFullSummaryPath = resolve(generatedDir, "ci-full-summary.generated.json");
+
+export const serializeCiFullSummary = (summary: CiFullSummaryInput): string =>
+  `${JSON.stringify(
+    {
+      generatedAt: new Date().toISOString(),
+      mode: "fail_fast",
+      status: summary.status,
+      firstFailure: summary.firstFailure,
+      completedSteps: summary.completedSteps,
+      skippedAfterFailure: summary.skippedAfterFailure,
+      lawCoverage: summary.lawCoverage,
+      ownerReports: summary.ownerReports,
+      finalDecision: summary.finalDecision,
+    },
+    null,
+    2,
+  )}\n`;
+
+export const writeCiFullSummary = (summary: CiFullSummaryInput): void => {
   mkdirSync(generatedDir, { recursive: true });
-  writeFileSync(
-    ciFullSummaryPath,
-    `${JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        mode: "fail_fast",
-        status: summary.status,
-        firstFailure: summary.firstFailure,
-        completedSteps: summary.completedSteps,
-        skippedAfterFailure: summary.skippedAfterFailure,
-        lawCoverage: summary.lawCoverage,
-        ownerReports: summary.ownerReports,
-        finalDecision: summary.finalDecision,
-      },
-      null,
-      2,
-    )}\n`,
-  );
+  writeFileSync(ciFullSummaryPath, serializeCiFullSummary(summary));
 };
