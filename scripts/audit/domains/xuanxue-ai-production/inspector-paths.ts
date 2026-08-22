@@ -19,6 +19,8 @@ export const gatewayCanonicalRoutingPath = "src/capabilities/ai-input-gateway/ru
 export const gatewayExecutionProfilePath = "src/capabilities/ai-input-gateway/providers/gpt-web-execution-profile.ts";
 export const gatewayConversationTitlePath = "src/capabilities/ai-input-gateway/providers/gpt-web-conversation-title.ts";
 export const gatewaySchemaPath = "src/capabilities/ai-input-gateway/schema.ts";
+export const gatewayDynamicProofContractPath =
+  "src/capabilities/ai-input-gateway/xuanxue-dynamic-proof-contract.ts";
 export const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
 
 export const acceptanceSupportPaths = [
@@ -31,7 +33,13 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
   "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
   "scripts/acceptance/xuanxue-ai-production-restart-recovery.ts",
+  "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
+  "scripts/acceptance/xuanxue-ai-production-terminal-recovery.ts",
   "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
+  "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-dynamic-proof-binding.acceptance.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-attestation.acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production-real-proof-support.ts",
+  "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
   "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
@@ -62,6 +70,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-terminal-recovery.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-event.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
   storedOrderQuarantinePath,
@@ -79,6 +88,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-attestation.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
   cloudWorkerPath,
@@ -89,6 +99,9 @@ export const pluginPaths = [
   gatewayExecutionProfilePath,
   gatewayConversationTitlePath,
   gatewaySchemaPath,
+  gatewayDynamicProofContractPath,
+  "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
+  "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
   acceptancePath,
   ...acceptanceSupportPaths,
 ] as const;

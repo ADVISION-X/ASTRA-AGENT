@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:31.378Z",
+  "generatedAt": "2026-08-22T13:47:46.904Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,14 +10,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:7a74a26d-86be-4fcd-b79a-11cce9a9fbf3",
+      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:d1054626-878a-4c8e-8925-e0a501859658",
       "capabilityDomain": "local-app-shell",
       "checkId": "local-app-shell/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T02:57:31.376Z",
-      "endedAt": "2026-08-22T02:57:31.378Z",
-      "durationMs": 2,
+      "startedAt": "2026-08-22T13:47:46.902Z",
+      "endedAt": "2026-08-22T13:47:46.903Z",
+      "durationMs": 1,
       "evidenceRefs": [
         "scripts/audit/domains/local-app-shell/inspector.ts",
         "src/app/create-workbench-server.ts",
@@ -32,13 +32,13 @@
       "lawId": "APEX-LOCAL-APP-SHELL-001-V2",
       "clauseId": "apex-local-app-shell-001-v2-single-upgrade",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:7a74a26d-86be-4fcd-b79a-11cce9a9fbf3"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:d1054626-878a-4c8e-8925-e0a501859658"
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-002-V2",
       "clauseId": "apex-local-app-shell-002-v2-boundary",
       "checkId": "local-app-shell/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:7a74a26d-86be-4fcd-b79a-11cce9a9fbf3"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:d1054626-878a-4c8e-8925-e0a501859658"
     }
   ],
   "inspectedFiles": [

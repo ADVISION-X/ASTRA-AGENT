@@ -26,6 +26,7 @@
     "src/app/**",
     "scripts/audit/domains/app-shell-ui/**",
     "scripts/acceptance/app-shell-*.acceptance.ts",
+    "scripts/acceptance/app-shell-ui.real-chrome.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts"
   ],
   "forbidden": [
@@ -698,6 +699,7 @@ UI 不使用 localStorage 作为真相源
     "src/app/**/*.{ts,tsx,js,jsx,mjs}",
     "scripts/audit/domains/app-shell-ui/**",
     "scripts/acceptance/app-shell-*.acceptance.ts",
+    "scripts/acceptance/app-shell-ui.real-chrome.ts",
     "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
     "package.json"
   ],
@@ -705,6 +707,11 @@ UI 不使用 localStorage 作为真相源
     "Legacy APP user-demand startup blueprint exists after App Shell production entry.",
     "Retired, archived, deprecated, hidden, or copied variants of the legacy APP user-demand startup blueprint remain in the repository.",
     "App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
+  ],
+  "required": [
+    "One uniquely clause-bound deferred real-Chrome verifier consumes only the canonical production proof path produced by the repository Playwright capture entry, independently recomputes the source candidate and proof-contract hash, reads and hashes the actual DOM observation plus screenshot bytes, and proves exactly one App Shell root/sidebar/workspace/inspector/runtime console plus zero legacy startup surfaces within thirty minutes.",
+    "The capture entry must launch a real Chromium process against the exact Workbench URL, require /api/health to report the same current source candidate, and read the owner-declared exclusive selectors; caller-authored booleans, stale server UI, arbitrary proof roots and unrelated Cloud or Provider receipts cannot substitute for page observation.",
+    "Deleting the real-Chrome verifier together with its acceptance binding must still fail against the active-law Dynamic Proof denominator."
   ],
   "clauses": [
     {

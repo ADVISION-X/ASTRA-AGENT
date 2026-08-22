@@ -3,6 +3,7 @@ import {
   sealAcceptanceLeafSteps,
   type AcceptanceLeafSkeleton,
 } from "./ci-acceptance-leaf-plan.js";
+import type { ClauseEvidenceFacet } from "./shared/law-contracts.js";
 
 export type CommandStep = readonly [
   name: string,
@@ -12,6 +13,8 @@ export type CommandStep = readonly [
   minimalFixHint: string,
   ownerId: string,
   timeoutMs: number,
+  clauseId: string | null,
+  evidenceFacet: ClauseEvidenceFacet | null,
 ];
 
 export type PlannedStep = readonly [
@@ -21,6 +24,8 @@ export type PlannedStep = readonly [
   ownerId: string | null,
   lawId: string | null,
   timeoutMs: number,
+  clauseId: string | null,
+  evidenceFacet: ClauseEvidenceFacet | null,
 ];
 
 const formatCommand = (command: readonly string[]): string => command.join(" ");
@@ -38,6 +43,8 @@ export const codexEntryGateStep: CommandStep = [
   "Repair codex-entry-gate before rerunning npm run ci:full.",
   "audit-system",
   60_000,
+  null,
+  null,
 ];
 
 export const typecheckStep: CommandStep = [
@@ -48,15 +55,17 @@ export const typecheckStep: CommandStep = [
   "Run npm run typecheck directly and repair the first TypeScript error before rerunning ci:full.",
   "code-purity",
   180_000,
+  null,
+  null,
 ];
 
 export const preArtifactPlannedSteps: readonly PlannedStep[] = [
-  ["codex-entry-gate", codexEntryGateStep[0], formatCommand(codexEntryGateStep[1]), codexEntryGateStep[5], requiredLaw(codexEntryGateStep), codexEntryGateStep[6]],
-  ["build-audit-artifacts", "build-audit-artifacts", "internal:buildAuditArtifacts()", "audit-system", "APEX-AUDIT-004-V1", 0],
-  ["active-law-full-coverage", "active-law-full-coverage", "internal:verifyActiveLawFullCoverage()", "audit-system", "APEX-AUDIT-001-V1", 0],
-  ["generated-plan-runner", "generated-plan-runner", "worker:runGeneratedPlan()", "audit-system", "APEX-AUDIT-005-V1", 300_000],
-  ["typecheck", typecheckStep[0], formatCommand(typecheckStep[1]), typecheckStep[5], requiredLaw(typecheckStep), typecheckStep[6]],
-  ["generated-artifact-truth", "generated-artifact-truth", "internal:verifyGeneratedArtifactTruth()", "audit-system", "APEX-AUDIT-004-V1", 0],
+  ["codex-entry-gate", codexEntryGateStep[0], formatCommand(codexEntryGateStep[1]), codexEntryGateStep[5], requiredLaw(codexEntryGateStep), codexEntryGateStep[6], null, null],
+  ["build-audit-artifacts", "build-audit-artifacts", "internal:buildAuditArtifacts()", "audit-system", "APEX-AUDIT-004-V1", 0, null, null],
+  ["active-law-full-coverage", "active-law-full-coverage", "internal:verifyActiveLawFullCoverage()", "audit-system", "APEX-AUDIT-001-V1", 0, null, null],
+  ["generated-plan-runner", "generated-plan-runner", "worker:runGeneratedPlan()", "audit-system", "APEX-AUDIT-005-V1", 300_000, null, null],
+  ["typecheck", typecheckStep[0], formatCommand(typecheckStep[1]), typecheckStep[5], requiredLaw(typecheckStep), typecheckStep[6], null, null],
+  ["generated-artifact-truth", "generated-artifact-truth", "internal:verifyGeneratedArtifactTruth()", "audit-system", "APEX-AUDIT-004-V1", 0, null, null],
 ];
 
 const skeletonStep = (leaf: AcceptanceLeafSkeleton): PlannedStep => [
@@ -66,6 +75,8 @@ const skeletonStep = (leaf: AcceptanceLeafSkeleton): PlannedStep => [
   null,
   null,
   leaf.timeoutMs,
+  null,
+  null,
 ];
 
 export const buildCiPlanSkeleton = (
@@ -89,6 +100,8 @@ export const buildCiPhasePlan = (
       step[5],
       requiredLaw(step),
       step[6],
+      step[7],
+      step[8],
     ] as const),
     preArtifactPlannedSteps[5]!,
   ]);

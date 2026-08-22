@@ -1,6 +1,10 @@
+import type { ClauseEvidenceFacet } from "./shared/law-contracts.js";
+
 export type AcceptanceLawBinding = Readonly<{
   clauseId: string;
+  evidenceFacet?: ClauseEvidenceFacet;
   lawId: string;
+  producerFilePath?: string;
 }>;
 
 export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = new Map([
@@ -18,14 +22,17 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/local-browser-property-model.acceptance.ts", { clauseId: "apex-local-browser-002-v4-auth-liveness", lawId: "APEX-LOCAL-BROWSER-002-V4" }],
   ["scripts/acceptance/local-browser-rule-mutants.acceptance.ts", { clauseId: "apex-local-browser-004-v4-durable-mutation", lawId: "APEX-LOCAL-BROWSER-004-V4" }],
   ["scripts/acceptance/local-runtime-browser-authority.acceptance.ts", { clauseId: "apex-local-browser-002-v4-auth-liveness", lawId: "APEX-LOCAL-BROWSER-002-V4" }],
-  ["scripts/acceptance/local-browser-real-chrome-terminal.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
-  ["scripts/acceptance/browser-extension-build.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
-  ["scripts/acceptance/browser-extension-release-identity.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
-  ["scripts/acceptance/dom-automation-exact-target.acceptance.ts", { clauseId: "apex-dom-020-requirement", lawId: "APEX-DOM-020-V1" }],
+  ["scripts/acceptance/local-browser.real-chrome.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", evidenceFacet: "real-chrome", lawId: "APEX-LOCAL-BROWSER-005-V4", producerFilePath: "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts" }],
+  ["scripts/acceptance/browser-extension-build.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", evidenceFacet: "artifact", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
+  ["scripts/acceptance/browser-extension-release-identity.acceptance.ts", { clauseId: "apex-local-browser-005-v4-release-recovery", evidenceFacet: "artifact", lawId: "APEX-LOCAL-BROWSER-005-V4" }],
+  ["scripts/acceptance/dom-automation-exact-target.acceptance.ts", { clauseId: "apex-dom-005-requirement", lawId: "APEX-DOM-005-V1" }],
+  ["scripts/acceptance/dom-automation-exact-target.real-chrome.ts", { clauseId: "apex-dom-020-requirement", evidenceFacet: "real-chrome", lawId: "APEX-DOM-020-V1", producerFilePath: "src/lib/browser/exact-target/browser-command-actor.ts" }],
+  ["scripts/acceptance/dom-automation.real-chrome.ts", { clauseId: "apex-dom-021-requirement", evidenceFacet: "real-chrome", lawId: "APEX-DOM-021-V1", producerFilePath: "src/lib/browser/exact-target/browser-command-actor.ts" }],
   ["scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v3-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V3" }],
+  ["src/capabilities/ai-input-gateway/acceptance/gpt-web-execution-profile.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v3-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V3" }],
   ["scripts/acceptance/amazon-invoice-upload-terminal.acceptance.ts", { clauseId: "apex-amazon-invoice-upload-001-v2-terminal-authority", lawId: "APEX-AMAZON-INVOICE-UPLOAD-001-V2" }],
   ["scripts/acceptance/amazon-product-mining-terminal.acceptance.ts", { clauseId: "apex-amazon-product-mining-001-v3-terminal-authority", lawId: "APEX-AMAZON-PRODUCT-MINING-001-V3" }],
-  ["scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts", { clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V3" }],
+  ["scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "acceptance", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4" }],
   ["scripts/acceptance/runtime-log-redaction.acceptance.ts", { clauseId: "apex-runtime-log-001-v2-terminal-observability", lawId: "APEX-RUNTIME-LOG-SPINE-001-V2" }],
   ["scripts/acceptance/runtime-log-stage-pair.acceptance.ts", { clauseId: "apex-runtime-log-001-v2-terminal-observability", lawId: "APEX-RUNTIME-LOG-SPINE-001-V2" }],
   ["scripts/acceptance/runtime-log-debug-bundle.acceptance.ts", { clauseId: "apex-runtime-log-001-v2-terminal-observability", lawId: "APEX-RUNTIME-LOG-SPINE-001-V2" }],
@@ -33,16 +40,19 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/app-shell-ui.acceptance.ts", { clauseId: "grasseye-app-shell-ui-001-requirement", lawId: "GRASSEYE-APP-SHELL-UI-001-V1" }],
   ["scripts/acceptance/app-shell-localization.acceptance.ts", { clauseId: "grasseye-app-shell-ui-002-requirement", lawId: "GRASSEYE-APP-SHELL-UI-002-V1" }],
   ["scripts/acceptance/app-shell-skill-registry.acceptance.ts", { clauseId: "grasseye-app-shell-ui-001-requirement", lawId: "GRASSEYE-APP-SHELL-UI-001-V1" }],
+  ["scripts/acceptance/app-shell-ui.real-chrome.ts", { clauseId: "grasseye-app-shell-ui-physical-cleanup-001-requirement", evidenceFacet: "real-chrome", lawId: "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1", producerFilePath: "scripts/acceptance/capture-app-shell-ui.real-chrome.ts" }],
   ["scripts/acceptance/workbench-api-boundary.acceptance.ts", { clauseId: "apex-workbench-api-boundary-001-v3-external-hmac-excludes-xuanxue", lawId: "APEX-WORKBENCH-API-BOUNDARY-001-V3" }],
   ["src/capabilities/ai-input-gateway/acceptance/provider-boundary.acceptance.ts", { clauseId: "apex-ai-input-gateway-002-requirement", lawId: "APEX-AI-INPUT-GATEWAY-002-V1" }],
   ["src/capabilities/ai-input-gateway/acceptance/attachment-routing.acceptance.ts", { clauseId: "apex-ai-input-gateway-003-requirement", lawId: "APEX-AI-INPUT-GATEWAY-003-V1" }],
   ["src/capabilities/ai-input-gateway/acceptance/attachment.acceptance.ts", { clauseId: "apex-ai-input-gateway-004-requirement", lawId: "APEX-AI-INPUT-GATEWAY-004-V1" }],
   ["src/capabilities/ai-input-gateway/acceptance/web-chat-concurrency.acceptance.ts", { clauseId: "apex-ai-input-gateway-005-v3-requirement", lawId: "APEX-AI-INPUT-GATEWAY-005-V3" }],
-  ["scripts/acceptance/xuanxue-ai-production.acceptance.ts", { clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V3" }],
-  ["src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts", { clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V3" }],
+  ["scripts/acceptance/xuanxue-ai-production.acceptance.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "acceptance", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4" }],
+  ["src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "acceptance", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4" }],
+  ["src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-attestation.acceptance.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "acceptance", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4" }],
+  ["src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-dynamic-proof-binding.acceptance.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "acceptance", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4" }],
   ["scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts", { clauseId: "grasseye-xuanxue-localization-contract-001-v2-inbound-mirror", lawId: "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V2" }],
-  ["scripts/acceptance/xuanxue-ai-production.real-chrome.ts", { clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V3" }],
-  ["src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts", { clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V3" }],
+  ["scripts/acceptance/xuanxue-ai-production.real-chrome.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "real-chrome", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4", producerFilePath: "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts" }],
+  ["scripts/acceptance/xuanxue-ai-production.real-provider.ts", { clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", evidenceFacet: "real-provider", lawId: "APEX-XUANXUE-AI-PRODUCTION-001-V4", producerFilePath: "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts" }],
   ["scripts/acceptance/video-download-telegram-web.acceptance.ts", { clauseId: "grasseye-video-download-capability-010-requirement", lawId: "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1" }],
   ["src/capabilities/video-download/acceptance/browser-authority.acceptance.ts", { clauseId: "apex-local-browser-004-v4-durable-mutation", lawId: "APEX-LOCAL-BROWSER-004-V4" }],
   ["scripts/acceptance/video-download-youtube-production.acceptance.ts", { clauseId: "grasseye-video-download-capability-011-requirement", lawId: "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1" }],

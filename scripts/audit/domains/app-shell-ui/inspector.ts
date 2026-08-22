@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { SyntaxKind } from "ts-morph";
 
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
@@ -12,6 +13,11 @@ import { inspectSkillRegistry } from "./inspector-skill-registry.js";
 
 const lawPath = ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md";
 const blueprintPath = "docs/法案辅助文件/GrassEye App Shell UI 施工图.md";
+const realChromeProofPaths = [
+  "scripts/acceptance/capture-app-shell-ui.real-chrome.ts",
+  "scripts/acceptance/app-shell-real-chrome-proof-support.ts",
+  "scripts/acceptance/app-shell-ui.real-chrome.ts",
+] as const;
 
 const inspectAuthorityFiles = (
   context: InspectorContext,
@@ -44,6 +50,46 @@ const inspectAuthorityFiles = (
   }
 };
 
+const inspectRealChromePhysicalCleanup = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const sources = realChromeProofPaths.map((filePath) => {
+    inspectedFiles.add(filePath);
+    return context.project.getSourceFile(resolveFromRepo(filePath));
+  });
+  if (sources.some((source) => !source)) {
+    findings.push(createFinding({
+      checkId: "app-shell-ui/real-chrome-proof-route", lawId,
+      filePath: realChromeProofPaths.find((_, index) => !sources[index]) ?? realChromeProofPaths[0],
+      message: "The App Shell real-Chrome producer, byte validator and verifier must all exist.",
+    }));
+    return;
+  }
+  const identifiers = new Set(sources.flatMap((source) => source!
+    .getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText())));
+  const strings = new Set(sources.flatMap((source) => source!
+    .getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText())));
+  for (const required of [
+    "chromium", "launch", "goto", "screenshot", "hashFile",
+    "buildStartupSourceFingerprint", "currentAppShellProofContractHash",
+    "validateAppShellRealChromeProofAt", "healthResponse", "sourceFingerprint",
+  ]) if (!identifiers.has(required)) findings.push(createFinding({
+    checkId: "app-shell-ui/real-chrome-proof-route", lawId, filePath: realChromeProofPaths[0],
+    message: `The real-Chrome producer/verifier route is missing ${required}.`,
+  }));
+  for (const selector of [
+    "[data-app-shell]", "[data-app-shell-sidebar]", "main[data-app-shell-workspace]",
+    "[data-app-shell-inspector]", "[data-runtime-console]",
+    "[data-user-demand-startup], [data-legacy-app]", "用户需求启动",
+  ]) if (!strings.has(selector)) findings.push(createFinding({
+    checkId: "app-shell-ui/real-chrome-proof-route", lawId, filePath: realChromeProofPaths[0],
+    message: `The real-Chrome producer must observe exact exclusive selector ${selector}.`,
+  }));
+};
+
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
@@ -66,6 +112,12 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectAppShellLayout(context, findings, inspectedFiles, lawId);
   inspectForbiddenAppShellActions(context, findings, inspectedFiles, lawId);
   inspectLegacyAppUserDemandPhysicalAbsence(context, findings, inspectedFiles);
+  inspectRealChromePhysicalCleanup(
+    context,
+    findings,
+    inspectedFiles,
+    selectLawId(context.planEntry.lawIds, "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"),
+  );
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

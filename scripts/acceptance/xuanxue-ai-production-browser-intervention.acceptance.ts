@@ -27,6 +27,7 @@ try {
   const gateway = new FixtureGateway();
   const store = new XuanxueAiProductionStore(dataDir);
   const runtime: XuanxueAiProductionRuntime = {
+    candidateHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     dataDir,
     aiInputGateway: gateway,
     mediaProcessing: createMediaProcessingAbilityGroupFromFilesystem({ dataDir }),

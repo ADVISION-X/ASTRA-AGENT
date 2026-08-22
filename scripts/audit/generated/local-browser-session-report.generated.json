@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:31.017Z",
+  "generatedAt": "2026-08-22T13:47:46.516Z",
   "capabilityDomain": "local-browser-session",
   "executionGroup": "foundation",
   "lawIds": [
@@ -14,19 +14,20 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:77bc7bbd-2e89-465f-9e19-963e380c0512",
+      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d",
       "capabilityDomain": "local-browser-session",
       "checkId": "local-browser-session/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T02:57:30.935Z",
-      "endedAt": "2026-08-22T02:57:31.016Z",
-      "durationMs": 81,
+      "startedAt": "2026-08-22T13:47:46.424Z",
+      "endedAt": "2026-08-22T13:47:46.516Z",
+      "durationMs": 92,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
         "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
         "scripts/acceptance/browser-extension-build.acceptance.ts",
         "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
+        "scripts/acceptance/local-browser.real-chrome.ts",
         "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "scripts/audit/domains/local-browser-session/inspector.ts",
         "src/app/app-shell/command-bar.ts",
@@ -45,7 +46,7 @@
         "src/lib/browser/chrome-extension/websocket-actor-crypto.ts",
         "src/lib/browser/chrome-extension/websocket-actor.ts",
         "src/lib/browser/exact-target/browser-command-actor.ts",
-        "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
+        "src/lib/browser/exact-target/browser-proof-journal.ts",
         "src/lib/browser/exact-target/browser-session-workspace.ts",
         "src/lib/browser/exact-target/browser-target-lease-manager.ts",
         "src/lib/browser/infrastructure/browser-authority-broker.ts",
@@ -67,31 +68,37 @@
       "lawId": "APEX-LOCAL-BROWSER-001-V4",
       "clauseId": "apex-local-browser-001-v4-single-unpacked-websocket",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:77bc7bbd-2e89-465f-9e19-963e380c0512"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-002-V4",
       "clauseId": "apex-local-browser-002-v4-auth-liveness",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:77bc7bbd-2e89-465f-9e19-963e380c0512"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-003-V6",
       "clauseId": "apex-local-browser-003-v6-claim-workspace-restart-resume",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:77bc7bbd-2e89-465f-9e19-963e380c0512"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d"
     },
     {
       "lawId": "APEX-LOCAL-BROWSER-004-V4",
       "clauseId": "apex-local-browser-004-v4-durable-mutation",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:77bc7bbd-2e89-465f-9e19-963e380c0512"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d"
+    },
+    {
+      "lawId": "APEX-LOCAL-BROWSER-005-V4",
+      "clauseId": "apex-local-browser-005-v4-release-recovery",
+      "checkId": "local-browser-session/owner-assertion-set",
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2",
       "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
       "checkId": "local-browser-session/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:77bc7bbd-2e89-465f-9e19-963e380c0512"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:7eb59b34-ba92-4782-9096-c2054867546d"
     }
   ],
   "inspectedFiles": [
@@ -99,6 +106,7 @@
     "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md",
     "scripts/acceptance/browser-extension-build.acceptance.ts",
     "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
+    "scripts/acceptance/local-browser.real-chrome.ts",
     "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
     "scripts/audit/domains/local-browser-session/inspector.ts",
     "src/app/app-shell/command-bar.ts",
@@ -117,7 +125,7 @@
     "src/lib/browser/chrome-extension/websocket-actor-crypto.ts",
     "src/lib/browser/chrome-extension/websocket-actor.ts",
     "src/lib/browser/exact-target/browser-command-actor.ts",
-    "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
+    "src/lib/browser/exact-target/browser-proof-journal.ts",
     "src/lib/browser/exact-target/browser-session-workspace.ts",
     "src/lib/browser/exact-target/browser-target-lease-manager.ts",
     "src/lib/browser/infrastructure/browser-authority-broker.ts",

@@ -15,6 +15,8 @@ interface FreshIdentitySources {
   canonicalBinding: SourceFile;
   managedExecution: SourceFile;
   freshConversationControl: SourceFile;
+  failureClassification: SourceFile;
+  executionState: SourceFile;
   checkpoint: SourceFile;
   acceptance: SourceFile;
   shared: SourceFile;
@@ -37,18 +39,26 @@ const loadFreshIdentitySources = (
   const checkpoint = requireAiInputGatewaySource(
     context, findings, lawId, P.runtime.submissionCheckpointPath,
   );
+  const failureClassification = requireAiInputGatewaySource(
+    context, findings, lawId, P.runtime.failureClassificationPath,
+  );
+  const executionState = requireAiInputGatewaySource(
+    context, findings, lawId, P.executionRuntime.executionStatePath,
+  );
   const acceptance = requireAiInputGatewaySource(
     context, findings, lawId, P.acceptance.identityRecoveryAcceptancePath,
   );
   const shared = requireAiInputGatewaySource(
     context, findings, lawId, P.attachment.sharedPath,
   );
-  if (!canonicalBinding || !managedExecution || !freshConversationControl
+  if (!canonicalBinding || !managedExecution || !freshConversationControl || !failureClassification || !executionState
     || !checkpoint || !acceptance || !shared) return null;
   return {
     canonicalBinding,
     managedExecution,
     freshConversationControl,
+    failureClassification,
+    executionState,
     checkpoint,
     acceptance,
     shared,
@@ -81,8 +91,36 @@ const sharedPreparationCallOrderIsValid = (source: SourceFile): boolean => {
   return preSubmit !== null && attachment !== null && preSubmit < attachment;
 };
 
-const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
+const freshHydrationRecoveryIsValid = (sources: FreshIdentitySources): boolean => {
   const freshIds = identifiers(sources.freshConversationControl);
+  return freshIds.has("lastTransientObservationFailure")
+    && literalContains(sources.freshConversationControl,
+      "WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID")
+    && identifiers(sources.failureClassification)
+      .has("isTransientProviderUnavailability");
+};
+
+const freshConversationControlIsValid = (
+  sources: FreshIdentitySources,
+): boolean => {
+  const freshIds = identifiers(sources.freshConversationControl);
+  return freshIds.has("isExactFreshChatGptRoot")
+    && freshIds.has("startFreshChatGptConversation")
+    && literalContains(sources.freshConversationControl, "#upload-files")
+    && literalContains(sources.freshConversationControl, "pasted content")
+    && literalContains(sources.freshConversationControl, "停止生成")
+    && freshIds.has("removeAttachmentCount")
+    && freshHydrationRecoveryIsValid(sources);
+};
+
+const legacyTargetRecoveryIsValid = (
+  sources: FreshIdentitySources,
+): boolean => identifiers(sources.executionState)
+  .has("isLegacyPreMutationTargetInvalid")
+  && identifiers(sources.acceptance)
+    .has("assertLegacyPreMutationTargetInvalidResumesSameExecution");
+
+const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
   const checkpointIds = identifiers(sources.checkpoint);
   return identifiers(sources.canonicalBinding).has("assertWebChatCanonicalConversationBinding")
     && identifiers(sources.canonicalBinding).has("resolveSubmittedDraftOwnerByTurnMarker")
@@ -91,12 +129,8 @@ const freshIdentityCoreIsValid = (sources: FreshIdentitySources): boolean => {
     && identifiers(sources.acceptance).has("assertCanonicalConversationOwnership")
     && identifiers(sources.acceptance)
       .has("assertSubmittedDraftOwnershipRequiresOneCanonicalOwner")
-    && freshIds.has("isExactFreshChatGptRoot")
-    && freshIds.has("startFreshChatGptConversation")
-    && literalContains(sources.freshConversationControl, "#upload-files")
-    && literalContains(sources.freshConversationControl, "pasted content")
-    && literalContains(sources.freshConversationControl, "停止生成")
-    && freshIds.has("removeAttachmentCount")
+    && freshConversationControlIsValid(sources)
+    && legacyTargetRecoveryIsValid(sources)
     && sharedPreparationCallOrderIsValid(sources.shared)
     && checkpointIds.has("observeSubmittedWebChatTurn")
     && checkpointIds.has("finalizeObservedWebChatSubmission");
@@ -171,13 +205,9 @@ const loadSessionControlSources = (
     : null;
 };
 
-const inspectSessionControllerContract = (
-  context: InspectorContext,
-  findings: AiInputGatewayFinding[],
-  lawId: string,
-): void => {
-  const s = loadSessionControlSources(context, findings, lawId);
-  if (!s) return;
+type SessionControlSources = NonNullable<ReturnType<typeof loadSessionControlSources>>;
+
+const sessionControllerContractIsValid = (s: SessionControlSources): boolean => {
   const schemaIds = identifiers(s.schema);
   const profileIds = identifiers(s.profile);
   const gptProfileIds = identifiers(s.gptProfile);
@@ -188,7 +218,7 @@ const inspectSessionControllerContract = (
   const executionIds = identifiers(s.executionState);
   const checkpointIds = identifiers(s.checkpoint);
 
-  const required = [
+  return [
     literalContains(s.schema, "gpt-web-execution-profile.v1"),
     literalContains(s.schema, "extra_high"),
     literalContains(s.schema, "pro_standard"),
@@ -197,6 +227,14 @@ const inspectSessionControllerContract = (
     profileIds.has("governProductionGptExecutionProfileInput"),
     gptProfileIds.has("enforceGptWebExecutionProfile"),
     gptProfileIds.has("assertStableWebChatDocument"),
+    gptProfileIds.has("openAdvancedProfileMenu"),
+    gptProfileIds.has("observeSubmenuSelection"),
+    gptProfileIds.has("selectExactProfileValue"),
+    gptProfileIds.has("reasoningUiLabels"),
+    literalContains(s.gptProfile, "form button[aria-haspopup='menu'][data-tone='neutral']"),
+    literalContains(s.gptProfile, "[role='menuitem'][aria-label='显示高级选项']"),
+    literalContains(s.gptProfile, "[role='menuitemradio'][aria-checked='true']"),
+    literalContains(s.gptProfile, "GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH"),
     !gptProfileIds.has("reasoningSliderIndex"),
     !literalContains(s.gptProfile, "data-model-reasoning-effort-slider"),
     identifiers(s.session).has("prepareWebChatSessionForSubmission"),
@@ -218,6 +256,8 @@ const inspectSessionControllerContract = (
     executionIds.has("providerExecutionProfileBinding"),
     executionIds.has("conversationTitle"),
     executionIds.has("pageActionLedger"),
+    executionIds.has("isProofEmptyLegacyProfileReadbackState"),
+    literalContains(s.executionState, "LEGACY_PROFILE_READBACK_STATE_CORRECTION_APPLIED"),
     literalContains(s.executionState, "title_finalization_pending"),
     checkpointIds.has("providerExecutionProfileProof"),
     literalContains(s.proof, "AI_INPUT_GATEWAY_CONVERSATION_TITLE_PROOF_MISSING"),
@@ -226,18 +266,24 @@ const inspectSessionControllerContract = (
     identifiers(s.sessionAcceptance).has("assertPrivacySafeTitle"),
     identifiers(s.sessionAcceptance).has("assertContinuationDoesNotFakeLegacyTitleProof"),
   ].every(Boolean);
+};
 
-  if (!required) {
-    pushAiInputGatewayFinding(
-      findings,
-      lawId,
-      P.sessionControl.sessionControllerPath,
-      "ai-input-gateway/gpt-web-session-controller",
-      "GPT Web must have one Session Controller that hash-binds the semantic model "
-        + "profile, records page actions, routes by canonical URL plus marker, and "
-        + "finalizes a privacy-safe title only after provider result checkpointing.",
-    );
-  }
+const inspectSessionControllerContract = (
+  context: InspectorContext,
+  findings: AiInputGatewayFinding[],
+  lawId: string,
+): void => {
+  const sources = loadSessionControlSources(context, findings, lawId);
+  if (!sources || sessionControllerContractIsValid(sources)) return;
+  pushAiInputGatewayFinding(
+    findings,
+    lawId,
+    P.sessionControl.sessionControllerPath,
+    "ai-input-gateway/gpt-web-session-controller",
+    "GPT Web must have one Session Controller that hash-binds the semantic model "
+      + "profile, records page actions, routes by canonical URL plus marker, and "
+      + "finalizes a privacy-safe title only after provider result checkpointing.",
+  );
 };
 
 export const inspectCanonicalConversationIdentity = (

@@ -34,10 +34,10 @@ assert.equal(channel.readOperatorPairingSecret(), "a".repeat(64), "The Workbench
 channel.receive(socket, JSON.stringify({ protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "PAIR_HELLO", epoch: 0, sequence: 0, deadline: new Date(Date.now() + 10_000).toISOString(), body: { extensionId: "emkmbecadncngofidjgocmifhbonifgm", extensionVersion: "1.0.0", pairingSecret: "b".repeat(64) } }));
 assert.equal(revoked, "BROWSER_AUTH_FRAME_INVALID");
 assert.equal(wire.length, 0, "an invalid pre-auth frame must not emit a reply frame");
-const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSocket, extensionHeartbeat, authoritySocket, supervisor, webSocketUpgrade, frameCodec, protocolSchema, generatedProtocol] = await Promise.all([
+const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSocket, extensionHeartbeat, authoritySocket, supervisor, webSocketUpgrade, frameCodec, protocolSchema, generatedProtocol, commandDiagnostic] = await Promise.all([
   readFile("src/lib/browser/exact-target/browser-session-workspace.ts", "utf8"),
   readFile("src/lib/browser/transport/command-permit.ts", "utf8"),
-  readFile("src/lib/browser/exact-target/browser-mutation-intent-journal.ts", "utf8"),
+  readFile("src/lib/browser/exact-target/browser-proof-journal.ts", "utf8"),
   readFile("src/lib/browser/exact-target/browser-command-actor.ts", "utf8"),
   readFile("src/lib/browser/exact-target/browser-target-lease-manager.ts", "utf8"),
   readFile("src/lib/browser/chrome-extension/websocket-actor.ts", "utf8"),
@@ -48,7 +48,9 @@ const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSo
   readFile("src/lib/browser/transport/browser-authority-frame-codec.ts", "utf8"),
   readFile("src/lib/browser/protocol/browser-protocol.schema.json", "utf8"),
   readFile("src/lib/browser/protocol/generated/browser-protocol.generated.ts", "utf8"),
+  readFile("src/lib/browser/chrome-extension/websocket-command-diagnostic.ts", "utf8"),
 ]);
+const extensionDiagnosticSources = `${extensionSocket}\n${commandDiagnostic}`;
 const [targetAuthority, browserBlueprint] = await Promise.all([
   readFile("src/lib/browser/chrome-extension/extension-target-authority.ts", "utf8"),
   readFile("docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md", "utf8"),
@@ -65,6 +67,9 @@ assert.match(permit, /commandTtlMs/u);
 assert.doesNotMatch(permit, /deadlineAt/u);
 assert.match(journal, /PREPARED/u);
 assert.match(journal, /"UNKNOWN"/u);
+assert.match(journal, /previousEntryHash/u);
+assert.match(journal, /entryHash/u);
+assert.match(journal, /fsyncSync/u);
 assert.match(commandActor, /transport reply requires owning-plugin outcome resolution/u);
 assert.doesNotMatch(commandActor, /recordMutation\(this\.journal, journalEntry, "CONFIRMED"\)/u);
 assert.match(
@@ -95,9 +100,16 @@ assert.doesNotMatch(extensionSocket, /socket\?\.close\(\)/u, "the extension must
 assert.match(extensionSocket, /await this\.targetAuthority\.releaseActiveTarget\(false\)/u, "a closed authenticated socket must physically release the stale debugger target before the next operator pairing");
 assert.doesNotMatch(extensionSocket, /MAX_RECONNECT_ATTEMPTS|reconnectAttempts|grasseye-browser-authority-wake/u, "one-time pairing must not leave a fake reconnect or alarm path that cannot authenticate");
 assert.match(extensionSocket, /runtimeEventType: "debugger-detach"/u, "unexpected debugger detach must reach the structured Workbench terminal while the authenticated socket is available");
+assert.match(extensionDiagnosticSources, /runtimeEventType: "command-handler"/u, "authenticated command failures must reach the structured Workbench terminal");
+assert.match(extensionDiagnosticSources, /commandStage/u, "command failure diagnostics must identify the failed command stage");
+assert.match(extensionDiagnosticSources, /commandIntentKind/u, "DOM command failure diagnostics must identify the fixed intent kind without logging selector or payload content");
+assert.match(extensionDiagnosticSources, /capabilityId/u, "command failure diagnostics must identify the governed capability without logging payload content");
 assert.match(authoritySocket, /if \(frame\.kind === "DIAGNOSTIC"\)/u, "the Workbench must accept a non-fatal encrypted extension diagnostic frame");
 assert.match(authoritySocket, /BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID/u, "a cached pre-build-identity worker must fail with an exact release identity reason");
 assert.match(authoritySocket, /failedFrameSequence: String\(nonNegativeIntegerField\(body, "failedFrameSequence"\)\)/u, "the Workbench diagnostic refs must retain the failed frame sequence");
+for (const field of ["commandStage", "commandKind", "commandIntentKind", "capabilityId"]) {
+  assert.match(authoritySocket, new RegExp(`\\b${field}\\b`, "u"), `the Workbench terminal must retain the redacted command diagnostic field ${field}`);
+}
 assert.match(authoritySocket, /refs\.encodedByteLength = String/u, "the Workbench diagnostic refs must retain the failed encoded byte length without raw payload");
 assert.match(authoritySocket, /refs\.targetRef = body\.targetRef\.slice/u, "the Workbench diagnostic refs must identify the detached governed target without exposing page data");
 assert.match(extensionSocket, /\{ requestSequence, permitSequence, replyChannelToken, result \}/u, "an extension reply must echo transport and permit sequences as separate identities");

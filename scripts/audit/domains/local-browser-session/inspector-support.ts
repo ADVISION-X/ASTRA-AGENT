@@ -32,7 +32,7 @@ export const sourcePaths = [
   "src/lib/browser/exact-target/browser-session-workspace.ts",
   "src/lib/browser/exact-target/browser-target-lease-manager.ts",
   "src/lib/browser/exact-target/browser-command-actor.ts",
-  "src/lib/browser/exact-target/browser-mutation-intent-journal.ts",
+  "src/lib/browser/exact-target/browser-proof-journal.ts",
   "src/lib/browser/chrome-extension/command-registry.ts",
   "src/lib/local-runtime/workbench-browser-authority-support.ts",
   "src/lib/local-runtime/workbench-handle.ts",
@@ -49,6 +49,7 @@ export const sourcePaths = [
   "src/app/workbench-browser-websocket-upgrade.ts",
   "src/lib/browser/chrome-extension/extension-heartbeat.ts",
   "src/lib/browser/chrome-extension/pairing-completion-gate.ts",
+  "scripts/acceptance/local-browser.real-chrome.ts",
 ] as const;
 
 export const retiredPaths = [

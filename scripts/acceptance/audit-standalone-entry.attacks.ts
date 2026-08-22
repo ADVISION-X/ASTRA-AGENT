@@ -22,4 +22,22 @@ export const assertStandaloneAuditEntrypointRejected = (
     finding.checkId === "audit-system/runner-order-truth"
     && finding.filePath?.endsWith("standalone-entry-attack.fixture.ts")), true,
   "audit governance must reject standalone self-executing entries under scripts/audit.");
+
+  const inlineFixturePath = resolveFromRepo(
+    "scripts/audit/build/standalone-inline-entry-attack.fixture.ts",
+  );
+  project.getSourceFile(inlineFixturePath)?.forget();
+  project.createSourceFile(
+    inlineFixturePath,
+    "if (import.meta.url === `file://${process.argv[1]}`) process.stdout.write('PASS');",
+    { overwrite: true },
+  );
+  const inlineResult = inspectRetiredEnforcementSurfaces(
+    buildContext(project),
+    "APEX-AUDIT-009-V1",
+  );
+  assert.equal(inlineResult.findings.some((finding) =>
+    finding.checkId === "audit-system/runner-order-truth"
+    && finding.filePath?.endsWith("standalone-inline-entry-attack.fixture.ts")), true,
+  "audit governance must reject inline import.meta/process.argv entrypoints.");
 };

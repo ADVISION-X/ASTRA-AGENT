@@ -296,6 +296,10 @@ Deterministic acceptance 必须真实执行：
 
 真实 Chrome 必须证明后台 controlled target 的声明式 observe/click/fill/file-input 命令只影响目标 tab，前台 tab 的 URL、title、scroll 和 input marker 不变。真实 Seller Central 还必须证明单个原子 fill 命令能让 KAT 输入模型接受精确值，以及文件组件在清空 native receiver 后仍以自己的 ready item 表示已选文件；未实际提交成功时标记 `NOT_PRODUCTION_VERIFIED`。
 
+`APEX-DOM-020-V1` 的唯一延期动态验证叶是 `scripts/acceptance/dom-automation-exact-target.real-chrome.ts`；`APEX-DOM-021-V1` 的唯一延期动态验证叶是 `scripts/acceptance/dom-automation.real-chrome.ts`。两者只读取 Browser owner 生产的 `.grasseye-local/browser/proof-events.ndjson`，先验证完整 hash chain，再独立重算当前源码候选并只接受 30 分钟内的事件。DOM-020 必须看到同一 target/document 上先有真实 document/inspect `COMPLETED`，再有 click 的 `PREPARED,SEND,UNKNOWN,CONFIRMED`。DOM-021 必须看到互不相同的 click 与 fill command，各自 phase 恰好为 `PREPARED,SEND,UNKNOWN,CONFIRMED`，且 target/document/payload identity 稳定；Extension 在唯一命令内重新解析恰好一个接收者，fill 后用 `Accessibility.getPartialAXTree` 读取同一 backend node 的实际值并与 approved text 精确比较，Browser actor 只把认证 reply 中的一候选/一 mutation/identity revalidation/retained-value 结果摘要写入 UNKNOWN；UNKNOWN 还必须带 transport/permit sequence 和完整 result hash，CONFIRMED 带 owning Plugin 的两个互异正反 evidence refs 与完整 receipt hash。任一 journal 字节篡改、候选漂移、过期、零/多链、phase 插入/缺失、身份漂移、retained-value 不符、证据冲突或 fixture 替换一律 `NOT_PRODUCTION_VERIFIED`；不得再借用 Xuanxue Cloud/Provider envelope 充当 DOM owner 的页面动作证明。
+
+延期动态分母从 active law 重建；同时删除 package 叶和 binding 仍必须使 CI 以 `Deferred dynamic proof denominator mismatch` 失败，不能由 package 自报分母。
+
 ## 18. 施工顺序
 
 ```txt

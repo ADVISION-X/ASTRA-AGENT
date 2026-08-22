@@ -6,7 +6,7 @@ applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/mediator/xuanxue-ai-prod
 # GrassEye 玄学 AI 生产工厂法案
 
 status: active
-version: 2026-08-22.restart-resume
+version: 2026-08-22.ten-job-continuous-oldest-first-recovery
 capabilityDomain: xuanxue-ai-production
 
 ## 1. 唯一责任与主链
@@ -43,8 +43,9 @@ manifest hash，不手写重复 Cloud schema。非 V5 version、缺失字段、�
 validator proof 或 terminal 身份。
 
 Plugin 必须先持久化并 fsync 不可变 `localOrderIdentity`，之后才承认订单或触发 Browser
-side effect。每个订单同一时刻最多一个执行；本机 `max_in_flight=1`，等待 Provider 结果不
-占用浏览器 mutation lock。重启必须恢复同一 durable identity / execution checkpoint，禁止
+side effect。每个订单同一时刻最多一个执行；每台生产设备固定 `max_in_flight=10` 个独立业务
+任务，等待 Provider 结果不占用浏览器 mutation lock，而真实页面动作仍固定
+`max_browser_in_flight=1` 并在同一物理标签页串行。重启必须恢复同一 durable identity / execution checkpoint，禁止
 重复创建订单、重复提交 prompt 或重放 `UNKNOWN` mutation。
 
 Cloud 只提供 lease、grant、checkpoint、terminal、cancel 与人工 handover API。所有 mutation
@@ -63,10 +64,34 @@ Browser side effect 前必须拥有当前 connection generation 上由“人工�
 恢复 `created_at + job_id` 最早的未完成任务，再进入普通调度。
 
 临时无 GPT、真实浏览器断线、`BROWSER_EXTENSION_CHANNEL_UNAVAILABLE`、
-`BROWSER_LIVENESS_EXPIRED`、`BROWSER_SESSION_WORKSPACE_REQUIRED` 与网络中断只能写
+`BROWSER_LIVENESS_EXPIRED`、`BROWSER_SESSION_WORKSPACE_REQUIRED`、同一 target 导航后 mutation 前
+由页面 hydration/document replacement 引起的短暂 `BROWSER_TARGET_INVALID` 与网络中断只能写
 `recovery_pending`，保留同一 job、attempt、checkpoint 和 fence，绝不能写业务 `failed` 或清理
 可恢复现场。只有不可变输入/合同错误、真实页面明确终态失败或人工复核边界才允许 terminal。
 每个命令由固定 registry 解析，单 tab、单 mutation lock，且 Target/Document 零或多候选都失败关闭。
+
+所有用户已发布任务在 `completed`、明确 `cancelled` 或有真实业务终态证据以前都属于未完成任务，
+必须由同一 job、同一 source task、同一 request hash 和同一本地 order 持久续跑。常驻 Worker 的每轮
+poll 都必须先对账本地非终态账本；对账去重只能绑定当前 `job_id + attempt_id + local status + updated_at`
+版本，任务状态、attempt 或 checkpoint 一旦变化，下一轮必须自动再次对账，绝不能用进程级永久集合
+把同一订单屏蔽到下次重启。重启只是重新进入同一循环，不是恢复触发器。
+
+旧候选把 mutation 前、无 submission/attachment/checkpoint/output/`UNKNOWN` proof 的已查明技术故障误写为
+`failed`，或旧 GPT execution-profile 占位实现将未提交任务误写为 `review_required`，只能由精确的一次性
+Cloud migration 与本地 SQLite `user_version` migration 在原 job/order/stage 上纠正为 `recovery_pending`。常驻 Worker、
+`/recover`、operator 都不得扫描 terminal，不得人工逐单复活或新建任务。迁移必须反向排除任何 side effect、
+`UNKNOWN`、不可变身份/合同错误、明确业务失败、completed 或 cancelled；纠正后的 grant 仍须业务订单身份、
+contract manifest 完全一致，attempt 变化、lease version 单调增加且 fence 变化，原 execution id、failure ledger 和
+stage event 全部保留。本地 `user_version=3` 只纠正已经带有 v2 profile-readback 纠偏事件、但随后被旧
+Gateway 持久状态再次误写为“missing durable submission proof”的同一 proof-empty execution；不得扩展为
+通用 failed reader。
+
+Cloud claim 必须在唯一 `ai_production_jobs` 队列内，把所有当前可领取的 `queued` 与
+`recovery_pending` 合并后严格按不可变 `created_at + job_id` 选择全局最早任务。service class、背景份额、
+aging、注册顺序、失败/恢复类别和本地内存队列顺序都不得越过更早任务；不满足 retry、device、contract、
+lease、material 或安全准入的记录不属于当前可领取集合，也不得阻塞其后的最早可领取记录。AGENT
+取得 grant 后，本地 runnable selection 仍按同一 `created_at + job_id`，禁止建立恢复优先分区、普通任务
+优先分区、影子队列或新 job。
 
 对页面 mutation，Browser exact-target owner 先 fsync `PREPARED`，再 `SEND`，最终仅可为
 `CONFIRMED`、`FAILED` 或 `UNKNOWN`。`UNKNOWN` 禁止自动 replay；Plugin 只能根据同一真实页面
@@ -93,7 +118,7 @@ Chrome、Provider、Cloud 终态或 release。凡修改 Browser/DOM 生产行为
 `NOT_PRODUCTION_VERIFIED`。
 
 ```apex-law
-{"lawId":"APEX-XUANXUE-AI-PRODUCTION-001-V3","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome+real-provider","summary":"Only V5 outbound Cloud Pull may deliver a complete xuanxue production order through the unique Worker-to-Mediator-to-Plugin chain; durable identity, connection-bound Workspace, oldest-first restart recovery, fence and first-terminal CAS fail closed without an alternate path.","required":["xuanxue-web packages/ai-contracts is the sole V5 schema manifest vector and fixture owner","AGENT consumes only the frozen canonical artifact to generate its validator and verify manifest hash","xuanxue-ai-production-v5 canonical manifest validation","Cloud Worker to one mediator to one Plugin","fsync local order identity before execution","max_in_flight=1","manual pair plus target claim establishes one no-wall-clock-expiry Workspace plus dynamic Authority Target Document","browser and network discontinuity remains recovery_pending","oldest unfinished job resumes before normal scheduling","first-terminal CAS and explicit foreign-device handover","UNKNOWN never auto-replayed"],"forbidden":["xuanxue external HMAC/LNA/localhost business ingress","V4 reader or writer","separate or per-job Browser approval","8h or any wall-clock Workspace expiry","browser disconnect written as business failed","newer job before oldest unfinished recovery","Cloud callback","second worker mediator ledger Browser or Provider chain","local handwritten duplicate Cloud schema or second validator owner","alias default normalization compatibility fallback dual reader or dual writer"],"clauses":[{"clauseId":"apex-xuanxue-001-v3-cloud-pull-v5","statement":"A browser side effect or terminal result is possible only after one V5 Cloud Pull order passes canonical grant, durable identity, connection-bound Workspace, current fence and exact-target checks in the unique owner chain; browser discontinuity remains recovery_pending and fresh pair plus claim resumes the oldest unfinished job.","evidenceMode":"model+acceptance+real-chrome","ownerDomain":"xuanxue-ai-production"}]}
+{"lawId":"APEX-XUANXUE-AI-PRODUCTION-001-V4","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome+real-provider","summary":"Only V5 outbound Cloud Pull may deliver a complete xuanxue production order through the unique Worker-to-Mediator-to-Plugin chain; every user-issued unfinished task is durable, every changed recovery version is reconciled by the continuously running worker, exactly ten independent business tasks may wait concurrently behind one serialized Browser action lane, and the globally oldest claimable created_at plus job_id always runs first.","required":["xuanxue-web packages/ai-contracts is the sole V5 schema manifest vector and fixture owner","AGENT consumes only the frozen canonical artifact to generate its validator and verify manifest hash","xuanxue-ai-production-v5 canonical manifest validation","Cloud Worker to one mediator to one Plugin","fsync local order identity before execution","max_in_flight=10 and max_browser_in_flight=1","manual pair plus target claim establishes one no-wall-clock-expiry Workspace plus dynamic Authority Target Document","browser and network discontinuity remains recovery_pending","every poll reconciles each changed job attempt status and checkpoint version","proof-empty historical pre-submission misclassifications are corrected only by exact one-time Cloud and local migrations on the same job","all claimable queued and recovery_pending jobs share one global created_at plus job_id order","first-terminal CAS and explicit foreign-device handover","UNKNOWN never auto-replayed","real Chrome and real Provider receipts bind an independently recomputed current source candidate, one immutable Browser runtime receipt, the canonical production Workbench data directory, an authenticated Cloud device heartbeat, the exact completed Cloud job set, and a bounded fresh run"],"forbidden":["xuanxue external HMAC/LNA/localhost business ingress","V4 reader or writer","separate or per-job Browser approval","8h or any wall-clock Workspace expiry","browser disconnect written as business failed","collapsing ten business/provider waits into one job because Browser mutation is serialized","process-lifetime reconciliation suppression for a changed order","operator recovery button or unproved failed-task resurrection path","new job or new prompt used to replace a recoverable original task","service class recovery partition registration order or in-memory order bypassing the globally oldest claimable job","automatic replay of UNKNOWN or any task with side-effect proof","stale or foreign-candidate Chrome or Provider receipt","caller-selected proof root or caller-supplied candidate identity","offline caller-minted Provider bundle without authenticated Cloud terminal readback","Cloud callback","second worker mediator queue ledger Browser or Provider chain","local handwritten duplicate Cloud schema or second validator owner","alias default normalization compatibility fallback dual reader or dual writer"],"clauses":[{"clauseId":"apex-xuanxue-001-v4-cloud-pull-v5","statement":"A browser side effect or terminal result is possible only after one V5 Cloud Pull order passes canonical grant, durable identity, connection-bound Workspace, current fence and exact-target checks in the unique owner chain; up to ten independent jobs may hold durable provider waits while one Browser action is serialized, technical discontinuity stays recovery_pending, proof-empty historical pre-submission misclassifications are corrected only by exact one-time Cloud and local migrations on the same job, every changed local recovery version is reconciled by the continuous poll loop, UNKNOWN is never replayed, the single Cloud plus local scheduler resumes the globally oldest claimable created_at plus job_id, and each deferred Chrome or Provider proof independently recomputes the current candidate, consumes the canonical production run root, binds one immutable runtime receipt, and for Provider proof requires a fresh authenticated Cloud readback proving the exact job set is terminal completed.","evidenceMode":"model+acceptance+real-chrome+real-provider","ownerDomain":"xuanxue-ai-production"}]}
 ```
 
 本文件只保存 current active law；历史版本或旧链不得在活动源码、法案、施工图、fixture 或

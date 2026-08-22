@@ -4,9 +4,11 @@ import { resolve } from "node:path";
 import { generatedDir } from "./shared/paths.js";
 
 export type StepResult = {
+  clauseId: string | null;
   command: string;
   durationMs: number;
   endedAt: string;
+  evidenceFacet: import("./shared/law-contracts.js").ClauseEvidenceFacet | null;
   error?: string | undefined;
   name: string;
   ownerId: string;
@@ -28,9 +30,11 @@ export type CiFullFirstFailure = {
 
 export type CiFullSkippedStep = {
   authorityStatus: "authority_not_reached" | "sealed";
+  clauseId: string | null;
   command: string;
   durationMs: 0;
   endedAt: null;
+  evidenceFacet: import("./shared/law-contracts.js").ClauseEvidenceFacet | null;
   lawId: string | null;
   name: string;
   ownerId: string | null;

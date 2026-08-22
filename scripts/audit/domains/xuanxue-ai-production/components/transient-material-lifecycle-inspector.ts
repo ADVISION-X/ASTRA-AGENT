@@ -38,7 +38,7 @@ export const inspectTransientLifecycleBehavior = (
     if (file && passed) continue;
     findings.push(createFinding({
       lawId,
-      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
       checkId: "xuanxue-ai-production/transient-material-lifecycle-behavior",
       filePath: file ? file.getFilePath() : lifecyclePath,
       message,

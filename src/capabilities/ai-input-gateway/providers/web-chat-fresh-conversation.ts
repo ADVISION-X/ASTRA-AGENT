@@ -149,15 +149,31 @@ export const startFreshChatGptConversation = async (
   input.emitStage({ stage: "fresh_chatgpt_conversation", status: "start", startedAtMs: null, refs: { timeoutMs: 30_000 } });
   try {
     await input.browser.navigate({ url: "https://chatgpt.com/", title: "fresh governed ChatGPT conversation" });
+    // Page.navigate confirms navigation admission, not that ChatGPT's next
+    // document is ready for its first bounded DOM observation.
+    await input.browser.wait({ durationMs: 250 });
     const deadline = Date.now() + 30_000;
+    let lastTransientObservationFailure: string | null = null;
     while (Date.now() < deadline) {
       if (input.context.abortSignal?.aborted) throw new Error("review_required: ChatGPT fresh conversation wait aborted");
-      if (await isExactFreshChatGptRoot(input.browser)) {
-        await input.waitForProviderComposer();
-        input.emitStage({ stage: "fresh_chatgpt_conversation", status: "success", startedAtMs, refs: { exactRoot: true } });
-        return;
+      try {
+        if (await isExactFreshChatGptRoot(input.browser)) {
+          await input.waitForProviderComposer();
+          input.emitStage({ stage: "fresh_chatgpt_conversation", status: "success", startedAtMs, refs: { exactRoot: true } });
+          return;
+        }
+        lastTransientObservationFailure = null;
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "BROWSER_TARGET_INVALID") throw error;
+        // ChatGPT replaces hydrated composer nodes while keeping the same
+        // document. Re-observe the same governed selector until the existing
+        // deadline; do not widen the selector or create another route.
+        lastTransientObservationFailure = error.message;
       }
       await input.browser.wait({ durationMs: 250 });
+    }
+    if (lastTransientObservationFailure) {
+      throw new Error("WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID");
     }
     throw new Error("review_required: ChatGPT root did not reach the exact empty fresh-conversation state");
   } catch (error) {

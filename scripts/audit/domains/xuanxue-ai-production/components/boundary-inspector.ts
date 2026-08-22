@@ -16,7 +16,7 @@ const finding = (
   checkId: string,
   filePath: string,
   message: string,
-): InspectorFinding => createFinding({ lawId, clauseId: "apex-xuanxue-001-v3-cloud-pull-v5", checkId, filePath, message });
+): InspectorFinding => createFinding({ lawId, clauseId: "apex-xuanxue-001-v4-cloud-pull-v5", checkId, filePath, message });
 
 const sourceContainsDetachedProviderPreflightMarker = (
   sourceFile: SourceFile,

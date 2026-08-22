@@ -443,6 +443,18 @@ const browserReasonCodeField = (body: Readonly<Record<string, unknown>>, name: s
   return value;
 };
 
+const optionalExtensionDiagnosticRefs = (
+  body: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> => ({
+  diagnosticSource: body.diagnosticSource,
+  runtimeEventType: body.runtimeEventType,
+  errorName: body.errorName,
+  commandStage: body.commandStage,
+  commandKind: body.commandKind,
+  commandIntentKind: body.commandIntentKind,
+  capabilityId: body.capabilityId,
+});
+
 const parseExtensionDiagnostic = (body: Readonly<Record<string, unknown>>): Readonly<{
   reasonCode: string;
   refs: Readonly<Record<string, string>>;
@@ -452,8 +464,8 @@ const parseExtensionDiagnostic = (body: Readonly<Record<string, unknown>>): Read
     failedFrameKind: stringField(body, "failedFrameKind"),
     failedFrameSequence: String(nonNegativeIntegerField(body, "failedFrameSequence")),
   };
-  for (const name of ["diagnosticSource", "runtimeEventType", "errorName"] as const) {
-    if (typeof body[name] === "string" && body[name].length > 0) refs[name] = body[name].slice(0, 64);
+  for (const [name, value] of Object.entries(optionalExtensionDiagnosticRefs(body))) {
+    if (typeof value === "string" && value.length > 0) refs[name] = value.slice(0, 64);
   }
   if (typeof body.targetRef === "string" && body.targetRef.length > 0) refs.targetRef = body.targetRef.slice(0, 128);
   if (typeof body.encodedByteLength === "number" && Number.isSafeInteger(body.encodedByteLength) && body.encodedByteLength >= 0) {

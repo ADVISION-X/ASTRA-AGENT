@@ -29,6 +29,10 @@ import {
   signaturePayload,
   type JsonWebKeyRecord,
 } from "./websocket-actor-crypto.js";
+import {
+  extensionCommandDiagnostic,
+  type ExtensionCommandStage,
+} from "./websocket-command-diagnostic.js";
 
 declare const __GRASSEYE_RELEASE_BUILD_ID__: string;
 
@@ -360,15 +364,30 @@ export class ExtensionWebSocketActor {
     const requestSequence = frame.sequence;
     const permitSequence = permit && typeof permit.sequence === "number" ? permit.sequence : 0;
     const replyChannelToken = permit && typeof permit.replyChannelToken === "string" ? permit.replyChannelToken : "invalid";
+    let commandStage: ExtensionCommandStage = "payload";
+    let command: BrowserGovernedCommand | null = null;
     try {
       if (!permit) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-      const command = commandFrom(payload.command);
+      commandStage = "command-shape";
+      command = commandFrom(payload.command);
+      commandStage = "command-admission";
       await admitExtensionCommand({ command, permit });
+      commandStage = "target-resolution";
       const target = this.targetAuthority.resolve(permit.targetRef, permit.documentRef);
+      commandStage = "registered-command";
       const result = await this.targetAuthority.executeRegisteredCommand(command, target);
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, result });
     } catch (error) {
-      await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, errorCode: errorCode(error) });
+      const commandErrorCode = errorCode(error);
+      await this.sendEncrypted(socket, "DIAGNOSTIC", extensionCommandDiagnostic({
+        error,
+        failedFrameSequence: requestSequence,
+        commandStage,
+        commandKind: command?.kind ?? null,
+        commandIntentKind: command?.kind === "dom-intent" ? command.intent.kind : null,
+        capabilityId: permit && typeof permit.capabilityId === "string" ? permit.capabilityId : null,
+      }));
+      await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, errorCode: commandErrorCode });
     }
   }
 

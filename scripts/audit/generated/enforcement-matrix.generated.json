@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:01.503Z",
+  "generatedAt": "2026-08-22T13:47:15.974Z",
   "rows": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -280,7 +280,7 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "lawIds": [
-        "APEX-XUANXUE-AI-PRODUCTION-001-V3"
+        "APEX-XUANXUE-AI-PRODUCTION-001-V4"
       ]
     }
   ]

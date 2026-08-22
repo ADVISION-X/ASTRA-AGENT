@@ -19,6 +19,7 @@ export const assertPluginOutcomeResolution = (
     || receipt.commandId.length === 0
     || receipt.positiveEvidenceRef.length === 0
     || receipt.negativeEvidenceRef.length === 0
+    || receipt.positiveEvidenceRef === receipt.negativeEvidenceRef
     || receipt.uniqueTargetRef.length === 0
     || Number.isNaN(Date.parse(receipt.boundedAt))) {
     throw new Error("BROWSER_OUTCOME_UNKNOWN");

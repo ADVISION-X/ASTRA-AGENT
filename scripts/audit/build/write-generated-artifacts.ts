@@ -9,7 +9,11 @@ import type {
 } from "../shared/generated-contracts.js";
 import type { LawSource } from "../shared/law-contracts.js";
 import { generatedDir } from "../shared/paths.js";
-import { evidenceModeIncludesRealChrome } from "../shared/law-contracts.js";
+import {
+  evidenceModeIncludesRealChrome,
+  evidenceModeIncludesRealProvider,
+  evidenceModeRequiresOwnerReceipt,
+} from "../shared/law-contracts.js";
 
 const writeJson = (fileName: string, payload: unknown): void => {
   writeFileSync(resolve(generatedDir, fileName), `${JSON.stringify(payload, null, 2)}\n`);
@@ -50,11 +54,13 @@ const buildStaticCoverageSummary = (
   activeLawCount: number;
   activeClauseCount: number;
   boundClauseCount: number;
-  machineClauseCount: number;
-  executedMachineClauseCount: number;
-  deferredRealChromeClauseCount: number;
-  realChromeClauseIds: string[];
-  uncoveredMachineClauseIds: string[];
+  machineFacetClauseCount: number;
+  executedMachineFacetClauseCount: number;
+  deferredRealChromeFacetCount: number;
+  realChromeFacetClauseIds: string[];
+  deferredRealProviderFacetCount: number;
+  realProviderFacetClauseIds: string[];
+  uncoveredMachineFacetClauseIds: string[];
   coveragePercent: number;
 } => {
   const activeLaws = laws.filter((law) => law.status === "active");
@@ -64,33 +70,38 @@ const buildStaticCoverageSummary = (
   const coverageByClause = new Map(
     staticCoverage.map((entry) => [`${entry.lawId}::${entry.clauseId}`, entry]),
   );
-  const machineCoverage = staticCoverage.filter((entry) => !evidenceModeIncludesRealChrome(entry.evidenceMode));
+  const machineCoverage = staticCoverage.filter((entry) => evidenceModeRequiresOwnerReceipt(entry.evidenceMode));
   const executedMachineClauseKeys = new Set(
     machineCoverage
       .filter((entry) => entry.checkIds.every((checkId) =>
         executedChecks.has(`${entry.lawId}::${entry.clauseId}::${checkId}`)))
       .map((entry) => `${entry.lawId}::${entry.clauseId}`),
   );
-  const realChromeClauseIds = staticCoverage
+  const realChromeFacetClauseIds = staticCoverage
     .filter((entry) => evidenceModeIncludesRealChrome(entry.evidenceMode))
     .map((entry) => `${entry.lawId}::${entry.clauseId}`);
-  const uncoveredMachineClauseIds = machineCoverage
+  const realProviderFacetClauseIds = staticCoverage
+    .filter((entry) => evidenceModeIncludesRealProvider(entry.evidenceMode))
+    .map((entry) => `${entry.lawId}::${entry.clauseId}`);
+  const uncoveredMachineFacetClauseIds = machineCoverage
     .map((entry) => `${entry.lawId}::${entry.clauseId}`)
     .filter((key) => !executedMachineClauseKeys.has(key));
   const activeClauseCount = activeClauseKeys.length;
-  const machineClauseCount = machineCoverage.length;
+  const machineFacetClauseCount = machineCoverage.length;
   return {
     activeLawCount,
     activeClauseCount,
     boundClauseCount: activeClauseKeys.filter((key) => coverageByClause.has(key)).length,
-    machineClauseCount,
-    executedMachineClauseCount: executedMachineClauseKeys.size,
-    deferredRealChromeClauseCount: realChromeClauseIds.length,
-    realChromeClauseIds,
-    uncoveredMachineClauseIds,
-    coveragePercent: machineClauseCount === 0
+    machineFacetClauseCount,
+    executedMachineFacetClauseCount: executedMachineClauseKeys.size,
+    deferredRealChromeFacetCount: realChromeFacetClauseIds.length,
+    realChromeFacetClauseIds,
+    deferredRealProviderFacetCount: realProviderFacetClauseIds.length,
+    realProviderFacetClauseIds,
+    uncoveredMachineFacetClauseIds,
+    coveragePercent: machineFacetClauseCount === 0
       ? 100
-      : Math.round(((machineClauseCount - uncoveredMachineClauseIds.length) / machineClauseCount) * 100),
+      : Math.round(((machineFacetClauseCount - uncoveredMachineFacetClauseIds.length) / machineFacetClauseCount) * 100),
   };
 };
 

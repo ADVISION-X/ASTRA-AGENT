@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:31.125Z",
+  "generatedAt": "2026-08-22T13:47:46.629Z",
   "capabilityDomain": "amazon-product-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,13 +9,13 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:12c027fc-4d10-4379-a358-624365cd8e2e",
+      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:c8117eb2-03ef-480c-915d-913a622d81ed",
       "capabilityDomain": "amazon-product-mining",
       "checkId": "amazon-product-mining/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T02:57:31.125Z",
-      "endedAt": "2026-08-22T02:57:31.125Z",
+      "startedAt": "2026-08-22T13:47:46.629Z",
+      "endedAt": "2026-08-22T13:47:46.629Z",
       "durationMs": 0,
       "evidenceRefs": [
         "scripts/audit/domains/amazon-product-mining/inspector.ts",
@@ -33,7 +33,7 @@
       "lawId": "APEX-AMAZON-PRODUCT-MINING-001-V3",
       "clauseId": "apex-amazon-product-mining-001-v3-terminal-authority",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:12c027fc-4d10-4379-a358-624365cd8e2e"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:c8117eb2-03ef-480c-915d-913a622d81ed"
     }
   ],
   "inspectedFiles": [

@@ -32,11 +32,13 @@ const packageJsonPath = "package.json";
 type StaticCoverageSummary = {
   activeClauseCount?: number;
   boundClauseCount?: number;
-  machineClauseCount?: number;
-  executedMachineClauseCount?: number;
-  deferredRealChromeClauseCount?: number;
-  realChromeClauseIds?: string[];
-  uncoveredMachineClauseIds?: string[];
+  machineFacetClauseCount?: number;
+  executedMachineFacetClauseCount?: number;
+  deferredRealChromeFacetCount?: number;
+  realChromeFacetClauseIds?: string[];
+  deferredRealProviderFacetCount?: number;
+  realProviderFacetClauseIds?: string[];
+  uncoveredMachineFacetClauseIds?: string[];
   coveragePercent?: number;
 };
 
@@ -192,13 +194,24 @@ export const pushStaticCoverageFindings = (
         }),
       );
     }
-    if (summary.deferredRealChromeClauseCount !== summary.realChromeClauseIds?.length) {
+    if (summary.deferredRealChromeFacetCount !== summary.realChromeFacetClauseIds?.length) {
       findings.push(
         createFinding({
           checkId: "audit-system/static-clause-coverage",
           lawId: metaLawId,
           filePath: staticCoveragePath,
-          message: `${staticCoveragePath} must keep every real-Chrome clause explicitly deferred from ordinary CI execution truth.`,
+          message: `${staticCoveragePath} must keep every real-Chrome facet explicitly deferred from ordinary CI execution truth.`,
+          evidence: JSON.stringify(summary),
+        }),
+      );
+    }
+    if (summary.deferredRealProviderFacetCount !== summary.realProviderFacetClauseIds?.length) {
+      findings.push(
+        createFinding({
+          checkId: "audit-system/static-clause-coverage",
+          lawId: metaLawId,
+          filePath: staticCoveragePath,
+          message: `${staticCoveragePath} must keep every real-provider facet explicitly separate from real-Chrome and deferred from ordinary CI execution truth.`,
           evidence: JSON.stringify(summary),
         }),
       );

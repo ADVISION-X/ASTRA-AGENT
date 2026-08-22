@@ -3,11 +3,11 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildAuditArtifacts } from "./build-audit-artifacts.js";
-import { buildAcceptanceLeafSkeletons } from "./ci-acceptance-leaf-plan.js";
+import type { AcceptanceLeafSkeleton } from "./ci-acceptance-leaf-plan.js";
 import { AUDIT_PLAN_TIMEOUT_MS, runGeneratedPlanWithDeadline, type PlanRunResult } from "./ci-audit-plan-runner.js";
 import { runBoundedCommand } from "./ci-command-runner.js";
 import { createFailFast, type FailFast } from "./ci-fail-fast.js";
-import { sealCiPhasePlanOrFail } from "./ci-phase-sealer.js";
+import { buildAcceptancePackageSkeletonsOrFail, sealCiPhasePlanOrFail } from "./ci-phase-sealer.js";
 import {
   buildCiPlanSkeleton,
   codexEntryGateStep,
@@ -18,11 +18,9 @@ import {
 } from "./ci-full-phase-plan.js";
 import { writeCiFullSummary, type CiFullFirstFailure, type CiFullLawCoverage, type CiFullOwnerReport, type StepResult } from "./ci-full-summary.js";
 import { resolveFromRepo } from "./shared/paths.js";
-
 export { ciFullSummaryPath, writeCiFullSummary } from "./ci-full-summary.js";
 export { createFailFast } from "./ci-fail-fast.js";
 export type { CiFullFirstFailure, CiFullLawCoverage, CiFullOwnerReport, CiFullSkippedStep, StepResult } from "./ci-full-summary.js";
-
 type GeneratedReportJson = {
   findings?: Array<{
     filePath?: string;
@@ -30,9 +28,7 @@ type GeneratedReportJson = {
     message?: string;
   }>;
 };
-
 type GeneratedReportFinding = NonNullable<GeneratedReportJson["findings"]>[number];
-
 type LawRegistryJson = {
   laws: Array<{
     clauses: Array<{
@@ -76,8 +72,10 @@ const fileHasContent = (repoPath: string): boolean => {
 
 const createStepResult = (input: {
   command: string;
+  clauseId?: string | null;
   error?: string | undefined;
   name: string;
+  evidenceFacet?: import("./shared/law-contracts.js").ClauseEvidenceFacet | null;
   ownerId?: string;
   lawId?: string | null;
   phase: string;
@@ -87,9 +85,11 @@ const createStepResult = (input: {
 }): StepResult => {
   const endedAtMs = Date.now();
   return {
+    clauseId: input.clauseId ?? null,
     command: input.command,
     durationMs: Math.max(0, endedAtMs - input.startedAtMs),
     endedAt: new Date(endedAtMs).toISOString(),
+    evidenceFacet: input.evidenceFacet ?? null,
     name: input.name,
     ownerId: input.ownerId ?? "audit-system",
     lawId: input.lawId ?? null,
@@ -360,25 +360,24 @@ const verifyGeneratedArtifactTruthStep = (): { failure: CiFullFirstFailure | nul
       "scripts/audit/generated/static-clause-coverage.generated.json",
     ), "utf8")) as {
       summary?: {
-        activeClauseCount?: number;
-        boundClauseCount?: number;
-        machineClauseCount?: number;
-        executedMachineClauseCount?: number;
-        deferredRealChromeClauseCount?: number;
-        realChromeClauseIds?: string[];
-        uncoveredMachineClauseIds?: string[];
+        activeClauseCount?: number; boundClauseCount?: number;
+        machineFacetClauseCount?: number; executedMachineFacetClauseCount?: number;
+        deferredRealChromeFacetCount?: number; realChromeFacetClauseIds?: string[];
+        deferredRealProviderFacetCount?: number; realProviderFacetClauseIds?: string[];
+        uncoveredMachineFacetClauseIds?: string[];
         coveragePercent?: number;
       };
     };
     const summary = artifact.summary;
     return summary
       && summary.activeClauseCount === summary.boundClauseCount
-      && summary.machineClauseCount === summary.executedMachineClauseCount
-      && summary.uncoveredMachineClauseIds?.length === 0
-      && summary.deferredRealChromeClauseCount === summary.realChromeClauseIds?.length
+      && summary.machineFacetClauseCount === summary.executedMachineFacetClauseCount
+      && summary.uncoveredMachineFacetClauseIds?.length === 0
+      && summary.deferredRealChromeFacetCount === summary.realChromeFacetClauseIds?.length
+      && summary.deferredRealProviderFacetCount === summary.realProviderFacetClauseIds?.length
       && summary.coveragePercent === 100
       ? null
-      : "static-clause-coverage.generated.json does not prove 100% bound coverage plus 100% executed machine-clause coverage with real-Chrome clauses kept deferred.";
+      : "static-clause-coverage.generated.json does not prove 100% bound coverage plus 100% executed owner machine-facet coverage with real-Chrome and real-provider facets separately deferred.";
   })();
   const artifactError = missingArtifact ? `${missingArtifact} is missing or empty.` : coverageError;
   const step = createStepResult({
@@ -443,7 +442,7 @@ const runGeneratedArtifactTruthOrFail = (
 };
 
 const main = async (): Promise<void> => {
-  let acceptanceSkeletons: ReturnType<typeof buildAcceptanceLeafSkeletons> = [];
+  let acceptanceSkeletons: readonly AcceptanceLeafSkeleton[] = [];
   const completedSteps: StepResult[] = [];
   let lawCoverage = defaultLawCoverage();
   let ownerReports: CiFullOwnerReport[] = [];
@@ -457,7 +456,7 @@ const main = async (): Promise<void> => {
 
   await runCommandStepOrFail("codex-entry-gate", 0, codexEntryGateStep, completedSteps, failFast);
   runBuildAuditArtifactsOrFail(completedSteps, failFast);
-  acceptanceSkeletons = buildAcceptanceLeafSkeletons();
+  acceptanceSkeletons = buildAcceptancePackageSkeletonsOrFail(failFast);
   currentPlannedSteps = buildCiPlanSkeleton(acceptanceSkeletons);
   const phasePlan = sealCiPhasePlanOrFail(acceptanceSkeletons, failFast);
   currentPlannedSteps = phasePlan.plannedSteps;

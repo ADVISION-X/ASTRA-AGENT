@@ -251,9 +251,9 @@ owner inspector 负责：
 `enforcement matrix`、`law registry`、`audit plan` 必须由生成器自动生成。
 generated artifacts 是运行产物，不是人工源文件。
 
-clause coverage 必须区分证据层：所有 active clause 都必须被 manifest 精确绑定；只有 `static` / `acceptance` 机器条款可以由普通 CI owner receipt 计为 executed。`real-chrome` 条款只能在 generated truth 中列为 deferred browser evidence，普通 owner callback、typecheck 或本地 acceptance 永远不得把它标记为已执行。
+clause coverage 必须区分证据层：所有 active clause 都必须被 manifest 精确绑定；只有 `static` / `model` / `acceptance` / `artifact` 机器 facet 可以由普通 CI owner receipt 计为 executed。`real-chrome` 与 `real-provider` facet 只能在 generated truth 中列为各自 deferred dynamic evidence，普通 owner callback、typecheck 或本地 acceptance 永远不得把它们标记为已执行，也不得互相冒充。
 
-因此 owner report 的 `executedChecks` 和 runner 的 expected executed mappings 都必须在签发前物理排除 `evidenceMode=real-chrome`；不能先写入 owner report，再只在最终 coverage summary 里过滤。元质检和攻击验收必须同时阻断该越层回归。
+因此 owner report 的 `executedChecks` 和 runner 的 expected executed mappings 都必须在签发前物理排除纯动态 facet；复合条款仍须保留其机器 facet 回执，不能整条排除，也不能先写入动态 facet 再只在最终 coverage summary 里过滤。元质检和攻击验收必须同时阻断该越层回归。
 
 至少生成：
 
@@ -330,7 +330,7 @@ runner 是执行器，不是规则中心。runner 只允许：
 
 CI-FULL 的每个外部命令必须有固定 hard deadline，并在超时时终止完整进程组；generated-plan owner 执行必须位于可终止的独立 worker deadline 内，不能靠同进程 `Promise.race` 冒充取消。package.json 中供人工使用的 `&&` acceptance group 不得作为 CI 物理回执；CI 必须递归展开为去重后的直接物理叶，每叶独立记录 command、owner、lawId、startedAt、endedAt、duration、timeout 和 PASS/FAIL，失败后的其余叶必须逐项记为 skipped。任何 acceptance 需要验证用户交付复制时，必须把交付目录注入本次临时目录并在 `finally` 递归清理；禁止向真实 `~/Downloads` 写入会跨次累积的测试产物。
 
-超时终止必须等待并记录进程组或 worker 的真实 terminal receipt；只发送 `SIGTERM`/`SIGKILL`、使用 `unref` 定时器、在 leader 退出后立即返回，或在终态未证实时谎报“已终止”，都不构成完整清理。终态无法证实时必须保留真实 cleanup error 并立即 fail closed，不得启动下一物理步骤。失败物理步骤本身必须先以 `FAIL` 写入 completed receipt，再生成 fail-fast summary；它不得从 completed 与 skipped 两边同时消失。每个外部物理步骤均须绑定非空 lawId；typecheck 绑定 `APEX-CODE-PURITY-008-V1`。每个 acceptance 物理叶必须由显式 file-to-law binding 绑定其直接项目法案并验证该法案属于该 owner，且绑定目标不得含 `evidenceMode=real-chrome`；禁止从 owner 的 `lawIds[0]` 批量抄写。owner inspector 及其域内 helper 只返回 report payload，不得调用 filesystem mutation API；generated report 只能由唯一 generated-plan runner 写入，owner 私有 report writer 必须物理退休。
+超时终止必须等待并记录进程组或 worker 的真实 terminal receipt；只发送 `SIGTERM`/`SIGKILL`、使用 `unref` 定时器、在 leader 退出后立即返回，或在终态未证实时谎报“已终止”，都不构成完整清理。终态无法证实时必须保留真实 cleanup error 并立即 fail closed，不得启动下一物理步骤。失败物理步骤本身必须先以 `FAIL` 写入 completed receipt，再生成 fail-fast summary；它不得从 completed 与 skipped 两边同时消失。每个外部物理步骤均须绑定非空 lawId；typecheck 绑定 `APEX-CODE-PURITY-008-V1`。每个 acceptance 物理叶必须由显式 file-to-law binding 绑定其直接项目法案并验证该法案属于该 owner；命中复合条款时必须显式绑定唯一 facet，普通 CI 不得执行 `real-chrome` 或 `real-provider` 动态 facet；禁止从 owner 的 `lawIds[0]` 批量抄写。owner inspector 及其域内 helper 只返回 report payload，不得调用 filesystem mutation API；generated report 只能由唯一 generated-plan runner 写入，owner 私有 report writer 必须物理退休。
 
 runner 不拥有法条定义权、绑定权、顺序主权。
 
@@ -342,7 +342,7 @@ runner 不拥有法条定义权、绑定权、顺序主权。
 - 绕过 generated plan 直接执行旧 inspector 列表
 - 在 runner 内解释业务法案内容
 - 接受缺失、重复、越权或 manifest 未声明的执行回执
-- 用普通 CI receipt 把 `real-chrome` clause 标记成 executed
+- 用普通 CI receipt 把 `real-chrome` / `real-provider` facet 标记成 executed，或让二者互相冒充
 - 反复执行整域 evaluation 后按诊断 checkId 过滤或批量伪造物理回执
 - 用无 hard deadline 的 child/owner 执行，或把多个 acceptance 叶压成一个 group receipt
 - 在 `ci:full` 中为某个 owner 建立特判、排除列表或第二次补跑

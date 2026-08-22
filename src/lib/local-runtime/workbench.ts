@@ -65,6 +65,14 @@ const authorityAbsentComponent = () => ({
   ownerResponsible: "Browser",
 });
 
+const requireSourceCandidateHash = (): `sha256:${string}` => {
+  const value = process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim();
+  if (!value || !/^sha256:[a-f0-9]{64}$/u.test(value)) {
+    throw new Error("GRASSEYE_SOURCE_FINGERPRINT_REQUIRED");
+  }
+  return value as `sha256:${string}`;
+};
+
 export class GrassEyeWorkbench {
   private assembly: WorkbenchAssembly | null = null;
   private xuanxueAiProduction: ReturnType<typeof createXuanxueAiProductionWorkbenchOwner> | null = null;
@@ -100,6 +108,7 @@ export class GrassEyeWorkbench {
         assembly.mediaProcessing,
         runXuanxueAiProductionRoute,
         assembly.browserAuthority,
+        requireSourceCandidateHash(),
       );
       await prepareVideoDownloadRuntimeDependencies();
       await xuanxueAiProduction.init();

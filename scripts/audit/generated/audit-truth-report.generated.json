@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:43.889Z",
+  "generatedAt": "2026-08-22T13:47:59.298Z",
   "status": "PASS",
   "inspectorFileCount": 21,
   "generatedPlanEntryCount": 21,
@@ -178,9 +178,11 @@
     "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/inspector.ts",
     "scripts/audit/domains/workbench-api-boundary/manifest.json",
+    "scripts/audit/domains/xuanxue-ai-production/acceptance-required-values.ts",
     "scripts/audit/domains/xuanxue-ai-production/components/boundary-inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
     "scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
+    "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
     "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
@@ -212,14 +214,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:2b742764-b2eb-4b2e-a71d-b95366f20262",
+      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:1c915054-45ba-4612-bd63-a5c107dfb0d0",
       "capabilityDomain": "audit-truth",
       "checkId": "audit-truth/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T02:57:38.095Z",
-      "endedAt": "2026-08-22T02:57:43.889Z",
-      "durationMs": 5794,
+      "startedAt": "2026-08-22T13:47:53.531Z",
+      "endedAt": "2026-08-22T13:47:59.297Z",
+      "durationMs": 5766,
       "evidenceRefs": [
         "scripts/acceptance/audit-truth-coverage.acceptance.ts",
         "scripts/audit/build-audit-artifacts.ts",
@@ -395,9 +397,11 @@
         "scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.ts",
         "scripts/audit/domains/workbench-api-boundary/inspector.ts",
         "scripts/audit/domains/workbench-api-boundary/manifest.json",
+        "scripts/audit/domains/xuanxue-ai-production/acceptance-required-values.ts",
         "scripts/audit/domains/xuanxue-ai-production/components/boundary-inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/components/local-intervention-inspector.ts",
         "scripts/audit/domains/xuanxue-ai-production/components/transient-material-lifecycle-inspector.ts",
+        "scripts/audit/domains/xuanxue-ai-production/inspect-continuous-recovery.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-contracts.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspect-recovery-durability.ts",
         "scripts/audit/domains/xuanxue-ai-production/inspector-paths.ts",
@@ -427,19 +431,19 @@
       "lawId": "APEX-AUDIT-TRUTH-001-V1",
       "clauseId": "apex-audit-truth-001-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:2b742764-b2eb-4b2e-a71d-b95366f20262"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:1c915054-45ba-4612-bd63-a5c107dfb0d0"
     },
     {
       "lawId": "APEX-AUDIT-TRUTH-002-V1",
       "clauseId": "apex-audit-truth-002-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:2b742764-b2eb-4b2e-a71d-b95366f20262"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:1c915054-45ba-4612-bd63-a5c107dfb0d0"
     },
     {
       "lawId": "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1",
       "clauseId": "grasseye-audit-meta-quality-ast-symbol-no-regex-requirement",
       "checkId": "audit-truth/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:2b742764-b2eb-4b2e-a71d-b95366f20262"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:1c915054-45ba-4612-bd63-a5c107dfb0d0"
     }
   ]
 }

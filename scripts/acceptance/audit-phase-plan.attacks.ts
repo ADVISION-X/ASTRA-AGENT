@@ -8,7 +8,11 @@ import { createInspectorCheckSession } from "../audit/shared/inspector-check-ses
 import type { InspectorContext } from "../audit/shared/inspector-contracts.js";
 import { resolveFromRepo } from "../audit/shared/paths.js";
 
-const paths = ["scripts/audit/ci-full-phase-plan.ts", "scripts/audit/ci-phase-sealer.ts"] as const;
+const paths = [
+  "scripts/audit/ci-full.ts",
+  "scripts/audit/ci-full-phase-plan.ts",
+  "scripts/audit/ci-phase-sealer.ts",
+] as const;
 const project = new Project({ tsConfigFilePath: resolveFromRepo("tsconfig.json") });
 const reset = (): Project => {
   for (const path of paths) project.getSourceFileOrThrow(resolveFromRepo(path)).refreshFromFileSystemSync();
@@ -31,7 +35,7 @@ const rejected = (current: Project): boolean => {
 
 const runDiscardedLeavesAttack = (): void => {
   const current = reset();
-  const builder = current.getSourceFileOrThrow(resolveFromRepo(paths[0]))
+  const builder = current.getSourceFileOrThrow(resolveFromRepo(paths[1]))
     .getVariableDeclarationOrThrow("buildCiPhasePlan").getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   const planned = builder.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "plannedSteps");
@@ -43,7 +47,7 @@ const runDiscardedLeavesAttack = (): void => {
 
 const runConditionalSealerAttack = (): void => {
   const current = reset();
-  const sealer = current.getSourceFileOrThrow(resolveFromRepo(paths[1]))
+  const sealer = current.getSourceFileOrThrow(resolveFromRepo(paths[2]))
     .getVariableDeclarationOrThrow("sealCiPhasePlanOrFail").getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   const catchBlock = sealer.getBody().getFirstDescendantByKindOrThrow(SyntaxKind.CatchClause).getBlock();
   const terminal = catchBlock.getStatements().at(-1);
@@ -53,7 +57,24 @@ const runConditionalSealerAttack = (): void => {
     "receipt governance must reject a phase-seal exception path that escapes fail-fast.");
 };
 
+const runPreSealerSkeletonBypassAttack = (): void => {
+  const current = reset();
+  const source = current.getSourceFileOrThrow(resolveFromRepo(paths[0]));
+  const main = source.getVariableDeclarationOrThrow("main").getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
+  const call = main.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((candidate) => candidate.getExpression().getText() === "buildAcceptancePackageSkeletonsOrFail");
+  if (!call) throw new Error("package skeleton fail-fast fixture is missing.");
+  source.addImportDeclaration({
+    moduleSpecifier: "./ci-acceptance-leaf-plan.js",
+    namedImports: ["buildAcceptancePackageSkeletons"],
+  });
+  call.replaceWithText("buildAcceptancePackageSkeletons()");
+  assert.equal(rejected(current), true,
+    "receipt governance must reject package skeleton discovery moved outside the fail-fast sealer chain.");
+};
+
 export const runPhasePlanAttacks = (): void => {
   runDiscardedLeavesAttack();
   runConditionalSealerAttack();
+  runPreSealerSkeletonBypassAttack();
 };

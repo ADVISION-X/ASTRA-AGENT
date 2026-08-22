@@ -13,6 +13,8 @@ import {
   order,
   providerResult,
 } from "./xuanxue-ai-production-fixture.js";
+import { acceptLegacyTechnicalTerminalCorrection } from "./xuanxue-ai-production-terminal-recovery.js";
+import { acceptContinuousRecoveryVersion } from "./xuanxue-ai-production-continuous-reconciliation.js";
 interface RestartAcceptanceInput {
   readonly dataDir: string;
   readonly gateway: FixtureGateway;
@@ -103,6 +105,7 @@ const acceptSameJobCloudRecoveryRebind = (
     "fixture recovery rebind acceptance settled",
   );
 };
+
 const seedRecoverableBacklog = (
   runtime: XuanxueAiProductionRuntime,
 ): XuanxueAiProductionOrder[] => {
@@ -437,6 +440,10 @@ const acceptReopenedLedger = async (
 
 export const acceptXuanxueRestartRecovery = async (input: RestartAcceptanceInput): Promise<void> => {
   acceptSameJobCloudRecoveryRebind(input.runtime);
+  await acceptLegacyTechnicalTerminalCorrection();
+  const continuousFixture = input.runtime.store.readOrder(input.completedOrderId);
+  assert.ok(continuousFixture, "continuous recovery version acceptance needs the completed durable fixture");
+  await acceptContinuousRecoveryVersion(continuousFixture);
   const fixtures = {
     recoverable: seedRecoverableBacklog(input.runtime),
     invalidPrefix: seedInvalidCompletedPrefix(input.runtime),

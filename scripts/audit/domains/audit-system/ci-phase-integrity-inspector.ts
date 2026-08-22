@@ -64,7 +64,7 @@ const physicalPlansMapEveryLeaf = (phasePlan: SourceFile | undefined): boolean =
 };
 
 const leafPlanLoadsCurrentAuthority = (leafPlan: SourceFile | undefined): boolean => {
-  const builder = leafPlan?.getVariableDeclaration("sealAcceptanceLeafSteps")
+  const builder = leafPlan?.getVariableDeclaration("selectExecutableAcceptanceSkeletons")
     ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
   const body = builder?.getBody();
   const generatedPlan = body?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
@@ -79,8 +79,12 @@ const leafExpansionIsAtomic = (leafPlan: SourceFile | undefined): boolean => {
   const expander = leafPlan?.getVariableDeclaration("expandNpmScript");
   const discovery = leafPlan?.getVariableDeclaration("discoverAcceptanceLeafInvocations");
   const closure = leafPlan?.getVariableDeclaration("assertAcceptanceBindingClosure");
-  const skeletonBuilder = leafPlan?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
+  const skeletonBuilder = leafPlan?.getVariableDeclaration("buildAcceptancePackageSkeletons")
     ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const executableBuilder = leafPlan?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const packageBuilder = leafPlan?.getVariableDeclaration("buildAcceptancePackageSkeletons");
+  const executableSelector = leafPlan?.getVariableDeclaration("selectExecutableAcceptanceSkeletons");
   const packageScripts = skeletonBuilder?.getParameters()[0];
   const packageLoaderCall = packageScripts?.getInitializerIfKind(SyntaxKind.CallExpression);
   const invocations = skeletonBuilder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
@@ -90,6 +94,10 @@ const leafExpansionIsAtomic = (leafPlan: SourceFile | undefined): boolean => {
     .find((call) => callMapsDeclaration(call, "map", invocations));
   const closureCall = skeletonBuilder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
     .find((call) => callUsesDeclaration(call, closure, invocations));
+  const executablePackageCall = executableBuilder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => packageBuilder !== undefined && resolvesTo(call.getExpression(), packageBuilder));
+  const executableSelectorCall = executableBuilder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => executableSelector !== undefined && resolvesTo(call.getExpression(), executableSelector));
   const recursiveExpansion = expander?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((call) => resolvesTo(call.getExpression(), expander)) ?? false;
   const discoveryUsesExpander = discovery?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
@@ -101,7 +109,8 @@ const leafExpansionIsAtomic = (leafPlan: SourceFile | undefined): boolean => {
   const discoveryUsesPackageScripts = discoveryCall?.getArguments()
     .some((argument) => packageScripts !== undefined
       && nodeReferencesDeclaration(argument, packageScripts)) ?? false;
-  return [packageLoader, expander, discovery, closure, skeletonMap, closureCall].every(Boolean)
+  return [packageLoader, expander, discovery, closure, skeletonMap, closureCall,
+    executablePackageCall, executableSelectorCall].every(Boolean)
     && packageLoadIsDirect && discoveryIsDirect && discoveryUsesPackageScripts
     && recursiveExpansion && discoveryUsesExpander;
 };
@@ -129,6 +138,8 @@ const callUsesDeclaration = (
 const leafPlanHasOneAuthorityChain = (leafPlan: SourceFile | undefined): boolean =>
   Boolean(leafPlan?.getVariableDeclaration("acceptanceAuthority")
     && leafPlan.getVariableDeclaration("buildAcceptanceLeafSkeletons")
+    && leafPlan.getVariableDeclaration("buildAcceptancePackageSkeletons")
+    && leafPlan.getVariableDeclaration("selectExecutableAcceptanceSkeletons")
     && leafPlan.getVariableDeclaration("sealAcceptanceLeafSteps")
     && leafPlan.getVariableDeclaration("expandNpmScript")
     && leafPlan.getVariableDeclaration("loadPackageScripts")
@@ -137,19 +148,17 @@ const leafPlanHasOneAuthorityChain = (leafPlan: SourceFile | undefined): boolean
     && !leafPlan.getVariableDeclaration("acceptanceOwner") && !leafPlan.getVariableDeclaration("ownerRules"));
 
 const deferredAcceptanceUsesGeneratedEvidence = (leafPlan: SourceFile | undefined): boolean => {
-  const builder = leafPlan?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
+  const builder = leafPlan?.getVariableDeclaration("selectExecutableAcceptanceSkeletons")
     ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
   const authorityResolver = leafPlan?.getVariableDeclaration("acceptanceAuthority");
   const generatedPlan = builder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((item) => item.getName() === "generatedPlan");
-  const invocations = builder?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((item) => item.getName() === "invocations");
+  const skeletons = builder?.getParameters()[0];
   const mapCall = builder?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => callMapsDeclaration(call, "map", invocations));
+    .find((call) => callMapsDeclaration(call, "map", skeletons));
   const callback = mapCall?.getArguments()[0];
   const callbackBody = Node.isArrowFunction(callback) ? callback.getBody() : undefined;
-  const filePath = callbackBody?.getDescendantsOfKind(SyntaxKind.BindingElement)
-    .find((item) => item.getName() === "filePath");
+  const skeleton = Node.isArrowFunction(callback) ? callback.getParameters()[0] : undefined;
   const authority = callbackBody?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((item) => item.getName() === "authority");
   const authorityCall = authority?.getInitializerIfKind(SyntaxKind.CallExpression);
@@ -166,35 +175,13 @@ const deferredAcceptanceUsesGeneratedEvidence = (leafPlan: SourceFile | undefine
       .some((literal) => deferredNames.has(literal.getLiteralText())));
   const resolverCallIsExact = authorityCall !== undefined && authorityResolver !== undefined
     && resolvesTo(authorityCall.getExpression(), authorityResolver);
-  const resolverArgumentsAreExact = authorityCall !== undefined && filePath !== undefined
-    && generatedPlan !== undefined
-    && resolvesTo(authorityCall.getArguments()[0], filePath)
+  const filePathArgument = authorityCall?.getArguments()[0];
+  const resolverArgumentsAreExact = authorityCall !== undefined && skeleton !== undefined
+    && generatedPlan !== undefined && Node.isPropertyAccessExpression(filePathArgument)
+    && filePathArgument.getName() === "filePath" && resolvesTo(filePathArgument.getExpression(), skeleton)
     && resolvesTo(authorityCall.getArguments()[1], generatedPlan);
   return resolverCallIsExact && resolverArgumentsAreExact
     && deferredGuard !== undefined && !hasNameHeuristic;
-};
-
-const isRealChromeEvidenceHelperCall = (condition: import("ts-morph").Node): boolean => {
-  if (!Node.isCallExpression(condition)) return false;
-  const expression = condition.getExpression();
-  const symbol = expression.getSymbol();
-  const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
-  return target?.getDeclarations().some((declaration) =>
-    declaration.getSourceFile().getFilePath() === resolveFromRepo("scripts/audit/shared/law-contracts.ts")
-      && ((Node.isFunctionDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome")
-        || (Node.isVariableDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome"))) ?? false;
-};
-
-const helperConditionUsesAuthority = (
-  condition: import("ts-morph").Node,
-  authority: import("ts-morph").Node | undefined,
-): boolean => {
-  if (!Node.isCallExpression(condition)) return false;
-  const argument = condition.getArguments()[0];
-  return Node.isPropertyAccessExpression(argument)
-    && argument.getName() === "evidenceMode"
-    && authority !== undefined
-    && resolvesTo(argument.getExpression(), authority);
 };
 
 const guardDefersGeneratedRealChrome = (
@@ -202,24 +189,41 @@ const guardDefersGeneratedRealChrome = (
   authority: import("ts-morph").Node | undefined,
 ): boolean => {
   const condition = guard.getExpression();
-  const left = Node.isBinaryExpression(condition) ? condition.getLeft() : undefined;
-  const right = Node.isBinaryExpression(condition) ? condition.getRight() : undefined;
   const thenStatement = guard.getThenStatement();
   const returned = Node.isReturnStatement(thenStatement)
     ? thenStatement.getExpression()
     : thenStatement.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
-  const comparesEvidenceMode = Node.isBinaryExpression(condition)
-    && condition.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
-    && Node.isPropertyAccessExpression(left)
-    && left.getName() === "evidenceMode"
-    && authority !== undefined && resolvesTo(left.getExpression(), authority);
-  const helperCall = isRealChromeEvidenceHelperCall(condition)
-    && helperConditionUsesAuthority(condition, authority);
-  return Node.isNullLiteral(returned) && (
-    (comparesEvidenceMode && Node.isStringLiteral(right)
-      && right.getLiteralText() === "real-chrome")
-      || helperCall === true
-  );
+  const callee = Node.isCallExpression(condition) ? condition.getExpression() : undefined;
+  const symbol = callee?.getSymbol();
+  const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
+  const helperIsExact = target?.getDeclarations().some((declaration) =>
+    declaration.getSourceFile().getFilePath()
+      === resolveFromRepo("scripts/audit/shared/law-contracts.ts")
+      && ((Node.isFunctionDeclaration(declaration)
+        && declaration.getName() === "evidenceFacetIsDeferredDynamic")
+        || (Node.isVariableDeclaration(declaration)
+          && declaration.getName() === "evidenceFacetIsDeferredDynamic"))) ?? false;
+  const argument = Node.isCallExpression(condition) ? condition.getArguments()[0] : undefined;
+  const bindsGeneratedFacet = Node.isPropertyAccessExpression(argument)
+    && argument.getName() === "evidenceFacet"
+    && authority !== undefined
+    && resolvesTo(argument.getExpression(), authority);
+  return Node.isNullLiteral(returned) && helperIsExact && bindsGeneratedFacet;
+};
+
+const nestedFailureHelperIsBound = (
+  sealer: import("ts-morph").ArrowFunction,
+  failCall: import("ts-morph").CallExpression | undefined,
+  failFast: import("ts-morph").Node | undefined,
+): boolean => {
+  const failureHelper = sealer.getSourceFile().getVariableDeclaration("failAcceptanceAuthority");
+  const failureFunction = failureHelper?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const helperFailFast = failureFunction?.getParameters()[2];
+  const helperCall = failureFunction?.getBody().getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => helperFailFast !== undefined && resolvesTo(call.getExpression(), helperFailFast));
+  return failCall !== undefined && failureHelper !== undefined && failFast !== undefined
+    && resolvesTo(failCall.getExpression(), failureHelper)
+    && resolvesTo(failCall.getArguments()[2], failFast) && helperCall !== undefined;
 };
 
 const sealerBuildIsFailClosed = (
@@ -238,13 +242,14 @@ const sealerBuildIsFailClosed = (
   const catchBody = statement?.getCatchClause()?.getBlock();
   const terminal = catchBody?.getStatements().at(-1);
   const failCall = Node.isExpressionStatement(terminal)
-    ? terminal.getExpressionIfKind(SyntaxKind.CallExpression) : undefined;
+    ? terminal.getExpressionIfKind(SyntaxKind.CallExpression)
+    : Node.isReturnStatement(terminal) ? terminal.getExpressionIfKind(SyntaxKind.CallExpression) : undefined;
   const message = catchBody?.getVariableDeclaration("message");
   return tries.length === 1 && tryBody?.getStatements().length === 1
     && buildCall !== undefined && resolvesTo(buildCall.getExpression(), builder)
     && caught !== undefined && message !== undefined && message.getInitializer() !== undefined
     && nodeReferencesDeclaration(message.getInitializerOrThrow(), caught)
-    && failFast !== undefined && failCall !== undefined && resolvesTo(failCall.getExpression(), failFast)
+    && failCall !== undefined && nestedFailureHelperIsBound(sealer, failCall, failFast)
     && failCall.getArguments().some((argument) => nodeReferencesDeclaration(argument, message))
     && catchBody?.getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 0;
 };
@@ -259,22 +264,22 @@ const acceptancePlanBuildIsPostArtifact = (
   const phaseSealerFunction = phaseSealer?.getInitializerIfKind(SyntaxKind.ArrowFunction);
   const phaseBuilder = phasePlan?.getVariableDeclaration("buildCiPhasePlan");
   const skeletonBuilder = phasePlan?.getVariableDeclaration("buildCiPlanSkeleton");
-  const leafBuilder = ciFull?.getImportDeclarations()
-    .find((item) => item.getModuleSpecifierValue() === "./ci-acceptance-leaf-plan.js")
-    ?.getModuleSpecifierSourceFile()?.getVariableDeclaration("buildAcceptanceLeafSkeletons");
+  const packageSkeletonBuilder = ciFull?.getImportDeclarations()
+    .find((item) => item.getModuleSpecifierValue() === "./ci-phase-sealer.js")
+    ?.getModuleSpecifierSourceFile()?.getVariableDeclaration("buildAcceptancePackageSkeletonsOrFail");
   if (!main || !buildArtifacts || !phaseSealer || !phaseSealerFunction || !phaseBuilder
-    || !skeletonBuilder || !leafBuilder) return false;
+    || !skeletonBuilder || !packageSkeletonBuilder) return false;
   const directMainCalls = main.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getFirstAncestor(Node.isFunctionLikeDeclaration) === main);
   const artifactCall = directMainCalls.find((call) => resolvesTo(call.getExpression(), buildArtifacts));
-  const leafBuildCall = directMainCalls.find((call) => resolvesTo(call.getExpression(), leafBuilder));
+  const packageBuildCall = directMainCalls.find((call) => resolvesTo(call.getExpression(), packageSkeletonBuilder));
   const skeletonBuildCall = directMainCalls.find((call) => resolvesTo(call.getExpression(), skeletonBuilder));
   const phaseSealCall = directMainCalls.find((call) => resolvesTo(call.getExpression(), phaseSealer));
-  return artifactCall !== undefined && leafBuildCall !== undefined && skeletonBuildCall !== undefined
+  return artifactCall !== undefined && packageBuildCall !== undefined && skeletonBuildCall !== undefined
     && phaseSealCall !== undefined
     && sealerBuildIsFailClosed(phaseSealerFunction, phaseBuilder)
-    && artifactCall.getStart() < leafBuildCall.getStart()
-    && leafBuildCall.getStart() < skeletonBuildCall.getStart()
+    && artifactCall.getStart() < packageBuildCall.getStart()
+    && packageBuildCall.getStart() < skeletonBuildCall.getStart()
     && skeletonBuildCall.getStart() < phaseSealCall.getStart();
 };
 
@@ -284,6 +289,7 @@ const acceptanceAuthorityFunction = (leafPlan: SourceFile | undefined) =>
 const authorityBindingLookupIsAuthentic = (leafPlan: SourceFile | undefined, lawBindings: SourceFile | undefined): boolean => {
   const resolver = acceptanceAuthorityFunction(leafPlan);
   const filePath = resolver?.getParameters()[0];
+  const resolverBindings = resolver?.getParameters()[2];
   const binding = resolver?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((item) => item.getName() === "binding");
   const bindingMap = lawBindings?.getVariableDeclaration("acceptanceLawBindings");
@@ -291,8 +297,9 @@ const authorityBindingLookupIsAuthentic = (leafPlan: SourceFile | undefined, law
   const callee = call?.getExpression();
   const receiver = Node.isPropertyAccessExpression(callee) && callee.getName() === "get"
     ? callee.getExpression() : undefined;
-  return filePath !== undefined && bindingMap !== undefined && call !== undefined
-    && resolvesTo(receiver, bindingMap) && call.getArguments().length === 1
+  return filePath !== undefined && bindingMap !== undefined && resolverBindings !== undefined && call !== undefined
+    && resolvesTo(resolverBindings.getInitializer(), bindingMap)
+    && resolvesTo(receiver, resolverBindings) && call.getArguments().length === 1
     && resolvesTo(call.getArguments()[0], filePath);
 };
 
@@ -317,6 +324,10 @@ const authorityGuardsAreFailClosed = (leafPlan: SourceFile | undefined): boolean
     .find((item) => item.getName() === "ownerMatches");
   const candidate = resolver?.getBody().getDescendantsOfKind(SyntaxKind.BindingElement)
     .find((item) => item.getName() === "candidate");
+  const facets = resolver?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((item) => item.getName() === "facets");
+  const evidenceFacet = resolver?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((item) => item.getName() === "evidenceFacet");
   const guards = resolver?.getBody().getDescendantsOfKind(SyntaxKind.IfStatement) ?? [];
   const unique = guards.some((guard) => matches !== undefined && nodeReferencesDeclaration(guard.getExpression(), matches)
     && guard.getExpression().getDescendantsOfKind(SyntaxKind.NumericLiteral).some((item) => item.getLiteralValue() === 1)
@@ -328,32 +339,51 @@ const authorityGuardsAreFailClosed = (leafPlan: SourceFile | undefined): boolean
         .some((item) => item.getName() === "evidenceMode" && resolvesTo(item.getExpression(), candidate))
       && guard.getThenStatement().getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 1;
   });
-  return unique && evidence;
+  const facetGuards = guards.filter((guard) =>
+    guard.getThenStatement().getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 1
+    && ((facets !== undefined && nodeReferencesDeclaration(guard.getExpression(), facets))
+      || (evidenceFacet !== undefined && nodeReferencesDeclaration(guard.getExpression(), evidenceFacet))));
+  return unique && evidence && facets !== undefined && evidenceFacet !== undefined && facetGuards.length >= 2;
+};
+
+const returnedMemberIsBound = (
+  returned: import("ts-morph").ObjectLiteralExpression | undefined,
+  propertyName: string,
+  memberName: string,
+  declaration: import("ts-morph").Node | undefined,
+): boolean => {
+  const property = returned?.getProperty(propertyName);
+  const initializer = Node.isPropertyAssignment(property) ? property.getInitializer() : undefined;
+  return declaration !== undefined && Node.isPropertyAccessExpression(initializer)
+    && initializer.getName() === memberName && resolvesTo(initializer.getExpression(), declaration);
+};
+
+const returnedShorthandIsBound = (
+  returned: import("ts-morph").ObjectLiteralExpression | undefined,
+  propertyName: string,
+  declaration: import("ts-morph").Node | undefined,
+): boolean => {
+  const property = returned?.getProperty(propertyName);
+  return declaration !== undefined && Node.isShorthandPropertyAssignment(property)
+    && (property.getValueSymbol()?.getDeclarations().includes(declaration) ?? false);
 };
 
 const returnedAuthorityIsBound = (leafPlan: SourceFile | undefined): boolean => {
   const resolver = acceptanceAuthorityFunction(leafPlan);
-  const binding = resolver?.getBody().getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((item) => item.getName() === "binding");
-  const candidate = resolver?.getBody().getDescendantsOfKind(SyntaxKind.BindingElement)
-    .find((item) => item.getName() === "candidate");
-  const ownerBinding = resolver?.getBody().getDescendantsOfKind(SyntaxKind.BindingElement)
-    .find((item) => item.getName() === "ownerId");
-  const returns = resolver?.getBody().getDescendantsOfKind(SyntaxKind.ReturnStatement)
+  const body = resolver?.getBody();
+  const binding = body?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((item) => item.getName() === "binding");
+  const candidate = body?.getDescendantsOfKind(SyntaxKind.BindingElement).find((item) => item.getName() === "candidate");
+  const ownerBinding = body?.getDescendantsOfKind(SyntaxKind.BindingElement).find((item) => item.getName() === "ownerId");
+  const facetBinding = body?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((item) => item.getName() === "evidenceFacet");
+  const returns = body?.getDescendantsOfKind(SyntaxKind.ReturnStatement)
     .filter((item) => item.getFirstAncestor(Node.isFunctionLikeDeclaration) === resolver)
     .map((item) => item.getExpression()).filter(Node.isObjectLiteralExpression) ?? [];
   const returned = returns.length === 1 ? returns[0] : undefined;
-  const lawProperty = returned?.getProperty("lawId");
-  const ownerProperty = returned?.getProperty("ownerId");
-  const evidenceProperty = returned?.getProperty("evidenceMode");
-  const law = Node.isPropertyAssignment(lawProperty) ? lawProperty.getInitializer() : undefined;
-  const evidence = Node.isPropertyAssignment(evidenceProperty) ? evidenceProperty.getInitializer() : undefined;
-  const ownerBound = Node.isShorthandPropertyAssignment(ownerProperty) && ownerBinding !== undefined
-    && (ownerProperty.getValueSymbol()?.getDeclarations().includes(ownerBinding) ?? false);
-  return binding !== undefined && Node.isPropertyAccessExpression(law) && law.getName() === "lawId"
-    && resolvesTo(law.getExpression(), binding) && Node.isPropertyAccessExpression(evidence)
-    && evidence.getName() === "evidenceMode" && candidate !== undefined
-    && resolvesTo(evidence.getExpression(), candidate) && ownerBound;
+  return returnedMemberIsBound(returned, "lawId", "lawId", binding)
+    && returnedMemberIsBound(returned, "clauseId", "clauseId", binding)
+    && returnedMemberIsBound(returned, "evidenceMode", "evidenceMode", candidate)
+    && returnedShorthandIsBound(returned, "ownerId", ownerBinding)
+    && returnedShorthandIsBound(returned, "evidenceFacet", facetBinding);
 };
 
 const staticBindingTruthExists = (phasePlan: SourceFile | undefined, lawBindings: SourceFile | undefined): boolean => {

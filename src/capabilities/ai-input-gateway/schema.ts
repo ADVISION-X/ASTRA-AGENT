@@ -1,9 +1,24 @@
 import { createHash } from "node:crypto";
 
 import { z } from "zod";
+import {
+  assertXuanxueDynamicTimestampFresh,
+  assertXuanxueProviderRecordHash,
+  hashXuanxueDynamicReceipt,
+  parseXuanxueSourceCandidateHash,
+  validateXuanxueDynamicProofBinding,
+  XUANXUE_DYNAMIC_PROOF_BINDING_FILE,
+} from "./xuanxue-dynamic-proof-contract.js";
 
 export const AI_INPUT_GATEWAY_ABILITY_GROUP_ID = "ai-input-gateway" as const;
-
+export const XuanxueDynamicProofBindingContract = Object.freeze({
+  fileName: XUANXUE_DYNAMIC_PROOF_BINDING_FILE,
+  parseSourceCandidateHash: parseXuanxueSourceCandidateHash,
+  validate: validateXuanxueDynamicProofBinding,
+  assertProviderRecordHash: assertXuanxueProviderRecordHash,
+  assertTimestampFresh: assertXuanxueDynamicTimestampFresh,
+  hashReceipt: hashXuanxueDynamicReceipt,
+});
 const AiInputGatewayProviderKindSchema = z.enum([
   "gemini-api",
   "gemini-web-chat",

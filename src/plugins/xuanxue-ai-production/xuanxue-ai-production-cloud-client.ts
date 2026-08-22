@@ -12,11 +12,6 @@ import {
 import type { XuanxueAiProductionResult } from "./xuanxue-ai-production.schema.js";
 import { readFile } from "node:fs/promises";
 
-interface RecoveredCloudJob {
-  readonly job_id: string;
-  readonly status: string;
-}
-
 interface UploadedOutputArtifact {
   readonly artifact_id: string;
   readonly object_ref: string;
@@ -45,6 +40,21 @@ interface JsonEnvelope<T> {
   readonly error?: { readonly code?: string; readonly message?: string };
 }
 
+export interface XuanxueAiProductionCloudDeviceAttestation {
+  readonly device_id: string;
+  readonly max_in_flight: number;
+  readonly status: "active" | "revoked";
+  readonly last_heartbeat_at: string | null;
+  readonly contract_manifest_hash: `sha256:${string}` | null;
+  readonly supported_product_contracts: Readonly<Record<string, string>>;
+  readonly agent_build_fingerprint: string | null;
+}
+
+export interface XuanxueAiProductionCloudTerminalStatus {
+  readonly job_id: string;
+  readonly status: string;
+}
+
 const baseUrl = (
   credential: XuanxueAiProductionCloudCredential,
 ): string => credential.server_base_url.replace(/\/+$/u, "");
@@ -54,10 +64,12 @@ const agentBuildFingerprint = (): string =>
   || process.env.npm_package_version?.trim()
   || "grasseye-localization-contract-v1";
 
-export const xuanxueAiProductionDeviceContractProof = () => ({
+export const xuanxueAiProductionDeviceContractProof = (
+  sourceFingerprint = agentBuildFingerprint(),
+) => ({
   contract_manifest_hash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
   supported_product_contracts: XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
-  agent_build_fingerprint: agentBuildFingerprint(),
+  agent_build_fingerprint: sourceFingerprint,
 });
 
 async function cloudRequest<T>(
@@ -96,14 +108,27 @@ const leaseHeaders = (
 
 export async function heartbeatXuanxueAiProductionDevice(
   credential: XuanxueAiProductionCloudCredential,
-): Promise<void> {
-  await cloudRequest(
+  sourceFingerprint?: string,
+): Promise<XuanxueAiProductionCloudDeviceAttestation> {
+  return cloudRequest<XuanxueAiProductionCloudDeviceAttestation>(
     credential,
     "/internal/ai-production/devices/heartbeat",
     {
       method: "POST",
-      body: JSON.stringify(xuanxueAiProductionDeviceContractProof()),
+      body: JSON.stringify(xuanxueAiProductionDeviceContractProof(sourceFingerprint)),
     },
+  );
+}
+
+export async function readXuanxueAiProductionCloudTerminalStatus(
+  credential: XuanxueAiProductionCloudCredential,
+  jobId: string,
+): Promise<XuanxueAiProductionCloudTerminalStatus> {
+  if (!jobId.trim()) throw new Error("XUANXUE_AI_PRODUCTION_ATTESTATION_JOB_ID_INVALID");
+  return cloudRequest<XuanxueAiProductionCloudTerminalStatus>(
+    credential,
+    `/internal/ai-production/jobs/${encodeURIComponent(jobId)}/device-status`,
+    { method: "GET" },
   );
 }
 
@@ -167,34 +192,6 @@ export async function claimXuanxueAiProductionJobs(
     reportUnaddressableClaim(rawJob, parsed.error);
   }
   return accepted;
-}
-
-export async function recoverXuanxueAiProductionJob(
-  credential: XuanxueAiProductionCloudCredential,
-  input: {
-    readonly orderId: string;
-    readonly sourceTaskId: string;
-    readonly requestHash: string;
-    readonly completedResult: XuanxueAiProductionResult | null;
-  },
-): Promise<RecoveredCloudJob> {
-  return cloudRequest<RecoveredCloudJob>(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(input.orderId)}/recover`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        protocol_version:
-          XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-        idempotency_key:
-          `${input.orderId}:durable-local-ledger-recovery:${input.requestHash}`,
-        local_order_id: input.orderId,
-        source_task_id: input.sourceTaskId,
-        request_hash: input.requestHash,
-        completed_result_json: input.completedResult,
-      }),
-    },
-  );
 }
 
 export async function downloadXuanxueAiProductionInput(

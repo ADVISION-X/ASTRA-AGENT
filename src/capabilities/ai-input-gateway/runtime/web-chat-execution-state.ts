@@ -180,6 +180,7 @@ const turnMarkerFor = (input: StartWebChatExecutionInput): string =>
 const restartUnsubmittedExecution = async (
   input: StartWebChatExecutionInput,
   existing: WebChatExecutionRecord,
+  correctionReason?: string,
 ): Promise<WebChatExecutionRecord> => {
   const now = new Date().toISOString();
   const turnMarker = turnMarkerFor(input);
@@ -203,6 +204,14 @@ const restartUnsubmittedExecution = async (
     forkActionProof: null,
     responseCheckpoint: null,
     responseHash: null,
+    failures: correctionReason ? [...existing.failures, {
+      occurredAt: now,
+      attemptId: existing.attemptId,
+      phase: existing.status,
+      classification: "recovery_pending",
+      recoverable: true,
+      reason: correctionReason,
+    }] : existing.failures,
     updatedAt: now,
   };
   await atomicWrite(statePath(input.dataDir, input.executionId), next);
@@ -213,6 +222,12 @@ const migrationIdentityRejection =
   "review_required: persisted web-chat execution identity does not match the requested feed.";
 const TERMINAL_EXECUTION_ERROR_PREFIX =
   "review_required: web-chat execution is terminal:";
+export const LEGACY_PROFILE_READBACK_STATE_CORRECTION =
+  "LEGACY_PROFILE_READBACK_STATE_CORRECTION_APPLIED";
+const legacyProfileReadbackReason =
+  "review_required: NOT_PRODUCTION_VERIFIED: GPT pre-submit model and reasoning controls have no exact verified readback; GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH";
+const missingSubmissionProofAfterLegacyCorrection =
+  "review_required: submitted web-chat execution is missing its durable submission proof.";
 
 const isCleanTransientPreSubmission = (
   existing: WebChatExecutionRecord,
@@ -229,6 +244,11 @@ const isCleanTransientPreSubmission = (
     providerFailures.length === 0
     && existing.failures.length > 0
     && rootlessTerminalAttempts.size === 1;
+  const isLegacyPreMutationTargetInvalid = (
+    failure: WebChatExecutionFailure,
+  ): boolean => failure.reason === "BROWSER_TARGET_INVALID"
+    && failure.phase === "submitting"
+    && existing.pageActionLedger.length === 0;
   return (
     existing.status === "failed"
     && !existing.submission
@@ -238,13 +258,33 @@ const isCleanTransientPreSubmission = (
     && !existing.responseHash
     && (providerFailures.length > 0 || hasOneBoundedRootlessRecoveryAuthority)
     && providerFailures.every((failure) =>
-      classifyWebChatFailure(new Error(failure.reason), false) === "recovery_pending")
+      classifyWebChatFailure(new Error(failure.reason), false) === "recovery_pending"
+      || isLegacyPreMutationTargetInvalid(failure))
     && existing.failures.every((failure) => (
       providerFailures.includes(failure)
       || failure.reason === migrationIdentityRejection
       || isTerminalStateEcho(failure)
     ))
   );
+};
+
+const isProofEmptyLegacyProfileReadbackState = (
+  existing: WebChatExecutionRecord,
+): boolean => {
+  const latestFailureReason = existing.failures.at(-1)?.reason;
+  return (existing.status === "review_required" || existing.status === "failed")
+  && !existing.submission
+  && existing.uploadedFiles.length === 0
+  && !existing.attachmentUploadProof
+  && !existing.providerExecutionProfileProof
+  && existing.pageActionLedger.length === 0
+  && !existing.responseCheckpoint
+  && !existing.responseHash
+  && existing.failures.some((failure) => failure.reason === legacyProfileReadbackReason)
+  && existing.failures.every((failure) =>
+    failure.reason !== LEGACY_PROFILE_READBACK_STATE_CORRECTION)
+  && (latestFailureReason === legacyProfileReadbackReason
+    || latestFailureReason === missingSubmissionProofAfterLegacyCorrection);
 };
 
 const resumePersistedStatus = (
@@ -288,6 +328,8 @@ const resumeExistingWebChatExecution = async (
     || existing.submittedPromptHash !== expectedSubmittedPromptHash
   ) throw new Error(migrationIdentityRejection);
   const cleanTransientPreSubmission = isCleanTransientPreSubmission(existing);
+  const proofEmptyLegacyProfileReadback =
+    isProofEmptyLegacyProfileReadbackState(existing);
   if (existing.inputHash !== input.inputHash) {
     if (!cleanTransientPreSubmission) throw new Error(migrationIdentityRejection);
     return { record: await restartUnsubmittedExecution(input, existing), resume: false };
@@ -297,6 +339,16 @@ const resumeExistingWebChatExecution = async (
     && input.providerExecutionProfileBinding.profileHash
       !== existing.providerExecutionProfileBinding.profileHash) {
     throw new Error(migrationIdentityRejection);
+  }
+  if (proofEmptyLegacyProfileReadback) {
+    return {
+      record: await restartUnsubmittedExecution(
+        input,
+        existing,
+        LEGACY_PROFILE_READBACK_STATE_CORRECTION,
+      ),
+      resume: false,
+    };
   }
   const persisted = resumePersistedStatus(existing);
   if (persisted) return persisted;

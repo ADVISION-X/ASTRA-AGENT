@@ -86,7 +86,7 @@ const acquireStageBrowser = async (input: {
     executionRefHash: browserHash(executionRef),
     writerLeaseEpoch: identity.leaseVersion,
     writerFenceHash: requireBrowserHash(identity.executionFenceHash),
-    candidateHash: requireBrowserHash(record.order.requestHash),
+    candidateHash: requireBrowserHash(input.runtime.candidateHash),
     commandTtlMs,
   }, `xuanxue-ai-production:${record.order.orderId}`);
 };
@@ -105,8 +105,8 @@ const resolvePageActionMutations = async (
     outcome: proof.result === "committed" || proof.result === "no_op"
       ? "TERMINAL_SUCCESS"
       : "TERMINAL_FAILURE",
-    positiveEvidenceRef: proof.evidenceRef,
-    negativeEvidenceRef: proof.evidenceRef,
+    positiveEvidenceRef: `${proof.evidenceRef}:target-state-confirmed`,
+    negativeEvidenceRef: `${proof.evidenceRef}:adjacent-states-excluded`,
     uniqueTargetRef: browser.target.targetRef,
     boundedAt: proof.endedAt,
   });

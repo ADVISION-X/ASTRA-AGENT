@@ -167,6 +167,11 @@ const acceptIdentityRecovery = async ({ runtime, gateway }: RecoveryInput): Prom
     1,
     "a still-hydrating fresh root is a recoverable wait on the same execution id",
   );
+  assert.equal(
+    gateway.requests.slice(beforeFresh).length,
+    2,
+    "the recoverable hydration observation must resume the same job instead of replaying a terminal failed record",
+  );
   assert.equal(gateway.supersededExecutionIds.slice(beforeFresh).filter(Boolean).length, 0);
 
   const boundedOrder = order("aiprod_bounded_pre_submit_identity_replacement", "qimen_professional_answer", ["analysis"]);

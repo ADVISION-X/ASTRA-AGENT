@@ -19,7 +19,7 @@ import { loadGeneratedAuditPlan } from "./load-audit-plan.js";
 import { writeClauseCoverageArtifact } from "../build/write-generated-artifacts.js";
 import type { LawSource } from "../shared/law-contracts.js";
 import type { StaticClauseCoverageEntry } from "../shared/generated-contracts.js";
-import { evidenceModeIncludesRealChrome } from "../shared/law-contracts.js";
+import { evidenceModeRequiresOwnerReceipt } from "../shared/law-contracts.js";
 
 type DomainExecutionReport = CompletedReport & {
   capabilityDomain: string;
@@ -70,7 +70,7 @@ const findInspectorOutputError = (planEntry: AuditPlanEntry, output: InspectorOu
     errors.push("Inspector emitted finding outside generated plan lawIds.");
   }
   const expectedChecks = planEntry.bindings
-    .filter((binding) => !evidenceModeIncludesRealChrome(binding.evidenceMode))
+    .filter((binding) => evidenceModeRequiresOwnerReceipt(binding.evidenceMode))
     .flatMap((binding) =>
     binding.checkIds.map((checkId) => ({ lawId: binding.lawId, clauseId: binding.clauseId, checkId })));
   const expectedKeys = new Set(expectedChecks.map(executedCheckKey));

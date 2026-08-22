@@ -3,10 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 const FINGERPRINT_ROOTS = [
-  "src/app",
-  "src/capabilities/ai-input-gateway",
-  "src/lib/browser",
-  "src/lib/local-runtime",
+  "src",
   "scripts/startup",
 ];
 

@@ -23,7 +23,7 @@ const credentialSchema = z.object({
   device_id: z.string().min(1),
   device_name: z.string().min(1),
   credential: z.string().regex(/^aidc_[A-Za-z0-9_-]{32,}$/u),
-  max_in_flight: z.literal(1),
+  max_in_flight: z.literal(10),
   enrolled_at: z.string().min(1),
 }).strict();
 

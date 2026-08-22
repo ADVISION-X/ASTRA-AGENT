@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:01.503Z",
+  "generatedAt": "2026-08-22T13:47:15.974Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -152,12 +152,15 @@
         "same_conversation continuation does not invent a new title. Its current V5 parent must carry a verified title proof; the continuation inherits the exact expected title/hash and repairs drift during finalization. A missing or invalid parent title proof fails closed as review_required and cannot mint current success. Fork children receive a new title because they are distinct provider conversations.",
         "A title-managed execution may publish final success only after providerExecutionProfileProof and conversationTitleProof both match the immutable request/execution identity. Temporary rename-menu, textbox, sidebar-materialization, search-result or document-generation instability is recovery_pending and retains the response checkpoint, execution id, marker and provider lease evidence. Ambiguous or wrong-target controls are review_required. No title failure may erase the checkpoint or cause the provider turn to be resubmitted.",
         "GPT Web page actions are governed as one action-state contract. Each committed mutation may append bounded evidence containing registry action id, execution id, exact target/document reference hashes, before/after canonical page identity, candidate count, semantic labels, result and evidence hash. A BrowserDocumentRef change invalidates all prior observations and element references; the action must restart registry-owned observation on the same execution and may never reuse or transmit a coordinate or selector.",
+        "Immediately after a same-target navigation, React hydration or document replacement may invalidate an otherwise exact DOM node before any mutation. The Session Controller must serially reacquire the current BrowserDocumentRef and repeat only the same registry-owned exact observation inside the existing bounded action window. It may not widen the selector, change target, reload, invoke another action, or create a fallback route. Exhaustion before a mutation is recovery_pending with a durable failure-ledger entry, never terminal failed solely because the transient node id became invalid.",
         "Existing conversation routing uses one registry-owned canonical-conversation action in the one physical tab. That action first resolves the exact canonical pathname from the materialized sidebar; when the exact row is not materialized, its only internal discovery step uses the exact turn marker and accepts exactly one result only when its href resolves to the already persisted canonical pathname. After either internal branch, canonical pathname plus unique marker are re-proved and the exact Search chats dialog is closed and verified. Search title matching never becomes identity authority, and no alternate routing action, fallback chain or caller choice exists.",
         "Submitted feeds release the browser-mutation lease before provider generation completes. Admitted submissions retain priority over ordinary response patrol; submission and patrol waiters use one durable SQLite ticket ledger with strict FIFO patrol admission after submissions drain. Rate-limit acknowledgement remains the highest-priority process-wide survival action and never refreshes the page.",
         "Every page operation binds to the internally held exact ChatGPT BrowserTargetRef and current BrowserDocumentRef through the authenticated extension transport. After process restart, a submitted execution may reacquire only its exact persisted canonical URL: one exact-URL tab binds, multiple exact-URL tabs is identity ambiguity, absent exact URL opens that URL, unrelated same-origin tabs are ignored. After binding, normal conversation switching is sidebar DOM routing, not URL-first navigation.",
-        "Every execution failure appends a bounded durable ledger entry with occurrence time, attempt id, pre-failure phase, classification, recoverability and reason. Temporary provider unavailability, capacity, rate limiting, browser disconnection, temporarily absent canonical row, page hydration, profile-menu not ready, title UI not ready and bounded search discovery are recovery_pending. Login/captcha/2FA/security barriers or ambiguous identity require review_required. Immutable profile/input/hash mismatch is failed.",
+        "Every execution failure appends a bounded durable ledger entry with occurrence time, attempt id, pre-failure phase, classification, recoverability and reason. Temporary provider unavailability, capacity, rate limiting, browser extension or authority discontinuity, target/document invalidation, command backpressure, authenticated transcript discontinuity, temporary capability admission loss, temporarily absent canonical row, page hydration, profile-menu not ready, title UI not ready and bounded search discovery are recovery_pending while no mutation outcome is UNKNOWN and no immutable business failure exists. Login/captcha/2FA/security barriers or ambiguous identity require review_required. Immutable profile/input/hash mismatch is failed.",
         "Process recovery never resubmits a captured provider turn. A valid checkpoint is loaded before browser reacquisition; for title-managed production GPT, recovery continues profile/title finalization on the exact canonical URL and marker before publication. Without a checkpoint, recovery trusts only persisted input identity, ordered attachment proof, canonical conversation identity and marker, never the caller's disposable source path. Legacy execution records remain immutable history and are not readable by the active production executor; no migration reader, alias, default or compatibility path may mint current profile or title proof.",
         "When an authorized factory supersedes one proven polluted pre-submit execution, ownership transfer is explicit and atomic. A corrected runtime may recover the same unsubmitted execution; retry count and failure-ledger length never convert recoverable provider lookup into a terminal user block.",
+        "A legacy execution incorrectly persisted as failed by a pre-submission BROWSER_EXTENSION_CHANNEL_UNAVAILABLE, BROWSER_LIVENESS_EXPIRED, BROWSER_SESSION_WORKSPACE_REQUIRED, BROWSER_TARGET_INVALID, BROWSER_DOCUMENT_INVALID, BROWSER_BACKPRESSURE, BROWSER_AUTH_TRANSCRIPT_INVALID or BROWSER_CAPABILITY_REJECTED interruption may be corrected once in place only when its input and prompt hashes still match and it has no durable submission, uploaded file, attachment proof, page-action proof, UNKNOWN mutation, response checkpoint, response hash or output. The correction persists recovery_pending before execution, preserves execution id, turn marker and failure ledger, rotates only the bounded attempt id, and never creates a failed-task recovery mode, another task or another prompt.",
+        "A current v3 execution created by the superseded GPT profile-readback placeholder may be corrected exactly once before submission only when its immutable input, prompt and profile hashes still match, its failure ledger contains the exact GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH rollout reason, and submission, uploaded files, attachment proof, verified profile proof, page-action proof, UNKNOWN mutation, response checkpoint and response hash are all absent. The correction appends LEGACY_PROFILE_READBACK_STATE_CORRECTION_APPLIED, preserves execution id, turn marker and failure history, rotates only the bounded attempt id, and cannot become a live review-task reset loop.",
         "There is exactly one live GPT page-control chain: web-chat-shared -> web-chat-session-controller -> semantic profile / canonical routing / title finalization actions. The retired web-chat-model-identity, web-chat-chat-title, system-title, named-title search, rename patrol and title-housekeeping implementations remain physically deleted."
       ],
       "forbidden": [
@@ -176,6 +179,7 @@
         "using stale BrowserDocumentRef coordinates after navigation or DOM document replacement",
         "page-global last-response extraction, legacy turn selectors, screenshot-as-output, or generated-image selector fallbacks",
         "a failed execution state without durable phase/classification/recoverability/reason evidence",
+        "reopening any legacy technical failure that has any submission, upload, page-action, UNKNOWN mutation, checkpoint or output proof",
         "duplicate prompt submission after process restart or after response checkpoint persistence"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
@@ -348,6 +352,7 @@
         "src/app/**",
         "scripts/audit/domains/app-shell-ui/**",
         "scripts/acceptance/app-shell-*.acceptance.ts",
+        "scripts/acceptance/app-shell-ui.real-chrome.ts",
         "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts"
       ],
       "forbidden": [
@@ -417,6 +422,7 @@
         "src/app/**/*.{ts,tsx,js,jsx,mjs}",
         "scripts/audit/domains/app-shell-ui/**",
         "scripts/acceptance/app-shell-*.acceptance.ts",
+        "scripts/acceptance/app-shell-ui.real-chrome.ts",
         "scripts/acceptance/amazon-product-mining-app-shell.acceptance.ts",
         "package.json"
       ],
@@ -424,6 +430,11 @@
         "Legacy APP user-demand startup blueprint exists after App Shell production entry.",
         "Retired, archived, deprecated, hidden, or copied variants of the legacy APP user-demand startup blueprint remain in the repository.",
         "App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
+      ],
+      "required": [
+        "One uniquely clause-bound deferred real-Chrome verifier consumes only the canonical production proof path produced by the repository Playwright capture entry, independently recomputes the source candidate and proof-contract hash, reads and hashes the actual DOM observation plus screenshot bytes, and proves exactly one App Shell root/sidebar/workspace/inspector/runtime console plus zero legacy startup surfaces within thirty minutes.",
+        "The capture entry must launch a real Chromium process against the exact Workbench URL, require /api/health to report the same current source candidate, and read the owner-declared exclusive selectors; caller-authored booleans, stale server UI, arbitrary proof roots and unrelated Cloud or Provider receipts cannot substitute for page observation.",
+        "Deleting the real-Chrome verifier together with its acceptance binding must still fail against the active-law Dynamic Proof denominator."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
       "blockIndex": 2
@@ -2464,7 +2475,8 @@
         "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
         "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
         "DOM actions and file input use target-bound Chrome extension commands without foreground focus; native picker, clipboard and PhysicalFocusLease paths are absent.",
-        "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
+        "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action.",
+        "The uniquely clause-bound deferred real-Chrome verifier must read the Browser owner's canonical hash-chain journal, bind the current source candidate and thirty-minute window, and require one completed document observation followed by one exact click PREPARED/SEND/UNKNOWN/CONFIRMED chain on the same target and document."
       ],
       "forbidden": [
         "evaluateActiveTab or any active/current/first page fallback",
@@ -2533,7 +2545,8 @@
         "Fill invokes exactly one declaration-only BrowserDomIntent fill command; the Browser owner resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, and verifies the exact retained value before returning.",
         "Upload revalidates a supported light-DOM file input and invokes BrowserTargetLease.attachFile with only the caller-approved artifact grant; raw paths never cross the business or Browser wire boundary.",
         "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
-        "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
+        "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition.",
+        "One uniquely clause-bound deferred real-Chrome verifier must read the Browser owner's canonical hash-chain journal, bind the current source candidate and thirty-minute window, and prove distinct click and fill commands with exact PREPARED/SEND/UNKNOWN/CONFIRMED phase chains, stable target/document/payload identity, authenticated extension result summaries showing one candidate/one mutation/identity revalidation and exact fill retained-value readback, transport and permit sequence receipts, owning-Plugin positive and negative evidence refs, and no fallback verifier path."
       ],
       "forbidden": [
         "A DOM child performing arbitrary evaluation before or after click/fill mutation",
@@ -2693,7 +2706,7 @@
       "clauses": [
         {
           "clauseId": "apex-local-browser-002-v4-auth-liveness",
-          "statement": "Only an authentication discontinuity or forty-five minutes without a valid heartbeat revokes authority; successful claim, idle time and non-authentication extension diagnostics never proactively close the authenticated channel. The authenticated worker invokes one Chrome extension API liveness pulse immediately and every twenty seconds before the sole encrypted WebSocket heartbeat. A real disconnect clears the stale target and debugger before operator re-pairing, and every programmatic close carries an explicit reason.",
+          "statement": "Only an authentication discontinuity or forty-five minutes without a valid heartbeat revokes authority; successful claim, idle time and non-authentication extension or command diagnostics never proactively close the authenticated channel. Every authenticated command failure reaches the Workbench with its command stage and capability identity. The authenticated worker invokes one Chrome extension API liveness pulse immediately and every twenty seconds before the sole encrypted WebSocket heartbeat. A real disconnect clears the stale target and debugger before operator re-pairing, and every programmatic close carries an explicit reason.",
           "evidenceMode": "acceptance",
           "ownerDomain": "local-browser-session"
         }
@@ -2708,7 +2721,7 @@
         "20s authenticated heartbeat/45m missed-heartbeat tolerance",
         "disconnect clears Target/Document and detaches debugger",
         "explicit programmatic WebSocket close reason",
-        "non-fatal encrypted extension diagnostics preserve authority"
+        "non-fatal encrypted extension and authenticated command diagnostics preserve authority and expose command stage and capability identity"
       ],
       "forbidden": [
         "pre-auth command",
@@ -2720,6 +2733,7 @@
         "heartbeat authority minting",
         "45-second authority expiry",
         "idle or diagnostic-triggered disconnect",
+        "command failure visible only in chrome extensions",
         "second keepalive transport"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
@@ -2786,17 +2800,20 @@
         }
       ],
       "required": [
+        "one canonical hash-chain Browser proof journal for lifecycle and commands",
         "PREPARED plus fsync",
         "SEND then CONFIRMED FAILED or UNKNOWN",
         "terminal/readback conflict detection",
-        "Plugin-only OutcomeResolutionReceipt",
+        "Plugin-only OutcomeResolutionReceipt with distinct positive and negative evidence refs",
         "single-socket artifact subprotocol"
       ],
       "forbidden": [
         "automatic mutation replay",
         "path on wire",
         "transport business verdict",
-        "unbounded stream"
+        "unbounded stream",
+        "caller-authored proof envelope",
+        "second Browser proof journal"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 3
@@ -2822,13 +2839,15 @@
         "release record outside extension directory",
         "exact identity readback",
         "update/rollback re-pair",
+        "canonical Browser proof journal binds current candidate, release identity, authenticated authority, exact target/document, completed command and later revocation within thirty minutes",
         "Chrome drift revalidation and 72h soak"
       ],
       "forbidden": [
         "CWS rollback",
         "dual protocol",
         "single-end rollback",
-        "old artifact fallback"
+        "old artifact fallback",
+        "arbitrary JSON asserted as real Chrome proof"
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md",
       "blockIndex": 4
@@ -3072,7 +3091,7 @@
       "clauses": [
         {
           "clauseId": "apex-runtime-log-001-v2-terminal-observability",
-          "statement": "Every terminal authority, extension, ingress and recovery event is attributable and redacted in the Workbench terminal.",
+          "statement": "Every terminal authority, extension, authenticated command, ingress and recovery event is attributable and redacted in the Workbench terminal.",
           "evidenceMode": "static",
           "ownerDomain": "runtime-log-spine"
         }
@@ -3081,13 +3100,13 @@
         "FLOW/DEBUG/TRACE",
         "started/terminal pairs",
         "new authority/ingress/recovery event registry",
-        "authenticated extension failures reach the Workbench terminal",
+        "authenticated extension and command failures reach the Workbench terminal with command stage and capability identity",
         "failure classes",
         "redaction proof"
       ],
       "forbidden": [
         "second logger",
-        "extension error visible only in chrome extensions",
+        "extension or authenticated command error visible only in chrome extensions",
         "secret/raw payload/path persistence",
         "log-as-evidence",
         "silent branch",
@@ -3673,18 +3692,18 @@
       "blockIndex": 0
     },
     {
-      "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V3",
+      "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "xuanxue-ai-production",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance+real-chrome+real-provider",
-      "summary": "Only V5 outbound Cloud Pull may deliver a complete xuanxue production order through the unique Worker-to-Mediator-to-Plugin chain; durable identity, connection-bound Workspace, oldest-first restart recovery, fence and first-terminal CAS fail closed without an alternate path.",
+      "summary": "Only V5 outbound Cloud Pull may deliver a complete xuanxue production order through the unique Worker-to-Mediator-to-Plugin chain; every user-issued unfinished task is durable, every changed recovery version is reconciled by the continuously running worker, exactly ten independent business tasks may wait concurrently behind one serialized Browser action lane, and the globally oldest claimable created_at plus job_id always runs first.",
       "clauses": [
         {
-          "clauseId": "apex-xuanxue-001-v3-cloud-pull-v5",
-          "statement": "A browser side effect or terminal result is possible only after one V5 Cloud Pull order passes canonical grant, durable identity, connection-bound Workspace, current fence and exact-target checks in the unique owner chain; browser discontinuity remains recovery_pending and fresh pair plus claim resumes the oldest unfinished job.",
-          "evidenceMode": "model+acceptance+real-chrome",
+          "clauseId": "apex-xuanxue-001-v4-cloud-pull-v5",
+          "statement": "A browser side effect or terminal result is possible only after one V5 Cloud Pull order passes canonical grant, durable identity, connection-bound Workspace, current fence and exact-target checks in the unique owner chain; up to ten independent jobs may hold durable provider waits while one Browser action is serialized, technical discontinuity stays recovery_pending, proof-empty historical pre-submission misclassifications are corrected only by exact one-time Cloud and local migrations on the same job, every changed local recovery version is reconciled by the continuous poll loop, UNKNOWN is never replayed, the single Cloud plus local scheduler resumes the globally oldest claimable created_at plus job_id, and each deferred Chrome or Provider proof independently recomputes the current candidate, consumes the canonical production run root, binds one immutable runtime receipt, and for Provider proof requires a fresh authenticated Cloud readback proving the exact job set is terminal completed.",
+          "evidenceMode": "model+acceptance+real-chrome+real-provider",
           "ownerDomain": "xuanxue-ai-production"
         }
       ],
@@ -3694,12 +3713,15 @@
         "xuanxue-ai-production-v5 canonical manifest validation",
         "Cloud Worker to one mediator to one Plugin",
         "fsync local order identity before execution",
-        "max_in_flight=1",
+        "max_in_flight=10 and max_browser_in_flight=1",
         "manual pair plus target claim establishes one no-wall-clock-expiry Workspace plus dynamic Authority Target Document",
         "browser and network discontinuity remains recovery_pending",
-        "oldest unfinished job resumes before normal scheduling",
+        "every poll reconciles each changed job attempt status and checkpoint version",
+        "proof-empty historical pre-submission misclassifications are corrected only by exact one-time Cloud and local migrations on the same job",
+        "all claimable queued and recovery_pending jobs share one global created_at plus job_id order",
         "first-terminal CAS and explicit foreign-device handover",
-        "UNKNOWN never auto-replayed"
+        "UNKNOWN never auto-replayed",
+        "real Chrome and real Provider receipts bind an independently recomputed current source candidate, one immutable Browser runtime receipt, the canonical production Workbench data directory, an authenticated Cloud device heartbeat, the exact completed Cloud job set, and a bounded fresh run"
       ],
       "forbidden": [
         "xuanxue external HMAC/LNA/localhost business ingress",
@@ -3707,9 +3729,17 @@
         "separate or per-job Browser approval",
         "8h or any wall-clock Workspace expiry",
         "browser disconnect written as business failed",
-        "newer job before oldest unfinished recovery",
+        "collapsing ten business/provider waits into one job because Browser mutation is serialized",
+        "process-lifetime reconciliation suppression for a changed order",
+        "operator recovery button or unproved failed-task resurrection path",
+        "new job or new prompt used to replace a recoverable original task",
+        "service class recovery partition registration order or in-memory order bypassing the globally oldest claimable job",
+        "automatic replay of UNKNOWN or any task with side-effect proof",
+        "stale or foreign-candidate Chrome or Provider receipt",
+        "caller-selected proof root or caller-supplied candidate identity",
+        "offline caller-minted Provider bundle without authenticated Cloud terminal readback",
         "Cloud callback",
-        "second worker mediator ledger Browser or Provider chain",
+        "second worker mediator queue ledger Browser or Provider chain",
         "local handwritten duplicate Cloud schema or second validator owner",
         "alias default normalization compatibility fallback dual reader or dual writer"
       ],

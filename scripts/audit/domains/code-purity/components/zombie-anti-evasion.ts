@@ -103,17 +103,24 @@ const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolea
   const importedBinding = leafPlanSource?.getImportDeclarations()
     .find((declaration) => declaration.getModuleSpecifierValue() === "./ci-acceptance-law-bindings.js")
     ?.getNamedImports().find((specifier) => specifier.getName() === "acceptanceLawBindings");
-  const skeletonBuilder = leafPlanSource?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
+  const skeletonBuilder = leafPlanSource?.getVariableDeclaration("buildAcceptancePackageSkeletons")
     ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const skeletonBindings = skeletonBuilder?.getParameters()[1];
   const closure = leafPlanSource?.getVariableDeclaration("assertAcceptanceBindingClosure");
+  const closureBindings = closure?.getInitializerIfKind(SyntaxKind.ArrowFunction)?.getParameters()[1];
   const keyCall = closure?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) => {
     const callee = call.getExpression();
     return Node.isPropertyAccessExpression(callee) && callee.getName() === "has"
-      && importedBinding !== undefined && resolvesTo(callee.getExpression(), importedBinding);
+      && closureBindings !== undefined && resolvesTo(callee.getExpression(), closureBindings);
   });
   const closureCall = skeletonBuilder?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .find((call) => closure !== undefined && resolvesTo(call.getExpression(), closure));
-  return bindingExists && keyCall !== undefined && closureCall !== undefined;
+  const defaultBindingIsImported = skeletonBindings !== undefined && importedBinding !== undefined
+    && resolvesTo(skeletonBindings.getInitializer(), importedBinding);
+  const skeletonBindingIsPassed = closureCall?.getArguments().some((argument) =>
+    skeletonBindings !== undefined && resolvesTo(argument, skeletonBindings)) ?? false;
+  return bindingExists && keyCall !== undefined && closureCall !== undefined
+    && defaultBindingIsImported && skeletonBindingIsPassed;
 };
 
 const pushVoidKeepaliveFindings = (

@@ -5,7 +5,10 @@ import type { BrowserDocumentRef, BrowserTargetRef } from "../../src/types/brows
 
 const targetRef = (value: string): BrowserTargetRef => value as BrowserTargetRef;
 const documentRef = (value: string): BrowserDocumentRef => value as BrowserDocumentRef;
-const browser = { getTarget: () => ({ targetRef: targetRef("bt_a"), documentRef: documentRef("bd_2") }) } as never;
+const browser = {
+  target: { targetRef: targetRef("bt_a") },
+  document: { documentRef: documentRef("bd_2") },
+} as never;
 const clickInput = (target: BrowserTargetRef, document: BrowserDocumentRef) => ({
   elementRef: {
     targetRef: target,
@@ -23,10 +26,10 @@ const clickInput = (target: BrowserTargetRef, document: BrowserDocumentRef) => (
 });
 await assert.rejects(
   clickDomElementOnce(browser, clickInput(targetRef("bt_b"), documentRef("bd_2"))),
-  /TARGET_FOREIGN_SESSION/u,
+  /BROWSER_TARGET_INVALID/u,
 );
 await assert.rejects(
   clickDomElementOnce(browser, clickInput(targetRef("bt_a"), documentRef("bd_1"))),
-  /DOCUMENT_STALE/u,
+  /BROWSER_DOCUMENT_INVALID/u,
 );
 process.stdout.write("[dom-automation-exact-target] PASS\n");

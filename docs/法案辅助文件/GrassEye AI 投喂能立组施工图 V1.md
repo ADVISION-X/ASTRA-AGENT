@@ -1,6 +1,6 @@
 # GrassEye AI 投喂能立组施工图 V3
 
-版本：2026-08-21.2
+版本：2026-08-22.3
 状态：active blueprint  
 适用 owner：`src/capabilities/ai-input-gateway/**`
 
@@ -105,6 +105,48 @@ pro_extended
 7. 最终必须 read-back 模型和 reasoning 与请求 profile 完全一致。
 8. 缺项、多个候选、无权限、读取不清、错误页面、document drift、read-back mismatch 均 fail closed。
 
+### 2026-08-22 真实 ChatGPT 页面施工基线
+
+本节来自 `https://chatgpt.com/` 的已登录 Pro 账号真实页面逐步观察，固定本次已走通的页面结构，避免后续重复猜测。它只授权这一条现役路径；页面结构漂移时必须重新取证，不得追加兼容 selector 或第二 picker。
+
+法定动作顺序：
+
+```txt
+1. 模型选择下拉
+2. 高级
+3. 模型
+4. 推理强度
+5. 同菜单精确回读模型、推理强度与唯一 checked candidate
+```
+
+真实 DOM 身份：
+
+| 页面状态 | 唯一 DOM 身份 | 正向确认 | 反向排除 |
+| --- | --- | --- | --- |
+| composer 模型选择下拉 | `form button[aria-haspopup='menu'][data-tone='neutral']` | 恰好一个、可见、`aria-expanded` 可回读；按钮文案是当前推理档位 | 零个或多个、disabled、错误 form、旧 document 均失败关闭 |
+| 高级未展开 | `[role='menuitem'][aria-label='显示高级选项']` | 与“已展开”状态二选一且恰好一个 | 两种状态同时存在或同时不存在均失败关闭 |
+| 高级已展开 | `[role='menuitem'][aria-label='显示精简选项']` | 恰好两个 `[role='menuitem'][data-has-submenu]`，文本分别包含“模型”和“推理强度” | 隐藏旧菜单、多个同名入口、缺少任一入口均失败关闭 |
+| 模型候选 | `[role='menuitemradio']` | `GPT-5.6 Sol` 恰好一个；选中后该项 `aria-checked='true'`，全部 checked candidate 恰好一个 | 本次相邻候选 `GPT-5.5`、`o3` 不得处于 checked；目标为零/多个或 checked 冲突均失败关闭 |
+| 推理候选 | `[role='menuitemradio']` | 真实候选为 `极速 / 中 / 高 / 极高 / Pro`；请求目标恰好一个且最终唯一 checked | “最接近”选择、滑块坐标、固定 index、多个 checked 或目标缺失均失败关闭 |
+
+本次实证的 canonical tier 到中文 UI 的唯一映射：
+
+```txt
+medium       -> 中
+high         -> 高
+extra_high   -> 极高
+pro_standard -> Pro
+pro_extended -> 当前页面无独立可排他的 UI 档位，必须 review_required
+```
+
+`GPT-5.6 Sol + 极高` 的最终实证同时满足：主按钮回读“极高”；高级菜单回读“模型 GPT-5.6 Sol / 推理强度 极高”；推理候选只有“极高”为 `aria-checked='true'`。生产 proof 只能由这些 provider UI 观察生成，不能从请求字段反推或伪造。
+
+旧占位实现已将一批当前 `web-chat-execution-v3` 在提交前写成 `review_required`。该执行状态只在 input/prompt/profile hash
+不变、failure ledger 含精确 `GPT_WEB_EXECUTION_PROFILE_READBACK_MISMATCH`，且 submission/upload/attachment/profile-proof/
+page-action/UNKNOWN/response-checkpoint/response-hash 全空时，原位追加一次 `LEGACY_PROFILE_READBACK_STATE_CORRECTION_APPLIED`
+并回到 `recovery_pending`。原 execution id、turn marker 和 failure history 保留，只轮换 attempt id；该 marker 存在后不得再纠正，
+不得形成常驻 review-task reset 链路。
+
 禁止：
 
 - 固定 `reasoningSliderIndex`。
@@ -156,6 +198,13 @@ cleanup_owned_provider_ui
 页面元素本身不穿越 extension transport；运行时只保存受限标量、坐标、identity hash 和结果。
 
 `BrowserDocumentRef` 变化意味着本次观察失效。旧 point 立即作废，必须重新定位；禁止跨 document 继续点击。
+
+同一 target 完成 navigation 后，React hydration 或 document replacement 可能在 mutation 前使刚取得的
+DOM node id 失效。Session Controller 只能在现有动作截止时间内串行重新取得当前
+`BrowserDocumentRef`，并重复同一个 registry-owned exact observation；不得放宽 selector、切换 target、
+reload、调用另一 action 或建立 fallback。尚未发生 mutation 时到界仍只有
+`BROWSER_TARGET_INVALID`，必须写入 failure ledger 并进入 `recovery_pending`，不得把这类页面瞬态
+写成业务 `failed`。
 
 ## Conversation Identity
 
@@ -526,6 +575,14 @@ failure ledger
 
 旧 execution 记录只保留为不可变历史，不进入 active production reader。不得通过 migration reader、alias、默认值或兼容分支补造 profile/title proof，也不得恢复旧 `systemChatTitle/chatTitleRename` debt。
 
+唯一历史例外是旧候选在 prompt mutation 前把受信 Browser 技术中断误写为 `failed` 的同 execution
+自动恢复。受信原因只包括 extension/liveness/workspace、target/document invalid、backpressure、认证
+transcript discontinuity 与暂时 capability admission loss。它必须同时满足 input/prompt hash 不变，且
+submission/upload/attachment proof/page-action proof/`UNKNOWN` mutation/response checkpoint/response
+hash/output 全为空。恢复保留 execution id、turn marker 和 failure ledger，只更换 attempt id 并重走
+同一 exact 观察。任一 proof 存在、身份漂移、明确业务失败或原因不在 allowlist 时失败关闭；该精确
+恢复不是通用 legacy reader，也不需要人工逐单创建恢复任务。
+
 ## Bounded Parallel Web Chat
 
 ```txt
@@ -606,5 +663,7 @@ AiFeedResult schema valid
 28. legacy execution active reader/alias/default/compatibility 为零。
 29. providerProof 投影 execution profile + title proof。
 30. xuanxue production profile source identity 保留 sourceProfileRef/sourceProfileHash。
+31. navigation 后 hydration 使 exact node id 短暂失效时，只在同一 target、同一 selector、同一有界窗口重新观察；不得终态 failed、放宽 selector 或切第二路径。
+32. 旧受信 Browser 技术失败只在无任何提交/上传/动作/UNKNOWN/checkpoint/output proof 时自动恢复同 execution；保留 marker/ledger 且更换 attempt。
 
 本施工图的完成标准不是“能点网页”，而是：**每一个会改变 GPT Web 页面或决定某次 Provider 执行身份的动作，都只能在唯一 owner、唯一状态、唯一 proof 链中发生；失败可恢复，身份不可漂移，结果不可重复。**

@@ -45,6 +45,14 @@ const assertProviderFailuresRemainRecoverable = (): void => {
   );
   assert.equal(
     classifyWebChatFailure(
+      new Error("WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID"),
+      false,
+    ),
+    "recovery_pending",
+    "pre-mutation fresh-root hydration must never become a permanent failed execution",
+  );
+  assert.equal(
+    classifyWebChatFailure(
       new Error(
         "review_required: web-chat execution is terminal: failed; root=invalid immutable input identity",
       ),
@@ -159,6 +167,49 @@ const assertCorrectedUnsubmittedInputStartsFreshAttempt = async (): Promise<void
     assert.equal(repaired.record.inputHash, "corrected-input");
     assert.equal("systemChatTitle" in repaired.record, false);
     assert.equal("chatTitleRename" in repaired.record, false);
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+};
+
+const assertLegacyPreMutationTargetInvalidResumesSameExecution = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-target-invalid-restart-"));
+  try {
+    const initial = await startOrResumeWebChatExecution({
+      dataDir,
+      executionId: "xuanxue-ai-production:legacy-target-invalid:localization_candidate",
+      providerKind: "gpt-web-chat",
+      inputHash: "same-input",
+      textPrompt: "same prompt",
+    });
+    const failed = await updateWebChatExecution({
+      dataDir,
+      record: initial.record,
+      patch: {
+        status: "failed",
+        failures: [{
+          occurredAt: new Date().toISOString(),
+          attemptId: initial.record.attemptId,
+          phase: "submitting",
+          classification: "failed",
+          recoverable: false,
+          reason: "BROWSER_TARGET_INVALID",
+        }],
+      },
+    });
+    const recovered = await startOrResumeWebChatExecution({
+      dataDir,
+      executionId: initial.record.executionId,
+      providerKind: "gpt-web-chat",
+      inputHash: "same-input",
+      textPrompt: "same prompt",
+    });
+    assert.equal(recovered.resume, false);
+    assert.equal(recovered.record.status, "recovery_pending");
+    assert.equal(recovered.record.executionId, failed.executionId);
+    assert.equal(recovered.record.turnMarker, failed.turnMarker);
+    assert.notEqual(recovered.record.attemptId, failed.attemptId);
+    assert.equal(recovered.record.submission, null);
   } finally {
     await rm(dataDir, { recursive: true, force: true });
   }
@@ -343,6 +394,7 @@ export const assertWebChatIdentityAndRecoveryPolicies = async (): Promise<void> 
   assertProviderFailuresRemainRecoverable();
   await assertDuplicateCanonicalDomRowsAreOneLogicalRoute();
   await assertCorrectedUnsubmittedInputStartsFreshAttempt();
+  await assertLegacyPreMutationTargetInvalidResumesSameExecution();
   await assertRootlessSyntheticTerminalEchoGetsOneRecovery();
   await assertCanonicalConversationOwnership();
   await assertSubmittedDraftOwnershipRequiresOneCanonicalOwner();

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:31.314Z",
+  "generatedAt": "2026-08-22T13:47:46.820Z",
   "capabilityDomain": "app-shell-ui",
   "executionGroup": "domain",
   "lawIds": [
@@ -11,20 +11,23 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:6f5c3ee0-2d7d-4884-8ccf-ed70ed835ff8",
+      "runId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db",
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:34a78c87-ecbf-4705-962f-98976573509d",
       "capabilityDomain": "app-shell-ui",
       "checkId": "app-shell-ui/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T02:57:31.132Z",
-      "endedAt": "2026-08-22T02:57:31.314Z",
-      "durationMs": 182,
+      "startedAt": "2026-08-22T13:47:46.635Z",
+      "endedAt": "2026-08-22T13:47:46.820Z",
+      "durationMs": 185,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md",
         "MIGRATION_FILE_DECISION_TABLE.md",
         "docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md",
         "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
         "package.json",
+        "scripts/acceptance/app-shell-real-chrome-proof-support.ts",
+        "scripts/acceptance/app-shell-ui.real-chrome.ts",
+        "scripts/acceptance/capture-app-shell-ui.real-chrome.ts",
         "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
         "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
         "scripts/audit/domains/app-shell-ui/inspector-localization.ts",
@@ -82,13 +85,13 @@
       "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
       "clauseId": "grasseye-app-shell-ui-001-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:6f5c3ee0-2d7d-4884-8ccf-ed70ed835ff8"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:34a78c87-ecbf-4705-962f-98976573509d"
     },
     {
       "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
       "clauseId": "grasseye-app-shell-ui-002-requirement",
       "checkId": "app-shell-ui/owner-assertion-set",
-      "checkRunId": "audit-run:90e9e466-5403-465a-8cb2-b2507e1c4761:check:6f5c3ee0-2d7d-4884-8ccf-ed70ed835ff8"
+      "checkRunId": "audit-run:ec646302-af6b-4947-8673-134f373dd8db:check:34a78c87-ecbf-4705-962f-98976573509d"
     }
   ],
   "inspectedFiles": [
@@ -97,6 +100,9 @@
     "docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md",
     "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
     "package.json",
+    "scripts/acceptance/app-shell-real-chrome-proof-support.ts",
+    "scripts/acceptance/app-shell-ui.real-chrome.ts",
+    "scripts/acceptance/capture-app-shell-ui.real-chrome.ts",
     "scripts/audit/domains/app-shell-ui/inspector-forbidden-actions.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
     "scripts/audit/domains/app-shell-ui/inspector-localization.ts",

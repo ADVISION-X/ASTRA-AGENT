@@ -60,10 +60,10 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 4. 为每个 owner inspector 写入独立 report。
 5. runner 为当前 owner 创建唯一 `InspectorCheckSession`；每个 owner 必须只有一个命名为 `inspectDomainEvaluation` 的完整 assertion-set 入口，且 `inspectDomain` 只能在一个 `checks.runAll()` 签名窗口内通过真实 symbol 恰好调用它一次；该命名入口本体返回的 findings 必须沿真实 source declaration/dataflow 追溯到 finding 构造、finding collection 写入或继续调用的真实 assertion，直接返回空 findings、任意 evidence、`Boolean(findings)` 等 declaration-file/decoy call 均须 FAIL；owner 目录内任意无关或 hollow helper 不得冒充完整 evaluation。runner 只为 manifest-owned `<capabilityDomain>/owner-assertion-set` 签发一份 `runId/checkRunId/status/durationMs/evidenceRefs/findingCount`。细粒度 finding ID 只负责定位失败，不是物理回执。
 6. 校验每个物理 `checkRunId` 无缺失、无重复、无越权；同一 check 映射多个相关法条时复用同一个 `checkRunId`，不得复制执行或重复整域扫描。
-7. generated coverage 对全部 active clauses 证明 100% 精确绑定；只对 `static` / `acceptance` 机器条款证明 executed，`real-chrome` 条款必须明确保持 deferred。
-8. `InspectorCheckSession` 生成 owner report、runner 计算 expected mappings 时，都先排除 `evidenceMode=real-chrome`；不得把真实 Chrome 条款暂时写成 executed 后再在汇总层洗掉。
+7. generated coverage 对全部 active clauses 证明 100% 精确绑定；只对 `static` / `model` / `acceptance` / `artifact` 机器 facet 证明 executed，`real-chrome` / `real-provider` facet 必须分别保持 deferred。
+8. `InspectorCheckSession` 生成 owner report、runner 计算 expected mappings 时，都先排除纯动态 facet 并保留复合条款的机器 facet；不得把真实 Chrome/Provider facet 暂时写成 executed 后再在汇总层洗掉，也不得互相冒充。
 9. typecheck，物理步骤明确绑定 `APEX-CODE-PURITY-008-V1`，不得保留空 lawId。
-10. 全部 `acceptance:*` package group（包括真实 Chrome 与真实 proof verifier）必须先递归展开成去重后的直接物理叶，并逐叶通过同一份显式 file-to-law binding 闭合；随后只按 rebuilt generated plan 中命中 clause 的 `evidenceMode` 分层：`static` / `acceptance` 进入 CI 并拥有独立 owner/deadline/时间/结果回执，`real-chrome` 明确 deferred。不得按脚本名、文件名、`real-proof` 字样或其他启发式提前排除，`&&` group 只可作为人工入口，不是 CI 执行单位。禁止从 owner `lawIds[0]` 批量抄写叶级 lawId。
+10. 全部 `acceptance:*` package group（包括真实 Chrome 与真实 Provider verifier）必须先递归展开成去重后的直接物理叶，并逐叶通过同一份显式 file-to-law binding 闭合；随后只按 rebuilt generated plan 中命中 clause 的精确 facet 分层：机器 facet 进入 CI 并拥有独立 owner/deadline/时间/结果回执，`real-chrome` / `real-provider` 分别明确 deferred。不得按脚本名、文件名、`real-proof` 字样或其他启发式提前排除，`&&` group 只可作为人工入口，不是 CI 执行单位。禁止从 owner `lawIds[0]` 批量抄写叶级 lawId。
 11. 外部命令超时必须 `SIGTERM -> 等待 -> SIGKILL -> 等待完整进程组终止证明`，不得用 `unref` 清理定时器或只等 leader 退出；无法证明终态时必须记录 cleanup failure 并 fail closed，禁止声称已终止或继续下一步；generated-plan worker 超时也必须等待 `terminate()` 回执。
 12. fail-fast summary 必须先收录本次真实失败步骤的完整 `FAIL` receipt，再把后续未启动步骤逐项登记为 `SKIPPED`；失败步骤不得从两本账同时消失。
 13. owner inspector 与域内 helper 只返回 `reportJson/reportMarkdown` payload，不得调用 filesystem mutation API 或写 generated 文件；唯一 generated-plan runner 是 owner report 的唯一落盘者，旧私有 writer 与独立 inventory generated 文件必须物理删除，inventory 进入 owner report payload。
@@ -80,7 +80,7 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 - 绕过 generated plan 直接调用 owner inspector。
 - 排除某个 owner 后再单独补跑。
 - 接受缺失、重复、越权或 manifest 未声明的 executed-check receipt。
-- 把普通 owner/acceptance receipt 当成 `real-chrome` 已执行证明。
+- 把普通 owner/acceptance receipt 当成 `real-chrome` / `real-provider` 已执行证明，或混淆两种动态证据。
 - 为 K 个 check 重复执行 K 次整域 evaluation。
 - 制造平行 audit 结论。
 - 恢复第二完整质检入口。

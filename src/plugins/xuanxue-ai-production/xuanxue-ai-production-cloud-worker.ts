@@ -5,7 +5,6 @@ import {
   failXuanxueAiProductionJob,
   heartbeatXuanxueAiProductionDevice,
   heartbeatXuanxueAiProductionJob,
-  recoverXuanxueAiProductionJob,
 } from "./xuanxue-ai-production-cloud-client.js";
 import {
   XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
@@ -47,14 +46,6 @@ interface XuanxueAiProductionExecutionPort {
     deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
   ): Promise<XuanxueAiOrderRecord>;
   listCloudRecoveryOrders(): XuanxueAiOrderRecord[];
-  quarantineForeignCloudRecoveryOrder(
-    orderId: string,
-    reason: string,
-  ): XuanxueAiOrderRecord;
-  cancelCloudRecoveryOrder(
-    orderId: string,
-    reason: string,
-  ): XuanxueAiOrderRecord;
   availableCapacity(): number;
 }
 
@@ -74,7 +65,7 @@ interface WorkerState {
   readonly credential: XuanxueAiProductionCloudCredential;
   readonly dataDir: string;
   readonly execution: XuanxueAiProductionExecutionPort;
-  readonly reconciledLocalOrders: Set<string>;
+  readonly reconciledLocalVersions: Map<string, string>;
   readonly onStatus?: (status: XuanxueAiProductionWorkerHealth) => void;
   lastDeviceHeartbeatAt: number;
   lastSuccessfulHeartbeatAt: string | null;
@@ -82,6 +73,51 @@ interface WorkerState {
   lastErrorReason: string | null;
   healthStatus: XuanxueAiProductionWorkerHealth["status"];
 }
+
+export const xuanxueAiProductionLocalRecoveryVersion = (
+  record: XuanxueAiOrderRecord,
+): string => [
+  record.order.cloudExecutionIdentity?.attemptId ?? "no-attempt",
+  record.order.cloudExecutionIdentity?.leaseVersion ?? "no-lease",
+  record.status,
+  record.updatedAt,
+  ...record.stages
+    .map((stage) => [
+      stage.stageId,
+      stage.executionId,
+      stage.status,
+      stage.attemptCount,
+      stage.progressPhase,
+      stage.updatedAt,
+    ].join(":"))
+    .sort(),
+].join(":");
+
+export const reconcileXuanxueAiProductionLocalNonterminalLedger = async (input: {
+  readonly records: readonly XuanxueAiOrderRecord[];
+  readonly activeJobIds: ReadonlySet<string>;
+  readonly reconciledVersions: Map<string, string>;
+  readonly reconcileDerivedInputs: (
+    records: readonly XuanxueAiOrderRecord[],
+    activeJobIds: ReadonlySet<string>,
+  ) => Promise<void>;
+}): Promise<readonly string[]> => {
+  const currentIds = new Set(input.records.map((record) => record.order.orderId));
+  const changed = input.records.filter((record) =>
+    input.reconciledVersions.get(record.order.orderId)
+      !== xuanxueAiProductionLocalRecoveryVersion(record));
+  await input.reconcileDerivedInputs(input.records, input.activeJobIds);
+  for (const record of input.records) {
+    input.reconciledVersions.set(
+      record.order.orderId,
+      xuanxueAiProductionLocalRecoveryVersion(record),
+    );
+  }
+  for (const orderId of input.reconciledVersions.keys()) {
+    if (!currentIds.has(orderId)) input.reconciledVersions.delete(orderId);
+  }
+  return Object.freeze(changed.map((record) => record.order.orderId));
+};
 
 type StagedCloudJob = Awaited<ReturnType<
   typeof stageXuanxueAiProductionCloudJob
@@ -336,69 +372,22 @@ const executeCloudJob = async (
   }
 };
 
-const reconcileDurableLocalOrders = async (
+const reconcileLocalNonterminalLedger = async (
   state: WorkerState,
-): Promise<void> => {
+): Promise<readonly string[]> => {
   const records = state.execution.listCloudRecoveryOrders();
-  await reconcileXuanxueAiProductionGeneratedInputOrphans(
-    { dataDir: state.dataDir },
+  return reconcileXuanxueAiProductionLocalNonterminalLedger({
     records,
-    new Set(state.active.keys()),
-  );
-  for (const record of records) {
-    const orderId = record.order.orderId;
-    if (
-      state.reconciledLocalOrders.has(orderId)
-      || state.active.has(orderId)
-    ) continue;
-    try {
-      const recovered = await recoverXuanxueAiProductionJob(
-        state.credential,
-        {
-          orderId,
-          sourceTaskId: record.order.sourceTaskId,
-          requestHash: record.order.requestHash,
-          completedResult:
-            record.status === "completed" && record.result
-              ? record.result
-              : null,
-        },
+    activeJobIds: new Set(state.active.keys()),
+    reconciledVersions: state.reconciledLocalVersions,
+    reconcileDerivedInputs: async (currentRecords, activeJobIds) => {
+      await reconcileXuanxueAiProductionGeneratedInputOrphans(
+        { dataDir: state.dataDir },
+        currentRecords,
+        activeJobIds,
       );
-      state.reconciledLocalOrders.add(orderId);
-      if (recovered.status === "cancelled") {
-        state.execution.cancelCloudRecoveryOrder(
-          orderId,
-          "cloud recovery endpoint returned terminal cancelled",
-        );
-        continue;
-      }
-      if (recovered.status === "completed") {
-        await cleanXuanxueAiProductionCloudStaging(
-          state.dataDir,
-          orderId,
-        );
-        await cleanXuanxueAiProductionGeneratedInputs(
-          { dataDir: state.dataDir },
-          orderId,
-        );
-      }
-    } catch (error) {
-      const reason = safeWorkerReason(error);
-      const foreignLedger = reason.includes(
-        "AI_PRODUCTION_LOCAL_RECOVERY_DEVICE_MISMATCH",
-      );
-      if (foreignLedger) {
-        state.execution.quarantineForeignCloudRecoveryOrder(orderId, reason);
-        state.reconciledLocalOrders.add(orderId);
-      }
-      reportCloudWorkerError(
-        foreignLedger
-          ? "XUANXUE_AI_PRODUCTION_FOREIGN_LEDGER_SKIPPED"
-          : "XUANXUE_AI_PRODUCTION_LEDGER_RECOVERY_RETRY",
-        error,
-      );
-    }
-  }
+    },
+  });
 };
 
 const workerLoop = async (state: WorkerState): Promise<void> => {
@@ -409,9 +398,8 @@ const workerLoop = async (state: WorkerState): Promise<void> => {
         state.lastDeviceHeartbeatAt = Date.now();
         state.lastSuccessfulHeartbeatAt = new Date().toISOString();
       }
-      await reconcileDurableLocalOrders(state);
+      await reconcileLocalNonterminalLedger(state);
       const available = Math.min(
-        1,
         state.execution.availableCapacity(),
         state.credential.max_in_flight - state.active.size,
       );
@@ -445,8 +433,8 @@ export async function startXuanxueAiProductionCloudWorker(input: {
   const credential = await readXuanxueAiProductionCloudCredential(
     input.dataDir,
   );
-  if (credential.max_in_flight !== 1) {
-    throw new Error("XUANXUE_AI_PRODUCTION_V5_SINGLE_IN_FLIGHT_REQUIRED");
+  if (credential.max_in_flight !== 10) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V5_TEN_IN_FLIGHT_REQUIRED");
   }
   const configuredBase =
     process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL
@@ -468,7 +456,7 @@ export async function startXuanxueAiProductionCloudWorker(input: {
     credential,
     dataDir: input.dataDir,
     execution: input.execution,
-    reconciledLocalOrders: new Set(),
+    reconciledLocalVersions: new Map(),
     ...(input.onStatus ? { onStatus: input.onStatus } : {}),
     lastDeviceHeartbeatAt: Date.now(),
     lastSuccessfulHeartbeatAt: heartbeatAt,

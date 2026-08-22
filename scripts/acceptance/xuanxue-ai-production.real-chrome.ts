@@ -1,15 +1,23 @@
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
+
+import {
+  XuanxueDynamicProofBindingContract,
+} from "../../src/capabilities/ai-input-gateway/index.js";
 
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import {
-  createAgentRuntimeReceiptV5,
   type AgentRuntimeReceiptV5,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import {
   XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
+import {
+  canonicalXuanxueRealRunRoot,
+  currentXuanxueSourceCandidate,
+  validateBoundRuntimeReceipt,
+} from "./xuanxue-ai-production-real-proof-support.js";
 
 type XuanxueRealChromeEvidenceV5 = Readonly<{
   schemaVersion: "xuanxue-ai-production-real-chrome-evidence.v5";
@@ -18,6 +26,7 @@ type XuanxueRealChromeEvidenceV5 = Readonly<{
   releaseMode: "unpacked-manual-reload";
   workbenchUrl: string;
   realRunRoot: string;
+  dynamicProofRunId: string;
   runtimeReceipt: AgentRuntimeReceiptV5;
   evidenceRefs: readonly string[];
 }>;
@@ -60,6 +69,20 @@ try {
   assert.equal(evidence.releaseMode, "unpacked-manual-reload");
   assert.equal(evidence.workbenchUrl, "http://127.0.0.1:4173/");
   assert.ok(statSync(resolve(evidence.realRunRoot)).isDirectory());
+  assert.equal(resolve(evidence.realRunRoot), canonicalXuanxueRealRunRoot());
+  const dynamicProofBinding = XuanxueDynamicProofBindingContract.validate(
+    JSON.parse(readFileSync(join(
+      resolve(evidence.realRunRoot),
+      XuanxueDynamicProofBindingContract.fileName,
+    ), "utf8")),
+    currentXuanxueSourceCandidate(),
+    XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  );
+  assert.equal(evidence.dynamicProofRunId, dynamicProofBinding.run_id);
+  assert.equal(
+    dynamicProofBinding.contract_manifest_hash,
+    XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  );
   assert.ok(
     Array.isArray(evidence.evidenceRefs)
       && evidence.evidenceRefs.length > 0
@@ -71,7 +94,7 @@ try {
   assert.equal(receipt.status, "complete");
   assert.equal(receipt.browser_required, true);
   assert.ok(receipt.browser_proof);
-  assertSha256(receipt.candidate_hash, "candidate_hash");
+  assert.equal(receipt.candidate_hash, dynamicProofBinding.candidate_hash);
   assert.equal(receipt.browser_proof.unresolved_outcome_unknown_count, 0);
   assert.equal(receipt.browser_proof.no_action_during_authority_absence, true);
   assert.ok(receipt.browser_proof.windows.length > 0);
@@ -88,19 +111,11 @@ try {
     assertSha256(receipt.browser_proof[field], field);
   }
 
-  const revalidated = createAgentRuntimeReceiptV5({
-    requestId: receipt.request_id,
-    status: receipt.status,
-    executionId: receipt.execution_id,
-    runId: receipt.run_id,
-    conversationId: receipt.conversation_id,
-    candidateHash: receipt.candidate_hash,
-    browserRequired: receipt.browser_required,
-    browserAuthorityProof: receipt.browser_proof,
-    evidenceRefs: receipt.evidence_refs,
+  validateBoundRuntimeReceipt({
+    evidence,
+    binding: dynamicProofBinding,
+    runRoot: evidence.realRunRoot,
   });
-  assert.deepEqual(revalidated, receipt);
-  assert.deepEqual(evidence.evidenceRefs, receipt.evidence_refs);
 
   process.stdout.write(`${JSON.stringify({
     marker: "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V5]",
@@ -109,6 +124,8 @@ try {
     extensionId: evidence.extensionId,
     requestId: receipt.request_id,
     executionId: receipt.execution_id,
+    runId: dynamicProofBinding.run_id,
+    candidateHash: dynamicProofBinding.candidate_hash,
     windowCount: receipt.browser_proof.windows.length,
   })}\n`);
 } catch (error) {

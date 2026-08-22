@@ -103,6 +103,52 @@ const inspectObservationMutationSeparation = (context: InspectorContext): Inspec
   return findings;
 };
 
+const inspectRealChromeProofRoute = (
+  context: InspectorContext,
+  inspectedFiles: Set<string>,
+): InspectorFinding[] => {
+  const findings: InspectorFinding[] = [];
+  const paths = [
+    "scripts/acceptance/dom-real-chrome-proof-support.ts",
+    "scripts/acceptance/dom-automation-exact-target.real-chrome.ts",
+    "scripts/acceptance/dom-automation.real-chrome.ts",
+    "src/lib/browser/exact-target/browser-command-actor.ts",
+    "src/lib/browser/exact-target/browser-proof-journal.ts",
+    "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
+  ] as const;
+  const sources = paths.map((filePath) => {
+    inspectedFiles.add(filePath);
+    return context.project.getSourceFile(resolveFromRepo(filePath));
+  });
+  if (sources.some((source) => !source)) return [createFinding({
+    checkId: "dom-automation/real-chrome-proof-route", lawId: "APEX-DOM-021-V1",
+    clauseId: "apex-dom-021-requirement", filePath: paths.find((_, index) => !sources[index]) ?? paths[0],
+    message: "DOM real-Chrome verifiers, Browser producer and canonical journal must all exist.",
+  })];
+  const identifiers = new Set(sources.flatMap((source) => source!
+    .getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText())));
+  const strings = new Set(sources.flatMap((source) => source!
+    .getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralText())));
+  for (const required of [
+    "readBrowserProofJournal", "buildStartupSourceFingerprint", "mutationChain",
+    "recordCommand", "previousEntryHash", "entryHash", "transportSequence", "permitSequence",
+    "resultSummary", "accessibilityValue", "retainedValueVerified",
+  ]) if (!identifiers.has(required)) findings.push(createFinding({
+    checkId: "dom-automation/real-chrome-proof-route", lawId: "APEX-DOM-021-V1",
+    clauseId: "apex-dom-021-requirement", filePath: paths[0],
+    message: `The DOM real-Chrome proof route is missing ${required}.`,
+  }));
+  for (const phase of ["PREPARED", "SEND", "UNKNOWN", "CONFIRMED", "COMPLETED"]) {
+    if (strings.has(phase)) continue;
+    findings.push(createFinding({
+      checkId: "dom-automation/real-chrome-proof-route", lawId: "APEX-DOM-021-V1",
+      clauseId: "apex-dom-021-requirement", filePath: paths[0],
+      message: `The DOM real-Chrome proof route must enforce ${phase}.`,
+    }));
+  }
+  return findings;
+};
+
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
@@ -113,16 +159,18 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectDomContracts(scopedContext, collector);
   inspectDomRuntimeGuards(scopedContext, collector);
   const inspectedFiles = inspectDomBoundaries(scopedContext, collector);
+  const inspectedFileSet = new Set(inspectedFiles);
   inspectDomFoundationGates(scopedContext, collector);
   collector.findings.push(...inspectExactTargetBinding(context));
   collector.findings.push(...inspectObservationMutationSeparation(context));
+  collector.findings.push(...inspectRealChromeProofRoute(context, inspectedFileSet));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
 
     findings: collector.findings,
-    inspectedFiles: [...inspectedFiles].sort(),
+    inspectedFiles: [...inspectedFileSet].sort(),
   };
 };
 

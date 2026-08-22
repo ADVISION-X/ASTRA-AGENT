@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T02:57:01.503Z",
+  "generatedAt": "2026-08-22T13:47:15.974Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2537,12 +2537,12 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "APEX-XUANXUE-AI-PRODUCTION-001-V3"
+        "APEX-XUANXUE-AI-PRODUCTION-001-V4"
       ],
       "bindings": [
         {
-          "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V3",
-          "clauseId": "apex-xuanxue-001-v3-cloud-pull-v5",
+          "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V4",
+          "clauseId": "apex-xuanxue-001-v4-cloud-pull-v5",
           "checkIds": [
             "xuanxue-ai-production/owner-assertion-set"
           ],
@@ -2552,7 +2552,7 @@
               "symbolName": "inspectDomain"
             }
           ],
-          "evidenceMode": "model+acceptance+real-chrome"
+          "evidenceMode": "model+acceptance+real-chrome+real-provider"
         }
       ],
       "blueprintRefs": [

@@ -1,20 +1,24 @@
 {
-  "generatedAt": "2026-08-22T02:57:43.892Z",
+  "generatedAt": "2026-08-22T13:47:59.300Z",
   "summary": {
     "activeLawCount": 135,
     "activeClauseCount": 135,
     "boundClauseCount": 135,
-    "machineClauseCount": 130,
-    "executedMachineClauseCount": 130,
-    "deferredRealChromeClauseCount": 5,
-    "realChromeClauseIds": [
+    "machineFacetClauseCount": 132,
+    "executedMachineFacetClauseCount": 132,
+    "deferredRealChromeFacetCount": 5,
+    "realChromeFacetClauseIds": [
       "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1::grasseye-app-shell-ui-physical-cleanup-001-requirement",
       "APEX-DOM-020-V1::apex-dom-020-requirement",
       "APEX-DOM-021-V1::apex-dom-021-requirement",
       "APEX-LOCAL-BROWSER-005-V4::apex-local-browser-005-v4-release-recovery",
-      "APEX-XUANXUE-AI-PRODUCTION-001-V3::apex-xuanxue-001-v3-cloud-pull-v5"
+      "APEX-XUANXUE-AI-PRODUCTION-001-V4::apex-xuanxue-001-v4-cloud-pull-v5"
     ],
-    "uncoveredMachineClauseIds": [],
+    "deferredRealProviderFacetCount": 1,
+    "realProviderFacetClauseIds": [
+      "APEX-XUANXUE-AI-PRODUCTION-001-V4::apex-xuanxue-001-v4-cloud-pull-v5"
+    ],
+    "uncoveredMachineFacetClauseIds": [],
     "coveragePercent": 100
   },
   "coverage": [
@@ -2377,10 +2381,10 @@
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-manifest.json"
     },
     {
-      "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V3",
-      "clauseId": "apex-xuanxue-001-v3-cloud-pull-v5",
+      "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V4",
+      "clauseId": "apex-xuanxue-001-v4-cloud-pull-v5",
       "capabilityDomain": "xuanxue-ai-production",
-      "evidenceMode": "model+acceptance+real-chrome",
+      "evidenceMode": "model+acceptance+real-chrome+real-provider",
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "checkIds": [
         "xuanxue-ai-production/owner-assertion-set"

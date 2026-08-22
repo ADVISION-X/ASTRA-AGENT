@@ -82,7 +82,7 @@ const executeBoundedCommand = (
 });
 
 export const runBoundedCommand = async (phase: string, stepSpec: CommandStep): Promise<StepResult> => {
-  const [name, command, , lawId, , ownerId, timeoutMs] = stepSpec;
+  const [name, command, , lawId, , ownerId, timeoutMs, clauseId, evidenceFacet] = stepSpec;
   const startedAtMs = Date.now();
   process.stdout.write(`[CI-FULL][RUN] ${name}\n`);
   const outcome = await executeBoundedCommand(command, timeoutMs);
@@ -101,6 +101,8 @@ export const runBoundedCommand = async (phase: string, stepSpec: CommandStep): P
           : `${name} exceeded its ${timeoutMs}ms hard deadline; cleanup failed closed: ${outcome.error ?? "process-group terminal state was not verified"}.`
         : outcome.error ?? `${name} failed with exit code ${outcome.exitCode}`,
     lawId,
+    clauseId,
+    evidenceFacet,
     name,
     ownerId,
     phase,

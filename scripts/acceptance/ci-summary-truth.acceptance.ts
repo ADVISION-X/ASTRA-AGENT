@@ -11,10 +11,17 @@ import {
   type StepResult,
 } from "../audit/ci-full.js";
 import { acceptanceLawBindings } from "../audit/ci-acceptance-law-bindings.js";
-import { buildAcceptanceLeafSkeletons } from "../audit/ci-acceptance-leaf-plan.js";
+import {
+  buildAcceptanceLeafSkeletons,
+  buildAcceptancePackageSkeletons,
+} from "../audit/ci-acceptance-leaf-plan.js";
 import { validateGeneratedPlanWorkerResult } from "../audit/ci-audit-plan-runner.js";
 import { buildCiPhasePlan, buildCiPlanSkeleton, typecheckStep } from "../audit/ci-full-phase-plan.js";
-import { evidenceModeIncludesRealChrome } from "../audit/shared/law-contracts.js";
+import { sealCiPhasePlanOrFail } from "../audit/ci-phase-sealer.js";
+import {
+  evidenceFacetIsDeferredDynamic,
+  type ClauseEvidenceFacet,
+} from "../audit/shared/law-contracts.js";
 import { runBinaryVerdictAttacks } from "./audit-binary-verdict.attacks.js";
 import { runControlFlowReachabilityAttacks } from "./audit-control-flow-reachability.attacks.js";
 import { runDeliveryIsolationAttacks } from "./audit-delivery-isolation.attacks.js";
@@ -26,25 +33,36 @@ import { runPhasePlanAttacks } from "./audit-phase-plan.attacks.js";
 import { runRound8PhysicalReceiptAttacks } from "./audit-physical-check-receipts-round8.attacks.js";
 import { runAuditRunIdentityAttacks } from "./audit-run-identity.attacks.js";
 import { runWorkerLifecycleAttacks } from "./audit-worker-lifecycle.attacks.js";
+import { runDynamicProofDenominatorAttacks } from "./ci-dynamic-proof-denominator.acceptance-support.js";
 
 const { acceptanceSteps, plannedSteps } = buildCiPhasePlan();
-const unsealedPlan = buildCiPlanSkeleton(buildAcceptanceLeafSkeletons());
+const unsealedPlan = buildCiPlanSkeleton(buildAcceptancePackageSkeletons());
 const packageScripts = (JSON.parse(readFileSync("package.json", "utf8")) as {
   scripts: Record<string, string>;
 }).scripts;
 const generatedPlan = (JSON.parse(readFileSync("scripts/audit/generated/audit-plan.generated.json", "utf8")) as {
   entries: Array<{ bindings: Array<{ clauseId: string; evidenceMode: string; lawId: string }> }>;
 }).entries;
-const deferredBindings = new Set(generatedPlan.flatMap((entry) => entry.bindings)
-  .filter((binding) => evidenceModeIncludesRealChrome(binding.evidenceMode))
-  .map((binding) => `${binding.lawId}::${binding.clauseId}`));
-const executableBindingPaths = [...acceptanceLawBindings.entries()]
-  .filter(([, binding]) => !deferredBindings.has(`${binding.lawId}::${binding.clauseId}`))
-  .map(([filePath]) => filePath);
+const evidenceFacetForLeaf = (filePath: string): ClauseEvidenceFacet => {
+  const binding = acceptanceLawBindings.get(filePath);
+  if (!binding) throw new Error(`Acceptance law binding is missing for ${filePath}.`);
+  const matches = generatedPlan.flatMap((entry) => entry.bindings)
+    .filter((candidate) => candidate.lawId === binding.lawId && candidate.clauseId === binding.clauseId);
+  if (matches.length !== 1) throw new Error(`Acceptance law binding does not resolve uniquely for ${filePath}.`);
+  const facets = matches[0]!.evidenceMode.split("+") as ClauseEvidenceFacet[];
+  if (facets.length > 1 && binding.evidenceFacet === undefined) {
+    throw new Error(`Composite acceptance law binding is missing evidenceFacet for ${filePath}.`);
+  }
+  const facet = binding.evidenceFacet ?? facets[0];
+  if (!facet || !facets.includes(facet)) throw new Error(`Acceptance evidenceFacet is outside law mode for ${filePath}.`);
+  return facet;
+};
+const executableBindingPaths = [...acceptanceLawBindings.keys()]
+  .filter((filePath) => !evidenceFacetIsDeferredDynamic(evidenceFacetForLeaf(filePath)));
 const lawForDeferredLeaf = (filePath: string): boolean => {
   const binding = acceptanceLawBindings.get(filePath);
   return binding !== undefined
-    && deferredBindings.has(`${binding.lawId}::${binding.clauseId}`)
+    && evidenceFacetIsDeferredDynamic(evidenceFacetForLeaf(filePath))
     && !acceptanceSteps.some((step) => step[2] === filePath);
 };
 const errorMessageIncludes = (fragment: string) => (error: unknown): boolean =>
@@ -54,12 +72,46 @@ assert.equal(acceptanceSteps.length > 0, true, "ci:full must retain at least one
 assert.deepEqual(
   acceptanceSteps.map((step) => step[2]).sort(),
   executableBindingPaths.sort(),
-  "CI acceptance leaves must equal the explicitly bound non-real-Chrome law clauses.",
+  "CI acceptance leaves must equal every explicitly bound non-real-Chrome evidence facet.",
 );
+for (const filePath of [
+  "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
+  "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
+]) {
+  assert.equal(acceptanceSteps.some((step) => step[2] === filePath && step[8] === "acceptance"), true,
+    `${filePath} must execute and retain its composite acceptance-facet receipt.`);
+}
 assert.equal(lawForDeferredLeaf("scripts/acceptance/xuanxue-ai-production.real-chrome.ts"), true,
   "real Chrome production proof must remain explicitly bound and deferred by clause evidenceMode.");
-assert.equal(lawForDeferredLeaf("src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts"), true,
+assert.equal(lawForDeferredLeaf("scripts/acceptance/xuanxue-ai-production.real-provider.ts"), true,
   "persisted real-provider proof verification must remain explicitly bound and deferred by clause evidenceMode.");
+assert.equal(lawForDeferredLeaf("scripts/acceptance/app-shell-ui.real-chrome.ts"), true,
+  "App Shell physical cleanup must retain one candidate-bound real Chrome verifier.");
+assert.equal(lawForDeferredLeaf("scripts/acceptance/dom-automation.real-chrome.ts"), true,
+  "atomic DOM mutation must retain one candidate-bound real Chrome verifier.");
+assert.equal(lawForDeferredLeaf("scripts/acceptance/dom-automation-exact-target.real-chrome.ts"), true,
+  "exact target/document binding must retain one Browser-journal real Chrome verifier.");
+assert.equal(lawForDeferredLeaf("scripts/acceptance/local-browser.real-chrome.ts"), true,
+  "local Browser Authority must retain one proof-journal real Chrome verifier.");
+assert.equal(
+  evidenceFacetForLeaf("scripts/acceptance/xuanxue-ai-production.real-provider.ts"),
+  "real-provider",
+  "Provider proof must not masquerade as the real-Chrome facet.",
+);
+const missingCompositeFacetBindings = new Map(acceptanceLawBindings);
+const compositeFixturePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
+const compositeFixtureBinding = missingCompositeFacetBindings.get(compositeFixturePath);
+if (!compositeFixtureBinding) throw new Error("Composite acceptance facet fixture is missing.");
+missingCompositeFacetBindings.set(compositeFixturePath, {
+  clauseId: compositeFixtureBinding.clauseId,
+  lawId: compositeFixtureBinding.lawId,
+});
+assert.throws(
+  () => buildAcceptanceLeafSkeletons(packageScripts, missingCompositeFacetBindings),
+  errorMessageIncludes("explicitly bind one evidenceFacet"),
+  "a composite clause must fail closed when only its acceptance-facet identity is removed",
+);
 assert.throws(
   () => buildAcceptanceLeafSkeletons({
     ...packageScripts,
@@ -97,10 +149,13 @@ assert.deepEqual(
 assert.equal(new Set(acceptanceSteps.map((step) => step[2])).size, acceptanceSteps.length, "each physical acceptance path must receive exactly one CI step receipt.");
 assert.equal(acceptanceSteps.every((step) => step[1][0] === "node"), true, "CI must execute direct acceptance leaves instead of npm groups containing && chains.");
 assert.equal(acceptanceSteps.every((step) => step[3] !== null && step[5] !== "acceptance-group"), true, "every acceptance receipt must retain a concrete law and owner.");
+assert.equal(acceptanceSteps.every((step) => step[7] !== null && step[8] !== null), true,
+  "every acceptance receipt must retain a concrete clause and evidence facet.");
 assert.equal(acceptanceSteps.every((step) => step[6] > 0), true, "every physical acceptance leaf must have a hard deadline.");
 assert.equal(plannedSteps.every((step) => step[4] !== null && step[4].length > 0), true, "every sealed physical CI step must retain explicit law authority.");
 assert.equal(typecheckStep[3], "APEX-CODE-PURITY-008-V1", "typecheck must bind the active type-escape law instead of using null authority.");
-assert.equal(unsealedPlan.length, plannedSteps.length, "the pre-entry skeleton must contain every physical CI step.");
+assert.equal(unsealedPlan.length, plannedSteps.length + 6,
+  "the unsealed package skeleton must retain all six deferred dynamic facets until rebuilt authority classifies them.");
 assert.equal(unsealedPlan.slice(5, -1).every((step) => step[3] === null && step[4] === null), true,
   "unsealed acceptance leaves must not claim law or owner authority before artifact rebuild.");
 const lawForLeaf = (filePath: string): string | null => acceptanceSteps.find((step) => step[2] === filePath)?.[3] ?? null;
@@ -121,12 +176,15 @@ runControlFlowReachabilityAttacks();
 runDeliveryIsolationAttacks();
 runGeneratedArtifactTruthAttacks();
 runWorkerLifecycleAttacks();
+runDynamicProofDenominatorAttacks();
 
 const sampleSteps: StepResult[] = [
   {
+    clauseId: null,
     command: "npm run sample",
     durationMs: 42,
     endedAt: "2026-05-24T00:00:42.000Z",
+    evidenceFacet: null,
     name: "sample-step",
     ownerId: "sample",
     lawId: "APEX-AUDIT-001-V1",
@@ -160,6 +218,33 @@ const firstFailure: CiFullFirstFailure = {
   message: "typecheck failed",
   minimalFixHint: "repair typecheck",
 };
+
+const facetFailureCompleted: StepResult[] = [];
+const facetFailureSkeletons = buildAcceptancePackageSkeletons(packageScripts, missingCompositeFacetBindings);
+const facetFailurePlan = buildCiPlanSkeleton(facetFailureSkeletons);
+const facetFailFast = createFailFast(
+  facetFailureCompleted,
+  () => lawCoverage,
+  () => ownerReports,
+  () => facetFailurePlan,
+);
+assert.throws(
+  () => sealCiPhasePlanOrFail(facetFailureSkeletons, facetFailFast, missingCompositeFacetBindings),
+  (error) => error instanceof Error && error.message === "ci:full failed",
+  "the real acceptance-authority phase must route a missing composite facet through fail-fast",
+);
+const facetFailureSummary = JSON.parse(readFileSync(ciFullSummaryPath, "utf8")) as {
+  finalDecision: string;
+  firstFailure: { message?: string } | null;
+  skippedAfterFailure: Array<{ authorityStatus: string }>;
+  status: string;
+};
+assert.equal(facetFailureSummary.status, "FAIL", "composite facet failure must replace any stale PASS summary.");
+assert.equal(facetFailureSummary.finalDecision, "FAIL", "composite facet failure must change the final decision.");
+assert.equal(facetFailureSummary.firstFailure?.message?.includes("explicitly bind one evidenceFacet"), true,
+  "composite facet failure summary must retain the precise authority error.");
+assert.equal(facetFailureSummary.skippedAfterFailure.length, facetFailurePlan.length - 3,
+  "composite facet failure must retain the complete package skeleton as skipped authority-not-reached work.");
 
 assert.throws(
   () => validateGeneratedPlanWorkerResult({ ok: true, result: { domainReports: [], hasFailures: false } }),
@@ -208,9 +293,11 @@ writeCiFullSummary({
   skippedAfterFailure: [
     {
       authorityStatus: "sealed",
+      clauseId: "apex-audit-001-requirement",
       command: "npm run later-step",
       durationMs: 0,
       endedAt: null,
+      evidenceFacet: "static",
       lawId: "APEX-AUDIT-001-V1",
       name: "later-step",
       ownerId: "sample",

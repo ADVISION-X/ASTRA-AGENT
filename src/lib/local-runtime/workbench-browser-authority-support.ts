@@ -42,6 +42,7 @@ export const createWorkbenchBrowserAuthority = async (
   });
   const supervisor = new BrowserInfrastructureSupervisor({
     dataDir,
+    sourceFingerprint: process.env.GRASSEYE_SOURCE_FINGERPRINT ?? "unknown",
     profileConfig,
     enrolledProfile,
     releaseIdentity,

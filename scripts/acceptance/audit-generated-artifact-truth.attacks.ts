@@ -34,12 +34,27 @@ const runCoverageAttack = (): void => {
     .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
   const machineCoverage = verifier.getDescendantsOfKind(SyntaxKind.BinaryExpression).find((expression) => {
     const left = expression.getLeft();
-    return Node.isPropertyAccessExpression(left) && left.getName() === "machineClauseCount";
+    return Node.isPropertyAccessExpression(left) && left.getName() === "machineFacetClauseCount";
   });
   if (!machineCoverage) throw new Error("generated truth machine coverage fixture is missing.");
   machineCoverage.replaceWithText("true");
   assert.equal(hasFinding(project), true,
     "meta governance must reject generated truth that no longer proves all machine clauses executed.");
+};
+
+const runProviderCoverageAttack = (): void => {
+  const project = freshProject();
+  const source = project.getSourceFileOrThrow(resolveFromRepo("scripts/audit/ci-full.ts"));
+  const verifier = source.getVariableDeclarationOrThrow("verifyGeneratedArtifactTruthStep")
+    .getInitializerIfKindOrThrow(SyntaxKind.ArrowFunction);
+  const providerCoverage = verifier.getDescendantsOfKind(SyntaxKind.BinaryExpression).find((expression) => {
+    const left = expression.getLeft();
+    return Node.isPropertyAccessExpression(left) && left.getName() === "deferredRealProviderFacetCount";
+  });
+  if (!providerCoverage) throw new Error("generated truth real-provider coverage fixture is missing.");
+  providerCoverage.replaceWithText("true");
+  assert.equal(hasFinding(project), true,
+    "meta governance must reject generated truth that collapses or omits the real-provider facet.");
 };
 
 const runReceiptLawAttack = (): void => {
@@ -78,6 +93,7 @@ const runOrderAttack = (): void => {
 export const runGeneratedArtifactTruthAttacks = (): void => {
   assert.equal(hasFinding(freshProject()), false, "current generated truth contract must satisfy meta governance.");
   runCoverageAttack();
+  runProviderCoverageAttack();
   runReceiptLawAttack();
   runOrderAttack();
 };

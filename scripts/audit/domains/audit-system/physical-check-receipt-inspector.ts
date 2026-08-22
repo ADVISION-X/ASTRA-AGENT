@@ -11,6 +11,7 @@ import {
 } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
+import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectAcceptanceDeliveryIsolation } from "./acceptance-delivery-isolation-inspector.js";
@@ -79,21 +80,18 @@ const inspectLegacyReceiptEscape = (
   }
 };
 
-const isRealChromeEvidenceHelperCall = (call: CallExpression): boolean => {
+const isOwnerReceiptEvidenceHelperCall = (call: CallExpression): boolean => {
   const symbol = call.getExpression().getSymbol();
   const target = symbol?.isAlias() ? symbol.getAliasedSymbol() : symbol;
   return target?.getDeclarations().some((declaration) =>
     declaration.getSourceFile().getFilePath() === resolveFromRepo("scripts/audit/shared/law-contracts.ts")
-      && ((Node.isFunctionDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome")
-        || (Node.isVariableDeclaration(declaration) && declaration.getName() === "evidenceModeIncludesRealChrome"))) ?? false;
+      && ((Node.isFunctionDeclaration(declaration) && declaration.getName() === "evidenceModeRequiresOwnerReceipt")
+        || (Node.isVariableDeclaration(declaration) && declaration.getName() === "evidenceModeRequiresOwnerReceipt"))) ?? false;
 };
 
-const realChromeHelperConditionIsExact = (condition: MorphNode, parameter: MorphNode): boolean => {
-  if (!Node.isPrefixUnaryExpression(condition)
-    || condition.getOperatorToken() !== SyntaxKind.ExclamationToken) return false;
-  const operand = condition.getOperand();
-  if (!Node.isCallExpression(operand) || !isRealChromeEvidenceHelperCall(operand)) return false;
-  const argument = operand.getArguments()[0];
+const ownerReceiptHelperConditionIsExact = (condition: MorphNode, parameter: MorphNode): boolean => {
+  if (!Node.isCallExpression(condition) || !isOwnerReceiptEvidenceHelperCall(condition)) return false;
+  const argument = condition.getArguments()[0];
   return Node.isPropertyAccessExpression(argument)
     && argument.getName() === "evidenceMode"
     && resolvesTo(argument.getExpression(), parameter);
@@ -101,7 +99,7 @@ const realChromeHelperConditionIsExact = (condition: MorphNode, parameter: Morph
 
 const realChromeConditionIsExact = (condition: MorphNode, parameter: MorphNode): boolean => {
   const unwrapped = Node.isParenthesizedExpression(condition) ? condition.getExpression() : condition;
-  if (realChromeHelperConditionIsExact(unwrapped, parameter)) return true;
+  if (ownerReceiptHelperConditionIsExact(unwrapped, parameter)) return true;
   if (!Node.isBinaryExpression(unwrapped)) return false;
   const left = unwrapped.getLeft();
   const right = unwrapped.getRight();
@@ -246,7 +244,7 @@ const inspectRunnerSession = (
   if (sourceMappingExcludesRealChrome(session, "executedChecks")
     && sourceMappingExcludesRealChrome(runner, "expectedChecks")) return;
   findings.push(createFinding({ checkId: "audit-system/runner-law-truth", lawId, filePath: sessionPath,
-    message: "Ordinary owner executedChecks and runner expectations must structurally exclude real-chrome bindings." }));
+    message: "Owner executedChecks and runner expectations must include every machine-bearing composite while excluding pure real-chrome bindings." }));
 };
 
 export const inspectRunnerSessionContract = (
@@ -294,13 +292,26 @@ const inspectStandaloneAuditEntrypoints = (
     if (!repoPath.startsWith("scripts/audit/") || repoPath === ciFullPath) continue;
     const entryDeclaration = sourceFile.getVariableDeclaration("isEntrypoint")
       ?? sourceFile.getFunction("isEntrypoint");
-    if (!entryDeclaration) continue;
+    const inlineEntry = sourceFile.getStatements().filter(Node.isIfStatement)
+      .find((statement) => {
+        const condition = statement.getExpression();
+        const hasImportMetaUrl = condition
+          .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+          .some((access) => access.getName() === "url"
+            && access.getExpression().getKind() === SyntaxKind.MetaProperty);
+        const hasProcessArgv = condition
+          .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+          .some((access) => access.getName() === "argv"
+            && astIdentifierName(access.getExpression()) === "process");
+        return hasImportMetaUrl && hasProcessArgv;
+      });
+    if (!entryDeclaration && !inlineEntry) continue;
     inspectedFiles.add(repoPath);
     findings.push(createFinding({
       checkId: "audit-system/runner-order-truth",
       lawId,
       filePath: repoPath,
-      message: `${repoPath} retains a standalone audit entrypoint outside the unique ci:full surface.`,
+      message: `${repoPath} retains a named or inline standalone audit entrypoint outside the unique ci:full surface.`,
     }));
   }
 };

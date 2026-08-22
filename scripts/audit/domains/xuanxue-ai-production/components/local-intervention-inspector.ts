@@ -55,7 +55,7 @@ export const inspectXuanxueLocalIntervention = (input: {
   ]) {
     if (!input.values.has(required)) input.findings.push(createFinding({
       lawId: input.lawId,
-      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
       checkId: "xuanxue-ai-production/local-intervention-contract",
       filePath: ownerPath,
       message: `Local whole-order intervention must contain ${required}.`,
@@ -73,7 +73,7 @@ export const inspectXuanxueLocalIntervention = (input: {
   for (const forbidden of ["INTERVENTION_REQUESTED", "pending_request", "expectedRevision", "takeoverOrder", "pauseOrder"]) {
     if (cloudValues.has(forbidden)) input.findings.push(createFinding({
       lawId: input.lawId,
-      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
       checkId: "xuanxue-ai-production/no-cloud-intervention-ingress",
       filePath: cloudPaths[0],
       message: `Cloud transport must not contain local intervention token ${forbidden}.`,

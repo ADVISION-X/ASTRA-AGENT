@@ -16,7 +16,7 @@ interface ScheduledOrder {
   deadlineBudget?: XuanxueAiExecutionDeadlineBudget;
 }
 
-export const resolveXuanxueAiProductionWindow = (): 1 => 1;
+export const resolveXuanxueAiProductionWindow = (): 10 => 10;
 
 const terminal = (record: XuanxueAiOrderRecord): boolean =>
   record.status === "completed"
@@ -201,8 +201,17 @@ export class XuanxueAiProductionCoordinator {
   }
 
   private takeNextRunnableOrderId(): string | null {
-    const index = this.waiting.findIndex((orderId) =>
-      this.orderCanRun(orderId));
+    const oldestFirst = [...this.waiting].sort((leftId, rightId) => {
+      const left = this.runtime.store.readOrder(leftId);
+      const right = this.runtime.store.readOrder(rightId);
+      if (!left || !right) return leftId.localeCompare(rightId);
+      if (precedes(left, right)) return -1;
+      if (precedes(right, left)) return 1;
+      return 0;
+    });
+    const selected = oldestFirst.find((orderId) => this.orderCanRun(orderId));
+    if (!selected) return null;
+    const index = this.waiting.indexOf(selected);
     if (index < 0) return null;
     return this.waiting.splice(index, 1)[0] ?? null;
   }

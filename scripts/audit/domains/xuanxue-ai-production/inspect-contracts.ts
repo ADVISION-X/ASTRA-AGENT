@@ -22,7 +22,7 @@ const requireValues = (
     if (input.values.has(required)) continue;
     findings.push(createFinding({
       lawId: input.lawId,
-      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
       checkId: input.checkId,
       filePath: input.filePath,
       message: `${input.messagePrefix} ${required}.`,
@@ -45,7 +45,7 @@ const forbidValues = (
     if (!input.values.has(forbidden)) continue;
     findings.push(createFinding({
       lawId: input.lawId,
-      clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
       checkId: input.checkId,
       filePath: input.filePath,
       message: `${input.messagePrefix} ${forbidden}.`,

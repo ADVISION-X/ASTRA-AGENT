@@ -148,6 +148,7 @@ try {
   });
   const store = new XuanxueAiProductionStore(dataDir);
   const runtime: XuanxueAiProductionRuntime = {
+    candidateHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     dataDir,
     aiInputGateway: gateway,
     mediaProcessing: createMediaProcessingAbilityGroupFromFilesystem({ dataDir }),
@@ -253,7 +254,7 @@ try {
   });
   store.close();
   process.stdout.write(
-    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed product graphs, four single-stage localization contracts, exact selector continuation, terminal contamination fail-close, exact-parent FIFO without shadow replay, idempotency and cloud-reconciled SQLite restart recovery.\n",
+    "[ACCEPTANCE] xuanxue-ai-production PASS: fixed product graphs, four single-stage localization contracts, exact selector continuation, terminal contamination fail-close, exact-parent FIFO without shadow replay, idempotency, continuous changed-version reconciliation and globally oldest same-job recovery.\n",
   );
 } finally {
   await rm(dataDir, { recursive: true, force: true });

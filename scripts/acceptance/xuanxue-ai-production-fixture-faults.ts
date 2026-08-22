@@ -153,9 +153,9 @@ export class FixtureGatewayFaults {
     if (this.take(this.freshConversationPending, key)) return {
       result: {
         ...preSubmitReviewFailure(result,
-        "review_required: ChatGPT fresh conversation was not established; last=pending: ChatGPT fresh conversation pending; pageUrl=https://chatgpt.com/"),
+        "WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID"),
         status: "recovery_pending",
-        failureReason: "ChatGPT fresh conversation pending",
+        failureReason: "WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID",
         reviewRequiredReason: null,
       },
       emitsRecoveryProgress: true,

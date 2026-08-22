@@ -23,6 +23,30 @@ const finding = (
   message: string,
 ): InspectorFinding => createFinding({ checkId, lawId: law.lawId, clauseId: law.clauseId, filePath: path, message });
 
+const inspectAuthenticatedCommandDiagnostics = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+): readonly string[] => {
+  const paths = [
+    "src/lib/browser/chrome-extension/websocket-actor.ts",
+    "src/lib/browser/transport/browser-authority-websocket.ts",
+  ] as const;
+  const sources = paths.map((path) => sourceAt(context, path));
+  for (const [path, file] of paths.map((path, index) => [path, sources[index]] as const)) {
+    if (!file) findings.push(finding(laws.terminal, path, "authenticated command diagnostic source is missing"));
+  }
+  const required = ["commandStage", "commandKind", "commandIntentKind", "capabilityId"];
+  for (const [index, file] of sources.entries()) {
+    if (!file) continue;
+    const present = identifiers(file);
+    const names = index === 0 ? ["extensionCommandDiagnostic", ...required] : required;
+    for (const name of names) {
+      if (!present.has(name)) findings.push(finding(laws.terminal, paths[index]!, `authenticated command failure diagnostic is missing: ${name}`));
+    }
+  }
+  return paths;
+};
+
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const findings: InspectorFinding[] = [];
   const eventPath = "src/lib/runtime-logs/event-types.ts";
@@ -60,6 +84,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     }
   }
 
+  const authenticatedCommandPaths = inspectAuthenticatedCommandDiagnostics(
+    context,
+    findings,
+  );
+
   const runtimeRoot = "src/lib/runtime-logs";
   for (const file of context.project.getSourceFiles().filter((candidate) =>
     toRepoPath(candidate.getFilePath()).startsWith(`${runtimeRoot}/`))) {
@@ -85,7 +114,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [eventPath, browserRuntimePath, redactionPath, runtimeRoot],
+    inspectedFiles: [eventPath, browserRuntimePath, ...authenticatedCommandPaths, redactionPath, runtimeRoot],
   };
 };
 

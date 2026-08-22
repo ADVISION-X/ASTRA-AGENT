@@ -14,6 +14,7 @@ import {
 } from "./xuanxue-ai-production-cloud-contract.js";
 import type {
   XuanxueAiBrowserAuthorityPort,
+  XuanxueAiBrowserHash,
   XuanxueAiProductionRuntime,
 } from "./xuanxue-ai-production.runtime.js";
 import type { XuanxueAiInterventionRequest } from "./xuanxue-ai-production.schema.js";
@@ -41,8 +42,6 @@ const startOwnerCloudWorker = (input: {
     executeOrder: (orderId, observer, deadlineBudget) =>
       input.coordinator.execute(orderId, observer, deadlineBudget),
     listCloudRecoveryOrders: () => input.store.listCloudRecoveryOrders(),
-    quarantineForeignCloudRecoveryOrder: (orderId, reason) => input.store.quarantineForeignCloudRecoveryOrder(orderId, reason),
-    cancelCloudRecoveryOrder: (orderId, reason) => input.store.cancelCloudRecoveryOrder(orderId, reason),
     availableCapacity: () => input.coordinator.availableCapacity(),
   },
 });
@@ -56,6 +55,7 @@ type OwnerState = {
 };
 
 type OwnerDependencies = {
+  candidateHash: XuanxueAiBrowserHash;
   dataDir: string;
   aiInputGateway: AiInputGatewayAbilityGroup;
   mediaProcessing: MediaProcessingAbilityGroup;
@@ -98,6 +98,7 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
   if (state.store) return;
   state.store = new XuanxueAiProductionStore(dependencies.dataDir);
   const runtime: XuanxueAiProductionRuntime = {
+    candidateHash: dependencies.candidateHash,
     dataDir: dependencies.dataDir,
     aiInputGateway: dependencies.aiInputGateway,
     mediaProcessing: dependencies.mediaProcessing,
@@ -159,8 +160,10 @@ export const createXuanxueAiProductionWorkbenchOwner = (
   mediaProcessing: MediaProcessingAbilityGroup,
   createOrderRoute: CreateOrderRoute,
   browserAuthority: XuanxueAiBrowserAuthorityPort,
+  candidateHash: XuanxueAiBrowserHash,
 ) => {
   const dependencies = {
+    candidateHash,
     dataDir,
     aiInputGateway,
     mediaProcessing,

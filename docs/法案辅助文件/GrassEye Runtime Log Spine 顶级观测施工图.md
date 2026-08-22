@@ -414,9 +414,9 @@ BROWSER_TARGET_CLAIMED
 BROWSER_TARGET_LEASE_INVALIDATED
 ```
 
-其中失败事件必须携带固定 `BROWSER_*` reason code；心跳、认领和撤销必须绑定当前连接代次。Extension authenticated frame failure、unhandled rejection 与 worker error 必须通过同一加密 WebSocket 上行，Workbench 终端记录脱敏 `diagnosticSource`、`runtimeEventType`、`errorName`、`failedFrameKind`、`failedFrameSequence`、`encodedByteLength`、`closeCode/closeReason` 或 `errorCode`。普通 runtime diagnostic 使用 `DIAGNOSTIC` frame，只记录、不撤销 Authority；认证完整性失败使用 `REVOKE`，先记录再撤销。日志禁止包含一次性配对密钥、会话密钥、私钥、cookie、token、原始加密帧、raw prompt/payload、页面正文、stack/raw path 或完整 URL 查询参数。
+其中失败事件必须携带固定 `BROWSER_*` reason code；心跳、认领和撤销必须绑定当前连接代次。Extension authenticated frame failure、unhandled rejection、worker error 与已认证命令的捕获失败必须通过同一加密 WebSocket 上行。Workbench 终端对命令失败记录脱敏 `diagnosticSource`、`runtimeEventType`、`errorName`、`failedFrameKind=COMMAND`、`failedFrameSequence`、`commandStage`、`commandKind`、`commandIntentKind`、`capabilityId` 与 `reason`；其他运行时故障记录适用的 `encodedByteLength`、`closeCode/closeReason` 或 `errorCode`。普通 runtime diagnostic 使用 `DIAGNOSTIC` frame，只记录、不撤销 Authority；认证完整性失败使用 `REVOKE`，先记录再撤销。日志禁止包含一次性配对密钥、会话密钥、私钥、cookie、token、原始加密帧、raw prompt/payload、页面正文、selector、stack/raw path 或完整 URL 查询参数。
 
-验收必须覆盖：服务端与扩展端对同一 header-only AAD 的双向 AES-GCM 互通、真实 Workbench 收到非法握手时打印配对失败事件，以及扩展 authenticated runtime failure 能在启动终端打印 `BROWSER_EXTENSION_FAILURE` 和脱敏 frame/transport refs；仅在 `chrome://extensions` 留下错误视为失败。
+验收必须覆盖：服务端与扩展端对同一 header-only AAD 的双向 AES-GCM 互通、真实 Workbench 收到非法握手时打印配对失败事件、扩展 authenticated runtime failure 能在启动终端打印 `BROWSER_EXTENSION_FAILURE` 和脱敏 frame/transport refs，以及注册命令失败能打印 command stage/kind/intent/capability refs；仅在 `chrome://extensions` 留下错误视为失败。
 
 ## 8. Inspector 施工
 

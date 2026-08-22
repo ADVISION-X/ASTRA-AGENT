@@ -25,11 +25,13 @@ export const createFailFast = (
     firstFailure: failure,
     completedSteps,
     skippedAfterFailure: getPlannedSteps().slice(failingStepIndex + 1)
-      .map(([phase, name, command, ownerId, lawId, timeoutMs]) => ({
+      .map(([phase, name, command, ownerId, lawId, timeoutMs, clauseId, evidenceFacet]) => ({
         authorityStatus: ownerId === null || lawId === null ? "authority_not_reached" as const : "sealed" as const,
+        clauseId,
         command,
         durationMs: 0,
         endedAt: null,
+        evidenceFacet,
         lawId,
         name,
         ownerId,

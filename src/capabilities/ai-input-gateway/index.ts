@@ -2,6 +2,7 @@ export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
 export {
   AiFeedProviderExecutionProfileSchema,
   buildGptWebProviderExecutionProfile,
+  XuanxueDynamicProofBindingContract,
   type AiFeedInput,
   type AiFeedProviderExecutionProfile,
   type AiFeedResult,

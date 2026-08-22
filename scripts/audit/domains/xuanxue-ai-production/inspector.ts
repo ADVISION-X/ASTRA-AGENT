@@ -24,6 +24,13 @@ import {
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 import { inspectXuanxueContracts } from "./inspect-contracts.js";
+import { xuanxueAcceptanceRequiredValues } from "./acceptance-required-values.js";
+import {
+  arrowReturnsNumber,
+  propertyUsesNumericLiteralCall,
+  workerEnforcesTenBusinessSlots,
+  workerReconcilesChangedLocalVersions,
+} from "./inspect-continuous-recovery.js";
 import { inspectTransientLifecycleBehavior } from "./components/transient-material-lifecycle-inspector.js";
 import { inspectXuanxueBoundary } from "./components/boundary-inspector.js";
 import {
@@ -46,7 +53,7 @@ const finding = (
   message: string,
 ): InspectorFinding => createFinding({
   lawId,
-  clauseId: "apex-xuanxue-001-v3-cloud-pull-v5",
+  clauseId: "apex-xuanxue-001-v4-cloud-pull-v5",
   checkId,
   filePath,
   message,
@@ -91,42 +98,50 @@ const requireValues = (
   }
 };
 
+const inspectDurableLedger = (
+  findings: InspectorFinding[],
+  lawId: string,
+  values: ReadonlySet<string>,
+): void => requireValues(findings, {
+  lawId,
+  checkId: "xuanxue-ai-production/durable-ledger",
+  filePath: storedOrderQuarantinePath,
+  messagePrefix: "SQLite production ledger must contain",
+  values,
+  required: [
+    "production_orders", "production_stages", "production_events",
+    "journal_mode = WAL", "listRecoverableOrders", "listCloudRecoveryOrders",
+    "quarantineInvalidStoredOrders", "stored_order_contract_quarantined",
+    "XUANXUE_AI_PRODUCTION_STORED_ORDER_CONTRACT_INVALID",
+    "quarantineInvalidCompletedStageOutputs", "invalid_completed_stage_quarantined",
+    "requestHash", "trustedGeneratedFileCount",
+    "preserve_invalid_output_and_require_operator_review",
+    "stage_continuation_operator_recovery_required",
+    "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER", "supersededExecutionId",
+    "providerTranscriptJsonl", "modelIdentityProof", "providerExecutionProfileProof",
+    "conversationTitleProof", "isProofEmptyTechnicalTerminal",
+    "isProofEmptyProfileReadbackTerminal",
+    "hasProviderSideEffectProof", "applyLegacyTechnicalTerminalCorrection",
+    "legacy_technical_terminal_stage_corrected", "legacy_technical_terminal_correction_applied",
+    "legacy_profile_readback_terminal_stage_corrected",
+    "legacy_profile_readback_terminal_correction_applied",
+    "isProofEmptyProfileStateFollowOnTerminal",
+    "legacy_profile_state_followon_terminal_stage_corrected",
+    "legacy_profile_state_followon_terminal_correction_applied",
+    "json_extract(order_json,'$.protocolVersion')='xuanxue-ai-production-v5'",
+    "xuanxueAiProductionLocalRecoveryVersion",
+    "reconcileXuanxueAiProductionLocalNonterminalLedger",
+    "reconcileLocalNonterminalLedger", "createdAt", "takeNextRunnableOrderId",
+  ],
+});
+
 const inspectDurability = (
   findings: InspectorFinding[],
   durabilityLaw: string,
   values: ReadonlySet<string>,
   terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
-  requireValues(findings, {
-    lawId: durabilityLaw,
-    checkId: "xuanxue-ai-production/durable-ledger",
-    filePath: storedOrderQuarantinePath,
-    messagePrefix: "SQLite production ledger must contain",
-    values,
-    required: [
-      "production_orders",
-      "production_stages",
-      "production_events",
-      "journal_mode = WAL",
-      "listRecoverableOrders",
-      "listCloudRecoveryOrders",
-      "quarantineInvalidStoredOrders",
-      "stored_order_contract_quarantined",
-      "XUANXUE_AI_PRODUCTION_STORED_ORDER_CONTRACT_INVALID",
-      "quarantineInvalidCompletedStageOutputs",
-      "invalid_completed_stage_quarantined",
-      "requestHash",
-      "trustedGeneratedFileCount",
-      "preserve_invalid_output_and_require_operator_review",
-      "stage_continuation_operator_recovery_required",
-      "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER",
-      "supersededExecutionId",
-      "providerTranscriptJsonl",
-      "modelIdentityProof",
-      "providerExecutionProfileProof",
-      "conversationTitleProof",
-    ],
-  });
+  inspectDurableLedger(findings, durabilityLaw, values);
   requireValues(findings, {
     lawId: durabilityLaw,
     checkId: "xuanxue-ai-production/bounded-coordinator",
@@ -201,12 +216,9 @@ const inspectPluginBoundaries = (
   }
 };
 
-const inspectCloud = (
-  findings: InspectorFinding[],
-  cloudLaw: string,
-  values: ReadonlySet<string>,
-): void => {
-  requireValues(findings, {
+const inspectCloudLeaseBinding = (
+  findings: InspectorFinding[], cloudLaw: string, values: ReadonlySet<string>,
+): void => requireValues(findings, {
     lawId: cloudLaw,
     checkId: "xuanxue-ai-production/cloud-lease-binding",
     filePath: cloudContractPath,
@@ -219,7 +231,6 @@ const inspectCloud = (
       "heartbeatXuanxueAiProductionJob",
       "downloadXuanxueAiProductionInput",
       "downloadXuanxueAiProductionParentReplayInput",
-      "recoverXuanxueAiProductionJob",
       "continuation_parent_replay",
       "frozen_subject",
       "conversation_scope_ref",
@@ -227,6 +238,35 @@ const inspectCloud = (
       "parentReplay",
     ],
   });
+
+const inspectCloud = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  cloudLaw: string,
+  values: ReadonlySet<string>,
+): void => {
+  inspectCloudLeaseBinding(findings, cloudLaw, values);
+  const scheduler = source(context, findings, cloudLaw, schedulerPath);
+  const worker = source(context, findings, cloudLaw, cloudWorkerPath);
+  const credential = source(context, findings, cloudLaw, cloudCredentialPath);
+  if (!arrowReturnsNumber(scheduler, "resolveXuanxueAiProductionWindow", 10)
+    || !propertyUsesNumericLiteralCall(credential, "max_in_flight", "literal", 10)
+    || !workerEnforcesTenBusinessSlots(worker)) {
+    findings.push(finding(
+      cloudLaw,
+      "xuanxue-ai-production/exact-business-capacity",
+      cloudWorkerPath,
+      "Cloud Worker, local coordinator, and credential must enforce exactly ten business in-flight slots without collapsing Browser serialization into one business slot.",
+    ));
+  }
+  if (!workerReconcilesChangedLocalVersions(worker)) {
+    findings.push(finding(
+      cloudLaw,
+      "xuanxue-ai-production/continuous-local-ledger-reconciliation",
+      cloudWorkerPath,
+      "Every worker poll must execute local nonterminal ledger reconciliation and commit each changed attempt/status/checkpoint version only after the real reconciliation call.",
+    ));
+  }
   requireValues(findings, {
     lawId: cloudLaw,
     checkId: "xuanxue-ai-production/cloud-capacity",
@@ -238,7 +278,7 @@ const inspectCloud = (
       "availableCapacity",
       "max_in_flight",
       "active",
-      "reconcileDurableLocalOrders",
+      "reconcileLocalNonterminalLedger",
       "cancelCloudRecoveryOrder",
       "cloud_cancelled_order_settled",
       "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION",
@@ -279,50 +319,16 @@ const inspectAcceptance = (
     filePath: acceptancePath,
     messagePrefix: "Production acceptance must prove",
     values: collectXuanxueSourceValues(acceptance),
-    required: [
-      "maxActive",
-      "providerForkRef",
-      "providerContinuationRef",
-      "forked_from_checkpoint",
-      "typed_participant_private_base",
-      "bazi_chart_interpretation",
-      "listCloudRecoveryOrders",
-      "payment_screenshot_observation",
-      "public_knowledge_article_pipeline",
-      "a paid follow-up without an exact parent must never reach GPT",
-      "orders sharing one parent GPT conversation must be serialized",
-      "same-parent follow-ups must preserve FIFO order",
-      "a recoverable transport failure must retain one execution id so a captured turn can never be resubmitted",
-      "a foreign pre-submit identity must stop without creating a replacement execution",
-      "restart must preserve the invalid prefix and stop the order for review",
-      "QUESTION_A_ONLY",
-      "person:naming-aux-4",
-      "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
-      "article_image_generation",
-      "scheduled_quality_reflection",
-      "localization_report_translation",
-      "localization_article_translation",
-      "localization_static_review_candidate",
-      "localization_static_review_selector",
-      "candidate_a",
-      "candidate_b",
-      "selector_first",
-      "selector_swap",
-      "consistency",
-      "providerTranscriptJsonl",
-      "modelIdentityProof",
-      "acceptStoredOrderContractQuarantine",
-      "stored_order_contract_quarantined",
-    ],
+    required: xuanxueAcceptanceRequiredValues,
   });
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
-  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
-  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
-  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
-  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V3"),
+  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
+  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
+  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
+  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
+  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V4"),
 });
 
 const collectDomainSources = (
@@ -393,7 +399,7 @@ const inspectDomainPolicy = (
     terminalMetaphysicsProfileValues,
   );
   inspectPluginBoundaries(findings, laws, sources);
-  inspectCloud(findings, laws.cloud, values);
+  inspectCloud(context, findings, laws.cloud, values);
   inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
   inspectTransientLifecycleContract(context, findings, laws.transient, values);
   inspectAcceptance(context, findings, laws.durability);

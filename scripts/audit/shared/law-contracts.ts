@@ -17,12 +17,37 @@ export const clauseEvidenceModeSchema = z.enum([
   "static",
   "acceptance",
   "real-chrome",
-  "model+acceptance+real-chrome",
+  "model+acceptance+real-chrome+real-provider",
   "artifact+real-chrome",
 ]);
 
+export const clauseEvidenceFacetSchema = z.enum([
+  "static",
+  "model",
+  "acceptance",
+  "artifact",
+  "real-chrome",
+  "real-provider",
+]);
+
+export type ClauseEvidenceFacet = z.infer<typeof clauseEvidenceFacetSchema>;
+
+export const evidenceModeFacets = (value: string): readonly ClauseEvidenceFacet[] =>
+  Object.freeze(clauseEvidenceModeSchema.parse(value).split("+").map((facet) =>
+    clauseEvidenceFacetSchema.parse(facet)));
+
 export const evidenceModeIncludesRealChrome = (value: string): boolean =>
-  value.split("+").includes("real-chrome");
+  evidenceModeFacets(value).includes("real-chrome");
+
+export const evidenceModeIncludesRealProvider = (value: string): boolean =>
+  evidenceModeFacets(value).includes("real-provider");
+
+export const evidenceFacetIsDeferredDynamic = (
+  facet: ClauseEvidenceFacet,
+): boolean => facet === "real-chrome" || facet === "real-provider";
+
+export const evidenceModeRequiresOwnerReceipt = (value: string): boolean =>
+  evidenceModeFacets(value).some((facet) => !evidenceFacetIsDeferredDynamic(facet));
 
 export const lawClauseSchema = z
   .object({

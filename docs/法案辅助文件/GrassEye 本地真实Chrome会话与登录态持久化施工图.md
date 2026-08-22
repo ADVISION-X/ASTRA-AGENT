@@ -36,7 +36,7 @@ owning Plugin fixed flow
 | Browser authority | Broker/Issuer/Supervisor | authenticated PRESENT/ABSENT、certificate、liveness、revoke | 业务步骤、heartbeat mint authority |
 | exact target/document | `browser-target-lease-manager.ts` | 当前 authority epoch 下唯一 Target/Document 和三次复核 | URL-first、title、active tab、raw tab/window 身份 |
 | Site action | Extension `command-registry.ts` | 固定 actionId、schema、field safety budget、artifact resource budget、mutation class、postcondition | prompt/message byte ceiling、任意 JS、raw CDP、caller selector/coordinate |
-| mutation journal | `browser-mutation-intent-journal.ts` | PREPARED/fsync/SEND/terminal 与 identity binding | 自动 replay、业务 verdict |
+| Browser proof journal | `browser-proof-journal.ts` | 单一 hash-chain 内记录 lifecycle 与 command；mutation 保持 PREPARED/fsync/SEND/terminal 与 identity binding | 自动 replay、业务 verdict、第二证明账本 |
 | UNKNOWN outcome | owning Plugin | 真实页面正反证据、唯一性、有界性与 `OutcomeResolutionReceipt` | transport/UI/worker 推测成功 |
 | Cloud writer fence | xuanxue cloud durable owner | job/attempt/device/leaseVersion/token binding 与 terminal CAS | 混入 Workspace hash、由 Browser owner签发 |
 | Browser proof | AGENT Browser owner；网站 Dynamic Proof 只消费 | authority window、action receipt、handover、UNKNOWN count | 第二 Browser verdict、冒充业务结果 |
@@ -62,7 +62,7 @@ src/lib/browser/
     browser-target-lease.ts
     browser-target-lease-manager.ts
     browser-command-actor.ts
-    browser-mutation-intent-journal.ts
+    browser-proof-journal.ts
     browser-outcome-resolver.ts
     browser-file-artifact-grant.ts
   transport/
@@ -247,7 +247,9 @@ Static/Exam 必须覆盖：
 
 真实 Chrome 必须另证 pairing/liveness、MV3 service-worker restart、Extension reload、Chrome restart、sleep/wake、exact target/document、固定 GPT Web action、file input、disconnect/清理/人工重配对、release update/rollback 和真实 UNKNOWN resolution。真实 Provider/Cloud/DB、fault、72 小时 soak、push 与 release 各自需要对应授权与同候选 receipt。
 
-`scripts/acceptance/xuanxue-ai-production.real-chrome.ts` 只核验唯一 Cloud Worker → Mediator → Plugin → Browser Authority 真实旅程产出的 V5 evidence envelope 和 `AgentRuntimeReceiptV5`；它不创建 BrowserController、不连接第二 WebSocket、不执行 Provider，也不铸造动态证据。`src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-real-proof-verify.ts` 独立核验同一 real-run-root 下的真实 Provider checkpoint。两者均由该条款标记为 deferred dynamic evidence，普通 CI 不得执行或冒充通过。
+Browser owner 只生产一份 `.grasseye-local/browser/proof-events.ndjson`。`browser-infrastructure-supervisor.ts` 写 authority/target 生命周期，`browser-command-actor.ts` 在同一 hash chain 写 command 的 `PREPARED/SEND/COMPLETED|UNKNOWN|CONFIRMED|FAILED`；每次 append 都在 SEND 前 fsync。`scripts/acceptance/local-browser.real-chrome.ts` 必须从真实 journal 字节重算 chain，绑定当前源码候选、当前 release record 和固定 Extension ID，并在 30 分钟内看到同一 authority 的 `AUTHENTICATED -> TARGET_CLAIMED -> COMPLETED command -> AUTHORITY_REVOKED`。任一 arbitrary JSON、旧候选、旧 release、跨 authority 拼接、过期或 chain 篡改都不能成为真实 Chrome PASS。
+
+`scripts/acceptance/xuanxue-ai-production.real-chrome.ts` 只核验唯一 Cloud Worker → Mediator → Plugin → Browser Authority 真实旅程产出的 V5 evidence envelope 和 `AgentRuntimeReceiptV5`；它不创建 BrowserController、不连接第二 WebSocket、不执行 Provider，也不铸造动态证据。`scripts/acceptance/xuanxue-ai-production.real-provider.ts` 独立核验同一 canonical production data directory 下的真实 Provider checkpoint。两者必须读取同一 `xuanxue-ai-production-dynamic-proof-binding.v2.json`，由 verifier 从当前仓库源码独立重算 candidate，并把 run id、canonical contract manifest、不可变 runtime receipt hash 与 30 分钟新鲜度绑定；不得信任调用方传入的 candidate 或任意 proof root。Provider binding 还必须以 `provider_record_hashes` 精确封存当次 run 的全部 persisted record bytes，从 executionId 得出并精确匹配 `cloud_terminal_job_ids`，再复用现役 Cloud Pull credential 完成 authenticated heartbeat 和逐 job `completed` readback。记录缺失、多出、复制替换、hash 不一致、外来候选/合同、未来时间、过期、run 不一致、离线自铸 bundle 或 Cloud readback 不成立一律失败关闭。Chrome 与 Provider 分属 `real-chrome` / `real-provider` 两个 deferred facet，普通 CI 不得执行或互相冒充通过。
 
 `typecheck`、Static、acceptance、Exam、CI-FULL 都不能替代真实 Chrome。未获得真实页面前后取证的状态必须写 `UNKNOWN / NOT_PRODUCTION_VERIFIED`，不得按截图、历史 selector、浏览器常识或模拟 DOM 实现后续动作。
 

@@ -14,4 +14,17 @@ assert.equal(identifiers.has("focusSingleProviderTab"), false);
 assert.equal(identifiers.has("evaluateActiveTab"), false);
 assert.equal(identifiers.has("osascript"), false);
 assert.equal(identifiers.has("frontmost"), false);
+const freshConversation = project.getSourceFile("src/capabilities/ai-input-gateway/providers/web-chat-fresh-conversation.ts");
+assert.ok(freshConversation, "The governed fresh ChatGPT conversation owner must be present.");
+const navigateAwait = freshConversation.getDescendantsOfKind(SyntaxKind.AwaitExpression)
+  .find((node) => node.getExpression().getText().includes("input.browser.navigate"));
+const firstWaitAwait = freshConversation.getDescendantsOfKind(SyntaxKind.AwaitExpression)
+  .find((node) => node.getExpression().getText().includes("input.browser.wait"));
+assert.ok(navigateAwait && firstWaitAwait && firstWaitAwait.getStart() > navigateAwait.getEnd(),
+  "The first governed DOM read must have a bounded post-navigation stabilization wait.");
+const freshLiterals = new Set(freshConversation.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue()));
+assert.equal(freshLiterals.has("BROWSER_TARGET_INVALID"), true,
+  "Transient hydrated-node invalidation must remain inside the existing bounded fresh-root observation loop.");
+assert.equal(freshLiterals.has("WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID"), true,
+  "Bounded hydrated-node exhaustion must preserve one explicit recoverable reason.");
 process.stdout.write("[ai-input-gateway-exact-target] PASS\n");

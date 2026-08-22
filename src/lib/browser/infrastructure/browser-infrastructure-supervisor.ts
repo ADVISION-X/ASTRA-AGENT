@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
-import { BrowserMutationIntentJournal } from "../exact-target/browser-mutation-intent-journal.js";
+import { BrowserProofJournal } from "../exact-target/browser-proof-journal.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import {
@@ -59,6 +59,7 @@ export type BrowserInfrastructureMetrics = Readonly<{
 
 export type BrowserInfrastructureSupervisorOptions = Readonly<{
   dataDir: string;
+  sourceFingerprint: string;
   profileConfig: BrowserProfileConfig;
   enrolledProfile: BrowserProfileState;
   releaseIdentity: UnpackedExtensionReleaseIdentity;
@@ -71,6 +72,7 @@ export class BrowserInfrastructureSupervisor {
   private readonly ownerLock: BrowserOwnerLock;
   private readonly broker: BrowserAuthorityBroker;
   private readonly websocket: BrowserAuthorityWebSocket;
+  private readonly proofJournal: BrowserProofJournal;
   private started = false;
   private ownerLockHeld = false;
   private connectionGeneration = 0;
@@ -78,6 +80,17 @@ export class BrowserInfrastructureSupervisor {
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
+    const candidateHash = /^sha256:[a-f0-9]{64}$/u.test(options.sourceFingerprint)
+      ? options.sourceFingerprint as `sha256:${string}`
+      : `sha256:${"0".repeat(64)}` as `sha256:${string}`;
+    this.proofJournal = new BrowserProofJournal(
+      join(options.dataDir, "browser", "proof-events.ndjson"),
+      {
+        candidateHash,
+        extensionId: options.profileConfig.extensionId,
+        releaseBuildId: options.releaseIdentity.releaseBuildId,
+      },
+    );
     this.websocket = this.createWebSocket();
     this.broker = new BrowserAuthorityBroker(
       this.issuer,
@@ -123,6 +136,14 @@ export class BrowserInfrastructureSupervisor {
 
   private onAuthenticated(input: Parameters<BrowserAuthorityWebSocketOptions["onAuthenticated"]>[0]): BrowserAuthorityReady {
     const ready = this.commitUnpackedWebSocketAuthentication(input);
+    const current = this.issuer.current();
+    this.proofJournal.recordLifecycle({
+      eventType: "LIFECYCLE",
+      phase: "AUTHENTICATED",
+      ...(current.kind === "PRESENT" ? {
+        authorityRefHash: `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}`,
+      } : {}),
+    });
     this.emitBrowserRuntimeState(RuntimeLogEventType.BROWSER_AUTH_PAIRING_COMPLETED, "success", "插件配对完成。");
     this.emitBrowserRuntimeState(RuntimeLogEventType.BROWSER_SOCKET_AUTHENTICATED, "success", "插件 WebSocket 已认证。");
     return ready;
@@ -130,7 +151,14 @@ export class BrowserInfrastructureSupervisor {
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
     this.establishClaimBoundWorkspace();
-    this.broker.registerOperatorTargetClaim({ authorityEpoch: this.currentAuthorityEpoch(), ...input });
+    this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
+    this.proofJournal.recordLifecycle({
+      eventType: "LIFECYCLE",
+      phase: "TARGET_CLAIMED",
+      ...this.currentAuthorityRefHash(),
+      targetRef: input.targetRef,
+      documentRef: input.documentRef,
+    });
     this.emitBrowserRuntimeState(
       RuntimeLogEventType.BROWSER_TARGET_CLAIMED,
       "success",
@@ -142,6 +170,12 @@ export class BrowserInfrastructureSupervisor {
 
   private onTargetRevoke(targetRef: string): void {
     this.broker.revokeOperatorTargetClaim(targetRef);
+    this.proofJournal.recordLifecycle({
+      eventType: "LIFECYCLE",
+      phase: "TARGET_REVOKED",
+      ...this.currentAuthorityRefHash(),
+      targetRef,
+    });
     this.emitBrowserRuntimeState(
       RuntimeLogEventType.BROWSER_TARGET_LEASE_INVALIDATED,
       "success",
@@ -155,6 +189,12 @@ export class BrowserInfrastructureSupervisor {
     const authenticated = this.issuer.current().kind === "PRESENT";
     const extensionFailure = refs?.diagnosticSource === "extension-frame"
       || refs?.diagnosticSource === "extension-runtime";
+    this.proofJournal.recordLifecycle({
+      eventType: "LIFECYCLE",
+      phase: "AUTHORITY_REVOKED",
+      ...this.currentAuthorityRefHash(),
+      reason: reasonCode,
+    });
     this.emitBrowserRuntimeState(
       extensionFailure
         ? RuntimeLogEventType.BROWSER_EXTENSION_FAILURE
@@ -247,11 +287,6 @@ export class BrowserInfrastructureSupervisor {
     this.workspace = new BrowserSessionWorkspace(binding);
   }
 
-  public revokeSessionWorkspace(): void {
-    this.workspace?.revoke();
-    this.workspace = undefined;
-  }
-
   public async acquireOperatorClaimedTargetLease(binding: BrowserExecutionBinding, ownerId: string): Promise<BrowserTargetLease> {
     return this.broker.acquireOperatorClaimedTargetLease(binding, ownerId);
   }
@@ -269,6 +304,13 @@ export class BrowserInfrastructureSupervisor {
     return { unauthenticated_browser_authority_issued_total: 0, command_without_valid_authority_total: 0, stale_event_side_effect_total: 0, old_completion_to_new_port_total: 0, non_idempotent_auto_replay_total: 0, wrong_profile_process_authority_issued_total: 0, command_after_liveness_expiry_total: 0, browser_action_during_authority_absence_total: 0, dual_active_browser_worker_total: 0, revoked_or_rollback_blocked_tuple_activated_total: 0, browser_admission_budget_violation_total: 0, unbounded_queue: 0, unbounded_cache: 0, unbounded_stream: 0 };
   }
 
+  private currentAuthorityRefHash(): Readonly<{ authorityRefHash?: `sha256:${string}` }> {
+    const current = this.issuer.current();
+    return current.kind === "PRESENT"
+      ? { authorityRefHash: `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}` }
+      : {};
+  }
+
   private createTargetLeaseManager(
     binding: BrowserExecutionBinding,
     resolveGrantPaths: (
@@ -284,7 +326,7 @@ export class BrowserInfrastructureSupervisor {
       new BrowserCommandActor(
         new BrowserCommandAdmissionBudget(),
         this.websocket,
-        new BrowserMutationIntentJournal(join(this.options.dataDir, "browser", "mutation-intents.ndjson")),
+        this.proofJournal,
         { assertCurrentAuthority: (permit) => {
           const slot = this.issuer.current();
           if (slot.kind === "ABSENT" || slot.authority.authorityRef !== current.authority.authorityRef || slot.authority.authorityEpoch !== current.authority.authorityEpoch) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -393,17 +435,19 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private disconnectTransport(reasonCode: BrowserErrorCode | "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): void {
-    this.revokeSessionWorkspace();
+    this.workspace?.revoke();
+    this.workspace = undefined;
     this.broker.revokeOperatorTargetClaim();
     if (this.started) this.transport.disconnect(reasonCode);
   }
 
-  private currentAuthorityEpoch(): number {
-    const current = this.issuer.current();
-    if (current.kind === "ABSENT") throw new Error(current.reasonCode);
-    return current.authority.authorityEpoch;
-  }
 }
+
+const currentAuthorityEpoch = (issuer: BrowserAuthorityIssuer): number => {
+  const current = issuer.current();
+  if (current.kind === "ABSENT") throw new Error(current.reasonCode);
+  return current.authority.authorityEpoch;
+};
 
 const hashValue = (value: unknown): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;

@@ -40,6 +40,7 @@ export type XuanxueAiBrowserAuthorityPort = Readonly<{
 
 export interface XuanxueAiProductionRuntime {
   readonly aiInputGateway: AiInputGatewayAbilityGroup;
+  readonly candidateHash: XuanxueAiBrowserHash;
   readonly mediaProcessing: MediaProcessingAbilityGroup;
   readonly dataDir: string;
   readonly store: XuanxueAiProductionStore;

@@ -851,7 +851,8 @@ Forbidden:
     "Every DomSnapshot and DomElementRef records an opaque targetRef plus documentRef minted by the Browser owner; selectors and coordinates are never sufficient identity.",
     "Snapshot, locate, fill, click, upload and one-shot verify reject stale, foreign, navigated or mismatched document refs before side effects.",
     "DOM actions and file input use target-bound Chrome extension commands without foreground focus; native picker, clipboard and PhysicalFocusLease paths are absent.",
-    "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action."
+    "After navigation the caller must acquire a new document ref and re-read the page before any further DOM action.",
+    "The uniquely clause-bound deferred real-Chrome verifier must read the Browser owner's canonical hash-chain journal, bind the current source candidate and thirty-minute window, and require one completed document observation followed by one exact click PREPARED/SEND/UNKNOWN/CONFIRMED chain on the same target and document."
   ],
   "forbidden": [
     "evaluateActiveTab or any active/current/first page fallback",
@@ -992,7 +993,8 @@ DOM Automation may be called production-stable only when all are true:
     "Fill invokes exactly one declaration-only BrowserDomIntent fill command; the Browser owner resolves one selector and one editable receiver, compares current and captured identities, applies only the approved text, and verifies the exact retained value before returning.",
     "Upload revalidates a supported light-DOM file input and invokes BrowserTargetLease.attachFile with only the caller-approved artifact grant; raw paths never cross the business or Browser wire boundary.",
     "Shadow or frame file-input topology that the unique Browser command cannot address returns structured review_required without a fallback path.",
-    "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition."
+    "Upload action success means the approved file selection was dispatched once to the resolved receiver; only the owning business flow may interpret its component-specific attachment postcondition.",
+    "One uniquely clause-bound deferred real-Chrome verifier must read the Browser owner's canonical hash-chain journal, bind the current source candidate and thirty-minute window, and prove distinct click and fill commands with exact PREPARED/SEND/UNKNOWN/CONFIRMED phase chains, stable target/document/payload identity, authenticated extension result summaries showing one candidate/one mutation/identity revalidation and exact fill retained-value readback, transport and permit sequence receipts, owning-Plugin positive and negative evidence refs, and no fallback verifier path."
   ],
   "forbidden": [
     "A DOM child performing arbitrary evaluation before or after click/fill mutation",

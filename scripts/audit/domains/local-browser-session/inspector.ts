@@ -107,7 +107,9 @@ const inspectRegistryAndMutationBoundary = (
   for (const required of [
     "admitExtensionCommand",
     "executeRegisteredCommand",
-    "BrowserMutationIntentJournal",
+    "BrowserProofJournal",
+    "previousEntryHash",
+    "entryHash",
     "PREPARED",
     "UNKNOWN",
     "BrowserArtifactRegistry",
@@ -205,6 +207,10 @@ const inspectAuthenticatedRuntimeRegressionGuards = (
     "The MV3 heartbeat owner must invoke the Chrome API liveness pulse on the authenticated channel.");
   requireIdentifiers(actor, ["onSocketClosed", "releaseActiveTarget", "close", "reasonCode"], findings, authLawId,
     "The MV3 socket owner must release stale debugger state after disconnect and expose every programmatic close reason.");
+  requireIdentifiers(actor, ["extensionCommandDiagnostic", "commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, authLawId,
+    "Every authenticated command failure must emit a non-fatal redacted diagnostic with command-stage and capability identity.");
+  requireIdentifiers(channel, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, authLawId,
+    "The Workbench authority socket must retain the redacted authenticated-command diagnostic fields.");
   if (!stringLiterals(actor).includes("HEARTBEAT")) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority", lawId: authLawId, filePath: sourcePaths[1],
     message: "The MV3 worker must send an authenticated HEARTBEAT liveness frame.",
@@ -221,6 +227,34 @@ const inspectAuthenticatedRuntimeRegressionGuards = (
       lawId: targetLawId,
       filePath: sourcePaths[0],
       message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
+    }));
+  }
+};
+
+const inspectRealChromeProofRoute = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const verifier = requireSource(context, findings, lawId, sourcePaths[24]);
+  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
+  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
+  if (!verifier || !supervisor || !journal) return;
+  requireIdentifiers(verifier, [
+    "readBrowserProofJournal", "buildStartupSourceFingerprint",
+    "GRASSEYE_UNPACKED_EXTENSION_ID", "releaseRecord", "candidateHash",
+    "authenticated", "claimed", "completed", "revoked",
+  ], findings, lawId, "The real-Chrome verifier must bind canonical journal bytes to current source and release identity.");
+  requireIdentifiers(supervisor, ["BrowserProofJournal", "recordLifecycle"], findings, lawId,
+    "The Browser supervisor must produce lifecycle facts in the canonical proof journal.");
+  requireIdentifiers(journal, ["previousEntryHash", "entryHash", "fsyncSync"], findings, lawId,
+    "The canonical Browser proof journal must be hash chained and durably appended.");
+  const phases = new Set(stringLiterals(verifier));
+  for (const phase of ["AUTHENTICATED", "TARGET_CLAIMED", "COMPLETED", "AUTHORITY_REVOKED"]) {
+    if (phases.has(phase)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[24],
+      message: `The real-Chrome verifier must require ${phase}.`,
     }));
   }
 };
@@ -253,6 +287,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectOperatorAdmission(context, findings, workspaceLawId);
   inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-004-V4"));
   inspectAuthenticatedRuntimeRegressionGuards(context, findings);
+  inspectRealChromeProofRoute(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-005-V4"));
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
   inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-005-V4"));
   return {

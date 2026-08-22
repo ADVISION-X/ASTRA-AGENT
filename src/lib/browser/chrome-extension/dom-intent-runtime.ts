@@ -38,7 +38,7 @@ const executeClickIntent = async (
   const box = await boxCenter(debuggerRuntime, target.tabId, nodeId);
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
-  return { clicked: true };
+  return { clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1 };
 };
 
 const executeValueIntent = async (
@@ -58,7 +58,15 @@ const executeValueIntent = async (
     await debuggerRuntime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace" });
   }
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
-  return { filled: true };
+  const retainedValue = await accessibilityValue(debuggerRuntime, target.tabId, nodeId);
+  if (retainedValue !== intent.approvedText) throw new Error("BROWSER_TARGET_INVALID");
+  return {
+    filled: true,
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    retainedValueVerified: true,
+  };
 };
 
 export const executeRegisteredDomIntent = async (
@@ -130,6 +138,25 @@ const documentState = async (runtime: ExtensionDebuggerRuntime, tabId: number): 
 };
 
 const describeNode = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<DevToolsRecord> => record(record(await runtime.send(tabId, "DOM.describeNode", { nodeId, depth: 0 })).node);
+
+const accessibilityValue = async (
+  runtime: ExtensionDebuggerRuntime,
+  tabId: number,
+  nodeId: number,
+): Promise<string> => {
+  const node = await describeNode(runtime, tabId, nodeId);
+  const backendNodeId = numberValue(node.backendNodeId, "BROWSER_TARGET_INVALID");
+  const tree = record(await runtime.send(tabId, "Accessibility.getPartialAXTree", {
+    backendNodeId,
+    fetchRelatives: false,
+  }));
+  const nodes = Array.isArray(tree.nodes) ? tree.nodes.map(record) : [];
+  const target = nodes.find((candidate) => candidate.backendDOMNodeId === backendNodeId);
+  const value = target && typeof target.value === "object" && target.value !== null
+    ? record(target.value)
+    : null;
+  return value && typeof value.value === "string" ? value.value : "";
+};
 
 const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
   const described = record(await runtime.send(tabId, "DOM.describeNode", {

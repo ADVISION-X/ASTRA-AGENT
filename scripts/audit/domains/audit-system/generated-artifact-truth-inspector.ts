@@ -39,13 +39,14 @@ const verifierCoverageIsComplete = (verifier: ArrowFunction): boolean => {
   const returnCondition = verifier.getDescendantsOfKind(SyntaxKind.ConditionalExpression)
     .map((expression) => expression.getCondition())
     .find((condition) => flattenConjunction(condition).some((item) =>
-      isExactEquality(item, "summary.machineClauseCount", "summary.executedMachineClauseCount")));
+      isExactEquality(item, "summary.machineFacetClauseCount", "summary.executedMachineFacetClauseCount")));
   if (!returnCondition) return false;
   const predicates = flattenConjunction(returnCondition);
   return predicates.some((item) => isExactEquality(item, "summary.activeClauseCount", "summary.boundClauseCount"))
-    && predicates.some((item) => isExactEquality(item, "summary.machineClauseCount", "summary.executedMachineClauseCount"))
-    && predicates.some((item) => isExactNumber(item, "summary.uncoveredMachineClauseIds.length", 0))
-    && predicates.some((item) => isExactEquality(item, "summary.deferredRealChromeClauseCount", "summary.realChromeClauseIds.length"))
+    && predicates.some((item) => isExactEquality(item, "summary.machineFacetClauseCount", "summary.executedMachineFacetClauseCount"))
+    && predicates.some((item) => isExactNumber(item, "summary.uncoveredMachineFacetClauseIds.length", 0))
+    && predicates.some((item) => isExactEquality(item, "summary.deferredRealChromeFacetCount", "summary.realChromeFacetClauseIds.length"))
+    && predicates.some((item) => isExactEquality(item, "summary.deferredRealProviderFacetCount", "summary.realProviderFacetClauseIds.length"))
     && predicates.some((item) => isExactNumber(item, "summary.coveragePercent", 100));
 };
 
@@ -141,7 +142,7 @@ export const inspectGeneratedArtifactTruthContract = (
       checkId: "audit-system/generated-artifact-truth",
       lawId,
       filePath: ciFullPath,
-      message: "CI-FULL must rebuild generated truth, run every owner, then fail closed on the complete 100% machine-coverage contract with APEX-AUDIT-004 receipt identity.",
+      message: "CI-FULL must rebuild generated truth, run every owner, then fail closed on the complete 100% owner machine-facet coverage contract with APEX-AUDIT-004 receipt identity.",
     })],
   };
 };

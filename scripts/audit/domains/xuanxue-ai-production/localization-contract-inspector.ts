@@ -224,8 +224,3 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   });
   return context.checks.output();
 };
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  inspectXuanxueLocalizationContract();
-  process.stdout.write("[AUDIT] xuanxue localization contract static inspection PASS\n");
-}

@@ -46,7 +46,7 @@ const isExactSameJobRecovery = (
 ): boolean => {
   const existingCloud = existing.order.cloudExecutionIdentity;
   const incomingCloud = incoming.cloudExecutionIdentity;
-  if (existing.status !== "recovery_pending" || !existingCloud || !incomingCloud) return false;
+  if (!existingCloud || !incomingCloud) return false;
   const existingBusinessOrder = { ...existing.order, cloudExecutionIdentity: undefined };
   const incomingBusinessOrder = { ...incoming, cloudExecutionIdentity: undefined };
   return JSON.stringify(existingBusinessOrder) === JSON.stringify(incomingBusinessOrder)
@@ -99,21 +99,26 @@ const resolveIdentityCollision = (input: {
     && cloudIdentitiesMatch(existingCloud, incomingCloud)) {
     return input.existing;
   }
-  if (isExactSameJobRecovery(input.existing, input.incoming) && existingCloud && incomingCloud) {
+  const sameJobRecovery = isExactSameJobRecovery(input.existing, input.incoming)
+    && existingCloud && incomingCloud;
+  if (sameJobRecovery && input.existing.status === "recovery_pending") {
     input.database.transaction(() => {
       input.database.prepare(`
-        update production_orders set order_json=?,updated_at=?
-        where order_id=? and status='recovery_pending'
+        update production_orders
+        set order_json=?,status='recovery_pending',result_json=null,
+            failure_reason=null,updated_at=?
+        where order_id=? and status=?
       `).run(
         JSON.stringify(input.incoming),
         incomingCloud.serverNow,
         input.existing.order.orderId,
+        input.existing.status,
       );
       appendXuanxueAiProductionEvent(input.database, {
         orderId: input.existing.order.orderId,
         stageId: null,
         eventType: "cloud_execution_identity_rebound",
-        fromStatus: "recovery_pending",
+        fromStatus: input.existing.status,
         toStatus: "recovery_pending",
         detail: {
           previousAttemptId: existingCloud.attemptId,

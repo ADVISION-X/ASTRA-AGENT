@@ -10,7 +10,7 @@ import {
   emitBrowserCommandFailed,
   emitBrowserCommandStarted,
 } from "./browser-command-runtime-logging.js";
-import type { BrowserMutationIntentJournal, BrowserMutationJournalEntry } from "./browser-mutation-intent-journal.js";
+import type { BrowserProofCommandEvent, BrowserProofJournal } from "./browser-proof-journal.js";
 import {
   assertPluginOutcomeResolution,
   type BrowserOutcomeResolutionReceipt,
@@ -45,7 +45,8 @@ export type BrowserCommandAuthorityGuard = Readonly<{
   assertCurrentAuthority(permit: BrowserCommandPermit): void;
 }>;
 
-type MutationJournalBase = Omit<BrowserMutationJournalEntry, "recordedAt" | "reason" | "state">;
+type CommandJournalBase = Omit<BrowserProofCommandEvent,
+  "artifactRefs" | "phase" | "recordedAt" | "reason" | "resultHash" | "resultSummary" | "transportSequence" | "permitSequence">;
 
 const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): void => {
   assertValidCommandPermit(permit);
@@ -56,11 +57,20 @@ const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "fill"));
 
-const createMutationJournalBase = (permit: BrowserCommandPermit, command: BrowserGovernedCommand): MutationJournalBase | null =>
-  isMutation(command)
-    ? {
+const commandClass = (command: BrowserGovernedCommand): CommandJournalBase["commandClass"] =>
+  isMutation(command) ? "mutation"
+    : command.kind === "navigate" || command.kind === "close-target" ? "lifecycle"
+      : "observation";
+
+const createCommandJournalBase = (
+  permit: BrowserCommandPermit,
+  command: BrowserGovernedCommand,
+): CommandJournalBase => ({
+      eventType: "COMMAND",
       commandId: permit.commandId,
       actionId: permit.capabilityId,
+      commandKind: command.kind,
+      ...(command.kind === "dom-intent" ? { domIntentKind: command.intent.kind } : {}),
       workspaceRef: permit.workspaceRef,
       authorityRef: permit.authorityRef,
       authorityCertificateHash: permit.certificateHash,
@@ -77,20 +87,34 @@ const createMutationJournalBase = (permit: BrowserCommandPermit, command: Browse
       targetRef: permit.targetRef,
       documentRef: permit.documentRef,
       commandTtlMs: permit.commandTtlMs,
-      mutationClass: "mutation",
+      commandClass: commandClass(command),
       payloadHash: `sha256:${createHash("sha256").update(JSON.stringify(command)).digest("hex")}`,
-      artifactRefs: command.kind === "file-input" ? command.grantRefs : [],
-    }
-    : null;
+    });
 
-const recordMutation = async (
-  journal: BrowserMutationIntentJournal,
-  entry: MutationJournalBase | null,
-  state: BrowserMutationJournalEntry["state"],
-  reason?: string,
-): Promise<void> => {
-  if (!entry) return;
-  await journal.record({ ...entry, state, recordedAt: new Date().toISOString(), ...(reason === undefined ? {} : { reason }) });
+const recordCommand = (
+  journal: BrowserProofJournal,
+  entry: CommandJournalBase,
+  phase: BrowserProofCommandEvent["phase"],
+  details: Readonly<{
+    artifactRefs?: readonly string[];
+    permitSequence?: number;
+    reason?: string;
+    resultHash?: `sha256:${string}`;
+    resultSummary?: BrowserProofCommandEvent["resultSummary"];
+    transportSequence?: number;
+  }> = {},
+): void => {
+  journal.recordCommand({
+    ...entry,
+    phase,
+    recordedAt: new Date().toISOString(),
+    artifactRefs: details.artifactRefs ?? [],
+    ...(details.reason === undefined ? {} : { reason: details.reason }),
+    ...(details.resultHash === undefined ? {} : { resultHash: details.resultHash }),
+    ...(details.resultSummary === undefined ? {} : { resultSummary: details.resultSummary }),
+    ...(details.transportSequence === undefined ? {} : { transportSequence: details.transportSequence }),
+    ...(details.permitSequence === undefined ? {} : { permitSequence: details.permitSequence }),
+  });
 };
 
 const assertMatchingReply = (permit: BrowserCommandPermit, reply: BrowserCommandReply): void => {
@@ -105,10 +129,10 @@ const causalBrowserFailureCode = (error: unknown): string =>
     : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
 
 const failureCode = (
-  entry: MutationJournalBase | null,
+  mutation: boolean,
   sent: boolean,
   error: unknown,
-): string => entry !== null && sent
+): string => mutation && sent
   ? "BROWSER_OUTCOME_UNKNOWN"
   : causalBrowserFailureCode(error);
 
@@ -120,13 +144,60 @@ const hashLogValue = (value: unknown): string => {
   }
 };
 
+const domMutationResultSummary = (
+  command: BrowserGovernedCommand,
+  result: unknown,
+): BrowserProofCommandEvent["resultSummary"] | undefined => {
+  if (command.kind !== "dom-intent" || (command.intent.kind !== "click" && command.intent.kind !== "fill")) return undefined;
+  const record = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const retainedValueVerified = command.intent.kind === "fill" ? record.retainedValueVerified === true : undefined;
+  if (record.candidateCount !== 1 || record.identityRevalidated !== true
+    || record.mutationCount !== 1 || (command.intent.kind === "fill" && !retainedValueVerified)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return {
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    ...(retainedValueVerified ? { retainedValueVerified } : {}),
+  };
+};
+
+const acceptCommandReply = (input: Readonly<{
+  permit: BrowserCommandPermit;
+  command: BrowserGovernedCommand;
+  reply: BrowserCommandReply;
+  authorityGuard: BrowserCommandAuthorityGuard;
+  journal: BrowserProofJournal;
+  journalEntry: CommandJournalBase;
+}>): Readonly<{ mutation: boolean; resultHash: `sha256:${string}` }> => {
+  assertMatchingReply(input.permit, input.reply);
+  input.authorityGuard.assertCurrentAuthority(input.permit);
+  const mutation = isMutation(input.command);
+  const resultHash = hashLogValue(input.reply.result) as `sha256:${string}`;
+  const resultSummary = domMutationResultSummary(input.command, input.reply.result);
+  const artifactRefs = input.reply.result && typeof input.reply.result === "object"
+    && typeof (input.reply.result as { artifactRef?: unknown }).artifactRef === "string"
+    ? [(input.reply.result as { artifactRef: string }).artifactRef]
+    : [];
+  recordCommand(input.journal, input.journalEntry, mutation ? "UNKNOWN" : "COMPLETED", {
+    artifactRefs,
+    permitSequence: input.reply.permitSequence,
+    resultHash,
+    ...(resultSummary ? { resultSummary } : {}),
+    transportSequence: input.reply.transportSequence,
+    ...(mutation ? { reason: "transport reply requires owning-plugin outcome resolution" } : {}),
+  });
+  return { mutation, resultHash };
+};
+
 export class BrowserCommandActor {
-  private readonly unknownMutations = new Map<string, MutationJournalBase>();
+  private readonly unknownMutations = new Map<string, CommandJournalBase>();
 
   public constructor(
     private readonly budget: BrowserCommandAdmissionBudget,
     private readonly port: BrowserCommandPort,
-    private readonly journal: BrowserMutationIntentJournal,
+    private readonly journal: BrowserProofJournal,
     private readonly authorityGuard: BrowserCommandAuthorityGuard,
     private readonly runtimeLogger: RuntimeLogger,
   ) {}
@@ -136,38 +207,38 @@ export class BrowserCommandActor {
     const beforeHash = hashLogValue([permit.targetRef, permit.documentRef]);
     emitBrowserCommandStarted({ runtimeLogger: this.runtimeLogger, permit, beforeHash });
     let budgetEntered = false;
-    let journalEntry: MutationJournalBase | null = null;
+    let journalEntry: CommandJournalBase | null = null;
     let sent = false;
     try {
       assertAcceptedCommand(permit, command);
       this.authorityGuard.assertCurrentAuthority(permit);
       this.budget.enter();
       budgetEntered = true;
-      journalEntry = createMutationJournalBase(permit, command);
-      await recordMutation(this.journal, journalEntry, "PREPARED");
+      journalEntry = createCommandJournalBase(permit, command);
+      recordCommand(this.journal, journalEntry, "PREPARED", {
+        artifactRefs: command.kind === "file-input" ? command.grantRefs : [],
+      });
       this.authorityGuard.assertCurrentAuthority(permit);
-      await recordMutation(this.journal, journalEntry, "SEND");
+      recordCommand(this.journal, journalEntry, "SEND");
       sent = true;
       const reply = await this.port.send(permit, command);
-      assertMatchingReply(permit, reply);
-      this.authorityGuard.assertCurrentAuthority(permit);
       // A transport reply proves only that the extension received a frame.
       // The owning Plugin alone may turn a mutation into CONFIRMED after its
       // page-level positive/negative/unique/bounded outcome evidence exists.
-      await recordMutation(
-        this.journal,
+      const { mutation, resultHash } = acceptCommandReply({
+        permit, command, reply,
+        authorityGuard: this.authorityGuard,
+        journal: this.journal,
         journalEntry,
-        "UNKNOWN",
-        "transport reply requires owning-plugin outcome resolution",
-      );
-      if (journalEntry) this.unknownMutations.set(permit.commandId, journalEntry);
+      });
+      if (mutation) this.unknownMutations.set(permit.commandId, journalEntry);
       const durationMs = Math.max(0, performance.now() - startedAt);
-      if (journalEntry) {
+      if (mutation) {
         emitBrowserCommandFailed({
           runtimeLogger: this.runtimeLogger,
           permit,
           beforeHash,
-          afterHash: hashLogValue(reply.result),
+          afterHash: resultHash,
           durationMs,
           failureCode: "BROWSER_OUTCOME_UNKNOWN",
           outcomeUnknown: true,
@@ -183,9 +254,10 @@ export class BrowserCommandActor {
       }
       return reply.result;
     } catch (error) {
-      const code = failureCode(journalEntry, sent, error);
-      await recordMutation(this.journal, journalEntry, sent ? "UNKNOWN" : "FAILED", code);
-      if (journalEntry && sent) this.unknownMutations.set(permit.commandId, journalEntry);
+      const mutation = isMutation(command);
+      const code = failureCode(mutation, sent, error);
+      if (journalEntry) recordCommand(this.journal, journalEntry, mutation && sent ? "UNKNOWN" : "FAILED", { reason: code });
+      if (journalEntry && mutation && sent) this.unknownMutations.set(permit.commandId, journalEntry);
       emitBrowserCommandFailed({
         runtimeLogger: this.runtimeLogger,
         permit,
@@ -214,12 +286,11 @@ export class BrowserCommandActor {
     if (receipt.uniqueTargetRef !== entry.targetRef) {
       throw new Error("BROWSER_OUTCOME_UNKNOWN");
     }
-    await recordMutation(
-      this.journal,
-      entry,
-      receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "FAILED",
-      `owning-plugin:${receipt.ownerPluginId}`,
-    );
+    recordCommand(this.journal, entry, receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "FAILED", {
+      artifactRefs: [receipt.positiveEvidenceRef, receipt.negativeEvidenceRef],
+      reason: `owning-plugin:${receipt.ownerPluginId}`,
+      resultHash: hashLogValue(receipt) as `sha256:${string}`,
+    });
     this.unknownMutations.delete(receipt.commandId);
   }
 }
