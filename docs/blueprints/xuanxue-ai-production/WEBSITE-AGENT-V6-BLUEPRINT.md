@@ -3,14 +3,14 @@
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "website-agent-v6-worker",
+  "blueprintId": "website-agent-production-control-worker",
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
     "LAW-XUANXUE-AI-PRODUCTION-001-V6"
   ],
   "contractRefs": [
-    "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
+    "docs/specs/xuanxue-ai-production/xuanxue-ai-production-control.pin.spec.json"
   ],
   "dependencyEdges": [
     {
@@ -36,23 +36,34 @@
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
-      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
+      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-control.pin.spec.json"
     }
   ],
   "prohibitedDependencyEdges": []
 }
 ```
 
-状态：active V6 terminal
+状态：active permanent control design
 法案：`LAW-XUANXUE-AI-PRODUCTION-001-V6`
 唯一业务 owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
 方案 SHA-256：`85e2b60e0649dac79ba24f055895d6752548456a2c50919baa7ed5097644c48a`
 
-## 接入
+## 永久语义命名与接入
+
+现役生产标识固定使用业务语义：协议为 `xuanxue-ai-production-control`，网站路由根为
+`/internal/ai-production/control`，结构使用 `DeviceEnrollment`、`WorkerSessionOpen`、
+`CloudExecutionGrant`、`ExecutionFence` 等无代际后缀名称。生产代码、数据库对象、配置、错误码、
+package entry 与进程名不得使用 `V+数字`、`v+数字`、纯数字代际、`phase/stage/MVP/preview/next/final`
+或 `candidate/canary/migration-required` 表示发布阶段。时间、容量、epoch 和真正的产品业务 stage 是数据，
+不属于发布阶段命名；历史迁移文件序号、审计候选身份与退休协议文字只可留在迁移/审计历史，不得被运行时读取或取得主权。
+
+本文件是现役目标设计权威，不是“现有基线代码已经完成”的声明。法案门通过以前，仓库中仍存在的数字代际
+文件、导出、路由、validator、表列与 package entry 只属于待删除施工分母，不得作为本协议的 active descriptor、
+完成证据或兼容链；代码门一旦打开，必须在同一删除式重构中物理替换，不能靠 alias、桥接或双链续命。
 
 ```txt
-xuanxue-web canonical V6 control artifact
+xuanxue-web canonical production control artifact
   -> one outbound HTTPS Cloud Worker
   -> src/mediator/xuanxue-ai-production-route.ts
   -> src/plugins/xuanxue-ai-production/
@@ -60,7 +71,7 @@ xuanxue-web canonical V6 control artifact
   -> checkpoint / outbox / first-terminal CAS
 ```
 
-网站 artifact 是 V6 Cloud schema/manifest/vector/fixture 的唯一 owner；AGENT builder 生成 strict
+网站 artifact 是现役 Cloud schema/manifest/vector/fixture 的唯一 owner；AGENT builder 生成 strict
 validator。Cloud contract 不含 Workspace、Target、Document、command、mutation journal 或 Browser
 TTL。Plugin 仍独占固定产品图、本地订单和业务 outcome；Browser 私有合同仍独占于
 `local-browser-session`，唯一 WebSocket 不改名、不复制。
@@ -74,12 +85,12 @@ TTL。Plugin 仍独占固定产品图、本地订单和业务 outcome；Browser 
 Shell ready
 -> keep diagnostic HTTP/status surface available even when execution dependencies fail
 -> validate hardened device credential and exact environment/origin
--> load V6 manifest/product contract
+-> load permanent control manifest/product contract
 -> reconcile local nonterminal ledger and durable outbox
 -> open one worker session with higher server epoch and report `worker_instance_id`
 -> pair Browser Authority and claim HTTPS Target
 -> heartbeat normalized capacity/state
--> receive 45s RuntimeAttestationReceiptV6 + next 180s memory token
+-> receive 45s RuntimeAttestationReceipt + rotated 180s memory token
 -> server returns claim_eligible
 -> begin typed claim loop
 ```
@@ -104,7 +115,7 @@ Plugin 固定十个业务席位，Browser mutation 固定一个。所有 `queued
 唯一页面窗口。Browser busy 不等于业务 capacity zero。
 
 Grant 固定 lease 90 秒、accept-by 30 秒、renew 20 秒指引。Plugin 用 monotonic clock 扣除 RTT；
-accept 剩余不足 5 秒或 lease 剩余不足 30 秒时，在无副作用条件调用 `LeaseReleaseV6`。本地
+accept 剩余不足 5 秒或 lease 剩余不足 30 秒时，在无副作用条件调用 `LeaseRelease`。本地
 `localOrderIdentity` 先 fsync；首个 durable checkpoint 即接受，不另建 ACK。
 
 Cloud job 的唯一状态固定为 `queued -> leased -> inputs_downloading -> factory_running`，随后只可进入
@@ -142,30 +153,32 @@ claim admission、queue/outbox 和 e2e proof。任一局部 ready 不代表端�
 
 ## 删除式迁移
 
-同一 change-set 完成 V6 builder、validator、session client、worker、outbox、tests 和 evidence。
-切换依次冻结候选、双仓实现、由网站 artifact 生成 validator、取得七层证据、网站停建 V5 job、
-AGENT drain 并停 claim V5、排空活动 lease、保持终态 V5 历史不变、在原 identity 上迁移安全未完成
-任务并写 event、以一个 release 激活网站/AGENT/Extension 且删除 V5 active surface、打开 V6 session、
-配对并认领 Target、普通 claim 保持 blocked 只跑一条 canary、PASS 后开放、最后审计 runtime 仅 V6。
-旧方案和 V5 证据只保留为历史，不再取得运行主权。
+同一 change-set 完成永久语义 builder、validator、session client、worker、outbox、tests 和 evidence。
+切换依次冻结审计候选、完成双仓实现、由网站 artifact 生成 validator、取得七层证据、网站停止以退休
+协议创建 job、AGENT drain 并停止以退休协议 claim、排空活动 lease、保持退休协议终态历史不变、在原
+identity 上迁移安全未完成任务并写 event、以一个 release 激活网站/AGENT/Extension 且删除退休协议
+active surface、打开现役 session、配对并认领 Target、普通 claim 保持 blocked 只运行一条受限准入
+实证、PASS 后把准入从 `restricted` 改为 `open`，最后审计 runtime 仅有永久语义控制协议。
+审计候选身份不进入生产标识；旧方案和退休协议证据只保留为历史，不再取得运行主权。
 
-V5 route/reader/writer/generated validator/config/package entry/process、外部 HMAC/LNA/localhost、
+生产准入状态只允许 `blocked|restricted|open|draining`，不得以数字代际、候选、金丝雀、阶段或迁移要求
+作为生产状态名。退休协议 route/reader/writer/generated validator/config/package entry/process、外部 HMAC/LNA/localhost、
 Cloud callback、第二 worker/mediator/scheduler/store/transport、compatibility/fallback/shadow/
-bridge/alias/default/normalization/dual read/write 必须物理为零。激活后无 runtime V5 fallback。
+bridge/alias/default/normalization/dual read/write 必须物理为零。激活后无 runtime 退休协议 fallback。
 
 ## 验收边界
 
 任务内单项验证依次覆盖 strict contract、session conflict/supersede/token rotation、attestation
 stale/replay、typed/idempotent claim、Browser absent no-claim、oldest eligible、十席位一 mutation、
-accept/release/renew/checkpoint/CAS、outbox restart、UNKNOWN、handover、drain 和 V5-zero。
+accept/release/renew/checkpoint/CAS、outbox restart、UNKNOWN、handover、drain 和退休协议归零。
 
 Static、Contract Exam、Integration、Fault、Real Chrome、Real Provider、72h Soak 互不替代。真实
-receipt 必须绑定双仓 SHA、V6 manifest、AGENT build 与 Extension release。未取得真实层时固定
+receipt 必须绑定双仓 SHA、永久语义 manifest、AGENT build 与 Extension release。未取得真实层时固定
 `NOT_PRODUCTION_VERIFIED`。
 
 正确性零容忍项固定包括：双 terminal、stale/foreign fence 写入、未 eligible session 获 lease、
 Browser absent 仍发 browser-required lease、production localhost/LNA、Extension Cloud access、
 unknown-field default、UNKNOWN replay、重启丢任务、双 eligible session、无 durable event 的状态变化、
-V5/V6 双写、控制协议改写 request hash、stale attestation 获 lease、Browser busy 把业务容量降零。
+退休/现役协议双写、控制协议改写 request hash、stale attestation 获 lease、Browser busy 把业务容量降零。
 时效固定为 heartbeat 30 秒、45 秒 stale 停新 claim、90 秒 offline、claim 1–30 秒、合格任务到 lease
 P95 不超过 15 秒、lease 90 秒、per-job renew 20 秒，并在一个 heartbeat/claim 周期内公开 block reason。
