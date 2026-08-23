@@ -60,7 +60,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
   public constructor(
     public readonly device: XuanxueAiProductionCloudCredential,
     private readonly runtimeState: () => Promise<XuanxueAiProductionRuntimeStateV6>,
-    private readonly agentInstanceId = `agent_${randomUUID()}`,
+    private readonly workerInstanceId = `worker_${randomUUID()}`,
   ) {}
 
   public get workerSessionId(): string {
@@ -94,7 +94,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
         origin: this.device.origin,
         device_id: this.device.device_id,
         device_epoch: this.device.device_epoch,
-        agent_instance_id: this.agentInstanceId,
+        worker_instance_id: this.workerInstanceId,
         agent_build_hash: this.device.agent_build_hash,
         control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
       },

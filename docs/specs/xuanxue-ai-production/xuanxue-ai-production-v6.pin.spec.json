@@ -14,7 +14,7 @@
     "providerRepo": "ADVISION-X/xuanxue-web",
     "providerDomain": "ai-acceptance",
     "providerSpecRef": "docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json",
-    "providerCommitSha": "614198c5bc6ce78bbb05b2460397bb2874cc4093",
+    "providerCommitSha": "283f50cb68f4881fa986ede4ac369477c927380c",
     "contractSha256": "596a6b969ce52b8ba7888a3255a88264cde97cb6f227acfe22a76507c3ab6873"
   }
 }
