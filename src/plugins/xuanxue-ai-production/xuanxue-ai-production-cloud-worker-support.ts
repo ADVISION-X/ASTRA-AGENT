@@ -16,7 +16,7 @@ export const isRecoverableCloudWorkerFailure = (error: unknown): boolean =>
 
 export const cloudWorkerPollIntervalMs = (): number => {
   const value = Number(process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS);
-  return Number.isFinite(value) && value >= 1_000 && value <= 60_000 ? value : 5_000;
+  return Number.isFinite(value) && value >= 1_000 && value <= 30_000 ? value : 5_000;
 };
 
 export const waitForCloudWorker = async (ms: number, signal: AbortSignal): Promise<void> => {

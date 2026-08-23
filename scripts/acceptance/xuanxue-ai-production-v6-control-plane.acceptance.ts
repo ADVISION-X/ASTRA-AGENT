@@ -14,6 +14,7 @@ import {
   readXuanxueAiIntervention,
   requestXuanxueAiIntervention,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-intervention.js";
+import { cloudWorkerPollIntervalMs } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
 
 const temporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-control-"));
 const legacyTemporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-legacy-state-"));
@@ -21,6 +22,12 @@ const database = openXuanxueAiProductionDatabase(temporary);
 const hash = `sha256:${"a".repeat(64)}` as const;
 
 try {
+  process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS = "30000";
+  assert.equal(cloudWorkerPollIntervalMs(), 30_000);
+  process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS = "30001";
+  assert.equal(cloudWorkerPollIntervalMs(), 5_000);
+  delete process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS;
+
   database.prepare(`insert into production_orders(
     order_id,source_task_id,product_id,request_hash,status,order_json,created_at,updated_at
   ) values(?,?,?,?,?,?,?,?)`).run(
