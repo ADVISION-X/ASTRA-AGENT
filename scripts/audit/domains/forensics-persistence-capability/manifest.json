@@ -7,7 +7,9 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
-    "src/capabilities/forensics-persistence/**"
+    "src/capabilities/forensics-persistence/**",
+    "src/lib/storage/**",
+    "src/types/evidence.ts"
   ],
   "schemaVersion": 3,
   "status": "active"

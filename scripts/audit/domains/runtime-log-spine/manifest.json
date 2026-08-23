@@ -1,13 +1,14 @@
 {
   "capabilityDomain": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V2",
-    "LAW-RUNTIME-LOG-SPINE-002-V1",
-    "LAW-RUNTIME-LOG-SPINE-003-V1"
+    "LAW-RUNTIME-LOG-SPINE-001-V3",
+    "LAW-RUNTIME-LOG-SPINE-002-V2",
+    "LAW-RUNTIME-LOG-SPINE-003-V2"
   ],
   "observedPaths": [],
   "ownedPaths": [
-    "src/lib/runtime-log/**"
+    "src/lib/runtime-logs/**",
+    "src/types/structured-log.ts"
   ],
   "schemaVersion": 3,
   "status": "active"

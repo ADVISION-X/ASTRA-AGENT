@@ -1,12 +1,12 @@
 {
   "capabilityDomain": "local-app-shell",
   "lawIds": [
-    "LAW-LOCAL-APP-SHELL-001-V2",
-    "LAW-LOCAL-APP-SHELL-002-V2"
+    "LAW-LOCAL-APP-SHELL-001-V3",
+    "LAW-LOCAL-APP-SHELL-002-V3"
   ],
   "observedPaths": [],
   "ownedPaths": [
-    "src/lib/local-app-shell/**"
+    "src/lib/local-runtime/**"
   ],
   "schemaVersion": 3,
   "status": "active"

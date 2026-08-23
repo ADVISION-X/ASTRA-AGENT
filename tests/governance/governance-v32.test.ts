@@ -70,3 +70,16 @@ test('projection rejects a second generated artifact', () => {
     );
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('law parser rejects an invalid supersedes relationship', () => {
+  const root = governanceFixture();
+  try {
+    const lawPath = join(root, '.github/instructions/agent-rules/功能法案.md');
+    const source = readFileSync(lawPath, 'utf8');
+    writeFileSync(lawPath, source.replace('"supersedesLawId": null', '"supersedesLawId": "LAW-AI-INPUT-GATEWAY-001-V0"'));
+    assert.throws(
+      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance-v32.ts','build'], { cwd: root, stdio: 'pipe' }),
+      (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes('SOURCE_PARSE_FAILED LAW-AI-INPUT-GATEWAY-001-V1 supersedes'),
+    );
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

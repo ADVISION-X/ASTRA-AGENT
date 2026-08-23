@@ -14,11 +14,16 @@
   ],
   "ownedPaths": [
     ".github/instructions/agent-rules/**",
+    ".gitignore",
+    ".nvmrc",
     "AGENTS.md",
     "docs/governance/**",
+    "package-lock.json",
     "package.json",
+    "pnpm-workspace.yaml",
     "scripts/audit/**",
-    "tests/governance/**"
+    "tests/governance/**",
+    "tsconfig.json"
   ],
   "observedPaths": []
 }

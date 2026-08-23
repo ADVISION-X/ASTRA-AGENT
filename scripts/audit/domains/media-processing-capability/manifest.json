@@ -1,21 +1,24 @@
 {
   "capabilityDomain": "media-processing-capability",
   "lawIds": [
-    "LAW-MEDIA-PROCESSING-CAPABILITY-001-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-002-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-003-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-004-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-005-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-006-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-007-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-008-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-009-V1",
-    "LAW-MEDIA-PROCESSING-CAPABILITY-010-V1"
+    "LAW-MEDIA-PROCESSING-CAPABILITY-001-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-002-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-003-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-004-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-005-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-006-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-007-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-008-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-009-V2",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-010-V2"
   ],
   "observedPaths": [],
   "ownedPaths": [
     "src/capabilities/media-processing/**",
-    "src/plugins/media-optimizer/**"
+    "src/mediator/media-processing-artifact-route.ts",
+    "src/plugins/media-processing-artifact/**",
+    "src/types/ffprobe-static.d.ts",
+    "src/types/sharp.d.ts"
   ],
   "schemaVersion": 3,
   "status": "active"

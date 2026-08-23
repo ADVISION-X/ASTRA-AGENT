@@ -5,6 +5,7 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
+    "src/mediator/amazon-invoice-upload-route.ts",
     "src/plugins/amazon-invoice-upload/**"
   ],
   "schemaVersion": 3,

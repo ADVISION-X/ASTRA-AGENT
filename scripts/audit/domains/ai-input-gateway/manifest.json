@@ -11,7 +11,8 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
-    "src/capabilities/ai-input-gateway/**"
+    "src/capabilities/ai-input-gateway/**",
+    "src/lib/online-ai/**"
   ],
   "schemaVersion": 3,
   "status": "active"

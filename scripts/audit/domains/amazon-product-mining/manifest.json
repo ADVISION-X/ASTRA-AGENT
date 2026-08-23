@@ -5,6 +5,7 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
+    "src/mediator/amazon-product-mining-route.ts",
     "src/plugins/amazon-product-mining/**"
   ],
   "schemaVersion": 3,

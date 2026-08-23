@@ -75,6 +75,10 @@ function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
     let raw:any; try{raw=JSON.parse(lines.slice(start,end).join('\n'))}catch{fail('SOURCE_PARSE_FAILED',`${path}:${start+1}`)}
     if(!exactKeys(raw,LAW_KEYS)||raw.lawId!==currentHeading.lawId||raw.capabilityDomain!==domain||raw.schemaVersion!==2||raw.status!=='active') fail('SOURCE_PARSE_FAILED',`${raw.lawId??path} schema`);
     if(!/^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/.test(raw.lawId)||!['P0','P1','P2'].includes(raw.tier)) fail('SOURCE_PARSE_FAILED',`${raw.lawId} identity`);
+    const versionMatch=raw.lawId.match(/^(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3})-V([1-9][0-9]*)$/);
+    const major=Number(versionMatch?.[2]);
+    const expectedSupersedes=major===1?null:`${versionMatch?.[1]}-V${major-1}`;
+    if(raw.supersedesLawId!==expectedSupersedes) fail('SOURCE_PARSE_FAILED',`${raw.lawId} supersedes`);
     if(!Array.isArray(raw.evidenceModes)||raw.evidenceModes.length!==new Set(raw.evidenceModes).size||raw.evidenceModes.some((x:string)=>!EVIDENCE.includes(x))||raw.evidenceModes.some((x:string,index:number)=>index>0&&EVIDENCE.indexOf(raw.evidenceModes[index-1])>=EVIDENCE.indexOf(x))) fail('SOURCE_PARSE_FAILED',`${raw.lawId} evidence`);
     const kinds=new Set(raw.evidenceModes.map((x:string)=>x.split('.')[0])); const expected=kinds.size>1?'composite':[...kinds][0]; if(raw.enforcementMode!==expected) fail('SOURCE_PARSE_FAILED',`${raw.lawId} enforcement`);
     if(typeof raw.summary!=='string'||![...raw.summary].length||[...raw.summary].length<12||[...raw.summary].length>240||!/^(必须|只能)/u.test(raw.summary)) fail('SOURCE_PARSE_FAILED',`${raw.lawId} summary`);

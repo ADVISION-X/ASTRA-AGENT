@@ -22,7 +22,10 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
-    "src/capabilities/dom-automation/**"
+    "docs/grid-cell-zone-reference.zh.svg",
+    "src/capabilities/dom-automation/**",
+    "src/types/dom-automation-inputs.ts",
+    "src/types/dom-automation.ts"
   ],
   "schemaVersion": 3,
   "status": "active"

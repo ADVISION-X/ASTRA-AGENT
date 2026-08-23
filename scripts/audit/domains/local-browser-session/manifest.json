@@ -10,7 +10,8 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
-    "src/lib/browser/**"
+    "src/lib/browser/**",
+    "src/types/browser-target.ts"
   ],
   "schemaVersion": 3,
   "status": "active"

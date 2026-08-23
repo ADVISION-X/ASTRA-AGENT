@@ -1,12 +1,12 @@
 {
   "capabilityDomain": "workbench-api-boundary",
   "lawIds": [
-    "LAW-WORKBENCH-API-BOUNDARY-001-V3"
+    "LAW-WORKBENCH-API-BOUNDARY-001-V4"
   ],
-  "observedPaths": [],
-  "ownedPaths": [
-    "src/lib/workbench-api/**"
+  "observedPaths": [
+    "src/app/workbench-api-boundary.ts"
   ],
+  "ownedPaths": [],
   "schemaVersion": 3,
   "status": "active"
 }
