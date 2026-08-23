@@ -1,9 +1,0 @@
-{
-  "capabilityDomain": "xuanxue-ai-production-localization-contract",
-  "executionGroup": "domain",
-  "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts",
-  "coverage": {"mode": "explicit", "bindings": [
-    {"lawId": "GRASSEYE-XUANXUE-LOCALIZATION-CONTRACT-001-V2", "clauseId": "grasseye-xuanxue-localization-contract-001-v2-inbound-mirror", "checkIds": ["xuanxue-ai-production-localization-contract/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts", "symbolName": "inspectDomain"}]}
-  ]},
-  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye 玄学 AI 本地化生产对接终态施工图.md", "requiredAnchors": ["## 合同方向", "## Plugin 接线", "## 验收"]}]
-}

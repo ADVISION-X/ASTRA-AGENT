@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 3,
+  "capabilityDomain": "project-governance",
+  "status": "active",
+  "lawIds": [
+    "LAW-PROJECT-GOVERNANCE-001-V1",
+    "LAW-PROJECT-GOVERNANCE-002-V1",
+    "LAW-PROJECT-GOVERNANCE-003-V1",
+    "LAW-PROJECT-GOVERNANCE-004-V1",
+    "LAW-PROJECT-GOVERNANCE-005-V1",
+    "LAW-PROJECT-GOVERNANCE-006-V1",
+    "LAW-PROJECT-GOVERNANCE-007-V1",
+    "LAW-PROJECT-GOVERNANCE-008-V1"
+  ],
+  "ownedPaths": [
+    ".github/instructions/agent-rules/**",
+    "AGENTS.md",
+    "docs/governance/**",
+    "package.json",
+    "scripts/audit/**",
+    "tests/governance/**"
+  ],
+  "observedPaths": []
+}

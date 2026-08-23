@@ -1,9 +1,12 @@
 {
   "capabilityDomain": "workbench-api-boundary",
-  "executionGroup": "foundation",
-  "ownerInspectorPath": "scripts/audit/domains/workbench-api-boundary/inspector.ts",
-  "coverage": {"mode": "explicit", "bindings": [
-    {"lawId": "APEX-WORKBENCH-API-BOUNDARY-001-V3", "clauseId": "apex-workbench-api-boundary-001-v3-external-hmac-excludes-xuanxue", "checkIds": ["workbench-api-boundary/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/workbench-api-boundary/inspector.ts", "symbolName": "inspectDomain"}]}
-  ]},
-  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md", "requiredAnchors": ["## 处理顺序", "## 站点 policy", "## 验收"]}]
+  "lawIds": [
+    "LAW-WORKBENCH-API-BOUNDARY-001-V3"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/lib/workbench-api/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

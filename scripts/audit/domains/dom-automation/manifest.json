@@ -1,224 +1,29 @@
 {
   "capabilityDomain": "dom-automation",
-  "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
-  "executionGroup": "domain",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "APEX-DOM-001-V1",
-        "clauseId": "apex-dom-001-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-002-V1",
-        "clauseId": "apex-dom-002-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-003-V1",
-        "clauseId": "apex-dom-003-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-004-V1",
-        "clauseId": "apex-dom-004-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-005-V1",
-        "clauseId": "apex-dom-005-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-006-V1",
-        "clauseId": "apex-dom-006-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-007-V1",
-        "clauseId": "apex-dom-007-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-008-V1",
-        "clauseId": "apex-dom-008-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-009-V1",
-        "clauseId": "apex-dom-009-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-010-V1",
-        "clauseId": "apex-dom-010-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-011-V1",
-        "clauseId": "apex-dom-011-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-012-V1",
-        "clauseId": "apex-dom-012-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-013-V1",
-        "clauseId": "apex-dom-013-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ],
-        "primaryEvidence": {
-          "engine": "ast",
-          "sourceEvidenceIndex": 0
-        }
-      },
-      {
-        "lawId": "APEX-DOM-020-V1",
-        "clauseId": "apex-dom-020-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-DOM-021-V1",
-        "clauseId": "apex-dom-021-requirement",
-        "checkIds": [
-          "dom-automation/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ],
-        "primaryEvidence": {
-          "engine": "ast",
-          "sourceEvidenceIndex": 0
-        }
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye_DOM自动化生产稳定态施工图.md",
-      "requiredAnchors": [
-        "## 2. Owner 边界",
-        "## 16. Audit 图纸",
-        "## 17. Acceptance 图纸"
-      ]
-    }
+  "lawIds": [
+    "LAW-DOM-AUTOMATION-001-V1",
+    "LAW-DOM-AUTOMATION-002-V1",
+    "LAW-DOM-AUTOMATION-003-V1",
+    "LAW-DOM-AUTOMATION-004-V1",
+    "LAW-DOM-AUTOMATION-005-V1",
+    "LAW-DOM-AUTOMATION-006-V1",
+    "LAW-DOM-AUTOMATION-007-V1",
+    "LAW-DOM-AUTOMATION-008-V1",
+    "LAW-DOM-AUTOMATION-009-V1",
+    "LAW-DOM-AUTOMATION-010-V1",
+    "LAW-DOM-AUTOMATION-011-V1",
+    "LAW-DOM-AUTOMATION-012-V1",
+    "LAW-DOM-AUTOMATION-013-V1",
+    "LAW-DOM-AUTOMATION-014-V1",
+    "LAW-DOM-AUTOMATION-015-V1",
+    "LAW-DOM-AUTOMATION-016-V1",
+    "LAW-DOM-AUTOMATION-020-V1",
+    "LAW-DOM-AUTOMATION-021-V1"
   ],
-  "description": "DOM automation capability audit ownership."
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/capabilities/dom-automation/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

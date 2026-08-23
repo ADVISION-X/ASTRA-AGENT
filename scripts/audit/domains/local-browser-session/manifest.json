@@ -1,17 +1,17 @@
 {
   "capabilityDomain": "local-browser-session",
-  "executionGroup": "foundation",
-  "ownerInspectorPath": "scripts/audit/domains/local-browser-session/inspector.ts",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {"lawId": "APEX-LOCAL-BROWSER-001-V4", "clauseId": "apex-local-browser-001-v4-single-unpacked-websocket", "checkIds": ["local-browser-session/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]},
-      {"lawId": "APEX-LOCAL-BROWSER-002-V4", "clauseId": "apex-local-browser-002-v4-auth-liveness", "checkIds": ["local-browser-session/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]},
-      {"lawId": "APEX-LOCAL-BROWSER-003-V6", "clauseId": "apex-local-browser-003-v6-claim-workspace-restart-resume", "checkIds": ["local-browser-session/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]},
-      {"lawId": "APEX-LOCAL-BROWSER-004-V4", "clauseId": "apex-local-browser-004-v4-durable-mutation", "checkIds": ["local-browser-session/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]},
-      {"lawId": "APEX-LOCAL-BROWSER-005-V4", "clauseId": "apex-local-browser-005-v4-release-recovery", "checkIds": ["local-browser-session/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]},
-      {"lawId": "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2", "clauseId": "grasseye-security-privacy-browser-001-v2-secrets-and-paths", "checkIds": ["local-browser-session/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-browser-session/inspector.ts", "symbolName": "inspectDomain"}]}
-    ]
-  },
-  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md", "requiredAnchors": ["## 1. 唯一物理链", "## 4. Session Workspace", "## 5. Pairing、认证与 liveness", "## 9. Mutation Journal 与 UNKNOWN", "## 13. 质检与证明分层"]}]
+  "lawIds": [
+    "LAW-LOCAL-BROWSER-SESSION-001-V4",
+    "LAW-LOCAL-BROWSER-SESSION-002-V4",
+    "LAW-LOCAL-BROWSER-SESSION-003-V6",
+    "LAW-LOCAL-BROWSER-SESSION-004-V4",
+    "LAW-LOCAL-BROWSER-SESSION-005-V4",
+    "LAW-LOCAL-BROWSER-SESSION-006-V2"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/lib/browser/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

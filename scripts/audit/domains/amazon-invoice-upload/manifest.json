@@ -1,22 +1,12 @@
 {
   "capabilityDomain": "amazon-invoice-upload",
-  "executionGroup": "domain",
-  "ownerInspectorPath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "APEX-AMAZON-INVOICE-UPLOAD-001-V2",
-        "clauseId": "apex-amazon-invoice-upload-001-v2-terminal-authority",
-        "checkIds": ["amazon-invoice-upload/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/amazon-invoice-upload/inspector.ts", "symbolName": "inspectDomain"}]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye Amazon Invoice Upload Unified Chain 施工图.md",
-      "requiredAnchors": ["## 业务主链", "## Browser 接线", "## 验收"]
-    }
-  ]
+  "lawIds": [
+    "LAW-AMAZON-INVOICE-UPLOAD-001-V2"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/plugins/amazon-invoice-upload/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

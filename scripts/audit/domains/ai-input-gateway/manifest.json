@@ -1,103 +1,18 @@
 {
   "capabilityDomain": "ai-input-gateway",
-  "ownerInspectorPath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
-  "executionGroup": "foundation",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "APEX-AI-INPUT-GATEWAY-001-V1",
-        "clauseId": "apex-ai-input-gateway-001-requirement",
-        "checkIds": [
-          "ai-input-gateway/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-AI-INPUT-GATEWAY-002-V1",
-        "clauseId": "apex-ai-input-gateway-002-requirement",
-        "checkIds": [
-          "ai-input-gateway/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-AI-INPUT-GATEWAY-003-V1",
-        "clauseId": "apex-ai-input-gateway-003-requirement",
-        "checkIds": [
-          "ai-input-gateway/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-AI-INPUT-GATEWAY-004-V1",
-        "clauseId": "apex-ai-input-gateway-004-requirement",
-        "checkIds": [
-          "ai-input-gateway/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "APEX-AI-INPUT-GATEWAY-005-V4",
-        "clauseId": "apex-ai-input-gateway-005-v4-requirement",
-        "checkIds": [
-          "ai-input-gateway/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-AI-CHOICE-001-V1",
-        "clauseId": "grasseye-ai-choice-001-requirement",
-        "checkIds": ["ai-input-gateway/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts", "symbolName": "inspectDomain"}]
-      },
-      {
-        "lawId": "GRASSEYE-SECURITY-PRIVACY-AI-001-V1",
-        "clauseId": "grasseye-security-privacy-ai-001-requirement",
-        "checkIds": ["ai-input-gateway/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/ai-input-gateway/inspector.ts", "symbolName": "inspectDomain"}]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
-      "requiredAnchors": [
-        "## Boundary",
-        "## Attachment Child",
-        "## Staging Flow",
-        "## DOM Inclusion And Exclusion",
-        "## Success Gate",
-        "## Bounded Parallel Web Chat",
-        "## Choice And Security Boundary",
-        "## Acceptance"
-      ]
-    }
+  "lawIds": [
+    "LAW-AI-INPUT-GATEWAY-001-V1",
+    "LAW-AI-INPUT-GATEWAY-002-V1",
+    "LAW-AI-INPUT-GATEWAY-003-V1",
+    "LAW-AI-INPUT-GATEWAY-004-V1",
+    "LAW-AI-INPUT-GATEWAY-005-V4",
+    "LAW-AI-INPUT-GATEWAY-006-V1",
+    "LAW-AI-INPUT-GATEWAY-007-V1"
   ],
-  "description": "AI Input Gateway provider boundary and standard web-chat attachment child audit."
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/capabilities/ai-input-gateway/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

@@ -1,157 +1,22 @@
 {
   "capabilityDomain": "media-processing-capability",
-  "ownerInspectorPath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-  "executionGroup": "domain",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-001-V1",
-        "clauseId": "grasseye-media-processing-capability-001-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-002-V1",
-        "clauseId": "grasseye-media-processing-capability-002-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-003-V1",
-        "clauseId": "grasseye-media-processing-capability-003-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-004-V1",
-        "clauseId": "grasseye-media-processing-capability-004-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-005-V1",
-        "clauseId": "grasseye-media-processing-capability-005-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-006-V1",
-        "clauseId": "grasseye-media-processing-capability-006-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-007-V1",
-        "clauseId": "grasseye-media-processing-capability-007-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-008-V1",
-        "clauseId": "grasseye-media-processing-capability-008-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-009-V1",
-        "clauseId": "grasseye-media-processing-capability-009-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-MEDIA-PROCESSING-CAPABILITY-010-V1",
-        "clauseId": "grasseye-media-processing-capability-010-requirement",
-        "checkIds": [
-          "media-processing-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/media-processing-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ],
-        "primaryEvidence": {
-          "engine": "ast",
-          "sourceEvidenceIndex": 0
-        }
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye Media Processing 媒体处理能力组施工图.md",
-      "requiredAnchors": [
-        "## 0. 施工定位",
-        "## 4. 架构位置",
-        "## 5. 目录结构",
-        "## 6. Public Facade 设计",
-        "## 23. Acceptance 设计"
-      ]
-    }
+  "lawIds": [
+    "LAW-MEDIA-PROCESSING-CAPABILITY-001-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-002-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-003-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-004-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-005-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-006-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-007-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-008-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-009-V1",
+    "LAW-MEDIA-PROCESSING-CAPABILITY-010-V1"
   ],
-  "description": "Media-processing capability owner inspector for governed website-ready image and video artifact optimization."
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/capabilities/media-processing/**",
+    "src/plugins/media-optimizer/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

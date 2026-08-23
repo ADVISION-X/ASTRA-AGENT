@@ -1,61 +1,14 @@
 {
   "capabilityDomain": "app-shell-ui",
-  "ownerInspectorPath": "scripts/audit/domains/app-shell-ui/inspector.ts",
-  "executionGroup": "domain",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "GRASSEYE-APP-SHELL-UI-001-V1",
-        "clauseId": "grasseye-app-shell-ui-001-requirement",
-        "checkIds": [
-          "app-shell-ui/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/app-shell-ui/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-APP-SHELL-UI-002-V1",
-        "clauseId": "grasseye-app-shell-ui-002-requirement",
-        "checkIds": [
-          "app-shell-ui/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/app-shell-ui/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1",
-        "clauseId": "grasseye-app-shell-ui-physical-cleanup-001-requirement",
-        "checkIds": [
-          "app-shell-ui/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/app-shell-ui/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye App Shell UI 施工图.md",
-      "requiredAnchors": [
-        "## 唯一责任",
-        "## 原子切换",
-        "## UI contract",
-        "## 验收"
-      ]
-    }
+  "lawIds": [
+    "LAW-APP-SHELL-UI-001-V1",
+    "LAW-APP-SHELL-UI-002-V1",
+    "LAW-APP-SHELL-UI-003-V1"
   ],
-  "description": "App Shell UI owner inspector."
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/app/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

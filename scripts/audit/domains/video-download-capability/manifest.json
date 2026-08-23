@@ -1,244 +1,29 @@
 {
   "capabilityDomain": "video-download-capability",
-  "ownerInspectorPath": "scripts/audit/domains/video-download-capability/inspector.ts",
-  "executionGroup": "domain",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
-        "clauseId": "grasseye-video-download-capability-001-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
-        "clauseId": "grasseye-video-download-capability-002-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
-        "clauseId": "grasseye-video-download-capability-003-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
-        "clauseId": "grasseye-video-download-capability-004-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
-        "clauseId": "grasseye-video-download-capability-005-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
-        "clauseId": "grasseye-video-download-capability-006-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
-        "clauseId": "grasseye-video-download-capability-007-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
-        "clauseId": "grasseye-video-download-capability-008-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
-        "clauseId": "grasseye-video-download-capability-009-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
-        "clauseId": "grasseye-video-download-capability-010-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
-        "clauseId": "grasseye-video-download-capability-011-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
-        "clauseId": "grasseye-video-download-capability-012-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
-        "clauseId": "grasseye-video-download-capability-013-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
-        "clauseId": "grasseye-video-download-capability-014-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
-        "clauseId": "grasseye-video-download-capability-015-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
-        "clauseId": "grasseye-video-download-capability-016-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      },
-      {
-        "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
-        "clauseId": "grasseye-video-download-capability-017-requirement",
-        "checkIds": [
-          "video-download-capability/owner-assertion-set"
-        ],
-        "sourceEvidence": [
-          {
-            "filePath": "scripts/audit/domains/video-download-capability/inspector.ts",
-            "symbolName": "inspectDomain"
-          }
-        ]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md",
-      "requiredAnchors": [
-        "## 0. 定位",
-        "## 3. 目录结构",
-        "## 4. 子能力清单",
-        "## YouTube 清晰度与字幕验收",
-        "## 13. 验收标准"
-      ]
-    }
+  "lawIds": [
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
+    "LAW-VIDEO-DOWNLOAD-CAPABILITY-017-V1"
   ],
-  "description": "Video-download capability owner inspector for governed media artifact downloads, YouTube quality, and subtitles."
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/capabilities/video-download/**",
+    "src/plugins/video-download/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

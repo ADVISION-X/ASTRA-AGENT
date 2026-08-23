@@ -1,11 +1,14 @@
 {
   "capabilityDomain": "runtime-log-spine",
-  "executionGroup": "foundation",
-  "ownerInspectorPath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-  "coverage": {"mode": "explicit", "bindings": [
-    {"lawId": "APEX-RUNTIME-LOG-SPINE-001-V2", "clauseId": "apex-runtime-log-001-v2-terminal-observability", "checkIds": ["runtime-log-spine/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts", "symbolName": "inspectDomain"}]},
-    {"lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1", "clauseId": "grasseye-structured-logging-001-requirement", "checkIds": ["runtime-log-spine/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts", "symbolName": "inspectDomain"}]},
-    {"lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1", "clauseId": "grasseye-security-privacy-log-001-requirement", "checkIds": ["runtime-log-spine/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts", "symbolName": "inspectDomain"}]}
-  ]},
-  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye Runtime Log Spine 顶级观测施工图.md", "requiredAnchors": ["## 1. 推荐目录结构", "## 8. Inspector 施工", "## 9. Acceptance 测试", "## 13. Structured Logging And Privacy Ownership"]}]
+  "lawIds": [
+    "LAW-RUNTIME-LOG-SPINE-001-V2",
+    "LAW-RUNTIME-LOG-SPINE-002-V1",
+    "LAW-RUNTIME-LOG-SPINE-003-V1"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/lib/runtime-log/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

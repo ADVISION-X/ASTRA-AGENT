@@ -13,3 +13,5 @@ node_modules/
 .grasseye-demo-data/
 runtime-evidence/
 tmp/
+.governance/runtime/
+scripts/audit/reports/

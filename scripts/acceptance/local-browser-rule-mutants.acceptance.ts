@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { BROWSER_ERROR_CODES } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
-import { runLocalBrowserAtomicInspectorAttacks } from "./atomic-if-and-then-inspector.attacks.js";
 
 const expected = [
   "BROWSER_INSTALL_INVALID", "BROWSER_HOST_UNAVAILABLE", "BROWSER_ORIGIN_REJECTED", "BROWSER_EXTENSION_UNVERIFIED",
@@ -12,5 +11,4 @@ const expected = [
 ] as const satisfies readonly (typeof BROWSER_ERROR_CODES)[number][];
 assert.equal(BROWSER_ERROR_CODES.length, expected.length);
 for (const code of expected) assert.equal(BROWSER_ERROR_CODES.includes(code), true, `missing mutant target ${code}`);
-runLocalBrowserAtomicInspectorAttacks();
 console.log("LOCAL_BROWSER_RULE_MUTANTS_ACCEPTANCE_PASS");

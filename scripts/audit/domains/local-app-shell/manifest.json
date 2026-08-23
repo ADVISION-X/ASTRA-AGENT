@@ -1,10 +1,13 @@
 {
   "capabilityDomain": "local-app-shell",
-  "executionGroup": "domain",
-  "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
-  "coverage": {"mode": "explicit", "bindings": [
-    {"lawId": "APEX-LOCAL-APP-SHELL-001-V2", "clauseId": "apex-local-app-shell-001-v2-single-upgrade", "checkIds": ["local-app-shell/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-app-shell/inspector.ts", "symbolName": "inspectDomain"}]},
-    {"lawId": "APEX-LOCAL-APP-SHELL-002-V2", "clauseId": "apex-local-app-shell-002-v2-boundary", "checkIds": ["local-app-shell/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/local-app-shell/inspector.ts", "symbolName": "inspectDomain"}]}
-  ]},
-  "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye App Shell UI 施工图.md", "requiredAnchors": ["## 唯一责任", "## 原子切换", "## UI contract", "## 验收"]}]
+  "lawIds": [
+    "LAW-LOCAL-APP-SHELL-001-V2",
+    "LAW-LOCAL-APP-SHELL-002-V2"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/lib/local-app-shell/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

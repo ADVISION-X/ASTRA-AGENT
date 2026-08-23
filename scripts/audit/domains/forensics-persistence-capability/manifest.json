@@ -1,39 +1,14 @@
 {
   "capabilityDomain": "forensics-persistence-capability",
-  "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-  "executionGroup": "foundation",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [
-      {
-        "lawId": "GRASSEYE-EVIDENCE-001-V2",
-        "clauseId": "grasseye-evidence-001-v2-requirement",
-        "checkIds": ["forensics-persistence-capability/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts", "symbolName": "inspectDomain"}]
-      },
-      {
-        "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
-        "clauseId": "grasseye-local-persistence-schema-001-requirement",
-        "checkIds": ["forensics-persistence-capability/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts", "symbolName": "inspectDomain"}]
-      },
-      {
-        "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
-        "clauseId": "grasseye-local-persistence-schema-002-v2-requirement",
-        "checkIds": ["forensics-persistence-capability/owner-assertion-set"],
-        "sourceEvidence": [{"filePath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts", "symbolName": "inspectDomain"}]
-      }
-    ]
-  },
-  "blueprintRefs": [
-    {
-      "filePath": "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md",
-      "requiredAnchors": ["## 3. 当前调用链", "## 7. Audit owner", "## 8. Acceptance"]
-    },
-    {
-      "filePath": "docs/法案辅助文件/GrassEye 本地取证存储结构施工图.md",
-      "requiredAnchors": ["## 1. 当前存储分层", "## 3. 当前原则", "## 5. Governance Closure"]
-    }
+  "lawIds": [
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2"
   ],
-  "description": "Single Forensics evidence and local persistence schema owner."
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/capabilities/forensics-persistence/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }

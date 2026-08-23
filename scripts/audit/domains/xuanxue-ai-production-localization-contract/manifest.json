@@ -1,0 +1,10 @@
+{
+  "capabilityDomain": "xuanxue-ai-production-localization-contract",
+  "lawIds": [
+    "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V2"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [],
+  "schemaVersion": 3,
+  "status": "active"
+}

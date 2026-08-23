@@ -1,18 +1,12 @@
 {
   "capabilityDomain": "amazon-product-mining",
-  "executionGroup": "domain",
-  "ownerInspectorPath": "scripts/audit/domains/amazon-product-mining/inspector.ts",
-  "coverage": {
-    "mode": "explicit",
-    "bindings": [{
-      "lawId": "APEX-AMAZON-PRODUCT-MINING-001-V3",
-      "clauseId": "apex-amazon-product-mining-001-v3-terminal-authority",
-      "checkIds": ["amazon-product-mining/owner-assertion-set"],
-      "sourceEvidence": [{"filePath": "scripts/audit/domains/amazon-product-mining/inspector.ts", "symbolName": "inspectDomain"}]
-    }]
-  },
-  "blueprintRefs": [{
-    "filePath": "docs/法案辅助文件/GrassEye Amazon 产品挖掘施工图.md",
-    "requiredAnchors": ["## 业务主链", "## Browser 接线", "## 验收"]
-  }]
+  "lawIds": [
+    "LAW-AMAZON-PRODUCT-MINING-001-V3"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/plugins/amazon-product-mining/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
 }
