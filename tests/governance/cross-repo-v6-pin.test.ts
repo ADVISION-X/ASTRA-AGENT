@@ -31,7 +31,7 @@ test("AGENT V6 consumer pin binds the committed website provider contract", () =
   };
   const providerBytes = execFileSync("git", ["show", `${pin.contract.providerCommitSha}:${pin.contract.providerSpecRef}`], { cwd: WEBSITE });
   const provider = JSON.parse(providerBytes.toString("utf8")) as { contract: Record<string, unknown> };
-  const canonicalContract = `${JSON.stringify(canonical(provider.contract), null, 2)}\n`;
+  const canonicalContract = JSON.stringify(canonical(provider.contract));
   assert.equal(sha256(canonicalContract), pin.contract.contractSha256);
   assert.equal(provider.contract.contractId, pin.contract.contractId);
   assert.equal(provider.contract.version, pin.contract.version);

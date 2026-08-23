@@ -6,7 +6,7 @@ import {
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import { assertXuanxueAiProductionV6DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
-import { CloudExecutionGrantV6Schema, XuanxueAiProductionV6ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.js";
+import { assertWorkerSessionOpenV6, CloudExecutionGrantV6Schema, XuanxueAiProductionV6ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.js";
 import { XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
 
 const manifest = XuanxueAiProductionV6ManifestSchema.parse(JSON.parse(await readFile(
@@ -24,6 +24,23 @@ assert.deepEqual(manifest.claim_outcomes, [
 ]);
 assert.equal(new Set(XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6).size, 20);
 assert.ok(XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6.every((value) => /^sha256:[a-f0-9]{64}$/u.test(value)));
+const generatedValidator = await readFile(path.resolve(
+  "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
+), "utf8");
+assert.match(generatedValidator, /^\/\/ GENERATED FILE\. DO NOT EDIT\./u);
+assert.match(generatedValidator, /Provider: ADVISION-X\/xuanxue-web@[a-f0-9]{40}/u);
+assert.doesNotMatch(generatedValidator, /from "zod"|agent_instance_id/u);
+const sessionOpen = {
+  schema_version: "xuanxue-ai-worker-session-open.v6",
+  request_id: "open", environment_id: "isolated-test", origin: "https://agent.example.test",
+  device_id: "device", device_epoch: 1, worker_instance_id: "worker",
+  agent_build_hash: `sha256:${"a".repeat(64)}`,
+  control_manifest_hash: `sha256:${"b".repeat(64)}`,
+};
+assert.doesNotThrow(() => assertWorkerSessionOpenV6(sessionOpen));
+assert.throws(() => assertWorkerSessionOpenV6({
+  ...sessionOpen, worker_instance_id: undefined, agent_instance_id: "legacy",
+}));
 
 const receipt = createAgentRuntimeReceiptV6({
   environment_id: "isolated-test", device_id: "aipdev_fixture", device_epoch: 2,

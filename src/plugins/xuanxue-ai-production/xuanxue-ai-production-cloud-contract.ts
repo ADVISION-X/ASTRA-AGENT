@@ -121,7 +121,7 @@ const CloudStageMaterialBaseSchema = z.object({
   instruction_package_id: z.string().min(1),
   output_contract_ref: z.string().min(1),
   output_schema_ref: z.string().min(1).nullable(),
-  expected_output_kind: z.enum(["text", "generated_image"]).default("text"),
+  expected_output_kind: z.enum(["text", "generated_image"]),
   task_directive: z.string().min(1),
   timeout_ms: z.number().int().min(60_000).max(3_600_000),
   max_file_count: z.number().int().min(0).max(64),
@@ -318,7 +318,7 @@ const cloudClaimLeaseShape = {
   updated_at: z.string().min(1),
   lease_token: z.string().min(1),
   lease_version: z.number().int().positive(),
-  grant: CloudExecutionGrantV6Schema,
+  grant: z.unknown().transform((value) => CloudExecutionGrantV6Schema.parse(value)),
 } as const;
 
 const XuanxueAiProductionCloudClaimedJobBaseSchema = z.object({

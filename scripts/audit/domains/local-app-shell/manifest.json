@@ -1,7 +1,7 @@
 {
   "capabilityDomain": "local-app-shell",
   "lawIds": [
-    "LAW-LOCAL-APP-SHELL-001-V3",
+    "LAW-LOCAL-APP-SHELL-001-V4",
     "LAW-LOCAL-APP-SHELL-002-V3"
   ],
   "observedPaths": [],

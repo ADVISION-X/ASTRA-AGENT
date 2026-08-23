@@ -148,7 +148,7 @@ export const XuanxueAiStageMaterialSchema = z.object({
   promptPackageId: z.string().min(1).max(240),
   promptContractId: z.string().min(1).max(240),
   expectedOutputSchemaRef: z.string().min(1).max(240).nullable(),
-  expectedOutputKind: z.enum(["text", "generated_image"]).default("text"),
+  expectedOutputKind: z.enum(["text", "generated_image"]),
   textPrompt: z.string().min(1),
   inputRefs: z.array(XuanxueAiMaterialRefSchema),
   timeoutMs: z.number().int().min(60_000).max(3_600_000).default(3_600_000),
