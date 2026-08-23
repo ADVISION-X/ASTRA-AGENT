@@ -11,10 +11,10 @@
   "contract": {
     "contractId": "ai-acceptance.xuanxue-ai-production-v6",
     "version": 6,
-    "providerRepo": "nexgen/xuanxue-web",
+    "providerRepo": "ADVISION-X/xuanxue-web",
     "providerDomain": "ai-acceptance",
     "providerSpecRef": "docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json",
-    "providerCommitSha": "0f0b5dc02dda8e86e8e91f32c9e163f875525193",
-    "contractSha256": "f21ec7a9839adf28ec609a84f6534ae0999a71d620eaa01f19cbbdc8226286ac"
+    "providerCommitSha": "614198c5bc6ce78bbb05b2460397bb2874cc4093",
+    "contractSha256": "a3b7cbcb56655496c498108055e24ce49efca638eeeb50d3dab00874512a6bb7"
   }
 }

@@ -2855,11 +2855,11 @@
       "contractRefs": [
         {
           "path": "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-          "sha256": "3973aeca8d27b3c92b3dc538e0cd907bca2d313806229fccbf0adde224a85378"
+          "sha256": "ec182cb8cf26e62f846136992b9c4925f47bcff91a9fb3c255f7fc020d982f86"
         },
         {
           "path": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
-          "sha256": "5b0c04e29fae1be02821f18b5f0673b295badab58d8e68ab881d833d0faf63a5"
+          "sha256": "f987d0d1838ef1c7b1ffd115f20928de12f7751dd7318109220db66ed81eb137"
         }
       ],
       "dependsOnLawIds": [],
