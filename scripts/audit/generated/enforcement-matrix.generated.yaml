@@ -1,4 +1,4 @@
-generatedAt: "2026-08-22T19:18:20.038Z"
+generatedAt: "2026-08-23T12:35:06.485Z"
 rows:
   - capabilityDomain: "ai-input-gateway"
     manifestPath: "scripts/audit/domains/ai-input-gateway/manifest.json"
@@ -218,4 +218,4 @@ rows:
     manifestPath: "scripts/audit/domains/xuanxue-ai-production/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/xuanxue-ai-production/inspector.ts"
     lawIds:
-      - "APEX-XUANXUE-AI-PRODUCTION-001-V5"
+      - "APEX-XUANXUE-AI-PRODUCTION-001-V6"

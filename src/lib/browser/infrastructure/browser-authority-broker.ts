@@ -171,6 +171,13 @@ export class BrowserAuthorityBroker {
     };
   }
 
+  public currentOperatorTargetStatus(): "claimed" | "absent" {
+    const slot = this.issuer.current();
+    return slot.kind !== "ABSENT"
+      && this.operatorTargetClaim?.authorityEpoch === slot.authority.authorityEpoch
+      ? "claimed" : "absent";
+  }
+
   /** The extension is the only source of an operator's exact target claim. */
   public registerOperatorTargetClaim(claim: BrowserOperatorTargetClaim): void {
     const slot = this.issuer.current();

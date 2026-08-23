@@ -14,8 +14,8 @@ import {
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
   XuanxueAiProductionCloudClaimedJob,
-  XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
+import type { XuanxueAiProductionWorkerSessionV6 } from "./xuanxue-ai-production-worker-session.js";
 import type {
   XuanxueAiProductionOrder,
   XuanxueAiStageMaterial,
@@ -133,6 +133,40 @@ const stageMaterial = async (
   };
 };
 
+const plannedMaterial = (
+  root: string,
+  material: XuanxueAiProductionCloudClaimedJob["materials"][number],
+): XuanxueAiStageMaterial => {
+  const names = material.inputs.map((input) => safeFileName(input.file_name));
+  if (new Set(names).size !== names.length) {
+    throw new Error("XUANXUE_AI_PRODUCTION_INPUT_NAME_CONFLICT");
+  }
+  const directory = path.join(root, material.stage_id);
+  return {
+    stageId: material.stage_id,
+    promptPackageId: material.instruction_package_id,
+    promptContractId: material.output_contract_ref,
+    expectedOutputSchemaRef: material.output_schema_ref,
+    expectedOutputKind: material.expected_output_kind,
+    textPrompt: material.task_directive,
+    inputRefs: material.inputs.map((input) => {
+      const fileName = safeFileName(input.file_name);
+      return {
+        id: input.input_id,
+        kind: input.kind,
+        summary: input.summary,
+        filePath: path.join(directory, fileName),
+        fileName,
+        mimeType: input.mime_type,
+        sha256: input.sha256,
+        byteCount: input.byte_count,
+      };
+    }),
+    timeoutMs: material.timeout_ms,
+    maxFileCount: material.max_file_count,
+  };
+};
+
 const stageMaterials = async (
   root: string,
   materials: XuanxueAiProductionCloudClaimedJob["materials"],
@@ -202,7 +236,7 @@ const childOrder = (
   job: XuanxueAiProductionCloudClaimedJob,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v5",
+  protocolVersion: "xuanxue-ai-production-v6",
   orderId: job.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: job.source_task_id,
@@ -218,10 +252,10 @@ const childOrder = (
   cloudExecutionIdentity: {
     jobId: job.grant.job_id,
     attemptId: job.grant.attempt_id,
-    requiredDeviceId: job.grant.required_device_id,
+    requiredDeviceId: job.grant.device_id,
     leaseVersion: job.grant.lease_version,
     executionFenceHash: job.grant.execution_fence.fence_hash,
-    contractManifestHash: job.grant.contract_manifest_hash,
+    contractManifestHash: job.grant.control_contract_manifest_hash,
     serverNow: job.grant.server_now,
     leaseExpiresAt: job.grant.lease_expires_at,
   },
@@ -242,6 +276,17 @@ const childOrder = (
   materials,
   createdAt: job.created_at,
 });
+
+export const prepareXuanxueAiProductionCloudLocalOrder = (
+  dataDir: string,
+  job: XuanxueAiProductionCloudClaimedJob,
+): XuanxueAiProductionOrder => {
+  const childRoot = stagingRoot(dataDir, job.job_id);
+  return childOrder(
+    job,
+    job.materials.map((material) => plannedMaterial(childRoot, material)),
+  );
+};
 
 type CloudParentReplay = NonNullable<
   XuanxueAiProductionCloudClaimedJob["continuation_parent_replay"]
@@ -277,7 +322,7 @@ const parentReplayOrder = (
   replay: CloudParentReplay | CloudDependencyReplay,
   materials: XuanxueAiStageMaterial[],
 ): XuanxueAiProductionOrder => ({
-  protocolVersion: "xuanxue-ai-production-v5",
+  protocolVersion: "xuanxue-ai-production-v6",
   orderId: replay.job_id,
   sourceProject: "xuanxue-web",
   sourceTaskId: replay.source_task_id,
@@ -310,7 +355,7 @@ const parentReplayOrder = (
 
 export async function stageXuanxueAiProductionCloudJob(
   dataDir: string,
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
   job: XuanxueAiProductionCloudClaimedJob,
 ): Promise<{
   readonly order: XuanxueAiProductionOrder;
@@ -322,7 +367,7 @@ export async function stageXuanxueAiProductionCloudJob(
     childRoot,
     job.materials,
     (material, inputId) => downloadXuanxueAiProductionInput(
-        credential,
+        session,
         job,
         material.stage_id,
         inputId,
@@ -339,7 +384,7 @@ export async function stageXuanxueAiProductionCloudJob(
     replay.materials,
     (material, inputId) =>
       downloadXuanxueAiProductionParentReplayInput(
-        credential,
+          session,
         job,
         material.stage_id,
         inputId,
@@ -356,7 +401,7 @@ export async function stageXuanxueAiProductionCloudJob(
         dependency.materials,
         (material, inputId) =>
           downloadXuanxueAiProductionParentReplayInput(
-            credential,
+            session,
             job,
             material.stage_id,
             inputId,

@@ -53,11 +53,81 @@ const initializeProductionTables = (database: Database.Database): void => {
       reason text,
       request_id text,
       pending_request text,
+      last_control_epoch integer not null default 0,
       last_safe_checkpoint text,
       requested_at text,
       updated_at text not null
     );
+    create table if not exists production_cloud_outbox (
+      request_id text primary key,
+      job_id text not null,
+      write_kind text not null check(write_kind in ('checkpoint','artifact','terminal','cancel','handover')),
+      method text not null,
+      pathname text not null,
+      headers_json text not null,
+      body_json text,
+      body_file text,
+      payload_hash text not null,
+      state text not null check(state in ('pending','acknowledged')),
+      response_json text,
+      created_at text not null,
+      acknowledged_at text
+    );
+    create index if not exists production_cloud_outbox_pending
+      on production_cloud_outbox(state,created_at,request_id);
+    create table if not exists production_cloud_claim_ledger (
+      job_id text not null,
+      attempt_id text not null,
+      lease_version integer not null,
+      created_at text not null,
+      grant_json text not null,
+      grant_hash text not null,
+      persisted_at text not null,
+      primary key(job_id,attempt_id,lease_version)
+    );
+    create table if not exists production_cloud_job_state (
+      job_id text not null,
+      attempt_id text not null,
+      lease_version integer not null,
+      checkpoint_sequence integer not null default 0,
+      primary key(job_id,attempt_id,lease_version)
+    );
+    create table if not exists production_cloud_claim_requests (
+      request_id text primary key,
+      payload_json text not null,
+      payload_hash text not null,
+      state text not null check(state in ('pending','acknowledged')),
+      response_json text,
+      created_at text not null,
+      acknowledged_at text
+    );
   `);
+  const interventionColumns = database.pragma("table_info(production_interventions)") as { name: string }[];
+  if (!interventionColumns.some((column) => column.name === "last_control_epoch")) {
+    database.exec("alter table production_interventions add column last_control_epoch integer not null default 0");
+  }
+  const cloudJobStateColumns = database.pragma("table_info(production_cloud_job_state)") as { name: string }[];
+  if (!cloudJobStateColumns.some((column) => column.name === "attempt_id")) {
+    database.transaction(() => {
+      database.exec("alter table production_cloud_job_state rename to production_cloud_job_state_v5_retired");
+      database.exec(`create table production_cloud_job_state (
+        job_id text not null,
+        attempt_id text not null,
+        lease_version integer not null,
+        checkpoint_sequence integer not null default 0,
+        primary key(job_id,attempt_id,lease_version)
+      )`);
+      database.exec(`insert into production_cloud_job_state(job_id,attempt_id,lease_version,checkpoint_sequence)
+        select legacy.job_id,claim.attempt_id,claim.lease_version,legacy.checkpoint_sequence
+          from production_cloud_job_state_v5_retired legacy
+          join production_cloud_claim_ledger claim on claim.rowid=(
+            select candidate.rowid from production_cloud_claim_ledger candidate
+             where candidate.job_id=legacy.job_id
+             order by candidate.persisted_at desc,candidate.lease_version desc limit 1
+          )`);
+      database.exec("drop table production_cloud_job_state_v5_retired");
+    })();
+  }
 };
 
 export const openXuanxueAiProductionDatabase = (

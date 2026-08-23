@@ -14,7 +14,7 @@ import {
 import { feedGeminiApiOnce } from "./runtime/feed-gemini-api-once.js";
 import { feedGeminiWebChatOnce } from "./runtime/feed-gemini-web-chat-once.js";
 import { feedGptWebChatOnce } from "./runtime/feed-gpt-web-chat-once.js";
-import { resolveWebChatMaxInFlight } from "./runtime/web-chat-concurrency-lease.js";
+import { readWebChatBrowserMutationLaneState, resolveWebChatMaxInFlight } from "./runtime/web-chat-concurrency-lease.js";
 import { recoverCheckpointedWebChatProviderLease } from "./providers/web-chat-checkpoint-response.js";
 import { classifyWebChatFailure } from "./failure-classification.js";
 import { createProviderOperatorControl } from "./runtime/provider-operator-control.js";
@@ -115,6 +115,7 @@ const buildAiInputGatewaySurface = (
   abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
   listChildCapabilityIds: () => [...CHILD_CAPABILITY_IDS],
   getRuntimeCapacity: () => resolveWebChatMaxInFlight(),
+  getBrowserMutationLaneState: () => readWebChatBrowserMutationLaneState(context.dataDir),
   releaseProviderTargetForOperator: (ownerKey) => operatorControl.release(ownerKey),
   resumeProviderTargetAfterOperator: (ownerKey) => operatorControl.resume(ownerKey),
   close: () => operatorControl.close(),

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T19:18:20.038Z",
+  "generatedAt": "2026-08-23T12:35:06.485Z",
   "entries": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -2537,12 +2537,12 @@
       "ownerInspectorPath": "scripts/audit/domains/xuanxue-ai-production/inspector.ts",
       "executionGroup": "domain",
       "lawIds": [
-        "APEX-XUANXUE-AI-PRODUCTION-001-V5"
+        "APEX-XUANXUE-AI-PRODUCTION-001-V6"
       ],
       "bindings": [
         {
-          "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V5",
-          "clauseId": "apex-xuanxue-001-v5-cloud-pull-v5",
+          "lawId": "APEX-XUANXUE-AI-PRODUCTION-001-V6",
+          "clauseId": "apex-xuanxue-001-v6-session-bound-cloud-pull",
           "checkIds": [
             "xuanxue-ai-production/owner-assertion-set"
           ],

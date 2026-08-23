@@ -1,5 +1,5 @@
 import type { XuanxueAiProductionProfile } from "./xuanxue-ai-production.profile.js";
-import type { AgentRuntimeReceiptV5 } from "./xuanxue-ai-production-browser-proof.js";
+import type { AgentRuntimeReceiptV6 } from "./xuanxue-ai-production-browser-proof.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type {
   XuanxueAiOrderRecord,
@@ -59,7 +59,7 @@ export const completeXuanxueAiProductionOrder = (
   runtime: XuanxueAiProductionRuntime,
   record: XuanxueAiOrderRecord,
   profile: XuanxueAiProductionProfile,
-  runtimeReceipt?: AgentRuntimeReceiptV5,
+  runtimeReceipt?: AgentRuntimeReceiptV6,
 ): XuanxueAiOrderRecord => {
   const updatedAt = new Date().toISOString();
   const result: XuanxueAiProductionResult = {

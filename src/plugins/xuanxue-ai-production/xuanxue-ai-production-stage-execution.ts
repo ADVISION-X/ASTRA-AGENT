@@ -115,7 +115,7 @@ const acquireStageBrowser = async (input: {
     remainingMs,
   );
   if (commandTtlMs < 1) {
-    throw new Error("XUANXUE_AI_PRODUCTION_V5_DEADLINE_BUDGET_EXHAUSTED");
+    throw new Error("XUANXUE_AI_PRODUCTION_V6_DEADLINE_BUDGET_EXHAUSTED");
   }
   const executionRef = `${identity.jobId}:${identity.attemptId}:${input.stage.executionId}`;
   const submissionAdmission = buildXuanxueAiSubmissionAdmission({

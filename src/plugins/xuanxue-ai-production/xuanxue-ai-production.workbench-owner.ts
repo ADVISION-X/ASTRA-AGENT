@@ -9,7 +9,7 @@ import {
   type XuanxueAiProductionWorkerHealth,
 } from "./xuanxue-ai-production-cloud-worker.js";
 import {
-  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudWorkerHandle,
 } from "./xuanxue-ai-production-cloud-contract.js";
 import type {
@@ -43,6 +43,31 @@ const startOwnerCloudWorker = (input: {
       input.coordinator.execute(orderId, observer, deadlineBudget),
     listCloudRecoveryOrders: () => input.store.listCloudRecoveryOrders(),
     availableCapacity: () => input.coordinator.availableCapacity(),
+    applyControlIntent: (orderId, intent, controlEpoch, reasonCode) => {
+      const current = input.store.readIntervention(orderId);
+      input.store.applyCloudControlIntent(
+        intent === "cancel_requested" ? "cancel" : intent === "handover_requested" ? "takeover" : "pause",
+        {
+          orderId,
+          expectedRevision: current.revision,
+          requestId: `cloud-control:${controlEpoch}`,
+          reason: reasonCode ?? intent,
+        },
+        controlEpoch,
+      );
+    },
+  },
+  readBrowserRuntimeState: async () => {
+    const browser = input.browserAuthority.readProductionRuntimeState?.() ?? {
+      browserAuthorityState: "absent" as const,
+      browserTargetState: "absent" as const,
+    };
+    const browserLaneState = await input.aiInputGateway.getBrowserMutationLaneState?.() ?? "blocked";
+    return {
+      ...browser,
+      browserLaneState,
+      browserActionInFlight: browserLaneState === "busy" ? 1 as const : 0 as const,
+    };
   },
 });
 
@@ -82,10 +107,17 @@ const scheduleInterventionRun = (state: OwnerState, orderId: string): void => {
 const startupFailureHealth = (error: unknown): XuanxueAiProductionWorkerHealth => {
   const reason = error instanceof Error ? error.message : String(error);
   return {
-    status: /(?:CONTRACT|MANIFEST|PRODUCT_CONTRACT)/iu.test(reason)
+    shellState: "ready",
+    cloudState: /(?:CONTRACT|MANIFEST|PRODUCT_CONTRACT)/iu.test(reason)
       ? "contract_blocked"
       : "transient_degraded",
-    contractManifestHash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+    browserState: "blocked",
+    executionState: "blocked",
+    claimAdmissionState: "blocked",
+    browserAuthorityState: "absent",
+    browserTargetState: "absent",
+    browserLaneState: "blocked",
+    contractManifestHash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
     activeCount: 0,
     lastSuccessfulHeartbeatAt: null,
     lastErrorCode: reason.split(":").slice(0, 2).join(":"),

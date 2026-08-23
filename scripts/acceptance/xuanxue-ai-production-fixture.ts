@@ -393,7 +393,7 @@ export const order = (
   const contract = localization ? XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS[productId] : null;
   if (localization && !localizationRole) throw new Error("fixture localization role is required");
   return {
-  protocolVersion: "xuanxue-ai-production-v5",
+  protocolVersion: "xuanxue-ai-production-v6",
   orderId,
   sourceProject: "xuanxue-web",
   sourceTaskId: `source:${orderId}`,

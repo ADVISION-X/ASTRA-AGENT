@@ -57,7 +57,7 @@ const finding = (
   message: string,
 ): InspectorFinding => createFinding({
   lawId,
-  clauseId: "apex-xuanxue-001-v5-cloud-pull-v5",
+  clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
   checkId,
   filePath,
   message,
@@ -132,7 +132,7 @@ const inspectDurableLedger = (
     "isProofEmptyProfileStateFollowOnTerminal",
     "legacy_profile_state_followon_terminal_stage_corrected",
     "legacy_profile_state_followon_terminal_correction_applied",
-    "json_extract(order_json,'$.protocolVersion')='xuanxue-ai-production-v5'",
+    "json_extract(order_json,'$.protocolVersion')='xuanxue-ai-production-v6'",
     "xuanxueAiProductionLocalRecoveryVersion",
     "reconcileXuanxueAiProductionLocalNonterminalLedger",
     "reconcileLocalNonterminalLedger", "createdAt", "takeNextRunnableOrderId",
@@ -329,11 +329,11 @@ const inspectAcceptance = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
-  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
-  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
-  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
-  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V5"),
+  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
+  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
+  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
+  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
+  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
 });
 
 const collectDomainSources = (

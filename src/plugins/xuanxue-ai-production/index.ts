@@ -28,13 +28,12 @@ export {
   startXuanxueAiProductionCloudWorker,
 } from "./xuanxue-ai-production-cloud-worker.js";
 export {
-  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
 } from "./xuanxue-ai-production-cloud-contract.js";
 export { createXuanxueAiProductionWorkbenchOwner } from "./xuanxue-ai-production.workbench-owner.js";
 export {
-  createAgentRuntimeReceiptV5,
-  type AgentBrowserAuthorityProofV5,
-  type AgentRuntimeReceiptV5,
+  createAgentRuntimeReceiptV6,
+  type AgentRuntimeReceiptV6,
 } from "./xuanxue-ai-production-browser-proof.js";
 export {
   attestXuanxueAiProductionProviderRun,
