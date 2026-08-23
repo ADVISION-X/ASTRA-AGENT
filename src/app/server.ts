@@ -68,9 +68,6 @@ function startServer(): ReturnType<typeof createServer> {
 }
 
 async function startLocalRuntime(): Promise<void> {
-  // The HTTP server starts after the local composition root is initialized.
-  // Browser-dependent jobs perform their authority admission when requested.
-  await workbench.init();
   const server = startServer();
   process.stdout.write(`GrassEye local workbench listening on ${baseUrl}\n`);
   const shutdown = async (): Promise<void> => {
@@ -82,6 +79,13 @@ async function startLocalRuntime(): Promise<void> {
   });
   process.once("SIGTERM", () => {
     shutdown().then(() => process.exit(0)).catch(() => process.exit(1));
+  });
+  // The diagnostic shell is independently available. A Cloud/credential/provider
+  // failure blocks execution and claim admission, but must not terminate health,
+  // pairing diagnostics, or operator recovery surfaces.
+  await workbench.init().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`GrassEye execution dependencies blocked: ${message}\n`);
   });
 }
 

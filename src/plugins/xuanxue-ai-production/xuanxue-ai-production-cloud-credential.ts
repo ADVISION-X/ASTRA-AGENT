@@ -84,4 +84,10 @@ export async function writeXuanxueAiProductionCloudCredential(
   await chmod(temporary, 0o600);
   await rename(temporary, destination);
   await chmod(destination, 0o600);
+  const directoryHandle = await open(path.dirname(destination), "r");
+  try {
+    await directoryHandle.sync();
+  } finally {
+    await directoryHandle.close();
+  }
 }

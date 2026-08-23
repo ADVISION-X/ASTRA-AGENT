@@ -83,3 +83,13 @@ test('law parser rejects an invalid supersedes relationship', () => {
     );
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('quality report is evidence-derived and cannot stamp every law PASS', () => {
+  const source = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
+  assert.match(source, /REQUIRED_EVIDENCE_MODE_UNPROVEN/u);
+  assert.match(source, /PROJECT_CHECK_MISSING/u);
+  assert.match(source, /outcome:'NOT_APPLICABLE'/u);
+  assert.match(source, /outcome:findings\.length\?'FAIL':'PASS'/u);
+  assert.match(source, /QUALITY_FINDINGS_PRESENT/u);
+  assert.doesNotMatch(source, /outcome:'PASS',evidenceRefs,findings:\[\]/u);
+});

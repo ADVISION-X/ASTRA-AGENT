@@ -127,8 +127,9 @@ const startupFailureHealth = (error: unknown): XuanxueAiProductionWorkerHealth =
 };
 
 const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerState): Promise<void> => {
-  if (state.store) return;
-  state.store = new XuanxueAiProductionStore(dependencies.dataDir);
+  if (!state.store) {
+    state.store = new XuanxueAiProductionStore(dependencies.dataDir);
+  }
   const runtime: XuanxueAiProductionRuntime = {
     candidateHash: dependencies.candidateHash,
     dataDir: dependencies.dataDir,
@@ -137,14 +138,17 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
     store: state.store,
     browserAuthority: dependencies.browserAuthority,
   };
-  state.coordinator = new XuanxueAiProductionCoordinator(runtime);
+  if (!state.coordinator) {
+    state.coordinator = new XuanxueAiProductionCoordinator(runtime);
+  }
   if (!process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim()) return;
+  if (state.worker) return;
   try {
     state.worker = await startOwnerCloudWorker({
       dataDir: dependencies.dataDir,
       runtime,
       store: state.store,
-      coordinator: state.coordinator,
+      coordinator: requireCoordinator(state),
       aiInputGateway: dependencies.aiInputGateway,
       createOrderRoute: dependencies.createOrderRoute,
       browserAuthority: dependencies.browserAuthority,

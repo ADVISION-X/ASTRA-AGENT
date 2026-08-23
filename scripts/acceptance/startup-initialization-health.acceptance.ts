@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -146,6 +146,58 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
   );
 };
 
+const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-degraded-shell-"));
+  const credentialDir = path.join(dataDir, "credential");
+  const credentialFile = path.join(credentialDir, "cloud-device-credential.json");
+  await mkdir(credentialDir, { recursive: true, mode: 0o700 });
+  await writeFile(credentialFile, "{}\n", { mode: 0o644 });
+  await chmod(credentialFile, 0o644);
+  const portProbe = createServer();
+  await new Promise<void>((resolve) => portProbe.listen(0, "127.0.0.1", resolve));
+  const address = portProbe.address();
+  assert(address && typeof address === "object");
+  const port = address.port;
+  await new Promise<void>((resolve, reject) => portProbe.close((error) => error ? reject(error) : resolve()));
+
+  const child = spawn(process.execPath, ["--import", "tsx", "src/app/server.ts"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      GRASSEYE_DATA_DIR: dataDir,
+      GRASSEYE_PORT: String(port),
+      GRASSEYE_SOURCE_FINGERPRINT: `sha256:${"0".repeat(64)}`,
+      XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL: "https://example.invalid",
+      XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE: credentialFile,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  try {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/health`);
+        if (response.ok) break;
+      } catch { /* retry while the listener binds */ }
+      if (attempt === 99) throw new Error("diagnostic shell readiness timeout");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const response = await fetch(`http://127.0.0.1:${port}/api/health`);
+    assert.equal(response.status, 200);
+    const health = await response.json() as {
+      status?: string;
+      components?: Array<{ name?: string; ok?: boolean; detail?: string }>;
+    };
+    assert.equal(health.status, "degraded");
+    assert.equal(health.components?.find((component) => component.name === "runtimeInitialization")?.ok, false);
+    const pairingResponse = await fetch(`http://127.0.0.1:${port}/api/browser-authority/pairing`);
+    assert.equal(pairingResponse.status, 200, "operator pairing diagnostics must remain available");
+  } finally {
+    await stopFixture(child);
+    await rm(dataDir, { recursive: true, force: true });
+  }
+};
+
 const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
   const preflight = await runBrowserRuntimePreflight();
   assert.equal(preflight.status, "READY");
@@ -157,6 +209,7 @@ const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   await verifySingleLocalEnvironmentInjection();
   await verifyInitializationHealth();
+  await verifyDiagnosticShellSurvivesExecutionDependencyFailure();
   await verifyUnpackedWebSocketPreflight();
   await verifyRepositoryOwnedPortCleanup();
 }

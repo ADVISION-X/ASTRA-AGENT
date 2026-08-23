@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import {
   XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
@@ -34,10 +34,11 @@ const required = (name: string): string => {
 };
 
 export const xuanxueAiProductionAgentBuildHash = (): `sha256:${string}` => {
-  const identity = process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim()
-    || process.env.npm_package_version?.trim()
-    || "grasseye-agent-v6";
-  return `sha256:${createHash("sha256").update(identity).digest("hex")}`;
+  const identity = process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim();
+  if (!identity || !/^sha256:[a-f0-9]{64}$/u.test(identity)) {
+    throw new Error("GRASSEYE_SOURCE_FINGERPRINT_REQUIRED");
+  }
+  return identity as `sha256:${string}`;
 };
 
 const enrollmentConfig = () => {

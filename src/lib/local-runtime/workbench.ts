@@ -98,23 +98,22 @@ export class GrassEyeWorkbench {
   }
 
   private async initializeOnce(): Promise<void> {
-    let assembly: WorkbenchAssembly | null = null;
-    let xuanxueAiProduction: ReturnType<typeof createXuanxueAiProductionWorkbenchOwner> | null = null;
     try {
-      assembly = await createWorkbenchAssembly(this.options);
-      xuanxueAiProduction = createXuanxueAiProductionWorkbenchOwner(
-        assembly.dataDir,
-        assembly.aiInputGateway,
-        assembly.mediaProcessing,
-        runXuanxueAiProductionRoute,
-        assembly.browserAuthority,
-        requireSourceCandidateHash(),
-      );
-      await prepareVideoDownloadRuntimeDependencies();
-      await xuanxueAiProduction.init();
-      this.assembly = assembly;
-      this.xuanxueAiProduction = xuanxueAiProduction;
-      this.initializationState = { status: "ready", failureReason: null };
+      if (!this.assembly) {
+        this.assembly = await createWorkbenchAssembly(this.options);
+      }
+      const assembly = this.assembly;
+      if (!this.xuanxueAiProduction) {
+        this.xuanxueAiProduction = createXuanxueAiProductionWorkbenchOwner(
+          assembly.dataDir,
+          assembly.aiInputGateway,
+          assembly.mediaProcessing,
+          runXuanxueAiProductionRoute,
+          assembly.browserAuthority,
+          requireSourceCandidateHash(),
+        );
+      }
+      const xuanxueAiProduction = this.xuanxueAiProduction;
       this.activeHandle = buildWorkbenchHandle(
         assembly,
         () => this.init(),
@@ -122,21 +121,15 @@ export class GrassEyeWorkbench {
         xuanxueAiProduction,
         () => this.initializationState,
       );
+      await prepareVideoDownloadRuntimeDependencies();
+      await xuanxueAiProduction.init();
+      this.initializationState = { status: "ready", failureReason: null };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.initializationState = {
         status: "failed",
         failureReason: reason.slice(0, 1_000),
       };
-      if (xuanxueAiProduction) {
-        await xuanxueAiProduction.shutdown().catch(() => undefined);
-      }
-      if (assembly) {
-        await assembly.browserAuthority.shutdown().catch(() => undefined);
-      }
-      this.assembly = null;
-      this.xuanxueAiProduction = null;
-      this.activeHandle = null;
       throw error;
     }
   }
@@ -170,6 +163,18 @@ export class GrassEyeWorkbench {
       ["getHealthReport", () => () => this.getHealthReport()],
       ["getMissionReadinessReport", () => () => this.getMissionReadinessReport()],
       ["getMissionStartPreflight", () => (input: unknown) => this.getMissionStartPreflight(input)],
+      ["recordWorkbenchApiBoundaryEvent", () => (input: Parameters<GrassEyeWorkbenchHandle["recordWorkbenchApiBoundaryEvent"]>[0]) => {
+        if (!this.assembly) return;
+        buildApiBoundaryLogHandle(this.assembly).recordWorkbenchApiBoundaryEvent(input);
+      }],
+      ["acceptBrowserAuthoritySocket", () => (input: Parameters<GrassEyeWorkbenchHandle["acceptBrowserAuthoritySocket"]>[0]) => {
+        if (!this.assembly) throw new Error("BROWSER_AUTHORITY_NOT_INITIALIZED");
+        return this.assembly.browserAuthority.acceptBrowserAuthoritySocket(input);
+      }],
+      ["readBrowserAuthorityPairingState", () => () => this.assembly?.browserAuthority.readOperatorPairingState() ?? {
+        authority: "absent" as const,
+        pairingSecret: null,
+      }],
     ]).get(property);
     if (fixed) return fixed();
     return (...args: unknown[]) => {
