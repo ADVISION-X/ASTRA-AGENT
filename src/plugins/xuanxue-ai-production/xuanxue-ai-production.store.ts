@@ -34,9 +34,6 @@ import {
   readQuarantinedStoredOrder,
   quarantineInvalidCompletedStageOutputs,
 } from "./xuanxue-ai-production-store-recovery.js";
-import {
-  applyLegacyTechnicalTerminalCorrection,
-} from "./xuanxue-ai-production-store-terminal-recovery.js";
 
 const RECOVERABLE_STATUSES = [
   "queued",
@@ -56,10 +53,6 @@ export class XuanxueAiProductionStore {
   constructor(dataDir: string) {
     this.dataDir = dataDir;
     this.database = openXuanxueAiProductionDatabase(dataDir);
-    applyLegacyTechnicalTerminalCorrection(
-      this.database,
-      (orderId) => this.readOrder(orderId),
-    );
     quarantineInvalidStoredOrders(this.database);
     quarantineInvalidCompletedStageOutputs(this.database);
   }
@@ -105,6 +98,20 @@ export class XuanxueAiProductionStore {
       (candidateId) => this.readOrder(candidateId),
       action,
       input,
+    );
+  }
+
+  applyCloudControlIntent(
+    action: "pause" | "cancel" | "takeover",
+    input: XuanxueAiInterventionRequest,
+    controlEpoch: number,
+  ): XuanxueAiInterventionRecord {
+    return requestXuanxueAiIntervention(
+      this.database,
+      (candidateId) => this.readOrder(candidateId),
+      action,
+      input,
+      controlEpoch,
     );
   }
 

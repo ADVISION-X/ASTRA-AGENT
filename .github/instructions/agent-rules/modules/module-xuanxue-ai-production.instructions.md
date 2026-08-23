@@ -1,146 +1,218 @@
 ---
-description: "玄学网站 AI 生产工厂 V5：Cloud Pull、唯一 Plugin、V5 grant/fence 与终态 CAS。"
+description: "玄学网站 AI 生产工厂 V6：唯一 Cloud Pull Worker、worker session/attestation、durable outbox 与 Browser readiness 边界。"
 applyTo: "src/plugins/xuanxue-ai-production/**/*.ts,src/mediator/xuanxue-ai-production-route.ts,scripts/acceptance/xuanxue-ai-production.acceptance.ts,scripts/audit/domains/xuanxue-ai-production/**/*.{ts,json},docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md,docs/法案辅助文件/GrassEye 玄学 AI 本地化生产对接终态施工图.md"
 ---
 
 # GrassEye 玄学 AI 生产工厂法案
 
 status: active
-version: 2026-08-22.ten-job-continuous-oldest-first-recovery
+version: 2026-08-23.v6-session-attestation-cutover
 capabilityDomain: xuanxue-ai-production
 
 ## 1. 唯一责任与主链
 
-`xuanxue-ai-production` 是 AGENT 内玄学 AI 整单执行的唯一业务 owner。它只接收网站已经
-冻结的完整订单，按固定产品图执行，并拥有本地业务状态、checkpoint、`review_required` 与
-业务结果。它不是浏览器、Cloud 账本、Provider transport 或通用 planner owner。
+`xuanxue-ai-production` 是 AGENT 内玄学 AI 整单执行的唯一业务 owner。它拥有唯一 Cloud
+Worker、Plugin 固定产品图、本地业务状态、checkpoint、durable outbox、`review_required`
+与业务结果。它不是网站 Cloud 账本、Browser Authority、Provider transport 或通用 planner owner。
 
 唯一主链固定为：
 
 ```txt
-xuanxue-web V5 Cloud Pull
-  -> Cloud Worker（只运输、验 grant、转发）
+xuanxue-web xuanxue-ai-production-v6
+  -> AGENT outbound HTTPS Cloud Pull Worker
   -> xuanxue-ai-production mediator route
   -> xuanxue-ai-production Plugin
-  -> public capability facades / Browser authority
-  -> checkpoint / first-terminal CAS
+  -> public capability facade / Browser Authority
+  -> durable checkpoint / outbox / first-terminal CAS
 ```
 
-网站不得逐阶段遥控 AGENT，不得传入 `nextAction`、`actionPlan`、selector、坐标、tab、
-window、browser command、provider URL 或并发值。Worker 不得直接调用 Browser、capability
-private runtime 或 Plugin private file；Plugin 也不得 import 另一 Plugin。
+网站不得逐 stage 遥控 AGENT，不得传入 `nextAction`、action plan、selector、coordinate、
+Target、Document、Browser command、provider URL、tab/window 或并发值。Worker 不得直连 Browser
+private runtime 或 Plugin private file；Plugin 不得 import 另一 Plugin。网站不得直连 Extension，
+Extension 不得访问 Cloud；唯一间接边界是 AGENT 现役 `local-browser-session` public facade。
 
-## 2. V5 Cloud Pull 与订单身份
+## 2. V6 canonical 合同与 Owner
 
-活动协议唯一为 `xuanxue-ai-production-v5`。Cloud Worker 主动拉取、逐 job 验证 canonical
-`contractManifestHash`、`CloudExecutionGrantV5`、required device、attempt、lease version、
-fence、serverNow 与相对 deadline budget 后，才经唯一 mediator 交给 Plugin。
+唯一活动控制协议是 `xuanxue-ai-production-v6`。V6 manifest/schema/JCS/hash vector/fixture/
+error code 的唯一 canonical owner 是 `xuanxue-web/packages/ai-contracts`；AGENT 只由冻结 artifact
+生成 strict validator 并核验 manifest hash，不手写第二 Cloud schema、默认值、alias、normalization
+或兼容 reader。
 
-V5 schema、manifest、JCS/hash vectors 与正负 fixtures 的唯一 canonical owner 是
-`xuanxue-web/packages/ai-contracts`。AGENT 只消费其冻结 artifact 生成 validator 并验证
-manifest hash，不手写重复 Cloud schema。非 V5 version、缺失字段、多余字段、别名、
-默认值、归一化、fallback 或兼容 reader 均在入口失败关闭，不得生成当前 grant、
-validator proof 或 terminal 身份。
+跨仓合同只消费：
 
-Plugin 必须先持久化并 fsync 不可变 `localOrderIdentity`，之后才承认订单或触发 Browser
-side effect。每个订单同一时刻最多一个执行；每台生产设备固定 `max_in_flight=10` 个独立业务
-任务，等待 Provider 结果不占用浏览器 mutation lock，而真实页面动作仍固定
-`max_browser_in_flight=1` 并在同一物理标签页串行。十个任务各自保留业务席位，但只有 durable
-submission ticket 全局最早的任务能进入物理页面窗口；它必须连续完成空白页确认、profile、附件稳定、
-prompt 填写和 submission checkpoint 后才释放窗口。本地 submission waiter 只绑定存活进程和当前合格
-Cloud grant；进程死亡必须删除其失效 waiter，不得让没有当前 grant 的旧票堵住可领取任务。同一 durable
-identity / execution / checkpoint 只能在 Cloud 重新签发合格 grant 后续跑，并按全局最早可领取顺序取得
-新的本地 ticket；禁止重复创建订单、重复提交 prompt 或重放 `UNKNOWN` mutation。
-Plugin 必须从同一次当前 grant 核验结果生成 opaque submission admission hash，绑定 job、attempt、device、
-lease version、fence、contract、stage execution 与不可变 `created_at + job_id + stage ordinal` priority key，
-再随合法 Gateway public execute options 传入。Gateway 只持久化和比较该 opaque admission，不解释 Cloud
-业务 schema；反向异步注册仍按该 priority key 让全局最早可领取任务先进入，local ticket 只作同优先级
-tie-break 和统计。存活 waiter 的 admission 不得原地替换；进程死亡清除旧 waiter 后，同一 execution 只有
-凭新 grant 生成的新 admission 才能取得新 waiter。
+```txt
+device/session/attestation/claim batch
+lease/fence/release/renew
+checkpoint/control intent/terminal/handover
+material metadata/receipt/error envelope
+```
 
-Cloud 只提供 lease、grant、checkpoint、terminal、cancel 与人工 handover API。所有 mutation
-精确绑定当前 job、attempt、device、lease version、fence 与 idempotency payload hash。第一个
-terminal CAS 是唯一终态写入：同 status 与同 payload hash 可幂等重读；冲突、过期 lease、旧
-fence、迟到 terminal 或 foreign device 必须失败关闭且不得覆盖既有终态。foreign device 只能
-由显式人工 handover 关闭旧 fence、建立新 attempt 后继续。
+Browser Workspace、Authority、Target、Document、selector、command、mutation journal、
+Browser command TTL 和墙钟 Workspace TTL 属于 `local-browser-session` 唯一私有 Owner，
+不得进入 V6 manifest、Cloud fence、日志或 Cloud receipt。
 
-## 3. Browser 与结果边界
+`control_protocol_version` 与业务 `request_hash` 分离。V5 未完成任务一次性迁移到 V6 时，
+原 `job_id/source_task_id/request_hash`、product contract 和 material identity 必须不变；
+session/lease/fence 只取得当前控制授权，不得改写业务身份。
 
-Browser side effect 前必须拥有当前 connection generation 上由“人工配对 + HTTPS 标签认领”原子
-建立的 Session Workspace、当前 Authority/Target/Document、匹配 actionId 与相对 TTL。Workspace
-绑定固定 profile、extension identity、release build、directory hash 与 site policy，不设置 8 小时
-或任何墙钟过期，也不进入 Cloud fence。真实 socket disconnect、Workbench/Extension/Chrome
-重启或 Reload、identity drift、operator revoke 才使其失效；重新配对并认领后，生产 owner 必须先
-恢复 `created_at + job_id` 最早的未完成任务，再进入普通调度。
+## 3. Device credential 与 worker session
 
-临时无 GPT、真实浏览器断线、`BROWSER_EXTENSION_CHANNEL_UNAVAILABLE`、
-`BROWSER_LIVENESS_EXPIRED`、`BROWSER_SESSION_WORKSPACE_REQUIRED`、同一 target 导航后 mutation 前
-由页面 hydration/document replacement 引起的短暂 `BROWSER_TARGET_INVALID` 与网络中断只能写
-`recovery_pending`，保留同一 job、attempt、checkpoint 和 fence，绝不能写业务 `failed` 或清理
-可恢复现场。只有不可变输入/合同错误、真实页面明确终态失败或人工复核边界才允许 terminal。
-每个命令由固定 registry 解析，单 tab、单 mutation lock，且 Target/Document 零或多候选都失败关闭。
+持久 device credential 必须是当前 UID owner、regular file、权限 `0600`、非 symlink，并精确绑定
+environment、origin、device 与 device epoch。它只可打开 worker session，不可直接 claim、renew、
+checkpoint、terminal 或访问材料。
 
-所有用户已发布任务在 `completed`、明确 `cancelled` 或有真实业务终态证据以前都属于未完成任务，
-必须由同一 job、同一 source task、同一 request hash 和同一本地 order 持久续跑。常驻 Worker 的每轮
-poll 都必须先对账本地非终态账本；对账去重只能绑定当前 `job_id + attempt_id + local status + updated_at`
-版本，任务状态、attempt 或 checkpoint 一旦变化，下一轮必须自动再次对账，绝不能用进程级永久集合
-把同一订单屏蔽到下次重启。重启只是重新进入同一循环，不是恢复触发器。
+每个 AGENT 进程打开唯一 `worker_session_id + worker_session_epoch + agent_instance_id`。
+session epoch 由网站单调分配；同一 device 同一时刻最多一个 `claim_eligible` session。
+旧 session 活动未超过 90 秒时新进程必须收到 conflict；超过阈值才可由网站原子 supersede 并签发
+更高 epoch。
 
-旧候选把 mutation 前、无 submission/attachment/checkpoint/output/`UNKNOWN` proof 的已查明技术故障误写为
-`failed`，或旧 GPT execution-profile 占位实现将未提交任务误写为 `review_required`，只能由精确的一次性
-Cloud migration 与本地 SQLite `user_version` migration 在原 job/order/stage 上纠正为 `recovery_pending`。常驻 Worker、
-`/recover`、operator 都不得扫描 terminal，不得人工逐单复活或新建任务。迁移必须反向排除任何 side effect、
-`UNKNOWN`、不可变身份/合同错误、明确业务失败、completed 或 cancelled；纠正后的 grant 仍须业务订单身份、
-contract manifest 完全一致，attempt 变化、lease version 单调增加且 fence 变化，原 execution id、failure ledger 和
-stage event 全部保留。本地 `user_version=3` 只纠正已经带有 v2 profile-readback 纠偏事件、但随后被旧
-Gateway 持久状态再次误写为“missing durable submission proof”的同一 proof-empty execution；不得扩展为
-通用 failed reader。
+worker session credential 只驻进程内存，固定 180 秒有效。每次成功 heartbeat 签发下一
+generation；上一 generation 只在同 session/epoch 内允许最多 60 秒的已发在途请求。过期、更旧、
+superseded、revoked、跨 environment/origin 的 credential 全部失败关闭。session token 不得落盘、
+写日志、进入 UI/错误/证据或交给 Extension。
 
-Cloud claim 必须在唯一 `ai_production_jobs` 队列内，把所有当前可领取的 `queued` 与
-`recovery_pending` 合并后严格按不可变 `created_at + job_id` 选择全局最早任务。service class、背景份额、
-aging、注册顺序、失败/恢复类别和本地内存队列顺序都不得越过更早任务；不满足 retry、device、contract、
-lease、material 或安全准入的记录不属于当前可领取集合，也不得阻塞其后的最早可领取记录。AGENT
-取得 grant 后，本地 runnable selection 仍按同一 `created_at + job_id`，禁止建立恢复优先分区、普通任务
-优先分区、影子队列或新 job。
+## 4. Heartbeat、attestation 与 claim
 
-对页面 mutation，Browser exact-target owner 先 fsync `PREPARED`，再 `SEND`，最终仅可为
-`CONFIRMED`、`FAILED` 或 `UNKNOWN`。`UNKNOWN` 禁止自动 replay；Plugin 只能根据同一真实页面
-的正向确认、反向排除、唯一性和有界停止形成 outcome resolution，否则固化
-`review_required`。submission checkpoint 以前的 `UNKNOWN` 必须让原 execution/ticket 继续占据
-当前存活进程的队首，所有新 submission 和普通 patrol 都不得进入同一物理页面；进程重启后旧 waiter
-必须清除，但该 execution 仍只能在新 Cloud grant 下核账，且 exact clean-page / same-execution 核验必须在
-任何新任务 mutation 前失败关闭污染现场，不得把未确认现场当作空闲窗口或自动 replay。
+Worker 只有在本地非终态账本完成对账后才能 heartbeat。Heartbeat 必须提交单调
+`attestation_seq`、AGENT build、V6 manifest hash、产品合同能力、业务总容量 10、Browser action
+总容量 1、Browser Authority `present|absent`、Target `claimed|absent`、in-flight、drain 与
+ledger-reconciled 状态。
 
-所有页面原子动作统一执行 `IF + AND -> THEN`。`IF` 读取同一当前 Document 的目标状态，`AND`
-同时证明精确语义、唯一候选并排除相邻文本、错误态、加载态与重复态，`THEN` 才发送恰好一个
-mutation。每个 mutation 只能由它自己的后置读回 proof 解析；未解析前不得发送下一 mutation，
-也不得用后一动作的 proof 批量确认。固定 sleep、等待满某段时间或达到重试次数都不能推进生产
-状态；相对 deadline 只在到界时安全停止并保留 checkpoint/recovery 语义。
-附件阶段发生在 prompt 写入以前，因此 exact 文件名、数量、无额外项和无上传中状态成立即为稳定，
-此时发送按钮禁用是正常前置状态，不能据此超时或让下一个任务进入。日志不是 evidence，Browser receipt 不是业务结果；二者都不替代 Plugin
-state 或 Cloud terminal CAS。
+网站返回 45 秒有效、server-signed 的 `RuntimeAttestationReceiptV6`。Claim 只引用该 receipt；
+不得在 ClaimRequest 临时自报能力。倒退 sequence 失败关闭。同 request id + sequence + payload hash
+的 heartbeat 必须返回同一 receipt/token generation；不同 payload 是 idempotency conflict。
 
-## 4. 物理退休与保留面
+Worker 仅在 server 返回 `worker_session_state=claim_eligible` 且
+`claim_admission_state=eligible` 时 claim。ClaimRequest request id 是批次幂等键；响应未知时必须
+重试同一 request id，取得同一 `claim_batch_id`、outcome 和 grants 后才能创建下一请求。
 
-以下活动生产面必须物理不存在：玄学 external HMAC/LNA/localhost business ingress、V4
-reader/writer、V4 decoder、per-job operator approval、Cloud callback、第二 worker、第二
-mediator、第二 order store、第二 Browser/provider transport、compatibility bridge、fallback、
-dual reader、dual writer、alias、default、normalization、本地重复 Cloud schema 或手写第二
-validator owner。历史证据仅留在 Git/既有不可变备份，不得重新接回运行时。
+HTTP 200 的 typed outcome 只可为：
 
-`/api/xuanxue-ai-production/*` 只可保留 Workbench local-ui 的 status、pause、cancel、takeover
-与 resume；它不是外部业务 ingress。Amazon 等其余已授权 external API owner 不受本法案影响。
+```txt
+LEASE_GRANTED
+NO_ELIGIBLE_JOB
+CLAIM_BLOCKED
+CAPACITY_ZERO
+DRAINING
+```
 
-## 5. 证据与施工边界
+Browser-required 队列存在而 Authority/Target/attestation 缺失时必须是 `CLAIM_BLOCKED`，
+不得伪装空队列或先取得 lease 再回滚。Claim 慢请求不得阻断独立 heartbeat；轮询遵守服务器
+`next_claim_after_ms` 1–30 秒、jitter 与状态变化降噪。
 
-静态 audit、acceptance、typecheck 与 `ci:full` 只能证明各自覆盖的候选合同；不得冒充真实
-Chrome、Provider、Cloud 终态或 release。凡修改 Browser/DOM 生产行为，施工前后都必须在另行
-授权的真实 Chrome 路径按同一候选取证；未取得时固定为 `CHROME_VERIFIED=false` 与
-`NOT_PRODUCTION_VERIFIED`。
+## 5. 身份、容量、顺序与接受
+
+每个 grant/fence 精确绑定 environment、device/device epoch、worker session/session epoch、
+job、attempt、lease version、manifest hash 与随机 nonce。旧 session、旧 attempt、旧 lease、旧
+fence、late terminal 或 foreign device 不得产生 Browser side effect、checkpoint 或 terminal。
+
+每台设备固定 `max_in_flight=10` 个独立业务/provider execution，Browser mutation 固定
+`max_browser_in_flight=1`。Provider 等待不占 Browser lock；Browser lane busy 不把业务容量降成零。
+十个任务由 durable priority queue 按不可变 `created_at + job_id + stage ordinal` 全局最早顺序
+竞争唯一页面窗口，不得按 service class、recovery partition、registration 或内存顺序插队。
+
+Grant 固定 lease 90 秒、accept-by 30 秒、renew 指引 20 秒。AGENT 用 monotonic clock 扣除 claim
+RTT 与安全余量，不把 server timestamp 变成本地墙钟授权。收到时 accept 剩余不足 5 秒或 lease
+剩余不足 30 秒，必须在零副作用时 `LeaseReleaseV6`。
+
+Plugin 先持久化并 fsync immutable `localOrderIdentity`，再承认订单。第一个 durable checkpoint
+同时是接受证明，不建立第二 ACK 状态机。接受前能力/预算变化，只能在 `accepted_at` 为空、
+无 checkpoint/staging/Browser/Provider side effect 时用固定 reason 原子释放；接受后能力丢失进入
+同一任务 `recovery_pending`。
+
+## 6. Browser Authority 边界
+
+Browser side effect 前必须通过 `local-browser-session` public facade 取得当前 connection
+generation 的 Workspace、Authority、Target、Document、actionId 与相对 TTL。Workspace 只由人工
+配对 + HTTPS Target 认领建立，绑定固定 profile/extension/release/directory/site policy，不设置
+8 小时或任何墙钟过期。
+
+真实 disconnect、Workbench/Extension/Chrome restart、Reload、identity drift 或 operator revoke
+才使 Browser capability 失效。能力缺失时停止新 browser-required claim；已接受任务保持同一
+job/attempt/checkpoint lineage 为 `recovery_pending`。重新配对和认领后，先对账本地 ledger，
+再恢复全局最早未完成任务。
+
+页面 mutation 由 Browser exact-target owner 先 fsync `PREPARED`，再 `SEND`，最终仅可
+`CONFIRMED|FAILED|UNKNOWN`。`UNKNOWN` 永不自动 replay；只有 Plugin 能根据同一真实页面的
+正向确认、反向排除、唯一性和有界停止形成业务 outcome，否则固化 `review_required`。
+
+所有页面原子动作统一 `IF + AND -> THEN`。每个 mutation 只由自己的后置读回 proof 解析；
+未解析前不得发送下一 mutation。固定 sleep/重试次数不得推进业务状态。日志不是 evidence，
+Browser receipt 不是业务终态。
+
+## 7. Checkpoint、outbox、恢复与控制
+
+每个 job 独立 renew。Attestation 过期只阻断新 claim；当前 session 未 supersede/revoke 且 fence
+仍有效时，已有任务可 renew、checkpoint 或安全收尾。
+
+Checkpoint、artifact、terminal、cancel、handover 五类 Cloud 写入全部进入本地 durable outbox。
+网站 receipt 未确认时只重试同一 request id/payload hash；同 payload 必须幂等读回同一 receipt，
+不生成新语义。第一个 terminal CAS
+胜出；同 status + payload hash 幂等读回，冲突终态不可覆盖。
+
+材料与结果只消费 canonical `object_ref + sha256 + byte_length + media_type`，下载、暂存、上传与
+复用都绑定当前 lease-scoped authority，并在消费前后重算 hash；临时 URL、本地路径与 Browser
+私有身份不得进入跨仓合同或扩大对象授权。
+
+`ControlIntentV6` 只消费 monotonic `control_epoch` 的 pause/cancel/takeover/drain，不复制
+Job 状态机。Handover 只由网站授权，原子关闭旧 fence、建立新 attempt/session-bound fence；
+任一时刻只有一个有效 fence。
+
+常驻 Worker 每轮 poll 先对账本地非终态账本。对账版本至少绑定
+`job_id + attempt_id + local status + updated_at + checkpoint`；任一变化必须再次对账，
+不得用进程级永久集合屏蔽到重启。进程重启只是重入同一循环，不是恢复触发器。
+
+## 8. 状态、日志与安全
+
+Workbench 必须分开显示：
+
+```txt
+Shell Ready
+AI Control Plane
+AGENT Link / Contract / Worker Session
+Browser Authority / Browser Target
+Claim Admission
+Queue / Outbox
+End-to-End Proof
+```
+
+heartbeat accepted、claim 200、Browser paired、Target claimed、CI PASS 均不得冒充端到端 ready。
+日志完整记录状态变化、block、lease、checkpoint、terminal、stale 与安全拒绝；同状态 heartbeat/
+empty claim 聚合。session token、device secret、raw prompt 和 Browser private identity 不得记录。
+
+production 与 isolated-test 必须使用不同 origin、device/session、数据库和对象存储。Extension 不得
+持有 Cloud credential。材料访问绑定当前 environment/session/job/attempt/lease/fence/object ref，
+按 hash 验证，禁止大对象塞入 claim JSON。
+
+## 9. 一次性切换与物理退休
+
+V6 只能作为一个不可分割跨仓 change-set 激活。切换前冻结双仓候选、manifest/build/Extension
+identity 和生产 V5 只读分母，完成静态、Exam、Integration、Fault、Real Chrome、Real Provider
+与 soak。之后 drain V5、排空或安全迁移未完成 lease、保留原业务 identity，并在一个 release 同时
+激活网站 V6、AGENT V6 与匹配 Extension。
+
+原子激活时必须物理删除/断开 V5 route、reader、writer、generated validator、config、package
+entry 与运行进程。先打开 V6 session/Browser pairing/Target，再在普通 claim blocked 状态跑一条
+canary；canary PASS 后才开放普通 claim。激活后不存在 runtime fallback 到 V5。
+
+以下生产面必须为零：V4/V5 Cloud reader/writer、玄学 external HMAC/LNA/localhost ingress、
+Cloud callback、per-job Browser approval、第二 worker/mediator/scheduler/store/provider/browser
+transport、手写 Cloud schema、第二 validator owner、alias/default/normalization/compatibility/
+fallback/shadow/bridge/dual reader/dual writer。
+
+## 10. 证据与完成边界
+
+Static Audit、Contract Exam、Integration、Fault、Real Chrome、Real Provider、72h Soak 是七个
+不可替代证据层。所有 receipt 必须绑定网站 SHA、AGENT SHA、V6 manifest hash、AGENT build、
+Extension release 和当前候选。真实 Provider 证明必须有 authenticated Cloud terminal readback；
+caller-supplied candidate 或离线自铸 proof 不合法。
+
+未取得全量真实证据时固定 `NOT_PRODUCTION_VERIFIED`。CI-FULL 只证明当前源码通过唯一完整
+法案/类型/验收链，不证明生产账号、Chrome、Provider、部署或发布。
 
 ```apex-law
-{"lawId":"APEX-XUANXUE-AI-PRODUCTION-001-V5","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome+real-provider","summary":"Only V5 outbound Cloud Pull may deliver a complete xuanxue production order through the unique Worker-to-Mediator-to-Plugin chain; every user-issued unfinished task is durable, every changed recovery version is reconciled by the continuously running worker, exactly ten independent business tasks may wait concurrently behind one serialized Browser action lane, and the globally oldest claimable created_at plus job_id always runs first.","required":["xuanxue-web packages/ai-contracts is the sole V5 schema manifest vector and fixture owner","AGENT consumes only the frozen canonical artifact to generate its validator and verify manifest hash","xuanxue-ai-production-v5 canonical manifest validation","Cloud Worker to one mediator to one Plugin","fsync local order identity before execution","max_in_flight=10 and max_browser_in_flight=1","manual pair plus target claim establishes one no-wall-clock-expiry Workspace plus dynamic Authority Target Document","browser and network discontinuity including BROWSER_SESSION_WORKSPACE_REVOKED remains recovery_pending","an already exact empty ChatGPT root is a proved no-op and is never navigated or reloaded","every poll reconciles each changed job attempt status and checkpoint version","proof-empty historical pre-submission misclassifications are corrected only by exact one-time Cloud and local migrations on the same job","all claimable queued and recovery_pending jobs share one global created_at plus job_id order","first-terminal CAS and explicit foreign-device handover","UNKNOWN never auto-replayed","real Chrome and real Provider receipts bind an independently recomputed current source candidate, one immutable Browser runtime receipt, the canonical production Workbench data directory, an authenticated Cloud device heartbeat, the exact completed Cloud job set, and a bounded fresh run"],"forbidden":["xuanxue external HMAC/LNA/localhost business ingress","V4 reader or writer","separate or per-job Browser approval","8h or any wall-clock Workspace expiry","browser disconnect written as business failed","reloading or navigating an already proved exact empty ChatGPT root","collapsing ten business/provider waits into one job because Browser mutation is serialized","process-lifetime reconciliation suppression for a changed order","operator recovery button or unproved failed-task resurrection path","new job or new prompt used to replace a recoverable original task","service class recovery partition registration order or in-memory order bypassing the globally oldest claimable job","automatic replay of UNKNOWN or any task with side-effect proof","stale or foreign-candidate Chrome or Provider receipt","caller-selected proof root or caller-supplied candidate identity","offline caller-minted Provider bundle without authenticated Cloud terminal readback","Cloud callback","second worker mediator queue ledger Browser or Provider chain","local handwritten duplicate Cloud schema or second validator owner","alias default normalization compatibility fallback dual reader or dual writer"],"clauses":[{"clauseId":"apex-xuanxue-001-v5-cloud-pull-v5","statement":"A browser side effect or terminal result is possible only after one V5 Cloud Pull order passes canonical grant, durable identity, connection-bound Workspace, current fence and exact-target checks in the unique owner chain; up to ten independent jobs may hold durable provider waits while one Browser action is serialized, an already exact empty provider root is a no-op, technical discontinuity including BROWSER_SESSION_WORKSPACE_REVOKED stays recovery_pending, proof-empty historical pre-submission misclassifications are corrected only by exact one-time Cloud and local migrations on the same job, every changed local recovery version is reconciled by the continuous poll loop, UNKNOWN is never replayed, the single Cloud plus local scheduler resumes the globally oldest claimable created_at plus job_id, and each deferred Chrome or Provider proof independently recomputes the current candidate, consumes the canonical production run root, binds one immutable runtime receipt, and for Provider proof requires a fresh authenticated Cloud readback proving the exact job set is terminal completed.","evidenceMode":"model+acceptance+real-chrome+real-provider","ownerDomain":"xuanxue-ai-production"}]}
+{"lawId":"APEX-XUANXUE-AI-PRODUCTION-001-V6","status":"active","tier":"P0","capabilityDomain":"xuanxue-ai-production","enforcementMode":"machine-blocking","evidenceMode":"law+blueprint+ast+acceptance+real-chrome+real-provider","summary":"Only outbound xuanxue-ai-production-v6 may deliver a complete website order through one session-bound Cloud Worker-to-Mediator-to-Plugin chain; one claim-eligible worker session per device uses server-signed runtime attestation, typed idempotent claim batches, ten durable business lanes, one AGENT-owned Browser mutation lane, durable outbox and first-terminal CAS while preserving the original business identity.","required":["xuanxue-web packages/ai-contracts is the sole V6 control schema manifest vector fixture and error-code owner","AGENT consumes only the frozen canonical artifact to generate its strict validator and verify manifest hash","device epoch plus one worker session epoch and memory-only 180-second session credential with at most 60-second same-session generation overlap","45-second server-signed RuntimeAttestationReceiptV6","typed idempotent ClaimBatchReceiptV6 outcomes and globally oldest eligible created_at plus job_id","browser-required work is never leased before authority-present and target-claimed attestation","fsync immutable local order identity before acceptance","first durable checkpoint is acceptance and no-side-effect LeaseReleaseV6 is the only pre-accept release","max_in_flight=10 and max_browser_in_flight=1","manual pair plus target claim establishes one no-wall-clock-expiry Workspace through the local-browser-session public facade","checkpoint artifact terminal cancel and handover use one durable outbox","first-terminal CAS and explicit foreign-device handover","UNKNOWN never auto-replayed","one atomic V6 cutover physically retires all active V5 routes readers writers validators configs entries and processes","real Chrome and real Provider receipts bind one independently recomputed dual-repo candidate manifest AGENT build Extension release and authenticated Cloud terminal readback"],"forbidden":["V5 active reader writer validator route config package entry or process","Browser Workspace Authority Target Document selector command mutation journal Browser command TTL or wall-clock Workspace TTL in the Cloud contract","device credential used for claim renew checkpoint terminal or material access","session credential persisted logged displayed or given to Extension","two claim-eligible sessions for one device","stale attestation or absent Browser capability receiving browser-required lease","HTTP 200 empty jobs or partial ready presented as end-to-end readiness","xuanxue external HMAC LNA localhost business ingress or Cloud callback","second worker mediator scheduler queue ledger Browser Provider contract owner or transport","service class recovery partition registration order or in-memory ordering bypassing globally oldest eligible work","automatic replay of UNKNOWN or replacement job prompt for a recoverable original","alias default normalization compatibility fallback shadow bridge dual reader or dual writer","stale foreign or caller-minted Chrome Provider candidate receipt"],"clauses":[{"clauseId":"apex-xuanxue-001-v6-session-bound-cloud-pull","statement":"A browser side effect or terminal result is possible only after one V6 worker session passes current device and session epochs, strict canonical contract, 45-second server-signed runtime attestation, typed idempotent claim batch, durable local identity, current session-bound fence and AGENT-owned exact-target checks; ten independent business jobs share one serialized Browser mutation lane, all Cloud writes use the durable outbox, technical discontinuity stays on the same recovery lineage, UNKNOWN is never replayed, globally oldest eligible work runs first, and one atomic cutover leaves no active V5 or second path.","evidenceMode":"model+acceptance+real-chrome+real-provider","ownerDomain":"xuanxue-ai-production"}]}
 ```
 
-本文件只保存 current active law；历史版本或旧链不得在活动源码、法案、施工图、fixture 或
-验收中留下可达 reader/writer。
+本文件只保存 current active law；历史 V5 只能留在 Git 历史或不可变审计材料，不得进入 active
+source、法案、施工图、fixture、validator、验收或运行时。

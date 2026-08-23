@@ -16,7 +16,7 @@ import {
 import {
   xuanxueTerminalMetaphysicsProviderProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
-import type { AgentRuntimeReceiptV5 } from "./xuanxue-ai-production-browser-proof.js";
+import type { AgentRuntimeReceiptV6 } from "./xuanxue-ai-production-browser-proof.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
 export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
@@ -176,7 +176,7 @@ const XuanxueStoredProviderExecutionProfileSchema = z.union([
 ]);
 
 export const XuanxueAiStoredProductionOrderSchema = z.object({
-  protocolVersion: z.literal("xuanxue-ai-production-v5"),
+  protocolVersion: z.literal("xuanxue-ai-production-v6"),
   orderId: z.string().min(1).max(200),
   sourceProject: z.literal("xuanxue-web"),
   sourceTaskId: z.string().min(1).max(240),
@@ -261,6 +261,7 @@ export interface XuanxueAiInterventionRecord {
   readonly reason: string | null;
   readonly requestId: string | null;
   readonly pendingRequest: "pause" | "cancel" | "takeover" | null;
+  readonly lastControlEpoch: number;
   readonly lastSafeCheckpoint: string | null;
   readonly requestedAt: string | null;
   readonly updatedAt: string;
@@ -322,7 +323,7 @@ export interface XuanxueAiProductionResult {
     readonly transportWarnings: readonly string[];
     readonly artifact?: XuanxueAiGeneratedImageArtifact;
   }[];
-  readonly runtimeReceipt?: AgentRuntimeReceiptV5;
+  readonly runtimeReceipt?: AgentRuntimeReceiptV6;
   readonly failureReason: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;

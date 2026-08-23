@@ -1,4 +1,4 @@
-import { XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH } from "./xuanxue-ai-production-cloud-contract.js";
+import { XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH } from "./xuanxue-ai-production-cloud-contract.js";
 
 export const safeWorkerReason = (error: unknown): string => (
   error instanceof Error ? error.message : String(error)
@@ -44,7 +44,7 @@ export const reportCloudWorkerError = (code: string, error: unknown): void => {
     owner: "xuanxue-ai-production",
     code,
     reason_code: workerErrorCode(error),
-    contract_manifest_hash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+    contract_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
     at: new Date().toISOString(),
   })}\n`);
 };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CloudExecutionGrantV5Schema } from "./generated/xuanxue-ai-production-v5.validator.js";
+import { CloudExecutionGrantV6Schema } from "./generated/xuanxue-ai-production-v6.validator.js";
 
 import {
   XuanxueAiProductionTriggerKindSchema,
@@ -19,16 +19,16 @@ import {
 } from "./xuanxue-ai-production-terminal-profile.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
-  "xuanxue-ai-production-v5" as const;
+  "xuanxue-ai-production-v6" as const;
 
 /**
- * Generated projection of the xuanxue-web canonical V5 manifest.  This is
+ * Generated projection of the xuanxue-web canonical V6 manifest.  This is
  * deliberately distinct from the localization product-contract manifest:
  * device pairing and Cloud grants bind the production protocol, while an
  * individual localization order still carries its own product contract hash.
  */
-export const XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH =
-  "sha256:d6a4ddcb49ed2e06c4b90681f0542303d549633b23e87687dc43640f5fae7826" as const;
+export const XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH =
+  "sha256:84c4d00a33f712454278ec47896a96eadf61083c3e8df4e2547a7bc473287dd9" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
@@ -318,7 +318,7 @@ const cloudClaimLeaseShape = {
   updated_at: z.string().min(1),
   lease_token: z.string().min(1),
   lease_version: z.number().int().positive(),
-  grant: CloudExecutionGrantV5Schema,
+  grant: CloudExecutionGrantV6Schema,
 } as const;
 
 const XuanxueAiProductionCloudClaimedJobBaseSchema = z.object({
@@ -365,7 +365,6 @@ const inspectNonLocalizationClaim = (
 ): void => {
   if (
     job.contract_manifest_hash !== null
-    || job.product_contract_hash !== null
     || job.localization_role !== null
   ) {
     context.addIssue({
@@ -461,11 +460,14 @@ const inspectLocalizationTopology = (
 export const XuanxueAiProductionCloudClaimedJobSchema =
 XuanxueAiProductionCloudClaimedJobBaseSchema.superRefine((job, context) => {
   if (job.grant.job_id !== job.job_id
-    || job.grant.required_device_id !== job.lease_owner
+    || job.grant.device_id !== job.lease_owner
     || job.grant.lease_token !== job.lease_token
     || job.grant.lease_version !== job.lease_version
-    || job.grant.lease_expires_at !== job.lease_expires_at) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_V5_CLAIM_GRANT_MISMATCH", path: ["grant"] });
+    || job.grant.lease_expires_at !== job.lease_expires_at
+    || job.grant.source_task_id !== job.source_task_id
+    || job.grant.request_hash !== job.request_hash
+    || job.grant.product_contract_hash !== job.product_contract_hash) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_V6_CLAIM_GRANT_MISMATCH", path: ["grant"] });
   }
   inspectParentReplay(job, context);
   inspectLocalizationClaim(job, context);
@@ -479,10 +481,13 @@ export interface XuanxueAiProductionCloudCredential {
   readonly protocol_version:
     typeof XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION;
   readonly server_base_url: string;
+  readonly environment_id: "production" | "isolated-test";
+  readonly origin: string;
   readonly device_id: string;
-  readonly device_name: string;
+  readonly device_epoch: number;
   readonly credential: string;
-  readonly max_in_flight: number;
+  readonly agent_build_hash: `sha256:${string}`;
+  readonly control_manifest_hash: `sha256:${string}`;
   readonly enrolled_at: string;
 }
 

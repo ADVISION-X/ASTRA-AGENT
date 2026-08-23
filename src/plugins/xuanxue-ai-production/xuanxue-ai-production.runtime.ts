@@ -26,16 +26,20 @@ export type XuanxueAiBrowserTargetLease = NonNullable<
   NonNullable<Parameters<AiInputGatewayAbilityGroup["execute"]>[1]>["browser"]
 >;
 
-export type XuanxueAiExecutionDeadlineBudget = Readonly<{
+export type XuanxueAiExecutionDeadlineBudget = {
   expiresAtMonotonic: number;
   commandTtlMs: number;
-}>;
+};
 
 export type XuanxueAiBrowserAuthorityPort = Readonly<{
   acquireOperatorClaimedTargetLease(
     binding: XuanxueAiBrowserExecutionBinding,
     ownerId: string,
   ): Promise<XuanxueAiBrowserTargetLease>;
+  readProductionRuntimeState?(): Readonly<{
+    browserAuthorityState: "present" | "absent";
+    browserTargetState: "claimed" | "absent";
+  }>;
 }>;
 
 export interface XuanxueAiProductionRuntime {

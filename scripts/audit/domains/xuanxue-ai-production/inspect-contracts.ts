@@ -22,7 +22,7 @@ const requireValues = (
     if (input.values.has(required)) continue;
     findings.push(createFinding({
       lawId: input.lawId,
-      clauseId: "apex-xuanxue-001-v5-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: input.checkId,
       filePath: input.filePath,
       message: `${input.messagePrefix} ${required}.`,
@@ -45,7 +45,7 @@ const forbidValues = (
     if (!input.values.has(forbidden)) continue;
     findings.push(createFinding({
       lawId: input.lawId,
-      clauseId: "apex-xuanxue-001-v5-cloud-pull-v5",
+      clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
       checkId: input.checkId,
       filePath: input.filePath,
       message: `${input.messagePrefix} ${forbidden}.`,
@@ -94,7 +94,9 @@ const inspectWholeOrderContract = (
   messagePrefix: "Whole-order contract must contain",
   values,
   required: [
-    "xuanxue-ai-production-v5", "bazi_chart_interpretation", "bazi_ai_full_analysis",
+    "xuanxue-ai-production-v6", "WorkerSessionOpenV6", "RuntimeAttestationReceiptV6",
+    "ClaimRequestV6", "ClaimBatchReceiptV6", "LEASE_GRANTED", "LeaseReleaseV6",
+    "TerminalCasV6", "bazi_chart_interpretation", "bazi_ai_full_analysis",
     "bazi_report_followup", "qimen_professional_answer", "qimen_report_followup",
     "hehun_ai_analysis", "hehun_report_followup", "naming_bazi_analysis_and_naming",
     "naming_from_existing_bazi_report", "bazi_canonical_base_interpretation",

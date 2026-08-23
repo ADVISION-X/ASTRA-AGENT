@@ -12,7 +12,14 @@ type WorkbenchStatusAssembly = Readonly<{
   browserAuthority: Pick<WorkbenchAssembly["browserAuthority"], "broker">;
 }>;
 type AiProductionHealthSnapshot = {
-  readonly status: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
+  readonly shellState: "ready" | "stopped";
+  readonly cloudState: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
+  readonly browserState: "ready" | "blocked";
+  readonly executionState: "ready" | "blocked" | "draining";
+  readonly claimAdmissionState: "eligible" | "blocked" | "draining";
+  readonly browserAuthorityState: "present" | "absent";
+  readonly browserTargetState: "claimed" | "absent";
+  readonly browserLaneState: "idle" | "busy" | "blocked";
   readonly contractManifestHash: string;
   readonly activeCount: number;
   readonly lastSuccessfulHeartbeatAt: string | null;
@@ -37,25 +44,43 @@ const readRuntimeInitializationComponent = (
   ownerResponsible: "local-runtime",
 });
 
-const readAiProductionComponent = (
+const readAiProductionComponents = (
   health: AiProductionHealthSnapshot,
-): WorkbenchHealthComponent | null => {
-  if (!health) return null;
-  const ok = health.status === "ready";
-  const detail = ok
-    ? `AI production worker contract ready; active=${health.activeCount}; manifest=${health.contractManifestHash}.`
-    : `AI production worker ${health.status}; code=${health.lastErrorCode ?? "unknown"}; manifest=${health.contractManifestHash}; reason=${health.lastErrorReason ?? "unknown"}.`;
-  return {
-    name: "xuanxueAiProductionWorker",
-    ok,
-    detail,
-    actionableMessage: ok
-      ? null
-      : health.status === "contract_blocked"
-        ? "Deploy xuanxue-web and AGENT with the same localization contract manifest and product hashes before restarting."
-        : "Inspect the xuanxue-ai-production worker error and restore its cloud/API dependency without changing task identity.",
-    ownerResponsible: "xuanxue-ai-production",
-  };
+): readonly WorkbenchHealthComponent[] => {
+  if (!health) return [];
+  return [
+    {
+      name: "xuanxueAiProductionShell",
+      ok: health.shellState === "ready",
+      detail: `Shell state=${health.shellState}.`,
+      actionableMessage: health.shellState === "ready" ? null : "Restart the local Workbench shell.",
+      ownerResponsible: "local-runtime",
+    },
+    {
+      name: "xuanxueAiProductionCloud",
+      ok: health.cloudState === "ready",
+      detail: `Cloud state=${health.cloudState}; manifest=${health.contractManifestHash}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
+      actionableMessage: health.cloudState === "ready" ? null
+        : health.cloudState === "contract_blocked"
+          ? "Deploy xuanxue-web and AGENT with the exact same V6 manifest and product contract hashes."
+          : "Restore the Cloud session/API dependency without changing task identity.",
+      ownerResponsible: "xuanxue-ai-production",
+    },
+    {
+      name: "xuanxueAiProductionBrowser",
+      ok: health.browserState === "ready",
+      detail: `Browser state=${health.browserState}; authority=${health.browserAuthorityState}; target=${health.browserTargetState}; lane=${health.browserLaneState}.`,
+      actionableMessage: health.browserState === "ready" ? null : "Restore Browser Authority and claim the exact HTTPS target.",
+      ownerResponsible: "Browser",
+    },
+    {
+      name: "xuanxueAiProductionExecution",
+      ok: health.executionState === "ready",
+      detail: `Execution state=${health.executionState}; claim_admission=${health.claimAdmissionState}; active=${health.activeCount}.`,
+      actionableMessage: health.executionState === "ready" ? null : "Resolve the named Cloud or Browser block before admitting production work.",
+      ownerResponsible: "xuanxue-ai-production",
+    },
+  ];
 };
 
 const readBrowserAuthorityComponent = (
@@ -92,13 +117,14 @@ export async function getHealthReport(
   aiProductionHealth: AiProductionHealthSnapshot = null,
 ): Promise<WorkbenchHealthReport> {
   const checkedAt = new Date().toISOString();
-  const productionComponent = readAiProductionComponent(aiProductionHealth);
+  const productionComponents = readAiProductionComponents(aiProductionHealth);
   const startupComponents = [
     readRuntimeInitializationComponent(initialization),
-    ...(productionComponent ? [productionComponent] : []),
+    ...productionComponents.slice(0, 2),
   ];
   const components = [
     ...startupComponents,
+    ...productionComponents.slice(2),
     readBrowserAuthorityComponent(assembly),
   ];
   const allOk = startupComponents.every((component) => component.ok);

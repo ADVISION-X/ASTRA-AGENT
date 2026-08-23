@@ -51,6 +51,7 @@ export interface AiInputGatewayAbilityGroup {
   readonly abilityGroupId: AiInputGatewayAbilityGroupId;
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
   getRuntimeCapacity(): number;
+  getBrowserMutationLaneState?(): Promise<"idle" | "busy" | "blocked">;
   releaseProviderTargetForOperator?(ownerKey: string): Promise<boolean>;
   resumeProviderTargetAfterOperator?(ownerKey: string): void;
   close?(): Promise<void>;

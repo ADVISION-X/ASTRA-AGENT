@@ -3,9 +3,12 @@ import {
   type XuanxueAiOrderRecord,
 } from "./xuanxue-ai-production.schema.js";
 import {
+  cancelXuanxueAiProductionJob,
+  acknowledgeXuanxueAiProductionHandover,
   checkpointXuanxueAiProductionJob,
   completeXuanxueAiProductionJob,
   failXuanxueAiProductionJob,
+  uploadXuanxueAiProductionProductResult,
   uploadXuanxueAiProductionOutputArtifact,
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
@@ -13,8 +16,9 @@ import type {
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
   XuanxueAiProductionCloudClaimedJob,
-  XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
+import type { XuanxueAiProductionWorkerSessionV6 } from "./xuanxue-ai-production-worker-session.js";
+import type { XuanxueAiProductionCloudOutbox } from "./xuanxue-ai-production-cloud-outbox.js";
 import { cleanXuanxueAiProductionCloudStaging } from "./xuanxue-ai-production-cloud-staging.js";
 
 type ResultStage = NonNullable<XuanxueAiOrderRecord["result"]>["stages"][number];
@@ -36,7 +40,8 @@ const attachmentCheckpoint = (input: {
 });
 
 const uploadGeneratedImageStage = async (
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
   job: XuanxueAiProductionCloudClaimedJob,
   stage: ResultStage,
 ): Promise<ResultStage> => {
@@ -48,7 +53,7 @@ const uploadGeneratedImageStage = async (
     throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_CHECKPOINT_PROOF_MISSING");
   }
   const artifactId = `aiart_${job.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-80)}_${stage.artifact.sha256.slice(-16)}`;
-  const uploaded = await uploadXuanxueAiProductionOutputArtifact(credential, job, {
+  const uploaded = await uploadXuanxueAiProductionOutputArtifact(session, outbox, job, {
     stageId: "article_image_generation", artifactId,
     filePath: stage.artifact.localFilePath, sha256: stage.artifact.sha256,
     originalSha256: stage.artifact.originalSha256,
@@ -72,14 +77,15 @@ const uploadGeneratedImageStage = async (
 };
 
 export const publishXuanxueAiProductionCloudOrder = async (input: {
-  readonly credential: XuanxueAiProductionCloudCredential;
+  readonly session: XuanxueAiProductionWorkerSessionV6;
+  readonly outbox: XuanxueAiProductionCloudOutbox;
   readonly dataDir: string;
   readonly job: XuanxueAiProductionCloudClaimedJob;
   readonly record: XuanxueAiOrderRecord;
 }): Promise<void> => {
   for (const stage of input.record.stages) {
     if (!stage.attachmentUploadProof) continue;
-    await checkpointXuanxueAiProductionJob(input.credential, input.job, {
+    await checkpointXuanxueAiProductionJob(input.session, input.outbox, input.job, {
       status: "factory_running",
       localOrderId: input.record.order.orderId,
       attachmentUploadProof: attachmentCheckpoint({
@@ -90,20 +96,39 @@ export const publishXuanxueAiProductionCloudOrder = async (input: {
   }
   if (input.record.status === "completed" && input.record.result) {
     const stages = await Promise.all(input.record.result.stages.map(
-      (stage) => uploadGeneratedImageStage(input.credential, input.job, stage),
+      (stage) => uploadGeneratedImageStage(input.session, input.outbox, input.job, stage),
     ));
-    await completeXuanxueAiProductionJob(input.credential, input.job, {
+    const completeResult = {
       ...input.record.result,
       stages,
+    };
+    await uploadXuanxueAiProductionProductResult(
+      input.session, input.outbox, input.job, input.dataDir, completeResult,
+    );
+    await completeXuanxueAiProductionJob(input.session, input.outbox, input.job, completeResult);
+    await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
+    return;
+  }
+  if (input.record.status === "cancelled") {
+    await cancelXuanxueAiProductionJob(input.session, input.outbox, input.job, {
+      local_order_id: input.record.order.orderId,
+      reason: input.record.failureReason ?? "cloud control intent acknowledged at a local safe point",
     });
     await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
+    return;
+  }
+  if (input.record.status === "recovery_pending"
+    && input.record.failureReason?.startsWith("XUANXUE_AI_INTERVENTION_TAKEOVER@")) {
+    await acknowledgeXuanxueAiProductionHandover(
+      input.session, input.outbox, input.job, input.record.order.orderId,
+    );
     return;
   }
   const providerBlocked = input.record.failureReason?.startsWith(
     XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
   ) ?? false;
   const recoverable = input.record.status === "recovery_pending" && !providerBlocked;
-  await failXuanxueAiProductionJob(input.credential, input.job, {
+  await failXuanxueAiProductionJob(input.session, input.outbox, input.job, {
     status: recoverable ? "recovery_pending"
       : input.record.status === "review_required" ? "review_required" : "failed",
     code: providerBlocked ? XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION

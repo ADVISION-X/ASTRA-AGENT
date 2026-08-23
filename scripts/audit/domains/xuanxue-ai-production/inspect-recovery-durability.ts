@@ -16,7 +16,7 @@ const finding = (
   checkId: string,
   filePath: string,
   message: string,
-): InspectorFinding => createFinding({ lawId, clauseId: "apex-xuanxue-001-v5-cloud-pull-v5", checkId, filePath, message });
+): InspectorFinding => createFinding({ lawId, clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull", checkId, filePath, message });
 
 const inspectCanonicalProviderIdentity = (
   findings: InspectorFinding[],

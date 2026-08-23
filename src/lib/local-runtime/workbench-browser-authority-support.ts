@@ -10,9 +10,14 @@ import { readUnpackedExtensionReleaseIdentity } from "../browser/release/unpacke
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 
 export type WorkbenchBrowserAuthority = Readonly<{
-  broker: Pick<ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>, "currentStatus">;
+  broker: Pick<ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>, "currentStatus">
+    & Partial<Pick<ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>, "currentOperatorTargetStatus">>;
   health(): BrowserHealthSnapshot;
   readOperatorPairingState(): Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }>;
+  readProductionRuntimeState(): Readonly<{
+    browserAuthorityState: "present" | "absent";
+    browserTargetState: "claimed" | "absent";
+  }>;
   acquireOperatorClaimedTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
@@ -53,6 +58,10 @@ export const createWorkbenchBrowserAuthority = async (
     broker: supervisor.authorityBroker(),
     health: () => supervisor.health(),
     readOperatorPairingState: () => supervisor.readOperatorPairingState(),
+    readProductionRuntimeState: () => ({
+      browserAuthorityState: supervisor.authorityBroker().currentStatus().kind === "AVAILABLE" ? "present" : "absent",
+      browserTargetState: supervisor.authorityBroker().currentOperatorTargetStatus(),
+    }),
     acquireOperatorClaimedTargetLease: (binding, ownerId) =>
       supervisor.acquireOperatorClaimedTargetLease(binding, ownerId),
     acceptBrowserAuthoritySocket: (socket) => ({ receive: (payload) => supervisor.browserAuthorityWebSocket().receive(socket, payload), disconnect: (reasonCode, refs) => supervisor.browserAuthorityWebSocket().disconnect(socket, reasonCode, refs) }),

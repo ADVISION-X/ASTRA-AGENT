@@ -170,7 +170,7 @@ export const inspectSubmissionAdmissionBinding = (
   if (source && submissionAdmissionBindingIsExact(source)) return;
   findings.push(createFinding({
     lawId,
-    clauseId: "apex-xuanxue-001-v5-cloud-pull-v5",
+    clauseId: "apex-xuanxue-001-v6-session-bound-cloud-pull",
     checkId: "xuanxue-ai-production/current-grant-submission-admission",
     filePath: stagePath,
     message: "Owning Plugin must hash the exact current grant identity and immutable business priority, return that admission from acquireStageBrowser, and pass the same symbol to Gateway execute options.",

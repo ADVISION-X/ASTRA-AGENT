@@ -16,6 +16,7 @@ interface InterventionRow {
   reason: string | null;
   request_id: string | null;
   pending_request: InterventionAction | null;
+  last_control_epoch: number;
   last_safe_checkpoint: string | null;
   requested_at: string | null;
   updated_at: string;
@@ -28,6 +29,7 @@ const mapRow = (row: InterventionRow): XuanxueAiInterventionRecord => ({
   reason: row.reason,
   requestId: row.request_id,
   pendingRequest: row.pending_request,
+  lastControlEpoch: row.last_control_epoch,
   lastSafeCheckpoint: row.last_safe_checkpoint,
   requestedAt: row.requested_at,
   updatedAt: row.updated_at,
@@ -114,8 +116,13 @@ export const requestXuanxueAiIntervention = (
   readOrder: (orderId: string) => XuanxueAiOrderRecord | null,
   action: InterventionAction,
   input: XuanxueAiInterventionRequest,
+  controlEpoch?: number,
 ): XuanxueAiInterventionRecord => database.transaction(() => {
   const current = readXuanxueAiIntervention(database, readOrder, input.orderId);
+  if (controlEpoch !== undefined && (!Number.isInteger(controlEpoch) || controlEpoch < 1)) {
+    throw new Error("XUANXUE_AI_CONTROL_EPOCH_INVALID");
+  }
+  if (controlEpoch !== undefined && controlEpoch <= current.lastControlEpoch) return current;
   if (current.revision !== input.expectedRevision) {
     throw new Error("XUANXUE_AI_INTERVENTION_STALE_REVISION");
   }
@@ -140,13 +147,14 @@ export const requestXuanxueAiIntervention = (
   const changed = database.prepare(`
     update production_interventions
     set revision = revision + 1,state = ?,reason = ?,request_id = ?,
-        pending_request = ?,requested_at = ?,updated_at = ?
+        pending_request = ?,last_control_epoch = ?,requested_at = ?,updated_at = ?
     where order_id = ? and revision = ? and state = 'running'
   `).run(
     nextState,
     input.reason,
     input.requestId,
     action,
+    controlEpoch ?? current.lastControlEpoch,
     now,
     now,
     input.orderId,

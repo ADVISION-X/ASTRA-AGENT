@@ -6,7 +6,7 @@ import path from "node:path";
 import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
 import {
   attestXuanxueAiProductionProviderRun,
-  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import {
   canonicalXuanxueRealRunRoot,
@@ -55,7 +55,7 @@ const bindingRaw = await readFile(path.join(
 const dynamicProofBinding = XuanxueDynamicProofBindingContract.validate(
   JSON.parse(bindingRaw),
   currentXuanxueSourceCandidate(),
-  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
+  XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
 );
 const evidence = readXuanxueRealChromeEvidence(realChromeEvidenceArgument());
 validateBoundRuntimeReceipt({ evidence, binding: dynamicProofBinding, runRoot });
@@ -99,6 +99,15 @@ const cloudAttestation = await attestXuanxueAiProductionProviderRun({
   dataDir: runRoot,
   candidateHash: dynamicProofBinding.candidate_hash,
   terminalJobIds,
+  readRuntimeState: async () => ({
+    businessInFlight: 0,
+    browserActionInFlight: evidence.runtimeReceipt.browser_lane_state === "busy" ? 1 : 0,
+    browserAuthorityState: evidence.runtimeReceipt.browser_authority_state,
+    browserTargetState: evidence.runtimeReceipt.browser_target_state,
+    browserLaneState: evidence.runtimeReceipt.browser_lane_state,
+    drainState: "open",
+    ledgerReconciled: true,
+  }),
 });
 
 const id = (orderId: string, stageId: string): string =>

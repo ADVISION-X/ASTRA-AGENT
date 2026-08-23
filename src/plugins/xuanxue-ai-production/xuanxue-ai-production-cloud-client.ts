@@ -1,407 +1,487 @@
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, open, readFile, rm } from "node:fs/promises";
+import path from "node:path";
+import { ClaimBatchReceiptV6Schema, HandoverV6Schema, type ClaimBatchReceiptV6, type HandoverV6 } from "./generated/xuanxue-ai-production-v6.validator.js";
 import {
-  XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-  XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
   XuanxueAiProductionCloudClaimedJobSchema,
   type XuanxueAiProductionCloudClaimedJob,
-  type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
-import {
-  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
-} from "./xuanxue-ai-production-localization-contract.js";
 import type { XuanxueAiProductionResult } from "./xuanxue-ai-production.schema.js";
-import { readFile } from "node:fs/promises";
+import type { XuanxueAiProductionCloudOutbox } from "./xuanxue-ai-production-cloud-outbox.js";
+import type { XuanxueAiProductionWorkerSessionV6 } from "./xuanxue-ai-production-worker-session.js";
 
 interface UploadedOutputArtifact {
-  readonly artifact_id: string;
-  readonly object_ref: string;
-  readonly sha256: `sha256:${string}`;
-  readonly mime_type: "image/webp";
-  readonly byte_count: number;
-  readonly width: 1200;
-  readonly height: 630;
+  readonly artifact_id: string; readonly object_ref: string;
+  readonly sha256: `sha256:${string}`; readonly mime_type: "image/webp";
+  readonly byte_count: number; readonly width: 1200; readonly height: 630;
   readonly state: "staged";
 }
 
 export interface XuanxueAiProductionAttachmentCheckpointProof {
-  readonly stage_id: string;
-  readonly upload_attempt_id: string;
+  readonly stage_id: string; readonly upload_attempt_id: string;
   readonly status: "skipped" | "attachments_stable" | "failed" | "review_required";
-  readonly expected_count: number;
-  readonly detected_count: number;
+  readonly expected_count: number; readonly detected_count: number;
   readonly current_file_name: string | null;
   readonly staging_manifest_hash: `sha256:${string}` | null;
   readonly observed_at: string;
 }
 
-interface JsonEnvelope<T> {
-  readonly ok?: boolean;
-  readonly data?: T;
-  readonly error?: { readonly code?: string; readonly message?: string };
-}
-
-export interface XuanxueAiProductionCloudDeviceAttestation {
-  readonly device_id: string;
-  readonly max_in_flight: number;
-  readonly status: "active" | "revoked";
-  readonly last_heartbeat_at: string | null;
-  readonly contract_manifest_hash: `sha256:${string}` | null;
-  readonly supported_product_contracts: Readonly<Record<string, string>>;
-  readonly agent_build_fingerprint: string | null;
-}
-
 export interface XuanxueAiProductionCloudTerminalStatus {
-  readonly job_id: string;
-  readonly status: string;
+  readonly schema_version: "xuanxue-ai-device-job-status.v6";
+  readonly job_id: string; readonly status: string;
+  readonly terminal_status: string | null;
+  readonly terminal_payload_hash: `sha256:${string}` | null;
+  readonly terminalized_at: string | null;
+  readonly terminal_receipt: Readonly<Record<string, unknown>> | null;
 }
 
-const baseUrl = (
-  credential: XuanxueAiProductionCloudCredential,
-): string => credential.server_base_url.replace(/\/+$/u, "");
+export type XuanxueAiProductionClaimBatchResult = Readonly<{
+  outcome: ClaimBatchReceiptV6["outcome"];
+  jobs: readonly XuanxueAiProductionCloudClaimedJob[];
+  reasonCodes: readonly string[]; nextClaimAfterMs: number;
+  receipt: ClaimBatchReceiptV6;
+}>;
 
-const agentBuildFingerprint = (): string =>
-  process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim()
-  || process.env.npm_package_version?.trim()
-  || "grasseye-localization-contract-v1";
-
-export const xuanxueAiProductionDeviceContractProof = (
-  sourceFingerprint = agentBuildFingerprint(),
-) => ({
-  contract_manifest_hash: XUANXUE_AI_PRODUCTION_V5_CONTRACT_MANIFEST_HASH,
-  supported_product_contracts: XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
-  agent_build_fingerprint: sourceFingerprint,
-});
-
-async function cloudRequest<T>(
-  credential: XuanxueAiProductionCloudCredential,
-  pathname: string,
-  init: RequestInit,
-): Promise<T> {
-  const response = await fetch(`${baseUrl(credential)}${pathname}`, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${credential.credential}`,
-      ...(init.headers ?? {}),
-    },
-    signal: AbortSignal.timeout(30_000),
-  });
-  const body = await response.json() as JsonEnvelope<T>;
-  if (!response.ok || body.ok !== true || body.data === undefined) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_CLOUD_API_FAILED:`
-      + `${body.error?.code ?? response.status}:`
-      + `${body.error?.message ?? "unknown"}`,
-    );
-  }
-  return body.data;
-}
-
-const leaseHeaders = (
-  job: XuanxueAiProductionCloudClaimedJob,
-): Record<string, string> => ({
-  "x-ai-lease-token": job.lease_token,
-  "x-ai-lease-version": String(job.lease_version),
-  "x-ai-attempt-id": job.grant.attempt_id,
+const canonicalJson = (value: unknown): string => {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+};
+const hashCanonical = (value: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(canonicalJson(value)).digest("hex")}`;
+const rootUrl = (session: XuanxueAiProductionWorkerSessionV6): string =>
+  session.device.server_base_url.replace(/\/+$/u, "");
+const fenceHeaders = (job: XuanxueAiProductionCloudClaimedJob): Record<string, string> => ({
   "x-ai-execution-fence-hash": job.grant.execution_fence.fence_hash,
 });
 
-export async function heartbeatXuanxueAiProductionDevice(
-  credential: XuanxueAiProductionCloudCredential,
-  sourceFingerprint?: string,
-): Promise<XuanxueAiProductionCloudDeviceAttestation> {
-  return cloudRequest<XuanxueAiProductionCloudDeviceAttestation>(
-    credential,
-    "/internal/ai-production/devices/heartbeat",
-    {
-      method: "POST",
-      body: JSON.stringify(xuanxueAiProductionDeviceContractProof(sourceFingerprint)),
-    },
-  );
-}
-
-export async function readXuanxueAiProductionCloudTerminalStatus(
-  credential: XuanxueAiProductionCloudCredential,
-  jobId: string,
-): Promise<XuanxueAiProductionCloudTerminalStatus> {
-  if (!jobId.trim()) throw new Error("XUANXUE_AI_PRODUCTION_ATTESTATION_JOB_ID_INVALID");
-  return cloudRequest<XuanxueAiProductionCloudTerminalStatus>(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(jobId)}/device-status`,
-    { method: "GET" },
-  );
-}
-
-const claimFailureReason = (error: unknown): string => {
-  if (error && typeof error === "object" && "issues" in error) {
-    try {
-      return JSON.stringify((error as { issues?: unknown }).issues).slice(0, 900);
-    } catch {
-      return "claim schema validation failed";
-    }
-  }
-  return (error instanceof Error ? error.message : String(error)).slice(0, 900);
-};
-
 const reportUnaddressableClaim = (raw: unknown, error: unknown): void => {
-  const record = raw && typeof raw === "object" && !Array.isArray(raw)
-    ? raw as Record<string, unknown>
-    : {};
+  const record = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
   process.stderr.write(`${JSON.stringify({
-    level: "error",
-    owner: "xuanxue-ai-production",
-    code: "XUANXUE_AI_PRODUCTION_CLAIM_ENVELOPE_INVALID",
+    level: "error", owner: "xuanxue-ai-production",
+    code: "XUANXUE_AI_PRODUCTION_V6_CLAIM_ENVELOPE_INVALID",
     job_id: typeof record.job_id === "string" ? record.job_id : null,
-    product_id: typeof record.product_id === "string" ? record.product_id : null,
-    contract_manifest_hash:
-      typeof record.contract_manifest_hash === "string"
-        ? record.contract_manifest_hash : null,
-    product_contract_hash:
-      typeof record.product_contract_hash === "string"
-        ? record.product_contract_hash : null,
-    reason: claimFailureReason(error),
+    reason_code: error instanceof Error ? error.message.slice(0, 900) : String(error).slice(0, 900),
     at: new Date().toISOString(),
   })}\n`);
 };
 
 export async function claimXuanxueAiProductionJobs(
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
   limit: number,
-): Promise<XuanxueAiProductionCloudClaimedJob[]> {
-  if (!Number.isInteger(limit) || limit < 1) return [];
-  const result = await cloudRequest<{ readonly jobs?: readonly unknown[] }>(
-    credential,
-    "/internal/ai-production/jobs/claim",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        limit: Math.min(limit, credential.max_in_flight),
-      }),
-    },
-  );
-  const accepted: XuanxueAiProductionCloudClaimedJob[] = [];
-  for (const rawJob of result.jobs ?? []) {
+): Promise<XuanxueAiProductionClaimBatchResult> {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 10) throw new Error("XUANXUE_AI_PRODUCTION_V6_CLAIM_LIMIT_INVALID");
+  const pending = outbox.pendingClaimRequest();
+  const attestation = pending ? null : await session.ensureFreshAttestation();
+  const requestId = pending?.requestId ?? `aipclaim_${randomUUID()}`;
+  const requestPayload = pending?.payload ?? {
+    schema_version: "xuanxue-ai-claim-request.v6",
+    control_protocol_version: "xuanxue-ai-production-v6",
+    request_id: requestId,
+    worker_session_id: session.workerSessionId,
+    worker_session_epoch: session.workerSessionEpoch,
+    requested_limit: limit,
+    runtime_attestation_receipt_hash: attestation!.receipt_hash,
+  };
+  const reconcilingSupersededClaim = requestPayload.worker_session_id !== session.workerSessionId
+    || requestPayload.worker_session_epoch !== session.workerSessionEpoch;
+  outbox.beginClaimRequest({ requestId, payload: requestPayload, payloadHash: hashCanonical(requestPayload) });
+  const raw = await session.request<unknown>("/internal/ai-production/v6/jobs/claim", {
+    method: "POST",
+    body: JSON.stringify(requestPayload),
+  });
+  const receipt = ClaimBatchReceiptV6Schema.parse(raw);
+  if (receipt.request_id !== requestId) throw new Error("XUANXUE_AI_PRODUCTION_V6_CLAIM_RECEIPT_MISMATCH");
+  const parsedJobs: XuanxueAiProductionCloudClaimedJob[] = [];
+  for (const rawJob of receipt.jobs) {
     const parsed = XuanxueAiProductionCloudClaimedJobSchema.safeParse(rawJob);
-    if (parsed.success) {
-      accepted.push(parsed.data);
+    if (!parsed.success) {
+      reportUnaddressableClaim(rawJob, parsed.error);
+      throw new Error("XUANXUE_AI_PRODUCTION_V6_CLAIM_BATCH_PARTIAL_REJECTED");
+    }
+    parsedJobs.push(parsed.data);
+  }
+  outbox.commitClaimReceipt({
+    requestId,
+    response: receipt,
+    claims: parsedJobs.map((job) => ({
+      jobId: job.job_id, attemptId: job.grant.attempt_id,
+      leaseVersion: job.grant.lease_version, createdAt: job.created_at,
+      grant: job.grant,
+    })),
+  });
+  const jobs: XuanxueAiProductionCloudClaimedJob[] = [];
+  for (const job of parsedJobs) {
+    if (reconcilingSupersededClaim) continue;
+    if (job.grant.worker_session_id !== session.workerSessionId
+      || job.grant.worker_session_epoch !== session.workerSessionEpoch) {
+      reportUnaddressableClaim(job, new Error("SESSION_FENCE_MISMATCH"));
       continue;
     }
-    // A malformed V5 grant is not an authority to call any lifecycle endpoint.
-    // The Cloud lease expires into its own recovery path; the Worker never
-    // manufactures a partial terminal request from an old envelope.
-    reportUnaddressableClaim(rawJob, parsed.error);
+    jobs.push(job);
   }
-  return accepted;
+  if (!reconcilingSupersededClaim && receipt.outcome === "LEASE_GRANTED" && jobs.length !== receipt.jobs.length) throw new Error("XUANXUE_AI_PRODUCTION_V6_CLAIM_BATCH_PARTIAL_REJECTED");
+  return Object.freeze({
+    outcome: reconcilingSupersededClaim ? "CLAIM_BLOCKED" : receipt.outcome,
+    jobs: Object.freeze(jobs),
+    reasonCodes: Object.freeze(reconcilingSupersededClaim
+      ? ["SUPERSEDED_CLAIM_RECONCILED"] : [...receipt.reason_codes]),
+    nextClaimAfterMs: receipt.next_claim_after_ms, receipt,
+  });
+}
+
+export async function readXuanxueAiProductionCloudTerminalStatus(
+  session: XuanxueAiProductionWorkerSessionV6,
+  jobId: string,
+): Promise<XuanxueAiProductionCloudTerminalStatus> {
+  if (!jobId.trim()) throw new Error("XUANXUE_AI_PRODUCTION_ATTESTATION_JOB_ID_INVALID");
+  return session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/device-status`, { method: "GET" });
 }
 
 export async function downloadXuanxueAiProductionInput(
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
   job: XuanxueAiProductionCloudClaimedJob,
   stageId: string,
   inputId: string,
 ): Promise<Uint8Array> {
   const response = await fetch(
-    `${baseUrl(credential)}/internal/ai-production/jobs/`
-    + `${encodeURIComponent(job.job_id)}/materials/`
-    + `${encodeURIComponent(stageId)}/inputs/${encodeURIComponent(inputId)}`,
-    {
-      headers: {
-        authorization: `Bearer ${credential.credential}`,
-        ...leaseHeaders(job),
-      },
-      signal: AbortSignal.timeout(120_000),
-    },
+    `${rootUrl(session)}/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/materials/${encodeURIComponent(stageId)}/inputs/${encodeURIComponent(inputId)}`,
+    { headers: await session.authorizationHeaders(fenceHeaders(job)), signal: AbortSignal.timeout(120_000) },
   );
-  if (!response.ok) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_INPUT_DOWNLOAD_FAILED:${response.status}`,
-    );
-  }
+  if (!response.ok) throw new Error(`XUANXUE_AI_PRODUCTION_INPUT_DOWNLOAD_FAILED:${response.status}`);
   return new Uint8Array(await response.arrayBuffer());
 }
 
-export async function downloadXuanxueAiProductionParentReplayInput(
-  credential: XuanxueAiProductionCloudCredential,
-  child: XuanxueAiProductionCloudClaimedJob,
-  stageId: string,
-  inputId: string,
-): Promise<Uint8Array> {
-  const response = await fetch(
-    `${baseUrl(credential)}/internal/ai-production/jobs/`
-    + `${encodeURIComponent(child.job_id)}/continuation-parent/materials/`
-    + `${encodeURIComponent(stageId)}/inputs/${encodeURIComponent(inputId)}`,
-    {
-      headers: {
-        authorization: `Bearer ${credential.credential}`,
-        ...leaseHeaders(child),
-      },
-      signal: AbortSignal.timeout(120_000),
-    },
-  );
-  if (!response.ok) {
-    throw new Error(
-      "XUANXUE_AI_PRODUCTION_PARENT_REPLAY_INPUT_DOWNLOAD_FAILED:"
-      + response.status,
-    );
+// Parent replay inputs are resolved by the same child-fenced V6 material
+// endpoint. There is no parallel continuation-parent transport route.
+export const downloadXuanxueAiProductionParentReplayInput = downloadXuanxueAiProductionInput;
+
+const sendOutboxJson = async (
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+  write: Parameters<XuanxueAiProductionCloudOutbox["enqueue"]>[0],
+): Promise<Record<string, unknown>> => {
+  const queued = outbox.enqueue(write);
+  const result = await session.request<Record<string, unknown>>(queued.pathname, {
+    method: queued.method, headers: queued.headers, body: JSON.stringify(queued.body),
+  });
+  const bodyFile = outbox.acknowledge(queued.requestId, result);
+  if (bodyFile) await rm(bodyFile, { force: true });
+  return result;
+};
+
+export async function flushXuanxueAiProductionCloudOutbox(
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+): Promise<void> {
+  for (const write of outbox.pending()) {
+    if (write.writeKind === "artifact") {
+      if (!write.bodyFile) throw new Error("XUANXUE_AI_PRODUCTION_OUTBOX_ARTIFACT_FILE_MISSING");
+      const bytes = await readFile(write.bodyFile);
+      const actual = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+      if (actual !== write.payloadHash) throw new Error("XUANXUE_AI_PRODUCTION_OUTBOX_ARTIFACT_CHANGED");
+      const response = await fetch(`${rootUrl(session)}${write.pathname}`, {
+        method: "PUT", headers: await session.authorizationHeaders(write.headers), body: bytes,
+        signal: AbortSignal.timeout(120_000),
+      });
+      const envelope = await response.json() as { ok?: boolean; data?: unknown };
+      if (!response.ok || envelope.ok !== true || envelope.data === undefined) {
+        throw new Error(`XUANXUE_AI_PRODUCTION_OUTBOX_REPLAY_FAILED:${response.status}`);
+      }
+      const bodyFile = outbox.acknowledge(write.requestId, envelope.data);
+      if (bodyFile) await rm(bodyFile, { force: true });
+      continue;
+    }
+    if ((write.writeKind === "terminal" || write.writeKind === "cancel") && write.body) {
+      const expectedPayloadHash = write.body.payload_hash;
+      const expectedStatus = write.body.terminal_status;
+      const status = await readXuanxueAiProductionCloudTerminalStatus(session, write.jobId);
+      if (status.terminal_status !== null) {
+        if (status.terminal_payload_hash !== expectedPayloadHash || status.terminal_status !== expectedStatus || !status.terminal_receipt) {
+          throw new Error("XUANXUE_AI_PRODUCTION_TERMINAL_RECEIPT_CONFLICT");
+        }
+        const bodyFile = outbox.acknowledge(write.requestId, status.terminal_receipt);
+        if (bodyFile) await rm(bodyFile, { force: true });
+        continue;
+      }
+    }
+    const result = await session.request<Record<string, unknown>>(write.pathname, {
+      method: write.method, headers: write.headers, body: JSON.stringify(write.body),
+    });
+    const bodyFile = outbox.acknowledge(write.requestId, result);
+    if (bodyFile) await rm(bodyFile, { force: true });
   }
-  return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function releaseXuanxueAiProductionLease(
+  session: XuanxueAiProductionWorkerSessionV6,
+  job: XuanxueAiProductionCloudClaimedJob,
+  reasonCode: "CAPABILITY_CHANGED_BEFORE_ACCEPT" | "DEADLINE_BUDGET_EXHAUSTED" | "LOCAL_CAPACITY_CHANGED",
+): Promise<void> {
+  const requestId = `aiprelease_${randomUUID()}`;
+  const payload = { reason_code: reasonCode, job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash };
+  await session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/lease-release`, {
+    method: "POST", body: JSON.stringify({
+      schema_version: "xuanxue-ai-lease-release.v6", request_id: requestId,
+      control_protocol_version: "xuanxue-ai-production-v6", idempotency_key: requestId,
+      job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash,
+      worker_session_id: session.workerSessionId, worker_session_epoch: session.workerSessionEpoch,
+      attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
+      payload_hash: hashCanonical(payload), reason_code: reasonCode,
+    }),
+  });
+}
+
+export async function heartbeatXuanxueAiProductionJob(
+  session: XuanxueAiProductionWorkerSessionV6,
+  job: XuanxueAiProductionCloudClaimedJob,
+  checkpointHash: `sha256:${string}` | null = null,
+): Promise<Readonly<{
+  server_now: string; lease_expires_at: string; renew_after_ms: 20_000;
+  control_intent: Readonly<{ intent: "none" | "pause_requested" | "cancel_requested" | "handover_requested"; control_epoch: number; reason_code: string | null }>;
+}>> {
+  const requestId = `aiprenew_${randomUUID()}`;
+  return session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/renew`, {
+    method: "POST", body: JSON.stringify({
+      schema_version: "xuanxue-ai-lease-renew.v6", control_protocol_version: "xuanxue-ai-production-v6",
+      request_id: requestId, idempotency_key: requestId,
+      job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash,
+      worker_session_id: session.workerSessionId, worker_session_epoch: session.workerSessionEpoch,
+      attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
+      checkpoint_hash: checkpointHash,
+    }),
+  });
+}
+
+const writeXuanxueAiProductionCheckpoint = async (
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+  job: XuanxueAiProductionCloudClaimedJob,
+  input: {
+    readonly status: "inputs_downloading" | "factory_running" | "recovery_pending";
+    readonly localOrderId?: string; readonly failureReason?: string;
+    readonly attachmentUploadProof?: XuanxueAiProductionAttachmentCheckpointProof;
+    readonly checkpointKind?: string;
+    readonly writeKind?: "checkpoint" | "handover";
+  },
+): Promise<Readonly<{ payloadHash: `sha256:${string}`; response: Record<string, unknown> }>> => {
+  const requestId = `aipcheckpoint_${randomUUID()}`;
+  const payloadHash = hashCanonical(input);
+  const queued = outbox.enqueueCheckpoint({
+    jobId: job.job_id,
+    attemptId: job.grant.attempt_id,
+    leaseVersion: job.grant.lease_version,
+    buildWrite: (checkpointSequence) => {
+      const body = {
+        schema_version: "xuanxue-ai-checkpoint.v6", control_protocol_version: "xuanxue-ai-production-v6",
+        request_id: requestId, idempotency_key: requestId,
+        job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash,
+        worker_session_id: session.workerSessionId, worker_session_epoch: session.workerSessionEpoch,
+        attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
+        local_order_id: input.localOrderId ?? null, status: input.status,
+        checkpoint_seq: checkpointSequence,
+        checkpoint_kind: input.checkpointKind ?? input.status, payload_hash: payloadHash,
+        object_receipts: input.attachmentUploadProof?.staging_manifest_hash
+          ? [input.attachmentUploadProof.staging_manifest_hash] : [],
+      } as const;
+      return {
+        requestId, jobId: job.job_id, writeKind: input.writeKind ?? "checkpoint", method: "POST",
+        pathname: `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/checkpoints`,
+        headers: {}, body, bodyFile: null, payloadHash: hashCanonical(body),
+      };
+    },
+  });
+  const response = await sendOutboxJson(session, outbox, queued);
+  return Object.freeze({ payloadHash, response });
+};
+
+export async function checkpointXuanxueAiProductionJob(
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+  job: XuanxueAiProductionCloudClaimedJob,
+  input: {
+    readonly status: "inputs_downloading" | "factory_running" | "recovery_pending";
+    readonly localOrderId?: string; readonly failureReason?: string;
+    readonly attachmentUploadProof?: XuanxueAiProductionAttachmentCheckpointProof;
+  },
+): Promise<`sha256:${string}`> {
+  const result = await writeXuanxueAiProductionCheckpoint(session, outbox, job, input);
+  const checkpointHash = result.response.checkpoint_hash;
+  if (typeof checkpointHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(checkpointHash)) {
+    throw new Error("XUANXUE_AI_PRODUCTION_CHECKPOINT_RECEIPT_INVALID");
+  }
+  return checkpointHash as `sha256:${string}`;
+}
+
+export async function acknowledgeXuanxueAiProductionHandover(
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+  job: XuanxueAiProductionCloudClaimedJob,
+  localOrderId: string,
+): Promise<HandoverV6> {
+  const result = await writeXuanxueAiProductionCheckpoint(session, outbox, job, {
+    status: "recovery_pending",
+    localOrderId,
+    failureReason: "handover acknowledged at a local safe point",
+    checkpointKind: "handover_acknowledgement",
+    writeKind: "handover",
+  });
+  const handover = HandoverV6Schema.parse(result.response);
+  if (handover.job_id !== job.job_id
+    || handover.predecessor_fence_hash !== job.grant.execution_fence.fence_hash) {
+    throw new Error("XUANXUE_AI_PRODUCTION_HANDOVER_RECEIPT_MISMATCH");
+  }
+  return handover;
 }
 
 export async function uploadXuanxueAiProductionOutputArtifact(
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
   job: XuanxueAiProductionCloudClaimedJob,
   input: {
-    readonly stageId: "article_image_generation";
-    readonly artifactId: string;
-    readonly filePath: string;
-    readonly sha256: `sha256:${string}`;
-    readonly originalSha256: `sha256:${string}`;
-    readonly executionId: string;
-    readonly providerOutputRef: string;
-    readonly checkpointProofRef: string;
+    readonly stageId: "article_image_generation"; readonly artifactId: string;
+    readonly filePath: string; readonly sha256: `sha256:${string}`;
+    readonly originalSha256: `sha256:${string}`; readonly executionId: string;
+    readonly providerOutputRef: string; readonly checkpointProofRef: string;
     readonly byteCount: number;
   },
 ): Promise<UploadedOutputArtifact> {
   const bytes = await readFile(input.filePath);
-  if (bytes.byteLength !== input.byteCount) {
+  if (bytes.byteLength !== input.byteCount
+    || `sha256:${createHash("sha256").update(bytes).digest("hex")}` !== input.sha256) {
     throw new Error("XUANXUE_AI_PRODUCTION_OUTPUT_LOCAL_BYTES_CHANGED");
   }
-  const response = await fetch(
-    `${baseUrl(credential)}/internal/ai-production/jobs/`
-    + `${encodeURIComponent(job.job_id)}/artifacts/`
-    + `${encodeURIComponent(input.stageId)}/${encodeURIComponent(input.artifactId)}`,
-    {
-      method: "PUT",
-      headers: {
-        authorization: `Bearer ${credential.credential}`,
-        ...leaseHeaders(job),
-        "content-type": "image/webp",
-        "x-ai-content-sha256": input.sha256,
-        "x-ai-original-sha256": input.originalSha256,
-        "x-ai-execution-id": input.executionId,
-        "x-ai-provider-output-ref": input.providerOutputRef,
-        "x-ai-checkpoint-proof-ref": input.checkpointProofRef,
-        "x-ai-content-bytes": String(input.byteCount),
-      },
-      body: bytes,
-      signal: AbortSignal.timeout(120_000),
-    },
-  );
-  const body = await response.json() as JsonEnvelope<UploadedOutputArtifact>;
-  if (!response.ok || body.ok !== true || !body.data) {
-    throw new Error(
-      `XUANXUE_AI_PRODUCTION_OUTPUT_UPLOAD_FAILED:${body.error?.code ?? response.status}`,
-    );
+  const requestId = `aipartifact_${randomUUID()}`;
+  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/${encodeURIComponent(input.stageId)}/${encodeURIComponent(input.artifactId)}`;
+  const headers = {
+    ...fenceHeaders(job), "content-type": "image/webp",
+    "x-ai-request-id": requestId, "x-ai-content-sha256": input.sha256,
+    "x-ai-original-sha256": input.originalSha256,
+    "x-ai-execution-id": input.executionId,
+    "x-ai-provider-output-ref": input.providerOutputRef,
+    "x-ai-checkpoint-proof-ref": input.checkpointProofRef,
+    "x-ai-content-bytes": String(input.byteCount),
+  };
+  const queued = outbox.enqueue({
+    requestId, jobId: job.job_id, writeKind: "artifact", method: "PUT", pathname,
+    headers, body: null, bodyFile: input.filePath, payloadHash: input.sha256,
+  });
+  const response = await fetch(`${rootUrl(session)}${pathname}`, {
+    method: "PUT", headers: await session.authorizationHeaders(headers), body: bytes,
+    signal: AbortSignal.timeout(120_000),
+  });
+  const envelope = await response.json() as { ok?: boolean; data?: UploadedOutputArtifact };
+  if (!response.ok || envelope.ok !== true || !envelope.data) throw new Error(`XUANXUE_AI_PRODUCTION_OUTPUT_UPLOAD_FAILED:${response.status}`);
+  const acknowledgedBodyFile = outbox.acknowledge(queued.requestId, envelope.data);
+  if (acknowledgedBodyFile) await rm(acknowledgedBodyFile, { force: true });
+  return envelope.data;
+}
+
+export async function uploadXuanxueAiProductionProductResult(
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+  job: XuanxueAiProductionCloudClaimedJob,
+  dataDir: string,
+  result: XuanxueAiProductionResult,
+): Promise<`sha256:${string}`> {
+  const canonical = canonicalJson(result);
+  const bytes = Buffer.from(canonical, "utf8");
+  const contentHash = hashCanonical(result);
+  const directory = path.join(dataDir, "plugin-tasks", "xuanxue-ai-production", "cloud-result-outbox");
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const filePath = path.join(directory, `${job.job_id}-${job.grant.attempt_id}.json`);
+  const handle = await open(filePath, "w", 0o600);
+  try { await handle.writeFile(bytes); await handle.sync(); } finally { await handle.close(); }
+  const requestId = `aipresult_${randomUUID()}`;
+  const artifactId = `airesult_${job.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-80)}_${contentHash.slice(-16)}`;
+  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/product_result/${encodeURIComponent(artifactId)}`;
+  const headers = {
+    ...fenceHeaders(job), "content-type": "application/json",
+    "x-ai-request-id": requestId, "x-ai-content-sha256": contentHash,
+    "x-ai-content-bytes": String(bytes.byteLength),
+  };
+  const queued = outbox.enqueue({
+    requestId, jobId: job.job_id, writeKind: "artifact", method: "PUT", pathname,
+    headers, body: null, bodyFile: filePath, payloadHash: contentHash,
+  });
+  const response = await fetch(`${rootUrl(session)}${pathname}`, {
+    method: "PUT", headers: await session.authorizationHeaders(headers), body: bytes,
+    signal: AbortSignal.timeout(120_000),
+  });
+  const envelope = await response.json() as { ok?: boolean; data?: { sha256?: string } };
+  if (!response.ok || envelope.ok !== true || envelope.data?.sha256 !== contentHash) {
+    throw new Error(`XUANXUE_AI_PRODUCTION_RESULT_UPLOAD_FAILED:${response.status}`);
   }
-  return body.data;
+  const acknowledgedBodyFile = outbox.acknowledge(queued.requestId, envelope.data);
+  if (acknowledgedBodyFile) await rm(acknowledgedBodyFile, { force: true });
+  return contentHash;
 }
 
-export async function heartbeatXuanxueAiProductionJob(
-  credential: XuanxueAiProductionCloudCredential,
+const terminalWrite = async (
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
   job: XuanxueAiProductionCloudClaimedJob,
-): Promise<void> {
-  await cloudRequest(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(job.job_id)}/heartbeat`,
-    { method: "POST", headers: leaseHeaders(job), body: "{}" },
-  );
-}
-
-export async function checkpointXuanxueAiProductionJob(
-  credential: XuanxueAiProductionCloudCredential,
-  job: XuanxueAiProductionCloudClaimedJob,
-  input: {
-    readonly status:
-      | "inputs_downloading"
-      | "factory_running"
-      | "recovery_pending";
-    readonly localOrderId?: string;
-    readonly failureReason?: string;
-    readonly attachmentUploadProof?: XuanxueAiProductionAttachmentCheckpointProof;
-  },
-): Promise<void> {
-  await cloudRequest(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(job.job_id)}/checkpoints`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        protocol_version:
-          XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-        lease_token: job.lease_token,
-        lease_version: job.lease_version,
-        attempt_id: job.grant.attempt_id,
-        execution_fence_hash: job.grant.execution_fence.fence_hash,
-        idempotency_key:
-          `${job.job_id}:lease:${job.lease_version}:${input.status}`
-          + (input.attachmentUploadProof
-            ? `:attachment:${input.attachmentUploadProof.stage_id}:${input.attachmentUploadProof.upload_attempt_id}`
-            : ""),
-        status: input.status,
-        local_order_id: input.localOrderId ?? null,
-        failure_reason: input.failureReason ?? null,
-        attachment_upload_proof: input.attachmentUploadProof ?? null,
-      }),
-    },
-  );
-}
+  status: "completed" | "failed" | "review_required" | "cancelled",
+  payload: unknown,
+  objectReceipts: readonly `sha256:${string}`[],
+): Promise<void> => {
+  const requestId = `aipterminal_${randomUUID()}`;
+  const body = {
+    schema_version: "xuanxue-ai-terminal-cas.v6", control_protocol_version: "xuanxue-ai-production-v6",
+    request_id: requestId, idempotency_key: requestId,
+    job_id: job.job_id, fence_hash: job.grant.execution_fence.fence_hash,
+    worker_session_id: session.workerSessionId, worker_session_epoch: session.workerSessionEpoch,
+    attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
+    terminal_status: status, payload_hash: hashCanonical(payload),
+    result_object_receipts: [...objectReceipts],
+  } as const;
+  await sendOutboxJson(session, outbox, {
+    requestId, jobId: job.job_id, writeKind: status === "cancelled" ? "cancel" : "terminal",
+    method: "POST", pathname: `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/terminal`,
+    headers: {}, body, bodyFile: null, payloadHash: hashCanonical(body),
+  });
+};
 
 export async function completeXuanxueAiProductionJob(
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
   job: XuanxueAiProductionCloudClaimedJob,
   result: XuanxueAiProductionResult,
 ): Promise<void> {
-  await cloudRequest(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(job.job_id)}/result`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        protocol_version:
-          XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-        lease_token: job.lease_token,
-        lease_version: job.lease_version,
-        attempt_id: job.grant.attempt_id,
-        execution_fence_hash: job.grant.execution_fence.fence_hash,
-        idempotency_key:
-          `${job.job_id}:completed:${result.requestHash}`,
-        result_json: result,
-      }),
-    },
-  );
+  const receipts = [
+    hashCanonical(result),
+    ...result.stages.flatMap((stage) => stage.artifact?.sha256 ? [stage.artifact.sha256] : []),
+  ];
+  await terminalWrite(session, outbox, job, "completed", result, receipts);
+}
+
+export async function cancelXuanxueAiProductionJob(
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
+  job: XuanxueAiProductionCloudClaimedJob,
+  payload: Readonly<Record<string, unknown>>,
+): Promise<void> {
+  await terminalWrite(session, outbox, job, "cancelled", payload, []);
 }
 
 export async function failXuanxueAiProductionJob(
-  credential: XuanxueAiProductionCloudCredential,
+  session: XuanxueAiProductionWorkerSessionV6,
+  outbox: XuanxueAiProductionCloudOutbox,
   job: XuanxueAiProductionCloudClaimedJob,
   input: {
     readonly status: "recovery_pending" | "review_required" | "failed";
-    readonly code: string;
-    readonly reason: string;
-    readonly recoverable: boolean;
+    readonly code: string; readonly reason: string; readonly recoverable: boolean;
     readonly localOrderId?: string;
   },
 ): Promise<void> {
-  await cloudRequest(
-    credential,
-    `/internal/ai-production/jobs/${encodeURIComponent(job.job_id)}/failure`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        protocol_version:
-          XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
-        lease_token: job.lease_token,
-        lease_version: job.lease_version,
-        attempt_id: job.grant.attempt_id,
-        execution_fence_hash: job.grant.execution_fence.fence_hash,
-        idempotency_key:
-          `${job.job_id}:lease:${job.lease_version}:failure:${input.code}`,
-        status: input.status,
-        code: input.code,
-        reason: input.reason,
-        recoverable: input.recoverable,
-        local_order_id: input.localOrderId ?? null,
-      }),
-    },
-  );
+  if (input.recoverable || input.status === "recovery_pending") {
+    await checkpointXuanxueAiProductionJob(session, outbox, job, {
+      status: "recovery_pending", ...(input.localOrderId ? { localOrderId: input.localOrderId } : {}),
+      failureReason: `${input.code}:${input.reason}`,
+    });
+    return;
+  }
+  await terminalWrite(session, outbox, job, input.status === "review_required" ? "review_required" : "failed", input, []);
 }
