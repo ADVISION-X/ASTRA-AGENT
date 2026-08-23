@@ -8,7 +8,6 @@ export type ValidatedMediaSource = {
 };
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".tif", ".tiff"]);
-const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".m4v", ".webm"]);
 
 const isWithinRoot = (filePath: string, root: string): boolean => {
   const relative = path.relative(root, filePath);
@@ -37,6 +36,3 @@ export const validateMediaSourceFile = async (
 
 export const isSupportedImageExtension = (extension: string): boolean =>
   IMAGE_EXTENSIONS.has(extension);
-
-export const isSupportedVideoExtension = (extension: string): boolean =>
-  VIDEO_EXTENSIONS.has(extension);

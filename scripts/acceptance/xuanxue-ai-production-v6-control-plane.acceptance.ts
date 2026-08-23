@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { chmodSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
 
 import { XuanxueAiProductionCloudOutbox } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-outbox.js";
 import { openXuanxueAiProductionDatabase } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.js";
@@ -18,6 +19,8 @@ import { cloudWorkerPollIntervalMs } from "../../src/plugins/xuanxue-ai-producti
 
 const temporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-control-"));
 const legacyTemporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-legacy-state-"));
+const legacyUnmatchedTemporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-legacy-unmatched-"));
+const legacyAmbiguousTemporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-legacy-ambiguous-"));
 const database = openXuanxueAiProductionDatabase(temporary);
 const hash = `sha256:${"a".repeat(64)}` as const;
 
@@ -123,6 +126,39 @@ try {
   });
   migrated.close();
 
+  for (const [legacyPath, claims] of [
+    [legacyUnmatchedTemporary, []],
+    [legacyAmbiguousTemporary, [
+      ["attempt-one", 1],
+      ["attempt-two", 2],
+    ]],
+  ] as const) {
+    const seed = openXuanxueAiProductionDatabase(legacyPath);
+    seed.exec("drop table production_cloud_job_state");
+    seed.exec("create table production_cloud_job_state(job_id text primary key,checkpoint_sequence integer not null default 0)");
+    seed.prepare("insert into production_cloud_job_state(job_id,checkpoint_sequence) values(?,?)").run("job-invalid", 9);
+    for (const [attemptId, leaseVersion] of claims) {
+      seed.prepare(`insert into production_cloud_claim_ledger(
+        job_id,attempt_id,lease_version,created_at,grant_json,grant_hash,persisted_at
+      ) values(?,?,?,?,?,?,?)`).run("job-invalid", attemptId, leaseVersion,
+        new Date().toISOString(), "{}", hash, new Date().toISOString());
+    }
+    seed.close();
+    assert.throws(
+      () => openXuanxueAiProductionDatabase(legacyPath),
+      /XUANXUE_AI_PRODUCTION_V5_JOB_STATE_MIGRATION_BINDING_INVALID/u,
+    );
+    const preserved = new Database(
+      path.join(legacyPath, "plugin-tasks", "xuanxue-ai-production", "xuanxue_ai_production.sqlite"),
+    );
+    assert.equal((preserved.prepare("select count(*) as count from production_cloud_job_state").get() as { count: number }).count, 1);
+    assert.equal((preserved.pragma("table_info(production_cloud_job_state)") as { name: string }[])
+      .some((column) => column.name === "attempt_id"), false);
+    assert.equal((preserved.prepare(`select count(*) as count from sqlite_master
+      where type='table' and name='production_cloud_job_state_v5_retired'`).get() as { count: number }).count, 0);
+    preserved.close();
+  }
+
   const databaseSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts", "utf8");
   const clientSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts", "utf8");
   const workerSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts", "utf8");
@@ -172,4 +208,6 @@ try {
   database.close();
   rmSync(temporary, { recursive: true, force: true });
   rmSync(legacyTemporary, { recursive: true, force: true });
+  rmSync(legacyUnmatchedTemporary, { recursive: true, force: true });
+  rmSync(legacyAmbiguousTemporary, { recursive: true, force: true });
 }

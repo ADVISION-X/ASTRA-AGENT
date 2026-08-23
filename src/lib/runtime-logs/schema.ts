@@ -3,14 +3,11 @@ import type { RuntimeLogEventType } from "./event-types.js";
 export type RuntimeLogOwner =
   | "ai-input-gateway"
   | "forensics-persistence"
-  | "video-download"
   | "runtime-logs"
   | "app-shell"
   | "browser-session"
   | "local-runtime"
   | "startup-entrypoint"
-  | "amazon-invoice-upload"
-  | "amazon-product-mining"
   | "dom-automation"
   | "unknown";
 

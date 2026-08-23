@@ -1,5 +1,5 @@
 export type BrowserSitePolicy = Readonly<{
-  siteId: "gpt-web-chat" | "amazon";
+  siteId: "gpt-web-chat";
   allowedOrigins: readonly string[];
 }>;
 
@@ -7,15 +7,6 @@ const policies: readonly BrowserSitePolicy[] = Object.freeze([
   {
     siteId: "gpt-web-chat",
     allowedOrigins: ["https://chatgpt.com"],
-  },
-  {
-    siteId: "amazon",
-    allowedOrigins: [
-      "https://www.amazon.ae",
-      "https://www.amazon.com",
-      "https://sellercentral.amazon.ae",
-      "https://sellercentral.amazon.com",
-    ],
   },
 ]);
 
