@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -161,9 +161,16 @@ try {
   });
   const credentialPath = xuanxueAiProductionCloudCredentialPath(temporary);
   assert.equal((await readXuanxueAiProductionCloudCredential(temporary)).device_id, "device-1");
+  const credentialDirectory = path.dirname(credentialPath);
+  chmodSync(credentialDirectory, 0o755);
+  assert.equal((await readXuanxueAiProductionCloudCredential(temporary)).device_id, "device-1");
+  assert.equal(statSync(credentialDirectory).mode & 0o077, 0,
+    "an owned real credential directory is tightened before the credential is accepted");
   chmodSync(credentialPath, 0o644);
   await assert.rejects(() => readXuanxueAiProductionCloudCredential(temporary), /CREDENTIAL_PERMISSIONS_INVALID/u);
   chmodSync(credentialPath, 0o600);
+  writeFileSync(credentialPath, `${JSON.stringify({ protocol_version: "xuanxue-ai-production-v5" })}\n`, { mode: 0o600 });
+  await assert.rejects(() => readXuanxueAiProductionCloudCredential(temporary), /CREDENTIAL_REENROLLMENT_REQUIRED/u);
   const realCredentialPath = `${credentialPath}.real`;
   renameSync(credentialPath, realCredentialPath);
   symlinkSync(realCredentialPath, credentialPath);

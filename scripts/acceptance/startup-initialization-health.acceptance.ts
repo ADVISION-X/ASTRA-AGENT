@@ -9,6 +9,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
 import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-preflight.mjs";
 import { clearPortListeners } from "../startup/lib/process-control.mjs";
+import { waitForWorkbenchHealth } from "../startup/lib/service-readiness.mjs";
 
 const waitForChildReady = (child: ChildProcess): Promise<void> => new Promise((resolve, reject) => {
   let output = "";
@@ -198,6 +199,41 @@ const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promis
   }
 };
 
+const verifyStartupEntrypointAcceptsDiagnosticShell = async (): Promise<void> => {
+  const sourceFingerprint = `sha256:${"1".repeat(64)}`;
+  const fixture = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      status: "degraded",
+      checkedAt: new Date().toISOString(),
+      sourceFingerprint,
+      components: [{
+        name: "runtimeInitialization",
+        ok: false,
+        detail: "Mandatory runtime owner initialization failed: fixture dependency blocked",
+      }],
+    }));
+  });
+  await new Promise<void>((resolve) => fixture.listen(0, "127.0.0.1", resolve));
+  const address = fixture.address();
+  assert(address && typeof address === "object");
+  try {
+    let observedStatus: string | null = null;
+    await waitForWorkbenchHealth({
+      baseUrl: `http://127.0.0.1:${address.port}`,
+      attempts: 1,
+      delayMs: 0,
+      expectedSourceFingerprint: sourceFingerprint,
+      toFailureReason: (error: unknown) => error instanceof Error ? error.message : String(error),
+      onPassed: ({ status }: { status: string }) => { observedStatus = status; },
+    });
+    assert.equal(observedStatus, "degraded",
+      "startup entrypoint must keep the reachable diagnostic Shell alive while execution remains blocked");
+  } finally {
+    await new Promise<void>((resolve, reject) => fixture.close((error) => error ? reject(error) : resolve()));
+  }
+};
+
 const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
   const preflight = await runBrowserRuntimePreflight();
   assert.equal(preflight.status, "READY");
@@ -210,6 +246,7 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
   await verifySingleLocalEnvironmentInjection();
   await verifyInitializationHealth();
   await verifyDiagnosticShellSurvivesExecutionDependencyFailure();
+  await verifyStartupEntrypointAcceptsDiagnosticShell();
   await verifyUnpackedWebSocketPreflight();
   await verifyRepositoryOwnedPortCleanup();
 }

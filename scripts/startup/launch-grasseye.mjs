@@ -180,6 +180,20 @@ async function verifyAppHealth() {
       logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing local workbench health at ${healthUrl}`);
     },
     onPassed: ({ healthUrl, contentType, status, attempt, durationMs }) => {
+      if (status === "degraded") {
+        logEvent(
+          "APP",
+          "app_shell",
+          "APP_SHELL_DIAGNOSTIC_READY",
+          "degraded",
+          `local diagnostic shell is ready at ${healthUrl}; execution dependencies remain blocked`,
+          {
+            refs: [`healthUrl=${healthUrl}`, `contentType=${contentType}`, `healthStatus=${status}`, `attempt=${attempt}`],
+            durationMs,
+          },
+        );
+        return;
+      }
       logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `local workbench health passed at ${healthUrl}`, {
         refs: [`healthUrl=${healthUrl}`, `contentType=${contentType}`, `healthStatus=${status}`, `attempt=${attempt}`],
         durationMs,

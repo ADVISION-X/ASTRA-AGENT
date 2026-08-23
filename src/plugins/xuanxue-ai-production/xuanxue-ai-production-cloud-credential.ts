@@ -45,18 +45,36 @@ export async function readXuanxueAiProductionCloudCredential(
   dataDir: string,
 ): Promise<XuanxueAiProductionCloudCredential> {
   const filePath = xuanxueAiProductionCloudCredentialPath(dataDir);
-  const [linkMetadata, metadata, parentMetadata] = await Promise.all([
-    lstat(filePath), stat(filePath), stat(path.dirname(filePath)),
+  const parentPath = path.dirname(filePath);
+  const [linkMetadata, metadata, parentLinkMetadata, parentMetadata] = await Promise.all([
+    lstat(filePath), stat(filePath), lstat(parentPath), stat(parentPath),
   ]);
   const currentUid = process.getuid?.();
-  if (linkMetadata.isSymbolicLink() || !metadata.isFile()
-    || (metadata.mode & 0o077) !== 0 || (parentMetadata.mode & 0o077) !== 0
+  if (linkMetadata.isSymbolicLink() || parentLinkMetadata.isSymbolicLink()
+    || !metadata.isFile() || !parentMetadata.isDirectory()
+    || (metadata.mode & 0o077) !== 0
     || (currentUid !== undefined && (metadata.uid !== currentUid || parentMetadata.uid !== currentUid))) {
     throw new Error(
       "XUANXUE_AI_PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID",
     );
   }
-  const parsed = credentialSchema.parse(JSON.parse(await readFile(filePath, "utf8")));
+  if ((parentMetadata.mode & 0o077) !== 0) {
+    await chmod(parentPath, 0o700);
+    const repaired = await lstat(parentPath);
+    if (repaired.isSymbolicLink() || !repaired.isDirectory()
+      || repaired.dev !== parentLinkMetadata.dev || repaired.ino !== parentLinkMetadata.ino
+      || (repaired.mode & 0o077) !== 0
+      || (currentUid !== undefined && repaired.uid !== currentUid)) {
+      throw new Error(
+        "XUANXUE_AI_PRODUCTION_CREDENTIAL_PERMISSIONS_INVALID",
+      );
+    }
+  }
+  const raw = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+  if (raw.protocol_version !== XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION) {
+    throw new Error("XUANXUE_AI_PRODUCTION_CREDENTIAL_REENROLLMENT_REQUIRED");
+  }
+  const parsed = credentialSchema.parse(raw);
   if (parsed.environment_id === "production"
     && (new URL(parsed.server_base_url).protocol !== "https:"
       || new URL(parsed.origin).protocol !== "https:")) {
