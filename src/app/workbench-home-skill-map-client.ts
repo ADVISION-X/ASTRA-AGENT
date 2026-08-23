@@ -1,14 +1,8 @@
 export const WORKBENCH_HOME_SKILL_MAP_CLIENT = `
 const skillLabels = {
-  "amazon-product-mining": "Amazon Product Mining",
-  "media-optimizer": "Media Optimizer",
-  "amazon-invoice-upload": "Amazon Invoice Upload",
+  "xuanxue-ai-production": "玄学 AI 生产",
 };
 const jobToSkill = {
-  "amazon-product-mining": "amazon-product-mining",
-  "media-processing": "media-optimizer",
-  "media-optimizer": "media-optimizer",
-  amazon: "amazon-invoice-upload",
-  "amazon-invoice-upload": "amazon-invoice-upload",
+  "xuanxue-ai-production": "xuanxue-ai-production",
 };
 `;

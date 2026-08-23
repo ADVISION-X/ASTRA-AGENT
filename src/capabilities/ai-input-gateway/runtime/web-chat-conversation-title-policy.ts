@@ -20,7 +20,6 @@ const domainLabel: Readonly<Record<AiFeedInput["taskIdentity"]["labelKey"], stri
   bazi_analysis: "八字",
   qimen_analysis: "奇门",
   naming_analysis: "起名",
-  amazon_product_mining: "亚马逊",
   full_corpus_analysis: "全书",
   system_acceptance: "系统",
   generic_ai: "AI",
@@ -37,8 +36,6 @@ const roleMappings = [
   [/localization.*(?:review|selector|candidate)/iu, "静态复核"],
   [/localization/iu, "本地化"],
   [/deep.*research/iu, "研究任务"],
-  [/amazon.*keyword/iu, "关键词研究"],
-  [/amazon/iu, "选品研究"],
   [/public.*knowledge|seo/iu, "知识生产"],
   [/acceptance|system/iu, "验收审计"],
 ] as const;

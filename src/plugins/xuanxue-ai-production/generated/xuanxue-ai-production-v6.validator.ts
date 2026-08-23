@@ -558,8 +558,31 @@ const generatedParser = <T>(assertValue: (value: unknown) => asserts value is T)
 });
 
 export const XuanxueAiProductionV6ManifestSchema = generatedParser(assertXuanxueAiProductionV6Manifest);
+export const DeviceEnrollmentV6Schema = generatedParser(assertDeviceEnrollmentV6);
+export const WorkerSessionOpenV6Schema = generatedParser(assertWorkerSessionOpenV6);
 export const WorkerSessionCredentialV6Schema = generatedParser(assertWorkerSessionCredentialV6);
+export const WorkerRuntimeAttestationV6Schema = generatedParser(assertWorkerRuntimeAttestationV6);
 export const RuntimeAttestationReceiptV6Schema = generatedParser(assertRuntimeAttestationReceiptV6);
+export const ClaimRequestV6Schema = generatedParser(assertClaimRequestV6);
 export const CloudExecutionGrantV6Schema = generatedParser(assertCloudExecutionGrantV6);
 export const ClaimBatchReceiptV6Schema = generatedParser(assertClaimBatchReceiptV6);
+export const LeaseReleaseV6Schema = generatedParser(assertLeaseReleaseV6);
+export const LeaseRenewV6Schema = generatedParser(assertLeaseRenewV6);
+export const CheckpointV6Schema = generatedParser(assertCheckpointV6);
+export const TerminalCasV6Schema = generatedParser(assertTerminalCasV6);
 export const HandoverV6Schema = generatedParser(assertHandoverV6);
+export const ErrorEnvelopeV6Schema: GeneratedParser<ErrorEnvelopeV6> = {
+  parse(value: unknown): ErrorEnvelopeV6 {
+    if (!isRecord(value)
+      || value.schema_version !== "xuanxue-ai-error-envelope.v6"
+      || typeof value.code !== "string" || !value.code
+      || !["website", "agent", "browser"].includes(value.owner as string)
+      || typeof value.retryable !== "boolean"
+      || (value.request_id !== null && typeof value.request_id !== "string")
+      || !isRecord(value.details)
+      || !Object.values(value.details).every((item) => item === null || ["string", "number", "boolean"].includes(typeof item))) {
+      throw new Error("AI_V6_ERROR_ENVELOPE_INVALID");
+    }
+    return value as ErrorEnvelopeV6;
+  },
+};

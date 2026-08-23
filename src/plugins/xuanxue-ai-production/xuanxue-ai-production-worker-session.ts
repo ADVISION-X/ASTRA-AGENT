@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import {
   RuntimeAttestationReceiptV6Schema,
+  ErrorEnvelopeV6Schema,
   WorkerSessionCredentialV6Schema,
+  type ErrorEnvelopeV6,
   type RuntimeAttestationReceiptV6,
   type WorkerSessionCredentialV6,
 } from "./generated/xuanxue-ai-production-v6.validator.js";
@@ -14,7 +16,7 @@ import { XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 } from "./xu
 interface JsonEnvelope<T> {
   readonly ok?: boolean;
   readonly data?: T;
-  readonly error?: { readonly code?: string; readonly message?: string };
+  readonly error?: unknown;
 }
 
 export type XuanxueAiProductionRuntimeStateV6 = Readonly<{
@@ -238,7 +240,10 @@ export class XuanxueAiProductionWorkerSessionV6 {
     });
     const body = await response.json() as JsonEnvelope<T>;
     if (!response.ok || body.ok !== true || body.data === undefined) {
-      throw new Error(`XUANXUE_AI_PRODUCTION_CLOUD_API_FAILED:${body.error?.code ?? response.status}:${body.error?.message ?? "unknown"}`);
+      let error: ErrorEnvelopeV6;
+      try { error = ErrorEnvelopeV6Schema.parse(body.error); }
+      catch { throw new Error(`XUANXUE_AI_PRODUCTION_CLOUD_ERROR_ENVELOPE_INVALID:${response.status}`); }
+      throw new Error(`XUANXUE_AI_PRODUCTION_CLOUD_API_FAILED:${error.code}:${error.retryable ? "retryable" : "terminal"}`);
     }
     return body.data;
   }

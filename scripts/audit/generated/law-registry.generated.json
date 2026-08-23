@@ -19,33 +19,9 @@
       ]
     },
     {
-      "capabilityDomain": "amazon-invoice-upload",
-      "lawIds": [
-        "LAW-AMAZON-INVOICE-UPLOAD-001-V2"
-      ],
-      "manifestPath": "scripts/audit/domains/amazon-invoice-upload/manifest.json",
-      "observedPaths": [],
-      "ownedPaths": [
-        "src/mediator/amazon-invoice-upload-route.ts",
-        "src/plugins/amazon-invoice-upload/**"
-      ]
-    },
-    {
-      "capabilityDomain": "amazon-product-mining",
-      "lawIds": [
-        "LAW-AMAZON-PRODUCT-MINING-001-V3"
-      ],
-      "manifestPath": "scripts/audit/domains/amazon-product-mining/manifest.json",
-      "observedPaths": [],
-      "ownedPaths": [
-        "src/mediator/amazon-product-mining-route.ts",
-        "src/plugins/amazon-product-mining/**"
-      ]
-    },
-    {
       "capabilityDomain": "app-shell-ui",
       "lawIds": [
-        "LAW-APP-SHELL-UI-001-V1",
+        "LAW-APP-SHELL-UI-001-V2",
         "LAW-APP-SHELL-UI-002-V1",
         "LAW-APP-SHELL-UI-003-V1"
       ],
@@ -108,7 +84,7 @@
     {
       "capabilityDomain": "local-app-shell",
       "lawIds": [
-        "LAW-LOCAL-APP-SHELL-001-V3",
+        "LAW-LOCAL-APP-SHELL-001-V4",
         "LAW-LOCAL-APP-SHELL-002-V3"
       ],
       "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json",
@@ -152,9 +128,6 @@
       "observedPaths": [],
       "ownedPaths": [
         "src/capabilities/media-processing/**",
-        "src/mediator/media-processing-artifact-route.ts",
-        "src/plugins/media-processing-artifact/**",
-        "src/types/ffprobe-static.d.ts",
         "src/types/sharp.d.ts"
       ]
     },
@@ -203,39 +176,12 @@
     {
       "capabilityDomain": "startup-entrypoint",
       "lawIds": [
-        "LAW-STARTUP-ENTRYPOINT-001-V3"
+        "LAW-STARTUP-ENTRYPOINT-001-V4"
       ],
       "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
       "observedPaths": [],
       "ownedPaths": [
         "scripts/startup/**"
-      ]
-    },
-    {
-      "capabilityDomain": "video-download-capability",
-      "lawIds": [
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-001-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-002-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-003-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-004-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-005-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-006-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-007-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-008-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-009-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-010-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-011-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-012-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-013-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-014-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-015-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-016-V2",
-        "LAW-VIDEO-DOWNLOAD-CAPABILITY-017-V2"
-      ],
-      "manifestPath": "scripts/audit/domains/video-download-capability/manifest.json",
-      "observedPaths": [],
-      "ownedPaths": [
-        "src/capabilities/video-download/**"
       ]
     },
     {
@@ -279,7 +225,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "dca641a326e5a174cf4a0375bdf703e0918e187ed40a8676dbee9dcbfb14d523",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "50da2511f3e9a01ddf3250448ac52f59eac20cc6703d5c6c8fcf5d3253233bc4"
+    "functionalLawSha256": "403d44b6203ae473c6021b0c43ee6be35d5fd7b724bcf400aeceb5f61a2b3e30"
   },
   "laws": [
     {
@@ -527,73 +473,6 @@
     },
     {
       "appliesTo": [
-        "src/plugins/amazon-invoice-upload/**"
-      ],
-      "capabilityDomain": "amazon-invoice-upload",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "composite",
-      "evidenceModes": [
-        "static.ast",
-        "exam.golden",
-        "dynamic.browser"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：BrowserController, CWS, page relay, external debugging port, native messaging, legacy open/evaluate/getLeaseState API, BrowserTargetSession or DOM-automation compatibility bridge",
-        "不得发生：fallback upload/download browser path, shadow queue, second invoice plugin, second mediator, second evidence store or second runtime-log chain",
-        "不得发生：calling Amazon Seller Central or recording upload/download success while terminal Browser Authority admission is absent",
-        "不得发生：mapping browser authority absence to order_not_found, upload_success or download completion",
-        "不得发生：future or conditional Invoice Browser capability text inside active authority"
-      ],
-      "lawId": "LAW-AMAZON-INVOICE-UPLOAD-001-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 274,
-        "lineStart": 244,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "9b070d6c7469e0bc30e46dd11dbd069083a6c634a7ddde19696c3b9208b56493"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：Amazon invoice upload remains one plugin owner and always fails closed at the terminal Browser Authority gate because the active site policy authorizes no Invoice write action.",
-      "supersedesLawId": "LAW-AMAZON-INVOICE-UPLOAD-001-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/plugins/amazon-product-mining/**"
-      ],
-      "capabilityDomain": "amazon-product-mining",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "composite",
-      "evidenceModes": [
-        "static.ast",
-        "exam.golden",
-        "dynamic.browser"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：BrowserController, CWS, old open/evaluate API, DOM compatibility adapter, generic planner, fallback, shadow execution path or second product-mining owner",
-        "不得发生：calling Amazon, an AI provider or returning an evidence package before terminal browser admission exists",
-        "不得发生：reporting the terminal record as a product conclusion, completed package or browser proof",
-        "不得发生：future or conditional product-mining Browser capability text inside active authority"
-      ],
-      "lawId": "LAW-AMAZON-PRODUCT-MINING-001-V3",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 307,
-        "lineStart": 278,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "8ba901c9c0b49689f37d18de58eca18c98ec112aad925b94d2750d1fcd571192"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：Amazon product mining remains a single terminal evidence-package owner and persists review_required with zero browser work because the active site policy authorizes no mining action.",
-      "supersedesLawId": "LAW-AMAZON-PRODUCT-MINING-001-V2",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
         "src/app/**"
       ],
       "capabilityDomain": "app-shell-ui",
@@ -609,23 +488,25 @@
         "不得发生：Legacy one-page home UI remaining as production entry.",
         "不得发生：Second App Shell or hidden parallel UI shell.",
         "不得发生：Skill list hardcoded outside Skill Registry.",
-        "不得发生：Amazon Product Mining details expanded inside an ultra-wide history table instead of Inspector.",
+        "不得发生：Unrelated workflow details expanded inside an ultra-wide history table instead of Inspector.",
         "不得发生：Runtime Console replaced by business history table.",
+        "不得发生：Shell、Cloud control plane、link、contract、worker session、Browser Authority、Browser Target、Browser lane、claim admission、queue/outbox 或 e2e proof 被合并为单一绿色 ready。",
+        "不得发生：Cloud 凭证、Provider 或 Browser 未就绪时隐藏真实 block reason 或使诊断状态页不可用。",
         "不得发生：UI using localStorage, fixture rows, package scanning, or log parsing as production truth.",
         "不得发生：UI computing AI verdict or product opportunity score.",
         "不得发生：UI exposing commerce, supplier-ordering, listing-launch, campaign-launch, inventory, winner-selection, or margin adjudication actions."
       ],
-      "lawId": "LAW-APP-SHELL-UI-001-V1",
+      "lawId": "LAW-APP-SHELL-UI-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 343,
-        "lineStart": 311,
+        "lineEnd": 278,
+        "lineStart": 244,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "8f9649f15218acd0beff2f279a7338ac4cf497edbdbc53184ffb4a6b4820776b"
+        "sectionSha256": "21cc1422fcc1896812cf9dba4059fa3101b5ecc7d3af74a53ddd401604d530bc"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：GrassEye Workbench UI must be a unified Mac-style Agent Workbench Shell with Skill Registry, Level 2 Skill Workspace, Level 3 Inspector, and independent Runtime Console; old one-page dashboard production entry is forbidden.",
-      "supersedesLawId": null,
+      "summary": "必须由唯一 Workbench Shell 分开展示 Shell、Cloud、合同、session、Browser、claim、outbox 与 E2E 真实状态，任一局部 ready 不得冒充端到端 ready，失败时诊断面仍必须可用。",
+      "supersedesLawId": "LAW-APP-SHELL-UI-001-V1",
       "tier": "P0"
     },
     {
@@ -651,8 +532,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 374,
-        "lineStart": 345,
+        "lineEnd": 309,
+        "lineStart": 280,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "8f6ad1713d80889173f5a6b47555064e1cad0bb619e70d8014d42290a325ab0a"
       },
@@ -682,8 +563,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 403,
-        "lineStart": 376,
+        "lineEnd": 338,
+        "lineStart": 311,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "763e2c22095ec79c4e707344c27f83a7d0b58d354eb55ead260e40800cfe508e"
       },
@@ -705,7 +586,7 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：Amazon-specific workflow inside DOM Automation.",
+        "不得发生：Unrelated workflow inside DOM Automation.",
         "不得发生：Platform-specific workflow inside DOM Automation.",
         "不得发生：Business success decision inside DOM Automation.",
         "不得发生：DOM code importing src/plugins.",
@@ -714,10 +595,10 @@
       "lawId": "LAW-DOM-AUTOMATION-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 435,
-        "lineStart": 407,
+        "lineEnd": 370,
+        "lineStart": 342,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "606ddfafda9dec6f21db609d9c92a972ef848d14a733842ba2aaa220115c16eb"
+        "sectionSha256": "914d01317fa132b6c247431e5a598bb5d9daca522d47f8f1d59c60ab4f91a2c1"
       },
       "status": "active",
       "summary": "必须保持以下不变量：DOM Automation must remain business-neutral and must not contain platform-specific workflow logic.",
@@ -745,8 +626,8 @@
       "lawId": "LAW-DOM-AUTOMATION-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 464,
-        "lineStart": 437,
+        "lineEnd": 399,
+        "lineStart": 372,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "b9b35c1f26b4c7e9368385fc13a90f94cd7b62fe47d6ec66f344983701681cb8"
       },
@@ -776,8 +657,8 @@
       "lawId": "LAW-DOM-AUTOMATION-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 493,
-        "lineStart": 466,
+        "lineEnd": 428,
+        "lineStart": 401,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "19c22fd311180fa17496a5f2b9dbbd42d4bba1a30d48ea312959ba297ff08535"
       },
@@ -808,8 +689,8 @@
       "lawId": "LAW-DOM-AUTOMATION-004-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 523,
-        "lineStart": 495,
+        "lineEnd": 458,
+        "lineStart": 430,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "48c538274cbff35045754468198532353c729d07f5fba329b6070ca8b98d6cf8"
       },
@@ -840,8 +721,8 @@
       "lawId": "LAW-DOM-AUTOMATION-005-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 553,
-        "lineStart": 525,
+        "lineEnd": 488,
+        "lineStart": 460,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "4051d686964fb64b2a506e175602cf75b17795fe747a29ffdb43c25febdf516b"
       },
@@ -871,8 +752,8 @@
       "lawId": "LAW-DOM-AUTOMATION-006-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 582,
-        "lineStart": 555,
+        "lineEnd": 517,
+        "lineStart": 490,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "6f01d26c5d1b8d185989af45a64faf45a848b5832d30a68900323b85474170b8"
       },
@@ -903,8 +784,8 @@
       "lawId": "LAW-DOM-AUTOMATION-007-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 612,
-        "lineStart": 584,
+        "lineEnd": 547,
+        "lineStart": 519,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "65cc04352be2b729d1abe3cf5809e66061916319610924088a0ad33f40d070f4"
       },
@@ -935,8 +816,8 @@
       "lawId": "LAW-DOM-AUTOMATION-008-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 642,
-        "lineStart": 614,
+        "lineEnd": 577,
+        "lineStart": 549,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "00b0655fb7d65ac9f2f83d02bc4ad50c12b3b835d02bb5da0a37e2c7fb48ce9c"
       },
@@ -967,8 +848,8 @@
       "lawId": "LAW-DOM-AUTOMATION-009-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 672,
-        "lineStart": 644,
+        "lineEnd": 607,
+        "lineStart": 579,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "84ee2498ca21b617cd1c7e245c9e7841a7182553775536fcb0459d7f43bd5a33"
       },
@@ -1002,8 +883,8 @@
       "lawId": "LAW-DOM-AUTOMATION-010-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 705,
-        "lineStart": 674,
+        "lineEnd": 640,
+        "lineStart": 609,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "0e7cff1b5c7048d02185584daa9231cb257bb900b4c95964f4986fd87af059c9"
       },
@@ -1034,8 +915,8 @@
       "lawId": "LAW-DOM-AUTOMATION-011-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 735,
-        "lineStart": 707,
+        "lineEnd": 670,
+        "lineStart": 642,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e05701f801ef831feb8c0bbd3c6787fdf2f5467bd7f799a5f3607e84f2e40621"
       },
@@ -1066,8 +947,8 @@
       "lawId": "LAW-DOM-AUTOMATION-012-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 765,
-        "lineStart": 737,
+        "lineEnd": 700,
+        "lineStart": 672,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "68b74c07243cba6c3b2ab8740b1a54443e3223553aa5a006e64f6baaa5036ecb"
       },
@@ -1098,8 +979,8 @@
       "lawId": "LAW-DOM-AUTOMATION-013-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 795,
-        "lineStart": 767,
+        "lineEnd": 730,
+        "lineStart": 702,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "583af8c873e92fb9643f46f8bf6894bb2c1e5dda054eda0cc44f67e988f8e078"
       },
@@ -1130,8 +1011,8 @@
       "lawId": "LAW-DOM-AUTOMATION-014-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 825,
-        "lineStart": 797,
+        "lineEnd": 760,
+        "lineStart": 732,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "71063489d17e503ac386514232b3e9a2301018195c7fbd479d8a880d597e1fcc"
       },
@@ -1162,8 +1043,8 @@
       "lawId": "LAW-DOM-AUTOMATION-015-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 855,
-        "lineStart": 827,
+        "lineEnd": 790,
+        "lineStart": 762,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "6cc83661e0199c4022f632aca23f753459072ac751e98862888736b210d957af"
       },
@@ -1194,8 +1075,8 @@
       "lawId": "LAW-DOM-AUTOMATION-016-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 885,
-        "lineStart": 857,
+        "lineEnd": 820,
+        "lineStart": 792,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a55435ecb8b6084e7438a2af8dfa0c352bff97d57ad0ec84070f6832a5b8a620"
       },
@@ -1232,8 +1113,8 @@
       "lawId": "LAW-DOM-AUTOMATION-020-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 921,
-        "lineStart": 887,
+        "lineEnd": 856,
+        "lineStart": 822,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d15d5848ac308ee78fd30f5b7326b893266371431d257f30ac70983d8f37571e"
       },
@@ -1266,8 +1147,8 @@
       "lawId": "LAW-DOM-AUTOMATION-021-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 953,
-        "lineStart": 923,
+        "lineEnd": 888,
+        "lineStart": 858,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "2120a21d4eade8d42ac874f087185b161998e67fb9a81f4e7e316f41974e6e3f"
       },
@@ -1296,8 +1177,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 983,
-        "lineStart": 957,
+        "lineEnd": 918,
+        "lineStart": 892,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "caeaa96da1a17f7d30a85ec07e8f5cbe001585937d9c58a3981735cd7e1a6bbe"
       },
@@ -1326,8 +1207,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1011,
-        "lineStart": 985,
+        "lineEnd": 946,
+        "lineStart": 920,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e22b043e67fb2c8230e2259e87e0cad05b4c5f67af20dea515318c27f54e543c"
       },
@@ -1356,8 +1237,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1039,
-        "lineStart": 1013,
+        "lineEnd": 974,
+        "lineStart": 948,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "be65e853818944f36dd01b622e6325282d41cf246c2c5ceadab6e44cffa968a1"
       },
@@ -1378,7 +1259,8 @@
         "static.ast",
         "static.contract",
         "exam.golden",
-        "dynamic.browser"
+        "dynamic.browser",
+        "dynamic.service"
       ],
       "excludes": [],
       "forbidden": [
@@ -1388,19 +1270,21 @@
         "不得发生：SSE",
         "不得发生：second listener",
         "不得发生：browser command route",
-        "不得发生：business flow in App"
+        "不得发生：business flow in App",
+        "不得发生：Cloud credential、Provider、Browser pairing 或 claim readiness 失败导致唯一 HTTP Shell 退出或诊断面不可用。",
+        "不得发生：把 Shell process readiness 与业务 execution readiness 写成同一状态或同一成功门。"
       ],
-      "lawId": "LAW-LOCAL-APP-SHELL-001-V3",
+      "lawId": "LAW-LOCAL-APP-SHELL-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1076,
-        "lineStart": 1043,
+        "lineEnd": 1014,
+        "lineStart": 978,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "20085f25feb3673936db67ab4c014fb9b04fafe64bf0ad4183d8a1a900010df0"
+        "sectionSha256": "31c52b98d92104f00d7eec9c7456b8979585b1ce23e983d65d75fd8d40fea9a8"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：The existing App Server is the only UI/HTTP surface and owns exactly one /browser-authority/v1 WebSocket upgrade, never a Browser relay or business flow.",
-      "supersedesLawId": "LAW-LOCAL-APP-SHELL-001-V2",
+      "summary": "必须由唯一 App Server 保持 UI、HTTP 与诊断面可用；Cloud、Provider 或 Browser 就绪失败只能阻断执行与 claim，不得杀死 Shell，且仍只拥有一个 Browser Authority WebSocket upgrade。",
+      "supersedesLawId": "LAW-LOCAL-APP-SHELL-001-V3",
       "tier": "P0"
     },
     {
@@ -1425,8 +1309,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1106,
-        "lineStart": 1078,
+        "lineEnd": 1044,
+        "lineStart": 1016,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "389aaa51becaf7db2b8dc589d2da85769098dcf07487658ba47005238854751e"
       },
@@ -1464,8 +1348,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1145,
-        "lineStart": 1110,
+        "lineEnd": 1083,
+        "lineStart": 1048,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "70db9ecf114d54d31745acddb9b66a168e0e179d73e3c40571849097b56f9149"
       },
@@ -1504,8 +1388,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1183,
-        "lineStart": 1147,
+        "lineEnd": 1121,
+        "lineStart": 1085,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ef465eab8678478f13346bdb9b7e49a8815520a5cc7af941e52b8d76c73d26ae"
       },
@@ -1545,8 +1429,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1222,
-        "lineStart": 1185,
+        "lineEnd": 1160,
+        "lineStart": 1123,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ccc430195865f83e44616a37546e1803d0d386d7b14f58065ebdcbb6cbbbe880"
       },
@@ -1583,8 +1467,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1258,
-        "lineStart": 1224,
+        "lineEnd": 1196,
+        "lineStart": 1162,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "bf1486da24cc836e4c8324c7c73a25ef9933f7c4872863a0c0b8185cd5b1ea92"
       },
@@ -1617,8 +1501,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1290,
-        "lineStart": 1260,
+        "lineEnd": 1228,
+        "lineStart": 1198,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cc193d7f3e27dd7059126fb022caaa583b98220d34357a457481cc5811783329"
       },
@@ -1647,8 +1531,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1318,
-        "lineStart": 1292,
+        "lineEnd": 1256,
+        "lineStart": 1230,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a43039bdea1cc79d1844511c74fa299120bb420551f53398491e584e291ee82d"
       },
@@ -1677,13 +1561,13 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1348,
-        "lineStart": 1322,
+        "lineEnd": 1286,
+        "lineStart": 1260,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "f51db208051532ec1f373f4cfd5cba0b0712205dfa0f251d4feb0088890672cf"
+        "sectionSha256": "b03451c3ec1b59f2c39ce5e781ee34576b0ae3443538f8e8cf8a329a4663e751"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：media-processing is the only governed owner for local media artifact optimization into website-ready video and image artifacts.",
+      "summary": "必须保持以下不变量：media-processing is the only governed owner for internal image normalization artifacts.",
       "supersedesLawId": "LAW-MEDIA-PROCESSING-CAPABILITY-001-V1",
       "tier": "P0"
     },
@@ -1707,8 +1591,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1376,
-        "lineStart": 1350,
+        "lineEnd": 1314,
+        "lineStart": 1288,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f9992e41e9ba2773604b75c72b2cc2cfb29a6c3c4ec14059cf6aa9724e81b708"
       },
@@ -1736,8 +1620,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1403,
-        "lineStart": 1378,
+        "lineEnd": 1341,
+        "lineStart": 1316,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d09d2719e1df206a81062c358dfe6f5c90337bd104764ac76330bff76631330f"
       },
@@ -1765,8 +1649,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-004-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1430,
-        "lineStart": 1405,
+        "lineEnd": 1368,
+        "lineStart": 1343,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "087150b662d767cca9258a45ad181e7321bc52e9bc825362f9927080c4ad2d22"
       },
@@ -1794,8 +1678,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-005-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1457,
-        "lineStart": 1432,
+        "lineEnd": 1395,
+        "lineStart": 1370,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "dfb4f506bcdcb2ac6923583c04aa44af0de580788baf769ba03e921a619e51f9"
       },
@@ -1824,8 +1708,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1485,
-        "lineStart": 1459,
+        "lineEnd": 1423,
+        "lineStart": 1397,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "9eeae9ec0edfbd388a284a6c3d3a63aab30007700258045edff3e2e19b1234c3"
       },
@@ -1853,8 +1737,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-007-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1512,
-        "lineStart": 1487,
+        "lineEnd": 1450,
+        "lineStart": 1425,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "63c6f11a08e949992371684757537a0c06a54a7ad8005d7f3cab86a72a750a71"
       },
@@ -1882,8 +1766,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-008-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1539,
-        "lineStart": 1514,
+        "lineEnd": 1477,
+        "lineStart": 1452,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cee8127e2874aa4a563e69be4a4d45ae3c76b447caabe0b7ecd9ac642393fa6d"
       },
@@ -1911,8 +1795,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-009-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1566,
-        "lineStart": 1541,
+        "lineEnd": 1504,
+        "lineStart": 1479,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f6026c47b22561f3ff404e135a1cbc2505b98139dfc6822b8dc4de055cf20579"
       },
@@ -1940,8 +1824,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-010-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1593,
-        "lineStart": 1568,
+        "lineEnd": 1531,
+        "lineStart": 1506,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cae1a76ec1dd4781f0ed4266eb11cc25109e21df34273540d404fe988388620c"
       },
@@ -2210,8 +2094,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1628,
-        "lineStart": 1597,
+        "lineEnd": 1566,
+        "lineStart": 1535,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "8747614fa256230bffd554727a2b558fa83490ffe5aa98ed3d93068cd19a5d09"
       },
@@ -2240,8 +2124,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1656,
-        "lineStart": 1630,
+        "lineEnd": 1594,
+        "lineStart": 1568,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e3186e69c9f950663e5ea32d672691475d6af62399654f9410e902683b1a6878"
       },
@@ -2270,8 +2154,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1684,
-        "lineStart": 1658,
+        "lineEnd": 1622,
+        "lineStart": 1596,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d21d700896cbc87150efee1567319160be95b38ae59123a849034f58be23ed6d"
       },
@@ -2291,7 +2175,8 @@
       "evidenceModes": [
         "static.ast",
         "static.contract",
-        "exam.golden"
+        "exam.golden",
+        "dynamic.service"
       ],
       "excludes": [],
       "forbidden": [
@@ -2305,510 +2190,20 @@
         "不得发生：second environment loader",
         "不得发生：CWS/page relay/native host",
         "不得发生：pairing/socket action",
-        "不得发生：CI/audit/typecheck"
+        "不得发生：CI/audit/typecheck",
+        "不得发生：用 Cloud、Provider、Browser、claim 或端到端失败覆盖 App Shell 已就绪事实，或因此停止唯一诊断服务。"
       ],
-      "lawId": "LAW-STARTUP-ENTRYPOINT-001-V3",
+      "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1724,
-        "lineStart": 1688,
+        "lineEnd": 1664,
+        "lineStart": 1626,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "23fbebb6b509eb9207f36caf1d6a4cbfdbf0539345aa5fec36a5cc7f99a1abcf"
+        "sectionSha256": "4a7e6227af49c8e83bbd14f5303af6e5f02c8e61940c6673618597ead0a7c898"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：The single startup entry establishes a clean repository-owned port before every launch, loads optional local configuration, verifies exact unpacked artifact identity, and never starts a Browser job.",
-      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-001-V2",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-001-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1753,
-        "lineStart": 1728,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "48a20de1c36ca8c3f027062cd7e72907c05ba428f61d969bb4e17cdb3c47155d"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-002-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1780,
-        "lineStart": 1755,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "385757f421c7f9c4f9ebebc55e818f8bef372af58f836f07af92d9f76f3ba2a4"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-003-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1807,
-        "lineStart": 1782,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "e470c183dc0a8d7ae318fa090dc27a90efa704372f62ba2f734f207456faf9dd"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：The video-download group exposes one universal child, named-platform children, and a YouTube child that each download one video artifact per invocation and must not become business workflows.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-004-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1834,
-        "lineStart": 1809,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "bebdbd3b18c851388b58a11911030013b0496a8a76d6475bb4169a450c9ad3d6"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：every media candidate must be validated before download success can be claimed.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-005-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1861,
-        "lineStart": 1836,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "b2947ee44582d7887cae7b5ad96367dcf205fbf2dd04e6f0e6cfa7d1f430af63"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：every download attempt must leave Forensics-compatible artifact proof and structured failure evidence.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-006-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1888,
-        "lineStart": 1863,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "13e9c49e4100ff54344ef05b65fa106057281467d238055e62dd442dcd626c23"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-007-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1915,
-        "lineStart": 1890,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "57b5c1b2155e7c6baebb3847a3c0f3496588eb50a2056a8c8f2519d157d814f1"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-008-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1942,
-        "lineStart": 1917,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "40542446dcf8036863e7d56d5b606bfe2466b833f78f4fa09125feb177a4bb00"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-009-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1969,
-        "lineStart": 1944,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "80d73bfc0f7f775205fc9571d9b062c9558068438f7df928bcf44752187c4277"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-010-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 1996,
-        "lineStart": 1971,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "f8ad22fcab62b043ef21564ce27a1f8a75598d1aec81bb1b1c12f336b6998378"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "composite",
-      "evidenceModes": [
-        "static.ast",
-        "static.contract",
-        "exam.golden"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-011-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2024,
-        "lineStart": 1998,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "5b730725b102127198c10fe03ea3b44991f1401a94e7c6860247d4b96deea090"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube production downloads must be stream/file based, size-gated during download, media-probed, and startup dependency resilient.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-011-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "composite",
-      "evidenceModes": [
-        "static.ast",
-        "exam.golden"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-012-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2051,
-        "lineStart": 2026,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "1c82de5bcdcb03dc6549f8e582c95165688771f02512eaf66506d957a687e3c3"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：Video-download owner inspection must be AST/symbol/anti-evasion based and must not use raw source string scans, regex, or marker theater as enforcement.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-012-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "composite",
-      "evidenceModes": [
-        "static.ast",
-        "exam.golden"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-013-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2078,
-        "lineStart": 2053,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "4e0f27510e55400e3e88aedb8068a9f303f327d897f58bb5831870fa50050898"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube production runtime must use one prepared managed yt-dlp binary, bounded selectors, bounded bytes, real total timeout abort, and file-based subtitle artifacts.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-013-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "composite",
-      "evidenceModes": [
-        "static.ast",
-        "exam.golden"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-014-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2105,
-        "lineStart": 2080,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "5a3351b15b9c069d62ad845a10690a6c2449b8a7621cb2c4c4168f40e4535a37"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube production readiness must be proven by semantic AST checks and executable runtime fixtures, not marker strings, regex scans, or shape-only tests.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-014-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-015-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2131,
-        "lineStart": 2107,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "0cf57a27517ca6c66e7406497a68aab736a6047ebbbd2f96641ffb6829009c8f"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube production runtime must close media-state gaps through variant subtitle matching, abortable metadata probes, temporary-file cleanup, bounded inputs, and real artifact evidence.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-015-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-016-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2157,
-        "lineStart": 2133,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "7526959f9bb52b22d1da6c56be4faa93353a7936aee028cab5b3d56be4e8af75"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube production evidence must be internally consistent: runtime proof candidate kind cannot be null on success, retry/error logs cannot be marked success, progress cannot masquerade as artifact refs, and final release canno",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-016-V1",
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "src/capabilities/video-download/**"
-      ],
-      "capabilityDomain": "video-download-capability",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.ast"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
-      ],
-      "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-017-V2",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 2183,
-        "lineStart": 2159,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "0ce162f7fa656fc63cc7835ef472db3e5cb6d71ce5d5a03d24e18336d548106c"
-      },
-      "status": "active",
-      "summary": "必须保持以下不变量：YouTube production artifacts must preserve the platform source title as operator-facing metadata; random ids may prevent collision but must not replace the title.",
-      "supersedesLawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-017-V1",
+      "summary": "必须由唯一启动入口建立并验证仓库自有 Shell，分开报告 Shell readiness 与 execution readiness；Cloud、Provider、Browser 或 claim 失败时 Shell 仍保持诊断可用且执行失败关闭。",
+      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-001-V3",
       "tier": "P0"
     },
     {
@@ -2837,8 +2232,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2219,
-        "lineStart": 2187,
+        "lineEnd": 1700,
+        "lineStart": 1668,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "5c5c4c64d1c81c6c3856be6b9eabe91e08cb5b742296429babf37abfc051d825"
       },
@@ -2849,20 +2244,26 @@
     },
     {
       "appliesTo": [
+        "src/mediator/xuanxue-ai-production-route.ts",
         "src/plugins/xuanxue-ai-production/**"
       ],
       "capabilityDomain": "xuanxue-ai-production",
       "contractRefs": [
         {
           "path": "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-          "sha256": "ec182cb8cf26e62f846136992b9c4925f47bcff91a9fb3c255f7fc020d982f86"
+          "sha256": "421516c731831c8ac2058497d1da92f0e92ec35d25eb61e6e4b6ebb5a3ee51d1"
         },
         {
           "path": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
           "sha256": "a1195bf8631d4c6d884f3eb8fbca643bb33892c313b0739aaa0d2da19e3e37a4"
         }
       ],
-      "dependsOnLawIds": [],
+      "dependsOnLawIds": [
+        "LAW-APP-SHELL-UI-001-V2",
+        "LAW-LOCAL-APP-SHELL-001-V4",
+        "LAW-LOCAL-BROWSER-SESSION-001-V4",
+        "LAW-STARTUP-ENTRYPOINT-001-V4"
+      ],
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -2886,6 +2287,7 @@
         "不得发生：two claim-eligible sessions for one device",
         "不得发生：stale attestation or absent Browser capability receiving browser-required lease",
         "不得发生：HTTP 200 empty jobs or partial ready presented as end-to-end readiness",
+        "不得发生：Cloud credential、Provider、Browser 或 worker session 失败时销毁唯一诊断 Shell；仅 execution 与 claim 可失败关闭",
         "不得发生：xuanxue external HMAC LNA localhost business ingress or Cloud callback",
         "不得发生：second worker mediator scheduler queue ledger Browser Provider contract owner or transport",
         "不得发生：service class recovery partition registration order or in-memory ordering bypassing globally oldest eligible work",
@@ -2897,13 +2299,13 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2270,
-        "lineStart": 2223,
+        "lineEnd": 1758,
+        "lineStart": 1704,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "d1d3b1af88ee91e5267e2e81fd4b7368c31098740a2e9e57d44106099cb40278"
+        "sectionSha256": "1bdf49db12bda087a70b32e9a2f95206eb17cc7bb2ea14ebeb11cf3443ec56e1"
       },
       "status": "active",
-      "summary": "必须只由 xuanxue-ai-production-v6 经 session-bound Cloud Worker→Mediator→Plugin 唯一链交付完整网站订单；每设备只允许一个 claim-eligible worker session，并以签名 attestation、幂等 claim、十个业务席位、一个 Browser mutation lane、durable outbox 与 first-terminal CAS 保持原始业务身份。",
+      "summary": "必须只由 xuanxue-ai-production-v6 经 session-bound Cloud Worker→Mediator→Plugin 唯一链交付完整订单，以唯一 session、签名 attestation、十个业务席位、一个 Browser lane、durable outbox 与 first-terminal CAS 保持原业务身份，且执行阻断不得杀死诊断 Shell。",
       "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V5",
       "tier": "P0"
     },
@@ -2926,8 +2328,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2299,
-        "lineStart": 2274,
+        "lineEnd": 1787,
+        "lineStart": 1762,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7fd8b840e4f38b799720c66dedb1826204137aa5296aefb38d2aab57f79b3736"
       },

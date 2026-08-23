@@ -15,9 +15,6 @@
   "observedPaths": [],
   "ownedPaths": [
     "src/capabilities/media-processing/**",
-    "src/mediator/media-processing-artifact-route.ts",
-    "src/plugins/media-processing-artifact/**",
-    "src/types/ffprobe-static.d.ts",
     "src/types/sharp.d.ts"
   ],
   "schemaVersion": 3,

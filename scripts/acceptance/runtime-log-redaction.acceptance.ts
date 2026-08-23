@@ -7,7 +7,7 @@ const redacted = redactRuntimeLogRecord({
   authorization: "Bearer abc.def",
   nested: {
     api_key: "secret-key",
-    signedUrl: "https://example.com/video.mp4?signature=secret&expires=999",
+    signedUrl: "https://example.com/artifact.bin?signature=secret&expires=999",
     image: "data:image/png;base64,abcdef",
   },
 });
@@ -15,7 +15,7 @@ const redacted = redactRuntimeLogRecord({
 assert.equal(redacted.cookie, "[REDACTED]");
 assert.equal(redacted.authorization, "[REDACTED]");
 assert.equal((redacted.nested as Record<string, unknown>).api_key, "[REDACTED]");
-assert.equal((redacted.nested as Record<string, unknown>).signedUrl, "https://example.com/video.mp4");
+assert.equal((redacted.nested as Record<string, unknown>).signedUrl, "https://example.com/artifact.bin");
 assert.equal((redacted.nested as Record<string, unknown>).image, "[REDACTED]");
 assert.equal(redactUrlForLog("https://example.com/path?token=x#frag"), "https://example.com/path");
 

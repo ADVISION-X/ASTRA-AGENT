@@ -32,7 +32,6 @@ const buildRecoveryInput = (input: MediaProcessingAbilityInput): ParsedMediaProc
   capabilityCallId: stringOrFallback(input.capabilityCallId, "unknown"),
   inputFilePath: stringOrFallback(input.inputFilePath, "unknown"),
   quality: 82,
-  posterTimestampSeconds: 1,
   timeoutMs: 120_000,
   artifactDisposition: "deliverable",
   outputFormat: "webp",
@@ -90,9 +89,6 @@ const buildPublicRequestBase = (
   ...(parsed.targetWidth ? { targetWidth: parsed.targetWidth } : {}),
   ...(parsed.targetHeight ? { targetHeight: parsed.targetHeight } : {}),
   ...(parsed.variantWidths ? { variantWidths: parsed.variantWidths } : {}),
-  ...(parsed.targetMaxBytes ? { targetMaxBytes: parsed.targetMaxBytes } : {}),
-  ...(parsed.targetBitrateKbps ? { targetBitrateKbps: parsed.targetBitrateKbps } : {}),
-  posterTimestampSeconds: parsed.posterTimestampSeconds ?? 1,
   timeoutMs: parsed.timeoutMs,
   artifactDisposition: parsed.artifactPolicy,
 });
@@ -121,18 +117,6 @@ const buildPublicRequestInput = (input: MediaProcessingPublicRequest): MediaProc
         targetHeight: 630,
         quality: 86,
       };
-    }
-    case "web-video": {
-      const childCapabilityId = "optimize-video-for-web-once";
-      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: "mp4" };
-    }
-    case "web-video-compressed": {
-      const childCapabilityId = "compress-video-for-web-once";
-      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: "mp4" };
-    }
-    case "web-video-poster": {
-      const childCapabilityId = "generate-video-poster-once";
-      return { ...buildPublicRequestBase(parsed, childCapabilityId), childCapabilityId, outputFormat: imageOutputFormat };
     }
   }
 };

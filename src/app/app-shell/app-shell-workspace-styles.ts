@@ -96,19 +96,6 @@ export const APP_SHELL_WORKSPACE_STYLES = `
 .app-empty-surface p {
   max-width: 620px;
 }
-.amazon-product-mining-workspace .history-surface {
-  display: grid;
-  min-height: 0;
-}
-.amazon-product-mining-workspace .publish-surface,
-.amazon-product-mining-workspace .latest-surface {
-  align-content: start;
-  max-width: 620px;
-}
-.amazon-product-mining-workspace .publish-task-card,
-.amazon-product-mining-workspace .latest-task-summary-card {
-  width: 100%;
-}
 .panel, .card {
   border: 1px solid var(--line);
   border-radius: 8px;

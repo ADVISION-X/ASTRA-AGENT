@@ -5,19 +5,11 @@ import {
   createOptimizeImageForWeb,
   createResizeImageForWeb,
 } from "./children/image-children.js";
-import {
-  createCompressVideoForWeb,
-  createGenerateVideoPosterForWeb,
-  createOptimizeVideoForWeb,
-} from "./children/video-children.js";
 
 const MEDIA_PROCESSING_CHILDREN: MediaProcessingChildCapability[] = [
   createOptimizeImageForWeb(),
   createResizeImageForWeb(),
   createGenerateResponsiveImageSet(),
-  createOptimizeVideoForWeb(),
-  createCompressVideoForWeb(),
-  createGenerateVideoPosterForWeb(),
 ];
 
 export const listMediaProcessingChildren = (): MediaProcessingChildCapabilityId[] =>
