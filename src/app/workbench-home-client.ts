@@ -1,15 +1,106 @@
+import { renderAmazonInvoiceClient } from "./workbench-home-amazon-invoice-client.js";
+import { renderAmazonProductMiningReviewClient } from "./workbench-home-amazon-product-mining-review-client.js";
 import { WORKBENCH_HOME_SKILL_MAP_CLIENT } from "./workbench-home-skill-map-client.js";
 
 const WORKBENCH_HOME_CLIENT = `
+const state = {
+  skill: "amazon-product-mining",
+  taskId: "",
+  amazonInvoiceBatchId: "",
+  amazonTaxInvoiceDownloadTaskId: "",
+  amazonProductMiningTaskId: "",
+  amazonProductMiningReviews: [],
+  amazonProductMiningReviewFilters: {
+    taskId: "",
+    decision: "ALL",
+    marketplace: "ALL",
+    keyword: "",
+    targetMarket: "",
+    humanNextStep: "ALL",
+    dataConfidence: "ALL",
+    packageIntegrity: "ALL",
+    sort: "createdAt_desc",
+  },
+  amazonProductMiningReviewLoading: false,
+  amazonProductMiningReviewError: "",
+  amazonProductMiningPoll: null,
+};
+
 ${WORKBENCH_HOME_SKILL_MAP_CLIENT}
 const qs = (selector) => document.querySelector(selector);
 const setText = (selector, value) => { const node = qs(selector); if (node) node.textContent = value ?? "-"; };
+const setInputValue = (selector, value) => {
+  const node = qs(selector);
+  if (node && typeof value === "string") node.value = value;
+};
+const setRegionState = (stateName) => {
+  const normalized = stateName || "ready";
+  setText("[data-runtime-console-state]", normalized);
+};
+const clearRuntimeEmptyState = () => {
+  const empty = qs("[data-runtime-empty-state]");
+  if (empty) empty.remove();
+};
+const writeActivity = (message, tone = "ready") => {
+  const list = qs("[data-activity-log]");
+  if (!list) return;
+  clearRuntimeEmptyState();
+  const node = document.createElement("button");
+  node.type = "button";
+  node.className = "runtime-event " + tone + "-state";
+  node.dataset.runtimeEvent = tone;
+  node.textContent = new Date().toLocaleTimeString() + " " + message;
+  node.addEventListener("click", () => openInspector({
+    kind: "runtime event",
+    title: tone,
+    payload: { Message: message, Status: tone, Time: new Date().toISOString() },
+  }));
+  list.prepend(node);
+  setRegionState(tone);
+};
 const readJson = async (url, options) => {
   const response = await fetch(url, options);
   const text = await response.text();
   const payload = text ? JSON.parse(text) : {};
   if (!response.ok) throw new Error(payload.failureReason || payload.error || response.statusText);
   return payload;
+};
+const renderInspectorValue = (value) => {
+  if (value && typeof value === "object" && "label" in value && "value" in value) {
+    const wrap = document.createElement("div");
+    wrap.className = "inspector-link-line";
+    const text = document.createElement("span");
+    text.textContent = value.value || "not_available";
+    wrap.append(text);
+    if (value.action) {
+      const action = document.createElement("button");
+      action.className = "btn secondary compact-button";
+      action.type = "button";
+      action.textContent = value.label;
+      action.addEventListener("click", value.action);
+      wrap.append(action);
+    }
+    return wrap;
+  }
+  if (Array.isArray(value)) {
+    const list = document.createElement("ul");
+    list.className = "inspector-list";
+    if (value.length === 0) {
+      const item = document.createElement("li");
+      item.textContent = "not_available";
+      list.append(item);
+      return list;
+    }
+    for (const entry of value) {
+      const item = document.createElement("li");
+      item.textContent = entry || "not_available";
+      list.append(item);
+    }
+    return list;
+  }
+  const span = document.createElement("span");
+  span.textContent = value === undefined || value === null || value === "" ? "not_available" : String(value);
+  return span;
 };
 const openInspector = ({ kind, title, payload }) => {
   document.body.classList.remove("inspector-collapsed");
@@ -24,33 +115,75 @@ const openInspector = ({ kind, title, payload }) => {
   heading.textContent = title || "Detail";
   const grid = document.createElement("div");
   grid.className = "detail-grid inspector-detail-grid";
-  for (const [key, value] of Object.entries(payload && typeof payload === "object" ? payload : { Value: payload })) {
+  const entries = payload && typeof payload === "object" && !Array.isArray(payload) ? Object.entries(payload) : [["Value", payload]];
+  for (const [key, value] of entries) {
     const row = document.createElement("div");
     const label = document.createElement("b");
-    const text = document.createElement("span");
     label.textContent = key;
-    text.textContent = value && typeof value === "object" ? JSON.stringify(value, null, 2) : String(value ?? "-");
-    row.append(label, text);
+    row.append(label, renderInspectorValue(value));
     grid.append(row);
   }
   section.append(heading, grid);
   body.append(section);
 };
-const writeActivity = (message, tone = "ready") => {
-  const list = qs("[data-activity-log]");
-  if (!list) return;
-  const node = document.createElement("button");
-  node.type = "button";
-  node.className = "runtime-event " + tone + "-state";
-  node.textContent = new Date().toLocaleTimeString() + " " + message;
-  list.prepend(node);
-  setText("[data-runtime-console-state]", tone);
+const resetInspectorForSkill = (skill) => {
+  document.body.classList.add("inspector-collapsed");
+  setText("[data-inspector-title]", "No selection");
+  setText("[data-inspector-kind]", "empty");
+  setText("[data-task-id]", "-");
+  setText("[data-task-status]", "-");
+  setText("[data-task-step]", "-");
+  setText("[data-task-reason]", "-");
+  setText("[data-evidence-ref]", "-");
+  const raw = qs("[data-raw-result]");
+  if (raw) raw.textContent = "{}";
+  const body = qs("[data-inspector-body]");
+  if (!body) return;
+  body.innerHTML = "";
+  const section = document.createElement("section");
+  section.className = "empty-state";
+  section.dataset.inspectorEmpty = "";
+  section.dataset.inspectorEmptyState = "";
+  const heading = document.createElement("h3");
+  heading.textContent = (skillLabels[skill] || "Skill") + " detail is closed";
+  const copy = document.createElement("p");
+  copy.textContent = "Select a task, keyword review, package, evidence, exception, or runtime event to open the third-level Inspector.";
+  section.append(heading, copy);
+  body.append(section);
 };
 const showSkill = (skill) => {
+  state.skill = skill;
   document.body.dataset.activeSkill = skill;
   setText("[data-current-skill]", skillLabels[skill] || skill);
-  document.querySelectorAll("[data-skill-id]").forEach((item) => item.setAttribute("aria-pressed", String(item.dataset.skillId === skill)));
-  document.querySelectorAll("[data-skill-workspace]").forEach((workspace) => workspace.classList.toggle("hidden", workspace.dataset.skillWorkspace !== skill));
+  resetInspectorForSkill(skill);
+  document.querySelectorAll("[data-skill-id]").forEach((item) => {
+    item.setAttribute("aria-pressed", String(item.dataset.skillId === skill));
+  });
+  document.querySelectorAll("[data-skill-workspace]").forEach((workspace) => {
+    workspace.classList.toggle("hidden", workspace.dataset.skillWorkspace !== skill);
+  });
+  document.querySelectorAll("[data-job-panel]").forEach((panel) => {
+    const mappedSkill = jobToSkill[panel.dataset.jobPanel] || panel.dataset.jobPanel;
+    panel.classList.toggle("hidden", mappedSkill !== skill && panel.dataset.skillWorkspace !== skill);
+  });
+};
+const showAmazonProductMiningPage = (page) => {
+  const activePage = page || "history";
+  document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.dataset.amazonProductMiningPage === activePage));
+  });
+  document.querySelectorAll("[data-amazon-product-mining-surface]").forEach((surface) => {
+    surface.classList.toggle("hidden", surface.dataset.amazonProductMiningSurface !== activePage);
+  });
+};
+const showWorkspacePage = (skill, page) => {
+  const activePage = page || "main";
+  document.querySelectorAll("[data-workspace-page-skill='" + skill + "']").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.dataset.workspacePage === activePage));
+  });
+  document.querySelectorAll("[data-workspace-surface-skill='" + skill + "']").forEach((surface) => {
+    surface.classList.toggle("hidden", surface.dataset.workspaceSurface !== activePage);
+  });
 };
 const refreshShell = async () => {
   try {
@@ -66,25 +199,203 @@ const openBrowserPairing = async () => {
   try {
     const pairing = await readJson("/api/browser-authority/pairing", { cache: "no-store" });
     if (pairing.authority === "present") {
-      openInspector({ kind: "browser authority", title: "浏览器扩展已经完成认证", payload: { "下一步": "认领需要用于玄学 AI 的 HTTPS 标签页。" } });
+      openInspector({
+        kind: "browser authority",
+        title: "浏览器扩展已经完成认证",
+        payload: {
+          "下一步": "切换到要控制的 HTTPS 标签页，在扩展弹窗中点击“认领当前 HTTPS 标签页”。认领成功会建立本次连接的工作区并恢复最早未完成任务。",
+        },
+      });
+      writeActivity("browser authority already authenticated", "completed");
       return;
     }
-    if (typeof pairing.pairingSecret !== "string") throw new Error("BROWSER_PAIRING_SECRET_UNAVAILABLE");
+    if (typeof pairing.pairingSecret !== "string" || !/^[a-f0-9]{64}$/.test(pairing.pairingSecret)) {
+      throw new Error("BROWSER_PAIRING_SECRET_UNAVAILABLE");
+    }
     await navigator.clipboard.writeText(pairing.pairingSecret);
-    openInspector({ kind: "browser authority", title: "一次性配对密钥已复制", payload: { "一次性配对密钥": pairing.pairingSecret } });
+    openInspector({
+      kind: "browser authority",
+      title: "一次性配对密钥已复制",
+      payload: {
+        "一次性配对密钥": pairing.pairingSecret,
+        "第 1 步": "点击 Chrome 工具栏中的 GrassEye Browser Authority 扩展。",
+        "第 2 步": "粘贴密钥并点击“配对固定扩展”。",
+        "第 3 步": "切换到要控制的 HTTPS 标签页并点击“认领当前 HTTPS 标签页”。",
+        "第 4 步": "认领成功后直接继续；本次连接不设置运行时长到期。",
+      },
+    });
+    writeActivity("one-time browser pairing secret copied", "completed");
   } catch (error) {
     writeActivity("browser pairing preparation failed: " + error.message, "failed");
   }
 };
+${renderAmazonProductMiningReviewClient()}
+${renderAmazonInvoiceClient({
+  downloadStart: "/api/plugins/amazon-invoice-upload/download/start",
+  downloadLatest: "/api/plugins/amazon-invoice-upload/download/latest",
+  downloadArtifact: "/api/plugins/amazon-invoice-upload/download/artifact/",
+  uploadLedger: "/api/plugins/amazon-invoice-upload/ledger",
+})}
+const renderLedger = (payload, options = {}) => {
+  const record = payload?.record || payload?.task || payload;
+  if (!record || typeof record !== "object") return;
+  const job = options.job || state.skill;
+  const targetSkill = jobToSkill[job] || job;
+  if (targetSkill !== state.skill) {
+    return;
+  }
+  let recordId = "-";
+  if (job === "amazon-product-mining") {
+    const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.amazonProductMiningTaskId;
+    recordId = nextTaskId || "-";
+    if (nextTaskId) state.amazonProductMiningTaskId = nextTaskId;
+    renderAmazonProductMiningSummary(record);
+  } else {
+    const nextTaskId = typeof record.taskId === "string" && record.taskId ? record.taskId : state.taskId;
+    recordId = nextTaskId || "-";
+    if (nextTaskId) state.taskId = nextTaskId;
+  }
+  setText("[data-task-id]", recordId);
+  setText("[data-task-status]", record.status || "-");
+  setText("[data-task-step]", record.reachedStep || record.currentRoundId || "-");
+  setText("[data-task-reason]", record.failureReason || record.reason || "-");
+  setText("[data-evidence-ref]", record.evidenceRef || record.videoArtifactRef || "-");
+  const raw = qs("[data-raw-result]");
+  if (raw) raw.textContent = JSON.stringify(record, null, 2);
+};
+const startAmazonProductMining = async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const mission = {
+    amazonMarketplace: form.amazonMarketplace.value,
+    targetMarket: form.targetMarket.value.trim(),
+    productDirection: form.productDirection.value.trim(),
+    requestedKeywordCount: Number(form.requestedKeywordCount.value),
+    keywordHistoryPolicy: form.keywordHistoryPolicy.value,
+    languagePreference: form.languagePreference.value,
+    providerKind: form.amazonKeywordProviderKind.value,
+  };
+  writeActivity("task started: amazon product mining", "running");
+  const task = await readJson("/api/amazon-product-mining/mission", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(mission),
+  });
+  showAmazonProductMiningPage("latest");
+  state.amazonProductMiningTaskId = task.taskId || "";
+  if (state.amazonProductMiningTaskId) {
+    const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(state.amazonProductMiningTaskId));
+    renderLedger(current, { job: "amazon-product-mining" });
+    await refreshAmazonProductMiningReviews();
+    startAmazonProductMiningPolling(state.amazonProductMiningTaskId);
+    return;
+  }
+  renderLedger(task, { job: "amazon-product-mining" });
+};
+const refreshAmazonProductMiningLatest = async () => {
+  showAmazonProductMiningPage("latest");
+  const latestTask = await readJson("/api/amazon-product-mining/latest");
+  if (!latestTask) {
+    writeActivity("amazon product mining latest task not found", "manual-required");
+    return;
+  }
+  renderLedger(latestTask, { job: "amazon-product-mining" });
+  await refreshAmazonProductMiningReviews();
+  if (latestTask.taskId && (latestTask.status === "created" || latestTask.status === "keyword_generating" || latestTask.status === "keyword_ready" || latestTask.status === "mining" || latestTask.status === "packaging")) {
+    startAmazonProductMiningPolling(latestTask.taskId);
+  }
+};
+const stopAmazonProductMiningPolling = () => {
+  if (state.amazonProductMiningPoll) clearInterval(state.amazonProductMiningPoll);
+  state.amazonProductMiningPoll = null;
+};
+const pollAmazonProductMiningTask = async (taskId) => {
+  if (!taskId) return;
+  const current = await readJson("/api/amazon-product-mining/run?taskId=" + encodeURIComponent(taskId));
+  renderLedger(current, { job: "amazon-product-mining" });
+  await refreshAmazonProductMiningReviews();
+  const status = current?.status;
+  if (status && status !== "created" && status !== "keyword_generating" && status !== "keyword_ready" && status !== "mining" && status !== "packaging") {
+    stopAmazonProductMiningPolling();
+    writeActivity("amazon product mining stopped with status " + status, status === "package_completed" ? "completed" : "manual-required");
+  }
+};
+const startAmazonProductMiningPolling = (taskId) => {
+  state.amazonProductMiningTaskId = taskId || state.amazonProductMiningTaskId;
+  stopAmazonProductMiningPolling();
+  state.amazonProductMiningPoll = setInterval(() => {
+    pollAmazonProductMiningTask(state.amazonProductMiningTaskId).catch((error) => writeActivity("amazon product mining poll failed: " + error.message, "failed"));
+  }, 5000);
+  pollAmazonProductMiningTask(state.amazonProductMiningTaskId).catch((error) => writeActivity("amazon product mining poll failed: " + error.message, "failed"));
+};
+const exportAmazonProductMining = async () => {
+  const taskId = state.amazonProductMiningTaskId;
+  if (!taskId) return writeActivity("amazon product mining task id is required", "manual-required");
+  const exported = await readJson("/api/amazon-product-mining/export?taskId=" + encodeURIComponent(taskId));
+  const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "amazon-product-mining-" + taskId + ".json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+  writeActivity("package generated: amazon product mining export ready", "completed");
+};
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[data-skill-id]").forEach((item) => item.addEventListener("click", () => showSkill(item.dataset.skillId)));
-  document.querySelectorAll("[data-sidebar-toggle]").forEach((item) => item.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed")));
+  document.querySelectorAll("[data-skill-id]").forEach((item) => {
+    item.addEventListener("click", () => showSkill(item.dataset.skillId));
+  });
+  qs("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed"));
   qs("[data-inspector-toggle]")?.addEventListener("click", () => document.body.classList.toggle("inspector-collapsed"));
-  qs("[data-console-toggle]")?.addEventListener("click", () => document.body.classList.toggle("console-collapsed"));
+  qs("[data-amazon-form]")?.addEventListener("submit", startAmazon);
+  qs("[data-amazon-product-mining-form]")?.addEventListener("submit", startAmazonProductMining);
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
   qs("[data-browser-pairing]")?.addEventListener("click", openBrowserPairing);
-  showSkill("xuanxue-ai-production");
+  document.querySelectorAll("[data-amazon-product-mining-page]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      if (tab.dataset.amazonProductMiningPage === "latest") {
+        refreshAmazonProductMiningLatest().catch((error) => writeActivity("amazon product mining latest refresh failed: " + error.message, "failed"));
+        return;
+      }
+      showAmazonProductMiningPage(tab.dataset.amazonProductMiningPage);
+    });
+  });
+  document.querySelectorAll("[data-workspace-page][data-workspace-page-skill]").forEach((tab) => {
+    tab.addEventListener("click", () => showWorkspacePage(tab.dataset.workspacePageSkill, tab.dataset.workspacePage));
+  });
+  qs("[data-amazon-latest]")?.addEventListener("click", refreshAmazonLatest);
+  qs("[data-amazon-resume]")?.addEventListener("click", resumeAmazon);
+  qs("[data-amazon-tax-invoice-download-form]")?.addEventListener("submit", startAmazonTaxInvoiceDownload);
+  qs("[data-amazon-tax-invoice-download-latest]")?.addEventListener("click", refreshAmazonTaxInvoiceDownloadLatest);
+  qs("[data-amazon-tax-invoice-download-artifact]")?.addEventListener("click", openAmazonTaxInvoiceDownloadArtifact);
+  qs("[data-amazon-invoice-batch-form]")?.addEventListener("submit", startAmazonInvoiceBatch);
+  document.querySelectorAll("[data-amazon-invoice-upload-ledger-refresh]").forEach((button) => {
+    button.addEventListener("click", refreshAmazonInvoiceUploadLedger);
+  });
+  qs("[data-amazon-product-mining-latest]")?.addEventListener("click", refreshAmazonProductMiningLatest);
+  qs("[data-amazon-product-mining-export]")?.addEventListener("click", exportAmazonProductMining);
+  document.querySelectorAll("[data-amazon-product-mining-refresh-reviews]").forEach((button) => {
+    button.addEventListener("click", () => refreshAmazonProductMiningKeywordReviews().catch(() => undefined));
+  });
+  [
+    ["[data-amazon-product-mining-review-task-filter]", "input"],
+    ["[data-amazon-product-mining-review-filter]", "change"],
+    ["[data-amazon-product-mining-review-marketplace-filter]", "change"],
+    ["[data-amazon-product-mining-review-keyword-filter]", "input"],
+    ["[data-amazon-product-mining-review-target-market-filter]", "input"],
+    ["[data-amazon-product-mining-review-human-next-step-filter]", "change"],
+    ["[data-amazon-product-mining-review-data-confidence-filter]", "change"],
+    ["[data-amazon-product-mining-review-package-integrity-filter]", "change"],
+    ["[data-amazon-product-mining-review-sort]", "change"],
+  ].forEach(([selector, eventName]) => {
+    qs(selector)?.addEventListener(eventName, () => {
+      syncAmazonProductMiningReviewFiltersFromDom();
+      renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
+    });
+  });
+  showSkill("amazon-product-mining");
+  showAmazonProductMiningPage("history");
   refreshShell();
+  renderAmazonProductMiningReviewTable(state.amazonProductMiningReviews);
 });
 `;
 

@@ -1,0 +1,12 @@
+{
+  "globalStatus": "in_progress",
+  "currentLawId": "GRASSEYE-AI-CAPABILITY-005-V1",
+  "nextLawId": "GRASSEYE-AI-CAPABILITY-008-V1",
+  "unresolvedTotal": 57,
+  "completedLawIds": [],
+  "failedLawIds": [],
+  "blockedLawIds": [],
+  "lastValidatedAt": null,
+  "lastRunnerSummaryPath": "scripts/audit/generated/quality-kernel-summary.generated.json",
+  "lastStaticCoveragePath": null
+}

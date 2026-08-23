@@ -1,0 +1,13 @@
+{
+  "capabilityDomain": "amazon-invoice-upload",
+  "lawIds": [
+    "LAW-AMAZON-INVOICE-UPLOAD-001-V2"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/mediator/amazon-invoice-upload-route.ts",
+    "src/plugins/amazon-invoice-upload/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

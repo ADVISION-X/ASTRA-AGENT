@@ -1,0 +1,154 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - strong [ref=e5]: GrassEye
+      - generic [ref=e6]: AGENT 工作台
+    - generic [ref=e7]:
+      - generic [ref=e8]: Amazon 产品挖掘
+      - generic [ref=e9]:
+        - text: 健康
+        - generic [ref=e10]: healthy
+      - generic [ref=e11]:
+        - text: 模式
+        - generic [ref=e12]: agent-shell
+    - generic [ref=e13]:
+      - button "浏览器配对" [ref=e14] [cursor=pointer]
+      - generic "语言" [ref=e15]:
+        - button "中文" [pressed] [ref=e17] [cursor=pointer]
+        - button "English" [ref=e18] [cursor=pointer]
+      - button "切换侧边栏" [ref=e19] [cursor=pointer]: ⌥
+      - button "切换检查器" [ref=e20] [cursor=pointer]: ⌘
+      - button "切换控制台" [ref=e21] [cursor=pointer]: ⌃
+      - button "刷新工作台" [ref=e22] [cursor=pointer]: ↻
+  - generic [ref=e23]:
+    - complementary [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: 技能注册表
+        - button "收起侧边栏" [ref=e27] [cursor=pointer]: ‹
+      - navigation [ref=e28]:
+        - button "玄学人工智能生产 仅限本地的整单状态与安全介入界面。" [ref=e29] [cursor=pointer]:
+          - generic [ref=e31]:
+            - strong [ref=e32]: 玄学人工智能生产
+            - generic [ref=e33]: 仅限本地的整单状态与安全介入界面。
+        - button "Amazon 产品挖掘 关键词证据包和关键词级 AI 复核历史。" [pressed] [ref=e34] [cursor=pointer]:
+          - generic [ref=e36]:
+            - strong [ref=e37]: Amazon 产品挖掘
+            - generic [ref=e38]: 关键词证据包和关键词级 AI 复核历史。
+        - button "媒体优化器 网站可用的图片和视频 artifact 优化。" [ref=e39] [cursor=pointer]:
+          - generic [ref=e41]:
+            - strong [ref=e42]: 媒体优化器
+            - generic [ref=e43]: 网站可用的图片和视频 artifact 优化。
+        - button "Amazon 发票上传 统一外壳内的有界发票上传 job flow。" [ref=e44] [cursor=pointer]:
+          - generic [ref=e46]:
+            - strong [ref=e47]: Amazon 发票上传
+            - generic [ref=e48]: 统一外壳内的有界发票上传 job flow。
+    - main [ref=e49]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - generic [ref=e53]: 二级技能工作区
+            - heading "Amazon 产品挖掘" [level=1] [ref=e54]
+            - paragraph [ref=e55]: 关键词证据包和关键词级机会复核。业务判断只显示持久化后端记录。
+          - generic [ref=e56]:
+            - generic [ref=e57]: "-"
+            - generic [ref=e58]: "-"
+        - navigation "Amazon 产品挖掘页面" [ref=e59]:
+          - button "复核历史" [pressed] [ref=e60] [cursor=pointer]
+          - button "新任务" [ref=e61] [cursor=pointer]
+          - button "最新任务" [ref=e62] [cursor=pointer]
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - generic [ref=e68]: 主历史
+              - heading "关键词机会复核历史" [level=2] [ref=e69]
+            - button "刷新" [ref=e70] [cursor=pointer]
+          - generic [ref=e71]:
+            - generic [ref=e72]:
+              - generic [ref=e73]: 决策
+              - combobox [ref=e74]:
+                - option "全部" [selected]
+                - option "PASS"
+                - option "WATCH"
+                - option "REJECT"
+                - option "INSUFFICIENT_DATA"
+            - generic [ref=e75]:
+              - generic [ref=e76]: 关键词搜索
+              - textbox "搜索关键词" [ref=e77]
+            - generic [ref=e78]:
+              - generic [ref=e79]: 站点
+              - combobox [ref=e80]:
+                - option "全部" [selected]
+            - generic [ref=e81]:
+              - generic [ref=e82]: 任务 ID
+              - textbox "可选任务 ID" [ref=e83]
+            - generic [ref=e84]:
+              - generic [ref=e85]: 目标市场
+              - textbox "筛选目标市场" [ref=e86]
+            - generic [ref=e87]:
+              - generic [ref=e88]: 人工下一步
+              - combobox [ref=e89]:
+                - option "全部" [selected]
+                - option "进入下一步验证"
+                - option "挖掘相关关键词"
+                - option "拒绝"
+                - option "重跑或收集更多数据"
+            - generic [ref=e90]:
+              - generic [ref=e91]: 数据置信度
+              - combobox [ref=e92]:
+                - option "全部" [selected]
+                - option "强"
+                - option "中"
+                - option "弱"
+                - option "不足"
+            - generic [ref=e93]:
+              - generic [ref=e94]: 资料包完整性
+              - combobox [ref=e95]:
+                - option "全部" [selected]
+                - option "通过"
+                - option "失败"
+                - option "不可用"
+            - generic [ref=e96]:
+              - generic [ref=e97]: 排序
+              - combobox [ref=e98]:
+                - option "创建时间倒序" [selected]
+                - option "决策优先级"
+                - option "数据置信度"
+                - option "评论数量"
+                - option "产品数量"
+          - generic [ref=e99]: 还没有关键词机会复核。运行 Amazon 产品挖掘任务并完成 AI 关键词复核后会填充此表。
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]: Agent 历史
+              - heading "未加载关键词复核" [level=3] [ref=e103]
+              - paragraph [ref=e104]: 还没有关键词机会复核。运行 Amazon 产品挖掘任务并完成 AI 关键词复核后会填充此表。
+            - generic [ref=e105]:
+              - button "刷新" [ref=e106] [cursor=pointer]
+              - button "新任务" [ref=e107] [cursor=pointer]
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - generic [ref=e110]:
+              - generic [ref=e111]: 本地介入
+              - heading "产品挖掘任务控制" [level=2] [ref=e112]
+            - generic [ref=e113]: 空闲
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]: 任务 / 运行 ID
+              - textbox [ref=e117]
+            - generic [ref=e118]:
+              - generic [ref=e119]: 预期修订号
+              - spinbutton [ref=e120]: "0"
+            - generic [ref=e121]:
+              - generic [ref=e122]: 原因
+              - textbox [ref=e123]: operator_request
+            - generic [ref=e124]:
+              - button "刷新状态" [ref=e125] [cursor=pointer]
+              - button "暂停" [ref=e126] [cursor=pointer]
+              - button "取消" [ref=e127] [cursor=pointer]
+              - button "接管" [ref=e128] [cursor=pointer]
+              - button "恢复" [ref=e129] [cursor=pointer]
+            - generic [ref=e130]: 必须填写精确任务身份和 CAS 修订号。
+  - contentinfo [ref=e131]:
+    - generic [ref=e132]:
+      - generic [ref=e133]: 运行控制台
+      - generic [ref=e134]: completed
+    - button "17:12:53 shell refreshed" [ref=e136]

@@ -11,6 +11,7 @@ import { createWorkbenchAssembly } from "../../src/lib/local-runtime/workbench-a
 const repoRoot = resolve(import.meta.dirname, "../..");
 const retiredPaths = [
   "src/lib/local-runtime/workbench-browser-support.ts",
+  "src/lib/local-runtime/workbench-video-download-support.ts",
 ] as const;
 
 for (const retiredPath of retiredPaths) {
@@ -23,7 +24,7 @@ assert.ok(assemblySource, "Workbench assembly must remain a TypeScript source fi
 assert.equal(
   assemblySource.getImportDeclarations().some((declaration) =>
     declaration.getModuleSpecifierValue().includes("workbench-browser-support")
-),
+    || declaration.getModuleSpecifierValue().includes("workbench-video-download-support")),
   false,
   "Workbench assembly must not import a retired Browser support path.",
 );
@@ -56,6 +57,11 @@ try {
   assert.match(pairing.pairingSecret ?? "", /^[a-f0-9]{64}$/u, "Cold start must issue one memory-only 256-bit operator pairing secret.");
   assert.equal(JSON.stringify(assembly.browserAuthority.health()).includes(pairing.pairingSecret ?? ""), false, "Pairing secret must not enter health output.");
   assert.equal("approveSessionWorkspace" in assembly.browserAuthority, false, "Pair plus claim must be the only operator admission; a second workspace approval surface is forbidden.");
+  await assert.rejects(
+    () => assembly.videoDownload.execute({} as never),
+    /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u,
+    "Browser-dependent video work must fail closed while authority is absent.",
+  );
 } finally {
   await assembly.browserAuthority.shutdown();
 }

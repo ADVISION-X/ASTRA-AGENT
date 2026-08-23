@@ -1,11 +1,16 @@
+import { prepareVideoDownloadRuntimeDependencies } from "../../capabilities/video-download/index.js";
 import { runXuanxueAiProductionRoute } from "../../mediator/xuanxue-ai-production-route.js";
 import { createXuanxueAiProductionWorkbenchOwner } from "../../plugins/xuanxue-ai-production/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
+import { buildAmazonInvoiceHandle } from "./workbench-amazon-invoice-handle.js";
 import { buildApiBoundaryLogHandle } from "./workbench-api-boundary-log.js";
 import { createWorkbenchAssembly, type WorkbenchAssembly } from "./workbench-assembly.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
-import { buildSettingsHandle } from "./workbench-marketplace-handles.js";
+import {
+  buildAmazonMiningHandle,
+  buildSettingsHandle,
+} from "./workbench-marketplace-handles.js";
 import {
   getHealthReport,
   getMissionReadinessReport,
@@ -43,8 +48,11 @@ const buildWorkbenchHandle = (
     getDataDir: () => dataDir,
     acceptBrowserAuthoritySocket: (input) => assembly.browserAuthority.acceptBrowserAuthoritySocket(input),
     readBrowserAuthorityPairingState: () => assembly.browserAuthority.readOperatorPairingState(),
+    getMediaProcessingAbilityGroup: () => assembly.mediaProcessing,
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
+    ...buildAmazonInvoiceHandle(assembly, dataDir),
+    ...buildAmazonMiningHandle(assembly, dataDir),
     ...buildXuanxueAiProductionHandle(xuanxueAiProduction),
   };
 };
@@ -113,6 +121,7 @@ export class GrassEyeWorkbench {
         xuanxueAiProduction,
         () => this.initializationState,
       );
+      await prepareVideoDownloadRuntimeDependencies();
       await xuanxueAiProduction.init();
       this.initializationState = { status: "ready", failureReason: null };
     } catch (error) {

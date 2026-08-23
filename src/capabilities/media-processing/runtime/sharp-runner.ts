@@ -69,6 +69,7 @@ const runSingleImageOutput = async (input: {
     contentType: contentTypeForImageFormat(input.format),
     width: metadata.width ?? null,
     height: metadata.height ?? null,
+    durationMs: null,
     format: input.format,
     derivativeKind: input.plan.derivativeKind,
   });

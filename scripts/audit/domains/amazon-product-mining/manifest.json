@@ -1,0 +1,13 @@
+{
+  "capabilityDomain": "amazon-product-mining",
+  "lawIds": [
+    "LAW-AMAZON-PRODUCT-MINING-001-V3"
+  ],
+  "observedPaths": [],
+  "ownedPaths": [
+    "src/mediator/amazon-product-mining-route.ts",
+    "src/plugins/amazon-product-mining/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

@@ -6,6 +6,9 @@ export const MediaProcessingChildCapabilityIdSchema = z.enum([
   "optimize-image-for-web-once",
   "resize-image-for-web-once",
   "generate-responsive-image-variants-once",
+  "optimize-video-for-web-once",
+  "compress-video-for-web-once",
+  "generate-video-poster-once",
 ]);
 
 const MediaProcessingStatusSchema = z.enum([
@@ -21,24 +24,33 @@ const MediaProcessingPresetIdSchema = z.enum([
   "web-image",
   "web-image-responsive",
   "public-knowledge-hero",
+  "web-video",
+  "web-video-compressed",
+  "web-video-poster",
 ]);
 
 const MediaProcessingImageFormatSchema = z.enum(["webp", "jpeg", "png"]);
+const MediaProcessingVideoFormatSchema = z.enum(["mp4"]);
 
 const PositiveBoundedDimensionSchema = z.number().int().min(1).max(8192);
+const PositiveBoundedByteSizeSchema = z.number().int().min(1).max(250_000_000);
+const PositiveBoundedBitrateKbpsSchema = z.number().int().min(64).max(20_000);
 
 export const MediaProcessingPublicRequestSchema = z.object({
   missionId: z.string().min(1),
   runId: z.string().min(1),
   inputFilePath: z.string().min(1),
   presetId: MediaProcessingPresetIdSchema,
-  outputFormat: MediaProcessingImageFormatSchema.optional(),
+  outputFormat: z.union([MediaProcessingImageFormatSchema, MediaProcessingVideoFormatSchema]).optional(),
   quality: z.number().int().min(1).max(100).optional(),
   maxWidth: PositiveBoundedDimensionSchema.optional(),
   maxHeight: PositiveBoundedDimensionSchema.optional(),
   targetWidth: PositiveBoundedDimensionSchema.optional(),
   targetHeight: PositiveBoundedDimensionSchema.optional(),
   variantWidths: z.array(PositiveBoundedDimensionSchema).min(1).max(8).optional(),
+  posterTimestampSeconds: z.number().min(0).max(86_400).optional(),
+  targetMaxBytes: PositiveBoundedByteSizeSchema.optional(),
+  targetBitrateKbps: PositiveBoundedBitrateKbpsSchema.optional(),
   timeoutMs: z.number().int().min(1000).max(3_600_000).default(120_000),
   artifactPolicy: MediaProcessingArtifactPolicySchema.default("deliverable"),
 }).strict();
@@ -56,6 +68,9 @@ const MediaProcessingInputBaseSchema = z.object({
   targetWidth: PositiveBoundedDimensionSchema.optional(),
   targetHeight: PositiveBoundedDimensionSchema.optional(),
   variantWidths: z.array(PositiveBoundedDimensionSchema).min(1).max(8).optional(),
+  posterTimestampSeconds: z.number().min(0).max(86_400).default(1),
+  targetMaxBytes: PositiveBoundedByteSizeSchema.optional(),
+  targetBitrateKbps: PositiveBoundedBitrateKbpsSchema.optional(),
   timeoutMs: z.number().int().min(1000).max(3_600_000).default(120_000),
   artifactDisposition: MediaProcessingArtifactPolicySchema.default("deliverable"),
 });
@@ -75,10 +90,29 @@ const ResponsiveImageSetInputSchema = MediaProcessingInputBaseSchema.extend({
   outputFormat: MediaProcessingImageFormatSchema.default("webp"),
 }).strict();
 
+const OptimizeVideoInputSchema = MediaProcessingInputBaseSchema.extend({
+  childCapabilityId: z.literal("optimize-video-for-web-once"),
+  outputFormat: MediaProcessingVideoFormatSchema.default("mp4"),
+}).strict();
+
+const CompressVideoInputSchema = MediaProcessingInputBaseSchema.extend({
+  childCapabilityId: z.literal("compress-video-for-web-once"),
+  outputFormat: MediaProcessingVideoFormatSchema.default("mp4"),
+  targetBitrateKbps: PositiveBoundedBitrateKbpsSchema.default(1200),
+}).strict();
+
+const VideoPosterInputSchema = MediaProcessingInputBaseSchema.extend({
+  childCapabilityId: z.literal("generate-video-poster-once"),
+  outputFormat: MediaProcessingImageFormatSchema.default("webp"),
+}).strict();
+
 export const MediaProcessingAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   OptimizeImageInputSchema,
   ResizeImageInputSchema,
   ResponsiveImageSetInputSchema,
+  OptimizeVideoInputSchema,
+  CompressVideoInputSchema,
+  VideoPosterInputSchema,
 ]);
 
 const MediaProcessingArtifactSchema = z.object({
@@ -90,8 +124,15 @@ const MediaProcessingArtifactSchema = z.object({
   sha256: z.string().min(64).max(64),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
+  durationMs: z.number().nonnegative().nullable(),
   format: z.string().min(1),
-  derivativeKind: z.enum(["optimized", "resized", "responsive_variant", "inspection"]),
+  videoCodec: z.string().min(1).nullable(),
+  audioCodec: z.string().min(1).nullable(),
+  fastStart: z.boolean().nullable(),
+  targetMaxBytes: z.number().int().positive().nullable(),
+  targetBitrateKbps: z.number().int().positive().nullable(),
+  compressionRatio: z.number().positive().nullable(),
+  derivativeKind: z.enum(["optimized", "resized", "responsive_variant", "inspection", "video_optimized", "video_compressed", "poster"]),
 }).strict();
 
 const MediaProcessingProofSchema = z.object({

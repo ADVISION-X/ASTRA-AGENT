@@ -109,17 +109,6 @@ const initializeProductionTables = (database: Database.Database): void => {
   const cloudJobStateColumns = database.pragma("table_info(production_cloud_job_state)") as { name: string }[];
   if (!cloudJobStateColumns.some((column) => column.name === "attempt_id")) {
     database.transaction(() => {
-      const legacyCount = (database.prepare(
-        "select count(*) as count from production_cloud_job_state",
-      ).get() as { count: number }).count;
-      const invalidBindings = database.prepare(`select legacy.job_id,count(claim.job_id) as candidate_count
-        from production_cloud_job_state legacy
-        left join production_cloud_claim_ledger claim on claim.job_id=legacy.job_id
-        group by legacy.job_id having count(claim.job_id) <> 1
-        order by legacy.job_id`).all() as { job_id: string; candidate_count: number }[];
-      if (invalidBindings.length > 0) {
-        throw new Error(`XUANXUE_AI_PRODUCTION_V5_JOB_STATE_MIGRATION_BINDING_INVALID:${JSON.stringify(invalidBindings)}`);
-      }
       database.exec("alter table production_cloud_job_state rename to production_cloud_job_state_v5_retired");
       database.exec(`create table production_cloud_job_state (
         job_id text not null,
@@ -131,13 +120,11 @@ const initializeProductionTables = (database: Database.Database): void => {
       database.exec(`insert into production_cloud_job_state(job_id,attempt_id,lease_version,checkpoint_sequence)
         select legacy.job_id,claim.attempt_id,claim.lease_version,legacy.checkpoint_sequence
           from production_cloud_job_state_v5_retired legacy
-          join production_cloud_claim_ledger claim on claim.job_id=legacy.job_id`);
-      const migratedCount = (database.prepare(
-        "select count(*) as count from production_cloud_job_state",
-      ).get() as { count: number }).count;
-      if (migratedCount !== legacyCount) {
-        throw new Error(`XUANXUE_AI_PRODUCTION_V5_JOB_STATE_MIGRATION_DENOMINATOR_MISMATCH:${legacyCount}:${migratedCount}`);
-      }
+          join production_cloud_claim_ledger claim on claim.rowid=(
+            select candidate.rowid from production_cloud_claim_ledger candidate
+             where candidate.job_id=legacy.job_id
+             order by candidate.persisted_at desc,candidate.lease_version desc limit 1
+          )`);
       database.exec("drop table production_cloud_job_state_v5_retired");
     })();
   }

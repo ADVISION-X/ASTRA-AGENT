@@ -1,0 +1,42 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import sharp from "sharp";
+
+import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
+import { runMediaProcessingArtifactFlow } from "../../src/plugins/media-processing-artifact/index.js";
+
+const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-media-processing-flow-"));
+const uploadDir = path.join(dataDir, "runtime-data", "media-processing-uploads", "acceptance");
+await mkdir(uploadDir, { recursive: true });
+const inputFilePath = path.join(uploadDir, "source.png");
+await sharp({
+  create: {
+    width: 320,
+    height: 180,
+    channels: 3,
+    background: { r: 180, g: 90, b: 30 },
+  },
+}).png().toFile(inputFilePath);
+
+const result = await runMediaProcessingArtifactFlow(
+  {
+    jobType: "media-processing-artifact",
+    inputFilePath,
+    presetId: "web-image",
+    outputFormat: "webp",
+    targetWidth: 160,
+    targetHeight: 90,
+    artifactPolicy: "deliverable",
+  },
+  { mediaProcessing: createMediaProcessingAbilityGroupFromFilesystem({ dataDir }) },
+);
+
+assert.equal(result.jobType, "media-processing-artifact");
+assert.equal(result.status, "success");
+assert.equal(result.result.abilityGroupId, "media-processing");
+assert.equal(result.result.childCapabilityId, "optimize-image-for-web-once");
+
+process.stdout.write("[ACCEPTANCE][media-processing-job-flow] PASS\n");
