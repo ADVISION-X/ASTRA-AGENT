@@ -1,10 +1,81 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { spawn, type ChildProcess } from "node:child_process";
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
-import { probeExistingWorkbench } from "../startup/lib/service-readiness.mjs";
 import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-preflight.mjs";
+import { clearPortListeners } from "../startup/lib/process-control.mjs";
+
+const waitForChildReady = (child: ChildProcess): Promise<void> => new Promise((resolve, reject) => {
+  let output = "";
+  const timeout = setTimeout(() => reject(new Error("fixture listener readiness timeout")), 5_000);
+  child.stdout?.setEncoding("utf8");
+  child.stdout?.on("data", (chunk: string) => {
+    output += chunk;
+    if (output.includes("READY")) {
+      clearTimeout(timeout);
+      resolve();
+    }
+  });
+  child.once("error", (error) => {
+    clearTimeout(timeout);
+    reject(error);
+  });
+  child.once("exit", (code) => {
+    clearTimeout(timeout);
+    reject(new Error(`fixture listener exited before readiness: ${code ?? "signal"}`));
+  });
+});
+
+const startFixtureListener = async (cwd: string, marker: string): Promise<{ child: ChildProcess; port: number }> => {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const port = address.port;
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  const child = spawn(process.execPath, [
+    "-e",
+    "require('node:http').createServer((_q,r)=>r.end('ok')).listen(Number(process.argv[1]),'127.0.0.1',()=>console.log('READY'));setInterval(()=>{},1000)",
+    String(port),
+    marker,
+  ], { cwd, stdio: ["ignore", "pipe", "pipe"] });
+  await waitForChildReady(child);
+  return { child, port };
+};
+
+const stopFixture = async (child: ChildProcess): Promise<void> => {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  child.kill("SIGKILL");
+  await new Promise<void>((resolve) => child.once("exit", () => resolve()));
+};
+
+const verifyRepositoryOwnedPortCleanup = async (): Promise<void> => {
+  const rootDir = process.cwd();
+  const marker = "grasseye-owned-fixture";
+  const owned = await startFixtureListener(rootDir, marker);
+  await clearPortListeners({ port: owned.port, rootDir, allowedCommandFragments: [marker], waitMs: 100 });
+  if (owned.child.exitCode === null && owned.child.signalCode === null) {
+    await new Promise<void>((resolve) => owned.child.once("exit", () => resolve()));
+  }
+
+  const foreignCwd = await mkdtemp(path.join(tmpdir(), "grasseye-foreign-listener-"));
+  const foreign = await startFixtureListener(foreignCwd, marker);
+  try {
+    await assert.rejects(
+      clearPortListeners({ port: foreign.port, rootDir, allowedCommandFragments: [marker], waitMs: 100 }),
+      /PORT_LISTENER_FOREIGN/u,
+    );
+    assert.equal(foreign.child.exitCode, null, "foreign listener must remain alive after fail-closed cleanup");
+  } finally {
+    await stopFixture(foreign.child);
+    await rm(foreignCwd, { recursive: true, force: true });
+  }
+};
 
 const fixtureAssembly = (): Parameters<typeof getHealthReport>[0] => ({
   browserAuthority: {
@@ -75,44 +146,6 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
   );
 };
 
-const verifyHealthProbe = async (): Promise<void> => {
-  let status: "degraded" | "healthy" = "degraded";
-  const server = createServer((_request, response) => {
-    response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify({
-      status,
-      checkedAt: new Date().toISOString(),
-      sourceFingerprint: "sha256:fixture",
-      components: [],
-    }));
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  try {
-    const address = server.address();
-    assert(address && typeof address === "object");
-    const baseUrl = `http://127.0.0.1:${address.port}`;
-    const degraded = await probeExistingWorkbench({
-      baseUrl,
-      expectedSourceFingerprint: "sha256:fixture",
-      toFailureReason: (error) => error instanceof Error ? error.message : String(error),
-    });
-    assert.equal(degraded.mounted, false);
-    assert.match(degraded.failureReason ?? "", /not ready: degraded/u);
-    status = "healthy";
-    const healthy = await probeExistingWorkbench({
-      baseUrl,
-      expectedSourceFingerprint: "sha256:fixture",
-      toFailureReason: (error) => error instanceof Error ? error.message : String(error),
-    });
-    assert.equal(healthy.mounted, true);
-    assert.equal(healthy.status, "healthy");
-  } finally {
-    await new Promise<void>((resolve, reject) => server.close((error) =>
-      error ? reject(error) : resolve()));
-  }
-
-};
-
 const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
   const preflight = await runBrowserRuntimePreflight();
   assert.equal(preflight.status, "READY");
@@ -124,8 +157,8 @@ const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   await verifySingleLocalEnvironmentInjection();
   await verifyInitializationHealth();
-  await verifyHealthProbe();
   await verifyUnpackedWebSocketPreflight();
+  await verifyRepositoryOwnedPortCleanup();
 }
 
 await runStartupInitializationHealthAcceptance();

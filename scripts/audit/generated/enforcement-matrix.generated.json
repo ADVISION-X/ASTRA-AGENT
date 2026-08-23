@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:41:38.778Z",
+  "generatedAt": "2026-08-22T19:18:20.038Z",
   "rows": [
     {
       "capabilityDomain": "ai-input-gateway",
@@ -232,7 +232,7 @@
       "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
       "lawIds": [
-        "APEX-STARTUP-001-V2"
+        "APEX-STARTUP-001-V3"
       ]
     },
     {

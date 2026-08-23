@@ -16,7 +16,7 @@ export const acceptanceLawBindings: ReadonlyMap<string, AcceptanceLawBinding> = 
   ["scripts/acceptance/audit-law-parser.acceptance.ts", { clauseId: "apex-audit-002-requirement", lawId: "APEX-AUDIT-002-V1" }],
   ["scripts/acceptance/audit-source-evidence-reachability.acceptance.ts", { clauseId: "apex-audit-007-requirement", lawId: "APEX-AUDIT-007-V1" }],
   ["scripts/acceptance/audit-owner-filesystem-writer.acceptance.ts", { clauseId: "apex-audit-005-requirement", lawId: "APEX-AUDIT-005-V1" }],
-  ["scripts/acceptance/startup-initialization-health.acceptance.ts", { clauseId: "apex-startup-001-v2-unpacked-readback", lawId: "APEX-STARTUP-001-V2" }],
+  ["scripts/acceptance/startup-initialization-health.acceptance.ts", { clauseId: "apex-startup-001-v3-clean-restart", lawId: "APEX-STARTUP-001-V3" }],
   ["scripts/acceptance/forensics-persistence-capability.acceptance.ts", { clauseId: "grasseye-evidence-001-v2-requirement", lawId: "GRASSEYE-EVIDENCE-001-V2" }],
   ["scripts/acceptance/local-browser-terminal-contract.acceptance.ts", { clauseId: "apex-local-browser-003-v6-claim-workspace-restart-resume", lawId: "APEX-LOCAL-BROWSER-003-V6" }],
   ["scripts/acceptance/local-browser-property-model.acceptance.ts", { clauseId: "apex-local-browser-002-v4-auth-liveness", lawId: "APEX-LOCAL-BROWSER-002-V4" }],

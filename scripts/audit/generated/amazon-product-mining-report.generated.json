@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:42:12.568Z",
+  "generatedAt": "2026-08-22T19:18:53.739Z",
   "capabilityDomain": "amazon-product-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -9,14 +9,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:e983202b-26c9-4ee1-89c0-8ac65bfa4139",
+      "runId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e",
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:90f79bf0-4b3e-4f39-a3ba-35945b2052bb",
       "capabilityDomain": "amazon-product-mining",
       "checkId": "amazon-product-mining/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T18:42:12.568Z",
-      "endedAt": "2026-08-22T18:42:12.568Z",
-      "durationMs": 0,
+      "startedAt": "2026-08-22T19:18:53.738Z",
+      "endedAt": "2026-08-22T19:18:53.739Z",
+      "durationMs": 1,
       "evidenceRefs": [
         "scripts/audit/domains/amazon-product-mining/inspector.ts",
         "src/lib/local-runtime/workbench-marketplace-handles.ts",
@@ -33,7 +33,7 @@
       "lawId": "APEX-AMAZON-PRODUCT-MINING-001-V3",
       "clauseId": "apex-amazon-product-mining-001-v3-terminal-authority",
       "checkId": "amazon-product-mining/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:e983202b-26c9-4ee1-89c0-8ac65bfa4139"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:90f79bf0-4b3e-4f39-a3ba-35945b2052bb"
     }
   ],
   "inspectedFiles": [

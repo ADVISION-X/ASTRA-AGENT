@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:42:12.562Z",
+  "generatedAt": "2026-08-22T19:18:53.734Z",
   "status": "PASS",
   "findings": [],
   "summary": {
@@ -20,14 +20,14 @@
   ],
   "checkRuns": [
     {
-      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:ac920b88-661e-4215-8591-aac0935e8960",
+      "runId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e",
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:545217f4-fade-4463-a231-c774fe6c39fc",
       "capabilityDomain": "workbench-api-boundary",
       "checkId": "workbench-api-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T18:42:12.473Z",
-      "endedAt": "2026-08-22T18:42:12.562Z",
-      "durationMs": 89,
+      "startedAt": "2026-08-22T19:18:53.651Z",
+      "endedAt": "2026-08-22T19:18:53.734Z",
+      "durationMs": 83,
       "evidenceRefs": [
         ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md",
         "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md",
@@ -44,7 +44,7 @@
       "lawId": "APEX-WORKBENCH-API-BOUNDARY-001-V3",
       "clauseId": "apex-workbench-api-boundary-001-v3-external-hmac-excludes-xuanxue",
       "checkId": "workbench-api-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:ac920b88-661e-4215-8591-aac0935e8960"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:545217f4-fade-4463-a231-c774fe6c39fc"
     }
   ],
   "inspectedFiles": [

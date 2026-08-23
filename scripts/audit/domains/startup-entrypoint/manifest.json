@@ -3,7 +3,7 @@
   "executionGroup": "foundation",
   "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
   "coverage": {"mode": "explicit", "bindings": [
-    {"lawId": "APEX-STARTUP-001-V2", "clauseId": "apex-startup-001-v2-unpacked-readback", "checkIds": ["startup-entrypoint/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts", "symbolName": "inspectDomain"}]}
+    {"lawId": "APEX-STARTUP-001-V3", "clauseId": "apex-startup-001-v3-clean-restart", "checkIds": ["startup-entrypoint/owner-assertion-set"], "sourceEvidence": [{"filePath": "scripts/audit/domains/startup-entrypoint/inspector.ts", "symbolName": "inspectDomain"}]}
   ]},
   "blueprintRefs": [{"filePath": "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md", "requiredAnchors": ["## 启动顺序", "## 预检对象", "## 日志"]}]
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:41:42.614Z",
+  "generatedAt": "2026-08-22T19:18:23.961Z",
   "capabilityDomain": "architecture-boundary",
   "lawIds": [
     "APEX-ARCH-001-V1",
@@ -949,14 +949,14 @@
   "executionGroup": "foundation",
   "checkRuns": [
     {
-      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363",
+      "runId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e",
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854",
       "capabilityDomain": "architecture-boundary",
       "checkId": "architecture-boundary/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T18:41:41.233Z",
-      "endedAt": "2026-08-22T18:41:42.613Z",
-      "durationMs": 1380,
+      "startedAt": "2026-08-22T19:18:22.539Z",
+      "endedAt": "2026-08-22T19:18:23.960Z",
+      "durationMs": 1421,
       "evidenceRefs": [
         ".github/instructions/agent-rules/GRASSEYE-KERNEL.instructions.md",
         ".github/instructions/agent-rules/modules/module-amazon-product-mining.instructions.md",
@@ -1625,85 +1625,85 @@
       "lawId": "APEX-ARCH-001-V1",
       "clauseId": "apex-arch-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-002-V1",
       "clauseId": "apex-arch-002-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-003-V1",
       "clauseId": "apex-arch-003-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-004-V1",
       "clauseId": "apex-arch-004-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-005-V1",
       "clauseId": "apex-arch-005-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-006-V1",
       "clauseId": "apex-arch-006-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-007-V1",
       "clauseId": "apex-arch-007-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-008-V1",
       "clauseId": "apex-arch-008-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-009-V1",
       "clauseId": "apex-arch-009-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-010-V1",
       "clauseId": "apex-arch-010-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-011-V1",
       "clauseId": "apex-arch-011-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "APEX-ARCH-012-V1",
       "clauseId": "apex-arch-012-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
       "clauseId": "grasseye-code-topology-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
       "clauseId": "grasseye-type-safety-001-requirement",
       "checkId": "architecture-boundary/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:de734a1e-08d8-49ff-901d-93c61fd7b363"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:252484a5-933f-4d59-af49-116e1ba3d854"
     }
   ]
 }

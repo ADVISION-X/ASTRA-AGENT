@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:41:38.778Z",
+  "generatedAt": "2026-08-22T19:18:20.038Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CHOICE-001-V1",
@@ -3191,29 +3191,38 @@
       "blockIndex": 2
     },
     {
-      "lawId": "APEX-STARTUP-001-V2",
+      "lawId": "APEX-STARTUP-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "startup-entrypoint",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+ast+acceptance",
-      "summary": "The single startup entry loads the optional local runtime configuration, establishes local readiness and exact unpacked artifact identity, and never starts a Browser job.",
+      "summary": "The single startup entry establishes a clean repository-owned port before every launch, loads optional local configuration, verifies exact unpacked artifact identity, and never starts a Browser job.",
       "clauses": [
         {
-          "clauseId": "apex-startup-001-v2-unpacked-readback",
-          "statement": "The sole command injects an optional .env.local into the one startup process; identity mismatch leaves Browser Authority ABSENT and produces an exact repair reason.",
+          "clauseId": "apex-startup-001-v3-clean-restart",
+          "statement": "Before every launch the sole startup command may terminate only listeners whose UID, start time, cwd and command prove the current repository-owned App Server identity; foreign, ambiguous or changed identities fail closed, and startup continues only after the port is empty.",
           "evidenceMode": "static",
           "ownerDomain": "startup-entrypoint"
         }
       ],
       "required": [
         "single command and entry",
+        "clean restart before every launch",
+        "listener UID start-time cwd and command ownership proof",
+        "identity recheck before TERM or KILL",
+        "bounded termination and empty-port postcondition",
         "optional .env.local injection without secret output",
         "health-before-open",
         "fixed artifact readback",
         "structured failure report"
       ],
       "forbidden": [
+        "healthy-process hot mount",
+        "port-number-only termination",
+        "foreign or ambiguous listener signal",
+        "cross-repository process termination",
+        "PID-reuse signal",
         "job execution",
         "secret logging",
         "second environment loader",

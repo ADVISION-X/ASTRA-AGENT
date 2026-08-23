@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-22T18:42:12.465Z",
+  "generatedAt": "2026-08-22T19:18:53.638Z",
   "capabilityDomain": "runtime-log-spine",
   "executionGroup": "foundation",
   "lawIds": [
@@ -11,14 +11,14 @@
   "findings": [],
   "checkRuns": [
     {
-      "runId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:2836ea76-10ce-4eed-a888-95289b0d94c1",
+      "runId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e",
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:9a2e2e0f-38f8-458b-8b93-0b1818e648f3",
       "capabilityDomain": "runtime-log-spine",
       "checkId": "runtime-log-spine/owner-assertion-set",
       "status": "PASS",
-      "startedAt": "2026-08-22T18:42:12.440Z",
-      "endedAt": "2026-08-22T18:42:12.465Z",
-      "durationMs": 25,
+      "startedAt": "2026-08-22T19:18:53.615Z",
+      "endedAt": "2026-08-22T19:18:53.638Z",
+      "durationMs": 23,
       "evidenceRefs": [
         "scripts/audit/domains/runtime-log-spine/inspector.ts",
         "src/lib/browser/chrome-extension/websocket-actor.ts",
@@ -36,19 +36,19 @@
       "lawId": "APEX-RUNTIME-LOG-SPINE-001-V2",
       "clauseId": "apex-runtime-log-001-v2-terminal-observability",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:2836ea76-10ce-4eed-a888-95289b0d94c1"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:9a2e2e0f-38f8-458b-8b93-0b1818e648f3"
     },
     {
       "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
       "clauseId": "grasseye-structured-logging-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:2836ea76-10ce-4eed-a888-95289b0d94c1"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:9a2e2e0f-38f8-458b-8b93-0b1818e648f3"
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-LOG-001-V1",
       "clauseId": "grasseye-security-privacy-log-001-requirement",
       "checkId": "runtime-log-spine/owner-assertion-set",
-      "checkRunId": "audit-run:cdaa1ced-378d-4017-913d-e04ce9e78d26:check:2836ea76-10ce-4eed-a888-95289b0d94c1"
+      "checkRunId": "audit-run:3040e256-be36-465a-b482-d3c27bf3aa3e:check:9a2e2e0f-38f8-458b-8b93-0b1818e648f3"
     }
   ],
   "inspectedFiles": [

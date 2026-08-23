@@ -8,8 +8,9 @@ import {
   rebuildNativeDependency,
 } from "./lib/dependency-check.mjs";
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
-import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
-import { probeExistingWorkbench, waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
+import { clearPortListeners } from "./lib/process-control.mjs";
+import { startLocalService, stopLocalService } from "./lib/service-process.mjs";
+import { waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
 import { buildStartupSourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { runBrowserRuntimePreflight } from "./lib/browser-runtime-preflight.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
@@ -92,63 +93,14 @@ async function runUpdatePreflight(root, flags) {
   });
 }
 
-async function preparePort({ clearPort = true } = {}) {
-  const hotMountStart = Date.now();
-  logEvent("STARTUP", "bootstrap", "hot_mount_probe", "started", `probing existing workbench at ${baseUrl}/api/health`);
-  const hotMount = await probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint });
-  if (hotMount.mounted) {
-    const stableHotMount = await verifyHotMountedWorkbenchStability();
-    if (!stableHotMount.stable) {
-      logEvent("STARTUP", "bootstrap", "hot_mount_probe", "event", "existing workbench health was transient; port clear may proceed", {
-        refs: [`healthUrl=${hotMount.healthUrl}`, `stabilityAttempt=${stableHotMount.attempt}`],
-        failureReason: stableHotMount.failureReason,
-      });
-      if (clearPort) await clearWorkbenchPort();
-      return { hotMounted: false };
-    }
-    logPass("STARTUP", "bootstrap", "hot_mount_probe", "passed", `hot-mounted existing workbench at ${baseUrl}`, {
-      refs: [`healthUrl=${hotMount.healthUrl}`, `contentType=${hotMount.contentType}`, `healthStatus=${hotMount.status}`, `stabilityChecks=${stableHotMount.attempt}`],
-      durationMs: Date.now() - hotMountStart,
-    });
-    return { hotMounted: true };
-  }
-
-  logEvent("STARTUP", "bootstrap", "hot_mount_probe", "event", "no healthy workbench mounted; port clear may proceed", {
-    refs: [`healthUrl=${hotMount.healthUrl}`],
-    failureReason: hotMount.failureReason,
-  });
-
-  if (clearPort) await clearWorkbenchPort();
-  return { hotMounted: false };
-}
-
-const waitForStartupDelay = (delayMs) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, delayMs);
-  });
-
-async function verifyHotMountedWorkbenchStability() {
-  const attempts = 3;
-  let lastFailureReason = "hot mount stability probe did not run";
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    if (attempt > 1) {
-      await waitForStartupDelay(750);
-    }
-    const probe = await probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint });
-    if (!probe.mounted) {
-      return { stable: false, attempt, failureReason: probe.failureReason };
-    }
-    lastFailureReason = probe.failureReason ?? "healthy";
-  }
-  return { stable: true, attempt: attempts, failureReason: lastFailureReason };
-}
-
 async function clearWorkbenchPort() {
   const portStart = Date.now();
   logEvent("STARTUP", "bootstrap", "port_clear", "started", `clearing ${host}:${port}`);
   await clearPortListeners({
     host,
     port,
+    rootDir,
+    allowedCommandFragments: ["src/app/server.ts"],
     logger: (message) => logEvent("STARTUP", "bootstrap", "port_clear_detail", "event", message),
   });
   logPass("STARTUP", "bootstrap", "port_clear", "passed", `port ${host}:${port} is ready`, {
@@ -280,14 +232,8 @@ function classifyServiceExit(exit, shuttingDown) {
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
-  const portState = await preparePort({ clearPort: false });
-  if (portState.hotMounted) {
-    await openReadyPage(flags);
-    logStartupReady();
-    return undefined;
-  }
-  await verifyBrowserRuntime();
   await clearWorkbenchPort();
+  await verifyBrowserRuntime();
   const serviceHandle = await startService(root);
   await verifyAppHealth();
   await openReadyPage(flags);

@@ -116,7 +116,7 @@ Codex 必须把四件事分开：
 | --- | --- | --- |
 | `AGENTS.md` | Codex 进入仓库的总门规 | 只管任务进入、授权、证据和完成标准；不能代替命中域法案 |
 | `.github/instructions/agent-rules/**` | Kernel、索引和 active law | 定义架构与域规则；没有用户明确授权，不得新增或修改 active law/domain/owner |
-| `scripts/startup/**` | 启动本地 Workbench | 只做依赖、热挂载、端口、服务、health、打开页面和启动日志；不得运行任何业务任务 |
+| `scripts/startup/**` | 启动本地 Workbench | 只做依赖、仓库归属端口清理、服务、health、打开页面和启动日志；不得运行任何业务任务 |
 | `src/app/**` | 唯一本地 App Shell、HTTP server、API 门卫和显式 routes | 只收输入、展示状态、分发到 Workbench Handle；不得拥有业务流程、DOM 动作、AI 判断或证据真相 |
 | `src/mediator/**` | 已知 job 的 schema 校验和 flow 路由 | 只能“接、验、转、回”；不得点页面、读 DOM、操作浏览器、保存业务状态或决定业务步骤 |
 | `src/plugins/<job-id>/**` | 一个目录拥有一个明确业务岗位 | 拥有业务顺序、业务状态、成功/失败/复核和业务结果；不得跨插件 import，不得造通用 planner |
@@ -167,9 +167,9 @@ scripts/startup/launch-grasseye.mjs
 ```txt
 检查依赖
 -> 可选 update preflight
--> 先探测现有 /api/health
--> 健康且源码指纹匹配则热挂载
--> 否则清理不健康端口
+-> 枚举端口 listener 并核验 UID、启动时间、cwd、命令身份
+-> 只终止本仓库现役 App Server，身份不明或跨仓时失败关闭
+-> 确认端口无 listener
 -> 启动唯一 App Server
 -> 等待 /api/health
 -> 打开 Workbench
@@ -179,8 +179,8 @@ scripts/startup/launch-grasseye.mjs
 启动层允许：
 
 - 检查 Node、npm、依赖和受控更新条件。
-- 复用健康的现有 Workbench，避免重复服务器。
-- 真实查找并清理不健康端口监听。
+- 每次启动前真实查找并清理本仓库现役 App Server 端口监听。
+- 在 TERM/KILL 前复核 PID、UID、启动时间、cwd 与命令身份，拒绝按端口号盲杀或跨仓杀进程。
 - 用 `/api/health` 证明 App Shell 已经能响应。
 - 输出 `phase/component/eventType/status/message/refs/durationMs/failureReason`。
 

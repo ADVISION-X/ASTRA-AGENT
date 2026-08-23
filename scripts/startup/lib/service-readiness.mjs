@@ -40,28 +40,6 @@ function isWorkbenchHealthReport(value) {
   );
 }
 
-export async function probeExistingWorkbench({ baseUrl, toFailureReason, expectedSourceFingerprint }) {
-  const healthUrl = `${baseUrl}/api/health`;
-  try {
-    const health = await probeHealth(healthUrl, expectedSourceFingerprint);
-    return {
-      mounted: true,
-      healthUrl,
-      contentType: health.contentType,
-      status: health.status,
-      failureReason: null,
-    };
-  } catch (error) {
-    return {
-      mounted: false,
-      healthUrl,
-      contentType: null,
-      status: null,
-      failureReason: toFailureReason(error),
-    };
-  }
-}
-
 export async function waitForWorkbenchHealth({
   baseUrl,
   attempts = 120,
