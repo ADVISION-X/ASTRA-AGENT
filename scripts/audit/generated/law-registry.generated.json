@@ -279,7 +279,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "dca641a326e5a174cf4a0375bdf703e0918e187ed40a8676dbee9dcbfb14d523",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "5b2ed168003bed532dffcba41be44f0446e2ae509d72a68fe96e4d3d05040d64"
+    "functionalLawSha256": "50da2511f3e9a01ddf3250448ac52f59eac20cc6703d5c6c8fcf5d3253233bc4"
   },
   "laws": [
     {
@@ -2868,8 +2868,14 @@
         "static.ast",
         "static.contract",
         "exam.golden",
+        "exam.property",
+        "exam.state-machine",
         "dynamic.browser",
-        "dynamic.provider"
+        "dynamic.service",
+        "dynamic.provider",
+        "dynamic.authorization",
+        "dynamic.recovery",
+        "dynamic.performance"
       ],
       "excludes": [],
       "forbidden": [
@@ -2885,15 +2891,16 @@
         "不得发生：service class recovery partition registration order or in-memory ordering bypassing globally oldest eligible work",
         "不得发生：automatic replay of UNKNOWN or replacement job prompt for a recoverable original",
         "不得发生：alias default normalization compatibility fallback shadow bridge dual reader or dual writer",
-        "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt"
+        "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt",
+        "不得发生：Static Contract Integration Fault Real Chrome Real Provider or 72h Soak evidence substituting for another layer or omitting any of the 75 governed scenarios"
       ],
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2263,
+        "lineEnd": 2270,
         "lineStart": 2223,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "511ee451934aa8dd1f4099f0417931eab257794b2f5599fefd2a15f3684850ad"
+        "sectionSha256": "d1d3b1af88ee91e5267e2e81fd4b7368c31098740a2e9e57d44106099cb40278"
       },
       "status": "active",
       "summary": "必须只由 xuanxue-ai-production-v6 经 session-bound Cloud Worker→Mediator→Plugin 唯一链交付完整网站订单；每设备只允许一个 claim-eligible worker session，并以签名 attestation、幂等 claim、十个业务席位、一个 Browser mutation lane、durable outbox 与 first-terminal CAS 保持原始业务身份。",
@@ -2919,8 +2926,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2292,
-        "lineStart": 2267,
+        "lineEnd": 2299,
+        "lineStart": 2274,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7fd8b840e4f38b799720c66dedb1826204137aa5296aefb38d2aab57f79b3736"
       },
