@@ -15,6 +15,6 @@
     "providerDomain": "ai-acceptance",
     "providerSpecRef": "docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json",
     "providerCommitSha": "614198c5bc6ce78bbb05b2460397bb2874cc4093",
-    "contractSha256": "a3b7cbcb56655496c498108055e24ce49efca638eeeb50d3dab00874512a6bb7"
+    "contractSha256": "596a6b969ce52b8ba7888a3255a88264cde97cb6f227acfe22a76507c3ab6873"
   }
 }
