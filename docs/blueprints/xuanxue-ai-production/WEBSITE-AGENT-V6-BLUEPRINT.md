@@ -15,6 +15,26 @@
   "dependencyEdges": [
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
+      "to": {"repo": "local", "domain": "app-shell-ui"},
+      "lawId": "LAW-APP-SHELL-UI-001-V2"
+    },
+    {
+      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
+      "to": {"repo": "local", "domain": "local-app-shell"},
+      "lawId": "LAW-LOCAL-APP-SHELL-001-V4"
+    },
+    {
+      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
+      "to": {"repo": "local", "domain": "local-browser-session"},
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4"
+    },
+    {
+      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
+      "to": {"repo": "local", "domain": "startup-entrypoint"},
+      "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4"
+    },
+    {
+      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
       "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
     }
@@ -52,6 +72,7 @@ TTL。Plugin 仍独占固定产品图、本地订单和业务 outcome；Browser 
 
 ```txt
 Shell ready
+-> keep diagnostic HTTP/status surface available even when execution dependencies fail
 -> validate hardened device credential and exact environment/origin
 -> load V6 manifest/product contract
 -> reconcile local nonterminal ledger and durable outbox
@@ -66,6 +87,10 @@ Shell ready
 上一 session token generation 只允许同 session/epoch 60 秒在途重叠。Browser/Target/attestation
 任一缺失都令 browser-required claim blocked；不得先 claim 再以 Browser 错误释放。Heartbeat 独立于
 claim，并只在状态变化时完整记录。
+
+Cloud credential、Provider、worker session、Browser Authority 或 Target 失败时，Shell 仍须提供
+health/status 诊断面，同时将 execution/claim 精确标为 blocked。该降级状态不得创建第二
+Shell、第二 worker 或临时 fallback，恢复时也不得重复建立 Browser/session Owner。
 
 ## Claim、容量和 durable 接受
 
