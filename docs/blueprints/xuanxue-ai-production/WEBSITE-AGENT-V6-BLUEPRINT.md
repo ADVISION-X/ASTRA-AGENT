@@ -38,6 +38,10 @@ package entry 与进程名不得使用 `V+数字`、`v+数字`、纯数字代际
 或 `candidate/canary/migration-required` 表示发布阶段。时间、容量、epoch 和真正的产品业务 stage 是数据，
 不属于发布阶段命名；历史迁移文件序号、审计候选身份与退休协议文字只可留在迁移/审计历史，不得被运行时读取或取得主权。
 
+本文件是现役目标设计权威，不是“现有基线代码已经完成”的声明。法案门通过以前，仓库中仍存在的数字代际
+文件、导出、路由、validator、表列与 package entry 只属于待删除施工分母，不得作为本协议的 active descriptor、
+完成证据或兼容链；代码门一旦打开，必须在同一删除式重构中物理替换，不能靠 alias、桥接或双链续命。
+
 ```txt
 xuanxue-web canonical production control artifact
   -> one outbound HTTPS Cloud Worker
