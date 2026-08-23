@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve, sep } from 'node:path';
+import { TextDecoder } from 'node:util';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Level = 'CHANGE' | 'READY' | 'RELEASE';
@@ -32,13 +33,23 @@ const PUBLIC_SCRIPTS = ['governance:entry','governance:scope:check','audit:build
 class GovernanceError extends Error { constructor(readonly code:string, message:string){super(message)} }
 const fail = (code:string,message:string):never => { throw new GovernanceError(code,message); };
 const bytes = (path:string) => readFileSync(resolve(ROOT,path));
-const text = (path:string) => bytes(path).toString('utf8');
+const utf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: false });
+const text = (path:string) => {
+  const source = bytes(path);
+  if (source.length >= 3 && source[0] === 0xef && source[1] === 0xbb && source[2] === 0xbf) {
+    fail('SOURCE_PARSE_FAILED', `${path} BOM`);
+  }
+  try { return utf8.decode(source); } catch { return fail('SOURCE_PARSE_FAILED', `${path} invalid UTF-8`); }
+};
 const sha = (value:Buffer|string) => createHash('sha256').update(value).digest('hex');
 const sortedUnique = (items:string[]) => items.length === new Set(items).size && items.every((v,i)=>i===0||Buffer.compare(Buffer.from(items[i-1]!),Buffer.from(v))<0);
 const exactKeys = (value:Record<string,unknown>, keys:string[]) => JSON.stringify(Object.keys(value).sort())===JSON.stringify([...keys].sort());
 const canonicalValue = (value:Json):Json => Array.isArray(value) ? value.map(canonicalValue) : value && typeof value==='object' ? Object.fromEntries(Object.keys(value).sort().map((key)=>[key,canonicalValue((value as Record<string,Json>)[key]!)])) : value;
 const canonicalBytes = (value:Json) => `${JSON.stringify(canonicalValue(value),null,2)}\n`;
 const parseJson = <T>(path:string):T => { try{return JSON.parse(text(path)) as T}catch{return fail('SOURCE_PARSE_FAILED',path)} };
+const isStringArray = (value:unknown):value is string[] => Array.isArray(value) && value.every((item)=>typeof item==='string');
+const pathPatternValid = (value:string) => value==='**/*' || /^(?!\/)(?!.*\/\/)(?!.*(?:^|\/)\.\.?(?:\/|$))[^*\0]+(?:\/\*\*)?$/u.test(value);
+const pathPatternContains = (parent:string,child:string) => parent==='**/*' || parent===child || (parent.endsWith('/**') && (child===parent.slice(0,-3) || child.startsWith(`${parent.slice(0,-3)}/`)));
 
 function verifyFreeze(){
   const freeze=parseJson<Record<string,any>>(FREEZE);
@@ -61,15 +72,16 @@ function verifyEntry(){ verifyFreeze(); verifyAgents(); verifyCommands(); }
 
 function frontMatter(path:string,type:string,authority:number){
   const expected=`---\ndocumentType: ${type}\nschemaVersion: 2\nstatus: active\nauthorityLevel: ${authority}\ncontainerOwner: law-system\nlawIdPrefix: LAW\n---\n`;
-  if(!text(path).startsWith(expected)) fail('SOURCE_PARSE_FAILED',`${path} front matter`);
+  const source=text(path);
+  if(!source.startsWith(expected)||source.slice(expected.length).split('\n').some((line)=>line==='---')) fail('SOURCE_PARSE_FAILED',`${path} front matter`);
 }
 function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
   frontMatter(path,type,type==='base-law'?100:90); const source=text(path); if(source.includes('\r')) fail('SOURCE_PARSE_FAILED',`${path} CRLF`);
   const lines=source.split('\n'); const laws:Law[]=[]; let domain=''; let heading:{lawId:string;line:number}|null=null;
   for(let i=0;i<lines.length;i++){
     const line=lines[i]!; const domainMatch=line.match(/^## capabilityDomain: ([a-z0-9]+(?:-[a-z0-9]+)*)$/); if(domainMatch){domain=domainMatch[1]!;heading=null;continue}
-    const head=line.match(/^### \[(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*)\] .+$/); if(head){heading={lawId:head[1]!,line:i+1};continue}
-    if(line!=='```law-record') continue;
+    const head=line.match(/^### \[(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*)\] .+$/); if(head){if(heading)fail('SOURCE_PARSE_FAILED',`${path}:${heading.line} missing law record`);heading={lawId:head[1]!,line:i+1};continue}
+    if(line!=='```law-record'){if(line.startsWith('```'))fail('SOURCE_PARSE_FAILED',`${path}:${i+1} orphan or nested fence`);continue}
     if(!heading||!domain) fail('SOURCE_PARSE_FAILED',`${path}:${i+1}`); const currentHeading=heading as {lawId:string;line:number}; const start=i+1; let end=i+1;
     while(end<lines.length&&lines[end]!=='```') end++; if(end>=lines.length) fail('SOURCE_PARSE_FAILED',`${path}:unclosed`);
     let raw:any; try{raw=JSON.parse(lines.slice(start,end).join('\n'))}catch{fail('SOURCE_PARSE_FAILED',`${path}:${start+1}`)}
@@ -82,15 +94,18 @@ function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
     if(!Array.isArray(raw.evidenceModes)||raw.evidenceModes.length!==new Set(raw.evidenceModes).size||raw.evidenceModes.some((x:string)=>!EVIDENCE.includes(x))||raw.evidenceModes.some((x:string,index:number)=>index>0&&EVIDENCE.indexOf(raw.evidenceModes[index-1])>=EVIDENCE.indexOf(x))) fail('SOURCE_PARSE_FAILED',`${raw.lawId} evidence`);
     const kinds=new Set(raw.evidenceModes.map((x:string)=>x.split('.')[0])); const expected=kinds.size>1?'composite':[...kinds][0]; if(raw.enforcementMode!==expected) fail('SOURCE_PARSE_FAILED',`${raw.lawId} enforcement`);
     if(typeof raw.summary!=='string'||![...raw.summary].length||[...raw.summary].length<12||[...raw.summary].length>240||!/^(必须|只能)/u.test(raw.summary)) fail('SOURCE_PARSE_FAILED',`${raw.lawId} summary`);
-    for(const key of ['appliesTo','excludes','dependsOnLawIds']) if(!Array.isArray(raw[key])||!sortedUnique(raw[key])) fail('SOURCE_PARSE_FAILED',`${raw.lawId} ${key}`);
-    if(!Array.isArray(raw.forbidden)||raw.forbidden.length!==new Set(raw.forbidden).size) fail('SOURCE_PARSE_FAILED',`${raw.lawId} forbidden`);
+    for(const key of ['appliesTo','excludes','dependsOnLawIds']) if(!isStringArray(raw[key])||!sortedUnique(raw[key])) fail('SOURCE_PARSE_FAILED',`${raw.lawId} ${key}`);
+    if(raw.appliesTo.some((pattern:string)=>!pathPatternValid(pattern))||raw.excludes.some((pattern:string)=>!pathPatternValid(pattern)))fail('SOURCE_PARSE_FAILED',`${raw.lawId} path grammar`);
+    if(raw.excludes.some((excluded:string)=>!raw.appliesTo.some((included:string)=>pathPatternContains(included,excluded))))fail('SOURCE_PARSE_FAILED',`${raw.lawId} exclude containment`);
+    if(!isStringArray(raw.forbidden)||raw.forbidden.length!==new Set(raw.forbidden).size) fail('SOURCE_PARSE_FAILED',`${raw.lawId} forbidden`);
     if(!raw.appliesTo.length||!raw.forbidden.length||raw.forbidden.length>16||raw.forbidden.some((x:string)=>!/^(不得|禁止)/u.test(x))) fail('SOURCE_PARSE_FAILED',`${raw.lawId} bounds`);
     const section=lines.slice(currentHeading.line-1,end+1).join('\n')+'\n'; laws.push({...raw,source:{path,lineStart:currentHeading.line,lineEnd:end+1,sectionSha256:sha(section)},contractRefs:[]}); i=end; heading=null;
   }
+  if(heading)fail('SOURCE_PARSE_FAILED',`${path}:${heading.line} missing law record`);
   if(type==='base-law'&&(laws.length!==8||laws.some((law,i)=>law.lawId!==`LAW-PROJECT-GOVERNANCE-00${i+1}-V1`||law.capabilityDomain!=='project-governance'))) fail('SOURCE_PARSE_FAILED','base root laws');
   return laws;
 }
-function loadLaws(){ const laws=[...parseCorpus(BASE,'base-law'),...parseCorpus(FUNCTIONAL,'functional-law')].sort((a,b)=>a.lawId.localeCompare(b.lawId)); const ids=new Set<string>(); for(const law of laws){if(ids.has(law.lawId))fail('SOURCE_PARSE_FAILED',`duplicate ${law.lawId}`);ids.add(law.lawId)} for(const law of laws)for(const dep of law.dependsOnLawIds)if(!ids.has(dep))fail('SOURCE_PARSE_FAILED',`${law.lawId} missing ${dep}`); return laws; }
+function loadLaws(){ const laws=[...parseCorpus(BASE,'base-law'),...parseCorpus(FUNCTIONAL,'functional-law')].sort((a,b)=>a.lawId.localeCompare(b.lawId)); const ids=new Set<string>(); for(const law of laws){if(ids.has(law.lawId))fail('SOURCE_PARSE_FAILED',`duplicate ${law.lawId}`);ids.add(law.lawId)} for(const law of laws)for(const dep of law.dependsOnLawIds)if(!ids.has(dep))fail('SOURCE_PARSE_FAILED',`${law.lawId} missing ${dep}`);const byId=new Map(laws.map((law)=>[law.lawId,law]));const visiting=new Set<string>();const visited=new Set<string>();const visit=(lawId:string)=>{if(visiting.has(lawId))fail('SOURCE_PARSE_FAILED',`dependency cycle ${lawId}`);if(visited.has(lawId))return;visiting.add(lawId);for(const dep of byId.get(lawId)?.dependsOnLawIds??[])visit(dep);visiting.delete(lawId);visited.add(lawId)};for(const law of laws)visit(law.lawId);return laws; }
 function loadManifests(laws:Law[]):Manifest[]{
   const dir=resolve(ROOT,'scripts/audit/domains'); const entries=readdirSync(dir,{withFileTypes:true}).filter((e)=>e.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name)); const manifests:Manifest[]=[];
   for(const entry of entries){const rel=`scripts/audit/domains/${entry.name}/manifest.json`;if(!existsSync(resolve(ROOT,rel)))continue;const raw=parseJson<Record<string,any>>(rel);if(!exactKeys(raw,MANIFEST_KEYS)||raw.schemaVersion!==3||raw.status!=='active'||raw.capabilityDomain!==entry.name)fail('SOURCE_PARSE_FAILED',`${rel} schema`);for(const key of ['lawIds','ownedPaths','observedPaths'])if(!Array.isArray(raw[key])||!sortedUnique(raw[key]))fail('SOURCE_PARSE_FAILED',`${rel} ${key}`);const expected=laws.filter((law)=>law.capabilityDomain===entry.name).map((law)=>law.lawId).sort();if(JSON.stringify(raw.lawIds)!==JSON.stringify(expected)||!expected.length)fail('SOURCE_PARSE_FAILED',`${rel} lawIds`);manifests.push({...raw,manifestPath:rel} as Manifest)}

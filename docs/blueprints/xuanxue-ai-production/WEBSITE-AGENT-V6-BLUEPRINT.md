@@ -15,28 +15,28 @@
   "dependencyEdges": [
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
+      "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
+      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
+    },
+    {
+      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "local", "domain": "app-shell-ui"},
-      "lawId": "LAW-APP-SHELL-UI-001-V2"
+      "contractRef": null
     },
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "local", "domain": "local-app-shell"},
-      "lawId": "LAW-LOCAL-APP-SHELL-001-V4"
+      "contractRef": null
     },
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "local", "domain": "local-browser-session"},
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4"
+      "contractRef": null
     },
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "local", "domain": "startup-entrypoint"},
-      "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4"
-    },
-    {
-      "from": {"repo": "local", "domain": "xuanxue-ai-production"},
-      "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
-      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
+      "contractRef": null
     }
   ],
   "prohibitedDependencyEdges": []
