@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readXuanxueAiProductionCloudTerminalStatus } from "./xuanxue-ai-production-cloud-client.js";
+import { readXuanxueAiProductionCloudTerminalStatus, type XuanxueAiProductionCloudTerminalStatus } from "./xuanxue-ai-production-cloud-client.js";
 import { readXuanxueAiProductionCloudCredential } from "./xuanxue-ai-production-cloud-credential.js";
 import { XuanxueAiProductionWorkerSessionV6, type XuanxueAiProductionRuntimeStateV6 } from "./xuanxue-ai-production-worker-session.js";
 
@@ -34,6 +34,36 @@ const hashReceipt = (value: unknown): `sha256:${string}` =>
 const exactKeys = (value: Record<string, unknown>, keys: readonly string[]): boolean =>
   JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 
+export const validateXuanxueTerminalReadbackReceipts = (
+  statuses: readonly XuanxueAiProductionCloudTerminalStatus[],
+  terminalJobIds: readonly string[],
+  predecessor: XuanxueAiProductionPredecessorRuntimeIdentity,
+): Readonly<Record<string, `sha256:${string}`>> => {
+  const terminalReceiptHashes: Record<string, `sha256:${string}`> = {};
+  const invalid = statuses.length !== terminalJobIds.length || statuses.some((status, index) => {
+    const receipt = status.terminal_receipt;
+    const valid = status.job_id === terminalJobIds[index]
+      && status.terminal_status === "completed" && receipt
+      && exactKeys(receipt, ["schema_version","job_id","terminal_status","payload_hash","first_terminal","device_id","device_epoch","worker_session_id","worker_session_epoch","runtime_attestation_receipt_hash"])
+      && receipt.schema_version === "xuanxue-ai-terminal-receipt.v6"
+      && receipt.job_id === status.job_id && receipt.terminal_status === "completed"
+      && receipt.payload_hash === status.terminal_payload_hash
+      && typeof receipt.first_terminal === "boolean"
+      && receipt.device_id === predecessor.deviceId
+      && receipt.device_epoch === predecessor.deviceEpoch
+      && receipt.worker_session_id === predecessor.workerSessionId
+      && receipt.worker_session_epoch === predecessor.workerSessionEpoch
+      && typeof receipt.runtime_attestation_receipt_hash === "string"
+      && /^sha256:[a-f0-9]{64}$/u.test(receipt.runtime_attestation_receipt_hash);
+    if (valid) terminalReceiptHashes[status.job_id] = hashReceipt(receipt);
+    return !valid;
+  });
+  if (invalid || JSON.stringify(Object.keys(terminalReceiptHashes)) !== JSON.stringify(terminalJobIds)) {
+    throw new Error("XUANXUE_AI_PRODUCTION_CLOUD_TERMINAL_ATTESTATION_INVALID");
+  }
+  return Object.freeze(terminalReceiptHashes);
+};
+
 export const attestXuanxueAiProductionProviderRun = async (input: {
   readonly dataDir: string;
   readonly candidateHash: `sha256:${string}`;
@@ -53,25 +83,9 @@ export const attestXuanxueAiProductionProviderRun = async (input: {
   session.markLedgerReconciled();
   const receipt = await session.heartbeat();
   const statuses = await Promise.all(terminalJobIds.map((jobId) => readXuanxueAiProductionCloudTerminalStatus(session, jobId)));
-  const terminalReceiptHashes: Record<string, `sha256:${string}`> = {};
-  if (statuses.some((status, index) => {
-    const receipt = status.terminal_receipt;
-    const valid = status.job_id === terminalJobIds[index]
-      && status.terminal_status === "completed" && receipt
-      && exactKeys(receipt, ["schema_version","job_id","terminal_status","payload_hash","first_terminal","device_id","device_epoch","worker_session_id","worker_session_epoch","runtime_attestation_receipt_hash"])
-      && receipt.schema_version === "xuanxue-ai-terminal-receipt.v6"
-      && receipt.job_id === status.job_id && receipt.terminal_status === "completed"
-      && receipt.payload_hash === status.terminal_payload_hash
-      && typeof receipt.first_terminal === "boolean"
-      && receipt.device_id === input.predecessor.deviceId
-      && receipt.device_epoch === input.predecessor.deviceEpoch
-      && receipt.worker_session_id === input.predecessor.workerSessionId
-      && receipt.worker_session_epoch === input.predecessor.workerSessionEpoch
-      && typeof receipt.runtime_attestation_receipt_hash === "string"
-      && /^sha256:[a-f0-9]{64}$/u.test(receipt.runtime_attestation_receipt_hash);
-    if (valid) terminalReceiptHashes[status.job_id] = hashReceipt(receipt);
-    return !valid;
-  })) {
+  let terminalReceiptHashes: Readonly<Record<string, `sha256:${string}`>>;
+  try { terminalReceiptHashes = validateXuanxueTerminalReadbackReceipts(statuses, terminalJobIds, input.predecessor); }
+  catch {
     await session.close().catch(() => undefined);
     throw new Error("XUANXUE_AI_PRODUCTION_CLOUD_TERMINAL_ATTESTATION_INVALID");
   }
@@ -84,7 +98,7 @@ export const attestXuanxueAiProductionProviderRun = async (input: {
     runtimeAttestationReceiptHash: receipt.receipt_hash as `sha256:${string}`,
     heartbeatAt: receipt.issued_at,
     terminalJobIds: Object.freeze(terminalJobIds),
-    terminalReceiptHashes: Object.freeze(terminalReceiptHashes),
+    terminalReceiptHashes,
   });
   await session.close();
   return attestation;

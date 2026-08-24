@@ -229,6 +229,7 @@ const continuationReceipt = {
   candidateHash: dynamicProofBinding.candidate_hash,
   contractManifestHash: dynamicProofBinding.contract_manifest_hash,
   predecessor: {
+    extensionId: evidence.extensionId,
     deviceId: evidence.runtimeReceipt.device_id,
     deviceEpoch: evidence.runtimeReceipt.device_epoch,
     workerSessionId: evidence.runtimeReceipt.worker_session_id,
