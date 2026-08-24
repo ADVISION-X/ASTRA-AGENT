@@ -2,12 +2,9 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
-import { handleAmazonRequest } from "./workbench-amazon-routes.js";
-import { handleAmazonProductMiningRequest } from "./workbench-amazon-product-mining-routes.js";
 import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from "./workbench-api-boundary.js";
 import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
-import { handleMediaProcessingRequest } from "./workbench-media-processing-routes.js";
 import { readMultipartFormData } from "./workbench-multipart.js";
 import { handleXuanxueAiProductionRequest } from "./workbench-xuanxue-ai-production-routes.js";
 import { upgradeWorkbenchBrowserAuthoritySocket } from "./workbench-browser-websocket-upgrade.js";
@@ -143,21 +140,6 @@ const handleWorkbenchMetaRequest = async (input: {
   return false;
 };
 
-const handleInventoryWorkbenchApiRequest = async (input: {
-  request: import("node:http").IncomingMessage;
-  response: import("node:http").ServerResponse;
-  workbench: GrassEyeWorkbenchHandle;
-  url: URL;
-}): Promise<boolean> => {
-  if (await handleAmazonProductMiningRequest(input.request, input.response, input.workbench, input.url)) {
-    return true;
-  }
-  if (await handleMediaProcessingRequest(input.request, input.response, input.workbench)) {
-    return true;
-  }
-  return false;
-};
-
 const handleKnownWorkbenchApiRequest = async (input: {
   request: import("node:http").IncomingMessage;
   response: import("node:http").ServerResponse;
@@ -165,9 +147,6 @@ const handleKnownWorkbenchApiRequest = async (input: {
   url: URL;
 }): Promise<boolean> => {
   if (await handleWorkbenchMetaRequest(input)) {
-    return true;
-  }
-  if (await handleAmazonRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
   if (await handleXuanxueAiProductionRequest(
@@ -178,7 +157,7 @@ const handleKnownWorkbenchApiRequest = async (input: {
   )) {
     return true;
   }
-  return handleInventoryWorkbenchApiRequest(input);
+  return false;
 };
 
 async function handleRequest(

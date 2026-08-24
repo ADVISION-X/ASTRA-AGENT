@@ -5,7 +5,7 @@ const registry = readFileSync("src/app/app-shell/skill-registry.ts", "utf8");
 const sidebar = readFileSync("src/app/app-shell/sidebar.ts", "utf8");
 
 for (const requiredId of [
-  'id: "amazon-product-mining"',
+  'id: "xuanxue-ai-production"',
 ]) {
   assert(registry.includes(requiredId), `Skill Registry must include ${requiredId}.`);
 }
@@ -27,6 +27,8 @@ for (const field of [
 }
 
 assert(sidebar.includes("skillRegistry.map"), "Sidebar must render skills from the registry array.");
-assert(!sidebar.includes("Amazon Product Mining</strong>"), "Sidebar must not hardcode skill labels outside registry.");
+assert(!registry.includes("amazon-product-mining"), "Retired Amazon Product Mining must not remain in Skill Registry.");
+assert(!registry.includes("amazon-invoice-upload"), "Retired Amazon Invoice Upload must not remain in Skill Registry.");
+assert(!registry.includes("media-optimizer"), "Retired Media Optimizer must not remain in Skill Registry.");
 
 process.stdout.write("[ACCEPTANCE][app-shell-skill-registry] PASS\n");

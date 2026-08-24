@@ -13,9 +13,7 @@ const runtimeLogLawPrefixes = [
 
 const authorizedHelperPaths = new Set([
   "src/lib/runtime-logs/stage-logger.ts",
-  "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
   "src/lib/browser/current-chrome-browser-action-logging.ts",
-  "src/plugins/amazon-product-mining/amazon-product-mining.logging.ts",
 ]);
 
 const isRuntimeLoggingFile = (repoPath: string): boolean =>

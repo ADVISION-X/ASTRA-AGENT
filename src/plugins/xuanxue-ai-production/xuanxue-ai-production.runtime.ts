@@ -1,6 +1,4 @@
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
-
 import type { XuanxueAiProductionStore } from "./xuanxue-ai-production.store.js";
 export type XuanxueAiBrowserHash = `sha256:${string}`;
 
@@ -45,7 +43,6 @@ export type XuanxueAiBrowserAuthorityPort = Readonly<{
 export interface XuanxueAiProductionRuntime {
   readonly aiInputGateway: AiInputGatewayAbilityGroup;
   readonly candidateHash: XuanxueAiBrowserHash;
-  readonly mediaProcessing: MediaProcessingAbilityGroup;
   readonly dataDir: string;
   readonly store: XuanxueAiProductionStore;
   readonly browserAuthority?: XuanxueAiBrowserAuthorityPort;

@@ -10,7 +10,7 @@ export const renderInspector = (): string => `
   <div class="inspector-body" data-inspector-body>
     <section class="empty-state" data-inspector-empty data-inspector-empty-state>
       <h3>Open Detail When Needed</h3>
-      <p>Task, keyword review, package, AI review, evidence, exception, and runtime events use this third-level surface. It stays closed until a user selects a detail.</p>
+      <p>Whole-order status, evidence, exceptions, and runtime events use this detail surface. It stays closed until the operator selects a record.</p>
     </section>
   </div>
   <div class="detail-section inspector-task-snapshot">

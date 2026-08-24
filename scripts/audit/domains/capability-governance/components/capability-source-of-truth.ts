@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 
+import { z } from "zod";
+
 import { splitLines } from "../../../shared/no-regex.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 
-export const capabilityGovernanceLawPath = ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md";
-export const capabilityGovernanceBlueprintPath = "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md";
+export const capabilityGovernanceLawPath = ".github/instructions/agent-rules/基础法案.md";
+export const capabilityGovernanceBlueprintPath = ".github/instructions/agent-rules/功能法案.md";
 
 type BlueprintAbilityDeclaration = {
   label: string;
@@ -22,134 +24,72 @@ export type CapabilitySourceOfTruth = {
   lawInfrastructureRoots: string[];
 };
 
-const domPublicChildFunctionExports = new Set([
-  "readDomSnapshotOnce",
-  "locateDomElementOnce",
-  "fillDomElementOnce",
-  "clickDomElementOnce",
-  "uploadApprovedFileOnce",
-  "verifyDomStateOnce",
-]);
+const LawRecordSchema = z.object({
+  appliesTo: z.array(z.string()),
+  status: z.literal("active"),
+}).passthrough();
 
-const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
+const activeLawPaths = [
+  capabilityGovernanceLawPath,
+  capabilityGovernanceBlueprintPath,
+] as const;
 
-const trimBulletPrefix = (line: string): string => line.startsWith("- ") ? line.slice(2).trim() : line.trim();
-
-const normalizeCapabilityRootPattern = (value: string): string =>
-  value.endsWith("/**") ? value.slice(0, -3) : value;
-
-const firstHeadingIndex = (lines: readonly string[], marker: string): number =>
-  lines.findIndex((line) => line.trim() === marker);
-
-const nextFenceIndex = (lines: readonly string[], startIndex: number): number =>
-  lines.findIndex((line, index) => index > startIndex && line.trim().startsWith("```"));
-
-const extractCodeBlockItemsAfterMarker = (documentText: string, marker: string): string[] => {
-  const lines = splitLines(documentText);
-  const markerIndex = firstHeadingIndex(lines, marker);
-  if (markerIndex < 0) {
-    return [];
-  }
-  const openingFenceIndex = nextFenceIndex(lines, markerIndex);
-  if (openingFenceIndex < 0) {
-    return [];
-  }
-  const closingFenceIndex = lines.findIndex((line, index) => index > openingFenceIndex && line.trim() === "```");
-  if (closingFenceIndex < 0) {
-    return [];
-  }
-  return lines
-    .slice(openingFenceIndex + 1, closingFenceIndex)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .sort();
-};
-
-const extractBulletLabelsUnderHeading = (documentText: string, heading: string): string[] => {
-  const lines = splitLines(documentText);
-  const headingIndex = firstHeadingIndex(lines, heading);
-  if (headingIndex < 0) {
-    return [];
-  }
-
-  const labels: string[] = [];
-  for (const line of lines.slice(headingIndex + 1)) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("## ")) {
-      break;
+const extractLawRecords = (repoPath: string): z.infer<typeof LawRecordSchema>[] => {
+  const lines = splitLines(readFileSync(resolveFromRepo(repoPath), "utf8"));
+  const records: z.infer<typeof LawRecordSchema>[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index]?.trim() !== "```law-record") continue;
+    const closingIndex = lines.findIndex(
+      (line, candidateIndex) => candidateIndex > index && line.trim() === "```",
+    );
+    if (closingIndex < 0) {
+      throw new Error(`CAPABILITY_GOVERNANCE_LAW_RECORD_UNCLOSED:${repoPath}:${index + 1}`);
     }
-    if (!trimmed.startsWith("- ")) {
-      continue;
+    const parsed = LawRecordSchema.safeParse(
+      JSON.parse(lines.slice(index + 1, closingIndex).join("\n")),
+    );
+    if (!parsed.success) {
+      throw new Error(`CAPABILITY_GOVERNANCE_LAW_RECORD_INVALID:${repoPath}:${index + 1}`);
     }
-    const content = trimBulletPrefix(trimmed);
-    const colonIndex = content.indexOf(":") >= 0 ? content.indexOf(":") : content.indexOf("：");
-    labels.push((colonIndex >= 0 ? content.slice(0, colonIndex) : content).trim());
+    records.push(parsed.data);
+    index = closingIndex;
   }
-  return labels;
+  return records;
 };
 
-const normalizeBlueprintAbilityLabel = (label: string): string =>
-  label
-    .toLowerCase()
-    .split("/")
-    .map((part) => part.trim())
-    .join(" / ");
-
-const mapBlueprintAbilityLabelToOwnerPath = (label: string): string | null => {
-  switch (normalizeBlueprintAbilityLabel(label)) {
-    case "dom automation":
-      return "src/capabilities/dom-automation";
-    case "browser":
-      return "src/lib/browser";
-    case "ai input gateway / choice judge":
-      return "src/capabilities/ai-input-gateway";
-    case "evidence store / forensics persistence":
-    case "evidence store":
-      return "src/capabilities/forensics-persistence";
-    case "runtime logs":
-      return "src/lib/runtime-logs";
-    case "video download":
-      return "src/capabilities/video-download";
-    case "media processing":
-      return "src/capabilities/media-processing";
-    default:
-      return null;
-  }
+const capabilityRoot = (appliesTo: string): string | null => {
+  const segments = appliesTo.split("/");
+  return segments.length === 4
+    && segments[0] === "src"
+    && segments[1] === "capabilities"
+    && Boolean(segments[2])
+    && segments[3] === "**"
+    ? `src/capabilities/${segments[2]}`
+    : null;
 };
 
-const uniqueSorted = (values: readonly string[]): string[] => [...new Set(values)].sort();
+const activeCapabilityRoots = (): string[] => [...new Set(
+  activeLawPaths
+    .flatMap(extractLawRecords)
+    .flatMap((record) => record.appliesTo)
+    .flatMap((pathPattern) => {
+      const root = capabilityRoot(pathPattern);
+      return root ? [root] : [];
+    }),
+)].sort();
 
 export const loadCapabilitySourceOfTruth = (): CapabilitySourceOfTruth => {
-  const lawText = readRepoText(capabilityGovernanceLawPath);
-  const blueprintText = readRepoText(capabilityGovernanceBlueprintPath);
-  const lawActiveCapabilityRoots = extractCodeBlockItemsAfterMarker(lawText, "Approved active ability groups:");
-  const lawInfrastructureRoots = extractCodeBlockItemsAfterMarker(
-    lawText,
-    "Approved infrastructure roots that are not ability groups:",
-  );
-  const blueprintDeclaredAbilities = extractBulletLabelsUnderHeading(
-    blueprintText,
-    "## 3. 当前现役能力组",
-  ).map((label) => ({
-    label,
-    ownerPath: mapBlueprintAbilityLabelToOwnerPath(label),
-  }));
-
+  const roots = activeCapabilityRoots();
   return {
-    blueprintDeclaredAbilities,
-    lawActiveCapabilityRoots: uniqueSorted(lawActiveCapabilityRoots.map(normalizeCapabilityRootPattern)),
-    lawInfrastructureRoots: uniqueSorted(lawInfrastructureRoots.map(normalizeCapabilityRootPattern)),
+    blueprintDeclaredAbilities: roots.map((ownerPath) => ({
+      label: ownerPath.slice("src/capabilities/".length),
+      ownerPath,
+    })),
+    lawActiveCapabilityRoots: roots,
+    lawInfrastructureRoots: ["src/lib/browser", "src/lib/runtime-logs"],
   };
 };
 
-export const resolveCapabilityFacadePolicy = (capabilityRoot: string): CapabilityFacadePolicy => {
-  if (capabilityRoot === "src/capabilities/dom-automation") {
-    return {
-      mode: "public-child-functions",
-      allowedPublicChildFunctionExports: domPublicChildFunctionExports,
-    };
-  }
-  return {
-    mode: "factory-contract",
-  };
-};
+export const resolveCapabilityFacadePolicy = (
+  _capabilityRoot: string,
+): CapabilityFacadePolicy => ({ mode: "factory-contract" });

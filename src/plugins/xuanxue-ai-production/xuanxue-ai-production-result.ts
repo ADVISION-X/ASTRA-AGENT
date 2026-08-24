@@ -19,7 +19,7 @@ const generatedImageArtifact = (
     || artifact.width !== 1200 || artifact.height !== 630
   ) throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_ARTIFACT_INVALID");
   const checkpointProofRef = result.providerProof.outputRefs.find(
-    (ref) => ref.startsWith("media-processing-proof:"),
+    (ref) => ref.startsWith("xuanxue-image-normalization-proof:"),
   );
   if (!checkpointProofRef) {
     throw new Error("XUANXUE_AI_PRODUCTION_IMAGE_CHECKPOINT_PROOF_MISSING");

@@ -33,8 +33,7 @@ const boundaryPath = "src/app/workbench-api-boundary.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const httpPath = "src/app/workbench-http.ts";
 const selfPath = "scripts/audit/domains/workbench-api-boundary/inspector.ts";
-const lawPath = ".github/instructions/agent-rules/modules/module-workbench-api-boundary.instructions.md";
-const blueprintPath = "docs/法案辅助文件/GrassEye_Workbench_API_Boundary_施工图.md";
+const lawPath = ".github/instructions/agent-rules/功能法案.md";
 
 const requiredForbiddenKeys = [
   "selector",
@@ -402,7 +401,7 @@ const inspectRequiredFiles = (
   findings: InspectorFinding[],
   lawId: string,
 ): SourceFile[] => {
-  const files = [lawPath, blueprintPath, boundaryPath, serverPath, httpPath, selfPath];
+  const files = [lawPath, boundaryPath, serverPath, httpPath, selfPath];
   for (const repoPath of files) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
@@ -422,18 +421,18 @@ const inspectRequiredFiles = (
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawIds = {
-    ingress: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-001-V1"),
-    cors: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-002-V1"),
-    auth: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-003-V1"),
-    route: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-004-V1"),
-    shape: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-005-V1"),
-    callback: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-006-V1"),
-    audit: selectLawId(context.planEntry.lawIds, "GRASSEYE-WORKBENCH-API-BOUNDARY-008-V1"),
+    ingress: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    cors: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    auth: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    route: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    shape: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    callback: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    audit: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
   };
   const findings: InspectorFinding[] = [];
   const summary = initialSummary();
   const requiredFiles = inspectRequiredFiles(context.project, findings, lawIds.ingress);
-  const inspectedFiles = new Set<string>([lawPath, blueprintPath, ...requiredFiles.map((file) => toRepoPath(file.getFilePath()))]);
+  const inspectedFiles = new Set<string>([lawPath, ...requiredFiles.map((file) => toRepoPath(file.getFilePath()))]);
   const boundaryFile = source(context.project, boundaryPath);
   const serverFile = source(context.project, serverPath);
   const httpFile = source(context.project, httpPath);

@@ -1,6 +1,6 @@
 export const authority = {
-  lawPath: ".github/instructions/agent-rules/modules/module-ai-input-gateway.instructions.md",
-  blueprintPath: "docs/法案辅助文件/GrassEye AI 投喂能立组施工图 V1.md",
+  lawPath: ".github/instructions/agent-rules/功能法案.md",
+  blueprintPath: "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
 } as const;
 
 export const attachment = {

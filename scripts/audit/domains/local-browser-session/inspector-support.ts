@@ -19,8 +19,8 @@ export const createLocalFinding = (input: Parameters<typeof createFinding>[0]): 
   return createFinding({ ...input, ...(clauseId ? { clauseId } : {}) });
 };
 
-export const lawPath = ".github/instructions/agent-rules/modules/module-local-browser-session.instructions.md";
-export const blueprintPath = "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md";
+export const lawPath = ".github/instructions/agent-rules/功能法案.md";
+export const blueprintPath = "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md";
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
 

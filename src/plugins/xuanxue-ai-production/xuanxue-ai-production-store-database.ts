@@ -10,8 +10,7 @@ const databasePath = (dataDir: string): string =>
     "xuanxue_ai_production.sqlite",
   );
 
-const initializeProductionTables = (database: Database.Database): void => {
-  database.exec(`
+const productionTableSchema = `
     create table if not exists production_orders (
       order_id text primary key,
       source_task_id text not null,
@@ -101,33 +100,10 @@ const initializeProductionTables = (database: Database.Database): void => {
       created_at text not null,
       acknowledged_at text
     );
-  `);
-  const interventionColumns = database.pragma("table_info(production_interventions)") as { name: string }[];
-  if (!interventionColumns.some((column) => column.name === "last_control_epoch")) {
-    database.exec("alter table production_interventions add column last_control_epoch integer not null default 0");
-  }
-  const cloudJobStateColumns = database.pragma("table_info(production_cloud_job_state)") as { name: string }[];
-  if (!cloudJobStateColumns.some((column) => column.name === "attempt_id")) {
-    database.transaction(() => {
-      database.exec("alter table production_cloud_job_state rename to production_cloud_job_state_v5_retired");
-      database.exec(`create table production_cloud_job_state (
-        job_id text not null,
-        attempt_id text not null,
-        lease_version integer not null,
-        checkpoint_sequence integer not null default 0,
-        primary key(job_id,attempt_id,lease_version)
-      )`);
-      database.exec(`insert into production_cloud_job_state(job_id,attempt_id,lease_version,checkpoint_sequence)
-        select legacy.job_id,claim.attempt_id,claim.lease_version,legacy.checkpoint_sequence
-          from production_cloud_job_state_v5_retired legacy
-          join production_cloud_claim_ledger claim on claim.rowid=(
-            select candidate.rowid from production_cloud_claim_ledger candidate
-             where candidate.job_id=legacy.job_id
-             order by candidate.persisted_at desc,candidate.lease_version desc limit 1
-          )`);
-      database.exec("drop table production_cloud_job_state_v5_retired");
-    })();
-  }
+  `;
+
+const initializeProductionTables = (database: Database.Database): void => {
+  database.exec(productionTableSchema);
 };
 
 export const openXuanxueAiProductionDatabase = (

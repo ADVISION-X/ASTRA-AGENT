@@ -11,8 +11,7 @@ import { inspectAppShellLocalization } from "./inspector-localization.js";
 import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
 
-const lawPath = ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md";
-const blueprintPath = "docs/法案辅助文件/GrassEye App Shell UI 施工图.md";
+const lawPath = ".github/instructions/agent-rules/功能法案.md";
 const realChromeProofPaths = [
   "scripts/acceptance/capture-app-shell-ui.real-chrome.ts",
   "scripts/acceptance/app-shell-real-chrome-proof-support.ts",
@@ -30,14 +29,6 @@ const inspectAuthorityFiles = (
       lawId,
       filePath: lawPath,
       message: "App Shell UI law file must exist.",
-    }));
-  }
-  if (!existsSync(resolveFromRepo(blueprintPath))) {
-    findings.push(createFinding({
-      checkId: "app-shell-ui/blueprint-file",
-      lawId,
-      filePath: blueprintPath,
-      message: "App Shell UI blueprint file must exist.",
     }));
   }
   if (!context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/app-shell-ui/inspector.ts"))) {
@@ -93,11 +84,10 @@ const inspectRealChromePhysicalCleanup = (
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-APP-SHELL-UI-001-V1");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V2");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>([
     lawPath,
-    blueprintPath,
     "scripts/audit/domains/app-shell-ui/inspector.ts",
     "scripts/audit/domains/app-shell-ui/inspector-layout.ts",
     "scripts/audit/domains/app-shell-ui/inspector-localization.ts",
@@ -107,7 +97,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   ]);
 
   inspectAuthorityFiles(context, findings, lawId);
-  inspectAppShellLocalization(context, findings, inspectedFiles, selectLawId(context.planEntry.lawIds, "GRASSEYE-APP-SHELL-UI-002-V1"));
+  inspectAppShellLocalization(context, findings, inspectedFiles, selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-002-V1"));
   inspectSkillRegistry(context, findings, inspectedFiles, lawId);
   inspectAppShellLayout(context, findings, inspectedFiles, lawId);
   inspectForbiddenAppShellActions(context, findings, inspectedFiles, lawId);
@@ -116,7 +106,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     context,
     findings,
     inspectedFiles,
-    selectLawId(context.planEntry.lawIds, "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1"),
+    selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-003-V1"),
   );
 
   return {

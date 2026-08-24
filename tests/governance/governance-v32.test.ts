@@ -8,8 +8,8 @@ import test from 'node:test';
 import { agentReleaseParticipants, assertStableProofFile, evidencePlan, validateQualityReport, validateRealProofExecutorOutputs, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
-const governanceFixture = (): string => {
-  const root = mkdtempSync(join(tmpdir(), 'governance-v32-'));
+const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-v32-'))): string => {
+  mkdirSync(root, { recursive: true });
   symlinkSync(resolve('node_modules'), join(root, 'node_modules'), 'dir');
   for (const source of [
     '.gitignore', 'AGENTS.md', 'package.json', 'tsconfig.json',
@@ -79,7 +79,7 @@ test('CHANGE entry rejects a dirty target even when an environment variable clai
 test('active corpus is exactly two files and base law keeps eight project roots plus authorized stable governance laws', () => {
   const base = readFileSync('.github/instructions/agent-rules/基础法案.md','utf8');
   const functional = readFileSync('.github/instructions/agent-rules/功能法案.md','utf8');
-  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 21);
+  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 22);
   assert.match(base, /LAW-AUDIT-SYSTEM-001-V1/);
   assert.match(base, /LAW-AUDIT-TRUTH-001-V1/);
   assert.match(base, /LAW-CODE-PURITY-001-V1/);
@@ -247,8 +247,9 @@ test('blueprint and contract pin mutants fail exact schema validation', async (t
 });
 
 test('provider descriptor verification rejects a forged provider remote identity', () => {
-  const root = governanceFixture();
-  const providerRoot = resolve(root, '..', 'xuanxue-web');
+  const fixtureParent = mkdtempSync(join(tmpdir(), 'governance-provider-'));
+  const root = governanceFixture(join(fixtureParent, 'AGENT'));
+  const providerRoot = join(fixtureParent, 'xuanxue-web');
   try {
     execFileSync('git', ['clone', '--no-checkout', resolve('..', 'xuanxue-web'), providerRoot], { stdio: 'pipe' });
     execFileSync('git', ['config', 'remote.origin.url', 'git@github.com:ADVISION-X/forged-provider.git'], { cwd: providerRoot });
@@ -256,8 +257,7 @@ test('provider descriptor verification rejects a forged provider remote identity
     writeChangeRecord(root, baseSha, [], []);
     expectGovernanceFailure(root, ['scope'], 'CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED');
   } finally {
-    rmSync(root, { recursive: true, force: true });
-    rmSync(providerRoot, { recursive: true, force: true });
+    rmSync(fixtureParent, { recursive: true, force: true });
   }
 });
 
@@ -281,6 +281,31 @@ test('scope treats rename as DELETE plus PRESENT and rejects missing delete auth
     writeChangeRecord(root, baseSha, ['src/plugins/xuanxue-ai-production/new.ts'], []);
     renameSync(oldPath, join(dirname(oldPath), 'new.ts'));
     expectGovernanceFailure(root, ['scope'], 'SCOPE_DIFF_OUTSIDE_ALLOWED_PATHS');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('authorized deletion is verified against the base candidate original Owner', () => {
+  const root = governanceFixture();
+  try {
+    const retiredPath = 'docs/GrassEye 精确标签页浏览器控制决策记录.md';
+    const manifestPath = 'scripts/audit/domains/local-browser-session/manifest.json';
+    const registryPath = 'scripts/audit/generated/law-registry.generated.json';
+    writeFileSync(join(root, retiredPath), 'retired owner fixture\n');
+    const baseSha = initializeGitFixture(root);
+    const manifest = readJson(join(root, manifestPath));
+    manifest.ownedPaths = (manifest.ownedPaths as string[]).filter((path) => path !== retiredPath);
+    writeFileSync(join(root, manifestPath), `${JSON.stringify(manifest, null, 2)}\n`);
+    rmSync(join(root, retiredPath));
+    writeChangeRecord(root, baseSha, [manifestPath, registryPath], [retiredPath]);
+    execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance-v32.ts', 'build'], { cwd: root, stdio: 'pipe' });
+    assert.throws(
+      () => execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance-v32.ts', 'scope'], { cwd: root, stdio: 'pipe' }),
+      (error: unknown) => {
+        const stderr = String((error as { stderr?: Buffer }).stderr);
+        assert.doesNotMatch(stderr, /UNOWNED_PRODUCTION_FILE/);
+        return stderr.includes('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED');
+      },
+    );
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

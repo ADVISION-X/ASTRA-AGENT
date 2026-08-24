@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -11,16 +11,13 @@ import { BrowserAuthorityWebSocket, parseBrowserAuthorityTargetClaim } from "../
 import { canonicalizeBrowserAuthorityValue, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { decryptBrowserAuthorityFrame, encryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
 import { cryptoBytes, decrypt, encrypt } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
-import { BrowserArtifactRegistry } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
-import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
-import { BrowserInfrastructureSupervisor } from "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
 import { BrowserProofJournal, readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { decodeClientWebSocketFrames, encodeServerWebSocketTextFrame } from "../../src/app/workbench-browser-websocket-upgrade.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { runtimeInitializationDisposition } from "../../src/lib/local-runtime/workbench-status.js";
-import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
-import type { BrowserUnsignedCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { verifyBrowserSupervisorRestartContract } from "./local-browser-supervisor-restart.acceptance-support.js";
+import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 
 for (const path of ["src/lib/browser/chrome-extension/external-port-actor.ts", "src/lib/browser/transport/workbench-extension-channel.ts", "src/lib/browser/release/cws-extension-release-identity.ts", "src/lib/browser/release/browser-release-security-policy.schema.json"]) {
   assert.equal(existsSync(resolve(path)), false, `retired transport must be physically absent: ${path}`);
@@ -243,59 +240,7 @@ assert.throws(() => parseBrowserAuthorityTargetClaim({
   title: "ChatGPT",
 }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
 
-const registryFixture = await mkdtemp(join(tmpdir(), "browser-artifact-registry-"));
-const allowedRoot = join(registryFixture, "upload-attempts");
-const stagedFile = join(allowedRoot, "attempt-1", "proof.txt");
-const outsideFile = join(registryFixture, "outside.txt");
-await mkdir(join(allowedRoot, "attempt-1"), { recursive: true });
-await writeFile(stagedFile, "approved-browser-artifact", "utf8");
-await writeFile(outsideFile, "outside-browser-artifact", "utf8");
-const approvedBytes = await readFile(stagedFile);
-const approvedHash = `sha256:${createHash("sha256").update(approvedBytes).digest("hex")}` as const;
-const registry = new BrowserArtifactRegistry(allowedRoot);
-try {
-  await registry.registerArtifact({
-    artifactRef: "approved",
-    filePath: stagedFile,
-    contentHash: approvedHash,
-    sizeBytes: approvedBytes.byteLength,
-  });
-  assert.equal((await registry.resolveArtifact("approved")).canonicalPath, await realpath(stagedFile));
-  await assert.rejects(
-    registry.registerArtifact({
-      artifactRef: "outside",
-      filePath: outsideFile,
-      contentHash: `sha256:${"0".repeat(64)}`,
-      sizeBytes: 24,
-    }),
-    /BROWSER_FILE_GRANT_INVALID/u,
-  );
-  await assert.rejects(
-    registry.registerArtifact({
-      artifactRef: "tampered-hash",
-      filePath: stagedFile,
-      contentHash: `sha256:${"0".repeat(64)}`,
-      sizeBytes: approvedBytes.byteLength,
-    }),
-    /BROWSER_FILE_GRANT_INVALID/u,
-  );
-} finally {
-  await rm(registryFixture, { recursive: true, force: true });
-}
-
-const lockFixture = await mkdtemp(join(tmpdir(), "browser-owner-lock-"));
-const lockPath = join(lockFixture, "browser", "owner.lock");
-await mkdir(join(lockFixture, "browser"), { recursive: true });
-await writeFile(lockPath, "2147483647\n", { encoding: "utf8", mode: 0o600 });
-const recoveredLock = new BrowserOwnerLock(lockPath);
-try {
-  await recoveredLock.acquire();
-  const competingLock = new BrowserOwnerLock(lockPath);
-  await assert.rejects(competingLock.acquire(), /BROWSER_DUAL_ACTIVE_WORKER/u);
-} finally {
-  await recoveredLock.release();
-  await rm(lockFixture, { recursive: true, force: true });
-}
+await verifyBrowserArtifactAndLockContracts();
 
 const processLockFixture = await mkdtemp(join(tmpdir(), "browser-owner-process-lock-"));
 const processLockPath = join(processLockFixture, "browser", "owner.lock");
@@ -538,157 +483,5 @@ try {
   await rm(journalFixture, { recursive: true, force: true });
 }
 
-const supervisorFixture = await mkdtemp(join(tmpdir(), "browser-supervisor-restart-"));
-const supervisorHash = `sha256:${"4".repeat(64)}` as const;
-const supervisorOptions = {
-  dataDir: supervisorFixture,
-  sourceFingerprint: supervisorHash,
-  profileConfig: {
-    profileRef: "profile:journal-test",
-    profileDir: join(supervisorFixture, "profile"),
-    extensionId: "emkmbecadncngofidjgocmifhbonifgm",
-    unpackedExtensionDirectory: join(supervisorFixture, "extension"),
-  },
-  enrolledProfile: {
-    profileRef: "profile:journal-test",
-    enrollmentHash: supervisorHash,
-    policyHash: supervisorHash,
-    extensionTreeHash: supervisorHash,
-    enrolledAt: new Date().toISOString(),
-  },
-  releaseIdentity: {
-    schemaVersion: "grasseye.browser.unpacked-release.v1" as const,
-    releaseBuildId: "release-build-supervisor-restart-v1",
-    extensionId: "emkmbecadncngofidjgocmifhbonifgm",
-    version: "1.0.0",
-    extensionDirectoryHashV1: supervisorHash,
-    manifestHash: supervisorHash,
-    protocolHash: supervisorHash,
-    sitePolicyHash: supervisorHash,
-    createdAt: new Date().toISOString(),
-  },
-  runtimeLogger: createRuntimeLogger({ terminalEnabled: false }),
-};
-type SupervisorInternals = {
-  onAuthenticated(input: Readonly<{
-    extensionId: string;
-    extensionVersion: string;
-    releaseBuildId: string;
-    sessionHash: `sha256:${string}`;
-    commandPermitKey: string;
-  }>): Readonly<{
-    authorityRef: string;
-    authorityEpoch: number;
-    certificateHash: `sha256:${string}`;
-    channelSessionHash: `sha256:${string}`;
-  }>;
-  onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void;
-  ownerLock: BrowserOwnerLock;
-  issuer: BrowserAuthorityIssuer;
-  proofJournal: null | { recordLifecycle(event: Readonly<Record<string, unknown>>): void };
-};
-const authenticateSupervisor = (instance: BrowserInfrastructureSupervisor, generation: number) =>
-  (instance as unknown as SupervisorInternals).onAuthenticated({
-    extensionId: supervisorOptions.releaseIdentity.extensionId,
-    extensionVersion: supervisorOptions.releaseIdentity.version,
-    releaseBuildId: supervisorOptions.releaseIdentity.releaseBuildId,
-    sessionHash: `sha256:${generation.toString(16).padStart(64, "0")}`,
-    commandPermitKey: Buffer.alloc(32, generation % 255 || 1).toString("base64"),
-  });
-const supervisorJournalPath = join(supervisorFixture, "browser", "proof-events.ndjson");
-try {
-  const unpairedSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
-  await unpairedSupervisor.start();
-  assert.equal(unpairedSupervisor.readOperatorPairingState().authority, "absent");
-  const unpairedInternals = unpairedSupervisor as unknown as SupervisorInternals;
-  const releaseUnpairedOwnerLock = unpairedInternals.ownerLock.release.bind(unpairedInternals.ownerLock);
-  unpairedInternals.ownerLock.release = async () => {
-    const beforeUnlock = readBrowserProofJournal(supervisorJournalPath);
-    const lastEvent = beforeUnlock.at(-1)?.event;
-    assert.equal(lastEvent?.phase, "AUTHORITY_REVOKED", "unpaired shutdown must durably revoke before Owner lock release");
-    if (!lastEvent || lastEvent.eventType !== "LIFECYCLE") throw new Error("unpaired shutdown must end in a lifecycle revoke");
-    assert.equal(lastEvent.authorityRefHash, undefined, "unpaired shutdown revoke must not fabricate an Authority reference");
-    await releaseUnpairedOwnerLock();
-  };
-  await unpairedSupervisor.stop();
-
-  const journalFaultSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
-  await journalFaultSupervisor.start();
-  authenticateSupervisor(journalFaultSupervisor, 1);
-  const journalFaultInternals = journalFaultSupervisor as unknown as SupervisorInternals;
-  const faultJournal = journalFaultInternals.proofJournal;
-  if (!faultJournal) throw new Error("journal fault Supervisor must own its proof journal");
-  const recordLifecycle = faultJournal.recordLifecycle.bind(faultJournal);
-  faultJournal.recordLifecycle = () => { throw new Error("JOURNAL_APPEND_FAULT"); };
-  assert.throws(
-    () => journalFaultInternals.onRevoked("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { diagnosticSource: "extension-runtime" }),
-    /JOURNAL_APPEND_FAULT/u,
-    "a durable journal failure must surface after the live Authority has already been revoked",
-  );
-  assert.equal(journalFaultInternals.issuer.current().kind, "ABSENT", "journal failure must never leave a live Authority or old permit behind");
-  faultJournal.recordLifecycle = recordLifecycle;
-  await journalFaultSupervisor.stop();
-
-  const oldSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
-  const newSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
-  await oldSupervisor.start();
-  assert.equal(oldSupervisor.readOperatorPairingState().authority, "absent");
-  assert.equal(oldSupervisor.authorityBroker().currentOperatorTargetStatus(), "absent");
-  await assert.rejects(newSupervisor.start(), /BROWSER_DUAL_ACTIVE_WORKER/u);
-  const oldReady = authenticateSupervisor(oldSupervisor, 1);
-  const oldIssuer = (oldSupervisor as unknown as SupervisorInternals).issuer;
-  const unsignedPermit: BrowserUnsignedCommandPermit = {
-    permitRef: "permit:old", authorityRef: oldReady.authorityRef,
-    authorityEpoch: oldReady.authorityEpoch, certificateHash: oldReady.certificateHash,
-    channelSessionHash: oldReady.channelSessionHash, executionBindingHash: supervisorHash,
-    writerFenceHash: supervisorHash, candidateHash: supervisorHash,
-    contractManifestHash: supervisorHash, ownerPluginId: "owner:test", jobId: "job:test",
-    attemptId: "attempt:test", deviceId: "device:test", leaseVersion: 1,
-    localOrderId: "order:test", targetLeaseRef: "lease:test", targetRef: "target:test",
-    documentRef: "document:test", capabilityId: "browser.navigate.v1", commandId: "command:test",
-    sequence: 1, mutationClass: "mutation", workspaceRef: "workspace:test",
-    commandTtlMs: 1_000, replyChannelToken: "reply:test",
-  };
-  const oldPermit = { ...unsignedPermit, commandFrameMac: oldIssuer.signCurrentCommandPermit(unsignedPermit) };
-  const oldInternals = oldSupervisor as unknown as SupervisorInternals;
-  oldInternals.onRevoked("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { diagnosticSource: "extension-runtime" });
-  assert.equal(oldSupervisor.readOperatorPairingState().authority, "absent", "Extension disconnect must revoke the active authority");
-  assert.equal(oldSupervisor.authorityBroker().currentOperatorTargetStatus(), "absent", "Extension disconnect must revoke the active claim");
-  assert.throws(() => oldIssuer.assertCurrentCommandPermit(oldPermit), /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u, "Extension disconnect must make every old permit unusable while authority is absent");
-  authenticateSupervisor(oldSupervisor, 2);
-  assert.throws(() => oldIssuer.assertCurrentCommandPermit(oldPermit), /BROWSER_COMMAND_PERMIT_INVALID/u, "Extension re-pair must not revive a permit from the prior connection generation");
-  const releaseOwnerLock = oldInternals.ownerLock.release.bind(oldInternals.ownerLock);
-  oldInternals.ownerLock.release = async () => {
-    const beforeUnlock = readBrowserProofJournal(supervisorJournalPath);
-    assert.equal(beforeUnlock.at(-1)?.event.phase, "AUTHORITY_REVOKED", "durable revoke must already be readable before Owner lock release begins");
-    await releaseOwnerLock();
-  };
-  await oldSupervisor.stop();
-
-  await newSupervisor.start();
-  assert.equal(newSupervisor.readOperatorPairingState().authority, "absent", "restart must not auto-pair");
-  assert.equal(newSupervisor.authorityBroker().currentOperatorTargetStatus(), "absent", "restart must not auto-claim");
-  authenticateSupervisor(newSupervisor, 3);
-  const newIssuer = (newSupervisor as unknown as SupervisorInternals).issuer;
-  assert.throws(() => newIssuer.assertCurrentCommandPermit(oldPermit), /BROWSER_COMMAND_PERMIT_INVALID/u, "Supervisor restart must invalidate every old permit");
-  await newSupervisor.stop();
-
-  for (let restart = 0; restart < 100; restart += 1) {
-    const current = new BrowserInfrastructureSupervisor(supervisorOptions);
-    await current.start();
-    authenticateSupervisor(current, restart + 4);
-    await current.stop();
-  }
-  const supervisorRestartJournal = readBrowserProofJournal(supervisorJournalPath);
-  assert.equal(supervisorRestartJournal.length, 209, "Unpaired shutdown, journal-fault revoke, Extension reload, two interleaved Supervisors, and 100 real Supervisor restarts must preserve one revoke chain");
-  for (let index = 0; index < supervisorRestartJournal.length; index += 1) {
-    assert.equal(supervisorRestartJournal[index]!.sequence, index + 1);
-    assert.equal(
-      supervisorRestartJournal[index]!.previousEntryHash,
-      index === 0 ? `sha256:${"0".repeat(64)}` : supervisorRestartJournal[index - 1]!.entryHash,
-    );
-  }
-} finally {
-  await rm(supervisorFixture, { recursive: true, force: true });
-}
+await verifyBrowserSupervisorRestartContract();
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");

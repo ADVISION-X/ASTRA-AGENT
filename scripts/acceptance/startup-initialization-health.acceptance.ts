@@ -147,20 +147,50 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
   );
 };
 
-const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promise<void> => {
+const createBrokenCredentialFixture = async (): Promise<Readonly<{
+  credentialFile: string;
+  dataDir: string;
+  port: number;
+}>> => {
   const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-degraded-shell-"));
   const credentialDir = path.join(dataDir, "credential");
   const credentialFile = path.join(credentialDir, "cloud-device-credential.json");
   await mkdir(credentialDir, { recursive: true, mode: 0o700 });
   await writeFile(credentialFile, "{}\n", { mode: 0o644 });
   await chmod(credentialFile, 0o644);
-  const portProbe = createServer();
-  await new Promise<void>((resolve) => portProbe.listen(0, "127.0.0.1", resolve));
-  const address = portProbe.address();
+  const probe = createServer();
+  await new Promise<void>((resolve) => probe.listen(0, "127.0.0.1", resolve));
+  const address = probe.address();
   assert(address && typeof address === "object");
-  const port = address.port;
-  await new Promise<void>((resolve, reject) => portProbe.close((error) => error ? reject(error) : resolve()));
+  await new Promise<void>((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
+  return { credentialFile, dataDir, port: address.port };
+};
 
+const waitForDiagnosticShell = async (port: number): Promise<void> => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      if ((await fetch(`http://127.0.0.1:${port}/api/health`)).ok) return;
+    } catch { /* retry while the listener binds */ }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("diagnostic shell readiness timeout");
+};
+
+const assertDiagnosticShellHealth = async (port: number): Promise<void> => {
+  const response = await fetch(`http://127.0.0.1:${port}/api/health`);
+  assert.equal(response.status, 200);
+  const health = await response.json() as {
+    status?: string;
+    components?: Array<{ name?: string; ok?: boolean; detail?: string }>;
+  };
+  assert.equal(health.status, "degraded");
+  assert.equal(health.components?.find((component) => component.name === "runtimeInitialization")?.ok, false);
+  const pairingResponse = await fetch(`http://127.0.0.1:${port}/api/browser-authority/pairing`);
+  assert.equal(pairingResponse.status, 200, "operator pairing diagnostics must remain available");
+};
+
+const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promise<void> => {
+  const { credentialFile, dataDir, port } = await createBrokenCredentialFixture();
   const child = spawn(process.execPath, ["--import", "tsx", "src/app/server.ts"], {
     cwd: process.cwd(),
     env: {
@@ -174,25 +204,9 @@ const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promis
     stdio: ["ignore", "pipe", "pipe"],
   });
   try {
-    for (let attempt = 0; attempt < 100; attempt += 1) {
-      try {
-        const response = await fetch(`http://127.0.0.1:${port}/api/health`);
-        if (response.ok) break;
-      } catch { /* retry while the listener binds */ }
-      if (attempt === 99) throw new Error("diagnostic shell readiness timeout");
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
+    await waitForDiagnosticShell(port);
     await new Promise((resolve) => setTimeout(resolve, 100));
-    const response = await fetch(`http://127.0.0.1:${port}/api/health`);
-    assert.equal(response.status, 200);
-    const health = await response.json() as {
-      status?: string;
-      components?: Array<{ name?: string; ok?: boolean; detail?: string }>;
-    };
-    assert.equal(health.status, "degraded");
-    assert.equal(health.components?.find((component) => component.name === "runtimeInitialization")?.ok, false);
-    const pairingResponse = await fetch(`http://127.0.0.1:${port}/api/browser-authority/pairing`);
-    assert.equal(pairingResponse.status, 200, "operator pairing diagnostics must remain available");
+    await assertDiagnosticShellHealth(port);
   } finally {
     await stopFixture(child);
     await rm(dataDir, { recursive: true, force: true });

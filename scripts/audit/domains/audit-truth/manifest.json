@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "capabilityDomain": "audit-truth",
+  "status": "active",
+  "lawIds": [
+    "LAW-AUDIT-TRUTH-001-V1"
+  ],
+  "ownedPaths": [
+    "scripts/audit/domains/audit-truth/**"
+  ],
+  "observedPaths": [
+    "package.json",
+    "scripts/audit/**",
+    "tests/governance/**"
+  ]
+}

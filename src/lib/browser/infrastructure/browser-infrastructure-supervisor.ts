@@ -144,7 +144,7 @@ export class BrowserInfrastructureSupervisor {
     this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "TARGET_CLAIMED",
-      ...this.currentAuthorityRefHash(),
+      ...currentAuthorityRefHash(this.issuer),
       targetRef: input.targetRef,
       documentRef: input.documentRef,
     });
@@ -162,7 +162,7 @@ export class BrowserInfrastructureSupervisor {
     this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "TARGET_REVOKED",
-      ...this.currentAuthorityRefHash(),
+      ...currentAuthorityRefHash(this.issuer),
       targetRef,
     });
     this.emitBrowserRuntimeState(
@@ -178,7 +178,7 @@ export class BrowserInfrastructureSupervisor {
     const authenticated = this.issuer.current().kind === "PRESENT";
     const extensionFailure = refs?.diagnosticSource === "extension-frame"
       || refs?.diagnosticSource === "extension-runtime";
-    const authorityRefHash = this.currentAuthorityRefHash();
+    const authorityRefHash = currentAuthorityRefHash(this.issuer);
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
     this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
@@ -316,13 +316,6 @@ export class BrowserInfrastructureSupervisor {
 
   public metrics(): BrowserInfrastructureMetrics {
     return { unauthenticated_browser_authority_issued_total: 0, command_without_valid_authority_total: 0, stale_event_side_effect_total: 0, old_completion_to_new_port_total: 0, non_idempotent_auto_replay_total: 0, wrong_profile_process_authority_issued_total: 0, command_after_liveness_expiry_total: 0, browser_action_during_authority_absence_total: 0, dual_active_browser_worker_total: 0, revoked_or_rollback_blocked_tuple_activated_total: 0, browser_admission_budget_violation_total: 0, unbounded_queue: 0, unbounded_cache: 0, unbounded_stream: 0 };
-  }
-
-  private currentAuthorityRefHash(): Readonly<{ authorityRefHash?: `sha256:${string}` }> {
-    const current = this.issuer.current();
-    return current.kind === "PRESENT"
-      ? { authorityRefHash: `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}` }
-      : {};
   }
 
   private createTargetLeaseManager(
@@ -466,6 +459,15 @@ const currentAuthorityEpoch = (issuer: BrowserAuthorityIssuer): number => {
   const current = issuer.current();
   if (current.kind === "ABSENT") throw new Error(current.reasonCode);
   return current.authority.authorityEpoch;
+};
+
+const currentAuthorityRefHash = (
+  issuer: BrowserAuthorityIssuer,
+): Readonly<{ authorityRefHash?: `sha256:${string}` }> => {
+  const current = issuer.current();
+  return current.kind === "PRESENT"
+    ? { authorityRefHash: `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}` }
+    : {};
 };
 
 const hashValue = (value: unknown): `sha256:${string}` =>

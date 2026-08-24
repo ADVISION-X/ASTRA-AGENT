@@ -30,52 +30,6 @@ export const splitLines = (text: string): string[] => {
   return lines;
 };
 
-export const collapseWhitespace = (value: string): string => {
-  const chunks: string[] = [];
-  let current = "";
-  for (const character of value) {
-    if (character.trim() === "") {
-      if (current.length > 0) {
-        chunks.push(current);
-        current = "";
-      }
-      continue;
-    }
-    current += character;
-  }
-  if (current.length > 0) {
-    chunks.push(current);
-  }
-  return chunks.join(" ");
-};
-
-export const normalizeMarkdownHeading = (value: string): string => {
-  let index = 0;
-  while (value[index] === "#") {
-    index += 1;
-  }
-  return collapseWhitespace(value.slice(index).trim());
-};
-
-export const extractMarkdownHeadings = (text: string): ReadonlySet<string> => {
-  const headings = new Set<string>();
-  for (const line of splitLines(text)) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("#")) {
-      continue;
-    }
-    let markerLength = 0;
-    while (trimmed[markerLength] === "#") {
-      markerLength += 1;
-    }
-    if (markerLength < 1 || markerLength > 6 || trimmed[markerLength] !== " ") {
-      continue;
-    }
-    headings.add(normalizeMarkdownHeading(trimmed));
-  }
-  return headings;
-};
-
 export const containsAny = (text: string, tokens: readonly string[]): boolean =>
   tokens.some((token) => text.includes(token));
 
@@ -102,15 +56,6 @@ export const isPrivateCapabilityRuntimePath = (repoPath: string): boolean => {
 export const isPublicCapabilityFacadePath = (repoPath: string): boolean => {
   const segments = pathSegments(repoPath);
   return isCapabilityOwnerPath(repoPath) && segments.length === 4 && segments[3] === "index.ts";
-};
-
-export const isPublicPluginFacadePath = (repoPath: string): boolean => {
-  const segments = pathSegments(repoPath);
-  if (!isPluginOwnerPath(repoPath) || segments.length !== 4) {
-    return false;
-  }
-  const fileName = segments[3] ?? "";
-  return fileName === "index.ts" || fileName.endsWith(".public.ts");
 };
 
 export const isTopLevelPluginFile = (repoPath: string): boolean => {

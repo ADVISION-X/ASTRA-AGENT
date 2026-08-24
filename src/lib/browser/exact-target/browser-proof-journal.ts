@@ -102,67 +102,96 @@ const validTimestamp = (value: unknown): value is string => validText(value) && 
 const validInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0;
 const validPositiveInteger = (value: unknown): value is number => validInteger(value) && value >= 1;
 
-const assertEvent = (raw: unknown): BrowserProofEvent => {
-  if (!isRecord(raw) || !validText(raw.eventType)) throw new Error("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID");
-  if (raw.eventType === "LIFECYCLE") {
-    const base = ["eventType", "phase", "candidateHash", "extensionId", "releaseBuildId", "recordedAt"];
-    const phaseKeys = raw.phase === "AUTHENTICATED"
-      ? { required: [...base, "authorityRefHash"], optional: [] }
-      : raw.phase === "TARGET_CLAIMED"
-        ? { required: [...base, "authorityRefHash", "targetRef", "documentRef"], optional: [] }
-        : raw.phase === "TARGET_REVOKED"
-          ? { required: [...base, "authorityRefHash", "targetRef"], optional: [] }
-          : raw.phase === "AUTHORITY_REVOKED"
-            ? { required: [...base, "reason"], optional: ["authorityRefHash"] }
-            : null;
-    if (!phaseKeys || !exactKeys(raw, phaseKeys.required, phaseKeys.optional)
-      || !validHash(raw.candidateHash) || !validText(raw.extensionId)
-      || !validText(raw.releaseBuildId) || !validTimestamp(raw.recordedAt)
-      || (raw.authorityRefHash !== undefined && !validHash(raw.authorityRefHash))
-      || (raw.targetRef !== undefined && !validText(raw.targetRef))
-      || (raw.documentRef !== undefined && !validText(raw.documentRef))
-      || (raw.reason !== undefined && !validText(raw.reason))) {
-      throw new Error("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID");
-    }
-    return raw as BrowserProofLifecycleEvent;
-  }
-  const required = ["eventType", "phase", "commandId", "actionId", "commandKind", "workspaceRef", "authorityRef", "authorityCertificateHash", "executionBindingHash", "executionFenceHash", "candidateHash", "contractManifestHash", "ownerPluginId", "jobId", "attemptId", "deviceId", "leaseVersion", "localOrderId", "targetRef", "documentRef", "commandTtlMs", "commandClass", "payloadHash", "artifactRefs", "recordedAt"];
-  const phaseKeys = raw.phase === "PREPARED" || raw.phase === "SEND"
-    ? { required, optional: ["domIntentKind"] }
-    : raw.phase === "COMPLETED"
-      ? { required: [...required, "resultHash", "transportSequence", "permitSequence"], optional: ["domIntentKind", "resultSummary"] }
-      : raw.phase === "CONFIRMED"
-        ? { required: [...required, "resultHash", "reason"], optional: ["domIntentKind"] }
-        : raw.phase === "FAILED"
-          ? { required: [...required, "reason"], optional: ["domIntentKind", "resultHash"] }
-          : raw.phase === "UNKNOWN"
-            ? { required: [...required, "reason"], optional: ["domIntentKind", "resultHash", "resultSummary", "transportSequence", "permitSequence"] }
-            : null;
+const invalidJournal = (): never => {
+  throw new Error("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID");
+};
+
+const lifecyclePhaseKeys = (phase: unknown): Readonly<{ required: string[]; optional: string[] }> | null => {
+  const base = ["eventType", "phase", "candidateHash", "extensionId", "releaseBuildId", "recordedAt"];
+  if (phase === "AUTHENTICATED") return { required: [...base, "authorityRefHash"], optional: [] };
+  if (phase === "TARGET_CLAIMED") return { required: [...base, "authorityRefHash", "targetRef", "documentRef"], optional: [] };
+  if (phase === "TARGET_REVOKED") return { required: [...base, "authorityRefHash", "targetRef"], optional: [] };
+  return phase === "AUTHORITY_REVOKED" ? { required: [...base, "reason"], optional: ["authorityRefHash"] } : null;
+};
+
+const assertLifecycleEvent = (raw: Record<string, unknown>): BrowserProofLifecycleEvent => {
+  const phaseKeys = lifecyclePhaseKeys(raw.phase);
+  const invalid = !phaseKeys || !exactKeys(raw, phaseKeys.required, phaseKeys.optional)
+    || !validHash(raw.candidateHash) || !validText(raw.extensionId)
+    || !validText(raw.releaseBuildId) || !validTimestamp(raw.recordedAt)
+    || (raw.authorityRefHash !== undefined && !validHash(raw.authorityRefHash))
+    || (raw.targetRef !== undefined && !validText(raw.targetRef))
+    || (raw.documentRef !== undefined && !validText(raw.documentRef))
+    || (raw.reason !== undefined && !validText(raw.reason));
+  return invalid ? invalidJournal() : raw as BrowserProofLifecycleEvent;
+};
+
+const commandPhaseKeys = (
+  phase: unknown,
+  required: string[],
+): Readonly<{ required: string[]; optional: string[] }> | null => {
+  if (phase === "PREPARED" || phase === "SEND") return { required, optional: ["domIntentKind"] };
+  if (phase === "COMPLETED") return { required: [...required, "resultHash", "transportSequence", "permitSequence"], optional: ["domIntentKind", "resultSummary"] };
+  if (phase === "CONFIRMED") return { required: [...required, "resultHash", "reason"], optional: ["domIntentKind"] };
+  if (phase === "FAILED") return { required: [...required, "reason"], optional: ["domIntentKind", "resultHash"] };
+  return phase === "UNKNOWN"
+    ? { required: [...required, "reason"], optional: ["domIntentKind", "resultHash", "resultSummary", "transportSequence", "permitSequence"] }
+    : null;
+};
+
+const validResultSummary = (value: unknown): boolean => value === undefined || (
+  isRecord(value)
+  && exactKeys(value, ["candidateCount", "identityRevalidated", "mutationCount"], ["retainedValueVerified", "postconditionVerified"])
+  && validInteger(value.candidateCount)
+  && typeof value.identityRevalidated === "boolean"
+  && validInteger(value.mutationCount)
+  && (value.retainedValueVerified === undefined || typeof value.retainedValueVerified === "boolean")
+  && (value.postconditionVerified === undefined || typeof value.postconditionVerified === "boolean")
+);
+
+const validCommandIdentity = (raw: Record<string, unknown>): boolean => {
   const hashFields = ["authorityCertificateHash", "executionBindingHash", "executionFenceHash", "candidateHash", "contractManifestHash", "payloadHash"];
   const textFields = ["commandId", "actionId", "commandKind", "workspaceRef", "authorityRef", "ownerPluginId", "jobId", "attemptId", "deviceId", "localOrderId", "targetRef", "documentRef"];
-  const summary = raw.resultSummary;
-  const unknownHasTransportResult = raw.phase !== "UNKNOWN"
-    || [raw.resultHash, raw.transportSequence, raw.permitSequence].every((value) => value !== undefined)
-    || [raw.resultHash, raw.resultSummary, raw.transportSequence, raw.permitSequence].every((value) => value === undefined);
-  if (!phaseKeys || !exactKeys(raw, phaseKeys.required, phaseKeys.optional)
-    || raw.eventType !== "COMMAND"
-    || !["observation", "mutation", "lifecycle"].includes(raw.commandClass as string)
-    || hashFields.some((field) => !validHash(raw[field])) || textFields.some((field) => !validText(raw[field]))
-    || !validPositiveInteger(raw.leaseVersion) || !validPositiveInteger(raw.commandTtlMs) || !validTimestamp(raw.recordedAt)
-    || !Array.isArray(raw.artifactRefs) || raw.artifactRefs.some((value) => !validText(value))
-    || (raw.domIntentKind !== undefined && !validText(raw.domIntentKind))
-    || (raw.resultHash !== undefined && !validHash(raw.resultHash))
-    || (raw.transportSequence !== undefined && !validPositiveInteger(raw.transportSequence))
-    || (raw.permitSequence !== undefined && !validPositiveInteger(raw.permitSequence))
-    || (raw.reason !== undefined && !validText(raw.reason))
-    || !unknownHasTransportResult
-    || (summary !== undefined && (!isRecord(summary) || !exactKeys(summary, ["candidateCount", "identityRevalidated", "mutationCount"], ["retainedValueVerified", "postconditionVerified"])
-      || !validInteger(summary.candidateCount) || typeof summary.identityRevalidated !== "boolean" || !validInteger(summary.mutationCount)
-      || (summary.retainedValueVerified !== undefined && typeof summary.retainedValueVerified !== "boolean")
-      || (summary.postconditionVerified !== undefined && typeof summary.postconditionVerified !== "boolean")))) {
-    throw new Error("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID");
-  }
-  return raw as BrowserProofCommandEvent;
+  return hashFields.every((field) => validHash(raw[field]))
+    && textFields.every((field) => validText(raw[field]));
+};
+
+const validCommandCore = (raw: Record<string, unknown>): boolean =>
+  raw.eventType === "COMMAND"
+  && ["observation", "mutation", "lifecycle"].includes(raw.commandClass as string)
+  && validCommandIdentity(raw)
+  && validPositiveInteger(raw.leaseVersion)
+  && validPositiveInteger(raw.commandTtlMs)
+  && validTimestamp(raw.recordedAt)
+  && Array.isArray(raw.artifactRefs)
+  && raw.artifactRefs.every((value) => validText(value));
+
+const validCommandOutcome = (raw: Record<string, unknown>): boolean =>
+  (raw.domIntentKind === undefined || validText(raw.domIntentKind))
+  && (raw.resultHash === undefined || validHash(raw.resultHash))
+  && (raw.transportSequence === undefined || validPositiveInteger(raw.transportSequence))
+  && (raw.permitSequence === undefined || validPositiveInteger(raw.permitSequence))
+  && (raw.reason === undefined || validText(raw.reason))
+  && validResultSummary(raw.resultSummary);
+
+const validUnknownTransportResult = (raw: Record<string, unknown>): boolean =>
+  raw.phase !== "UNKNOWN"
+  || [raw.resultHash, raw.transportSequence, raw.permitSequence].every((value) => value !== undefined)
+  || [raw.resultHash, raw.resultSummary, raw.transportSequence, raw.permitSequence].every((value) => value === undefined);
+
+const assertCommandEvent = (raw: Record<string, unknown>): BrowserProofCommandEvent => {
+  const required = ["eventType", "phase", "commandId", "actionId", "commandKind", "workspaceRef", "authorityRef", "authorityCertificateHash", "executionBindingHash", "executionFenceHash", "candidateHash", "contractManifestHash", "ownerPluginId", "jobId", "attemptId", "deviceId", "leaseVersion", "localOrderId", "targetRef", "documentRef", "commandTtlMs", "commandClass", "payloadHash", "artifactRefs", "recordedAt"];
+  const phaseKeys = commandPhaseKeys(raw.phase, required);
+  const invalid = !phaseKeys || !exactKeys(raw, phaseKeys.required, phaseKeys.optional)
+    || !validCommandCore(raw)
+    || !validCommandOutcome(raw)
+    || !validUnknownTransportResult(raw);
+  return invalid ? invalidJournal() : raw as BrowserProofCommandEvent;
+};
+
+const assertEvent = (raw: unknown): BrowserProofEvent => {
+  if (!isRecord(raw) || !validText(raw.eventType)) return invalidJournal();
+  return raw.eventType === "LIFECYCLE" ? assertLifecycleEvent(raw) : assertCommandEvent(raw);
 };
 
 const assertEnvelope = (

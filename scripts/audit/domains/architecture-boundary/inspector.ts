@@ -23,7 +23,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   });
   findings.push(...activePluginGate.findings);
   inspectActivePluginMediators({
-    entries: activePluginGate.statusEntries,
+    entries: activePluginGate.activeContracts,
     findings,
     inspectedFiles,
     lawId: lawIds.intakeLawId,
@@ -47,9 +47,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
       capabilityDomain: context.planEntry.capabilityDomain,
       lawIds: context.planEntry.lawIds,
       actualPluginIds: activePluginGate.actualPluginIds,
-      pluginStatusEntries: activePluginGate.statusEntries,
+      activePluginContracts: activePluginGate.activeContracts,
       pluginExposureFilesByPluginId: activePluginGate.exposureFilesByPluginId,
-      ciFullAcceptanceScripts: activePluginGate.ciFullAcceptanceScripts,
+      governedAcceptanceScripts: activePluginGate.governedAcceptanceScripts,
       activePluginViolations: activePluginGate.findings,
       status: findings.length === 0 ? "PASS" : "FAIL",
       findings,

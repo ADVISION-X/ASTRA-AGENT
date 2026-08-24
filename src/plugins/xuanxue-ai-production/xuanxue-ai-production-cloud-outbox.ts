@@ -110,7 +110,6 @@ export class XuanxueAiProductionCloudOutbox {
 
   public commitClaimReceipt(input: {
     requestId: string;
-    response: unknown;
     claims: readonly {
       jobId: string; attemptId: string; leaseVersion: number; createdAt: string;
       grant: Readonly<Record<string, unknown>>;
@@ -126,7 +125,6 @@ export class XuanxueAiProductionCloudOutbox {
         "delete from production_cloud_claim_requests where request_id=? and state='pending'",
       ).run(input.requestId);
       if (result.changes !== 1) throw new Error("XUANXUE_AI_PRODUCTION_CLAIM_REQUEST_ACK_MISSING");
-      void input.response;
     })();
   }
 
@@ -154,13 +152,12 @@ export class XuanxueAiProductionCloudOutbox {
     })();
   }
 
-  public acknowledge(requestId: string, response: unknown): string | null {
+  public acknowledge(requestId: string): string | null {
     const prior = this.database.prepare("select body_file from production_cloud_outbox where request_id=? and state='pending'")
       .get(requestId) as { body_file: string | null } | undefined;
     if (!prior) throw new Error("XUANXUE_AI_PRODUCTION_OUTBOX_ACK_MISSING");
     const result = this.database.prepare("delete from production_cloud_outbox where request_id=? and state='pending'").run(requestId);
     if (result.changes !== 1) throw new Error("XUANXUE_AI_PRODUCTION_OUTBOX_ACK_MISSING");
-    void response;
     return prior.body_file;
   }
 }

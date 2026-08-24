@@ -13,7 +13,7 @@ import {
 } from "./xuanxue-ai-production-cloud-client.js";
 import type {
   XuanxueAiProductionAttachmentCheckpointProof,
-} from "./xuanxue-ai-production-cloud-client.js";
+} from "./xuanxue-ai-production-cloud-client-contract.js";
 import type {
   XuanxueAiProductionCloudClaimedJob,
 } from "./xuanxue-ai-production-cloud-contract.js";
@@ -22,6 +22,13 @@ import type { XuanxueAiProductionCloudOutbox } from "./xuanxue-ai-production-clo
 import { cleanXuanxueAiProductionCloudStaging } from "./xuanxue-ai-production-cloud-staging.js";
 
 type ResultStage = NonNullable<XuanxueAiOrderRecord["result"]>["stages"][number];
+type PublicationInput = Readonly<{
+  session: XuanxueAiProductionWorkerSessionV6;
+  outbox: XuanxueAiProductionCloudOutbox;
+  dataDir: string;
+  job: XuanxueAiProductionCloudClaimedJob;
+  record: XuanxueAiOrderRecord;
+}>;
 
 const attachmentCheckpoint = (input: {
   readonly stageId: string;
@@ -76,13 +83,7 @@ const uploadGeneratedImageStage = async (
   };
 };
 
-export const publishXuanxueAiProductionCloudOrder = async (input: {
-  readonly session: XuanxueAiProductionWorkerSessionV6;
-  readonly outbox: XuanxueAiProductionCloudOutbox;
-  readonly dataDir: string;
-  readonly job: XuanxueAiProductionCloudClaimedJob;
-  readonly record: XuanxueAiOrderRecord;
-}): Promise<void> => {
+const publishAttachmentCheckpoints = async (input: PublicationInput): Promise<void> => {
   for (const stage of input.record.stages) {
     if (!stage.attachmentUploadProof) continue;
     await checkpointXuanxueAiProductionJob(input.session, input.outbox, input.job, {
@@ -94,36 +95,43 @@ export const publishXuanxueAiProductionCloudOrder = async (input: {
       }),
     });
   }
-  if (input.record.status === "completed" && input.record.result) {
-    const stages = await Promise.all(input.record.result.stages.map(
-      (stage) => uploadGeneratedImageStage(input.session, input.outbox, input.job, stage),
-    ));
-    const completeResult = {
-      ...input.record.result,
-      stages,
-    };
-    await uploadXuanxueAiProductionProductResult(
-      input.session, input.outbox, input.job, input.dataDir, completeResult,
-    );
-    await completeXuanxueAiProductionJob(input.session, input.outbox, input.job, completeResult);
-    await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
-    return;
-  }
-  if (input.record.status === "cancelled") {
-    await cancelXuanxueAiProductionJob(input.session, input.outbox, input.job, {
-      local_order_id: input.record.order.orderId,
-      reason: input.record.failureReason ?? "cloud control intent acknowledged at a local safe point",
-    });
-    await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
-    return;
-  }
-  if (input.record.status === "recovery_pending"
-    && input.record.failureReason?.startsWith("XUANXUE_AI_INTERVENTION_TAKEOVER@")) {
-    await acknowledgeXuanxueAiProductionHandover(
-      input.session, input.outbox, input.job, input.record.order.orderId,
-    );
-    return;
-  }
+};
+
+const publishCompletedOrder = async (input: PublicationInput): Promise<boolean> => {
+  if (input.record.status !== "completed" || !input.record.result) return false;
+  const stages = await Promise.all(input.record.result.stages.map(
+    (stage) => uploadGeneratedImageStage(input.session, input.outbox, input.job, stage),
+  ));
+  const completeResult = { ...input.record.result, stages };
+  await uploadXuanxueAiProductionProductResult(
+    input.session, input.outbox, input.job, input.dataDir, completeResult,
+  );
+  await completeXuanxueAiProductionJob(input.session, input.outbox, input.job, completeResult);
+  await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
+  return true;
+};
+
+const publishCancelledOrder = async (input: PublicationInput): Promise<boolean> => {
+  if (input.record.status !== "cancelled") return false;
+  await cancelXuanxueAiProductionJob(input.session, input.outbox, input.job, {
+    local_order_id: input.record.order.orderId,
+    reason: input.record.failureReason ?? "cloud control intent acknowledged at a local safe point",
+  });
+  await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
+  return true;
+};
+
+const publishHandover = async (input: PublicationInput): Promise<boolean> => {
+  const handover = input.record.status === "recovery_pending"
+    && input.record.failureReason?.startsWith("XUANXUE_AI_INTERVENTION_TAKEOVER@");
+  if (!handover) return false;
+  await acknowledgeXuanxueAiProductionHandover(
+    input.session, input.outbox, input.job, input.record.order.orderId,
+  );
+  return true;
+};
+
+const publishFailedOrder = async (input: PublicationInput): Promise<void> => {
   const providerBlocked = input.record.failureReason?.startsWith(
     XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION,
   ) ?? false;
@@ -143,6 +151,14 @@ export const publishXuanxueAiProductionCloudOrder = async (input: {
   if (!recoverable) {
     await cleanXuanxueAiProductionCloudStaging(input.dataDir, input.job.job_id);
   }
+};
+
+export const publishXuanxueAiProductionCloudOrder = async (input: PublicationInput): Promise<void> => {
+  await publishAttachmentCheckpoints(input);
+  if (await publishCompletedOrder(input)) return;
+  if (await publishCancelledOrder(input)) return;
+  if (await publishHandover(input)) return;
+  await publishFailedOrder(input);
 };
 
 export { attachmentCheckpoint as toXuanxueAiProductionAttachmentCheckpoint };

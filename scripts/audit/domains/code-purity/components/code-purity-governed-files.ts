@@ -18,8 +18,18 @@ export type GovernedFile = {
   sourceFile: SourceFile;
 };
 
+const excludedCodePurityPaths = [
+  "scripts/acceptance/fixtures/",
+  "scripts/audit/generated/",
+  "src/plugins/xuanxue-ai-production/generated/",
+] as const;
+
+const isCodePurityGovernedPath = (repoPath: string): boolean =>
+  !excludedCodePurityPaths.some((prefix) => repoPath.startsWith(prefix));
+
 export const collectCodePurityGovernedFiles = (project: Project): GovernedFile[] =>
   listActiveSourceFiles(project)
+    .filter((sourceFile) => isCodePurityGovernedPath(getRepoSourcePath(sourceFile)))
     .map((sourceFile) => {
       const repoPath = getRepoSourcePath(sourceFile);
       const role = resolveCodePurityRole(repoPath);

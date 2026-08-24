@@ -11,8 +11,7 @@
   "ownedPaths": [
     "docs/current-sub-capabilities.zh.md",
     "scripts/audit/domains/app-shell-ui/**",
-    "src/app/**",
-    "src/types/plugin-intervention.ts"
+    "src/app/**"
   ],
   "schemaVersion": 3,
   "status": "active"

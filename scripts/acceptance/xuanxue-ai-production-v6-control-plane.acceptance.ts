@@ -17,7 +17,6 @@ import {
 import { cloudWorkerPollIntervalMs } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.js";
 
 const temporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-control-"));
-const legacyTemporary = mkdtempSync(path.join(os.tmpdir(), "xuanxue-ai-v6-legacy-state-"));
 const database = openXuanxueAiProductionDatabase(temporary);
 const hash = `sha256:${"a".repeat(64)}` as const;
 
@@ -68,7 +67,7 @@ try {
   outbox.beginClaimRequest({ requestId: "claim-1", payload: { worker_session_id: "old-session" }, payloadHash: hash });
   assert.equal(outbox.pendingClaimRequest()?.requestId, "claim-1");
   outbox.commitClaimReceipt({
-    requestId: "claim-1", response: { outcome: "LEASE_GRANTED" },
+    requestId: "claim-1",
     claims: [{
       jobId: "job-claim", attemptId: "attempt-claim", leaseVersion: 1,
       createdAt: new Date().toISOString(), grant: { fence_hash: hash },
@@ -79,7 +78,7 @@ try {
     where job_id='job-claim' and attempt_id='attempt-claim' and lease_version=1`).get() as { count: number }).count, 1);
   outbox.beginClaimRequest({ requestId: "claim-conflict", payload: { worker_session_id: "old-session" }, payloadHash: hash });
   assert.throws(() => outbox.commitClaimReceipt({
-    requestId: "claim-conflict", response: { outcome: "LEASE_GRANTED" },
+    requestId: "claim-conflict",
     claims: [{
       jobId: "job-claim", attemptId: "attempt-claim", leaseVersion: 1,
       createdAt: new Date().toISOString(), grant: { fence_hash: `sha256:${"b".repeat(64)}` },
@@ -106,26 +105,10 @@ try {
   assert.equal(checkpointWrite("checkpoint-atomic-2", "attempt-1", 1).body?.checkpoint_seq, 2);
   assert.equal(checkpointWrite("checkpoint-attempt-2", "attempt-2", 2).body?.checkpoint_seq, 1);
 
-  const legacySeed = openXuanxueAiProductionDatabase(legacyTemporary);
-  legacySeed.exec("drop table production_cloud_job_state");
-  legacySeed.exec("create table production_cloud_job_state(job_id text primary key,checkpoint_sequence integer not null default 0)");
-  legacySeed.prepare("insert into production_cloud_job_state(job_id,checkpoint_sequence) values(?,?)").run("job-legacy", 4);
-  legacySeed.prepare(`insert into production_cloud_claim_ledger(
-    job_id,attempt_id,lease_version,created_at,grant_json,grant_hash,persisted_at
-  ) values(?,?,?,?,?,?,?)`).run("job-legacy", "attempt-current", 7, new Date().toISOString(), "{}", hash, new Date().toISOString());
-  legacySeed.close();
-  const migrated = openXuanxueAiProductionDatabase(legacyTemporary);
-  const migratedColumns = migrated.pragma("table_info(production_cloud_job_state)") as { name: string }[];
-  assert.ok(migratedColumns.some((column) => column.name === "attempt_id"));
-  assert.deepEqual(migrated.prepare(`select job_id,attempt_id,lease_version,checkpoint_sequence
-    from production_cloud_job_state where job_id=?`).get("job-legacy"), {
-    job_id: "job-legacy", attempt_id: "attempt-current", lease_version: 7, checkpoint_sequence: 4,
-  });
-  migrated.close();
-
   const databaseSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts", "utf8");
   const clientSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts", "utf8");
   const workerSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts", "utf8");
+  const workerContractSource = readFileSync("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-contract.ts", "utf8");
   const workbenchStatusSource = readFileSync("src/lib/local-runtime/workbench-status.ts", "utf8");
   assert.doesNotMatch(databaseSource, /session_token|current_token_hash|previous_token_hash/iu);
   assert.match(clientSource, /writeKind: "handover"/u);
@@ -142,7 +125,7 @@ try {
   for (const field of [
     "shellState", "cloudState", "browserState", "executionState",
     "claimAdmissionState", "browserAuthorityState", "browserTargetState", "browserLaneState",
-  ]) assert.match(workerSource, new RegExp(`readonly ${field}:`, "u"), field);
+  ]) assert.match(workerContractSource, new RegExp(`readonly ${field}:`, "u"), field);
   for (const component of [
     "xuanxueAiProductionShell", "agentCloudWorker",
     "xuanxueAiProductionBrowser", "xuanxueAiProductionExecution",
@@ -198,5 +181,4 @@ try {
 } finally {
   database.close();
   rmSync(temporary, { recursive: true, force: true });
-  rmSync(legacyTemporary, { recursive: true, force: true });
 }

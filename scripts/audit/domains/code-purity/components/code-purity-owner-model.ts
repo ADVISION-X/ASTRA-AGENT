@@ -164,7 +164,7 @@ const resolveCapabilityPatternRole = (repoPath: string): CodePurityRole | null =
       : null;
 
 const resolveCapabilitySurfaceRole = (repoPath: string): CodePurityRole | null => {
-  if (repoPath.startsWith("src/capabilities/dom-automation/runtime/") || repoPath.startsWith("src/lib/browser/")) {
+  if (repoPath.startsWith("src/lib/browser/")) {
     return "browser-primitive";
   }
   if (repoPath.startsWith("src/capabilities/") && (repoPath.includes("/contracts/") || isSchemaLikeFile(repoPath))) {

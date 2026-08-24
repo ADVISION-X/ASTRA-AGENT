@@ -59,16 +59,16 @@ export const isPlannerScope = (repoPath: string): boolean =>
   repoPath.startsWith("src/mediator/");
 
 export const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry"]): ArchitectureLawIds => ({
-  singleLineLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-001-V1"),
-  rootLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-006-V1"),
-  jobFlowLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-003-V1"),
-  mediatorLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-002-V1"),
-  capabilityLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-004-V1"),
-  childAbilityLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-005-V1"),
-  sharedLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-007-V1"),
-  plannerLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-009-V1"),
-  pluginStageLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-011-V1"),
-  productionBoundaryLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-012-V1"),
-  intakeLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-008-V1"),
-  lawFirstChangeLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-010-V1"),
+  singleLineLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  rootLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  jobFlowLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  mediatorLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  capabilityLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  childAbilityLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  sharedLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  plannerLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  pluginStageLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  productionBoundaryLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  intakeLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
+  lawFirstChangeLawId: selectLawId(planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1"),
 });

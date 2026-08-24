@@ -14,7 +14,6 @@
   "ownedPaths": [
     "scripts/audit/build/**",
     "scripts/audit/domains/audit-system/**",
-    "scripts/audit/domains/audit-truth/**",
     "scripts/audit/shared/**"
   ],
   "schemaVersion": 3,

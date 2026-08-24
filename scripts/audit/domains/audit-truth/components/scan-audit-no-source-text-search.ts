@@ -66,14 +66,33 @@ const usageIsConsumed = (node: MorphNode, visited = new Set<string>()): boolean 
   return usageIsConsumed(parent, nextVisited);
 };
 
-const hasProjectUsage = (sourceFile: SourceFile): boolean =>
-  sourceFile
+const hasRunnerProjectUsage = (sourceFile: SourceFile): boolean => sourceFile
     .getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .some((expression) => expression.getName() === "project"
       && Node.isIdentifier(expression.getExpression())
       && (expression.getExpression().getSymbol()?.getDeclarations().some((declaration) =>
         Node.isParameterDeclaration(declaration) && declaration.getName() === "context") ?? false)
       && usageIsConsumed(expression));
+
+const hasLocalProjectUsage = (sourceFile: SourceFile): boolean => sourceFile
+  .getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+  .some((declaration) => {
+  const initializer = declaration.getInitializer();
+  if (!Node.isNewExpression(initializer)) return false;
+  const constructorSymbol = initializer.getExpression().getSymbol();
+  const resolvedConstructor = constructorSymbol?.getAliasedSymbol() ?? constructorSymbol;
+  if (resolvedConstructor?.getName() !== "Project") return false;
+  const name = declaration.getNameNode();
+  if (!Node.isIdentifier(name)) return false;
+  return sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => {
+    if (identifier === name || !identifierReferencesVariable(identifier, declaration)) return false;
+    const parent = identifier.getParent();
+    return Node.isPropertyAccessExpression(parent) && parent.getExpression() === identifier;
+  });
+  });
+
+const hasProjectUsage = (sourceFile: SourceFile): boolean =>
+  hasRunnerProjectUsage(sourceFile) || hasLocalProjectUsage(sourceFile);
 
 const textSearchMethods = new Set([
   "endsWith", "includes", "indexOf", "lastIndexOf", "match", "matchAll",

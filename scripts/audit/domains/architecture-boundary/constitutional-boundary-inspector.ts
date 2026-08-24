@@ -11,18 +11,9 @@ import {
   isExternalCapabilityConsumer,
 } from "../../shared/repo-path-classifier.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
-import { resolveCapabilityFacadePolicy } from "../capability-group-governance/components/capability-source-of-truth.js";
+import { resolveCapabilityFacadePolicy } from "../capability-governance/components/capability-source-of-truth.js";
 
 type Finding = ReturnType<typeof createFinding>;
-
-const domPrimitiveNames = new Set([
-  "readDomSnapshotOnce",
-  "locateDomElementOnce",
-  "fillDomElementOnce",
-  "clickDomElementOnce",
-  "uploadApprovedFileOnce",
-  "verifyDomStateOnce",
-]);
 
 const forbiddenProtocolKeys = new Set([
   "abilityGroupId",
@@ -41,10 +32,6 @@ const protocolContextKeys = new Set([
   "maxBytes",
   "timeoutMs",
   "downloadSubtitles",
-]);
-
-const allowedDomBridgeFiles = new Set([
-  "scripts/acceptance/dom-automation-exact-target.acceptance.ts",
 ]);
 
 const createDedupedFindingPusher = (findings: Finding[]) => {
@@ -252,7 +239,6 @@ const pushExternalNonFacadeCapabilityImportFinding = (input: {
 };
 
 const inspectFacadeNamedImports = (input: {
-  domBridgeLawId: string;
   facadeLawId: string;
   importDeclaration: ImportDeclaration;
   policy: ReturnType<typeof resolveCapabilityFacadePolicy>;
@@ -269,20 +255,6 @@ const inspectFacadeNamedImports = (input: {
       targetCapabilityOwner: input.targetOwner,
       targetSourceFile: input.targetSourceFile,
     });
-
-    if (
-      input.targetOwner === "dom-automation"
-      && domPrimitiveNames.has(importedName)
-      && !allowedDomBridgeFiles.has(input.repoPath)
-    ) {
-      input.pushFinding({
-        checkId: "constitutional-boundary/dom-primitive-import",
-        lawId: input.domBridgeLawId,
-        filePath: input.repoPath,
-        evidence: `${input.targetPath}:${importedName}`,
-        message: `${input.repoPath} imports DOM primitive ${importedName} from ${input.targetPath} outside the allowlisted bridge.`,
-      });
-    }
 
     if (!declarationPath) {
       continue;
@@ -305,7 +277,6 @@ const inspectFacadeNamedImports = (input: {
 
 const inspectExternalConsumerImports = (input: {
   boundaryLawId: string;
-  domBridgeLawId: string;
   facadeLawId: string;
   pushFinding: ReturnType<typeof createDedupedFindingPusher>;
   sourceFile: SourceFile;
@@ -342,7 +313,6 @@ const inspectExternalConsumerImports = (input: {
     }
 
     inspectFacadeNamedImports({
-      domBridgeLawId: input.domBridgeLawId,
       facadeLawId: input.facadeLawId,
       importDeclaration,
       policy: resolveCapabilityFacadePolicy(buildCapabilityRoot(targetInfo.owner)),
@@ -399,11 +369,10 @@ const buildSummary = (findings: readonly Finding[]) => ({
 
 
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+export const inspectConstitutionalBoundary = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-CONSTITUTIONAL-BOUNDARY-001-V1");
   const facadeLawId = selectLawId(context.planEntry.lawIds, "APEX-CAPABILITY-FACADE-SYMBOL-001-V1");
   const protocolLawId = selectLawId(context.planEntry.lawIds, "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1");
-  const domBridgeLawId = selectLawId(context.planEntry.lawIds, "APEX-DOM-AUTOMATION-BRIDGE-001-V1");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
   const pushFinding = createDedupedFindingPusher(findings);
@@ -418,7 +387,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     });
     inspectExternalConsumerImports({
       boundaryLawId,
-      domBridgeLawId,
       facadeLawId,
       pushFinding,
       sourceFile,
@@ -451,7 +419,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   let reportJson: unknown;
   let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
+    const evaluation = await inspectConstitutionalBoundary(context);
     reportJson = evaluation.reportJson;
     reportMarkdown = evaluation.reportMarkdown;
     return {

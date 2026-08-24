@@ -32,8 +32,7 @@ export const isOwnerInspectorRepoPath = (repoPath: string): boolean => {
     && segments[0] === "scripts"
     && segments[1] === "audit"
     && segments[2] === "domains"
-    && segments[4] === "inspector.ts")
-    || repoPath === "scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts";
+    && segments[4] === "inspector.ts");
 };
 
 export const isAuditTruthAuditScopeRepoPath = (repoPath: string): boolean => {

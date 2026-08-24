@@ -169,7 +169,8 @@ const assertRuntimeSources = (project: Project): void => {
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.ts",
   ));
   assert.ok(worker);
-  assert.equal(hasCall(worker, "heartbeatXuanxueAiProductionDevice"), true);
+  assert.equal(hasIdentifier(worker, "sessionHeartbeatLoop"), true);
+  assert.equal(hasCall(worker, "heartbeat"), true);
   const providerEvidence = project.getSourceFile(resolveFromRepo(
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts",
   ));

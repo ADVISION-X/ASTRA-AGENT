@@ -7,8 +7,7 @@ import { toRepoPath } from "../../../shared/paths.js";
 const forbiddenRegexMethodNames = new Set(["exec", "match", "matchAll", "replace", "replaceAll", "search", "split", "test"]);
 
 const isNoRegexScopePath = (repoPath: string): boolean =>
-  repoPath.startsWith("scripts/audit/")
-  && !repoPath.startsWith("scripts/audit/generated/")
+  repoPath.startsWith("scripts/audit/domains/code-purity/")
   && (repoPath.endsWith(".ts") || repoPath.endsWith(".js") || repoPath.endsWith(".mjs"));
 
 const looksLikeRegExpType = (node: MorphNode): boolean => {

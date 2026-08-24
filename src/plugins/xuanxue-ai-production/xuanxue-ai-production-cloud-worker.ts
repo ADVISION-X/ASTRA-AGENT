@@ -30,61 +30,12 @@ import {
   cloudWorkerPollIntervalMs, isRecoverableCloudWorkerFailure, isWorkerContractFailure,
   reportCloudWorkerError, safeWorkerReason, waitForCloudWorker, workerErrorCode,
 } from "./xuanxue-ai-production-cloud-worker-support.js";
-
-interface XuanxueAiProductionExecutionPort {
-  createOrder(input: unknown): XuanxueAiOrderRecord;
-  executeOrder(
-    orderId: string,
-    observer?: import("./xuanxue-ai-production.flow.js").XuanxueAiProductionExecutionObserver,
-    deadlineBudget?: XuanxueAiExecutionDeadlineBudget,
-  ): Promise<XuanxueAiOrderRecord>;
-  listCloudRecoveryOrders(): XuanxueAiOrderRecord[];
-  availableCapacity(): number;
-  applyControlIntent(
-    orderId: string,
-    intent: "pause_requested" | "cancel_requested" | "handover_requested",
-    controlEpoch: number,
-    reasonCode: string | null,
-  ): void;
-}
-
-export interface XuanxueAiProductionWorkerHealth {
-  readonly shellState: "ready" | "stopped";
-  readonly cloudState: "ready" | "contract_blocked" | "transient_degraded" | "stopped";
-  readonly browserState: "ready" | "blocked";
-  readonly executionState: "ready" | "blocked" | "draining";
-  readonly claimAdmissionState: "eligible" | "blocked" | "draining";
-  readonly browserAuthorityState: "present" | "absent";
-  readonly browserTargetState: "claimed" | "absent";
-  readonly browserLaneState: "idle" | "busy" | "blocked";
-  readonly contractManifestHash: `sha256:${string}`;
-  readonly activeCount: number;
-  readonly lastSuccessfulHeartbeatAt: string | null;
-  readonly lastErrorCode: string | null;
-  readonly lastErrorReason: string | null;
-  readonly checkedAt: string;
-}
-
-interface WorkerState {
-  readonly abort: AbortController;
-  readonly active: Map<string, Promise<void>>;
-  readonly credential: XuanxueAiProductionCloudCredential;
-  readonly dataDir: string;
-  readonly execution: XuanxueAiProductionExecutionPort;
-  readonly reconciledLocalVersions: Map<string, string>;
-  readonly session: XuanxueAiProductionWorkerSessionV6;
-  readonly outbox: XuanxueAiProductionCloudOutbox;
-  readonly database: ReturnType<typeof openXuanxueAiProductionDatabase>;
-  readonly onStatus?: (status: XuanxueAiProductionWorkerHealth) => void;
-  lastSuccessfulHeartbeatAt: string | null;
-  lastErrorCode: string | null;
-  lastErrorReason: string | null;
-  healthStatus: XuanxueAiProductionWorkerHealth["cloudState"];
-  lastRuntimeState: XuanxueAiProductionRuntimeStateV6;
-  ledgerReconciled: boolean;
-  draining: boolean;
-  nextPollDelayMs: number;
-}
+import type {
+  CloudWorkerInput,
+  WorkerState,
+  XuanxueAiProductionExecutionPort,
+  XuanxueAiProductionWorkerHealth,
+} from "./xuanxue-ai-production-cloud-worker-contract.js";
 
 export const xuanxueAiProductionLocalRecoveryVersion = (record: XuanxueAiOrderRecord): string => [
   record.order.cloudExecutionIdentity?.attemptId ?? "no-attempt",
@@ -130,22 +81,27 @@ export const assertXuanxueAiProductionV6DeadlineBudget = (
   };
 };
 
+const browserReady = (state: WorkerState): boolean =>
+  state.lastRuntimeState.browserAuthorityState === "present"
+  && state.lastRuntimeState.browserTargetState === "claimed"
+  && state.lastRuntimeState.browserLaneState !== "blocked";
+
+const executionHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth["executionState"] => {
+  if (state.draining) return "draining";
+  return state.healthStatus === "ready" && state.ledgerReconciled && browserReady(state) ? "ready" : "blocked";
+};
+
+const claimAdmissionHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth["claimAdmissionState"] => {
+  if (state.draining) return "draining";
+  return state.healthStatus === "ready" && state.ledgerReconciled && browserReady(state) ? "eligible" : "blocked";
+};
+
 const currentHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth => ({
   shellState: state.healthStatus === "stopped" ? "stopped" : "ready",
   cloudState: state.healthStatus,
-  browserState: state.lastRuntimeState.browserAuthorityState === "present"
-    && state.lastRuntimeState.browserTargetState === "claimed"
-    && state.lastRuntimeState.browserLaneState !== "blocked" ? "ready" : "blocked",
-  executionState: state.draining ? "draining"
-    : state.healthStatus === "ready" && state.ledgerReconciled
-      && state.lastRuntimeState.browserAuthorityState === "present"
-      && state.lastRuntimeState.browserTargetState === "claimed"
-      && state.lastRuntimeState.browserLaneState !== "blocked" ? "ready" : "blocked",
-  claimAdmissionState: state.draining ? "draining"
-    : state.healthStatus === "ready" && state.ledgerReconciled
-      && state.lastRuntimeState.browserAuthorityState === "present"
-      && state.lastRuntimeState.browserTargetState === "claimed"
-      && state.lastRuntimeState.browserLaneState !== "blocked" ? "eligible" : "blocked",
+  browserState: browserReady(state) ? "ready" : "blocked",
+  executionState: executionHealth(state),
+  claimAdmissionState: claimAdmissionHealth(state),
   browserAuthorityState: state.lastRuntimeState.browserAuthorityState,
   browserTargetState: state.lastRuntimeState.browserTargetState,
   browserLaneState: state.lastRuntimeState.browserLaneState,
@@ -255,74 +211,117 @@ const executeCloudJobStages = async (
   );
 };
 
+const assertCloudGrant = (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+): void => {
+  const grant = job.grant;
+  if (grant.device_id !== state.credential.device_id
+    || grant.device_epoch !== state.credential.device_epoch
+    || grant.worker_session_id !== state.session.workerSessionId
+    || grant.worker_session_epoch !== state.session.workerSessionEpoch
+    || grant.execution_fence.lease_version !== job.lease_version
+    || grant.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
+    throw new Error("XUANXUE_AI_PRODUCTION_V6_GRANT_REJECTED");
+  }
+};
+
+const assertLocalOrderIdentity = (
+  record: XuanxueAiOrderRecord,
+  job: XuanxueAiProductionCloudClaimedJob,
+): void => {
+  const identity = record.order.cloudExecutionIdentity;
+  if (!identity || identity.jobId !== job.grant.job_id || identity.attemptId !== job.grant.attempt_id
+    || identity.requiredDeviceId !== job.grant.device_id || identity.leaseVersion !== job.grant.lease_version
+    || identity.executionFenceHash !== job.grant.execution_fence.fence_hash
+    || identity.contractManifestHash !== job.grant.control_contract_manifest_hash) {
+    throw new Error("XUANXUE_AI_PRODUCTION_LOCAL_ORDER_IDENTITY_INVALID");
+  }
+};
+
+type CloudJobExecutionContext = { localOrderId?: string; accepted: boolean };
+
+const acceptCloudJob = async (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+  claimRoundTripMs: number,
+  context: CloudJobExecutionContext,
+): Promise<Readonly<{ deadlineBudget: XuanxueAiExecutionDeadlineBudget; checkpointHash: `sha256:${string}` }>> => {
+  assertCloudGrant(state, job);
+  const deadlineBudget = assertXuanxueAiProductionV6DeadlineBudget(job.grant, claimRoundTripMs);
+  state.outbox.persistClaimIdentity({
+    jobId: job.job_id, attemptId: job.grant.attempt_id,
+    leaseVersion: job.grant.lease_version, createdAt: job.created_at, grant: job.grant,
+  });
+  const preparedOrder = prepareXuanxueAiProductionCloudLocalOrder(state.dataDir, job);
+  const created = state.execution.createOrder(preparedOrder);
+  assertLocalOrderIdentity(created, job);
+  context.localOrderId = created.order.orderId;
+  const checkpointHash = await checkpointXuanxueAiProductionJob(state.session, state.outbox, job, {
+    status: "inputs_downloading", localOrderId: context.localOrderId,
+  });
+  context.accepted = true;
+  return { deadlineBudget, checkpointHash };
+};
+
+const finishCloudJob = async (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+  context: Required<CloudJobExecutionContext>,
+  accepted: Readonly<{ deadlineBudget: XuanxueAiExecutionDeadlineBudget; checkpointHash: `sha256:${string}` }>,
+): Promise<void> => {
+  const terminal = await executeCloudJobStages(
+    state, job, context.localOrderId, accepted.deadlineBudget, accepted.checkpointHash,
+  );
+  await publishXuanxueAiProductionCloudOrder({
+    session: state.session, outbox: state.outbox, dataDir: state.dataDir, job, record: terminal,
+  });
+  if (["completed", "failed", "review_required"].includes(terminal.status)) {
+    await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, terminal.order.orderId);
+  }
+};
+
+const reportCloudJobFailure = async (
+  state: WorkerState,
+  job: XuanxueAiProductionCloudClaimedJob,
+  context: CloudJobExecutionContext,
+  error: unknown,
+): Promise<void> => {
+  const recoverable = isRecoverableCloudWorkerFailure(error);
+  if (!context.accepted) {
+    await releaseXuanxueAiProductionLease(
+      state.session, job,
+      /DEADLINE_BUDGET/iu.test(safeWorkerReason(error))
+        ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
+    );
+  } else {
+    await failXuanxueAiProductionJob(state.session, state.outbox, job, {
+      status: recoverable ? "recovery_pending" : "failed",
+      code: recoverable ? "XUANXUE_AI_PRODUCTION_CLOUD_TRANSIENT" : "XUANXUE_AI_PRODUCTION_CLOUD_FAILED",
+      reason: safeWorkerReason(error), recoverable,
+      ...(context.localOrderId ? { localOrderId: context.localOrderId } : {}),
+    });
+  }
+  if (recoverable) return;
+  await cleanXuanxueAiProductionCloudStaging(state.dataDir, job.job_id);
+  if (context.localOrderId) {
+    await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, context.localOrderId);
+  }
+};
+
 const executeCloudJob = async (
   state: WorkerState,
   job: XuanxueAiProductionCloudClaimedJob,
   claimRoundTripMs: number,
 ): Promise<void> => {
-  let localOrderId: string | undefined;
-  let accepted = false;
+  const context: CloudJobExecutionContext = { accepted: false };
   try {
-    if (job.grant.device_id !== state.credential.device_id
-      || job.grant.device_epoch !== state.credential.device_epoch
-      || job.grant.worker_session_id !== state.session.workerSessionId
-      || job.grant.worker_session_epoch !== state.session.workerSessionEpoch
-      || job.grant.execution_fence.lease_version !== job.lease_version
-      || job.grant.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
-      throw new Error("XUANXUE_AI_PRODUCTION_V6_GRANT_REJECTED");
-    }
-    const deadlineBudget = assertXuanxueAiProductionV6DeadlineBudget(job.grant, claimRoundTripMs);
-    state.outbox.persistClaimIdentity({
-      jobId: job.job_id, attemptId: job.grant.attempt_id,
-      leaseVersion: job.grant.lease_version, createdAt: job.created_at,
-      grant: job.grant,
-    });
-    const preparedOrder = prepareXuanxueAiProductionCloudLocalOrder(state.dataDir, job);
-    const created = state.execution.createOrder(preparedOrder);
-    const identity = created.order.cloudExecutionIdentity;
-    if (!identity || identity.jobId !== job.grant.job_id || identity.attemptId !== job.grant.attempt_id
-      || identity.requiredDeviceId !== job.grant.device_id || identity.leaseVersion !== job.grant.lease_version
-      || identity.executionFenceHash !== job.grant.execution_fence.fence_hash
-      || identity.contractManifestHash !== job.grant.control_contract_manifest_hash) {
-      throw new Error("XUANXUE_AI_PRODUCTION_LOCAL_ORDER_IDENTITY_INVALID");
-    }
-    localOrderId = created.order.orderId;
-    const acceptanceCheckpointHash = await checkpointXuanxueAiProductionJob(
-      state.session, state.outbox, job, {
-        status: "inputs_downloading", localOrderId,
-      },
-    );
-    accepted = true;
-    const terminal = await executeCloudJobStages(
-      state, job, localOrderId, deadlineBudget, acceptanceCheckpointHash,
-    );
-    await publishXuanxueAiProductionCloudOrder({
-      session: state.session, outbox: state.outbox, dataDir: state.dataDir, job, record: terminal,
-    });
-    if (["completed", "failed", "review_required"].includes(terminal.status)) {
-      await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, terminal.order.orderId);
-    }
+    const accepted = await acceptCloudJob(state, job, claimRoundTripMs, context);
+    if (!context.localOrderId) throw new Error("XUANXUE_AI_PRODUCTION_LOCAL_ORDER_IDENTITY_INVALID");
+    await finishCloudJob(state, job, { accepted: true, localOrderId: context.localOrderId }, accepted);
   } catch (error) {
-    const recoverable = isRecoverableCloudWorkerFailure(error);
     try {
-      if (!accepted) {
-        await releaseXuanxueAiProductionLease(
-          state.session, job,
-          /DEADLINE_BUDGET/iu.test(safeWorkerReason(error))
-            ? "DEADLINE_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
-        );
-      } else {
-        await failXuanxueAiProductionJob(state.session, state.outbox, job, {
-          status: recoverable ? "recovery_pending" : "failed",
-          code: recoverable ? "XUANXUE_AI_PRODUCTION_CLOUD_TRANSIENT" : "XUANXUE_AI_PRODUCTION_CLOUD_FAILED",
-          reason: safeWorkerReason(error), recoverable,
-          ...(localOrderId ? { localOrderId } : {}),
-        });
-      }
-      if (!recoverable) {
-        await cleanXuanxueAiProductionCloudStaging(state.dataDir, job.job_id);
-        if (localOrderId) await cleanXuanxueAiProductionGeneratedInputs({ dataDir: state.dataDir }, localOrderId);
-      }
+      await reportCloudJobFailure(state, job, context, error);
     } catch (reportError) {
       reportCloudWorkerError("XUANXUE_AI_PRODUCTION_FAILURE_REPORT_DEFERRED", reportError);
     }
@@ -389,16 +388,7 @@ const sessionHeartbeatLoop = async (state: WorkerState): Promise<void> => {
   }
 };
 
-export async function startXuanxueAiProductionCloudWorker(input: {
-  readonly dataDir: string;
-  readonly execution: XuanxueAiProductionExecutionPort;
-  readonly readBrowserRuntimeState: () => Promise<Pick<
-    XuanxueAiProductionRuntimeStateV6,
-    "browserActionInFlight" | "browserAuthorityState" | "browserTargetState" | "browserLaneState"
-  >>;
-  readonly onStatus?: (status: XuanxueAiProductionWorkerHealth) => void;
-}): Promise<XuanxueAiProductionCloudWorkerHandle> {
-  const credential = await readXuanxueAiProductionCloudCredential(input.dataDir);
+const assertCredentialBinding = (credential: XuanxueAiProductionCloudCredential): void => {
   if (credential.protocol_version !== "xuanxue-ai-production-v6"
     || credential.control_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_DEVICE_CREDENTIAL_INVALID");
@@ -419,6 +409,12 @@ export async function startXuanxueAiProductionCloudWorker(input: {
   if (!sourceFingerprint || sourceFingerprint !== credential.agent_build_hash) {
     throw new Error("XUANXUE_AI_PRODUCTION_AGENT_BUILD_BINDING_MISMATCH");
   }
+};
+
+const createWorkerState = (
+  input: CloudWorkerInput,
+  credential: XuanxueAiProductionCloudCredential,
+): WorkerState => {
   const database = openXuanxueAiProductionDatabase(input.dataDir);
   const outbox = new XuanxueAiProductionCloudOutbox(database);
   let stateRef: WorkerState | null = null;
@@ -447,33 +443,52 @@ export async function startXuanxueAiProductionCloudWorker(input: {
     },
   };
   stateRef = state;
+  return state;
+};
+
+const initializeWorkerState = async (state: WorkerState): Promise<void> => {
   try {
-    await session.open();
-    await flushXuanxueAiProductionCloudOutbox(session, outbox);
+    await state.session.open();
+    await flushXuanxueAiProductionCloudOutbox(state.session, state.outbox);
     await reconcileLocalNonterminalLedger(state);
     state.ledgerReconciled = true;
-    session.markLedgerReconciled();
-    const initialReceipt = await session.heartbeat();
+    state.session.markLedgerReconciled();
+    const initialReceipt = await state.session.heartbeat();
     state.lastSuccessfulHeartbeatAt = initialReceipt.issued_at;
   } catch (error) {
-    database.close();
+    state.database.close();
     throw error;
   }
+};
+
+const workerHandle = (
+  state: WorkerState,
+  loop: Promise<void>,
+  heartbeatLoop: Promise<void>,
+): XuanxueAiProductionCloudWorkerHandle => ({
+  async close() {
+    state.draining = true;
+    await state.session.heartbeat().catch((error) => reportCloudWorkerError("XUANXUE_AI_PRODUCTION_DRAIN_ATTESTATION_DEFERRED", error));
+    state.abort.abort();
+    await Promise.all([loop, heartbeatLoop]);
+    await Promise.allSettled([...state.active.values()]);
+    await flushXuanxueAiProductionCloudOutbox(state.session, state.outbox);
+    await state.session.close();
+    state.healthStatus = "stopped";
+    publishHealth(state);
+    state.database.close();
+  },
+});
+
+export async function startXuanxueAiProductionCloudWorker(
+  input: CloudWorkerInput,
+): Promise<XuanxueAiProductionCloudWorkerHandle> {
+  const credential = await readXuanxueAiProductionCloudCredential(input.dataDir);
+  assertCredentialBinding(credential);
+  const state = createWorkerState(input, credential);
+  await initializeWorkerState(state);
   publishHealth(state);
   const loop = workerLoop(state);
   const heartbeatLoop = sessionHeartbeatLoop(state);
-  return {
-    async close() {
-      state.draining = true;
-      await state.session.heartbeat().catch((error) => reportCloudWorkerError("XUANXUE_AI_PRODUCTION_DRAIN_ATTESTATION_DEFERRED", error));
-      state.abort.abort();
-      await Promise.all([loop, heartbeatLoop]);
-      await Promise.allSettled([...state.active.values()]);
-      await flushXuanxueAiProductionCloudOutbox(state.session, state.outbox);
-      await state.session.close();
-      state.healthStatus = "stopped";
-      publishHealth(state);
-      state.database.close();
-    },
-  };
+  return workerHandle(state, loop, heartbeatLoop);
 }

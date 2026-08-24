@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readXuanxueAiProductionCloudTerminalStatus, type XuanxueAiProductionCloudTerminalStatus } from "./xuanxue-ai-production-cloud-client.js";
+import { readXuanxueAiProductionCloudTerminalStatus } from "./xuanxue-ai-production-cloud-client.js";
+import type { XuanxueAiProductionCloudTerminalStatus } from "./xuanxue-ai-production-cloud-client-contract.js";
 import { readXuanxueAiProductionCloudCredential } from "./xuanxue-ai-production-cloud-credential.js";
 import { XuanxueAiProductionWorkerSessionV6, type XuanxueAiProductionRuntimeStateV6 } from "./xuanxue-ai-production-worker-session.js";
 

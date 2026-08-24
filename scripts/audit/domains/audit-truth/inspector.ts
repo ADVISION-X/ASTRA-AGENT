@@ -24,29 +24,27 @@ const buildReportJson = (
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const project = context.project;
   const inspectedFiles = new Set<string>();
-  const astTruthLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-TRUTH-001-V1");
-  const metaQualityLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-AUDIT-META-QUALITY-AST-SYMBOL-NO-REGEX-V1");
-  const coverageLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-TRUTH-002-V1");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-AUDIT-TRUTH-001-V1");
 
   const sourceTextScan = scanAuditNoSourceTextSearch({
     context: { ...context, project },
     inspectedFiles,
-    lawId: astTruthLawId,
+    lawId,
   });
   const coverageScan = scanGeneratedPlanCoverage({
     context: { ...context, project },
     inspectedFiles,
-    lawId: coverageLawId,
+    lawId,
   });
   const regexScan = scanAuditNoRegex({
     context: { ...context, project },
     inspectedFiles,
-    lawId: astTruthLawId,
+    lawId,
   });
   const metaQualityScan = scanAuditMetaQualityNoRegex({
     context: { ...context, project },
     inspectedFiles,
-    lawId: metaQualityLawId,
+    lawId,
   });
 
   const findings = [

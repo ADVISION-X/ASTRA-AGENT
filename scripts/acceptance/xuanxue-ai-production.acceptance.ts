@@ -8,6 +8,7 @@ import {
 import { assertXuanxueAiProductionV6DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
 import { assertWorkerSessionOpenV6, CloudExecutionGrantV6Schema, XuanxueAiProductionV6ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.js";
 import { XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
+import { runXuanxueAdmissionInspectorAttacks } from "./xuanxue-ai-production-admission-inspector.attacks.js";
 
 const manifest = XuanxueAiProductionV6ManifestSchema.parse(JSON.parse(await readFile(
   path.resolve("src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.manifest.json"),
@@ -83,4 +84,5 @@ assert.doesNotMatch(source, /xuanxue-ai-production-v5|compat|fallback|dual.write
 assert.match(source, /persistClaimIdentity/u);
 assert.match(source, /flushXuanxueAiProductionCloudOutbox/u);
 assert.match(source, /browserActionInFlight/u);
+runXuanxueAdmissionInspectorAttacks();
 process.stdout.write("[ACCEPTANCE][XUANXUE-AI-PRODUCTION-V6] PASS\n");

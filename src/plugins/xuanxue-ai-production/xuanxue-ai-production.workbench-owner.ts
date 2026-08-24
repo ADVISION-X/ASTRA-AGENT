@@ -1,13 +1,11 @@
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
-import type { MediaProcessingAbilityGroup } from "../../capabilities/media-processing/index.js";
-
 import type { createXuanxueAiProductionOrder } from "./xuanxue-ai-production.flow.js";
 import { XuanxueAiProductionCoordinator } from "./xuanxue-ai-production.scheduler.js";
 import { XuanxueAiProductionStore } from "./xuanxue-ai-production.store.js";
 import {
   startXuanxueAiProductionCloudWorker,
-  type XuanxueAiProductionWorkerHealth,
 } from "./xuanxue-ai-production-cloud-worker.js";
+import type { XuanxueAiProductionWorkerHealth } from "./xuanxue-ai-production-cloud-worker-contract.js";
 import {
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudWorkerHandle,
@@ -83,7 +81,6 @@ type OwnerDependencies = {
   candidateHash: XuanxueAiBrowserHash;
   dataDir: string;
   aiInputGateway: AiInputGatewayAbilityGroup;
-  mediaProcessing: MediaProcessingAbilityGroup;
   createOrderRoute: CreateOrderRoute;
   browserAuthority: XuanxueAiBrowserAuthorityPort;
 };
@@ -134,7 +131,6 @@ const initializeOwner = async (dependencies: OwnerDependencies, state: OwnerStat
     candidateHash: dependencies.candidateHash,
     dataDir: dependencies.dataDir,
     aiInputGateway: dependencies.aiInputGateway,
-    mediaProcessing: dependencies.mediaProcessing,
     store: state.store,
     browserAuthority: dependencies.browserAuthority,
   };
@@ -193,7 +189,6 @@ const shutdownOwner = async (state: OwnerState): Promise<void> => {
 export const createXuanxueAiProductionWorkbenchOwner = (
   dataDir: string,
   aiInputGateway: AiInputGatewayAbilityGroup,
-  mediaProcessing: MediaProcessingAbilityGroup,
   createOrderRoute: CreateOrderRoute,
   browserAuthority: XuanxueAiBrowserAuthorityPort,
   candidateHash: XuanxueAiBrowserHash,
@@ -202,7 +197,6 @@ export const createXuanxueAiProductionWorkbenchOwner = (
     candidateHash,
     dataDir,
     aiInputGateway,
-    mediaProcessing,
     createOrderRoute,
     browserAuthority,
   };

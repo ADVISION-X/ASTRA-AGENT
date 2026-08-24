@@ -20,12 +20,6 @@ const readPackageScripts = (): Record<string, string> => {
   return parsed.scripts ?? {};
 };
 
-const resolvesTo = (node: import("ts-morph").Node | undefined, declaration: import("ts-morph").Node): boolean => {
-  const symbol = node?.getSymbol();
-  return (symbol?.getDeclarations().includes(declaration) ?? false)
-    || (symbol?.getAliasedSymbol()?.getDeclarations().includes(declaration) ?? false);
-};
-
 const resolvesToImport = (
   node: import("ts-morph").Node,
   importedName: string,
@@ -87,29 +81,23 @@ const isGeneratedPlanOwnerImportContract = (
 };
 
 const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolean => {
-  const bindingSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-acceptance-law-bindings.ts"));
-  const leafPlanSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/ci-acceptance-leaf-plan.ts"));
-  const bindingMap = bindingSource?.getVariableDeclaration("acceptanceLawBindings");
-  const bindingExists = bindingMap?.getInitializer()?.getDescendantsOfKind(SyntaxKind.ArrayLiteralExpression)
-    .some((array) => {
-      const [path] = array.getElements();
-      return Node.isStringLiteral(path)
-        && path.getLiteralValue() === "scripts/acceptance/code-purity-zombie-deep.acceptance.ts";
-    }) ?? false;
-  const importedBinding = leafPlanSource?.getImportDeclarations()
-    .find((declaration) => declaration.getModuleSpecifierValue() === "./ci-acceptance-law-bindings.js")
-    ?.getNamedImports().find((specifier) => specifier.getName() === "acceptanceLawBindings");
-  const skeletonBuilder = leafPlanSource?.getVariableDeclaration("buildAcceptanceLeafSkeletons")
-    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
-  const closure = leafPlanSource?.getVariableDeclaration("assertAcceptanceBindingClosure");
-  const keyCall = closure?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) => {
-    const callee = call.getExpression();
-    return Node.isPropertyAccessExpression(callee) && callee.getName() === "has"
-      && importedBinding !== undefined && resolvesTo(callee.getExpression(), importedBinding);
-  });
-  const closureCall = skeletonBuilder?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => closure !== undefined && resolvesTo(call.getExpression(), closure));
-  return bindingExists && keyCall !== undefined && closureCall !== undefined;
+  const planSource = context.project.getSourceFile(resolveFromRepo(
+    "scripts/audit/domains/audit-system/canonical-quality-plan.ts",
+  ));
+  const governanceSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/governance-v32.ts"));
+  const bindingList = planSource?.getVariableDeclaration("CANONICAL_ACCEPTANCE_BINDINGS")?.getInitializer();
+  const bindingExists = bindingList?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((object) =>
+    object.getProperty("script")?.getFirstDescendantByKind(SyntaxKind.StringLiteral)?.getLiteralValue()
+      === "acceptance:code-purity-zombie-deep") ?? false;
+  const importedBinding = governanceSource?.getImportDeclarations()
+    .find((declaration) => declaration.getModuleSpecifierValue() === "./domains/audit-system/canonical-quality-plan.js")
+    ?.getNamedImports().find((specifier) => specifier.getName() === "CANONICAL_ACCEPTANCE_BINDINGS");
+  const importedName = importedBinding?.getNameNode();
+  const consumedByAcceptanceRunner = importedName && Node.isIdentifier(importedName)
+    ? importedName.findReferencesAsNodes().some((reference) =>
+      reference.getFirstAncestorByKind(SyntaxKind.ForOfStatement) !== undefined)
+    : false;
+  return bindingExists && consumedByAcceptanceRunner;
 };
 
 const pushVoidKeepaliveFindings = (
@@ -324,8 +312,8 @@ export const scanZombieInspectorSelfProof = (input: {
   if (!zombieAcceptanceIsInPhysicalSkeleton(input.context)) {
     selfProofProblems.push("ci-full runner does not execute acceptance:code-purity-zombie-deep.");
   }
-  if (!input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-017-V1") || !input.context.planEntry.lawIds.includes("APEX-CODE-PURITY-018-V1")) {
-    selfProofProblems.push("code-purity planEntry lawIds do not include both APEX-CODE-PURITY-017-V1 and APEX-CODE-PURITY-018-V1.");
+  if (!input.context.planEntry.lawIds.includes("LAW-CODE-PURITY-001-V1")) {
+    selfProofProblems.push("code-purity planEntry does not bind LAW-CODE-PURITY-001-V1.");
   }
   if (input.inspectedFileCount === 0) {
     selfProofProblems.push("code-purity inspectedFiles is empty.");

@@ -12,39 +12,31 @@ export const arrowReturnsNumber = (
   return Node.isNumericLiteral(body) && Number(body.getLiteralValue()) === expected;
 };
 
-export const propertyUsesNumericLiteralCall = (
-  sourceFile: SourceFile | null,
-  propertyName: string,
-  callName: string,
-  expected: number,
-): boolean => sourceFile?.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
-  .some((property) => {
-    const call = property.getInitializerIfKind(SyntaxKind.CallExpression);
-    const argument = call?.getArguments()[0];
-    const callee = call?.getExpression();
-    return property.getName() === propertyName
-      && Node.isPropertyAccessExpression(callee)
-      && callee.getName() === callName
-      && Node.isNumericLiteral(argument)
-      && Number(argument.getLiteralValue()) === expected;
-  }) ?? false;
-
 export const workerEnforcesTenBusinessSlots = (sourceFile: SourceFile | null): boolean => {
   if (!sourceFile) return false;
-  const maxInFlightCheck = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression)
-    .some((expression) => {
-      const right = expression.getRight();
-      return expression.getOperatorToken().getKind()
-        === SyntaxKind.ExclamationEqualsEqualsToken
-        && astExpressionPath(expression.getLeft()) === "credential.max_in_flight"
-        && Node.isNumericLiteral(right)
-        && right.getLiteralValue() === 10;
-    });
+  const available = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "available")
+    ?.getInitializerIfKind(SyntaxKind.CallExpression);
+  const capacityArguments = available?.getArguments() ?? [];
+  const hasTenSeatRemainder = capacityArguments.some((argument) => {
+    if (!Node.isBinaryExpression(argument)) return false;
+    const left = argument.getLeft();
+    return argument.getOperatorToken().getKind() === SyntaxKind.MinusToken
+      && Node.isNumericLiteral(left)
+      && left.getLiteralValue() === 10
+      && astExpressionPath(argument.getRight()) === "state.active.size";
+  });
+  const hasCoordinatorCapacity = capacityArguments.some((argument) =>
+    Node.isCallExpression(argument)
+      && astExpressionPath(argument.getExpression()) === "state.execution.availableCapacity");
   const collapsesToOne = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((call) => astExpressionPath(call.getExpression()) === "Math.min"
       && call.getArguments().some((argument) =>
         Node.isNumericLiteral(argument) && argument.getLiteralValue() === 1));
-  return maxInFlightCheck && !collapsesToOne;
+  return astExpressionPath(available?.getExpression()) === "Math.min"
+    && hasTenSeatRemainder
+    && hasCoordinatorCapacity
+    && !collapsesToOne;
 };
 
 export const workerReconcilesChangedLocalVersions = (

@@ -128,5 +128,5 @@ assert.throws(
 assert.equal(
   hashXuanxueDynamicReceipt({ b: 2, a: 1 }),
   hashXuanxueDynamicReceipt({ a: 1, b: 2 }),
-  "immutable runtime receipt hashing must be canonical",
+  "dynamic proof must bind the immutable runtime receipt",
 );

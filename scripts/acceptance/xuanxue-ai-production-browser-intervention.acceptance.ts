@@ -3,7 +3,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { createMediaProcessingAbilityGroupFromFilesystem } from "../../src/capabilities/media-processing/index.js";
 import {
   createXuanxueAiProductionOrder,
   XuanxueAiProductionCoordinator,
@@ -30,7 +29,6 @@ try {
     candidateHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     dataDir,
     aiInputGateway: gateway,
-    mediaProcessing: createMediaProcessingAbilityGroupFromFilesystem({ dataDir }),
     store,
   };
   const coordinator = new XuanxueAiProductionCoordinator(runtime);
@@ -129,8 +127,44 @@ try {
     "resume after raw checkpoint must not submit the completed stage again",
   );
 
+  const cloudCancelledOrder = order(
+    "xuanxue_cloud_cancel_preserves_completed_stage",
+    "qimen_professional_answer",
+    ["analysis"],
+  );
+  createXuanxueAiProductionOrder(runtime, cloudCancelledOrder);
+  const cloudCompleted = await coordinator.execute(cloudCancelledOrder.orderId);
+  assert.equal(cloudCompleted.status, "completed");
+  const completedStage = cloudCompleted.stages[0]!;
+  store.updateOrder({
+    orderId: cloudCancelledOrder.orderId,
+    status: "recovery_pending",
+    result: null,
+    failureReason: "fixture recovery pending",
+    updatedAt: new Date().toISOString(),
+    eventType: "fixture_cloud_recovery_pending",
+  });
+  const cloudCancelled = store.cancelCloudRecoveryOrder(
+    cloudCancelledOrder.orderId,
+    "website cancellation",
+  );
+  assert.equal(cloudCancelled.status, "cancelled");
+  assert.deepEqual(
+    cloudCancelled.stages[0],
+    completedStage,
+    "a cloud-cancelled order must preserve completed evidence and leave restart reconciliation",
+  );
+
   await coordinator.close();
   store.close();
+  const reopened = new XuanxueAiProductionStore(dataDir);
+  assert.equal(reopened.readOrder(cloudCancelledOrder.orderId)?.status, "cancelled");
+  assert.equal(
+    reopened.listCloudRecoveryOrders().some((record) =>
+      record.order.orderId === cloudCancelledOrder.orderId),
+    false,
+  );
+  reopened.close();
   console.log("XUANXUE_AI_PRODUCTION_BROWSER_INTERVENTION_ACCEPTANCE_PASS");
 } finally {
   await rm(dataDir, { recursive: true, force: true });

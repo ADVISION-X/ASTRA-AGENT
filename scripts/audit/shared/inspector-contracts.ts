@@ -1,36 +1,17 @@
 import type { Project } from "ts-morph";
-import { z } from "zod";
 
-import { auditPlanEntrySchema } from "./generated-contracts.js";
-import { lawIdSchema } from "./law-contracts.js";
-import type { InspectorCheckSession, SessionInspectorOutput } from "./inspector-check-session.js";
-
-export type { SessionInspectorOutput };
-
-export const inspectorFindingSchema = z
-  .object({
-    checkId: z.string().min(1),
-    lawId: lawIdSchema,
-    clauseId: z.string().min(1),
-    message: z.string().min(1),
-    line: z.number().int().positive().optional(),
-    severity: z.literal("fatal"),
-    hint: z.string().min(1).optional(),
-    filePath: z.string().min(1).optional(),
-    evidence: z.string().min(1).optional(),
-  })
-  .strict();
-
-export const executedCheckSchema = z
-  .object({
-    lawId: lawIdSchema,
-    clauseId: z.string().min(1),
-    checkId: z.string().min(1),
-  })
-  .strict();
-
-export type InspectorFinding = z.infer<typeof inspectorFindingSchema>;
-export type ExecutedCheck = z.infer<typeof executedCheckSchema>;
+export type InspectorFinding = {
+  checkId: string;
+  lawId: string;
+  clauseId: string;
+  message: string;
+  severity: "fatal";
+  line?: number | undefined;
+  hint?: string | undefined;
+  filePath?: string | undefined;
+  evidence?: string | undefined;
+};
+export type ExecutedCheck = { lawId: string; clauseId: string; checkId: string };
 export type InspectorOutput = {
   capabilityDomain: string;
   reportedLawIds: string[];
@@ -40,7 +21,41 @@ export type InspectorOutput = {
   reportJson?: unknown;
   reportMarkdown?: string | undefined;
 };
-type AuditPlanEntry = z.infer<typeof auditPlanEntrySchema>;
+export type InspectorCheckBodyResult = {
+  findings: readonly InspectorFinding[];
+  evidenceRefs: readonly string[];
+};
+export type InspectorCheckSession = {
+  run(checkId: string, body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
+  runAll(body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
+  output(meta?: Readonly<{ reportJson?: unknown; reportMarkdown?: string }>): SessionInspectorOutput;
+};
+export type SessionInspectorOutput = Omit<
+  InspectorOutput,
+  "executedChecks" | "findings" | "inspectedFiles" | "reportedLawIds"
+> & {
+  reportedLawIds: readonly string[];
+  checkRuns: readonly unknown[];
+  executedChecks: readonly ExecutedCheck[];
+  findings: readonly InspectorFinding[];
+  inspectedFiles: readonly string[];
+};
+type AuditPlanEntry = {
+  capabilityDomain: string;
+  manifestPath: string;
+  ownerInspectorPath: string;
+  executionGroup: "foundation" | "domain" | "meta";
+  lawIds: string[];
+  bindings: Array<{
+    lawId: string;
+    clauseId: string;
+    checkIds: string[];
+    sourceEvidence: Array<{ filePath: string; symbolName: string }>;
+    evidenceMode: "static" | "acceptance" | "real-chrome" | "model+acceptance+real-chrome" | "artifact+real-chrome";
+    primaryEvidence?: { engine: "ast" | "fs" | "config"; sourceEvidenceIndex: number };
+  }>;
+  blueprintRefs: Array<{ filePath: string; requiredAnchors: string[] }>;
+};
 export type CompletedReport = {
   status: "PASS" | "FAIL";
   findingCount: number;

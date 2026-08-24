@@ -8,11 +8,35 @@ export const workerErrorCode = (error: unknown): string =>
   safeWorkerReason(error).split(":").slice(0, 2).join(":");
 
 export const isWorkerContractFailure = (error: unknown): boolean =>
-  /(?:CONTRACT|MANIFEST|LOCALIZATION_.*PROFILE|PRODUCT_CONTRACT)/iu.test(safeWorkerReason(error));
+  safeWorkerReason(error).includes("CONTRACT")
+  || safeWorkerReason(error).includes("MANIFEST")
+  || safeWorkerReason(error).includes("PRODUCT_CONTRACT")
+  || (safeWorkerReason(error).includes("LOCALIZATION_")
+    && safeWorkerReason(error).includes("PROFILE"));
 
-export const isRecoverableCloudWorkerFailure = (error: unknown): boolean =>
-  /CLOUD_API_FAILED|INPUT_DOWNLOAD_FAILED|RECOVERY|WORKER_STOPPED|network|fetch failed|BROWSER_EXTENSION_CHANNEL_UNAVAILABLE|BROWSER_LIVENESS_EXPIRED|BROWSER_SESSION_WORKSPACE_REQUIRED|BROWSER_SESSION_WORKSPACE_REVOKED|BROWSER_TARGET_INVALID|BROWSER_DOCUMENT_INVALID|BROWSER_BACKPRESSURE|BROWSER_AUTH_TRANSCRIPT_INVALID|BROWSER_CAPABILITY_REJECTED/iu
-    .test(safeWorkerReason(error));
+const recoverableFailureTokens = [
+  "CLOUD_API_FAILED",
+  "INPUT_DOWNLOAD_FAILED",
+  "RECOVERY",
+  "WORKER_STOPPED",
+  "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+  "BROWSER_LIVENESS_EXPIRED",
+  "BROWSER_SESSION_WORKSPACE_REQUIRED",
+  "BROWSER_SESSION_WORKSPACE_REVOKED",
+  "BROWSER_TARGET_INVALID",
+  "BROWSER_DOCUMENT_INVALID",
+  "BROWSER_BACKPRESSURE",
+  "BROWSER_AUTH_TRANSCRIPT_INVALID",
+  "BROWSER_CAPABILITY_REJECTED",
+] as const;
+
+export const isRecoverableCloudWorkerFailure = (error: unknown): boolean => {
+  const reason = safeWorkerReason(error);
+  const lowerReason = reason.toLowerCase();
+  return recoverableFailureTokens.some((token) => reason.includes(token))
+    || lowerReason.includes("network")
+    || lowerReason.includes("fetch failed");
+};
 
 export const cloudWorkerPollIntervalMs = (): number => {
   const value = Number(process.env.XUANXUE_AI_PRODUCTION_POLL_INTERVAL_MS);

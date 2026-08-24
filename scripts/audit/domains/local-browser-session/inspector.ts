@@ -4,7 +4,6 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
-import { splitLines } from "../../shared/no-regex.js";
 import {
   type InspectorContext,
   type InspectorFinding,
@@ -341,30 +340,13 @@ const inspectReleaseAndRetiredPaths = (findings: InspectorFinding[], lawId: stri
   }
 };
 
-const inspectBlueprintWorkspaceContract = (
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const blueprintLines = new Set(
-    splitLines(readFileSync(resolveFromRepo(blueprintPath), "utf8")).map((line) => line.trim()),
-  );
-  const required = "- Workspace 和认证 certificate 不设置墙上时间到期，也不后台续期；普通空闲或长时间生产不能撤权。";
-  if (blueprintLines.has(required)) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/terminal-authority",
-    lawId,
-    filePath: blueprintPath,
-    message: "The Browser blueprint must require a connection-bound Workspace with no wall-clock expiry and contain no retired 8-hour TTL contract.",
-  }));
-};
-
 const inspectAuthenticatedRuntimeRegressionGuards = (
   context: InspectorContext,
   findings: InspectorFinding[],
 ): void => {
-  const transportLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-001-V4");
-  const authLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-002-V4");
-  const targetLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-003-V6");
+  const transportLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
+  const authLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
+  const targetLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   const channel = requireSource(context, findings, authLawId, sourcePaths[0]);
   const actor = requireSource(context, findings, authLawId, sourcePaths[1]);
   const crypto = requireSource(context, findings, authLawId, sourcePaths[20]);
@@ -442,7 +424,7 @@ const inspectRealChromeProofRoute = (
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-001-V4");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const findings: InspectorFinding[] = [];
   for (const path of [lawPath, blueprintPath]) {
     if (!existsSync(resolveFromRepo(path))) {
@@ -464,15 +446,14 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     }));
   }
   inspectSingleTransport(context, findings, lawId);
-  const workspaceLawId = selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-003-V6");
-  inspectBlueprintWorkspaceContract(findings, workspaceLawId);
+  const workspaceLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   inspectOperatorAdmission(context, findings, workspaceLawId);
-  inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-004-V4"));
-  inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-004-V4"));
+  inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V5"));
+  inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V5"));
   inspectAuthenticatedRuntimeRegressionGuards(context, findings);
-  inspectRealChromeProofRoute(context, findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-005-V4"));
+  inspectRealChromeProofRoute(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
-  inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "APEX-LOCAL-BROWSER-005-V4"));
+  inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

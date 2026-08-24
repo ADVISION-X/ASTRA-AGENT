@@ -11,9 +11,9 @@
   "observedPaths": [],
   "ownedPaths": [
     "docs/GrassEye 精确标签页浏览器控制决策记录.md",
+    "docs/grid-cell-zone-reference.zh.svg",
     "scripts/audit/domains/local-browser-session/**",
-    "src/lib/browser/**",
-    "src/types/browser-target.ts"
+    "src/lib/browser/**"
   ],
   "schemaVersion": 3,
   "status": "active"

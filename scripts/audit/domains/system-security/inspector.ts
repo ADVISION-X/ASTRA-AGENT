@@ -16,9 +16,13 @@ const evaluate = (context: InspectorContext): Omit<InspectorOutput, "executedChe
     inspectedFiles.push(filePath);
     for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
       const expression = call.getExpression();
-      if (!Node.isPropertyAccessExpression(expression) || expression.getExpression().getText() !== "console") continue;
+      if (!Node.isPropertyAccessExpression(expression)) continue;
+      const receiver = expression.getExpression();
+      if (!Node.isIdentifier(receiver)) continue;
+      const consoleSymbol = receiver.getSymbol();
+      if (consoleSymbol?.getName() !== "console" || !consoleSymbol.getDeclarations().every((declaration) => declaration.getSourceFile().isDeclarationFile())) continue;
       const leaked = call.getArguments().flatMap((argument) => argument.getDescendantsOfKind(SyntaxKind.Identifier))
-        .map((identifier) => identifier.getText().toLowerCase())
+        .map((identifier) => identifier.getSymbol()?.getName().toLowerCase() ?? "")
         .find((name) => sensitiveNames.has(name));
       if (leaked) findings.push(createFinding({
         checkId: "system-security/sensitive-console-flow",

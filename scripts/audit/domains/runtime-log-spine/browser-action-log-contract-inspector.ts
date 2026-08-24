@@ -19,6 +19,7 @@ const centralLogHelperPath = "src/lib/browser/current-chrome-browser-action-logg
 const browserCommandActorPath = "src/lib/browser/exact-target/browser-command-actor.ts";
 const workbenchBrowserAuthoritySupportPath = "src/lib/local-runtime/workbench-browser-authority-support.ts";
 const workbenchAssemblyPath = "src/lib/local-runtime/workbench-assembly.ts";
+const browserInfrastructureSupervisorPath = "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts";
 const browserControllerPath = browserCommandActorPath;
 
 export const collectBrowserActionLogContractFindings = (context: InspectorContext): {
@@ -106,7 +107,7 @@ function missingCentralBrowserLogContract(context: InspectorContext): string[] {
     missing.push("browser-command-actor:runtime-logger-injection");
   }
   const browserFactoryCall = browserSupport?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
-    expression.getExpression().getText() === "BrowserInfrastructureSupervisor");
+    symbolHasDeclarationAt(expression.getExpression().getSymbol(), browserInfrastructureSupervisorPath));
   const browserFactoryInput = browserFactoryCall?.getArguments()[0];
   if (!Node.isObjectLiteralExpression(browserFactoryInput)
     || !browserFactoryInput.getProperties().some((property) =>

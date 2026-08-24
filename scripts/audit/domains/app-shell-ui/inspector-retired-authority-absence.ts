@@ -4,16 +4,13 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
-import { extractMarkdownHeadings, normalizeMarkdownHeading } from "../../shared/no-regex.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
-const legacyLawIdValue = "GRASSEYE-APP-SHELL-UI-PHYSICAL-CLEANUP-001-V1";
-const lawPath = ".github/instructions/agent-rules/modules/module-app-shell-ui.instructions.md";
-const blueprintPath = "docs/法案辅助文件/GrassEye App Shell UI 施工图.md";
+const legacyLawIdValue = "LAW-APP-SHELL-UI-003-V1";
+const lawPath = ".github/instructions/agent-rules/功能法案.md";
 const legacyDocPath = "docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md";
 const packagePath = "package.json";
 const migrationTablePath = "MIGRATION_FILE_DECISION_TABLE.md";
-const blueprintAnchor = "## 23. Legacy APP User-Demand Authority Physical Absence";
 const legacyDocTitle = "GrassEye APP 用户需求启动施工图";
 
 const hasLegacyReference = (value: string): boolean =>
@@ -33,22 +30,12 @@ const inspectAuthorityClauses = (
   lawId: string,
 ): void => {
   inspectedFiles.add(lawPath);
-  inspectedFiles.add(blueprintPath);
   if (!context.planEntry.lawIds.some((lawId) => lawId === legacyLawIdValue)) {
     findings.push(createFinding({
       checkId: "app-shell-ui/legacy-cleanup-law",
       lawId,
       filePath: lawPath,
       message: "App Shell UI law must include the legacy APP user-demand physical absence clause.",
-    }));
-  }
-  const blueprintHeadings = extractMarkdownHeadings(readRepoText(blueprintPath));
-  if (!blueprintHeadings.has(normalizeMarkdownHeading(blueprintAnchor))) {
-    findings.push(createFinding({
-      checkId: "app-shell-ui/legacy-cleanup-blueprint",
-      lawId,
-      filePath: blueprintPath,
-      message: "App Shell UI blueprint must include the legacy APP user-demand physical absence section.",
     }));
   }
 };

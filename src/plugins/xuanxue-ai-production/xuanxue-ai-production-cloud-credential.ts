@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Stats } from "node:fs";
 import {
   lstat,
   mkdir,
@@ -69,6 +70,74 @@ const ensureCredentialDirectory = async (directory: string): Promise<Readonly<{ 
   return assertOwnedDirectory(absolute);
 };
 
+const validOwnedFile = (metadata: Stats, currentUid: number | undefined): boolean =>
+  metadata.isFile()
+  && !metadata.isSymbolicLink()
+  && (metadata.mode & 0o077) === 0
+  && (currentUid === undefined || metadata.uid === currentUid);
+
+const readCredentialFile = async (filePath: string): Promise<string> => {
+  const parentPath = path.dirname(filePath);
+  const [linkMetadata, metadata, parentLinkMetadata, parentMetadata] = await Promise.all([
+    lstat(filePath), stat(filePath), lstat(parentPath), stat(parentPath),
+  ]);
+  const currentUid = process.getuid?.();
+  const identitiesMatch = linkMetadata.dev === metadata.dev && linkMetadata.ino === metadata.ino
+    && parentLinkMetadata.dev === parentMetadata.dev && parentLinkMetadata.ino === parentMetadata.ino;
+  const parentOwned = parentMetadata.isDirectory() && (parentMetadata.mode & 0o077) === 0
+    && (currentUid === undefined || parentMetadata.uid === currentUid);
+  if (linkMetadata.isSymbolicLink() || parentLinkMetadata.isSymbolicLink()
+    || !validOwnedFile(metadata, currentUid) || !parentOwned || !identitiesMatch) throw permissionsInvalid();
+  return readFile(filePath, "utf8");
+};
+
+const assertExistingCredentialFile = async (destination: string): Promise<void> => {
+  try {
+    const existing = await lstat(destination);
+    if (!validOwnedFile(existing, process.getuid?.())) throw permissionsInvalid();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+};
+
+const writeTemporaryCredential = async (
+  temporary: string,
+  credential: XuanxueAiProductionCloudCredential,
+): Promise<void> => {
+  const handle = await open(temporary, "wx", 0o600);
+  try {
+    await handle.writeFile(`${JSON.stringify(credential, null, 2)}\n`, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+};
+
+const syncCredentialDirectory = async (directory: string): Promise<void> => {
+  const handle = await open(directory, "r");
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+};
+
+const installTemporaryCredential = async (
+  temporary: string,
+  destination: string,
+  parent: string,
+  parentIdentity: Readonly<{ dev: number; ino: number }>,
+): Promise<void> => {
+  const temporaryMetadata = await lstat(temporary);
+  const currentUid = process.getuid?.();
+  const currentParent = await assertOwnedDirectory(parent);
+  if (!validOwnedFile(temporaryMetadata, currentUid)
+    || currentParent.dev !== parentIdentity.dev || currentParent.ino !== parentIdentity.ino) throw permissionsInvalid();
+  await rename(temporary, destination);
+  if (!validOwnedFile(await lstat(destination), currentUid)) throw permissionsInvalid();
+  await syncCredentialDirectory(parent);
+};
+
 export const xuanxueAiProductionCloudCredentialPath = (
   dataDir: string,
 ): string => process.env.XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE?.trim()
@@ -83,20 +152,7 @@ export async function readXuanxueAiProductionCloudCredential(
   dataDir: string,
 ): Promise<XuanxueAiProductionCloudCredential> {
   const filePath = xuanxueAiProductionCloudCredentialPath(dataDir);
-  const parentPath = path.dirname(filePath);
-  const [linkMetadata, metadata, parentLinkMetadata, parentMetadata] = await Promise.all([
-    lstat(filePath), stat(filePath), lstat(parentPath), stat(parentPath),
-  ]);
-  const currentUid = process.getuid?.();
-  if (linkMetadata.isSymbolicLink() || parentLinkMetadata.isSymbolicLink()
-    || !metadata.isFile() || !parentMetadata.isDirectory()
-    || linkMetadata.dev !== metadata.dev || linkMetadata.ino !== metadata.ino
-    || parentLinkMetadata.dev !== parentMetadata.dev || parentLinkMetadata.ino !== parentMetadata.ino
-    || (metadata.mode & 0o077) !== 0 || (parentMetadata.mode & 0o077) !== 0
-    || (currentUid !== undefined && (metadata.uid !== currentUid || parentMetadata.uid !== currentUid))) {
-    throw permissionsInvalid();
-  }
-  const raw = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+  const raw = JSON.parse(await readCredentialFile(filePath)) as Record<string, unknown>;
   if (raw.protocol_version !== XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION) {
     throw new Error("XUANXUE_AI_PRODUCTION_CREDENTIAL_REENROLLMENT_REQUIRED");
   }
@@ -117,42 +173,11 @@ export async function writeXuanxueAiProductionCloudCredential(
   const destination = xuanxueAiProductionCloudCredentialPath(dataDir);
   const parent = path.dirname(destination);
   const parentIdentity = await ensureCredentialDirectory(parent);
-  try {
-    const existing = await lstat(destination);
-    const currentUid = process.getuid?.();
-    if (existing.isSymbolicLink() || !existing.isFile()
-      || (existing.mode & 0o077) !== 0
-      || (currentUid !== undefined && existing.uid !== currentUid)) throw permissionsInvalid();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  await assertExistingCredentialFile(destination);
   const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
-  const handle = await open(temporary, "wx", 0o600);
+  await writeTemporaryCredential(temporary, parsed);
   try {
-    await handle.writeFile(`${JSON.stringify(parsed, null, 2)}\n`, "utf8");
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  try {
-    const temporaryMetadata = await lstat(temporary);
-    const currentUid = process.getuid?.();
-    const currentParent = await assertOwnedDirectory(parent);
-    if (!temporaryMetadata.isFile() || temporaryMetadata.isSymbolicLink()
-      || (temporaryMetadata.mode & 0o077) !== 0
-      || (currentUid !== undefined && temporaryMetadata.uid !== currentUid)
-      || currentParent.dev !== parentIdentity.dev || currentParent.ino !== parentIdentity.ino) throw permissionsInvalid();
-    await rename(temporary, destination);
-    const destinationMetadata = await lstat(destination);
-    if (!destinationMetadata.isFile() || destinationMetadata.isSymbolicLink()
-      || (destinationMetadata.mode & 0o077) !== 0
-      || (currentUid !== undefined && destinationMetadata.uid !== currentUid)) throw permissionsInvalid();
-    const directoryHandle = await open(parent, "r");
-    try {
-      await directoryHandle.sync();
-    } finally {
-      await directoryHandle.close();
-    }
+    await installTemporaryCredential(temporary, destination, parent, parentIdentity);
   } catch (error) {
     await unlink(temporary).catch(() => undefined);
     throw error;

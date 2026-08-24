@@ -1,6 +1,6 @@
 export const authorityPaths = [
-  ".github/instructions/agent-rules/modules/module-xuanxue-ai-production.instructions.md",
-  "docs/法案辅助文件/GrassEye 玄学 AI 生产工厂施工图.md",
+  ".github/instructions/agent-rules/功能法案.md",
+  "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
   "scripts/audit/domains/xuanxue-ai-production/manifest.json",
 ] as const;
 
@@ -24,6 +24,7 @@ export const gatewayDynamicProofContractPath =
 export const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
 
 export const acceptanceSupportPaths = [
+  "scripts/acceptance/xuanxue-ai-production-business.acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-fixture.ts",
   "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
   "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
@@ -41,6 +42,7 @@ export const acceptanceSupportPaths = [
   "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
   "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
+  "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
   "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
@@ -84,10 +86,10 @@ export const pluginPaths = [
   cloudContractPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-outbox.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker-support.ts",
   cloudCredentialPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.ts",
-  "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.manifest.json",
   "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",

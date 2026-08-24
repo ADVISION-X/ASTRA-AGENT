@@ -18,10 +18,15 @@ import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../../shared/paths.js";
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
-import type { PluginStatusEntry } from "./scan-active-plugin-gate.js";
+import { architectureLawPath, type ActivePluginContract } from "./scan-active-plugin-gate.js";
+
+type MediatorPluginContract = Pick<
+  ActivePluginContract,
+  "allowedEntrypoints" | "mediatorBindings" | "mediatorRoute" | "pluginId" | "status"
+>;
 
 type MediatorInspectionInput = {
-  entries: readonly PluginStatusEntry[];
+  entries: readonly MediatorPluginContract[];
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
@@ -188,7 +193,7 @@ const inspectBypassCalls = (
 
 const inspectExtraRoutes = (
   input: MediatorInspectionInput,
-  entries: readonly PluginStatusEntry[],
+  entries: readonly MediatorPluginContract[],
 ): void => {
   const canonicalRoutes = new Set(entries
     .filter((entry) => entry.status === "active")
@@ -283,9 +288,9 @@ const findRouteStructureViolation = (
 
 const inspectRouteBinding = (
   input: MediatorInspectionInput,
-  entry: PluginStatusEntry,
+  entry: MediatorPluginContract,
   route: SourceFile,
-  binding: PluginStatusEntry["mediatorBindings"][number],
+  binding: ActivePluginContract["mediatorBindings"][number],
   taskKeys: Set<string>,
 ): void => {
   const fn = routeFunction(route, binding.routeExport);
@@ -326,7 +331,7 @@ export const inspectActivePluginMediators = (input: MediatorInspectionInput): vo
   for (const entry of input.entries.filter((candidate) => candidate.status === "active")) {
     const expectedRoute = `src/mediator/${entry.pluginId}-route.ts`;
     if (entry.mediatorRoute !== expectedRoute) {
-      pushFinding(input, "scripts/audit/config/plugin-status.json", "architecture/active-plugin-mediator-noncanonical",
+      pushFinding(input, architectureLawPath, "architecture/active-plugin-mediator-noncanonical",
         `Active plugin ${entry.pluginId} must own exactly ${expectedRoute}.`, entry.mediatorRoute);
       continue;
     }
@@ -337,7 +342,7 @@ export const inspectActivePluginMediators = (input: MediatorInspectionInput): vo
       continue;
     }
     if (!entry.allowedEntrypoints.includes(entry.mediatorRoute)) {
-      pushFinding(input, "scripts/audit/config/plugin-status.json", "architecture/active-plugin-mediator-not-allowlisted",
+      pushFinding(input, architectureLawPath, "architecture/active-plugin-mediator-not-allowlisted",
         `Active plugin ${entry.pluginId} does not allowlist its mediator route.`, entry.mediatorRoute);
     }
     const route = input.project.getSourceFile(resolveFromRepo(entry.mediatorRoute));

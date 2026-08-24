@@ -27,7 +27,6 @@ import { inspectXuanxueContracts } from "./inspect-contracts.js";
 import { xuanxueAcceptanceRequiredValues } from "./acceptance-required-values.js";
 import {
   arrowReturnsNumber,
-  propertyUsesNumericLiteralCall,
   workerEnforcesTenBusinessSlots,
   workerReconcilesChangedLocalVersions,
 } from "./inspect-continuous-recovery.js";
@@ -123,16 +122,7 @@ const inspectDurableLedger = (
     "stage_continuation_operator_recovery_required",
     "XUANXUE_AI_PRODUCTION_OUTPUT_PROVIDER_FAILURE_ANSWER", "supersededExecutionId",
     "providerTranscriptJsonl", "modelIdentityProof", "providerExecutionProfileProof",
-    "conversationTitleProof", "isProofEmptyTechnicalTerminal",
-    "isProofEmptyProfileReadbackTerminal",
-    "hasProviderSideEffectProof", "applyLegacyTechnicalTerminalCorrection",
-    "legacy_technical_terminal_stage_corrected", "legacy_technical_terminal_correction_applied",
-    "legacy_profile_readback_terminal_stage_corrected",
-    "legacy_profile_readback_terminal_correction_applied",
-    "isProofEmptyProfileStateFollowOnTerminal",
-    "legacy_profile_state_followon_terminal_stage_corrected",
-    "legacy_profile_state_followon_terminal_correction_applied",
-    "json_extract(order_json,'$.protocolVersion')='xuanxue-ai-production-v6'",
+    "conversationTitleProof",
     "xuanxueAiProductionLocalRecoveryVersion",
     "reconcileXuanxueAiProductionLocalNonterminalLedger",
     "reconcileLocalNonterminalLedger", "createdAt", "takeNextRunnableOrderId",
@@ -252,9 +242,7 @@ const inspectCloud = (
   inspectCloudLeaseBinding(findings, cloudLaw, values);
   const scheduler = source(context, findings, cloudLaw, schedulerPath);
   const worker = source(context, findings, cloudLaw, cloudWorkerPath);
-  const credential = source(context, findings, cloudLaw, cloudCredentialPath);
   if (!arrowReturnsNumber(scheduler, "resolveXuanxueAiProductionWindow", 10)
-    || !propertyUsesNumericLiteralCall(credential, "max_in_flight", "literal", 10)
     || !workerEnforcesTenBusinessSlots(worker)) {
     findings.push(finding(
       cloudLaw,
@@ -280,13 +268,11 @@ const inspectCloud = (
     required: [
       "available",
       "availableCapacity",
-      "max_in_flight",
       "active",
       "reconcileLocalNonterminalLedger",
       "cancelCloudRecoveryOrder",
       "cloud_cancelled_order_settled",
       "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION",
-      "attachment_upload_proof",
       "XuanxueAiProductionAttachmentCheckpointProof",
       "stage_attachment_upload_proof",
       "onAttachmentUploadCompleted",
@@ -329,11 +315,11 @@ const inspectAcceptance = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
-  durability: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
-  cloud: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
-  intervention: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
-  transient: selectLawId(context.planEntry.lawIds, "APEX-XUANXUE-AI-PRODUCTION-001-V6"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V6"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V6"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V6"),
+  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V6"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V6"),
 });
 
 const collectDomainSources = (
