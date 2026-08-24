@@ -243,14 +243,12 @@ export class BrowserInfrastructureSupervisor {
     this.workspace?.revoke();
     this.workspace = undefined;
     this.transport.disconnect(reasonCode);
-    if (authorityRefHash) {
-      this.journal().recordLifecycle({
-        eventType: "LIFECYCLE",
-        phase: "AUTHORITY_REVOKED",
-        authorityRefHash,
-        reason: reasonCode,
-      });
-    }
+    this.journal().recordLifecycle({
+      eventType: "LIFECYCLE",
+      phase: "AUTHORITY_REVOKED",
+      ...(authorityRefHash ? { authorityRefHash } : {}),
+      reason: reasonCode,
+    });
     if (this.ownerLockHeld) {
       await this.ownerLock.release();
       this.ownerLockHeld = false;

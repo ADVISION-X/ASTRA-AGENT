@@ -596,6 +596,21 @@ const authenticateSupervisor = (instance: BrowserInfrastructureSupervisor, gener
   });
 const supervisorJournalPath = join(supervisorFixture, "browser", "proof-events.ndjson");
 try {
+  const unpairedSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
+  await unpairedSupervisor.start();
+  assert.equal(unpairedSupervisor.readOperatorPairingState().authority, "absent");
+  const unpairedInternals = unpairedSupervisor as unknown as SupervisorInternals;
+  const releaseUnpairedOwnerLock = unpairedInternals.ownerLock.release.bind(unpairedInternals.ownerLock);
+  unpairedInternals.ownerLock.release = async () => {
+    const beforeUnlock = readBrowserProofJournal(supervisorJournalPath);
+    const lastEvent = beforeUnlock.at(-1)?.event;
+    assert.equal(lastEvent?.phase, "AUTHORITY_REVOKED", "unpaired shutdown must durably revoke before Owner lock release");
+    if (!lastEvent || lastEvent.eventType !== "LIFECYCLE") throw new Error("unpaired shutdown must end in a lifecycle revoke");
+    assert.equal(lastEvent.authorityRefHash, undefined, "unpaired shutdown revoke must not fabricate an Authority reference");
+    await releaseUnpairedOwnerLock();
+  };
+  await unpairedSupervisor.stop();
+
   const oldSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
   const newSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
   await oldSupervisor.start();
@@ -647,7 +662,7 @@ try {
     await current.stop();
   }
   const supervisorRestartJournal = readBrowserProofJournal(supervisorJournalPath);
-  assert.equal(supervisorRestartJournal.length, 206, "Extension reload, two interleaved Supervisors, and 100 real Supervisor restarts must preserve one authenticate/revoke chain");
+  assert.equal(supervisorRestartJournal.length, 207, "Unpaired shutdown, Extension reload, two interleaved Supervisors, and 100 real Supervisor restarts must preserve one revoke chain");
   for (let index = 0; index < supervisorRestartJournal.length; index += 1) {
     assert.equal(supervisorRestartJournal[index]!.sequence, index + 1);
     assert.equal(
