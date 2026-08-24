@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { TextDecoder } from 'node:util';
@@ -232,6 +232,11 @@ type ProofFileIdentity={dev:number;ino:number;size:number;mtimeMs:number};
 type VerifiedDynamicProof={lawIds:string[];evidenceModes:string[];evidenceRefs:string[];dynamicProofEvidenceRefs:string[];hashes:string[]};
 type ProofRunner=(script:string,args:string[],env:NodeJS.ProcessEnv)=>{status:number|null;stdout:string;stderr:string};
 const realProofRunner:ProofRunner=(script,args,env)=>{const result=spawnSync(process.execPath,['--import','tsx',script,...args],{cwd:ROOT,encoding:'utf8',env,maxBuffer:16*1024*1024});return{status:result.status,stdout:result.stdout??'',stderr:result.stderr??''}};
+export function validateRealProofExecutorOutputs(chromeRaw:string,providerRaw:string,evidence:any,binding:any,runRoot:string):void{
+  let chrome:any;let provider:any;try{chrome=JSON.parse(chromeRaw);provider=JSON.parse(providerRaw)}catch{return fail('RELEASE_EVIDENCE_MISSING','real proof executor output is not exact JSON')}
+  if(!chrome||!exactKeys(chrome,['marker','status','contractManifestHash','extensionId','workerSessionId','runtimeAttestationReceiptHash'])||chrome.marker!=='[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V6]'||chrome.status!=='CHROME_VERIFIED'||chrome.contractManifestHash!==evidence.contractManifestHash||chrome.extensionId!==evidence.extensionId||chrome.workerSessionId!==evidence.runtimeReceipt?.worker_session_id||chrome.runtimeAttestationReceiptHash!==evidence.runtimeReceipt?.runtime_attestation_receipt_hash)fail('RELEASE_EVIDENCE_MISSING','real Chrome executor output does not exactly match the bound artifacts');
+  if(!provider||!exactKeys(provider,['marker','runRoot','runId','candidateHash','contractManifestHash','recordCount','cloudDeviceId','cloudTerminalJobCount','status'])||provider.marker!=='[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]'||provider.status!=='PASS'||resolve(provider.runRoot)!==resolve(runRoot)||provider.runId!==binding.run_id||provider.candidateHash!==binding.candidate_hash||provider.contractManifestHash!==binding.contract_manifest_hash||provider.recordCount!==Object.keys(binding.provider_record_hashes??{}).length||provider.cloudTerminalJobCount!==(Array.isArray(binding.cloud_terminal_job_ids)?binding.cloud_terminal_job_ids.length:-1)||!cleanString(provider.cloudDeviceId))fail('RELEASE_EVIDENCE_MISSING','real Provider executor output does not exactly match the bound artifacts');
+}
 export function verifyXuanxueReleaseEvidence(evidencePath:string,runner:ProofRunner=realProofRunner):VerifiedDynamicProof{
   const absolute=resolve(evidencePath);
   const runRoot=resolve(ROOT,'.grasseye-local');
@@ -240,13 +245,12 @@ export function verifyXuanxueReleaseEvidence(evidencePath:string,runner:ProofRun
   try{const evidenceStat=lstatSync(absolute);const bindingStat=lstatSync(bindingPath);evidenceIdentity={dev:evidenceStat.dev,ino:evidenceStat.ino,size:evidenceStat.size,mtimeMs:evidenceStat.mtimeMs};bindingIdentity={dev:bindingStat.dev,ino:bindingStat.ino,size:bindingStat.size,mtimeMs:bindingStat.mtimeMs};evidenceRaw=readFileSync(absolute);bindingRaw=readFileSync(bindingPath);evidence=JSON.parse(utf8.decode(evidenceRaw));binding=JSON.parse(utf8.decode(bindingRaw))}catch(error){return fail('RELEASE_EVIDENCE_MISSING',`invalid real proof authority: ${error instanceof Error?error.message:String(error)}`)}
   if(!evidence||!exactKeys(evidence,['schemaVersion','contractManifestHash','extensionId','releaseMode','workbenchUrl','realRunRoot','dynamicProofRunId','runtimeReceipt','evidenceRefs'])||evidenceRaw!.toString('utf8')!==canonicalBytes(evidence as Json))fail('RELEASE_EVIDENCE_MISSING','real Chrome evidence must be exact canonical V6 evidence');
   if(!binding||binding.schema_version!=='xuanxue-ai-production-dynamic-proof-binding.v2'||evidence.dynamicProofRunId!==binding.run_id)fail('RELEASE_EVIDENCE_MISSING','real Chrome evidence is not bound to the production proof run');
-  const commands=[
-    {script:'scripts/acceptance/xuanxue-ai-production.real-chrome.ts',args:['--evidence',absolute],env:{...process.env},marker:'"status":"CHROME_VERIFIED"'},
-    {script:'scripts/acceptance/xuanxue-ai-production.real-provider.ts',args:['--evidence',absolute],env:{...process.env,XUANXUE_AI_REAL_RUN_ROOT:runRoot},marker:'"status": "PASS"'},
-  ];
-  const results=commands.map((command)=>{const result=runner(command.script,command.args,command.env);if(result.status!==0||!result.stdout.includes(command.marker))fail('RELEASE_EVIDENCE_MISSING',`real proof executor failed: ${command.script}: ${result.stderr||result.stdout}`);return result});
-  let chromeResult:any;let providerResult:any;try{chromeResult=JSON.parse(results[0]!.stdout);providerResult=JSON.parse(results[1]!.stdout)}catch{fail('RELEASE_EVIDENCE_MISSING','real proof executor output is not exact JSON')}
-  if(chromeResult.contractManifestHash!==evidence.contractManifestHash||chromeResult.workerSessionId!==evidence.runtimeReceipt?.worker_session_id||chromeResult.runtimeAttestationReceiptHash!==evidence.runtimeReceipt?.runtime_attestation_receipt_hash||providerResult.runId!==binding.run_id||providerResult.candidateHash!==binding.candidate_hash||providerResult.contractManifestHash!==binding.contract_manifest_hash)fail('RELEASE_EVIDENCE_MISSING','real proof executor output does not match the bound artifacts');
+  const snapshotDirectory=mkdtempSync(resolve(tmpdir(),'grasseye-release-proof-'));const evidenceSnapshot=resolve(snapshotDirectory,'evidence.json');const bindingSnapshot=resolve(snapshotDirectory,'binding.json');
+  let results:Array<{status:number|null;stdout:string;stderr:string}>;
+  try{writeFileSync(evidenceSnapshot,evidenceRaw!,{mode:0o600});writeFileSync(bindingSnapshot,bindingRaw!,{mode:0o600});const commands=[
+    {script:'scripts/acceptance/xuanxue-ai-production.real-chrome.ts',args:['--evidence',evidenceSnapshot,'--binding',bindingSnapshot],env:{...process.env}},
+    {script:'scripts/acceptance/xuanxue-ai-production.real-provider.ts',args:['--evidence',evidenceSnapshot,'--binding',bindingSnapshot],env:{...process.env,XUANXUE_AI_REAL_RUN_ROOT:runRoot}},
+  ];results=commands.map((command)=>{const result=runner(command.script,command.args,command.env);if(result.status!==0)fail('RELEASE_EVIDENCE_MISSING',`real proof executor failed: ${command.script}: ${result.stderr||result.stdout}`);return result});validateRealProofExecutorOutputs(results[0]!.stdout,results[1]!.stdout,evidence,binding,runRoot)}finally{rmSync(snapshotDirectory,{recursive:true,force:true})}
   assertStableProofFile(absolute,evidenceRaw!,evidenceIdentity!);assertStableProofFile(bindingPath,bindingRaw!,bindingIdentity!);
   const bindingHash=sha(bindingRaw!);const evidenceHash=sha(evidenceRaw!);
   const artifacts=[{evidenceRef:`${absolute}#sha256=${evidenceHash}`,hash:evidenceHash},{evidenceRef:`${bindingPath}#sha256=${bindingHash}`,hash:bindingHash}].sort((left,right)=>left.evidenceRef.localeCompare(right.evidenceRef));

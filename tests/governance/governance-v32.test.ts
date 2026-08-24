@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { agentReleaseParticipants, assertStableProofFile, evidencePlan, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
+import { agentReleaseParticipants, assertStableProofFile, evidencePlan, validateQualityReport, validateRealProofExecutorOutputs, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (): string => {
@@ -377,10 +377,23 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
   assert.match(source, /xuanxue-ai-production\.real-chrome\.ts/u);
   assert.match(source, /xuanxue-ai-production\.real-provider\.ts/u);
   assert.match(source, /caller-authored Dynamic Proof wrappers are retired/u);
-  assert.match(source, /real proof executor output does not match the bound artifacts/u);
+  assert.match(source, /real Chrome executor output does not exactly match the bound artifacts/u);
+  assert.match(source, /real Provider executor output does not exactly match the bound artifacts/u);
+  assert.match(source, /'--binding',bindingSnapshot/u);
   assert.match(source, /dynamicProofEvidenceRefs:artifacts\.map/u);
   assert.match(source, /real proof artifact changed during verification/u);
   assert.match(source, /AGENT RELEASE is the upstream participant leaf/u);
   assert.doesNotMatch(source, /resolveReleaseParticipants|validateParticipantReleaseReport/u);
   assert.match(source, /RELEASE_PACKAGE/u);
+});
+
+test('real proof executor outputs are exact bound contracts', () => {
+  const evidence = { contractManifestHash: 'sha256:manifest', extensionId: 'extension', runtimeReceipt: { worker_session_id: 'worker', runtime_attestation_receipt_hash: 'sha256:receipt' } };
+  const binding = { run_id: 'run', candidate_hash: 'sha256:candidate', contract_manifest_hash: 'sha256:manifest', provider_record_hashes: { one: 'sha256:one' }, cloud_terminal_job_ids: ['job'] };
+  const chrome = { marker: '[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V6]', status: 'CHROME_VERIFIED', contractManifestHash: evidence.contractManifestHash, extensionId: evidence.extensionId, workerSessionId: 'worker', runtimeAttestationReceiptHash: 'sha256:receipt' };
+  const provider = { marker: '[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]', runRoot: '/tmp/run', runId: 'run', candidateHash: 'sha256:candidate', contractManifestHash: 'sha256:manifest', recordCount: 1, cloudDeviceId: 'device', cloudTerminalJobCount: 1, status: 'PASS' };
+  assert.doesNotThrow(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify(provider), evidence, binding, '/tmp/run'));
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify({ ...chrome, extra: true }), JSON.stringify(provider), evidence, binding, '/tmp/run'), /does not exactly match/u);
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, recordCount: 0 }), evidence, binding, '/tmp/run'), /does not exactly match/u);
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, status: 'ALMOST' }), evidence, binding, '/tmp/run'), /does not exactly match/u);
 });

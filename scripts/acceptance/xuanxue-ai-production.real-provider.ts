@@ -13,6 +13,7 @@ import {
   currentXuanxueSourceCandidate,
   readXuanxueRealChromeEvidence,
   realChromeEvidenceArgument,
+  realDynamicProofBindingArgument,
   validateBoundRuntimeReceipt,
 } from "./xuanxue-ai-production-real-proof-support.js";
 
@@ -48,10 +49,7 @@ assert.equal(
   canonicalXuanxueRealRunRoot(),
   "real Provider proof must consume the production Workbench data directory",
 );
-const bindingRaw = await readFile(path.join(
-  runRoot,
-  XuanxueDynamicProofBindingContract.fileName,
-), "utf8");
+const bindingRaw = await readFile(realDynamicProofBindingArgument(), "utf8");
 const dynamicProofBinding = XuanxueDynamicProofBindingContract.validate(
   JSON.parse(bindingRaw),
   currentXuanxueSourceCandidate(),

@@ -26,6 +26,11 @@ export const realChromeEvidenceArgument = (): string => {
   assert.ok(argument !== -1 && process.argv[argument + 1], "--evidence is required");
   return path.resolve(process.argv[argument + 1]!);
 };
+export const realDynamicProofBindingArgument = (): string => {
+  const argument = process.argv.indexOf("--binding");
+  assert.ok(argument !== -1 && process.argv[argument + 1], "--binding is required");
+  return path.resolve(process.argv[argument + 1]!);
+};
 export const readXuanxueRealChromeEvidence = (evidencePath: string): XuanxueRealChromeEvidenceV6 =>
   JSON.parse(readFileSync(evidencePath, "utf8")) as XuanxueRealChromeEvidenceV6;
 

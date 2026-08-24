@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
 import {
   canonicalXuanxueRealRunRoot, currentXuanxueSourceCandidate,
-  readXuanxueRealChromeEvidence, realChromeEvidenceArgument, validateBoundRuntimeReceipt,
+  readXuanxueRealChromeEvidence, realChromeEvidenceArgument, realDynamicProofBindingArgument,
+  validateBoundRuntimeReceipt,
 } from "./xuanxue-ai-production-real-proof-support.js";
 
 const fail = (reason: string): never => {
@@ -24,7 +25,7 @@ try {
   assert.ok(statSync(resolve(evidence.realRunRoot)).isDirectory());
   assert.equal(resolve(evidence.realRunRoot), canonicalXuanxueRealRunRoot());
   const binding = XuanxueDynamicProofBindingContract.validate(
-    JSON.parse(readFileSync(join(resolve(evidence.realRunRoot), XuanxueDynamicProofBindingContract.fileName), "utf8")),
+    JSON.parse(readFileSync(realDynamicProofBindingArgument(), "utf8")),
     currentXuanxueSourceCandidate(), XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   );
   const receipt = validateBoundRuntimeReceipt({ evidence, binding, runRoot: evidence.realRunRoot });
