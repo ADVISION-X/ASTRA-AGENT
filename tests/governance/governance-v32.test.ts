@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { evidencePlan, validateQualityReport } from '../../scripts/audit/governance-v32.js';
+import { evidencePlan, validateDynamicProofArtifact, validateQualityReport, validateReleaseProofPackage } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (): string => {
@@ -353,8 +353,28 @@ test('READY evidence applicability follows the actual diff and rejects a missing
   assert.throws(() => validateQualityReport(mutant, laws, 'READY'), /law /u);
 });
 
-test('RELEASE fails closed without a trusted dynamic proof verifier', () => {
-  const root = governanceFixture();
-  try { expectGovernanceFailure(root, ['quality', 'RELEASE'], 'RELEASE_EVIDENCE_MISSING'); }
-  finally { rmSync(root, { recursive: true, force: true }); }
+test('RELEASE verifier binds fresh Dynamic Proof and the unique B.9 package schema', () => {
+  const now = Date.parse('2026-08-24T00:00:00.000Z');
+  const binding = { candidateId: 'a'.repeat(64), gitCommit: 'b'.repeat(40) };
+  const proof = {
+    schemaVersion: 1, ...binding,
+    lawIds: ['LAW-TEST-001-V1'], evidenceModes: ['dynamic.browser'], outcome: 'PASS',
+    recordedAt: '2026-08-23T23:59:00.000Z', expiresAt: '2026-08-24T00:01:00.000Z',
+    locators: ['browser-session:current'],
+  };
+  assert.doesNotThrow(() => validateDynamicProofArtifact(proof, binding, now));
+  assert.throws(() => validateDynamicProofArtifact({ ...proof, expiresAt: '2026-08-23T23:59:30.000Z' }, binding, now), /stale Dynamic Proof/u);
+  assert.throws(() => validateDynamicProofArtifact({ ...proof, candidateId: 'c'.repeat(64) }, binding, now), /invalid Dynamic Proof/u);
+  const proofPackage = {
+    schemaVersion: 1, ...binding,
+    freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
+    functionalLawSha256: 'e'.repeat(64), registrySha256: 'f'.repeat(64),
+    lawQualityReportSha256: '1'.repeat(64), dynamicProofHashes: ['2'.repeat(64)],
+    crossRepoParticipants: [],
+  };
+  assert.doesNotThrow(() => validateReleaseProofPackage(proofPackage));
+  assert.throws(() => validateReleaseProofPackage({ ...proofPackage, releaseReceipt: true }), /invalid RELEASE proof package/u);
+  const source = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
+  assert.doesNotMatch(source, /trusted dynamic proof verifier is not implemented/u);
+  assert.match(source, /RELEASE_PACKAGE/u);
 });

@@ -585,6 +585,7 @@ type SupervisorInternals = {
   onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void;
   ownerLock: BrowserOwnerLock;
   issuer: BrowserAuthorityIssuer;
+  proofJournal: null | { recordLifecycle(event: Readonly<Record<string, unknown>>): void };
 };
 const authenticateSupervisor = (instance: BrowserInfrastructureSupervisor, generation: number) =>
   (instance as unknown as SupervisorInternals).onAuthenticated({
@@ -610,6 +611,23 @@ try {
     await releaseUnpairedOwnerLock();
   };
   await unpairedSupervisor.stop();
+
+  const journalFaultSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
+  await journalFaultSupervisor.start();
+  authenticateSupervisor(journalFaultSupervisor, 1);
+  const journalFaultInternals = journalFaultSupervisor as unknown as SupervisorInternals;
+  const faultJournal = journalFaultInternals.proofJournal;
+  if (!faultJournal) throw new Error("journal fault Supervisor must own its proof journal");
+  const recordLifecycle = faultJournal.recordLifecycle.bind(faultJournal);
+  faultJournal.recordLifecycle = () => { throw new Error("JOURNAL_APPEND_FAULT"); };
+  assert.throws(
+    () => journalFaultInternals.onRevoked("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { diagnosticSource: "extension-runtime" }),
+    /JOURNAL_APPEND_FAULT/u,
+    "a durable journal failure must surface after the live Authority has already been revoked",
+  );
+  assert.equal(journalFaultInternals.issuer.current().kind, "ABSENT", "journal failure must never leave a live Authority or old permit behind");
+  faultJournal.recordLifecycle = recordLifecycle;
+  await journalFaultSupervisor.stop();
 
   const oldSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
   const newSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
@@ -662,7 +680,7 @@ try {
     await current.stop();
   }
   const supervisorRestartJournal = readBrowserProofJournal(supervisorJournalPath);
-  assert.equal(supervisorRestartJournal.length, 207, "Unpaired shutdown, Extension reload, two interleaved Supervisors, and 100 real Supervisor restarts must preserve one revoke chain");
+  assert.equal(supervisorRestartJournal.length, 209, "Unpaired shutdown, journal-fault revoke, Extension reload, two interleaved Supervisors, and 100 real Supervisor restarts must preserve one revoke chain");
   for (let index = 0; index < supervisorRestartJournal.length; index += 1) {
     assert.equal(supervisorRestartJournal[index]!.sequence, index + 1);
     assert.equal(

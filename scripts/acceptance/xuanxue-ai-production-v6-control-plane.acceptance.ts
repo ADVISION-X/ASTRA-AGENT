@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -151,7 +151,7 @@ try {
   assert.doesNotMatch(workbenchStatusSource, /detail: `Cloud state=/u);
   assert.doesNotMatch(workerSource, /readonly status: "ready"/u);
 
-  await writeXuanxueAiProductionCloudCredential(temporary, {
+  const credential = {
     protocol_version: "xuanxue-ai-production-v6",
     server_base_url: "https://cloud.example.test",
     environment_id: "isolated-test",
@@ -160,14 +160,16 @@ try {
     credential: `aidc_v6_${"x".repeat(32)}`,
     agent_build_hash: hash, control_manifest_hash: hash,
     enrolled_at: new Date().toISOString(),
-  });
+  } as const;
+  await writeXuanxueAiProductionCloudCredential(temporary, credential);
   const credentialPath = xuanxueAiProductionCloudCredentialPath(temporary);
   assert.equal((await readXuanxueAiProductionCloudCredential(temporary)).device_id, "device-1");
   const credentialDirectory = path.dirname(credentialPath);
   chmodSync(credentialDirectory, 0o755);
-  assert.equal((await readXuanxueAiProductionCloudCredential(temporary)).device_id, "device-1");
-  assert.equal(statSync(credentialDirectory).mode & 0o077, 0,
-    "an owned real credential directory is tightened before the credential is accepted");
+  await assert.rejects(() => readXuanxueAiProductionCloudCredential(temporary), /CREDENTIAL_PERMISSIONS_INVALID/u);
+  assert.equal(statSync(credentialDirectory).mode & 0o077, 0o055,
+    "credential validation must never auto-repair an over-permissive directory");
+  chmodSync(credentialDirectory, 0o700);
   chmodSync(credentialPath, 0o644);
   await assert.rejects(() => readXuanxueAiProductionCloudCredential(temporary), /CREDENTIAL_PERMISSIONS_INVALID/u);
   chmodSync(credentialPath, 0o600);
@@ -177,6 +179,22 @@ try {
   renameSync(credentialPath, realCredentialPath);
   symlinkSync(realCredentialPath, credentialPath);
   await assert.rejects(() => readXuanxueAiProductionCloudCredential(temporary), /CREDENTIAL_PERMISSIONS_INVALID/u);
+  const symlinkTarget = path.join(temporary, "credential-parent-target");
+  const symlinkParent = path.join(temporary, "credential-parent-link");
+  mkdirSync(symlinkTarget, { mode: 0o700 });
+  symlinkSync(symlinkTarget, symlinkParent);
+  const originalCredentialFile = process.env.XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE;
+  process.env.XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE = path.join(symlinkParent, "credential.json");
+  try {
+    await assert.rejects(
+      () => writeXuanxueAiProductionCloudCredential(temporary, credential),
+      /CREDENTIAL_PERMISSIONS_INVALID/u,
+      "credential write must reject a symlinked parent before creating any file",
+    );
+  } finally {
+    if (originalCredentialFile === undefined) delete process.env.XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE;
+    else process.env.XUANXUE_AI_PRODUCTION_CREDENTIAL_FILE = originalCredentialFile;
+  }
 } finally {
   database.close();
   rmSync(temporary, { recursive: true, force: true });

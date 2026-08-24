@@ -178,10 +178,12 @@ export class BrowserInfrastructureSupervisor {
     const authenticated = this.issuer.current().kind === "PRESENT";
     const extensionFailure = refs?.diagnosticSource === "extension-frame"
       || refs?.diagnosticSource === "extension-runtime";
+    const authorityRefHash = this.currentAuthorityRefHash();
+    this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
     this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "AUTHORITY_REVOKED",
-      ...this.currentAuthorityRefHash(),
+      ...authorityRefHash,
       reason: reasonCode,
     });
     this.emitBrowserRuntimeState(
@@ -195,7 +197,6 @@ export class BrowserInfrastructureSupervisor {
       reasonCode,
       refs,
     );
-    this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
   }
 
   public async start(): Promise<void> {
