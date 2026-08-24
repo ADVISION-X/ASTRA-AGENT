@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { evidencePlan, resolveReleaseParticipants, validateParticipantReleaseReport, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
+import { agentReleaseParticipants, evidencePlan, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (): string => {
@@ -357,8 +356,9 @@ test('READY evidence applicability follows the actual diff and rejects a missing
 test('RELEASE consumes the real executor chain and the unique B.9 package schema', () => {
   const binding = { candidateId: 'a'.repeat(64), gitCommit: 'b'.repeat(40) };
   assert.throws(() => verifyXuanxueReleaseEvidence('/definitely/not/a/real-proof.json', () => ({ status: 0, stdout: 'PASS', stderr: '' })), /invalid real proof authority/u);
-  assert.throws(() => resolveReleaseParticipants([{ contractId: 'caller-authored', contractVersion: 1, repo: 'fake/repo', packagePath: 'fake.json' }]), /accepts only repoRoot, packagePath and reportPath/u);
-  assert.throws(() => resolveReleaseParticipants([{ repoRoot: '.', packagePath: 'fake.json', reportPath: 'fake-report.json' }]), /cannot be the current repository/u);
+  assert.deepEqual(agentReleaseParticipants(undefined), []);
+  assert.throws(() => agentReleaseParticipants('[]'), /upstream participant leaf/u);
+  assert.throws(() => agentReleaseParticipants('[{"repo":"caller-authored"}]'), /upstream participant leaf/u);
   const proofPackage = {
     schemaVersion: 1, ...binding,
     freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
@@ -368,38 +368,11 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
   };
   assert.doesNotThrow(() => validateReleaseProofPackage(proofPackage));
   assert.throws(() => validateReleaseProofPackage({ ...proofPackage, releaseReceipt: true }), /invalid RELEASE proof package/u);
-  const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, canonical(item)])) : value;
-  const evidenceDirectory = mkdtempSync(join(tmpdir(), 'participant-release-evidence-'));
-  const evidencePath = join(evidenceDirectory, 'static-check.result.json');
-  const receipt = { schemaVersion: 1, testId: 'script:test', lawIds: ['LAW-TEST-001-V1'], evidenceModes: ['static.ast'], command: 'npm run test', startedAt: '2026-08-24T00:00:00.000Z', finishedAt: '2026-08-24T00:00:01.000Z', candidateSnapshot: '4'.repeat(64), exitStatus: 0, signal: null, outcome: 'PASS', stdoutSha256: '5'.repeat(64), stderrSha256: '6'.repeat(64) };
-  const evidenceRaw = Buffer.from(`${JSON.stringify(canonical(receipt), null, 2)}\n`);writeFileSync(evidencePath, evidenceRaw);
-  const evidenceRef = `${evidencePath}#sha256=${createHash('sha256').update(evidenceRaw).digest('hex')}`;
-  const report = { schemaVersion: 1, level: 'RELEASE', baseSha: '3'.repeat(40), candidateId: binding.candidateId, registrySha256: proofPackage.registrySha256, laws: [{ lawId: 'LAW-TEST-001-V1', applicableEvidenceModes: ['static.ast'], deferredEvidenceModes: [], outcome: 'PASS', evidenceRefs: [evidenceRef], findings: [] }], outcome: 'PASS' };
-  const reportRaw = Buffer.from(`${JSON.stringify(canonical(report), null, 2)}\n`);
-  const boundPackage = { ...proofPackage, lawQualityReportSha256: createHash('sha256').update(reportRaw).digest('hex'), dynamicProofHashes: [] };
-  const participantRegistry = { laws: [{ lawId: 'LAW-TEST-001-V1', appliesTo: ['src/**'], excludes: [], contractRefs: [], evidenceModes: ['static.ast'] }] };
-  assert.doesNotThrow(() => validateParticipantReleaseReport(reportRaw, boundPackage, participantRegistry, ['src/live.ts']));
-  assert.throws(() => validateParticipantReleaseReport(reportRaw, { ...boundPackage, lawQualityReportSha256: '9'.repeat(64) }, participantRegistry, ['src/live.ts']), /report hash mismatch/u);
-  const failedReport = { ...report, laws: [{ ...report.laws[0], outcome: 'FAIL', findings: ['REAL_RELEASE_NOT_COMPLETED'] }], outcome: 'FAIL' };
-  const failedRaw = Buffer.from(`${JSON.stringify(canonical(failedReport), null, 2)}\n`);
-  assert.throws(() => validateParticipantReleaseReport(failedRaw, { ...boundPackage, lawQualityReportSha256: createHash('sha256').update(failedRaw).digest('hex') }, participantRegistry, ['src/live.ts']), /has not completed RELEASE PASS/u);
-  const emptyDenominator = { ...report, laws: [{ ...report.laws[0], applicableEvidenceModes: [], evidenceRefs: [] }] };
-  const emptyRaw = Buffer.from(`${JSON.stringify(canonical(emptyDenominator), null, 2)}\n`);
-  assert.throws(() => validateParticipantReleaseReport(emptyRaw, { ...boundPackage, lawQualityReportSha256: createHash('sha256').update(emptyRaw).digest('hex') }, participantRegistry, ['src/live.ts']), /evidence denominator mismatch/u);
-  const missingModeRegistry = { laws: [{ ...participantRegistry.laws[0], evidenceModes: ['static.ast', 'dynamic.provider'] }] };
-  const missingModeReport = { ...report, laws: [{ ...report.laws[0], applicableEvidenceModes: ['static.ast', 'dynamic.provider'] }] };
-  const missingModeRaw = Buffer.from(`${JSON.stringify(canonical(missingModeReport), null, 2)}\n`);
-  assert.throws(() => validateParticipantReleaseReport(missingModeRaw, { ...boundPackage, lawQualityReportSha256: createHash('sha256').update(missingModeRaw).digest('hex') }, missingModeRegistry, ['src/live.ts']), /evidence coverage mismatch/u);
-  assert.throws(() => validateParticipantReleaseReport(reportRaw, { ...boundPackage, dynamicProofHashes: ['8'.repeat(64)] }, participantRegistry, ['src/live.ts']), /dynamicProofHashes do not match/u);
   const source = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
   assert.match(source, /xuanxue-ai-production\.real-chrome\.ts/u);
   assert.match(source, /xuanxue-ai-production\.real-provider\.ts/u);
   assert.match(source, /caller-authored Dynamic Proof wrappers are retired/u);
-  assert.match(source, /participant package is not bound to its committed candidate/u);
-  assert.match(source, /participant RELEASE report hash mismatch/u);
-  assert.match(source, /participant has not completed RELEASE PASS/u);
-  assert.match(source, /merge-base.*--is-ancestor/u);
-  assert.match(source, /participant RELEASE evidence denominator mismatch/u);
-  assert.match(source, /cyclic RELEASE participant dependency/u);
+  assert.match(source, /AGENT RELEASE is the upstream participant leaf/u);
+  assert.doesNotMatch(source, /resolveReleaseParticipants|validateParticipantReleaseReport/u);
   assert.match(source, /RELEASE_PACKAGE/u);
 });
