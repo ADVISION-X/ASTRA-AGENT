@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { z } from "zod";
 import {
   XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
@@ -10,22 +11,23 @@ import {
   xuanxueAiProductionCloudCredentialPath,
 } from "./xuanxue-ai-production-cloud-credential.js";
 
-interface EnrollmentEnvelope {
-  readonly ok?: boolean;
-  readonly data?: {
-    readonly device?: {
-      readonly device_id?: string;
-      readonly environment_id?: "production" | "isolated-test";
-      readonly device_epoch?: number;
-      readonly status?: "active" | "revoked";
-      readonly origin_allowlist?: readonly string[];
-      readonly control_contract_manifest_hash?: string;
-      readonly agent_build_hash?: string;
-    };
-    readonly device_credential?: string;
-  };
-  readonly error?: { readonly code?: string; readonly message?: string };
-}
+const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+const EnrollmentEnvelopeSchema = z.object({
+  ok: z.boolean(),
+  data: z.object({
+    device: z.object({
+      device_id: z.string().min(1),
+      environment_id: z.enum(["production", "isolated-test"]),
+      device_epoch: z.number().int().positive(),
+      status: z.enum(["active", "revoked"]),
+      origin_allowlist: z.array(z.string().url()).min(1),
+      control_contract_manifest_hash: hashSchema,
+      agent_build_hash: hashSchema,
+    }).strict(),
+    device_credential: z.string().min(1),
+  }).strict().optional(),
+  error: z.object({ code: z.string().min(1).optional() }).strict().optional(),
+}).strict();
 
 const required = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -73,7 +75,7 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
     }),
     signal: AbortSignal.timeout(30_000),
   });
-  const body = await response.json() as EnrollmentEnvelope;
+  const body = EnrollmentEnvelopeSchema.parse(await response.json() as unknown);
   const device = body.data?.device;
   const credentialValue = body.data?.device_credential;
   if (!response.ok || body.ok !== true || !device?.device_id || !credentialValue
@@ -81,7 +83,7 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
     || device.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH
     || device.agent_build_hash !== config.agentBuildHash
     || !device.origin_allowlist?.includes(config.origin)) {
-    throw new Error(`XUANXUE_AI_PRODUCTION_ENROLLMENT_FAILED:${body.error?.code ?? response.status}:${body.error?.message ?? "V6 identity mismatch"}`);
+    throw new Error(`XUANXUE_AI_PRODUCTION_ENROLLMENT_FAILED:${body.error?.code ?? response.status}:V6_IDENTITY_MISMATCH`);
   }
   const dataDir = path.resolve(input?.dataDir ?? process.env.GRASSEYE_DATA_DIR ?? path.join(process.cwd(), ".grasseye-local"));
   const credential: XuanxueAiProductionCloudCredential = {

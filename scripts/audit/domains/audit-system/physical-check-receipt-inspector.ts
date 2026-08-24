@@ -11,7 +11,7 @@ export const inspectPhysicalCheckReceipt = (source: SourceFile): Finding[] => {
   const findings: Finding[] = [];
   if (!directVariableCalls(runCheck, "before", "candidateSnapshot")) findings.push({ code: "AUDIT_PHYSICAL_CHECK_MISSING", detail: "before:candidateSnapshot", path: source.getFilePath() });
   if (!directVariableCalls(runCheck, "after", "candidateSnapshot")) findings.push({ code: "AUDIT_PHYSICAL_CHECK_MISSING", detail: "after:candidateSnapshot", path: source.getFilePath() });
-  for (const required of ["spawnSync", "writeEvidence"]) if (!calls.includes(required)) findings.push({ code: "AUDIT_PHYSICAL_CHECK_MISSING", detail: required, path: source.getFilePath() });
-  for (const required of ["candidateSnapshot", "command", "evidenceModes", "exitStatus", "finding", "lawIds", "outcome", "stderrSha256", "stdoutSha256"]) if (!properties.has(required)) findings.push({ code: "AUDIT_RECEIPT_FIELD_MISSING", detail: required, path: source.getFilePath() });
+  for (const required of ["spawnSync", "validateClaims", "writeEvidence"]) if (!calls.includes(required)) findings.push({ code: "AUDIT_PHYSICAL_CHECK_MISSING", detail: required, path: source.getFilePath() });
+  for (const required of ["candidateSnapshot", "claims", "command", "evidenceModes", "exitStatus", "finding", "finishedAt", "lawIds", "outcome", "phaseId", "schemaVersion", "startedAt", "stderrSha256", "stdoutSha256", "testId"]) if (!properties.has(required)) findings.push({ code: "AUDIT_RECEIPT_FIELD_MISSING", detail: required, path: source.getFilePath() });
   return findings;
 };

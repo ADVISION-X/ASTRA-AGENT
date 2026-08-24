@@ -17,8 +17,8 @@
 当前玄学 AGENT 的 active 专门权威：
 
 ```txt
-docs/blueprints/domains/XUANXUE_AI_PRODUCTION/WEBSITE-AGENT-V6-BLUEPRINT.md
-docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6-external-api-pin.spec.json
+docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md
+docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json
 ```
 
 除唯一的 `scripts/audit/generated/law-registry.generated.json` 外，generated artifacts、`docs/项目方案/**`、提示词和历史 reports 不得成为平行权威。终态能力缺失只能表现为 `FAIL`，不得裁剪法条、合并独立 owner 或降低分母换取通过。

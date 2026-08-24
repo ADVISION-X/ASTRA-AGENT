@@ -6,8 +6,12 @@ type Finding = { code: string; detail: string; path: string };
 
 export const inspectCiPhaseIntegrity = (source: SourceFile): Finding[] => {
   const quality = source.getFunction("quality");
+  const main = source.getFunction("main");
   const levels = new Set(quality?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()) ?? []);
   const findings: Finding[] = [];
+  if (!main || !quality) {
+    findings.push({ code: "AUDIT_CANONICAL_ENTRY_MISSING", detail: "main/quality", path: source.getFilePath() });
+  }
   for (const level of ["CHANGE", "READY", "RELEASE"]) {
     if (!levels.has(level)) {
       findings.push({ code: "AUDIT_DELIVERY_LEVEL_MISSING", detail: level, path: source.getFilePath() });

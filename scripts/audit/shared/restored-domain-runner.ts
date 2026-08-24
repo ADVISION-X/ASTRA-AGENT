@@ -53,7 +53,7 @@ export async function runRestoredDomain(domain: string, inspector: DomainInspect
     }),
   };
   const context: InspectorContext = {
-    project: createAuditProject(), planEntry, generatedPlan: plans, completedReports: {}, checks,
+    project: createAuditProject(root), planEntry, generatedPlan: plans, completedReports: {}, checks,
   };
   const output = await inspector(context);
   return [...output.findings];

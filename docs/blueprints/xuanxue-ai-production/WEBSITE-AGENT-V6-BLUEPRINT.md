@@ -47,7 +47,6 @@
 法案：`LAW-XUANXUE-AI-PRODUCTION-001-V6`
 唯一业务 owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
-方案 SHA-256：`85e2b60e0649dac79ba24f055895d6752548456a2c50919baa7ed5097644c48a`
 
 ## 接入
 

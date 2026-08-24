@@ -1,22 +1,23 @@
 import { Project } from "ts-morph";
+import { resolve } from "node:path";
 
-import { resolveFromRepo } from "./paths.js";
+import { repoRoot } from "./paths.js";
 
-export const createAuditProject = (): Project => {
+export const createAuditProject = (root = repoRoot): Project => {
   const project = new Project({
-    tsConfigFilePath: resolveFromRepo("tsconfig.json"),
+    tsConfigFilePath: resolve(root, "tsconfig.json"),
     compilerOptions: {
       allowJs: true,
     },
   });
 
   project.addSourceFilesAtPaths([
-    resolveFromRepo("src/**/*.js"),
-    resolveFromRepo("src/**/*.jsx"),
-    resolveFromRepo("src/**/*.mjs"),
-    resolveFromRepo("scripts/**/*.js"),
-    resolveFromRepo("scripts/**/*.jsx"),
-    resolveFromRepo("scripts/**/*.mjs"),
+    resolve(root, "src/**/*.js"),
+    resolve(root, "src/**/*.jsx"),
+    resolve(root, "src/**/*.mjs"),
+    resolve(root, "scripts/**/*.js"),
+    resolve(root, "scripts/**/*.jsx"),
+    resolve(root, "scripts/**/*.mjs"),
   ]);
 
   return project;

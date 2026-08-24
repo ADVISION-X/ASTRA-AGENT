@@ -5,19 +5,8 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
-const localClauseIds: Readonly<Record<string, string>> = {
-  "APEX-LOCAL-BROWSER-001-V4": "apex-local-browser-001-v4-single-unpacked-websocket",
-  "APEX-LOCAL-BROWSER-002-V4": "apex-local-browser-002-v4-auth-liveness",
-  "APEX-LOCAL-BROWSER-003-V6": "apex-local-browser-003-v6-claim-workspace-restart-resume",
-  "APEX-LOCAL-BROWSER-004-V4": "apex-local-browser-004-v4-durable-mutation",
-  "APEX-LOCAL-BROWSER-005-V4": "apex-local-browser-005-v4-release-recovery",
-  "GRASSEYE-SECURITY-PRIVACY-BROWSER-001-V2": "grasseye-security-privacy-browser-001-v2-secrets-and-paths",
-};
-
-export const createLocalFinding = (input: Parameters<typeof createFinding>[0]): InspectorFinding => {
-  const clauseId = localClauseIds[input.lawId] ?? input.clauseId;
-  return createFinding({ ...input, ...(clauseId ? { clauseId } : {}) });
-};
+export const createLocalFinding = (input: Parameters<typeof createFinding>[0]): InspectorFinding =>
+  createFinding({ ...input, clauseId: input.clauseId ?? `${input.lawId.toLowerCase()}-requirement` });
 
 export const lawPath = ".github/instructions/agent-rules/功能法案.md";
 export const blueprintPath = "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md";

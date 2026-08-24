@@ -24,6 +24,10 @@
     "pnpm-workspace.yaml",
     "scripts/audit/domains/project-governance/manifest.json",
     "scripts/audit/generated/**",
+    "scripts/audit/governance-authority.ts",
+    "scripts/audit/governance-json.ts",
+    "scripts/audit/governance-quality.ts",
+    "scripts/audit/governance-runtime.ts",
     "scripts/audit/governance-v32.ts",
     "tests/governance/**",
     "tsconfig.json"

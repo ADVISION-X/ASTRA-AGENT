@@ -370,9 +370,9 @@ const buildSummary = (findings: readonly Finding[]) => ({
 
 
 export const inspectConstitutionalBoundary = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const boundaryLawId = selectLawId(context.planEntry.lawIds, "APEX-CONSTITUTIONAL-BOUNDARY-001-V1");
-  const facadeLawId = selectLawId(context.planEntry.lawIds, "APEX-CAPABILITY-FACADE-SYMBOL-001-V1");
-  const protocolLawId = selectLawId(context.planEntry.lawIds, "APEX-PLUGIN-NO-CAPABILITY-PROTOCOL-001-V1");
+  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
+  const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
+  const protocolLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
   const pushFinding = createDedupedFindingPusher(findings);

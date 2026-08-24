@@ -289,8 +289,8 @@ const inspectSourceFile = (
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const admissionLawId = selectLawId(context.planEntry.lawIds, "APEX-CAPABILITY-GROUP-001-V1");
-  const facadeLawId = selectLawId(context.planEntry.lawIds, "APEX-CAPABILITY-GROUP-003-V1");
+  const admissionLawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V1");
+  const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V1");
   const findings: ReturnType<typeof createFinding>[] = [];
   const pushFinding = createDedupedFindingPusher(findings);
   const scan = collectCapabilityGovernanceScan({

@@ -15,7 +15,9 @@ const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-v32-'))
     '.gitignore', 'AGENTS.md', 'package.json', 'tsconfig.json',
     '.github/instructions/agent-rules/基础法案.md', '.github/instructions/agent-rules/功能法案.md',
     'docs/governance', 'docs/blueprints', 'docs/specs',
-    'scripts/audit/domains', 'scripts/audit/generated', 'scripts/audit/governance-v32.ts',
+    'scripts/audit/domains', 'scripts/audit/generated',
+    'scripts/audit/governance-authority.ts', 'scripts/audit/governance-json.ts',
+    'scripts/audit/governance-quality.ts', 'scripts/audit/governance-runtime.ts', 'scripts/audit/governance-v32.ts',
   ]) {
     const target = join(root, source);
     mkdirSync(dirname(target), { recursive: true });
@@ -76,14 +78,18 @@ test('CHANGE entry rejects a dirty target even when an environment variable clai
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('active corpus is exactly two files and base law keeps eight project roots plus authorized stable governance laws', () => {
+test('active corpus is exactly two files and base law contains exactly the eight project roots', () => {
   const base = readFileSync('.github/instructions/agent-rules/基础法案.md','utf8');
   const functional = readFileSync('.github/instructions/agent-rules/功能法案.md','utf8');
-  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 22);
-  assert.match(base, /LAW-AUDIT-SYSTEM-001-V1/);
-  assert.match(base, /LAW-AUDIT-TRUTH-001-V1/);
-  assert.match(base, /LAW-CODE-PURITY-001-V1/);
-  assert.ok((functional.match(/^```law-record$/gm) ?? []).length > 0);
+  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 8);
+  for (let index = 1; index <= 8; index += 1) {
+    assert.match(base, new RegExp(`LAW-PROJECT-GOVERNANCE-00${index}-V1`, 'u'));
+  }
+  assert.doesNotMatch(base, /LAW-AUDIT-SYSTEM-001-V1|LAW-AUDIT-TRUTH-001-V1|LAW-CODE-PURITY-001-V1/u);
+  assert.equal((functional.match(/^```law-record$/gm) ?? []).length, 36);
+  assert.match(functional, /LAW-AUDIT-SYSTEM-001-V1/u);
+  assert.match(functional, /LAW-AUDIT-TRUTH-001-V1/u);
+  assert.match(functional, /LAW-CODE-PURITY-001-V1/u);
   assert.deepEqual(readdirSync('.github/instructions/agent-rules').filter((name) => name.endsWith('.md')).sort(), ['功能法案.md','基础法案.md']);
 });
 
@@ -383,10 +389,17 @@ test('READY evidence applicability follows the actual diff and rejects a missing
 
 test('RELEASE consumes the real executor chain and the unique B.9 package schema', () => {
   const binding = { candidateId: 'a'.repeat(64), gitCommit: 'b'.repeat(40) };
+  const participant = {
+    contractId: 'ai-acceptance.xuanxue-ai-production-v6',
+    contractVersion: 6,
+    repo: 'ADVISION-X/xuanxue-web',
+    releaseSha256: '9'.repeat(64),
+  };
   assert.throws(() => verifyXuanxueReleaseEvidence('/definitely/not/a/real-proof.json', () => ({ status: 0, stdout: 'PASS', stderr: '' })), /invalid real proof authority/u);
-  assert.deepEqual(agentReleaseParticipants(undefined), []);
-  assert.throws(() => agentReleaseParticipants('[]'), /upstream participant leaf/u);
-  assert.throws(() => agentReleaseParticipants('[{"repo":"caller-authored"}]'), /upstream participant leaf/u);
+  assert.throws(() => agentReleaseParticipants(undefined), /direct provider RELEASE participants are required/u);
+  assert.throws(() => agentReleaseParticipants('[]'), /do not match direct contract pins/u);
+  assert.throws(() => agentReleaseParticipants('[{"repo":"caller-authored"}]'), /invalid RELEASE participant/u);
+  assert.deepEqual(agentReleaseParticipants(JSON.stringify([participant])), [participant]);
   const proofDirectory = mkdtempSync(join(tmpdir(), 'stable-proof-'));
   const proofPath = join(proofDirectory, 'proof.json');writeFileSync(proofPath, '{"a":1}\n');const before = readFileSync(proofPath);const stat = lstatSync(proofPath);const identity = { dev: stat.dev, ino: stat.ino, size: stat.size, mtimeMs: stat.mtimeMs };
   assert.doesNotThrow(() => assertStableProofFile(proofPath, before, identity));
@@ -397,22 +410,24 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
     freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
     functionalLawSha256: 'e'.repeat(64), registrySha256: 'f'.repeat(64),
     lawQualityReportSha256: '1'.repeat(64), dynamicProofHashes: ['2'.repeat(64)],
-    crossRepoParticipants: [],
+    crossRepoParticipants: [participant],
   };
   assert.doesNotThrow(() => validateReleaseProofPackage(proofPackage));
   assert.throws(() => validateReleaseProofPackage({ ...proofPackage, releaseReceipt: true }), /invalid RELEASE proof package/u);
-  const source = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
-  assert.match(source, /xuanxue-ai-production\.real-chrome\.ts/u);
-  assert.match(source, /xuanxue-ai-production\.real-provider\.ts/u);
-  assert.match(source, /caller-authored Dynamic Proof wrappers are retired/u);
-  assert.match(source, /real Chrome executor output does not exactly match the bound artifacts/u);
-  assert.match(source, /real Provider executor output does not exactly match the bound artifacts/u);
-  assert.match(source, /'--binding',bindingSnapshot/u);
-  assert.match(source, /dynamicProofEvidenceRefs:artifacts\.map/u);
-  assert.match(source, /real proof artifact changed during verification/u);
-  assert.match(source, /AGENT RELEASE is the upstream participant leaf/u);
-  assert.doesNotMatch(source, /resolveReleaseParticipants|validateParticipantReleaseReport/u);
-  assert.match(source, /RELEASE_PACKAGE/u);
+  const qualitySource = readFileSync('scripts/audit/governance-quality.ts', 'utf8');
+  assert.match(qualitySource, /xuanxue-ai-production\.real-chrome\.ts/u);
+  assert.match(qualitySource, /xuanxue-ai-production\.real-provider\.ts/u);
+  assert.match(qualitySource, /caller-authored Dynamic Proof wrappers are retired/u);
+  assert.match(qualitySource, /real Chrome executor output does not exactly match the bound artifacts/u);
+  assert.match(qualitySource, /real Provider executor output does not exactly match the bound artifacts/u);
+  assert.match(qualitySource, /'--binding',bindingSnapshot/u);
+  assert.match(qualitySource, /dynamicProofEvidenceRefs:artifacts\.map/u);
+  assert.match(qualitySource, /real proof artifact changed during verification/u);
+  assert.match(qualitySource, /direct provider RELEASE participants are required/u);
+  assert.doesNotMatch(qualitySource, /upstream participant leaf/u);
+  assert.doesNotMatch(qualitySource, /resolveReleaseParticipants|validateParticipantReleaseReport/u);
+  const entrySource = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
+  assert.match(entrySource, /RELEASE_PACKAGE/u);
 });
 
 test('real proof executor outputs are exact bound contracts', () => {

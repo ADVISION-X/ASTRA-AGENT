@@ -134,7 +134,10 @@ const inspectFunction = (source: SourceFile, functionName: string): Finding[] =>
     path: source.getFilePath(),
   });
   if (!declaration) return [broken("declaration")];
+  const names = identifierSet(declaration);
+  const exactClaimInputs = ["checkClaimForLaw", "claim", "evidenceModes", "lawId"];
   return [
+    ...exactClaimInputs.filter((name) => !names.has(name)).map((name) => broken(`exact-law-claim.${name}`)),
     ...inspectLawItem(declaration, broken),
     ...inspectEvidencePaths(declaration, functionName, broken),
     ...inspectReportPath(declaration, broken),

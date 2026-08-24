@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { z } from "zod";
 
@@ -41,91 +41,94 @@ export type ZombieExemptionManifest = {
   lawfulSideEffectImports: readonly ZombieSideEffectImportExemption[];
 };
 
+const entryFileSchema = z.object({ filePath: z.string().min(1), reason: z.string().min(1) }).strict();
+const entryExportSchema = entryFileSchema.extend({ exportName: z.string().min(1) }).strict();
 const pathPairSchema = z.object({
   consumerFilePath: z.string().min(1),
+  reason: z.string().min(1),
   targetFilePath: z.string().min(1),
 }).strict();
-
-const livenessSchema = z.object({
-  auditInspectionFiles: z.array(z.string().min(1)).default([]),
-  externalEntryExports: z.array(z.object({
-    exportName: z.string().min(1),
-    filePath: z.string().min(1),
-  }).strict()).default([]),
-  externalEntryFiles: z.array(z.string().min(1)).default([]),
-  lawfulDynamicImports: z.array(pathPairSchema).default([]),
-  lawfulDynamicNamespaceConsumers: z.array(pathPairSchema).default([]),
-  lawfulDynamicRegistryConsumers: z.array(z.object({
-    consumerFilePath: z.string().min(1),
-    registryExportName: z.string().min(1),
-    registryFilePath: z.string().min(1),
-  }).strict()).default([]),
-  lawfulSideEffectImports: z.array(pathPairSchema).default([]),
+const registryConsumerSchema = z.object({
+  consumerFilePath: z.string().min(1),
+  reason: z.string().min(1),
+  registryExportName: z.string().min(1),
+  registryFilePath: z.string().min(1),
 }).strict();
 
-const lawRegistrySchema = z.object({
-  laws: z.array(z.object({
-    codePurityLiveness: livenessSchema.optional(),
-    lawId: z.string().min(1),
-    status: z.enum(["active", "draft", "retired"]),
-  }).passthrough()),
-}).passthrough();
+const authoritySchema = z.object({
+  auditInspectionFiles: z.array(entryFileSchema),
+  externalEntryExports: z.array(entryExportSchema),
+  externalEntryFiles: z.array(entryFileSchema),
+  lawfulDynamicImports: z.array(pathPairSchema),
+  lawfulDynamicNamespaceConsumers: z.array(pathPairSchema),
+  lawfulDynamicRegistryConsumers: z.array(registryConsumerSchema),
+  lawfulSideEffectImports: z.array(pathPairSchema),
+  owner: z.literal("code-purity"),
+  schemaVersion: z.literal(1),
+  status: z.literal("active"),
+}).strict();
 
-type LawLiveness = z.infer<typeof livenessSchema>;
+const AUTHORITY_PATH = "scripts/audit/domains/code-purity/liveness-authority.json";
 
-const readActiveLawLiveness = (): Array<{ lawId: string; liveness: LawLiveness }> => {
-  const registry = lawRegistrySchema.parse(JSON.parse(readFileSync(
-    resolveFromRepo("scripts/audit/generated/law-registry.generated.json"),
-    "utf8",
-  )));
-  return registry.laws.flatMap((law) => law.status === "active" && law.codePurityLiveness
-    ? [{ lawId: law.lawId, liveness: law.codePurityLiveness }]
-    : []);
+const assertedExistingPath = (repoPath: string): void => {
+  if (!existsSync(resolveFromRepo(repoPath))) {
+    throw new Error(`CODE_PURITY_LIVENESS_PATH_MISSING:${repoPath}`);
+  }
+};
+
+const uniqueKey = (value: unknown): string => JSON.stringify(value);
+
+const assertUnique = (label: string, entries: readonly unknown[]): void => {
+  if (new Set(entries.map(uniqueKey)).size !== entries.length) {
+    throw new Error(`CODE_PURITY_LIVENESS_DUPLICATE:${label}`);
+  }
 };
 
 export const createZombieExemptionManifest = (): ZombieExemptionManifest => {
-  const authorities = readActiveLawLiveness();
-  return {
-    auditInspectionFiles: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.auditInspectionFiles.map((filePath) => ({ filePath, reason: `active law ${lawId} audit inspection` }))),
-    externalEntryExports: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.externalEntryExports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
-    externalEntryFiles: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.externalEntryFiles.map((filePath) => ({ filePath, reason: `active law ${lawId}` }))),
-    lawfulDynamicImports: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.lawfulDynamicImports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
-    lawfulDynamicNamespaceConsumers: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.lawfulDynamicNamespaceConsumers.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
-    lawfulDynamicRegistryConsumers: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.lawfulDynamicRegistryConsumers.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
-    lawfulSideEffectImports: authorities.flatMap(({ lawId, liveness }) =>
-      liveness.lawfulSideEffectImports.map((entry) => ({ ...entry, reason: `active law ${lawId}` }))),
+  const authority = authoritySchema.parse(JSON.parse(readFileSync(resolveFromRepo(AUTHORITY_PATH), "utf8")));
+  const collections = {
+    auditInspectionFiles: authority.auditInspectionFiles,
+    externalEntryExports: authority.externalEntryExports,
+    externalEntryFiles: authority.externalEntryFiles,
+    lawfulDynamicImports: authority.lawfulDynamicImports,
+    lawfulDynamicNamespaceConsumers: authority.lawfulDynamicNamespaceConsumers,
+    lawfulDynamicRegistryConsumers: authority.lawfulDynamicRegistryConsumers,
+    lawfulSideEffectImports: authority.lawfulSideEffectImports,
   };
+  for (const [label, entries] of Object.entries(collections)) {
+    assertUnique(label, entries);
+  }
+  for (const entry of [...authority.auditInspectionFiles, ...authority.externalEntryExports, ...authority.externalEntryFiles]) {
+    assertedExistingPath(entry.filePath);
+  }
+  for (const entry of [...authority.lawfulDynamicImports, ...authority.lawfulDynamicNamespaceConsumers, ...authority.lawfulSideEffectImports]) {
+    assertedExistingPath(entry.consumerFilePath);
+    assertedExistingPath(entry.targetFilePath);
+  }
+  for (const entry of authority.lawfulDynamicRegistryConsumers) {
+    assertedExistingPath(entry.consumerFilePath);
+    assertedExistingPath(entry.registryFilePath);
+  }
+  return collections;
 };
 
-export const isLawfulManifestEntryFile = (
-  manifest: ZombieExemptionManifest,
-  filePath: string,
-): boolean => manifest.externalEntryFiles.some((entry) => entry.filePath === filePath);
+export const isLawfulManifestEntryFile = (manifest: ZombieExemptionManifest, filePath: string): boolean =>
+  manifest.externalEntryFiles.some((entry) => entry.filePath === filePath);
 
-export const isLawfulAuditInspectionFile = (
-  manifest: ZombieExemptionManifest,
-  filePath: string,
-): boolean => manifest.auditInspectionFiles.some((entry) => entry.filePath === filePath);
+export const isLawfulAuditInspectionFile = (manifest: ZombieExemptionManifest, filePath: string): boolean =>
+  manifest.auditInspectionFiles.some((entry) => entry.filePath === filePath);
 
 export const isLawfulManifestEntryExport = (
   manifest: ZombieExemptionManifest,
   filePath: string,
   exportName: string,
-): boolean => manifest.externalEntryExports.some((entry) =>
-  entry.filePath === filePath && entry.exportName === exportName);
+): boolean => manifest.externalEntryExports.some((entry) => entry.filePath === filePath && entry.exportName === exportName);
 
 const hasPathPair = (
   entries: readonly ZombieDynamicImportExemption[],
   consumerFilePath: string,
   targetFilePath: string,
-): boolean => entries.some((entry) =>
-  entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath);
+): boolean => entries.some((entry) => entry.consumerFilePath === consumerFilePath && entry.targetFilePath === targetFilePath);
 
 export const isLawfulDynamicImport = (
   manifest: ZombieExemptionManifest,

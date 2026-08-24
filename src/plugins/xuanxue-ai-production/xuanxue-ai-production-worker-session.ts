@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   RuntimeAttestationReceiptV6Schema,
   WorkerSessionCredentialV6Schema,
@@ -10,12 +11,26 @@ import {
   type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
 import { XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 } from "./xuanxue-ai-production-product-contracts.js";
+import { parseXuanxueAiProductionJsonEnvelope } from "./xuanxue-ai-production-json-envelope.js";
 
-interface JsonEnvelope<T> {
-  readonly ok?: boolean;
-  readonly data?: T;
-  readonly error?: { readonly code?: string; readonly message?: string };
-}
+const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
+const OpenSessionResponseSchema = z.object({
+  session: z.object({
+    worker_session_id: z.string().min(1),
+    worker_session_epoch: z.number().int().positive(),
+    environment_id: z.string().min(1),
+    origin: z.string().url(),
+    device_id: z.string().min(1),
+    device_epoch: z.number().int().positive(),
+    agent_build_hash: hashSchema,
+    control_contract_manifest_hash: hashSchema,
+  }).strict(),
+  session_credential: z.unknown(),
+}).strict();
+const HeartbeatResponseSchema = z.object({
+  attestation_receipt: z.unknown(),
+  session_credential: z.unknown(),
+}).strict();
 
 export type XuanxueAiProductionRuntimeStateV6 = Readonly<{
   businessInFlight: number;
@@ -25,25 +40,6 @@ export type XuanxueAiProductionRuntimeStateV6 = Readonly<{
   browserLaneState: "idle" | "busy" | "blocked";
   drainState: "open" | "draining";
   ledgerReconciled: boolean;
-}>;
-
-type OpenSessionResponse = Readonly<{
-  session: Readonly<{
-    worker_session_id: string;
-    worker_session_epoch: number;
-    environment_id: string;
-    origin: string;
-    device_id: string;
-    device_epoch: number;
-    agent_build_hash: `sha256:${string}`;
-    control_contract_manifest_hash: `sha256:${string}`;
-  }>;
-  session_credential: unknown;
-}>;
-
-type HeartbeatResponse = Readonly<{
-  attestation_receipt: unknown;
-  session_credential: unknown;
 }>;
 
 const baseUrl = (credential: XuanxueAiProductionCloudCredential): string =>
@@ -85,7 +81,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
   public async open(): Promise<void> {
     if (this.sessionCredential) return;
     const requestId = `aipsopen_${randomUUID()}`;
-    const response = await this.deviceRequest<OpenSessionResponse>(
+    const response = OpenSessionResponseSchema.parse(await this.deviceRequest(
       "/internal/ai-production/v6/sessions/open",
       {
         schema_version: "xuanxue-ai-worker-session-open.v6",
@@ -98,7 +94,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
         agent_build_hash: this.device.agent_build_hash,
         control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
       },
-    );
+    ));
     const sessionCredential = WorkerSessionCredentialV6Schema.parse(response.session_credential);
     const session = response.session;
     if (session.worker_session_id !== sessionCredential.worker_session_id
@@ -125,7 +121,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
     const nextSeq = this.attestationSeq + 1;
     const requestId = this.heartbeatRequestId ?? `aipattreq_${randomUUID()}`;
     this.heartbeatRequestId = requestId;
-    const response = await this.sessionRequest<HeartbeatResponse>(
+    const response = HeartbeatResponseSchema.parse(await this.sessionRequest(
       `/internal/ai-production/v6/sessions/${encodeURIComponent(this.workerSessionId)}/heartbeat`,
       {
         method: "POST",
@@ -149,7 +145,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
           ledger_reconciled: this.ledgerReconciled && state.ledgerReconciled,
         }),
       },
-    );
+    ));
     const receipt = RuntimeAttestationReceiptV6Schema.parse(response.attestation_receipt);
     const rotatedCredential = WorkerSessionCredentialV6Schema.parse(response.session_credential);
     if (receipt.worker_session_id !== this.workerSessionId
@@ -179,9 +175,9 @@ export class XuanxueAiProductionWorkerSessionV6 {
     return current;
   }
 
-  public async request<T>(pathname: string, init: RequestInit): Promise<T> {
+  public async request(pathname: string, init: RequestInit): Promise<unknown> {
     await this.open();
-    return this.sessionRequest<T>(pathname, init);
+    return this.sessionRequest(pathname, init);
   }
 
   public async authorizationHeaders(
@@ -205,8 +201,8 @@ export class XuanxueAiProductionWorkerSessionV6 {
     this.attestationReceipt = null;
   }
 
-  private async deviceRequest<T>(pathname: string, body: Record<string, unknown>): Promise<T> {
-    return this.fetchJson<T>(pathname, {
+  private async deviceRequest(pathname: string, body: Record<string, unknown>): Promise<unknown> {
+    return this.fetchJson(pathname, {
       method: "POST",
       headers: {
         authorization: `Bearer ${this.device.credential}`,
@@ -217,10 +213,10 @@ export class XuanxueAiProductionWorkerSessionV6 {
     });
   }
 
-  private async sessionRequest<T>(pathname: string, init: RequestInit): Promise<T> {
+  private async sessionRequest(pathname: string, init: RequestInit): Promise<unknown> {
     const credential = this.sessionCredential;
     if (!credential) throw new Error("XUANXUE_AI_PRODUCTION_SESSION_NOT_OPEN");
-    return this.fetchJson<T>(pathname, {
+    return this.fetchJson(pathname, {
       ...init,
       headers: {
         origin: this.device.origin,
@@ -231,12 +227,12 @@ export class XuanxueAiProductionWorkerSessionV6 {
     });
   }
 
-  private async fetchJson<T>(pathname: string, init: RequestInit): Promise<T> {
+  private async fetchJson(pathname: string, init: RequestInit): Promise<unknown> {
     const response = await fetch(`${baseUrl(this.device)}${pathname}`, {
       ...init,
       signal: init.signal ?? AbortSignal.timeout(30_000),
     });
-    const body = await response.json() as JsonEnvelope<T>;
+    const body = parseXuanxueAiProductionJsonEnvelope(await response.json() as unknown);
     if (!response.ok || body.ok !== true || body.data === undefined) {
       throw new Error(`XUANXUE_AI_PRODUCTION_CLOUD_API_FAILED:${body.error?.code ?? response.status}:${body.error?.message ?? "unknown"}`);
     }

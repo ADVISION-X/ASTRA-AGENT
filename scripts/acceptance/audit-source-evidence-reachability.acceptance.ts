@@ -14,17 +14,38 @@ const functionBody = (mutation: "baseline" | "decoy" | "no-validation" | "wrong-
   const validation = mutation === "no-validation" ? "" : "validateQualityReport(report);";
   const payload = mutation === "wrong-payload" ? "canonicalBytes({ outcome: 'PASS' })" : "canonicalBytes(report)";
   const write = `writeFileSync("report.json", ${payload});`;
+  const evidence = release ? `
+      const staticChecks = checks.flatMap((check) => {
+        const claim = checkClaimForLaw(check, law.lawId);
+        return claim ? [{ check, claim }] : [];
+      });
+      const lawProofs = proofs.filter((proof) => proof.lawIds.includes(law.lawId));
+      const covered = new Set([
+        ...staticChecks.filter(({ check }) => check.outcome === "PASS").flatMap(({ claim }) => claim.evidenceModes),
+        ...lawProofs.flatMap((proof) => proof.evidenceModes),
+      ]);
+      const missing = applicable.filter((mode: string) => !covered.has(mode));
+      const failed = staticChecks.filter(({ check }) => check.outcome === "FAIL");
+      const findings = [...missing, ...failed.flatMap(({ check }) => check.finding ?? [])];
+      const evidenceRefs = [
+        ...staticChecks.filter(({ check }) => check.outcome === "PASS").map(({ check }) => check.evidenceRef),
+        ...lawProofs.flatMap((proof) => proof.evidenceRefs),
+      ];
+  ` : `
+      const relevant = checks.flatMap((check) => {
+        const claim = checkClaimForLaw(check, law.lawId);
+        return claim ? [{ check, claim }] : [];
+      });
+      const covered = new Set(relevant.filter(({ check }) => check.outcome === "PASS").flatMap(({ claim }) => claim.evidenceModes));
+      const missing = applicable.filter((mode: string) => !covered.has(mode));
+      const failed = relevant.filter(({ check }) => check.outcome === "FAIL");
+      const findings = [...missing, ...failed.flatMap(({ check }) => check.finding ?? [])];
+      const evidenceRefs = relevant.filter(({ check }) => check.outcome === "PASS").map(({ check }) => check.evidenceRef);
+  `;
   return `
     const items = laws.map((law: { lawId: string }) => {
       const { applicableEvidenceModes: applicable, deferredEvidenceModes: deferred } = evidencePlan(law);
-      const relevant = checks.filter((check: { outcome: string; evidenceRef: string }) => check.outcome === "PASS");
-      const staticChecks = relevant;
-      const lawProofs = [{ evidenceRefs: relevant.map((check) => check.evidenceRef) }];
-      const covered = new Set(relevant.map((check) => check.outcome));
-      const missing = applicable.filter((mode: string) => !covered.has(mode));
-      const failed = checks.filter((check: { outcome: string }) => check.outcome === "FAIL");
-      const findings = [...missing, ...failed];
-      const evidenceRefs = ${release ? "[...staticChecks.filter((check) => check.outcome === 'PASS').map((check) => check.evidenceRef), ...lawProofs.flatMap((proof) => proof.evidenceRefs)]" : "relevant.filter((check) => check.outcome === 'PASS').map((check) => check.evidenceRef)"};
+      ${evidence}
       return { lawId: law.lawId, applicableEvidenceModes: applicable, deferredEvidenceModes: deferred, outcome: findings.length ? "FAIL" : "PASS", evidenceRefs, findings };
     });
     const report = { laws: items, outcome: items.some((item) => item.outcome === "FAIL") ? "FAIL" : "PASS" };
@@ -39,8 +60,11 @@ const sourceFor = (mutation: "baseline" | "decoy" | "no-validation" | "wrong-pay
     declare const validateQualityReport: (report: unknown) => void;
     declare const writeFileSync: (path: string, data: unknown) => void;
     declare const canonicalBytes: (value: unknown) => Uint8Array;
-    function writeReport(laws: Array<{ lawId: string }>, checks: Array<{ outcome: string; evidenceRef: string }>) { ${functionBody(mutation)} }
-    function writeReleaseReport(laws: Array<{ lawId: string }>, checks: Array<{ outcome: string; evidenceRef: string }>) { ${functionBody(mutation, true)} }
+    type Claim = { lawId: string; evidenceModes: string[] };
+    type Check = { claims: Claim[]; outcome: string; evidenceRef: string; finding: string | null };
+    declare const checkClaimForLaw: (check: Check, lawId: string) => Claim | undefined;
+    function writeReport(laws: Array<{ lawId: string }>, checks: Check[]) { ${functionBody(mutation)} }
+    function writeReleaseReport(laws: Array<{ lawId: string }>, checks: Check[], proofs: Array<{ lawIds: string[]; evidenceModes: string[]; evidenceRefs: string[] }>) { ${functionBody(mutation, true)} }
   `,
   { overwrite: true },
 );

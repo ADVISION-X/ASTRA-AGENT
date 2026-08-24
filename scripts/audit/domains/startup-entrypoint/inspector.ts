@@ -139,7 +139,7 @@ const inspectDomainEvaluation = (context: InspectorContext): Readonly<{
   findings: Finding[];
   evidenceRefs: readonly string[];
 }> => {
-  const lawId = selectLawId(context.planEntry.lawIds, "APEX-STARTUP-001-V3");
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
   const findings: Finding[] = [];
   inspectStartupBoundary(context, findings, lawId);
   return { findings, evidenceRefs: [inspectorPath, packagePath, launchPath, preflightPath, processControlPath] };

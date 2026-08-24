@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -10,7 +8,7 @@ import { inspectBinaryVerdict } from "./binary-verdict-inspector.js";
 import { inspectCiControlIntegrity } from "./ci-control-integrity-inspector.js";
 import { inspectCiEntryOrder } from "./ci-entry-order-inspector.js";
 import { inspectCiFailureLedger } from "./ci-failure-ledger-inspector.js";
-import { inspectCiPhaseIntegrityEntry } from "./ci-phase-integrity-entry-inspector.js";
+import { inspectCiPhaseIntegrity } from "./ci-phase-integrity-inspector.js";
 import { inspectGeneratedArtifactTruth } from "./generated-artifact-truth-inspector.js";
 import { inspectManualMatrixConsumption } from "./manual-matrix-consumption-inspector.js";
 import { inspectNodeHttpServer } from "./node-http-server-inspector.js";
@@ -41,21 +39,6 @@ type Manifest = {
   schemaVersion?: unknown;
   status?: unknown;
 };
-type RecoveryItem = { legacySource?: unknown; targetPath?: unknown; targetPaths?: unknown; targetLawFile?: unknown; targetLawId?: unknown; currentSha256?: unknown; donorGitBlob?: unknown; semanticStatus?: unknown; enforcementStatus?: unknown; behaviorStatus?: unknown; testStatus?: unknown; ciStatus?: unknown; evidenceStatus?: unknown; comparisonStatus?: unknown; retirementDecision?: unknown };
-type RecoveryLedger = {
-  donorCommit?: unknown;
-  canonicalCaller?: unknown;
-  activeLawSources?: unknown;
-  counts?: Record<string, unknown>;
-  sourceModules?: RecoveryItem[];
-  lawRecords?: RecoveryItem[];
-  auditSystemFiles?: RecoveryItem[];
-  codePurityFiles?: RecoveryItem[];
-  ciDonors?: RecoveryItem[];
-  acceptanceBindings?: RecoveryItem[];
-  forbiddenRestorations?: unknown;
-};
-
 const REQUIRED_SCRIPTS = Object.freeze({
   "audit:code-purity:enforce": "node --import tsx scripts/audit/domains/code-purity/check.ts",
   "audit:system:enforce": "node --import tsx scripts/audit/domains/audit-system/check.ts",
@@ -64,153 +47,9 @@ const REQUIRED_SCRIPTS = Object.freeze({
   "quality:check": "node --import tsx scripts/audit/governance-v32.ts quality",
 });
 
-const REQUIRED_ROUTES = Object.freeze({
-  "architecture-boundary": ["audit:architecture-boundary:enforce"],
-  "audit-system": ["audit:system:enforce"],
-  "audit-truth": ["audit:truth:enforce"],
-  "capability-governance": ["audit:capability-governance:enforce"],
-  "code-purity": ["audit:code-purity:enforce"],
-  "runtime-log-spine": ["audit:runtime-log-spine:enforce"],
-  "system-security": ["audit:system-security:enforce"],
-});
-
-const REQUIRED_RESTORED_LAWS = Object.freeze([
-  "LAW-ARCHITECTURE-BOUNDARY-001-V1",
-  "LAW-AUDIT-SYSTEM-001-V1",
-  "LAW-AUDIT-TRUTH-001-V1",
-  "LAW-CAPABILITY-GOVERNANCE-001-V1",
-  "LAW-CODE-PURITY-001-V1",
-  "LAW-SYSTEM-SECURITY-001-V1",
-]);
-
 const finding = (code: string, path: string, detail: string): AuditSystemFinding => ({ code, detail, path });
 const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, "utf8")) as T;
 const stringArray = (value: unknown): string[] => Array.isArray(value) && value.every((item) => typeof item === "string") ? value : [];
-const sha256File = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
-
-const RECOVERY_DONOR = "8e6f8c3773b3332617f725a9df85377870040522";
-const RECOVERY_LEDGER_PATH = "docs/governance/AGENT-foundation-recovery-ledger.json";
-
-const readRecoveryLedger = (root: string): RecoveryLedger | AuditSystemFinding => {
-  const absolute = resolve(root, RECOVERY_LEDGER_PATH);
-  if (!existsSync(absolute)) return finding("AUDIT_RECOVERY_LEDGER_MISSING", RECOVERY_LEDGER_PATH, RECOVERY_LEDGER_PATH);
-  try { return readJson<RecoveryLedger>(absolute); } catch {
-    return finding("AUDIT_RECOVERY_LEDGER_INVALID", RECOVERY_LEDGER_PATH, "invalid JSON");
-  }
-};
-
-const recoveryLedgerIdentityFindings = (ledger: RecoveryLedger): AuditSystemFinding[] => {
-  const findings: AuditSystemFinding[] = [];
-  const expectedCounts = { sourceModules: 14, lawRecords: 70, auditSystemFiles: 21, codePurityFiles: 36, ciDonors: 4, acceptanceBindings: 12 };
-  const sources = [".github/instructions/agent-rules/基础法案.md", ".github/instructions/agent-rules/功能法案.md"];
-  if (ledger.donorCommit !== RECOVERY_DONOR || ledger.canonicalCaller !== "quality:check") {
-    findings.push(finding("AUDIT_RECOVERY_DONOR_INVALID", RECOVERY_LEDGER_PATH, String(ledger.donorCommit)));
-  }
-  if (JSON.stringify(ledger.activeLawSources) !== JSON.stringify(sources)) {
-    findings.push(finding("AUDIT_RECOVERY_ACTIVE_SOURCE_INVALID", RECOVERY_LEDGER_PATH, JSON.stringify(ledger.activeLawSources)));
-  }
-  if (JSON.stringify(ledger.counts) !== JSON.stringify(expectedCounts)) {
-    findings.push(finding("AUDIT_RECOVERY_DENOMINATOR_INVALID", RECOVERY_LEDGER_PATH, JSON.stringify(ledger.counts)));
-  }
-  return findings;
-};
-
-const recoveryItems = (ledger: RecoveryLedger): RecoveryItem[] | null => {
-  const groups = [ledger.lawRecords, ledger.auditSystemFiles, ledger.codePurityFiles, ledger.ciDonors, ledger.acceptanceBindings];
-  return groups.every(Array.isArray) ? groups.flat() as RecoveryItem[] : null;
-};
-
-const recoveryItemStatusFindings = (items: RecoveryItem[]): AuditSystemFinding[] => {
-  const findings: AuditSystemFinding[] = [];
-  const sources = items.map((item) => item.legacySource).filter((value): value is string => typeof value === "string");
-  if (sources.length !== items.length || new Set(sources).size !== sources.length || sources.some((source) => !source.startsWith(`${RECOVERY_DONOR}:`))) {
-    findings.push(finding("AUDIT_RECOVERY_SOURCE_IDENTITY_INVALID", RECOVERY_LEDGER_PATH, "legacySource"));
-  }
-  if (items.some((item) => [item.semanticStatus, item.enforcementStatus, item.behaviorStatus, item.testStatus].includes("MISSING")
-    || item.ciStatus !== "CALLED" || item.evidenceStatus !== "BOUND")) {
-    findings.push(finding("AUDIT_RECOVERY_STATUS_INCOMPLETE", RECOVERY_LEDGER_PATH, "MISSING/NOT_CALLED/UNBOUND"));
-  }
-  return findings;
-};
-
-const recoveryLawFindings = (ledger: RecoveryLedger, registry: Registry): AuditSystemFinding[] => {
-  const findings: AuditSystemFinding[] = [];
-  const lawIds = new Set((registry.laws ?? []).flatMap((law) => typeof law.lawId === "string" ? [law.lawId] : []));
-  const lawFiles = [".github/instructions/agent-rules/基础法案.md", ".github/instructions/agent-rules/功能法案.md"];
-  for (const item of ledger.lawRecords ?? []) {
-    if (typeof item.targetLawId !== "string" || !lawIds.has(item.targetLawId)) {
-      findings.push(finding("AUDIT_RECOVERY_TARGET_LAW_MISSING", RECOVERY_LEDGER_PATH, String(item.targetLawId)));
-    }
-    if (typeof item.targetLawFile !== "string" || !lawFiles.includes(item.targetLawFile)) {
-      findings.push(finding("AUDIT_RECOVERY_TARGET_SOURCE_INVALID", RECOVERY_LEDGER_PATH, String(item.targetLawFile)));
-    }
-  }
-  return findings;
-};
-
-const donorBlobMatches = (root: string, item: RecoveryItem): boolean => {
-  if (typeof item.donorGitBlob !== "string" || typeof item.legacySource !== "string") return true;
-  const donorPath = item.legacySource.slice(RECOVERY_DONOR.length + 1);
-  if (!donorPath) return false;
-  try {
-    return execFileSync("git", ["rev-parse", `${RECOVERY_DONOR}:${donorPath}`], {
-      cwd: root, encoding: "utf8",
-    }).trim() === item.donorGitBlob;
-  } catch { return false; }
-};
-
-const recoverySourceModuleFindings = (root: string, ledger: RecoveryLedger): AuditSystemFinding[] => {
-  const findings: AuditSystemFinding[] = [];
-  const modules = ledger.sourceModules ?? [];
-  const sources = modules.map((item) => item.legacySource).filter((value): value is string => typeof value === "string");
-  if (modules.length !== 14 || sources.length !== 14 || new Set(sources).size !== 14) {
-    findings.push(finding("AUDIT_RECOVERY_SOURCE_MODULE_DENOMINATOR_INVALID", RECOVERY_LEDGER_PATH, String(modules.length)));
-  }
-  for (const item of modules) {
-    if (item.comparisonStatus !== "INVENTORIED" || item.retirementDecision !== "HISTORY_ONLY") {
-      findings.push(finding("AUDIT_RECOVERY_SOURCE_MODULE_STATUS_INVALID", RECOVERY_LEDGER_PATH, String(item.legacySource)));
-    }
-    if (!donorBlobMatches(root, item)) {
-      findings.push(finding("AUDIT_RECOVERY_DONOR_BLOB_DRIFT", RECOVERY_LEDGER_PATH, String(item.legacySource)));
-    }
-  }
-  return findings;
-};
-
-const recoveryFileFindings = (root: string, ledger: RecoveryLedger): AuditSystemFinding[] => {
-  const findings: AuditSystemFinding[] = [];
-  const groups = [...(ledger.auditSystemFiles ?? []), ...(ledger.codePurityFiles ?? []), ...(ledger.ciDonors ?? [])];
-  for (const item of groups) {
-    const targets = typeof item.targetPath === "string" ? [item.targetPath] : stringArray(item.targetPaths);
-    if (targets.length === 0 || targets.some((target) => !existsSync(resolve(root, target)))) {
-      findings.push(finding("AUDIT_RECOVERY_TARGET_FILE_MISSING", RECOVERY_LEDGER_PATH, String(item.legacySource)));
-    }
-    if (typeof item.currentSha256 === "string" && targets.length === 1 && sha256File(resolve(root, targets[0]!)) !== item.currentSha256) {
-      findings.push(finding("AUDIT_RECOVERY_TARGET_BYTES_DRIFT", targets[0]!, String(item.legacySource)));
-    }
-    if (!donorBlobMatches(root, item)) {
-      findings.push(finding("AUDIT_RECOVERY_DONOR_BLOB_DRIFT", RECOVERY_LEDGER_PATH, String(item.legacySource)));
-    }
-  }
-  return findings;
-};
-
-const recoveryLedgerFindings = (root: string, registry: Registry): AuditSystemFinding[] => {
-  const ledger = readRecoveryLedger(root);
-  if ("code" in ledger) return [ledger];
-  const items = recoveryItems(ledger);
-  if (!items) return [...recoveryLedgerIdentityFindings(ledger), finding(
-    "AUDIT_RECOVERY_LEDGER_INVALID", RECOVERY_LEDGER_PATH, "record group missing",
-  )];
-  return [
-    ...recoveryLedgerIdentityFindings(ledger),
-    ...recoveryItemStatusFindings(items),
-    ...recoverySourceModuleFindings(root, ledger),
-    ...recoveryLawFindings(ledger, registry),
-    ...recoveryFileFindings(root, ledger),
-  ];
-};
-
 export function validatePackageScripts(scripts: Record<string, string>): AuditSystemFinding[] {
   const findings: AuditSystemFinding[] = [];
   for (const [name, command] of Object.entries(REQUIRED_SCRIPTS)) {
@@ -250,11 +89,28 @@ export function readDomainRoutes(sourcePath: string): Record<string, string[]> {
   return routes;
 }
 
-export function validateDomainRoutes(routes: Record<string, string[]>): AuditSystemFinding[] {
+export function validateDomainRoutes(
+  routes: Record<string, string[]>,
+  scripts: Readonly<Record<string, string>>,
+  laws: readonly RegistryLaw[],
+): AuditSystemFinding[] {
   const findings: AuditSystemFinding[] = [];
-  for (const [domain, expected] of Object.entries(REQUIRED_ROUTES)) {
-    if (JSON.stringify(routes[domain]) !== JSON.stringify(expected)) {
-      findings.push(finding("AUDIT_OWNER_ROUTE_MISSING", "scripts/audit/governance-v32.ts", `${domain}:${JSON.stringify(routes[domain] ?? [])}`));
+  const expectedDomains = [...new Set(laws.flatMap((law) => typeof law.capabilityDomain === "string" ? [law.capabilityDomain] : []))].sort();
+  const actualDomains = Object.keys(routes).sort();
+  if (JSON.stringify(actualDomains) !== JSON.stringify(expectedDomains)) {
+    findings.push(finding("AUDIT_OWNER_ROUTE_DENOMINATOR_INVALID", "scripts/audit/governance-v32.ts", JSON.stringify(actualDomains)));
+  }
+  const routeOwners = new Map<string, string>();
+  for (const domain of expectedDomains) {
+    const domainRoutes = routes[domain] ?? [];
+    if (domainRoutes.length === 0 || new Set(domainRoutes).size !== domainRoutes.length) {
+      findings.push(finding("AUDIT_OWNER_ROUTE_MISSING", "scripts/audit/governance-v32.ts", `${domain}:${JSON.stringify(domainRoutes)}`));
+    }
+    for (const script of domainRoutes) {
+      if (!scripts[script]) findings.push(finding("AUDIT_OWNER_ROUTE_SCRIPT_MISSING", "package.json", `${domain}:${script}`));
+      const prior = routeOwners.get(script);
+      if (prior && prior !== domain) findings.push(finding("AUDIT_OWNER_ROUTE_SHARED", "scripts/audit/governance-v32.ts", `${prior},${domain}:${script}`));
+      routeOwners.set(script, domain);
     }
   }
   return findings;
@@ -290,32 +146,35 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
   const packagePath = resolve(root, "package.json");
   const registryPath = resolve(root, "scripts/audit/generated/law-registry.generated.json");
   const governancePath = resolve(root, "scripts/audit/governance-v32.ts");
+  const authorityPath = resolve(root, "scripts/audit/governance-authority.ts");
+  const qualityPath = resolve(root, "scripts/audit/governance-quality.ts");
   const pkg = readJson<PackageJson>(packagePath);
   const registry = readJson<Registry>(registryPath);
   const project = new Project({ tsConfigFilePath: resolve(root, "tsconfig.json"), skipAddingFilesFromTsConfig: true });
   project.addSourceFilesAtPaths(resolve(root, "scripts/audit/**/*.ts"));
   const governance = project.getSourceFileOrThrow(governancePath);
+  const authority = project.getSourceFileOrThrow(authorityPath);
+  const quality = project.getSourceFileOrThrow(qualityPath);
   const findings: AuditSystemFinding[] = [
     ...validatePackageScripts(pkg.scripts ?? {}),
     ...validateAcceptanceBindings(pkg.scripts ?? {}, registry.laws ?? []).map((detail) => finding("AUDIT_ACCEPTANCE_BINDING_INVALID", "package.json", detail)),
-    ...validateDomainRoutes(readDomainRoutes(governancePath)),
+    ...validateDomainRoutes(readDomainRoutes(governancePath), pkg.scripts ?? {}, registry.laws ?? []),
     ...inspectAcceptanceDeliveryIsolation(project),
-    ...inspectBinaryVerdict(governance),
-    ...inspectCiControlIntegrity(governance, pkg),
+    ...inspectBinaryVerdict(quality),
+    ...inspectCiControlIntegrity(governance, quality, pkg),
     ...inspectCiEntryOrder(governance),
-    ...inspectCiFailureLedger(governance),
-    ...inspectCiPhaseIntegrityEntry(governance),
-    ...inspectGeneratedArtifactTruth(root, governance),
+    ...inspectCiFailureLedger(quality),
+    ...inspectCiPhaseIntegrity(governance),
+    ...inspectGeneratedArtifactTruth(root, authority),
     ...inspectManualMatrixConsumption(project),
     ...inspectNodeHttpServer(project),
     ...inspectOwnerEvaluationIntegrity(governance),
     ...inspectOwnerFilesystemMutation(project),
     ...inspectOwnerRegistrations(root, governance),
     ...inspectPhysicalCheckReceipt(governance),
-    ...inspectPrimaryEvidence(governance),
+    ...inspectPrimaryEvidence(quality),
     ...inspectStaleCodePurityReport(root),
-    ...inspectTaskPersistenceIsolation(governance),
-    ...recoveryLedgerFindings(root, registry),
+    ...inspectTaskPersistenceIsolation(governance, quality),
   ];
 
   const generated = readdirSync(resolve(root, "scripts/audit/generated")).filter((name) => !name.startsWith(".")).sort();
@@ -323,8 +182,6 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
   if (registry.lawCorpus?.baseLawPath !== ".github/instructions/agent-rules/基础法案.md" || registry.lawCorpus?.functionalLawPath !== ".github/instructions/agent-rules/功能法案.md") {
     findings.push(finding("AUDIT_ACTIVE_LAW_SOURCE_INVALID", "scripts/audit/generated/law-registry.generated.json", "registry must bind the two frozen law containers"));
   }
-  const lawIds = new Set((registry.laws ?? []).flatMap((law) => typeof law.lawId === "string" ? [law.lawId] : []));
-  for (const lawId of REQUIRED_RESTORED_LAWS) if (!lawIds.has(lawId)) findings.push(finding("AUDIT_RESTORED_LAW_MISSING", "scripts/audit/generated/law-registry.generated.json", lawId));
   findings.push(...manifestFindings(root, registry));
   return findings.sort((left, right) => left.code.localeCompare(right.code) || left.path.localeCompare(right.path) || left.detail.localeCompare(right.detail));
 }

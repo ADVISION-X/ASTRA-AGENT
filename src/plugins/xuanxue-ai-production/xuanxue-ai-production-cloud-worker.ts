@@ -2,11 +2,11 @@ import type { XuanxueAiOrderRecord } from "./xuanxue-ai-production.schema.js";
 import {
   checkpointXuanxueAiProductionJob,
   claimXuanxueAiProductionJobs,
-  failXuanxueAiProductionJob,
   flushXuanxueAiProductionCloudOutbox,
   heartbeatXuanxueAiProductionJob,
   releaseXuanxueAiProductionLease,
 } from "./xuanxue-ai-production-cloud-client.js";
+import { failXuanxueAiProductionJob } from "./xuanxue-ai-production-cloud-terminal.js";
 import {
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudClaimedJob,

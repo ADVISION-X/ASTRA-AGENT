@@ -68,7 +68,7 @@ const buildNoRegexFinding = (input: {
   });
 
 export const scanCodePurityNoRegex = (project: Project, lawIds: readonly string[]): InspectorFinding[] => {
-  const noRegexLawId = selectLawId(lawIds, "APEX-CODE-PURITY-018-V1");
+  const noRegexLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
   const findings: InspectorFinding[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {

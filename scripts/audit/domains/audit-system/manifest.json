@@ -8,6 +8,10 @@
     "package.json",
     "scripts/audit/domains/**",
     "scripts/audit/generated/**",
+    "scripts/audit/governance-authority.ts",
+    "scripts/audit/governance-json.ts",
+    "scripts/audit/governance-quality.ts",
+    "scripts/audit/governance-runtime.ts",
     "scripts/audit/governance-v32.ts",
     "tests/governance/**"
   ],

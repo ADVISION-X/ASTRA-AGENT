@@ -3,14 +3,16 @@ import {
   type XuanxueAiOrderRecord,
 } from "./xuanxue-ai-production.schema.js";
 import {
-  cancelXuanxueAiProductionJob,
   acknowledgeXuanxueAiProductionHandover,
   checkpointXuanxueAiProductionJob,
-  completeXuanxueAiProductionJob,
-  failXuanxueAiProductionJob,
   uploadXuanxueAiProductionProductResult,
   uploadXuanxueAiProductionOutputArtifact,
 } from "./xuanxue-ai-production-cloud-client.js";
+import {
+  cancelXuanxueAiProductionJob,
+  completeXuanxueAiProductionJob,
+  failXuanxueAiProductionJob,
+} from "./xuanxue-ai-production-cloud-terminal.js";
 import type {
   XuanxueAiProductionAttachmentCheckpointProof,
 } from "./xuanxue-ai-production-cloud-client-contract.js";
