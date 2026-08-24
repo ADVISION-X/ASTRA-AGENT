@@ -1,0 +1,2016 @@
+{
+  "schema_version": "xuanxue-product-execution-projection.v1",
+  "provider_repo": "ADVISION-X/xuanxue-web",
+  "provider_commit_sha": "21dd0ba371775731ae75b6646e9a91cdd345df8f",
+  "provider_spec_ref": "docs/specs/ai-acceptance/product-execution-contract.provider.json",
+  "provider_contract_sha256": "314eff0dbbd0240b85a66de404084e3c4f8075c10684caee87158c26df0983d4",
+  "provider_descriptor_sha256": "708baa72b95fbda73423555a73fe70dbdfb2294cd7a7e9eb653480bc045679c3",
+  "provider_artifact_path": "artifacts/contracts/product-execution-contract.v1.json",
+  "provider_artifact_sha256": "25e14889c6f90551293d3ac52626640f7567e48caefeb961925f6df269ee47aa",
+  "localization_semantic_manifest_path": "artifacts/contracts/localization-production-contract.v1.json",
+  "localization_semantic_manifest_sha256": "81876b0490d41f2e227800f5414a5486637687c2ccabc2bb04576f21289b915f",
+  "localization_semantic_manifest": {
+    "contract_manifest_hash": "sha256:46eaff62178fddc652b7af8cb750bc0e92674788791e0839b521fdac37a9721d",
+    "products": {
+      "localization_article_translation": "sha256:a054745426f9d1dc7e77d7d45d9e169ab56ce4fdd45b8619ef49f6d447d74ca3",
+      "localization_report_translation": "sha256:5d91130cd28698486f5207742c1ccbc623e35adc652c156d8a07a2b9a1318779",
+      "localization_static_review_candidate": "sha256:2b4829ffa455fbd9dc48a176937eab78070bd0e87086ace925350833136348cb",
+      "localization_static_review_selector": "sha256:d9eef61d45c5e06e5bcc533a7f636acf2fbba5849c00cb83831daaff6e885301"
+    },
+    "roles": {
+      "article_translation": "sha256:c6ad5c376015509cedb8a0688c04994b6d50531d22aa37abfaf9f9ede21050cc",
+      "candidate_a": "sha256:fadb47c667e7f7dc30029427c22b15044c21adb1d6ab3d87fddf71cf91278c08",
+      "candidate_b": "sha256:8a7db953608862a0b17f3add2656a69d6dd0942565d4e7e9077498cc83adec29",
+      "consistency": "sha256:113cfa303aa9550f659448d99114fb3c198fcc291bba0b2eef23b64370d9796e",
+      "report_translation": "sha256:8a09c70b9a1b153586e09569e894dd8351f5a0995873bdaeb4c3e027bc52c2c6",
+      "selector_first": "sha256:91d451ad9a9586f59b079d298f49177ad007f0b3e73d5857595fefa353d668df",
+      "selector_swap": "sha256:f85d9cf96d15f53f4eda6220137072e47f0dffba42ad8cc8aa59c0ea635bd47e"
+    },
+    "schema_version": "xuanxue-ai-localization-contract-manifest.v1"
+  },
+  "bundle": {
+    "schema_version": 1,
+    "contract_id": "ai-acceptance.product-execution-contract",
+    "contract_version": 1,
+    "canonical_owner": "ai-acceptance",
+    "canonical_schema_version": "canonical-json-nfc-v2",
+    "contract_count": 20,
+    "contracts": [
+      {
+        "schema_version": 1,
+        "contract_id": "bazi_chart_interpretation",
+        "product_id": "bazi_chart_interpretation",
+        "owner_domain": "bazi",
+        "trigger_actor": "bazi-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:8484d8fe68b289f182c5e84300e5e142f532a24d968afaec1e11d5db77c6dd62",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "bazi_canonical_base_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "exact_reusable_base_identity_ready",
+              "recovery_rule": "resume_exact_base_job_checkpoint_identity_change_creates_new_base",
+              "terminal_requirement": "private_completed_checkpoint_and_output_hash",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "base_interpretation"
+                ],
+                "final_stage_id": "base_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "chart_material",
+                    "corpus_material",
+                    "frozen_bazi_subject"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:bazi_canonical_base_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "base_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "frozen_bazi_subject",
+                      "chart_material",
+                      "corpus_material"
+                    ],
+                    "output_contract_ref": "product-execution-output:base_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "chart_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "exact_completed_reusable_base_checkpoint",
+              "join_binding": "none",
+              "readiness_rule": "bazi_basic_chart_ready_and_exact_base_terminal",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "chart_interpretation_terminal_and_report_projection",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "chart_interpretation"
+                ],
+                "final_stage_id": "chart_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fork_from_exact_base",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_reusable_base_checkpoint",
+                    "product_materials"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:chart_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "chart_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fork",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_reusable_base_checkpoint",
+                      "product_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:chart_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [
+            {
+              "from": "bazi_canonical_base_interpretation",
+              "to": "chart_interpretation",
+              "type": "exact_reusable_parent"
+            }
+          ],
+          "terminal_rule": "chart_interpretation_terminal_and_report_projection",
+          "output_projection": "bazi_chart_interpretation_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "bazi_ai_full_analysis",
+        "product_id": "bazi_ai_full_analysis",
+        "owner_domain": "bazi",
+        "trigger_actor": "bazi-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:772e320a750934c2034eb31b5ba9b67a32cba519fa7c91392216f44d766c09cf",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "bazi_canonical_base_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "exact_reusable_base_identity_ready",
+              "recovery_rule": "resume_exact_base_job_checkpoint_identity_change_creates_new_base",
+              "terminal_requirement": "private_completed_checkpoint_and_output_hash",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "base_interpretation"
+                ],
+                "final_stage_id": "base_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "chart_material",
+                    "corpus_material",
+                    "frozen_bazi_subject"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:bazi_canonical_base_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "base_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "frozen_bazi_subject",
+                      "chart_material",
+                      "corpus_material"
+                    ],
+                    "output_contract_ref": "product-execution-output:base_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "question_analysis",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "exact_completed_reusable_base_checkpoint",
+              "join_binding": "none",
+              "readiness_rule": "bazi_basic_chart_ready_and_exact_base_terminal",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "question_analysis_terminal_and_formal_analysis",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "question_analysis"
+                ],
+                "final_stage_id": "question_analysis",
+                "stage_count": 1,
+                "conversation_scope_policy": "fork_from_exact_base",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_reusable_base_checkpoint",
+                    "product_materials"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:question_analysis",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "question_analysis",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fork",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_reusable_base_checkpoint",
+                      "product_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:question_analysis",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [
+            {
+              "from": "bazi_canonical_base_interpretation",
+              "to": "question_analysis",
+              "type": "exact_reusable_parent"
+            }
+          ],
+          "terminal_rule": "question_analysis_terminal_and_formal_analysis",
+          "output_projection": "bazi_full_analysis"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "bazi_report_followup",
+        "product_id": "bazi_report_followup",
+        "owner_domain": "bazi",
+        "trigger_actor": "authenticated-user-request",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:e0fc52c28c90cae88b6082f0e3ac11390a1f13ec1edbbc64feb0bc208d8ed452",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "question_analysis",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "completed_chart_or_full_analysis_or_previous_bazi_followup",
+              "join_binding": "none",
+              "readiness_rule": "exact_formal_parent_terminal_and_authenticated_request",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "new_followup_terminal_without_parent_overwrite",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "question_analysis"
+                ],
+                "final_stage_id": "question_analysis",
+                "stage_count": 1,
+                "conversation_scope_policy": "exact_same_conversation",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "completed_formal_parent",
+                    "followup_question"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:question_analysis",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "question_analysis",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "completed_formal_parent",
+                      "followup_question"
+                    ],
+                    "output_contract_ref": "product-execution-output:question_analysis",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "new_followup_terminal_without_parent_overwrite",
+          "output_projection": "bazi_followup_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "qimen_professional_answer",
+        "product_id": "qimen_professional_answer",
+        "owner_domain": "qimen",
+        "trigger_actor": "qimen-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:05f187dd25d1dcf2b5f1db263c06aaed17f4b5129a7dad321651af7e299fc212",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "analysis",
+              "order_kind": "ai_production_order",
+              "creation_owner": "qimen",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "qimen_basic_chart_exact_input_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "formal_report_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "analysis"
+                ],
+                "final_stage_id": "analysis",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_qimen_basic_chart",
+                    "question_materials"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:analysis",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "analysis",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_qimen_basic_chart",
+                      "question_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:analysis",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "formal_report_terminal",
+          "output_projection": "qimen_professional_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "qimen_report_followup",
+        "product_id": "qimen_report_followup",
+        "owner_domain": "commercial-order-management",
+        "trigger_actor": "authenticated-user-request",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:0084260e6518ae6657cb4271742903edf0168882cc1f3a7ae0980672ef916384",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "followup",
+              "order_kind": "ai_production_order",
+              "creation_owner": "commercial-order-management",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "completed_professional_answer_or_previous_qimen_followup",
+              "join_binding": "none",
+              "readiness_rule": "exact_formal_parent_terminal_and_authenticated_request",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "new_followup_terminal_without_parent_overwrite",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "followup"
+                ],
+                "final_stage_id": "followup",
+                "stage_count": 1,
+                "conversation_scope_policy": "exact_same_conversation",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "completed_qimen_formal_parent",
+                    "followup_question"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:followup",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "followup",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "completed_qimen_formal_parent",
+                      "followup_question"
+                    ],
+                    "output_contract_ref": "product-execution-output:followup",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "new_followup_terminal_without_parent_overwrite",
+          "output_projection": "qimen_followup_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "hehun_ai_analysis",
+        "product_id": "hehun_ai_analysis",
+        "owner_domain": "hehun",
+        "trigger_actor": "hehun-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:73e95cce4bc4d844ec95825e0555a4c0e040d9ef3b4f31ccb6797dd3c8f72e1e",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "party_a_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "hehun",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "typed_slot_a",
+              "readiness_rule": "party_a_identity_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "party_a_private_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "party_a_interpretation"
+                ],
+                "final_stage_id": "party_a_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "party_a_chart_materials",
+                    "party_a_exact_person_identity"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:party_a_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "party_a_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "party_a_exact_person_identity",
+                      "party_a_chart_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:party_a_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "party_b_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "hehun",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "typed_slot_b",
+              "readiness_rule": "party_b_identity_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "party_b_private_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "party_b_interpretation"
+                ],
+                "final_stage_id": "party_b_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "party_b_chart_materials",
+                    "party_b_exact_person_identity"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:party_b_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "party_b_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "party_b_exact_person_identity",
+                      "party_b_chart_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:party_b_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "final_compatibility",
+              "order_kind": "ai_production_order",
+              "creation_owner": "hehun",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "exactly_two_terminal_typed_parents",
+              "join_binding": "exact_slots_a_and_b_with_person_identity",
+              "readiness_rule": "both_exact_typed_parents_terminal",
+              "recovery_rule": "resume_original_final_node_never_substitute_parent",
+              "terminal_requirement": "final_compatibility_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "final_compatibility"
+                ],
+                "final_stage_id": "final_compatibility",
+                "stage_count": 1,
+                "conversation_scope_policy": "typed_join_fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "hehun_case_materials",
+                    "typed_parent_slot_a",
+                    "typed_parent_slot_b"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:final_compatibility",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "final_compatibility",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "typed_parent_slot_a",
+                      "typed_parent_slot_b",
+                      "hehun_case_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:final_compatibility",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [
+            {
+              "from": "party_a_interpretation",
+              "to": "final_compatibility",
+              "type": "typed_parent_slot_a"
+            },
+            {
+              "from": "party_b_interpretation",
+              "to": "final_compatibility",
+              "type": "typed_parent_slot_b"
+            }
+          ],
+          "terminal_rule": "only_final_compatibility_terminal_completes_product",
+          "output_projection": "hehun_final_compatibility_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "hehun_report_followup",
+        "product_id": "hehun_report_followup",
+        "owner_domain": "hehun",
+        "trigger_actor": "authenticated-user-request",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:985efee2b960e111c21f1cf9b856d647362749cf7823e83054124f37941bb60c",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "followup",
+              "order_kind": "ai_production_order",
+              "creation_owner": "hehun",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "completed_final_compatibility_or_previous_hehun_followup",
+              "join_binding": "none",
+              "readiness_rule": "exact_formal_parent_terminal_and_authenticated_request",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "new_followup_terminal_without_parent_overwrite",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "followup"
+                ],
+                "final_stage_id": "followup",
+                "stage_count": 1,
+                "conversation_scope_policy": "exact_same_conversation",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "completed_hehun_final_or_followup_parent",
+                    "followup_question"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:followup",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "followup",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "completed_hehun_final_or_followup_parent",
+                      "followup_question"
+                    ],
+                    "output_contract_ref": "product-execution-output:followup",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "new_followup_terminal_without_parent_overwrite",
+          "output_projection": "hehun_followup_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "naming_bazi_analysis_and_naming",
+        "product_id": "naming_bazi_analysis_and_naming",
+        "owner_domain": "naming",
+        "trigger_actor": "naming-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:5fb20e29215007dd0ba00bf038e5e26dd5c589cf29aa333defbd0c89874e614a",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "bazi_canonical_base_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "exact_reusable_base_identity_ready",
+              "recovery_rule": "resume_exact_base_job_checkpoint_identity_change_creates_new_base",
+              "terminal_requirement": "private_completed_checkpoint_and_output_hash",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "base_interpretation"
+                ],
+                "final_stage_id": "base_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "chart_material",
+                    "corpus_material",
+                    "frozen_bazi_subject"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:bazi_canonical_base_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "base_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "frozen_bazi_subject",
+                      "chart_material",
+                      "corpus_material"
+                    ],
+                    "output_contract_ref": "product-execution-output:base_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "naming_analysis_and_author",
+              "order_kind": "ai_production_order",
+              "creation_owner": "naming",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "first_stage_exact_completed_reusable_base_checkpoint",
+              "join_binding": "optional_typed_person_material_only",
+              "readiness_rule": "bazi_basic_chart_ready_and_exact_base_terminal",
+              "recovery_rule": "resume_original_stage_completed_question_analysis_not_replayed",
+              "terminal_requirement": "naming_author_terminal_and_naming_report",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "question_analysis",
+                  "naming_author"
+                ],
+                "final_stage_id": "naming_author",
+                "stage_count": 2,
+                "conversation_scope_policy": "fork_then_exact_same_conversation",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_reusable_base_checkpoint",
+                    "naming_request_materials",
+                    "optional_typed_person_material_join",
+                    "question_analysis_output"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:naming_analysis_and_author",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "question_analysis",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fork",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_reusable_base_checkpoint",
+                      "naming_request_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:question_analysis",
+                    "provider_evidence_required": true
+                  },
+                  {
+                    "stage_id": "naming_author",
+                    "ordinal": 2,
+                    "depends_on_stage_ids": [
+                      "question_analysis"
+                    ],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": "question_analysis",
+                    "generated_inputs_from_stage_ids": [
+                      "question_analysis"
+                    ],
+                    "required_material_roles_or_input_kinds": [
+                      "question_analysis_output",
+                      "optional_typed_person_material_join"
+                    ],
+                    "output_contract_ref": "product-execution-output:naming_author",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [
+            {
+              "from": "bazi_canonical_base_interpretation",
+              "to": "naming_analysis_and_author",
+              "type": "exact_reusable_parent"
+            }
+          ],
+          "terminal_rule": "naming_author_terminal_and_naming_report",
+          "output_projection": "naming_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "naming_from_existing_bazi_report",
+        "product_id": "naming_from_existing_bazi_report",
+        "owner_domain": "naming",
+        "trigger_actor": "naming-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:f2a11140e52bc91cca937b77292930a58dbed5fd5b64630d558f8938da936d2d",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "naming_author",
+              "order_kind": "ai_production_order",
+              "creation_owner": "naming",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "immutable_parent_report_material_not_conversation_parent",
+              "join_binding": "optional_typed_person_material_only",
+              "readiness_rule": "completed_existing_formal_report_exact",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "single_stage_naming_report_without_source_report_rewrite",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "naming_author"
+                ],
+                "final_stage_id": "naming_author",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "immutable_parent_report_material",
+                    "optional_typed_person_material_join"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:naming_author",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "naming_author",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "immutable_parent_report_material",
+                      "optional_typed_person_material_join"
+                    ],
+                    "output_contract_ref": "product-execution-output:naming_author",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "single_stage_naming_report_without_source_report_rewrite",
+          "output_projection": "naming_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "bazi_canonical_base_interpretation",
+        "action_id": "bazi_canonical_base_interpretation",
+        "owner_domain": "bazi",
+        "trigger_actor": "bazi-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:fccadae649153ae77309a9a054275da4cf3fa4a28f6ef07c2b7767517932807f",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "bazi_canonical_base_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "bazi",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "exact_reusable_base_identity_ready",
+              "recovery_rule": "resume_exact_base_job_checkpoint_identity_change_creates_new_base",
+              "terminal_requirement": "private_completed_checkpoint_and_output_hash",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "base_interpretation"
+                ],
+                "final_stage_id": "base_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "chart_material",
+                    "corpus_material",
+                    "frozen_bazi_subject"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:bazi_canonical_base_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "base_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "frozen_bazi_subject",
+                      "chart_material",
+                      "corpus_material"
+                    ],
+                    "output_contract_ref": "product-execution-output:base_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "private_noncanonical_nonbinding_checkpoint_only",
+          "output_projection": "private_reusable_base_checkpoint"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "hehun_canonical_party_a_interpretation",
+        "action_id": "hehun_canonical_party_a_interpretation",
+        "owner_domain": "hehun",
+        "trigger_actor": "hehun-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:9a71e3f381929bb9fb934d23ed3e8d0918eefd0c4f4af3b879f995a3d9681ef8",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "party_a_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "hehun",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "typed_slot_a",
+              "readiness_rule": "party_a_identity_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "private_nonbinding_parent_a_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "party_a_interpretation"
+                ],
+                "final_stage_id": "party_a_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "party_a_chart_materials",
+                    "party_a_exact_person_identity"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:party_a_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "party_a_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "party_a_exact_person_identity",
+                      "party_a_chart_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:party_a_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "private_nonbinding_parent_a_terminal",
+          "output_projection": "hehun_private_parent_a"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "hehun_canonical_party_b_interpretation",
+        "action_id": "hehun_canonical_party_b_interpretation",
+        "owner_domain": "hehun",
+        "trigger_actor": "hehun-product-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:8ec898185518fdbf8d6bc49aeacc980102e11b6aadfabcd37e8cb560383da4ae",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "party_b_interpretation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "hehun",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "typed_slot_b",
+              "readiness_rule": "party_b_identity_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "private_nonbinding_parent_b_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "party_b_interpretation"
+                ],
+                "final_stage_id": "party_b_interpretation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "party_b_chart_materials",
+                    "party_b_exact_person_identity"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:party_b_interpretation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "party_b_interpretation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "party_b_exact_person_identity",
+                      "party_b_chart_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:party_b_interpretation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "private_nonbinding_parent_b_terminal",
+          "output_projection": "hehun_private_parent_b"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "manual_accuracy_challenge",
+        "action_id": "manual_accuracy_challenge",
+        "owner_domain": "ai-acceptance",
+        "trigger_actor": "authenticated-review-actor",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:bb8be49b198990a6822810456619ed946fe9d50fc54685313a4139f8c919953a",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "manual_accuracy_challenge",
+              "order_kind": "ai_production_order",
+              "creation_owner": "ai-acceptance",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "exact_completed_parent_final_stage_hash",
+              "join_binding": "none",
+              "readiness_rule": "authenticated_actor_and_review_case_bound",
+              "recovery_rule": "idempotent_original_review_case",
+              "terminal_requirement": "append_or_open_review_case_without_parent_terminal_change",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "manual_accuracy_challenge"
+                ],
+                "final_stage_id": "manual_accuracy_challenge",
+                "stage_count": 1,
+                "conversation_scope_policy": "exact_same_conversation",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_completed_parent_final_stage_hash",
+                    "review_case_materials"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:manual_accuracy_challenge",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "manual_accuracy_challenge",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_completed_parent_final_stage_hash",
+                      "review_case_materials"
+                    ],
+                    "output_contract_ref": "product-execution-output:manual_accuracy_challenge",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "challenge_terminal_only_opens_or_appends_review_case",
+          "output_projection": "review_case_entry"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "payment_screenshot_observation",
+        "action_id": "payment_screenshot_observation",
+        "owner_domain": "commercial-payment-evidence",
+        "trigger_actor": "payment-evidence-worker",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:4ce771cc80d60d390cc93b87bd8a4d12390a558230d2f6dd9aa7581d14f3e199",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "payment_screenshot_observation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "commercial-payment-evidence",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "owner_bound_screenshot_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "observation_only_no_payment_or_fulfillment_verdict",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "payment_screenshot_observation"
+                ],
+                "final_stage_id": "payment_screenshot_observation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "owner_bound_payment_screenshot"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:payment_screenshot_observation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "payment_screenshot_observation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "owner_bound_payment_screenshot"
+                    ],
+                    "output_contract_ref": "product-execution-output:payment_screenshot_observation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "observation_terminal_only_deterministic_commercial_evaluator_owns_verdict",
+          "output_projection": "payment_page_observation"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "public_knowledge_article_pipeline",
+        "action_id": "public_knowledge_article_pipeline",
+        "owner_domain": "public-knowledge-content",
+        "trigger_actor": "public-knowledge-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:47058379d11124a51d9f853f32528f698f700e9850e5982b563daa4082e73293",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "public_knowledge_article_pipeline",
+              "order_kind": "ai_production_order",
+              "creation_owner": "public-knowledge-content",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "three_round_materials_frozen_before_job_create",
+              "recovery_rule": "resume_original_stage_captured_text_and_image_not_replayed",
+              "terminal_requirement": "article_image_generation_terminal",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "corpus_research",
+                  "article_synthesis",
+                  "article_image_generation"
+                ],
+                "final_stage_id": "article_image_generation",
+                "stage_count": 3,
+                "conversation_scope_policy": "single_job_exact_same_conversation",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "article_brief",
+                    "article_synthesis_output",
+                    "corpus_research_output",
+                    "frozen_corpus_and_article_brief",
+                    "image_brief"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:public_knowledge_article_pipeline",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "corpus_research",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "frozen_corpus_and_article_brief"
+                    ],
+                    "output_contract_ref": "product-execution-output:corpus_research",
+                    "provider_evidence_required": true
+                  },
+                  {
+                    "stage_id": "article_synthesis",
+                    "ordinal": 2,
+                    "depends_on_stage_ids": [
+                      "corpus_research"
+                    ],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": "corpus_research",
+                    "generated_inputs_from_stage_ids": [
+                      "corpus_research"
+                    ],
+                    "required_material_roles_or_input_kinds": [
+                      "corpus_research_output",
+                      "article_brief"
+                    ],
+                    "output_contract_ref": "product-execution-output:article_synthesis",
+                    "provider_evidence_required": true
+                  },
+                  {
+                    "stage_id": "article_image_generation",
+                    "ordinal": 3,
+                    "depends_on_stage_ids": [
+                      "article_synthesis"
+                    ],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": "article_synthesis",
+                    "generated_inputs_from_stage_ids": [
+                      "article_synthesis"
+                    ],
+                    "required_material_roles_or_input_kinds": [
+                      "article_synthesis_output",
+                      "image_brief"
+                    ],
+                    "output_contract_ref": "product-execution-output:article_image_generation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "article_image_generation_terminal",
+          "output_projection": "public_knowledge_article_and_image"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "localization_report_translation",
+        "action_id": "localization_report_translation",
+        "owner_domain": "localization",
+        "trigger_actor": "localization-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:5d91130cd28698486f5207742c1ccbc623e35adc652c156d8a07a2b9a1318779",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "report_translation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "source_report_and_locale_contract_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "exact_translated_report_contract",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "report_translation"
+                ],
+                "final_stage_id": "report_translation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_source_report",
+                    "locale_contract"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:report_translation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "report_translation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_source_report",
+                      "locale_contract"
+                    ],
+                    "output_contract_ref": "product-execution-output:report_translation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "report_translation_terminal",
+          "output_projection": "translated_report"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "localization_article_translation",
+        "action_id": "localization_article_translation",
+        "owner_domain": "localization",
+        "trigger_actor": "localization-owner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:a054745426f9d1dc7e77d7d45d9e169ab56ce4fdd45b8619ef49f6d447d74ca3",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "article_translation",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "source_article_and_locale_contract_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "exact_translated_article_contract",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "article_translation"
+                ],
+                "final_stage_id": "article_translation",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "exact_source_article",
+                    "locale_contract"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:article_translation",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "article_translation",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "exact_source_article",
+                      "locale_contract"
+                    ],
+                    "output_contract_ref": "product-execution-output:article_translation",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "article_translation_terminal",
+          "output_projection": "translated_article"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "localization_static_review_candidate",
+        "action_id": "localization_static_review_candidate",
+        "owner_domain": "localization",
+        "trigger_actor": "localization-review-runner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:2b4829ffa455fbd9dc48a176937eab78070bd0e87086ace925350833136348cb",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "candidate_a",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "candidate_materials_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "candidate_a_receipt",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "candidate_a"
+                ],
+                "final_stage_id": "candidate_a",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "locale_contract",
+                    "static_candidate_materials"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:candidate_a",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "candidate_a",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "static_candidate_materials",
+                      "locale_contract"
+                    ],
+                    "output_contract_ref": "product-execution-output:candidate_a",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "candidate_b",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "candidate_materials_ready",
+              "recovery_rule": "resume_original_job_stage_and_checkpoint",
+              "terminal_requirement": "candidate_b_receipt",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "candidate_b"
+                ],
+                "final_stage_id": "candidate_b",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "locale_contract",
+                    "static_candidate_materials"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:candidate_b",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "candidate_b",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "static_candidate_materials",
+                      "locale_contract"
+                    ],
+                    "output_contract_ref": "product-execution-output:candidate_b",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "both_candidate_receipts_required_before_selector",
+          "output_projection": "localization_candidate_pair"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "localization_static_review_selector",
+        "action_id": "localization_static_review_selector",
+        "owner_domain": "localization",
+        "trigger_actor": "localization-review-runner",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:d9eef61d45c5e06e5bcc533a7f636acf2fbba5849c00cb83831daaff6e885301",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "selector_first",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "none",
+              "join_binding": "none",
+              "readiness_rule": "both_candidate_receipts_valid",
+              "recovery_rule": "resume_original_selector_first_job",
+              "terminal_requirement": "selector_first_terminal_receipt",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "selector_first"
+                ],
+                "final_stage_id": "selector_first",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "candidate_a_receipt",
+                    "candidate_b_receipt"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:selector_first",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "selector_first",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "candidate_a_receipt",
+                      "candidate_b_receipt"
+                    ],
+                    "output_contract_ref": "product-execution-output:selector_first",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "selector_swap",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "exact_selector_first_terminal_same_conversation",
+              "join_binding": "none",
+              "readiness_rule": "selector_first_terminal_and_same_candidate_pair",
+              "recovery_rule": "resume_original_selector_swap_job_without_replaying_selector_first",
+              "terminal_requirement": "selector_swap_terminal_receipt",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "selector_swap"
+                ],
+                "final_stage_id": "selector_swap",
+                "stage_count": 1,
+                "conversation_scope_policy": "exact_same_conversation_as_selector_first",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "candidate_a_receipt",
+                    "candidate_b_receipt",
+                    "selector_first_output"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:selector_swap",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "selector_swap",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "continue_exact",
+                    "continuation_from_stage_id": "selector_first",
+                    "generated_inputs_from_stage_ids": [
+                      "selector_first"
+                    ],
+                    "required_material_roles_or_input_kinds": [
+                      "candidate_a_receipt",
+                      "candidate_b_receipt",
+                      "selector_first_output"
+                    ],
+                    "output_contract_ref": "product-execution-output:selector_swap",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "consistency",
+              "order_kind": "ai_production_order",
+              "creation_owner": "localization",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "selected_catalog_material_not_conversation_parent",
+              "join_binding": "none",
+              "readiness_rule": "selector_first_and_swap_agree_selected_catalog_ready",
+              "recovery_rule": "resume_original_consistency_job",
+              "terminal_requirement": "consistency_terminal_receipt",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "consistency"
+                ],
+                "final_stage_id": "consistency",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "selected_catalog",
+                    "selector_receipts"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:consistency",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "consistency",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [
+                      "selector_first",
+                      "selector_swap"
+                    ],
+                    "required_material_roles_or_input_kinds": [
+                      "selected_catalog",
+                      "selector_receipts"
+                    ],
+                    "output_contract_ref": "product-execution-output:consistency",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [
+            {
+              "from": "selector_first",
+              "to": "selector_swap",
+              "type": "exact_same_conversation_parent"
+            },
+            {
+              "from": "selector_swap",
+              "to": "consistency",
+              "type": "selected_catalog_readiness_dependency"
+            }
+          ],
+          "terminal_rule": "production_approved_only_when_selectors_agree_and_consistency_passes",
+          "output_projection": "localization_review_verdict"
+        }
+      },
+      {
+        "schema_version": 1,
+        "contract_id": "scheduled_quality_reflection",
+        "action_id": "scheduled_quality_reflection",
+        "owner_domain": "ai-acceptance",
+        "trigger_actor": "scheduler-due-materializer",
+        "service_class": "browser_required",
+        "trigger_kind": "owner_authorized",
+        "product_contract_version": 1,
+        "product_contract_hash": "sha256:d4e5a2a23ad2e1ab99eb2112c1d21f846414f1e65300ce65d047124259978b64",
+        "job_contract_version": 1,
+        "required_capabilities": [
+          "browser_authority",
+          "provider_web"
+        ],
+        "product_graph": {
+          "nodes": [
+            {
+              "node_id": "scheduled_quality_reflection",
+              "order_kind": "ai_production_order",
+              "creation_owner": "ai-acceptance",
+              "dependency_mode": "all_declared_dependencies_ready",
+              "parent_binding": "completed_user_product_final_snapshot_material",
+              "join_binding": "none",
+              "readiness_rule": "owner_scoped_due_schedule_ready",
+              "recovery_rule": "idempotent_due_materialization_without_product_law_prompt_or_online_answer_mutation",
+              "terminal_requirement": "advisory_finding_pending_triage_only",
+              "order_contract": {
+                "allowed_stage_ids": [
+                  "scheduled_quality_reflection"
+                ],
+                "final_stage_id": "scheduled_quality_reflection",
+                "stage_count": 1,
+                "conversation_scope_policy": "fresh",
+                "provider_profile_binding": {
+                  "mode": "required_exact_generated_binding",
+                  "source": "provider-skill"
+                },
+                "input_contract": {
+                  "identity": "immutable_material_and_business_identity",
+                  "required_roles": [
+                    "completed_user_product_final_snapshot"
+                  ]
+                },
+                "output_contract": {
+                  "identity": "product-execution-output:scheduled_quality_reflection",
+                  "provider_evidence_required": true
+                },
+                "stages": [
+                  {
+                    "stage_id": "scheduled_quality_reflection",
+                    "ordinal": 1,
+                    "depends_on_stage_ids": [],
+                    "conversation_mode": "fresh",
+                    "continuation_from_stage_id": null,
+                    "generated_inputs_from_stage_ids": [],
+                    "required_material_roles_or_input_kinds": [
+                      "completed_user_product_final_snapshot"
+                    ],
+                    "output_contract_ref": "product-execution-output:scheduled_quality_reflection",
+                    "provider_evidence_required": true
+                  }
+                ]
+              }
+            }
+          ],
+          "edges": [],
+          "terminal_rule": "advisory_finding_pending_triage_only",
+          "output_projection": "quality_reflection_finding"
+        }
+      }
+    ],
+    "bundle_hash": "sha256:555a258b80f19c0a70e636587de48d9762b65b90838fd7403e939bf86341de80"
+  }
+}

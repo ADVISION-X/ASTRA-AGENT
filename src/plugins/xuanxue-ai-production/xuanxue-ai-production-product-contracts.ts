@@ -1,29 +1,161 @@
-import { createHash } from "node:crypto";
-import { XuanxueAiProductIdSchema } from "./xuanxue-ai-production.schema.js";
-import { XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS } from "./xuanxue-ai-production-localization-contract.js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
-const canonicalJson = (value: unknown): string => {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+type GeneratedStageContract = Readonly<{
+  stage_id: string;
+  ordinal: number;
+  depends_on_stage_ids: readonly string[];
+  conversation_mode: "fresh" | "fork" | "continue_exact";
+  continuation_from_stage_id: string | null;
+  generated_inputs_from_stage_ids: readonly string[];
+  required_material_roles_or_input_kinds: readonly string[];
+  output_contract_ref: string;
+  provider_evidence_required: true;
+}>;
+
+export type GeneratedLocalOrderContract = Readonly<{
+  allowed_stage_ids: readonly string[];
+  final_stage_id: string;
+  stage_count: number;
+  conversation_scope_policy: string;
+  input_contract: Readonly<{
+    identity: string;
+    required_roles: readonly string[];
+  }>;
+  stages: readonly GeneratedStageContract[];
+}>;
+
+export type GeneratedProductNode = Readonly<{
+  node_id: string;
+  parent_binding: string;
+  join_binding: string;
+  order_contract: GeneratedLocalOrderContract;
+}>;
+
+export type GeneratedProductExecutionContract = Readonly<{
+  contract_id: string;
+  owner_domain: string;
+  trigger_kind: string;
+  product_contract_hash: `sha256:${string}`;
+  product_graph: Readonly<{
+    nodes: readonly GeneratedProductNode[];
+    edges: readonly Readonly<{ from: string; to: string; type: string }>[];
+    terminal_rule: string;
+  }>;
+}>;
+
+type GeneratedProjection = Readonly<{
+  schema_version: "xuanxue-product-execution-projection.v1";
+  provider_commit_sha: string;
+  provider_artifact_sha256: string;
+  localization_semantic_manifest_sha256: string;
+  localization_semantic_manifest: Readonly<{
+    contract_manifest_hash: `sha256:${string}`;
+    products: Readonly<Record<string, `sha256:${string}`>>;
+    roles: Readonly<Record<string, `sha256:${string}`>>;
+  }>;
+  bundle: Readonly<{
+    bundle_hash: `sha256:${string}`;
+    contract_count: number;
+    contracts: readonly GeneratedProductExecutionContract[];
+  }>;
+}>;
+
+const projectionPath = path.resolve(
+  process.cwd(),
+  "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
+);
+
+const parseProjection = (): GeneratedProjection => {
+  const value = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProjection;
+  const contracts = value.bundle?.contracts;
+  if (value.schema_version !== "xuanxue-product-execution-projection.v1"
+    || !/^[a-f0-9]{40}$/u.test(value.provider_commit_sha)
+    || !/^[a-f0-9]{64}$/u.test(value.provider_artifact_sha256)
+    || !/^[a-f0-9]{64}$/u.test(value.localization_semantic_manifest_sha256)
+    || !/^sha256:[a-f0-9]{64}$/u.test(
+      value.localization_semantic_manifest?.contract_manifest_hash,
+    )
+    || !/^sha256:[a-f0-9]{64}$/u.test(value.bundle?.bundle_hash)
+    || value.bundle?.contract_count !== 20
+    || !Array.isArray(contracts)
+    || contracts.length !== 20
+    || new Set(contracts.map((contract) => contract.contract_id)).size !== 20
+    || contracts.some((contract) =>
+      !/^sha256:[a-f0-9]{64}$/u.test(contract.product_contract_hash)
+      || !Array.isArray(contract.product_graph?.nodes)
+      || contract.product_graph.nodes.length < 1)) {
+    throw new Error("XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID");
+  }
+  return Object.freeze(value);
+};
+
+export const XUANXUE_PRODUCT_EXECUTION_PROJECTION = parseProjection();
+export const XUANXUE_PRODUCT_EXECUTION_BUNDLE_HASH =
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.bundle_hash;
+export const XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT =
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION.provider_commit_sha;
+export const XUANXUE_PRODUCT_EXECUTION_CONTRACTS = Object.freeze(
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts,
+);
+export const XUANXUE_LOCALIZATION_SEMANTIC_MANIFEST = Object.freeze(
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION.localization_semantic_manifest,
+);
+export const XUANXUE_AI_PRODUCTION_PRODUCT_IDS = Object.freeze(
+  XUANXUE_PRODUCT_EXECUTION_CONTRACTS.map((contract) => contract.contract_id),
+);
+export const XUANXUE_AI_PRODUCTION_STAGE_IDS = Object.freeze([
+  ...new Set(XUANXUE_PRODUCT_EXECUTION_CONTRACTS.flatMap((contract) =>
+    contract.product_graph.nodes.flatMap((node) =>
+      node.order_contract.stages.map((stage) => stage.stage_id)))),
+]);
+
+const contractsById = new Map(
+  XUANXUE_PRODUCT_EXECUTION_CONTRACTS.map((contract) =>
+    [contract.contract_id, contract] as const),
+);
+
+export const xuanxueProductExecutionContract = (
+  productId: string,
+): GeneratedProductExecutionContract => {
+  const contract = contractsById.get(productId);
+  if (!contract) throw new Error(`XUANXUE_PRODUCT_EXECUTION_CONTRACT_UNKNOWN:${productId}`);
+  return contract;
+};
+
+export const xuanxueLocalOrderNode = (
+  productId: string,
+  materialStageIds: readonly string[],
+): GeneratedProductNode => {
+  const contract = xuanxueProductExecutionContract(productId);
+  const matches = contract.product_graph.nodes.filter((node) => {
+    const stages = node.order_contract.stages
+      .slice()
+      .sort((left, right) => left.ordinal - right.ordinal)
+      .map((stage) => stage.stage_id);
+    return stages.length === materialStageIds.length
+      && stages.every((stageId, index) => stageId === materialStageIds[index]);
+  });
+  if (matches.length !== 1) {
+    throw new Error(`XUANXUE_PRODUCT_EXECUTION_LOCAL_ORDER_NODE_INVALID:${productId}`);
+  }
+  return matches[0]!;
 };
 
 export const xuanxueAiProductionProductContractHashV6 = (
-  productId: (typeof XuanxueAiProductIdSchema.options)[number],
-): `sha256:${string}` => {
-  const localization = XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS[productId as keyof typeof XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS];
-  if (localization) return localization as `sha256:${string}`;
-  const value = {
-    schema_version: "xuanxue-ai-product-contract.v6",
-    job_contract_version: `xuanxue-ai-job-contract.${productId}.v6`,
-    product_id: productId,
-    execution_lane: "supervised_local_gpt_web",
-    required_capabilities: ["gpt_web_browser"],
-  };
-  return `sha256:${createHash("sha256").update(canonicalJson(value)).digest("hex")}`;
+  productId: string,
+): `sha256:${string}` => xuanxueProductExecutionContract(productId).product_contract_hash;
+
+export const assertXuanxueProductContractHash = (
+  productId: string,
+  productContractHash: string,
+): void => {
+  if (productContractHash !== xuanxueAiProductionProductContractHashV6(productId)) {
+    throw new Error("XUANXUE_PRODUCT_EXECUTION_CONTRACT_HASH_MISMATCH");
+  }
 };
 
-export const XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 = Object.freeze(
-  XuanxueAiProductIdSchema.options.map(xuanxueAiProductionProductContractHashV6),
-);
+export const XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 =
+  Object.freeze(XUANXUE_AI_PRODUCTION_PRODUCT_IDS.map(
+    xuanxueAiProductionProductContractHashV6,
+  ));

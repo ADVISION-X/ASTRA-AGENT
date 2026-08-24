@@ -24,7 +24,7 @@ const createInvalidStoredOrder = () => ({
   ...order(
     "aiprod_stored_order_contract_invalid",
     "localization_static_review_candidate",
-    ["localization_candidate"],
+    ["candidate_a"],
     "candidate_a",
   ),
   triggerKind: "legacy_localization",

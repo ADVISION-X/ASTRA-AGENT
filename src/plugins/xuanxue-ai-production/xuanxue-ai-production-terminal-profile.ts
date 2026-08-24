@@ -10,20 +10,13 @@ export const xuanxueTerminalMetaphysicsProviderProfile = {
   reasoningUiLabel: "Pro",
 } as const;
 
-const terminalMetaphysicsProductIds = new Set<string>([
-  "bazi_chart_interpretation",
-  "bazi_ai_full_analysis",
-  "bazi_report_followup",
-  "qimen_professional_answer",
-  "qimen_report_followup",
-  "hehun_ai_analysis",
-  "hehun_report_followup",
-  "naming_bazi_analysis_and_naming",
-  "naming_from_existing_bazi_report",
-  "bazi_canonical_base_interpretation",
-  "hehun_canonical_party_a_interpretation",
-  "hehun_canonical_party_b_interpretation",
-]);
+const terminalMetaphysicsProductIds = new Set<string>(
+  XUANXUE_PRODUCT_EXECUTION_CONTRACTS
+    .filter((contract) => ["bazi", "qimen", "hehun", "naming"].includes(
+      contract.owner_domain,
+    ))
+    .map((contract) => contract.contract_id),
+);
 
 export const isXuanxueTerminalMetaphysicsProduct = (
   productId: string,
@@ -40,3 +33,4 @@ export const isXuanxueTerminalMetaphysicsProfile = (
   && profile.model_identity_status === "verified"
   && profile.reasoning_effort === xuanxueTerminalMetaphysicsProviderProfile.reasoningTier,
 );
+import { XUANXUE_PRODUCT_EXECUTION_CONTRACTS } from "./xuanxue-ai-production-product-contracts.js";

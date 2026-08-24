@@ -17,6 +17,10 @@ import {
   isXuanxueTerminalMetaphysicsProduct,
   isXuanxueTerminalMetaphysicsProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
+import {
+  assertXuanxueProductContractHash,
+  xuanxueLocalOrderNode,
+} from "./xuanxue-ai-production-product-contracts.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
   "xuanxue-ai-production-v6" as const;
@@ -216,7 +220,7 @@ const CloudStageMaterialSchema = z.discriminatedUnion("control_plane", [
 
 const cloudSemanticIdentityShape = {
   contract_manifest_hash: hashSchema.nullable(),
-  product_contract_hash: hashSchema.nullable(),
+  product_contract_hash: hashSchema,
   localization_role: XuanxueLocalizationRoleSchema.nullable(),
   provider_execution_profile: z.union([
     XuanxueMetaphysicsProviderExecutionProfileSchema,
@@ -442,17 +446,37 @@ const inspectLocalizationTopology = (
       path: ["materials"],
     });
   }
-  if (
-    job.localization_role === "selector_swap"
-    && (
-      job.conversation_parent?.relation !== "same_conversation"
-      || job.conversation_parent?.stage_id !== "localization_selector"
-    )
-  ) {
+};
+
+const inspectGeneratedLocalOrder = (
+  job: CloudClaimedJobCandidate,
+  context: z.RefinementCtx,
+): void => {
+  try {
+    assertXuanxueProductContractHash(job.product_id, job.product_contract_hash);
+    const node = xuanxueLocalOrderNode(
+      job.product_id,
+      job.materials.map((material) => material.stage_id),
+    );
+    const first = node.order_contract.stages
+      .slice()
+      .sort((left, right) => left.ordinal - right.ordinal)[0]!;
+    const relation = first.conversation_mode === "fork"
+      ? "forked_from_checkpoint"
+      : first.conversation_mode === "continue_exact"
+        ? "same_conversation"
+        : null;
+    if (Boolean(relation) !== Boolean(job.conversation_parent)
+      || (relation && job.conversation_parent?.relation !== relation)) {
+      throw new Error("XUANXUE_AI_PRODUCTION_CONVERSATION_BINDING_INVALID");
+    }
+  } catch (error) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_LOCALIZATION_SELECTOR_PARENT_INVALID",
-      path: ["conversation_parent"],
+      message: error instanceof Error
+        ? error.message
+        : "XUANXUE_PRODUCT_EXECUTION_LOCAL_ORDER_INVALID",
+      path: ["materials"],
     });
   }
 };
@@ -470,6 +494,7 @@ XuanxueAiProductionCloudClaimedJobBaseSchema.superRefine((job, context) => {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "XUANXUE_AI_PRODUCTION_V6_CLAIM_GRANT_MISMATCH", path: ["grant"] });
   }
   inspectParentReplay(job, context);
+  inspectGeneratedLocalOrder(job, context);
   inspectLocalizationClaim(job, context);
 });
 

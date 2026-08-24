@@ -7,6 +7,8 @@ import {
   assertPersonParentMatches,
   requireXuanxueStage,
 } from "./xuanxue-ai-production-parent-proof.js";
+import { assertXuanxueAiOrderMatchesProfile } from "./xuanxue-ai-production.profile.js";
+import { xuanxueProductExecutionContract } from "./xuanxue-ai-production-product-contracts.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type {
   XuanxueAiOrderRecord,
@@ -37,25 +39,18 @@ type TypedJoinInput = {
 const isTypedJoinStage = (
   record: XuanxueAiOrderRecord,
   stage: XuanxueAiStageRecord,
-): boolean => (
-  record.order.productId === "hehun_ai_analysis"
-    && stage.stageId === "final_compatibility"
-) || (
-  ["naming_bazi_analysis_and_naming", "naming_from_existing_bazi_report"]
-    .includes(record.order.productId)
-    && stage.stageId === "naming_author"
-);
-
-const expectedParentProduct = (
-  record: XuanxueAiOrderRecord,
-  role: string,
-): string | null => {
-  if (record.order.productId !== "hehun_ai_analysis") {
-    return "bazi_canonical_base_interpretation";
-  }
-  if (role === "party_a") return "hehun_canonical_party_a_interpretation";
-  if (role === "party_b") return "hehun_canonical_party_b_interpretation";
-  return null;
+): boolean => {
+  const profile = assertXuanxueAiOrderMatchesProfile(record.order);
+  const contract = xuanxueProductExecutionContract(record.order.productId);
+  const node = contract.product_graph.nodes.find(
+    (candidate) => candidate.node_id === profile.nodeId,
+  );
+  return Boolean(
+    node
+    && node.join_binding !== "none"
+    && stage.stageId === profile.finalStageId
+    && record.order.joinParents.length > 0,
+  );
 };
 
 const buildJoinedInput = async (
@@ -66,6 +61,12 @@ const buildJoinedInput = async (
   if (!parentOrder || parentOrder.status !== "completed") {
     throw new Error("XUANXUE_AI_PRODUCTION_JOIN_PARENT_MISSING");
   }
+  const childProfile = assertXuanxueAiOrderMatchesProfile(input.record.order);
+  const parentProfile = assertXuanxueAiOrderMatchesProfile(parentOrder.order);
+  const childContract = xuanxueProductExecutionContract(input.record.order.productId);
+  const allowedParentNodes = childContract.product_graph.edges
+    .filter((edge) => edge.to === childProfile.nodeId && edge.type.startsWith("typed_parent_slot_"))
+    .map((edge) => edge.from);
   const parentStage = requireXuanxueStage(parentOrder, binding.stageId);
   assertPersonParentMatches({
     child: input.record,
@@ -73,8 +74,8 @@ const buildJoinedInput = async (
     personRef: binding.personRef,
   });
   if (
-    parentOrder.order.productId
-      !== expectedParentProduct(input.record, binding.participantRoleCode)
+    (allowedParentNodes.length > 0 && !allowedParentNodes.includes(parentProfile.nodeId))
+    || binding.stageId !== parentProfile.finalStageId
     || parentStage.status !== "completed"
     || parentStage.executionId !== binding.executionId
     || parentStage.rawOutputHash !== binding.rawOutputHash

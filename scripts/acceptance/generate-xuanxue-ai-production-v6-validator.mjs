@@ -6,10 +6,12 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const website = process.env.XUANXUE_WEBSITE_REPOSITORY?.trim()
-  || "/Users/nexgen/Documents/xuanxue-web";
+  || "/Users/nexgen/Documents/xuanxue-web-agent-flow-work-order";
 const pinPath = path.join(root, "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json");
+const productPinPath = path.join(root, "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json");
 const outputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts");
 const manifestOutputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.manifest.json");
+const productProjectionOutputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json");
 const contractSourcePath = "packages/ai-contracts/src/production-control/v6-contract.ts";
 
 const canonical = (value) => Array.isArray(value)
@@ -81,14 +83,87 @@ const generated = `// GENERATED FILE. DO NOT EDIT.\n`
   + sourceText.replace(hashImport, localHashImplementation.trimEnd())
   + adapters;
 
+const productPin = JSON.parse(readFileSync(productPinPath, "utf8"));
+const productBinding = productPin.contract;
+if (productPin.status !== "active" || productPin.specKind !== "contract-pin"
+  || productBinding.providerRepo !== "ADVISION-X/xuanxue-web"
+  || productBinding.contractId !== "ai-acceptance.product-execution-contract") {
+  throw new Error("XUANXUE_PRODUCT_EXECUTION_PIN_INVALID");
+}
+const productDescriptorText = fromProvider(
+  productBinding.providerCommitSha,
+  productBinding.providerSpecRef,
+);
+const productDescriptor = JSON.parse(productDescriptorText);
+if (sha256(JSON.stringify(canonical(productDescriptor.contract)))
+  !== productBinding.contractSha256) {
+  throw new Error("XUANXUE_PRODUCT_EXECUTION_PIN_HASH_MISMATCH");
+}
+const productAuthority = productDescriptor.contract.authorityArtifact;
+const productBundleText = fromProvider(
+  productBinding.providerCommitSha,
+  productAuthority.path,
+);
+if (sha256(productBundleText) !== productAuthority.sha256) {
+  throw new Error("XUANXUE_PRODUCT_EXECUTION_BUNDLE_HASH_MISMATCH");
+}
+const productBundle = JSON.parse(productBundleText);
+if (productBundle.schema_version !== 1
+  || productBundle.contract_id !== productBinding.contractId
+  || productBundle.contract_count !== 20
+  || !Array.isArray(productBundle.contracts)
+  || productBundle.contracts.length !== 20
+  || new Set(productBundle.contracts.map((contract) => contract.contract_id)).size !== 20
+  || productBundle.contracts.some((contract) =>
+    !/^sha256:[a-f0-9]{64}$/u.test(contract.product_contract_hash))
+  || productAuthority.selector !== `bundle_hash=${productBundle.bundle_hash}`) {
+  throw new Error("XUANXUE_PRODUCT_EXECUTION_BUNDLE_INVALID");
+}
+const localizationProjectionPath = "artifacts/contracts/localization-production-contract.v1.json";
+const localizationProjectionText = fromProvider(
+  productBinding.providerCommitSha,
+  localizationProjectionPath,
+);
+const localizationProjection = JSON.parse(localizationProjectionText);
+const localizationContracts = productBundle.contracts.filter(
+  (contract) => contract.owner_domain === "localization",
+);
+if (localizationContracts.length !== 4
+  || !/^sha256:[a-f0-9]{64}$/u.test(localizationProjection.contract_manifest_hash)
+  || Object.keys(localizationProjection.products ?? {}).length !== 4
+  || localizationContracts.some((contract) =>
+    localizationProjection.products[contract.contract_id]
+      !== contract.product_contract_hash)
+  || Object.keys(localizationProjection.roles ?? {}).length !== 7
+  || Object.values(localizationProjection.roles ?? {}).some((value) =>
+    !/^sha256:[a-f0-9]{64}$/u.test(value))) {
+  throw new Error("XUANXUE_LOCALIZATION_SEMANTIC_PROJECTION_INVALID");
+}
+const productProjection = `${JSON.stringify({
+  schema_version: "xuanxue-product-execution-projection.v1",
+  provider_repo: productBinding.providerRepo,
+  provider_commit_sha: productBinding.providerCommitSha,
+  provider_spec_ref: productBinding.providerSpecRef,
+  provider_contract_sha256: productBinding.contractSha256,
+  provider_descriptor_sha256: sha256(productDescriptorText),
+  provider_artifact_path: productAuthority.path,
+  provider_artifact_sha256: productAuthority.sha256,
+  localization_semantic_manifest_path: localizationProjectionPath,
+  localization_semantic_manifest_sha256: sha256(localizationProjectionText),
+  localization_semantic_manifest: localizationProjection,
+  bundle: productBundle,
+}, null, 2)}\n`;
+
 if (process.argv.includes("--check")) {
   if (readFileSync(outputPath, "utf8") !== generated
-    || readFileSync(manifestOutputPath, "utf8") !== manifestText) {
+    || readFileSync(manifestOutputPath, "utf8") !== manifestText
+    || readFileSync(productProjectionOutputPath, "utf8") !== productProjection) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_GENERATED_VALIDATOR_STALE");
   }
-  process.stdout.write(`V6_GENERATED_VALIDATOR_CURRENT ${binding.providerCommitSha}\n`);
+  process.stdout.write(`V6_GENERATED_VALIDATOR_CURRENT ${binding.providerCommitSha} PRODUCT_EXECUTION_CURRENT ${productBinding.providerCommitSha}\n`);
 } else {
   writeFileSync(outputPath, generated);
   writeFileSync(manifestOutputPath, manifestText);
-  process.stdout.write(`V6_GENERATED_VALIDATOR_WRITTEN ${binding.providerCommitSha}\n`);
+  writeFileSync(productProjectionOutputPath, productProjection);
+  process.stdout.write(`V6_GENERATED_VALIDATOR_WRITTEN ${binding.providerCommitSha} PRODUCT_EXECUTION_WRITTEN ${productBinding.providerCommitSha}\n`);
 }

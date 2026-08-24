@@ -9,10 +9,10 @@ import type {
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
   isXuanxueLocalizationProduct,
   type XuanxueLocalizationRole,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
+import { xuanxueAiProductionProductContractHashV6 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
 import {
   fixtureHash,
   fixtureModelIdentityProof,
@@ -390,7 +390,6 @@ export const order = (
   localizationRole?: XuanxueLocalizationRole,
 ): XuanxueAiProductionOrder => {
   const localization = isXuanxueLocalizationProduct(productId);
-  const contract = localization ? XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS[productId] : null;
   if (localization && !localizationRole) throw new Error("fixture localization role is required");
   return {
   protocolVersion: "xuanxue-ai-production-v6",
@@ -406,8 +405,8 @@ export const order = (
   inputBundleRef: `bundle:${orderId}`,
   inputBundleHash: hash(`bundle:${orderId}`),
   requestHash: hash(`request:${orderId}`),
-  contractManifestHash: contract ? XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH : null,
-  productContractHash: contract?.product_contract_hash ?? null,
+  contractManifestHash: localization ? XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH : null,
+  productContractHash: xuanxueAiProductionProductContractHashV6(productId),
   localizationRole: localizationRole ?? null,
   providerExecutionProfile: fixtureOrderProviderExecutionProfile(productId, localizationRole),
   frozenSubject: fixtureFrozenSubject(orderId, productId, localization),
