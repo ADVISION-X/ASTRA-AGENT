@@ -224,6 +224,13 @@ process.stdout.write(`${JSON.stringify({
   contractManifestHash: dynamicProofBinding.contract_manifest_hash,
   recordCount: records.length,
   cloudDeviceId: cloudAttestation.deviceId,
+  cloudDeviceEpoch: cloudAttestation.deviceEpoch,
+  cloudWorkerSessionId: cloudAttestation.workerSessionId,
+  cloudWorkerSessionEpoch: cloudAttestation.workerSessionEpoch,
+  cloudRuntimeAttestationReceiptHash: cloudAttestation.runtimeAttestationReceiptHash,
+  predecessorWorkerSessionId: evidence.runtimeReceipt.worker_session_id,
+  predecessorWorkerSessionEpoch: evidence.runtimeReceipt.worker_session_epoch,
+  predecessorRuntimeAttestationReceiptHash: evidence.runtimeReceipt.runtime_attestation_receipt_hash,
   cloudTerminalJobCount: cloudAttestation.terminalJobIds.length,
   status: "PASS",
 }, null, 2)}\n`);

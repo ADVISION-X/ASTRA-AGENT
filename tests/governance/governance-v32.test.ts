@@ -388,13 +388,17 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
 });
 
 test('real proof executor outputs are exact bound contracts', () => {
-  const evidence = { contractManifestHash: 'sha256:manifest', extensionId: 'extension', runtimeReceipt: { device_id: 'device', worker_session_id: 'worker', runtime_attestation_receipt_hash: 'sha256:receipt' } };
+  const evidence = { contractManifestHash: 'sha256:manifest', extensionId: 'extension', runtimeReceipt: { device_id: 'device', device_epoch: 3, worker_session_id: 'worker', worker_session_epoch: 7, runtime_attestation_receipt_hash: `sha256:${'3'.repeat(64)}` } };
   const binding = { run_id: 'run', candidate_hash: 'sha256:candidate', contract_manifest_hash: 'sha256:manifest', provider_record_hashes: { one: 'sha256:one' }, cloud_terminal_job_ids: ['job'] };
-  const chrome = { marker: '[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V6]', status: 'CHROME_VERIFIED', contractManifestHash: evidence.contractManifestHash, extensionId: evidence.extensionId, workerSessionId: 'worker', runtimeAttestationReceiptHash: 'sha256:receipt' };
-  const provider = { marker: '[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]', runRoot: '/tmp/run', runId: 'run', candidateHash: 'sha256:candidate', contractManifestHash: 'sha256:manifest', recordCount: 1, cloudDeviceId: 'device', cloudTerminalJobCount: 1, status: 'PASS' };
+  const chrome = { marker: '[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V6]', status: 'CHROME_VERIFIED', contractManifestHash: evidence.contractManifestHash, extensionId: evidence.extensionId, workerSessionId: 'worker', runtimeAttestationReceiptHash: evidence.runtimeReceipt.runtime_attestation_receipt_hash };
+  const provider = { marker: '[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]', runRoot: '/tmp/run', runId: 'run', candidateHash: 'sha256:candidate', contractManifestHash: 'sha256:manifest', recordCount: 1, cloudDeviceId: 'device', cloudDeviceEpoch: 3, cloudWorkerSessionId: 'successor-worker', cloudWorkerSessionEpoch: 8, cloudRuntimeAttestationReceiptHash: `sha256:${'4'.repeat(64)}`, predecessorWorkerSessionId: 'worker', predecessorWorkerSessionEpoch: 7, predecessorRuntimeAttestationReceiptHash: evidence.runtimeReceipt.runtime_attestation_receipt_hash, cloudTerminalJobCount: 1, status: 'PASS' };
   assert.doesNotThrow(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify(provider), evidence, binding, '/tmp/run'));
   assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify({ ...chrome, extra: true }), JSON.stringify(provider), evidence, binding, '/tmp/run'), /does not exactly match/u);
   assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, recordCount: 0 }), evidence, binding, '/tmp/run'), /does not exactly match/u);
   assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, status: 'ALMOST' }), evidence, binding, '/tmp/run'), /does not exactly match/u);
   assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, cloudDeviceId: 'foreign-device' }), evidence, binding, '/tmp/run'), /does not exactly match/u);
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, cloudDeviceEpoch: 2 }), evidence, binding, '/tmp/run'), /does not exactly match/u);
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, predecessorWorkerSessionId: 'foreign-session' }), evidence, binding, '/tmp/run'), /does not exactly match/u);
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, cloudWorkerSessionEpoch: 7 }), evidence, binding, '/tmp/run'), /does not exactly match/u);
+  assert.throws(() => validateRealProofExecutorOutputs(JSON.stringify(chrome), JSON.stringify({ ...provider, predecessorRuntimeAttestationReceiptHash: `sha256:${'5'.repeat(64)}` }), evidence, binding, '/tmp/run'), /does not exactly match/u);
 });
