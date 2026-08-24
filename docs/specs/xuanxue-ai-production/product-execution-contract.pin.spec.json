@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "specId": "xuanxue-ai-production.product-execution-contract-pin",
+  "status": "active",
+  "version": 1,
+  "owner": "xuanxue-ai-production",
+  "lawIds": [
+    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+  ],
+  "specKind": "contract-pin",
+  "contract": {
+    "contractId": "ai-acceptance.product-execution-contract",
+    "version": 1,
+    "providerRepo": "ADVISION-X/xuanxue-web",
+    "providerDomain": "ai-acceptance",
+    "providerSpecRef": "docs/specs/ai-acceptance/product-execution-contract.provider.json",
+    "providerCommitSha": "6752327926cb731b70e5a1c913d1d6a4c19d3bd0",
+    "contractSha256": "314eff0dbbd0240b85a66de404084e3c4f8075c10684caee87158c26df0983d4"
+  }
+}

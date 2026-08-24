@@ -1,11 +1,12 @@
 {
   "capabilityDomain": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V6"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
   ],
   "observedPaths": [],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
+    "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
     "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
     "src/mediator/xuanxue-ai-production-route.ts",
     "src/plugins/xuanxue-ai-production/**"

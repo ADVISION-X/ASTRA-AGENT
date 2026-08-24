@@ -252,12 +252,13 @@
     {
       "capabilityDomain": "xuanxue-ai-production",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-001-V6"
+        "LAW-XUANXUE-AI-PRODUCTION-001-V7"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "observedPaths": [],
       "ownedPaths": [
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
+        "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
         "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
         "src/mediator/xuanxue-ai-production-route.ts",
         "src/plugins/xuanxue-ai-production/**"
@@ -279,7 +280,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "dca641a326e5a174cf4a0375bdf703e0918e187ed40a8676dbee9dcbfb14d523",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "50da2511f3e9a01ddf3250448ac52f59eac20cc6703d5c6c8fcf5d3253233bc4"
+    "functionalLawSha256": "2fa402b0d3454f4ba7114b29186d66e98f6f98bd1e9f4be9b86c47c7bfbe38a5"
   },
   "laws": [
     {
@@ -2855,11 +2856,15 @@
       "contractRefs": [
         {
           "path": "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-          "sha256": "ec182cb8cf26e62f846136992b9c4925f47bcff91a9fb3c255f7fc020d982f86"
+          "sha256": "0326bb1808d368602e58b387d8aa8b9f1b54f45ef5d7975a1f93627cc4fde590"
+        },
+        {
+          "path": "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
+          "sha256": "f48df1ab30a93a8659f4d0d32ac3145b72de56584ea123d78b153aacc4cfe024"
         },
         {
           "path": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
-          "sha256": "a1195bf8631d4c6d884f3eb8fbca643bb33892c313b0739aaa0d2da19e3e37a4"
+          "sha256": "c0adc2926923b4c12dfa6f678e84480c3aca57824f2ec94c89bab8fcfe89fe87"
         }
       ],
       "dependsOnLawIds": [],
@@ -2892,19 +2897,21 @@
         "不得发生：automatic replay of UNKNOWN or replacement job prompt for a recoverable original",
         "不得发生：alias default normalization compatibility fallback shadow bridge dual reader or dual writer",
         "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt",
+        "不得发生：AGENT-owned Product Execution Contract canonical source cross-job graph product-specific topology parent join conversation business verdict handwritten product map successor Cloud Job or runtime Stage improvisation",
+        "不得发生：absent stale mismatched or noncanonical product_contract_hash accepted by claim local order checkpoint terminal result processing or partial local completion presented as website Product completion",
         "不得发生：Static Contract Integration Fault Real Chrome Real Provider or 72h Soak evidence substituting for another layer or omitting any of the 75 governed scenarios"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2270,
+        "lineEnd": 2272,
         "lineStart": 2223,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "d1d3b1af88ee91e5267e2e81fd4b7368c31098740a2e9e57d44106099cb40278"
+        "sectionSha256": "d58b7f3b1e1573c6bdb688a35c06267b5aaba1bf511f4a2cc204dbf9de30ac40"
       },
       "status": "active",
-      "summary": "必须只由 xuanxue-ai-production-v6 经 session-bound Cloud Worker→Mediator→Plugin 唯一链交付完整网站订单；每设备只允许一个 claim-eligible worker session，并以签名 attestation、幂等 claim、十个业务席位、一个 Browser mutation lane、durable outbox 与 first-terminal CAS 保持原始业务身份。",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V5",
+      "summary": "必须使 xuanxue-ai-production 只拥有网站 immutable Local Order 的本地 Stage 执行、Provider/Browser sequencing、checkpoint、result 与原 Order 恢复，并只消费网站 canonical generated projection；产品合同、跨 Job graph、parent/join 和业务完成仍唯一归网站。",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
       "tier": "P0"
     },
     {
@@ -2926,8 +2933,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2299,
-        "lineStart": 2274,
+        "lineEnd": 2301,
+        "lineStart": 2276,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7fd8b840e4f38b799720c66dedb1826204137aa5296aefb38d2aab57f79b3736"
       },
