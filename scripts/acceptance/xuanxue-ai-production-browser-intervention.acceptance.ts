@@ -112,7 +112,10 @@ try {
     store.readIntervention(takeoverOrder.orderId).lastSafeCheckpoint,
     "after-response-checkpoint:analysis",
   );
-  const requestCountAfterCheckpoint = gateway.requests.length;
+  const takeoverSubmissionCount = (): number => gateway.requests.filter(
+    (request) => request.taskIdentity.sourceTaskId.startsWith(`${takeoverOrder.orderId}:`),
+  ).length;
+  const takeoverSubmissionsBeforeResume = takeoverSubmissionCount();
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
   store.resumeIntervention({
     orderId: takeoverOrder.orderId,
@@ -122,8 +125,8 @@ try {
   });
   assert.equal((await coordinator.execute(takeoverOrder.orderId)).status, "completed");
   assert.equal(
-    gateway.requests.length,
-    requestCountAfterCheckpoint,
+    takeoverSubmissionCount(),
+    takeoverSubmissionsBeforeResume,
     "resume after raw checkpoint must not submit the completed stage again",
   );
 
@@ -211,9 +214,7 @@ try {
   assert.equal(corpusSubmissionsBeforeResume, 1);
   assert.equal(corpusSubmissionsAfterResume, corpusSubmissionsBeforeResume);
 
-  const nonSeoSubmissionsAfterResume = gateway.requests.filter(
-    (request) => !request.taskIdentity.sourceTaskId.startsWith(`${seoOrder.orderId}:`),
-  ).length;
+  const takeoverSubmissionsAfterResume = takeoverSubmissionCount();
   const faultReceipt = {
     schema_version: "product-execution-agent-fault-receipt.v1",
     F04: {
@@ -225,12 +226,13 @@ try {
     },
     F05: {
       checkpoint: "after-response-checkpoint:analysis",
-      submissions_before_resume: requestCountAfterCheckpoint,
-      submissions_after_resume: nonSeoSubmissionsAfterResume,
-      duplicate_submit_count: nonSeoSubmissionsAfterResume - requestCountAfterCheckpoint,
+      submissions_before_resume: takeoverSubmissionsBeforeResume,
+      submissions_after_resume: takeoverSubmissionsAfterResume,
+      duplicate_submit_count: takeoverSubmissionsAfterResume - takeoverSubmissionsBeforeResume,
       terminal_status: "completed",
     },
   };
+  assert.equal(faultReceipt.F05.duplicate_submit_count, 0);
 
   await coordinator.close();
   store.close();
