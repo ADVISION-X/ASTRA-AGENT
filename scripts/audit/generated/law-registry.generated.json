@@ -2986,7 +2986,7 @@
         },
         {
           "path": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
-          "sha256": "88a6787275f396a461a8b9969d941e37b4d1f522874356fb97a32d07076be454"
+          "sha256": "bdd38ec92627f6063d45d895d73b81b8377cd33b43f7621f7f36ec2b118cb1f5"
         }
       ],
       "dependsOnLawIds": [
