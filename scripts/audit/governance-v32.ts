@@ -246,7 +246,7 @@ export function verifyXuanxueReleaseEvidence(evidencePath:string,runner:ProofRun
   for(const command of commands){const result=runner(command.script,command.args,command.env);if(result.status!==0||!result.stdout.includes(command.marker))fail('RELEASE_EVIDENCE_MISSING',`real proof executor failed: ${command.script}: ${result.stderr||result.stdout}`)}
   const bindingHash=sha(bindingRaw!);const evidenceHash=sha(evidenceRaw!);
   const dynamicProofEvidenceRef=`${bindingPath}#sha256=${bindingHash}`;
-  return{lawIds:['LAW-XUANXUE-AI-PRODUCTION-001-V6'],evidenceModes:['dynamic.browser','dynamic.service','dynamic.provider','dynamic.authorization','dynamic.recovery'],evidenceRefs:[`${absolute}#sha256=${evidenceHash}`,dynamicProofEvidenceRef].sort(),dynamicProofEvidenceRef,hash:bindingHash};
+  return{lawIds:['LAW-XUANXUE-AI-PRODUCTION-001-V6'],evidenceModes:['dynamic.browser','dynamic.service','dynamic.provider','dynamic.authorization'],evidenceRefs:[`${absolute}#sha256=${evidenceHash}`,dynamicProofEvidenceRef].sort(),dynamicProofEvidenceRef,hash:bindingHash};
 }
 function releaseDynamicProofs(){const legacy=process.env.GRASSEYE_RELEASE_DYNAMIC_PROOF_PATHS;if(legacy!==undefined)fail('RELEASE_EVIDENCE_MISSING','caller-authored Dynamic Proof wrappers are retired');const evidencePath=process.env.GRASSEYE_RELEASE_XUANXUE_REAL_CHROME_EVIDENCE?.trim();return evidencePath?[verifyXuanxueReleaseEvidence(evidencePath)]:[]}
 type ReleaseParticipant={contractId:string;contractVersion:number;repo:string;releaseSha256:string};
