@@ -60,6 +60,38 @@
       ]
     },
     {
+      "capabilityDomain": "audit-system",
+      "lawIds": [
+        "LAW-AUDIT-SYSTEM-001-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
+      "observedPaths": [
+        ".github/instructions/agent-rules/**",
+        "package.json",
+        "scripts/audit/domains/**",
+        "scripts/audit/generated/**",
+        "scripts/audit/governance-v32.ts",
+        "tests/governance/**"
+      ],
+      "ownedPaths": [
+        "scripts/audit/domains/audit-system/**"
+      ]
+    },
+    {
+      "capabilityDomain": "code-purity",
+      "lawIds": [
+        "LAW-CODE-PURITY-001-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/code-purity/manifest.json",
+      "observedPaths": [
+        "scripts/**",
+        "src/**"
+      ],
+      "ownedPaths": [
+        "scripts/audit/domains/code-purity/**"
+      ]
+    },
+    {
       "capabilityDomain": "dom-automation",
       "lawIds": [
         "LAW-DOM-AUTOMATION-001-V1",
@@ -185,7 +217,9 @@
         "package-lock.json",
         "package.json",
         "pnpm-workspace.yaml",
-        "scripts/audit/**",
+        "scripts/audit/domains/project-governance/manifest.json",
+        "scripts/audit/generated/**",
+        "scripts/audit/governance-v32.ts",
         "tests/governance/**",
         "tsconfig.json"
       ]
@@ -284,7 +318,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "dca641a326e5a174cf4a0375bdf703e0918e187ed40a8676dbee9dcbfb14d523",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "f4ac7ce691dce55f8aa7d42342ed3159777387389410f4c5d69f96acc24e34ba"
+    "functionalLawSha256": "c2b1c1b1259508d8aca1702515820ecab2f8e2f06085e4a41c990112a90809d9"
   },
   "laws": [
     {
@@ -701,6 +735,114 @@
     },
     {
       "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-PROJECT-GOVERNANCE-001-V1",
+        "LAW-PROJECT-GOVERNANCE-002-V1",
+        "LAW-PROJECT-GOVERNANCE-004-V1",
+        "LAW-PROJECT-GOVERNANCE-006-V1",
+        "LAW-PROJECT-GOVERNANCE-007-V1"
+      ],
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.filesystem",
+        "static.ast",
+        "static.contract",
+        "static.dependency",
+        "static.config",
+        "static.json",
+        "exam.golden"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得发生：质检入口绕过唯一 active law、Manifest、registry、检查回执或逐 lawId 报告。",
+        "不得发生：第二 quality 命令、第二 verdict、平行 runner、手工 law mapping 或手工 generated truth。",
+        "不得发生：能力域缺失唯一 Manifest、唯一检查路由、唯一 Owner，或一个检查越权替多个域裁决。",
+        "不得发生：runner、测试、报告或 generated artifact 反向取得法案主权。",
+        "不得发生：仅凭退出码、文件存在、历史结果、fixture、mock、warning 或自然语言制造 PASS。",
+        "不得发生：Static、Exam、Dynamic 证据互相冒充，或适用证据未执行仍生成 PASS。",
+        "不得发生：质检器使用源文本关键词、正则命中、固定值或自报声明冒充 AST、symbol、依赖或运行证据。",
+        "不得发生：owner 检查未真实执行、finding 未改变 verdict、FAIL 被吞掉或降级为 warning。",
+        "不得发生：候选、法案、registry、证据或执法表面漂移后继续复用旧结论。",
+        "不得发生：质检系统删除、跳过或不路由 code-purity 现役检查。",
+        "不得发生：为恢复旧系统重新建立与冻结说明书冲突的多份 matrix、plan、conflict 或报告真相。",
+        "不得发生：审计系统不能检查自身唯一入口、路由完整性、报告分母和负向失败能力。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-001-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 456,
+        "lineStart": 409,
+        "path": ".github/instructions/agent-rules/功能法案.md",
+        "sectionSha256": "fa22b678ff4f29f548f3078967379070863851a0e530566757a367174c311922"
+      },
+      "status": "active",
+      "summary": "必须使质检系统保持从两份 active law、唯一 Manifest/Owner、唯一 registry、真实检查回执到逐 lawId 二元报告的单一可复放执法链，并以自检和故障注入证明任何违法都会失败关闭。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "scripts/**",
+        "src/**"
+      ],
+      "capabilityDomain": "code-purity",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-001-V1",
+        "LAW-PROJECT-GOVERNANCE-002-V1",
+        "LAW-PROJECT-GOVERNANCE-005-V1",
+        "LAW-PROJECT-GOVERNANCE-006-V1"
+      ],
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.filesystem",
+        "static.ast",
+        "static.types",
+        "static.dependency",
+        "static.config",
+        "static.json",
+        "exam.golden"
+      ],
+      "excludes": [
+        "scripts/acceptance/fixtures/**",
+        "scripts/audit/generated/**",
+        "src/plugins/xuanxue-ai-production/generated/**"
+      ],
+      "forbidden": [
+        "不得发生：活动源码文件超过 500 个物理行，或函数超过 75 行、7 个参数、8 个返回分支、5 层嵌套、16 圈复杂度或10个 await。",
+        "不得发生：God file、God function、混合 Owner、混合运行角色、无 Owner 文件或以 utils/helpers/common/shared/service/manager/facade/bridge/adapter 隐藏职责。",
+        "不得发生：zombie 文件、zombie 导出、孤立顶层声明、死导出 helper 链、死内部声明岛、字面量或常量折叠后的死分支。",
+        "不得发生：未证明最终消费者的 re-export、namespace、registry、object bag、handler map 或 zombie-to-zombie 链被当作活性证据。",
+        "不得发生：动态 import 非字面量、未解析、未由 Owner 明示，或副作用 import 充当隐藏 keepalive。",
+        "不得发生：import、re-export、dynamic import 或 side-effect import 以不同语法绕过同一 Owner 边界。",
+        "不得发生：能力域导入 plugin、plugin 导入能力私有 runtime、mediator 执行浏览器动作或 child ability 隐藏多步业务流。",
+        "不得发生：any、ts-ignore、ts-nocheck、catch-and-swallow、伪成功、mock/demo/placeholder/no-op/fallback 生产路径或固定 PASS。",
+        "不得发生：export star、无合法工具要求的 default export、require、超过 28 个 import declaration、24 个 import source 或24个命名导出。",
+        "不得发生：兼容桥、legacy 双轨、shadow truth、永久 adapter 或未具备 Owner、监控、期限和删除验收的迁移机制。",
+        "不得发生：generated artifact 被手工维护为源真相，或注释掉的可执行代码代替物理删除。",
+        "不得发生：代码纯洁度检查使用正则、标识符计数、文件命名或 source-text 搜索冒充 AST、symbol graph 和模块图执法。",
+        "不得发生：触碰已越过红线的文件后继续加逻辑、降低阈值、增加豁免或跳过检查让 CI 变绿。",
+        "不得发生：Code Purity finding 不进入唯一质量报告、不改变二元 verdict 或被降级为 warning。"
+      ],
+      "lawId": "LAW-CODE-PURITY-001-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 513,
+        "lineStart": 460,
+        "path": ".github/instructions/agent-rules/功能法案.md",
+        "sectionSha256": "3d1f4c1e1eec0c69e4a11e20f123d3ca307c87c1185e4c93b372bcb2c7d4ff28"
+      },
+      "status": "active",
+      "summary": "必须使每个活动源码文件证明唯一 Owner、单一角色和真实活性，并以 AST、类型、symbol graph、模块图及反规避检查对结构红线、Owner 边界、类型逃逸、伪运行、兼容双轨和全部 zombie surface 实行零容忍二元执法。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
         "src/capabilities/dom-automation/**"
       ],
       "capabilityDomain": "dom-automation",
@@ -721,8 +863,8 @@
       "lawId": "LAW-DOM-AUTOMATION-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 437,
-        "lineStart": 409,
+        "lineEnd": 545,
+        "lineStart": 517,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "606ddfafda9dec6f21db609d9c92a972ef848d14a733842ba2aaa220115c16eb"
       },
@@ -752,8 +894,8 @@
       "lawId": "LAW-DOM-AUTOMATION-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 466,
-        "lineStart": 439,
+        "lineEnd": 574,
+        "lineStart": 547,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "b9b35c1f26b4c7e9368385fc13a90f94cd7b62fe47d6ec66f344983701681cb8"
       },
@@ -783,8 +925,8 @@
       "lawId": "LAW-DOM-AUTOMATION-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 495,
-        "lineStart": 468,
+        "lineEnd": 603,
+        "lineStart": 576,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "19c22fd311180fa17496a5f2b9dbbd42d4bba1a30d48ea312959ba297ff08535"
       },
@@ -815,8 +957,8 @@
       "lawId": "LAW-DOM-AUTOMATION-004-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 525,
-        "lineStart": 497,
+        "lineEnd": 633,
+        "lineStart": 605,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "48c538274cbff35045754468198532353c729d07f5fba329b6070ca8b98d6cf8"
       },
@@ -847,8 +989,8 @@
       "lawId": "LAW-DOM-AUTOMATION-005-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 555,
-        "lineStart": 527,
+        "lineEnd": 663,
+        "lineStart": 635,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "4051d686964fb64b2a506e175602cf75b17795fe747a29ffdb43c25febdf516b"
       },
@@ -878,8 +1020,8 @@
       "lawId": "LAW-DOM-AUTOMATION-006-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 584,
-        "lineStart": 557,
+        "lineEnd": 692,
+        "lineStart": 665,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "6f01d26c5d1b8d185989af45a64faf45a848b5832d30a68900323b85474170b8"
       },
@@ -910,8 +1052,8 @@
       "lawId": "LAW-DOM-AUTOMATION-007-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 614,
-        "lineStart": 586,
+        "lineEnd": 722,
+        "lineStart": 694,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "65cc04352be2b729d1abe3cf5809e66061916319610924088a0ad33f40d070f4"
       },
@@ -942,8 +1084,8 @@
       "lawId": "LAW-DOM-AUTOMATION-008-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 644,
-        "lineStart": 616,
+        "lineEnd": 752,
+        "lineStart": 724,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "00b0655fb7d65ac9f2f83d02bc4ad50c12b3b835d02bb5da0a37e2c7fb48ce9c"
       },
@@ -974,8 +1116,8 @@
       "lawId": "LAW-DOM-AUTOMATION-009-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 674,
-        "lineStart": 646,
+        "lineEnd": 782,
+        "lineStart": 754,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "84ee2498ca21b617cd1c7e245c9e7841a7182553775536fcb0459d7f43bd5a33"
       },
@@ -1009,8 +1151,8 @@
       "lawId": "LAW-DOM-AUTOMATION-010-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 707,
-        "lineStart": 676,
+        "lineEnd": 815,
+        "lineStart": 784,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "0e7cff1b5c7048d02185584daa9231cb257bb900b4c95964f4986fd87af059c9"
       },
@@ -1041,8 +1183,8 @@
       "lawId": "LAW-DOM-AUTOMATION-011-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 737,
-        "lineStart": 709,
+        "lineEnd": 845,
+        "lineStart": 817,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e05701f801ef831feb8c0bbd3c6787fdf2f5467bd7f799a5f3607e84f2e40621"
       },
@@ -1073,8 +1215,8 @@
       "lawId": "LAW-DOM-AUTOMATION-012-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 767,
-        "lineStart": 739,
+        "lineEnd": 875,
+        "lineStart": 847,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "68b74c07243cba6c3b2ab8740b1a54443e3223553aa5a006e64f6baaa5036ecb"
       },
@@ -1105,8 +1247,8 @@
       "lawId": "LAW-DOM-AUTOMATION-013-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 797,
-        "lineStart": 769,
+        "lineEnd": 905,
+        "lineStart": 877,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "583af8c873e92fb9643f46f8bf6894bb2c1e5dda054eda0cc44f67e988f8e078"
       },
@@ -1137,8 +1279,8 @@
       "lawId": "LAW-DOM-AUTOMATION-014-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 827,
-        "lineStart": 799,
+        "lineEnd": 935,
+        "lineStart": 907,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "71063489d17e503ac386514232b3e9a2301018195c7fbd479d8a880d597e1fcc"
       },
@@ -1169,8 +1311,8 @@
       "lawId": "LAW-DOM-AUTOMATION-015-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 857,
-        "lineStart": 829,
+        "lineEnd": 965,
+        "lineStart": 937,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "6cc83661e0199c4022f632aca23f753459072ac751e98862888736b210d957af"
       },
@@ -1201,8 +1343,8 @@
       "lawId": "LAW-DOM-AUTOMATION-016-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 887,
-        "lineStart": 859,
+        "lineEnd": 995,
+        "lineStart": 967,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a55435ecb8b6084e7438a2af8dfa0c352bff97d57ad0ec84070f6832a5b8a620"
       },
@@ -1239,8 +1381,8 @@
       "lawId": "LAW-DOM-AUTOMATION-020-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 923,
-        "lineStart": 889,
+        "lineEnd": 1031,
+        "lineStart": 997,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d15d5848ac308ee78fd30f5b7326b893266371431d257f30ac70983d8f37571e"
       },
@@ -1273,8 +1415,8 @@
       "lawId": "LAW-DOM-AUTOMATION-021-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 955,
-        "lineStart": 925,
+        "lineEnd": 1063,
+        "lineStart": 1033,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "2120a21d4eade8d42ac874f087185b161998e67fb9a81f4e7e316f41974e6e3f"
       },
@@ -1303,8 +1445,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 985,
-        "lineStart": 959,
+        "lineEnd": 1093,
+        "lineStart": 1067,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "caeaa96da1a17f7d30a85ec07e8f5cbe001585937d9c58a3981735cd7e1a6bbe"
       },
@@ -1333,8 +1475,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1013,
-        "lineStart": 987,
+        "lineEnd": 1121,
+        "lineStart": 1095,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e22b043e67fb2c8230e2259e87e0cad05b4c5f67af20dea515318c27f54e543c"
       },
@@ -1363,8 +1505,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1041,
-        "lineStart": 1015,
+        "lineEnd": 1149,
+        "lineStart": 1123,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "be65e853818944f36dd01b622e6325282d41cf246c2c5ceadab6e44cffa968a1"
       },
@@ -1403,8 +1545,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1081,
-        "lineStart": 1045,
+        "lineEnd": 1189,
+        "lineStart": 1153,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "31c52b98d92104f00d7eec9c7456b8979585b1ce23e983d65d75fd8d40fea9a8"
       },
@@ -1435,8 +1577,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1111,
-        "lineStart": 1083,
+        "lineEnd": 1219,
+        "lineStart": 1191,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "389aaa51becaf7db2b8dc589d2da85769098dcf07487658ba47005238854751e"
       },
@@ -1469,8 +1611,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1143,
-        "lineStart": 1113,
+        "lineEnd": 1251,
+        "lineStart": 1221,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "3d2cae80601416063f5add24d84c79fa73ec1d3384ab58ad23dc897492149c30"
       },
@@ -1508,8 +1650,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1182,
-        "lineStart": 1147,
+        "lineEnd": 1290,
+        "lineStart": 1255,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "70db9ecf114d54d31745acddb9b66a168e0e179d73e3c40571849097b56f9149"
       },
@@ -1548,8 +1690,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1220,
-        "lineStart": 1184,
+        "lineEnd": 1328,
+        "lineStart": 1292,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ef465eab8678478f13346bdb9b7e49a8815520a5cc7af941e52b8d76c73d26ae"
       },
@@ -1589,8 +1731,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1259,
-        "lineStart": 1222,
+        "lineEnd": 1367,
+        "lineStart": 1330,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ccc430195865f83e44616a37546e1803d0d386d7b14f58065ebdcbb6cbbbe880"
       },
@@ -1637,8 +1779,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1300,
-        "lineStart": 1261,
+        "lineEnd": 1408,
+        "lineStart": 1369,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "123ed5311bd4a5b600bde48062ed763212f130a1479fbdcfd17533bde177db58"
       },
@@ -1671,8 +1813,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1332,
-        "lineStart": 1302,
+        "lineEnd": 1440,
+        "lineStart": 1410,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cc193d7f3e27dd7059126fb022caaa583b98220d34357a457481cc5811783329"
       },
@@ -1701,8 +1843,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1360,
-        "lineStart": 1334,
+        "lineEnd": 1468,
+        "lineStart": 1442,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a43039bdea1cc79d1844511c74fa299120bb420551f53398491e584e291ee82d"
       },
@@ -1731,8 +1873,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1390,
-        "lineStart": 1364,
+        "lineEnd": 1498,
+        "lineStart": 1472,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f51db208051532ec1f373f4cfd5cba0b0712205dfa0f251d4feb0088890672cf"
       },
@@ -1761,8 +1903,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1418,
-        "lineStart": 1392,
+        "lineEnd": 1526,
+        "lineStart": 1500,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f9992e41e9ba2773604b75c72b2cc2cfb29a6c3c4ec14059cf6aa9724e81b708"
       },
@@ -1790,8 +1932,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1445,
-        "lineStart": 1420,
+        "lineEnd": 1553,
+        "lineStart": 1528,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d09d2719e1df206a81062c358dfe6f5c90337bd104764ac76330bff76631330f"
       },
@@ -1819,8 +1961,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-004-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1472,
-        "lineStart": 1447,
+        "lineEnd": 1580,
+        "lineStart": 1555,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "087150b662d767cca9258a45ad181e7321bc52e9bc825362f9927080c4ad2d22"
       },
@@ -1848,8 +1990,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-005-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1499,
-        "lineStart": 1474,
+        "lineEnd": 1607,
+        "lineStart": 1582,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "dfb4f506bcdcb2ac6923583c04aa44af0de580788baf769ba03e921a619e51f9"
       },
@@ -1878,8 +2020,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1527,
-        "lineStart": 1501,
+        "lineEnd": 1635,
+        "lineStart": 1609,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "9eeae9ec0edfbd388a284a6c3d3a63aab30007700258045edff3e2e19b1234c3"
       },
@@ -1907,8 +2049,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-007-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1554,
-        "lineStart": 1529,
+        "lineEnd": 1662,
+        "lineStart": 1637,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "63c6f11a08e949992371684757537a0c06a54a7ad8005d7f3cab86a72a750a71"
       },
@@ -1936,8 +2078,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-008-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1581,
-        "lineStart": 1556,
+        "lineEnd": 1689,
+        "lineStart": 1664,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cee8127e2874aa4a563e69be4a4d45ae3c76b447caabe0b7ecd9ac642393fa6d"
       },
@@ -1965,8 +2107,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-009-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1608,
-        "lineStart": 1583,
+        "lineEnd": 1716,
+        "lineStart": 1691,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f6026c47b22561f3ff404e135a1cbc2505b98139dfc6822b8dc4de055cf20579"
       },
@@ -1994,8 +2136,8 @@
       "lawId": "LAW-MEDIA-PROCESSING-CAPABILITY-010-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1635,
-        "lineStart": 1610,
+        "lineEnd": 1743,
+        "lineStart": 1718,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cae1a76ec1dd4781f0ed4266eb11cc25109e21df34273540d404fe988388620c"
       },
@@ -2261,8 +2403,8 @@
       "lawId": "LAW-PROJECT-GOVERNANCE-009-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1667,
-        "lineStart": 1639,
+        "lineEnd": 1775,
+        "lineStart": 1747,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "0b1adbd8734a24fbc061a3a46d0b75913b0289ec545bf3822f3e2b1536d63138"
       },
@@ -2296,8 +2438,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1702,
-        "lineStart": 1671,
+        "lineEnd": 1810,
+        "lineStart": 1779,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "8747614fa256230bffd554727a2b558fa83490ffe5aa98ed3d93068cd19a5d09"
       },
@@ -2326,8 +2468,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1730,
-        "lineStart": 1704,
+        "lineEnd": 1838,
+        "lineStart": 1812,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e3186e69c9f950663e5ea32d672691475d6af62399654f9410e902683b1a6878"
       },
@@ -2356,8 +2498,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1758,
-        "lineStart": 1732,
+        "lineEnd": 1866,
+        "lineStart": 1840,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d21d700896cbc87150efee1567319160be95b38ae59123a849034f58be23ed6d"
       },
@@ -2398,8 +2540,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1800,
-        "lineStart": 1762,
+        "lineEnd": 1908,
+        "lineStart": 1870,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "4a7e6227af49c8e83bbd14f5303af6e5f02c8e61940c6673618597ead0a7c898"
       },
@@ -2436,8 +2578,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1836,
-        "lineStart": 1802,
+        "lineEnd": 1944,
+        "lineStart": 1910,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "0a44d78f854f1f77e3c9e6151890d50a612427298b7c075db7171a4af065c8b8"
       },
@@ -2465,8 +2607,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1865,
-        "lineStart": 1840,
+        "lineEnd": 1973,
+        "lineStart": 1948,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "48a20de1c36ca8c3f027062cd7e72907c05ba428f61d969bb4e17cdb3c47155d"
       },
@@ -2494,8 +2636,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1892,
-        "lineStart": 1867,
+        "lineEnd": 2000,
+        "lineStart": 1975,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "385757f421c7f9c4f9ebebc55e818f8bef372af58f836f07af92d9f76f3ba2a4"
       },
@@ -2523,8 +2665,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1919,
-        "lineStart": 1894,
+        "lineEnd": 2027,
+        "lineStart": 2002,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e470c183dc0a8d7ae318fa090dc27a90efa704372f62ba2f734f207456faf9dd"
       },
@@ -2552,8 +2694,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-004-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1946,
-        "lineStart": 1921,
+        "lineEnd": 2054,
+        "lineStart": 2029,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "bebdbd3b18c851388b58a11911030013b0496a8a76d6475bb4169a450c9ad3d6"
       },
@@ -2581,8 +2723,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-005-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1973,
-        "lineStart": 1948,
+        "lineEnd": 2081,
+        "lineStart": 2056,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "b2947ee44582d7887cae7b5ad96367dcf205fbf2dd04e6f0e6cfa7d1f430af63"
       },
@@ -2610,8 +2752,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2000,
-        "lineStart": 1975,
+        "lineEnd": 2108,
+        "lineStart": 2083,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "13e9c49e4100ff54344ef05b65fa106057281467d238055e62dd442dcd626c23"
       },
@@ -2639,8 +2781,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-007-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2027,
-        "lineStart": 2002,
+        "lineEnd": 2135,
+        "lineStart": 2110,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "57b5c1b2155e7c6baebb3847a3c0f3496588eb50a2056a8c8f2519d157d814f1"
       },
@@ -2668,8 +2810,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-008-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2054,
-        "lineStart": 2029,
+        "lineEnd": 2162,
+        "lineStart": 2137,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "40542446dcf8036863e7d56d5b606bfe2466b833f78f4fa09125feb177a4bb00"
       },
@@ -2697,8 +2839,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-009-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2081,
-        "lineStart": 2056,
+        "lineEnd": 2189,
+        "lineStart": 2164,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "80d73bfc0f7f775205fc9571d9b062c9558068438f7df928bcf44752187c4277"
       },
@@ -2726,8 +2868,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-010-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2108,
-        "lineStart": 2083,
+        "lineEnd": 2216,
+        "lineStart": 2191,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f8ad22fcab62b043ef21564ce27a1f8a75598d1aec81bb1b1c12f336b6998378"
       },
@@ -2756,8 +2898,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-011-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2136,
-        "lineStart": 2110,
+        "lineEnd": 2244,
+        "lineStart": 2218,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "5b730725b102127198c10fe03ea3b44991f1401a94e7c6860247d4b96deea090"
       },
@@ -2785,8 +2927,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-012-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2163,
-        "lineStart": 2138,
+        "lineEnd": 2271,
+        "lineStart": 2246,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "1c82de5bcdcb03dc6549f8e582c95165688771f02512eaf66506d957a687e3c3"
       },
@@ -2814,8 +2956,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-013-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2190,
-        "lineStart": 2165,
+        "lineEnd": 2298,
+        "lineStart": 2273,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "4e0f27510e55400e3e88aedb8068a9f303f327d897f58bb5831870fa50050898"
       },
@@ -2843,8 +2985,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-014-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2217,
-        "lineStart": 2192,
+        "lineEnd": 2325,
+        "lineStart": 2300,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "5a3351b15b9c069d62ad845a10690a6c2449b8a7621cb2c4c4168f40e4535a37"
       },
@@ -2871,8 +3013,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-015-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2243,
-        "lineStart": 2219,
+        "lineEnd": 2351,
+        "lineStart": 2327,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "0cf57a27517ca6c66e7406497a68aab736a6047ebbbd2f96641ffb6829009c8f"
       },
@@ -2899,8 +3041,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-016-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2269,
-        "lineStart": 2245,
+        "lineEnd": 2377,
+        "lineStart": 2353,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7526959f9bb52b22d1da6c56be4faa93353a7936aee028cab5b3d56be4e8af75"
       },
@@ -2927,8 +3069,8 @@
       "lawId": "LAW-VIDEO-DOWNLOAD-CAPABILITY-017-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2295,
-        "lineStart": 2271,
+        "lineEnd": 2403,
+        "lineStart": 2379,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "0ce162f7fa656fc63cc7835ef472db3e5cb6d71ce5d5a03d24e18336d548106c"
       },
@@ -2963,8 +3105,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2331,
-        "lineStart": 2299,
+        "lineEnd": 2439,
+        "lineStart": 2407,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "5c5c4c64d1c81c6c3856be6b9eabe91e08cb5b742296429babf37abfc051d825"
       },
@@ -3030,8 +3172,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2389,
-        "lineStart": 2335,
+        "lineEnd": 2497,
+        "lineStart": 2443,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "1bdf49db12bda087a70b32e9a2f95206eb17cc7bb2ea14ebeb11cf3443ec56e1"
       },
@@ -3059,8 +3201,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 2418,
-        "lineStart": 2393,
+        "lineEnd": 2526,
+        "lineStart": 2501,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7fd8b840e4f38b799720c66dedb1826204137aa5296aefb38d2aab57f79b3736"
       },

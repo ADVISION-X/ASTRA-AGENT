@@ -1,0 +1,19 @@
+{
+  "capabilityDomain": "audit-system",
+  "lawIds": [
+    "LAW-AUDIT-SYSTEM-001-V1"
+  ],
+  "observedPaths": [
+    ".github/instructions/agent-rules/**",
+    "package.json",
+    "scripts/audit/domains/**",
+    "scripts/audit/generated/**",
+    "scripts/audit/governance-v32.ts",
+    "tests/governance/**"
+  ],
+  "ownedPaths": [
+    "scripts/audit/domains/audit-system/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

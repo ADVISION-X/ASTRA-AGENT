@@ -23,7 +23,9 @@
     "package-lock.json",
     "package.json",
     "pnpm-workspace.yaml",
-    "scripts/audit/**",
+    "scripts/audit/domains/project-governance/manifest.json",
+    "scripts/audit/generated/**",
+    "scripts/audit/governance-v32.ts",
     "tests/governance/**",
     "tsconfig.json"
   ],
