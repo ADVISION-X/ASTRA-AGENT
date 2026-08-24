@@ -144,9 +144,11 @@ try {
     "claimAdmissionState", "browserAuthorityState", "browserTargetState", "browserLaneState",
   ]) assert.match(workerSource, new RegExp(`readonly ${field}:`, "u"), field);
   for (const component of [
-    "xuanxueAiProductionShell", "xuanxueAiProductionCloud",
+    "xuanxueAiProductionShell", "agentCloudWorker",
     "xuanxueAiProductionBrowser", "xuanxueAiProductionExecution",
   ]) assert.match(workbenchStatusSource, new RegExp(`name: "${component}"`, "u"), component);
+  assert.match(workbenchStatusSource, /AGENT Cloud Worker state=\$\{health\.cloudState\}/u);
+  assert.doesNotMatch(workbenchStatusSource, /detail: `Cloud state=/u);
   assert.doesNotMatch(workerSource, /readonly status: "ready"/u);
 
   await writeXuanxueAiProductionCloudCredential(temporary, {

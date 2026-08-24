@@ -1,7 +1,8 @@
 {
   "capabilityDomain": "startup-entrypoint",
   "lawIds": [
-    "LAW-STARTUP-ENTRYPOINT-001-V4"
+    "LAW-STARTUP-ENTRYPOINT-001-V4",
+    "LAW-STARTUP-ENTRYPOINT-002-V1"
   ],
   "observedPaths": [],
   "ownedPaths": [

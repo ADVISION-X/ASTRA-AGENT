@@ -68,7 +68,7 @@ TTL。Plugin 仍独占固定产品图、本地订单和业务 outcome；Browser 
 
 ## Session 与 readiness
 
-启动顺序固定：
+运行依赖次序固定；其中只有第一段由 `grasseye:start` 自动执行：
 
 ```txt
 Shell ready
@@ -77,11 +77,28 @@ Shell ready
 -> load V6 manifest/product contract
 -> reconcile local nonterminal ledger and durable outbox
 -> open one worker session with higher server epoch and report `worker_instance_id`
--> pair Browser Authority and claim HTTPS Target
+```
+
+Browser Authority 配对、正确 HTTPS Target 认领、Browser-required 测试任务创建与可领取任务的 claim
+均不属于启动器动作。它们只在 Shell 已建立后，由各自现役 Owner 的显式人工或正常运行流程执行；未完成时
+必须保持 Browser/Target/claim 为 absent 或 blocked，而不能通过自动化动作把启动器写成第二业务链。
+
+本地双仓联调固定使用 `isolated-test`：网站 origin 为 `http://127.0.0.1:4322`，本 Shell origin 为
+`http://127.0.0.1:4173`。enrollment 只允许首次 isolated-test 设备、凭据撤销、合法环境切换或
+origin/device epoch/合同身份变化时显式执行；普通启动与失败恢复不得重建设备，也不得使用 production
+device、credential、queue、状态或对象存储身份。
+
+跨仓 session、heartbeat、claim、renew、release 与 terminal 只可在同一现役 provider descriptor 完整证明
+endpoint、认证、request/response schema 与 manifest hash 后运行。descriptor 缺失、candidate 漂移或任一项不兼容
+时 Shell 继续诊断而 claim/e2e 保持 blocked；不得为此新增 route mapping、compatibility route、alias、fallback、
+bridge、dual-read 或 dual-write。
+
+```txt
+explicit Browser Authority + Target state
 -> heartbeat normalized capacity/state
 -> receive 45s RuntimeAttestationReceiptV6 + next 180s memory token
 -> server returns claim_eligible
--> begin typed claim loop
+-> normal typed claim loop
 ```
 
 上一 session token generation 只允许同 session/epoch 60 秒在途重叠。Browser/Target/attestation

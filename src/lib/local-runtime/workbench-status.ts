@@ -57,13 +57,13 @@ const readAiProductionComponents = (
       ownerResponsible: "local-runtime",
     },
     {
-      name: "xuanxueAiProductionCloud",
+      name: "agentCloudWorker",
       ok: health.cloudState === "ready",
-      detail: `Cloud state=${health.cloudState}; manifest=${health.contractManifestHash}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
+      detail: `AGENT Cloud Worker state=${health.cloudState}; manifest=${health.contractManifestHash}; last_heartbeat=${health.lastSuccessfulHeartbeatAt ?? "none"}; error=${health.lastErrorCode ?? "none"}.`,
       actionableMessage: health.cloudState === "ready" ? null
         : health.cloudState === "contract_blocked"
           ? "Deploy xuanxue-web and AGENT with the exact same V6 manifest and product contract hashes."
-          : "Restore the Cloud session/API dependency without changing task identity.",
+          : "Restore the AGENT Cloud Worker session/API dependency without changing task identity.",
       ownerResponsible: "xuanxue-ai-production",
     },
     {
