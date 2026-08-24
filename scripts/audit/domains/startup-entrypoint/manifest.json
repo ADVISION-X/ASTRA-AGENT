@@ -46,7 +46,7 @@
         {
           "bindingId": "startup.entrypoint.001.v4.dynamic-service.proof",
           "proofId": "startup.entrypoint.001.v4.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-STARTUP-ENTRYPOINT-001-V4|dynamic.service",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-STARTUP-ENTRYPOINT-001-V4|dynamic.service",
           "evidenceModes": [
             "dynamic.service"
           ],
@@ -99,7 +99,7 @@
         {
           "bindingId": "startup.entrypoint.002.v1.dynamic-service.proof",
           "proofId": "startup.entrypoint.002.v1.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-STARTUP-ENTRYPOINT-002-V1|dynamic.service",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-STARTUP-ENTRYPOINT-002-V1|dynamic.service",
           "evidenceModes": [
             "dynamic.service"
           ],
@@ -118,5 +118,7 @@
     "scripts/audit/domains/startup-entrypoint/**",
     "scripts/startup/**"
   ],
-  "observedPaths": []
+  "observedPaths": [
+    "package.json"
+  ]
 }

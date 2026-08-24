@@ -14,9 +14,6 @@ if (localizationContracts.length !== 4) {
 }
 export const XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH =
   XUANXUE_LOCALIZATION_SEMANTIC_MANIFEST.contract_manifest_hash;
-export const XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_VERSION =
-  XUANXUE_LOCALIZATION_SEMANTIC_MANIFEST.schema_version;
-
 const localizationRoles = localizationContracts.flatMap((contract) =>
   contract.product_graph.nodes.map((node) => node.node_id));
 export const XuanxueLocalizationRoleSchema = z.enum(

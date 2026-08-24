@@ -47,6 +47,7 @@
     "scripts/audit/domains/xuanxue-ai-production-localization-contract/**"
   ],
   "observedPaths": [
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts"
+    "src/capabilities/ai-input-gateway/**",
+    "src/plugins/xuanxue-ai-production/**"
   ]
 }

@@ -3,6 +3,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { resolveFromRepo } from "../../shared/paths.js";
 
 export async function inspectDomain(context:InspectorContext):Promise<SessionInspectorOutput>{
-  if(!context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/xuanxue-ai-production/localization-contract-inspector.ts")))throw new Error("localization contract inspector source is missing");
+  const contractPath="src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts";
+  if(!context.project.getSourceFile(resolveFromRepo(contractPath)))throw new Error("localization production contract source is missing");
   return inspectLocalizationContract(context);
 }

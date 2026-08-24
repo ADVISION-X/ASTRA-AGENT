@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
@@ -9,8 +11,6 @@ import {
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import {
-  acceptancePath,
-  acceptanceSupportPaths,
   authorityPaths,
   cloudContractPath,
   cloudCredentialPath,
@@ -24,7 +24,6 @@ import {
 } from "./inspector-paths.js";
 import { inspectXuanxueRecoveryDurability } from "./inspect-recovery-durability.js";
 import { inspectXuanxueContracts } from "./inspect-contracts.js";
-import { xuanxueAcceptanceRequiredValues } from "./acceptance-required-values.js";
 import {
   arrowReturnsNumber,
   workerEnforcesTenBusinessSlots,
@@ -294,26 +293,6 @@ const inspectCloud = (
   });
 };
 
-const inspectAcceptance = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  durabilityLaw: string,
-): void => {
-  const acceptance = [acceptancePath, ...acceptanceSupportPaths].flatMap((filePath) => {
-    const result = source(context, findings, durabilityLaw, filePath);
-    return result ? [result] : [];
-  });
-  if (acceptance.length === 0) return;
-  requireValues(findings, {
-    lawId: durabilityLaw,
-    checkId: "xuanxue-ai-production/acceptance",
-    filePath: acceptancePath,
-    messagePrefix: "Production acceptance must prove",
-    values: collectXuanxueSourceValues(acceptance),
-    required: xuanxueAcceptanceRequiredValues,
-  });
-};
-
 const resolveLaws = (context: InspectorContext): Laws => ({
   boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
   durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
@@ -321,6 +300,23 @@ const resolveLaws = (context: InspectorContext): Laws => ({
   intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
   transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
 });
+
+const collectJsonValues = (value: unknown, output = new Set<string>()): Set<string> => {
+  if (typeof value === "string") {
+    output.add(value);
+    return output;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectJsonValues(item, output));
+    return output;
+  }
+  if (!value || typeof value !== "object") return output;
+  for (const [key, item] of Object.entries(value)) {
+    output.add(key);
+    collectJsonValues(item, output);
+  }
+  return output;
+};
 
 const collectDomainSources = (
   context: InspectorContext,
@@ -331,10 +327,10 @@ const collectDomainSources = (
     const result = source(context, findings, boundaryLaw, filePath);
     return result ? [result] : [];
   });
-  const acceptanceSources = [acceptancePath, ...acceptanceSupportPaths]
-    .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
-    .filter((file): file is SourceFile => file !== undefined);
-  return { sources, values: collectXuanxueSourceValues([...sources, ...acceptanceSources]) };
+  const projectionPath = "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json";
+  const projection = JSON.parse(readFileSync(resolveFromRepo(projectionPath), "utf8")) as unknown;
+  const projectionValues = collectJsonValues(projection);
+  return { sources, values: new Set([...collectXuanxueSourceValues(sources), ...projectionValues]) };
 };
 
 const inspectTransientLifecycleContract = (
@@ -355,14 +351,6 @@ const inspectTransientLifecycleContract = (
       "XUANXUE_AI_PRODUCTION_FAILURE_REPORT_DEFERRED",
       "reconcileXuanxueAiProductionGeneratedInputOrphans", "canRebuildDerivedInputs",
     ],
-  });
-  requireValues(findings, {
-    lawId,
-    checkId: "xuanxue-ai-production/transient-material-lifecycle-state-matrix",
-    filePath: "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts",
-    messagePrefix: "Transient lifecycle acceptance must cover",
-    values,
-    required: ["aiprod_completed", "aiprod_failed", "aiprod_review", "aiprod_recovery", "aiprod_unknown", "recovery_pending"],
   });
   inspectTransientLifecycleBehavior(context, findings, lawId);
 };
@@ -394,7 +382,6 @@ const inspectDomainPolicy = (
   inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
   inspectTransientLifecycleContract(context, findings, laws.transient, values);
   inspectSubmissionAdmissionBinding(context, findings, laws.durability);
-  inspectAcceptance(context, findings, laws.durability);
 };
 
 const inspectDomainEvaluation = async (

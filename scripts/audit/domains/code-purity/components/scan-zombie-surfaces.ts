@@ -66,7 +66,7 @@ const buildZombieGraphState = (
     generatedPlan: context.generatedPlan,
     governedFiles,
     manifest,
-    packageScripts: overrides.packageScripts,
+    packageScripts: overrides.packageScripts ?? (context.targetPaths.includes("package.json") ? undefined : {}),
   });
   const moduleGraph = buildZombieModuleGraph(governedFiles);
   const reachability = collectZombieReachableFiles({

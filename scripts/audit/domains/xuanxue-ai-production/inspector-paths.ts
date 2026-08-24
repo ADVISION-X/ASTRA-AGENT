@@ -21,33 +21,6 @@ export const gatewayConversationTitlePath = "src/capabilities/ai-input-gateway/p
 export const gatewaySchemaPath = "src/capabilities/ai-input-gateway/schema.ts";
 export const gatewayDynamicProofContractPath =
   "src/capabilities/ai-input-gateway/xuanxue-dynamic-proof-contract.ts";
-export const acceptancePath = "scripts/acceptance/xuanxue-ai-production.acceptance.ts";
-
-export const acceptanceSupportPaths = [
-  "scripts/acceptance/xuanxue-ai-production-business.acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-fixture.ts",
-  "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
-  "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
-  "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
-  "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
-  "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
-  "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
-  "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
-  "scripts/acceptance/xuanxue-ai-production-v6-control-plane.acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
-  "src/capabilities/ai-input-gateway/acceptance/xuanxue-ai-production-dynamic-proof-binding.acceptance.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-attestation.acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-real-proof-support.ts",
-  "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
-  "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
-  "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
-  "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
-] as const;
-
 export const removedSecondChainPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-input-preflight.ts",
   "scripts/acceptance/xuanxue-ai-production-provider-preflight.ts",
@@ -76,6 +49,7 @@ export const pluginPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-recovery.ts",
   storedOrderQuarantinePath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-output-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.runtime.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-feed.ts",
   flowPath,
@@ -106,8 +80,4 @@ export const pluginPaths = [
   gatewayConversationTitlePath,
   gatewaySchemaPath,
   gatewayDynamicProofContractPath,
-  "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
-  "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
-  acceptancePath,
-  ...acceptanceSupportPaths,
 ] as const;

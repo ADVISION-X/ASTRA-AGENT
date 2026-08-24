@@ -34,7 +34,7 @@
         {
           "bindingId": "local.browser.session.001.v4.dynamic-browser.proof",
           "proofId": "local.browser.session.001.v4.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-001-V4|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-001-V4|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -71,7 +71,7 @@
         {
           "bindingId": "local.browser.session.002.v4.dynamic-browser.proof",
           "proofId": "local.browser.session.002.v4.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-002-V4|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-002-V4|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -108,7 +108,7 @@
         {
           "bindingId": "local.browser.session.003.v6.dynamic-browser.proof",
           "proofId": "local.browser.session.003.v6.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-003-V6|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-003-V6|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -175,7 +175,7 @@
         {
           "bindingId": "local.browser.session.004.v5.dynamic-recovery.proof",
           "proofId": "local.browser.session.004.v5.dynamic-recovery",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-004-V5|dynamic.recovery",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-004-V5|dynamic.recovery",
           "evidenceModes": [
             "dynamic.recovery"
           ],
@@ -212,7 +212,7 @@
         {
           "bindingId": "local.browser.session.005.v4.dynamic-browser.proof",
           "proofId": "local.browser.session.005.v4.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-005-V4|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-005-V4|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -249,7 +249,7 @@
         {
           "bindingId": "local.browser.session.006.v2.dynamic-browser.proof",
           "proofId": "local.browser.session.006.v2.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-006-V2|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-006-V2|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -270,5 +270,7 @@
     "scripts/audit/domains/local-browser-session/**",
     "src/lib/browser/**"
   ],
-  "observedPaths": []
+  "observedPaths": [
+    "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md"
+  ]
 }

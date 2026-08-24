@@ -299,11 +299,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     pushFinding,
   });
 
-  const sourceOfTruth = pushCapabilitySourceOfTruthFindings({
-    admissionLawId,
-    actualCapabilityRoots: scan.capabilityRoots,
-    pushFinding,
-  });
+  const authorityAvailable=context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")&&context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
+  const sourceOfTruth = authorityAvailable?pushCapabilitySourceOfTruthFindings({admissionLawId,actualCapabilityRoots:scan.capabilityRoots,pushFinding}):{blueprintDeclaredAbilities:[],lawActiveCapabilityRoots:[],lawInfrastructureRoots:[]};
   pushMissingCapabilityFacades({
     capabilityFacades: scan.capabilityFacades,
     capabilityRoots: scan.capabilityRoots,

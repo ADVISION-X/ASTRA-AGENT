@@ -30,6 +30,10 @@ export const createInspectorContextFixture = (
   };
   return {
     project,
+    selectedLawId: lawIds[0] ?? "LAW-FIXTURE-001-V1",
+    sealedRoot: process.cwd(),
+    targetSet: { queryRef: "scope:fixture#fixture:" + "0".repeat(64), count: 0, sha256: "0".repeat(64) },
+    targetPaths: [],
     planEntry,
     generatedPlan: [],
     completedReports: {},

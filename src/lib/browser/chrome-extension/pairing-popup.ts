@@ -7,11 +7,11 @@ declare const chrome: {
 };
 
 const input = document.querySelector<HTMLInputElement>("#pairing-secret");
-const status = document.querySelector<HTMLElement>("#status");
 const pair = document.querySelector<HTMLButtonElement>("#pair");
 const claim = document.querySelector<HTMLButtonElement>("#claim");
 
 const show = (message: string): void => {
+  const status = document.querySelector<HTMLElement>("#status");
   if (status) status.textContent = message;
 };
 

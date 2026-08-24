@@ -89,7 +89,7 @@ const manifestFindings = (root: string, registry: Registry): AuditSystemFinding[
   return findings;
 };
 
-export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
+export function inspectAuditSystem(root = process.cwd(), sealedTargetPaths?: readonly string[], sealedProject?: Project): AuditSystemFinding[] {
   const packagePath = resolve(root, "package.json");
   const registryPath = resolve(root, "scripts/audit/generated/law-registry.generated.json");
   const governancePath = resolve(root, "scripts/audit/governance.ts");
@@ -97,8 +97,8 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
   const qualityPath = resolve(root, "scripts/audit/governance-quality.ts");
   const pkg = readJson<PackageJson>(packagePath);
   const registry = readJson<Registry>(registryPath);
-  const project = new Project({ tsConfigFilePath: resolve(root, "tsconfig.json"), skipAddingFilesFromTsConfig: true });
-  project.addSourceFilesAtPaths(resolve(root, "scripts/audit/**/*.ts"));
+  const project = sealedProject ?? new Project({ tsConfigFilePath: resolve(root, "tsconfig.json"), skipAddingFilesFromTsConfig: true });
+  if(!sealedProject)project.addSourceFilesAtPaths(resolve(root, "scripts/audit/**/*.ts"));
   const governance = project.getSourceFileOrThrow(governancePath);
   const authority = project.getSourceFileOrThrow(authorityPath);
   const quality = project.getSourceFileOrThrow(qualityPath);
@@ -119,7 +119,7 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
     ...inspectOwnerRegistrations(root),
     ...inspectPhysicalCheckReceipt(governance),
     ...inspectPrimaryEvidence(quality),
-    ...inspectStaleCodePurityReport(root),
+    ...inspectStaleCodePurityReport(root, sealedTargetPaths),
     ...inspectTaskPersistenceIsolation(governance, quality),
   ];
 
@@ -135,8 +135,8 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
 export async function inspectDomain(context: InspectorContext): Promise<SessionInspectorOutput> {
   let outputFindings = [] as ReturnType<typeof createFinding>[];
   await context.checks.runAll(async () => {
-    const lawId = selectLawId(context.planEntry.lawIds, "LAW-AUDIT-SYSTEM-001-V2");
-    outputFindings = inspectAuditSystem().map((item) => createFinding({
+    const lawId = context.selectedLawId;
+    outputFindings = inspectAuditSystem(context.sealedRoot, context.targetPaths, context.project).map((item) => createFinding({
       lawId,
       checkId: item.code,
       filePath: item.path,

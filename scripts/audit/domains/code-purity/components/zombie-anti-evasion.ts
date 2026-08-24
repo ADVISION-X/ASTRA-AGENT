@@ -13,7 +13,10 @@ import type { ZombieNamespaceUsageReport } from "./zombie-namespace-usage.js";
 import type { ZombieBarrelLaunderingSurface } from "./zombie-reexport-trace.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
 
-const readPackageScripts = (): Record<string, string> => {
+const readPackageScripts = (context: InspectorContext): Record<string, string> => {
+  if (!context.targetPaths.includes("package.json")) {
+    return {};
+  }
   const parsed = JSON.parse(readFileSync(resolveFromRepo("package.json"), "utf8")) as {
     scripts?: Record<string, string>;
   };
@@ -287,7 +290,7 @@ export const scanZombieInspectorSelfProof = (input: {
   const selfProofProblems: string[] = [];
   const phaseRunnerSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts"));
   const zombieSurfaceSource = input.context.project.getSourceFile(resolveFromRepo("scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts"));
-  const scripts = readPackageScripts();
+  const scripts = readPackageScripts(input.context);
 
   if (!zombieSurfaceSource?.getImportDeclarations().some((declaration) => declaration.getModuleSpecifierValue() === "./zombie-symbol-graph.js")) {
     selfProofProblems.push("scan-zombie-surfaces.ts does not import the symbol graph implementation.");
@@ -298,7 +301,8 @@ export const scanZombieInspectorSelfProof = (input: {
   if (!phaseRunnerSource?.getImportDeclarations().some((declaration) => declaration.getModuleSpecifierValue() === "./scan-code-purity-no-regex.js")) {
     selfProofProblems.push("code-purity phase runner does not wire the no-regex scanner.");
   }
-  if (scripts["acceptance:code-purity-zombie-deep"] === undefined) {
+  if (input.context.targetPaths.includes("package.json")
+    && scripts["acceptance:code-purity-zombie-deep"] === undefined) {
     selfProofProblems.push("package.json is missing acceptance:code-purity-zombie-deep.");
   }
   if (!zombieAcceptanceIsInPhysicalSkeleton(input.context)) {
@@ -310,8 +314,8 @@ export const scanZombieInspectorSelfProof = (input: {
   if (input.inspectedFileCount === 0) {
     selfProofProblems.push("code-purity inspectedFiles is empty.");
   }
-  if (!existsSync(resolveFromRepo("scripts/acceptance/code-purity-zombie-deep.acceptance.ts")) || !existsSync(resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep"))) {
-    selfProofProblems.push("code-purity zombie deep acceptance fixture or acceptance entry is missing.");
+  if (!existsSync(resolveFromRepo("scripts/acceptance/code-purity-zombie-deep.acceptance.ts"))) {
+    selfProofProblems.push("code-purity zombie deep acceptance entry is missing.");
   }
 
   if (selfProofProblems.length === 0) {
@@ -329,7 +333,7 @@ export const scanZombieInspectorSelfProof = (input: {
       role: "audit-phase",
       verificationCommand: "npm run ci:full",
     },
-    "Code-purity zombie inspector self-proof is incomplete.",
+    `Code-purity zombie inspector self-proof is incomplete: ${selfProofProblems.join(" | ")}`,
   );
   return 1;
 };

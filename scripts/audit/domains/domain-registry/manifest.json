@@ -51,6 +51,7 @@
   "observedPaths": [
     ".github/instructions/agent-rules/**",
     "scripts/audit/domains/**",
-    "scripts/audit/generated/law-registry.generated.json"
+    "scripts/audit/generated/law-registry.generated.json",
+    "scripts/audit/governance-authority.ts"
   ]
 }

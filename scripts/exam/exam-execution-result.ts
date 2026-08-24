@@ -6,6 +6,8 @@ export type ExamExecutionResult = Readonly<{
   lawId: string;
   evidenceModes: readonly string[];
   command: string;
+  candidateIdentity: string;
+  inputHash: string;
   startedAt: string;
   finishedAt: string;
   exitStatus: number | null;

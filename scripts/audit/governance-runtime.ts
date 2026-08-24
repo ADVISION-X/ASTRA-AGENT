@@ -25,7 +25,15 @@ const text = (path:string) => {
 };
 const sha = (value:Buffer|string) => createHash('sha256').update(value).digest('hex');
 const norm=(p:string)=>p.split(sep).join('/').replace(/^\.\//,'');
-function repositoryPaths(){const tracked=execFileSync('git',['ls-files','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map(norm);const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map(norm);return[...new Set([...tracked,...untracked])].filter((path)=>existsSync(resolve(ROOT,path))&&!lstatSync(resolve(ROOT,path)).isDirectory()).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)))}
+const sortPaths=(paths:readonly string[]):string[]=>[...new Set(paths.map(norm))].filter((path)=>existsSync(resolve(ROOT,path))&&!lstatSync(resolve(ROOT,path)).isDirectory()).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)));
+const sealedRepositoryPaths=():string[]=>{
+  const raw=process.env.GOVERNANCE_BINDING_CONTRACT?.trim()??fail('SOURCE_PARSE_FAILED','sealed binding contract missing');
+  if(!raw)fail('SOURCE_PARSE_FAILED','sealed binding contract empty');
+  const contract=JSON.parse(raw) as{targetPaths?:unknown};
+  if(!Array.isArray(contract.targetPaths)||contract.targetPaths.some((path)=>typeof path!=='string'))fail('SOURCE_PARSE_FAILED','sealed target paths invalid');
+  return sortPaths(contract.targetPaths as string[]);
+};
+function repositoryPaths(){if(process.env.GOVERNANCE_SEALED_ROOT)return sealedRepositoryPaths();const tracked=execFileSync('git',['ls-files','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean);const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean);return sortPaths([...tracked,...untracked])}
 function repositoryIdentity(remote:string){return remote.trim().replace(/^git@[^:]+:/u,'').replace(/^(?:https?|ssh):\/\/[^/]+\//u,'').replace(/\.git$/u,'')}
 function walk(dir:string):string[]{if(!existsSync(resolve(ROOT,dir)))return[];const out:string[]=[];for(const entry of readdirSync(resolve(ROOT,dir),{withFileTypes:true})){if(entry.name!==entry.name.normalize('NFC'))fail('SOURCE_PARSE_FAILED',`${dir}/${entry.name} non-NFC`);const child=norm(`${dir}/${entry.name}`);entry.isDirectory()?out.push(...walk(child)):out.push(child)}return out.sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)))}
 
@@ -33,4 +41,3 @@ export {
   ROOT, GIT_EVIDENCE_MAX_BUFFER, GovernanceError, fail, validGitObjectId, bytes, utf8, text, sha,
   norm, repositoryPaths, repositoryIdentity, walk,
 };
-

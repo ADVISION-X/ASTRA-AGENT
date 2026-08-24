@@ -137,7 +137,7 @@ const inspectActiveContracts = (input: {
   findings: InspectorFinding[];
   inspectedFiles: Set<string>;
   lawId: string;
-  packageScripts: Readonly<Record<string, string>>;
+  packageScripts: Readonly<Record<string, string>> | null;
 }): void => {
   const expectedIds = new Set(input.entries.map((entry) => entry.pluginId));
   for (const pluginId of input.actualPluginIds) {
@@ -157,8 +157,8 @@ const inspectActiveContracts = (input: {
       pushFinding(input.findings, input.lawId, `src/plugins/${entry.pluginId}`, "architecture/active-plugin-root-missing",
         `The sole active plugin ${entry.pluginId} is missing.`);
     }
-    for (const npmScript of [...entry.allowedAcceptanceTests, ...entry.allowedNpmScripts]) {
-      if (input.packageScripts[npmScript] === undefined) {
+    for (const npmScript of input.packageScripts ? [...entry.allowedAcceptanceTests, ...entry.allowedNpmScripts] : []) {
+      if (input.packageScripts?.[npmScript] === undefined) {
         pushFinding(input.findings, input.lawId, "package.json", "architecture/plugin-script-missing",
           `Active plugin ${entry.pluginId} requires npm script ${npmScript}.`, npmScript);
       }
@@ -177,11 +177,12 @@ export const inspectActivePluginGate = (input: {
   lawId: string;
   project: Parameters<typeof listActiveSourceFiles>[0];
   inspectedFiles: Set<string>;
+  targetPaths: readonly string[];
 }): PluginExposureSummary => {
   const findings: InspectorFinding[] = [];
-  input.inspectedFiles.add("package.json");
   const entries = [...activePluginContracts];
-  const packageScripts = readPackageScripts();
+  const packageScripts = input.targetPaths.includes("package.json") ? readPackageScripts() : null;
+  if(packageScripts)input.inspectedFiles.add("package.json");
   const actualPluginIds = collectActualPluginIds(input.project);
   const exposureFilesByPluginId = collectExposureFilesByPluginId(input.project, entries);
   inspectActiveContracts({
@@ -194,7 +195,7 @@ export const inspectActivePluginGate = (input: {
     packageScripts,
   });
   const governedAcceptanceScripts = entries.flatMap((entry) => entry.allowedAcceptanceTests)
-    .filter((scriptName) => packageScripts[scriptName] !== undefined)
+    .filter((scriptName) => packageScripts?.[scriptName] !== undefined)
     .sort();
   return {
     actualPluginIds,

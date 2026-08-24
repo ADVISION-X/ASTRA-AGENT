@@ -3,22 +3,16 @@ import { resolve } from "node:path";
 
 import { repoRoot } from "./paths.js";
 
-export const createAuditProject = (root = repoRoot): Project => {
+export const createAuditProject = (root = repoRoot, targetPaths: readonly string[] = []): Project => {
   const project = new Project({
-    tsConfigFilePath: resolve(root, "tsconfig.json"),
+    skipAddingFilesFromTsConfig: true,
     compilerOptions: {
       allowJs: true,
     },
   });
 
-  project.addSourceFilesAtPaths([
-    resolve(root, "src/**/*.js"),
-    resolve(root, "src/**/*.jsx"),
-    resolve(root, "src/**/*.mjs"),
-    resolve(root, "scripts/**/*.js"),
-    resolve(root, "scripts/**/*.jsx"),
-    resolve(root, "scripts/**/*.mjs"),
-  ]);
+  const sourcePaths = targetPaths.filter((path) => /\.(?:[cm]?[jt]sx?)$/u.test(path));
+  if (sourcePaths.length) project.addSourceFilesAtPaths(sourcePaths.map((path) => resolve(root, path)));
 
   return project;
 };

@@ -1,10 +1,12 @@
 import { pathToFileURL } from "node:url";
 
-import { inspectAuditSystem } from "./inspector.js";
+import { runRestoredDomain } from "../../shared/restored-domain-runner.js";
+import { inspectAuditSystem, inspectDomain } from "./inspector.js";
 
 export async function runAuditSystemCheck(root = process.cwd()): Promise<void> {
-  const findings = inspectAuditSystem(root)
-    .map((item) => ({ checkId: item.code, filePath: item.path, message: item.detail }));
+  const findings = process.env.GOVERNANCE_BINDING_ID
+    ? await runRestoredDomain("audit-system", inspectDomain, root)
+    : inspectAuditSystem(root).map((item) => ({ checkId: item.code, filePath: item.path, message: item.detail }));
   if (findings.length > 0) {
     findings.forEach((item) => process.stderr.write(`${item.checkId} ${item.filePath ?? "unknown"} ${item.message}\n`));
     process.stderr.write(`AUDIT_SYSTEM_FINDINGS ${findings.length}\n`); process.exitCode = 1; return;

@@ -29,7 +29,7 @@
         {
           "bindingId": "workbench.api.boundary.001.v4.dynamic-browser.proof",
           "proofId": "workbench.api.boundary.001.v4.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-WORKBENCH-API-BOUNDARY-001-V4|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-WORKBENCH-API-BOUNDARY-001-V4|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],

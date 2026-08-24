@@ -75,7 +75,7 @@
         {
           "bindingId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof",
           "proofId": "xuanxue.ai.production.001.v7.dynamic-authorization",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.authorization",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.authorization",
           "evidenceModes": [
             "dynamic.authorization"
           ],
@@ -90,7 +90,7 @@
         {
           "bindingId": "xuanxue.ai.production.001.v7.dynamic-browser.proof",
           "proofId": "xuanxue.ai.production.001.v7.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -105,7 +105,7 @@
         {
           "bindingId": "xuanxue.ai.production.001.v7.dynamic-performance.proof",
           "proofId": "xuanxue.ai.production.001.v7.dynamic-performance",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.performance",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.performance",
           "evidenceModes": [
             "dynamic.performance"
           ],
@@ -120,7 +120,7 @@
         {
           "bindingId": "xuanxue.ai.production.001.v7.dynamic-provider.proof",
           "proofId": "xuanxue.ai.production.001.v7.dynamic-provider",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.provider",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.provider",
           "evidenceModes": [
             "dynamic.provider"
           ],
@@ -135,7 +135,7 @@
         {
           "bindingId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof",
           "proofId": "xuanxue.ai.production.001.v7.dynamic-recovery",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.recovery",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.recovery",
           "evidenceModes": [
             "dynamic.recovery"
           ],
@@ -150,7 +150,7 @@
         {
           "bindingId": "xuanxue.ai.production.001.v7.dynamic-service.proof",
           "proofId": "xuanxue.ai.production.001.v7.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.service",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.service",
           "evidenceModes": [
             "dynamic.service"
           ],
@@ -173,5 +173,11 @@
     "src/mediator/xuanxue-ai-production-route.ts",
     "src/plugins/xuanxue-ai-production/**"
   ],
-  "observedPaths": []
+  "observedPaths": [
+    "scripts/startup/xuanxue-ai-production-cloud-enroll.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/workbench-xuanxue-ai-production-client.ts",
+    "src/app/workbench-xuanxue-ai-production-routes.ts",
+    "src/capabilities/ai-input-gateway/**"
+  ]
 }

@@ -20,6 +20,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     lawId: lawIds.pluginStageLawId,
     project: context.project,
     inspectedFiles,
+    targetPaths: context.targetPaths,
   });
   findings.push(...activePluginGate.findings);
   inspectActivePluginMediators({

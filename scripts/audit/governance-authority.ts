@@ -9,6 +9,7 @@ import {
   sortedUnique, exactKeys, canonicalValue, canonicalBytes, rejectDuplicateJsonKeys, parseJson,
   isStringArray, cleanString, pathPatternValid, pathPatternContains,
 } from './governance-json.js';
+import { requireCandidateStable, requireExactProjection } from './governance-invariants.js';
 
 type Level = 'CHANGE' | 'READY' | 'RELEASE';
 type Law = {
@@ -120,7 +121,7 @@ const orphanLawFence=(line:string):boolean=>line.startsWith('```')||/^\s+```/u.t
 const lawVersionOutOfOrder=(type:'base-law'|'functional-law',previous:LawVersion|null,next:LawVersion):boolean=>type==='functional-law'&&Boolean(previous)&&(previous!.key>next.key||(previous!.key===next.key&&previous!.major>=next.major));
 const requiredBaseLawIds = [
   ...Array.from({length:8},(_,index)=>`LAW-PROJECT-GOVERNANCE-00${index+1}-V2`),
-  ...Array.from({length:8},(_,index)=>`LAW-LAW-SYSTEM-00${index+1}-V1`),
+  ...Array.from({length:8},(_,index)=>`LAW-LAW-SYSTEM-00${index+1}-${index===2?'V2':'V1'}`),
   ...Array.from({length:14},(_,index)=>`LAW-AUDIT-SYSTEM-${String(index+1).padStart(3,'0')}-V2`),
 ].sort();
 const validBaseRootLaws=(laws:Law[]):boolean=>requiredBaseLawIds.every((lawId)=>laws.some((law)=>law.lawId===lawId));
@@ -153,6 +154,16 @@ function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
   if(type==='base-law'&&!validBaseRootLaws(state.laws))fail('SOURCE_PARSE_FAILED','base root laws');return state.laws;
 }
 function loadLaws(){ const laws=[...parseCorpus(BASE,'base-law'),...parseCorpus(FUNCTIONAL,'functional-law')].sort((a,b)=>a.lawId.localeCompare(b.lawId)); const ids=new Set<string>(); for(const law of laws){if(ids.has(law.lawId))fail('SOURCE_PARSE_FAILED',`duplicate ${law.lawId}`);ids.add(law.lawId)} for(const law of laws)for(const dep of law.dependsOnLawIds){if(dep===law.lawId)fail('SOURCE_PARSE_FAILED',`${law.lawId} self dependency`);if(!ids.has(dep))fail('SOURCE_PARSE_FAILED',`${law.lawId} missing ${dep}`)}const byId=new Map(laws.map((law)=>[law.lawId,law]));const visiting=new Set<string>();const visited=new Set<string>();const visit=(lawId:string)=>{if(visiting.has(lawId))fail('SOURCE_PARSE_FAILED',`dependency cycle ${lawId}`);if(visited.has(lawId))return;visiting.add(lawId);for(const dep of byId.get(lawId)?.dependsOnLawIds??[])visit(dep);visiting.delete(lawId);visited.add(lawId)};for(const law of laws)visit(law.lawId);return laws; }
+type RootLawExpectation={lawId:string;summary:string;forbidden:string[];evidenceModes:string[]};
+const rootLawExpectations=():RootLawExpectation[]=>{
+  const source=text(SPEC);const pattern=/^### 66\.[1-8] \[(LAW-PROJECT-GOVERNANCE-00[1-8]-V2)\][^\n]*\n\n要：([^\n]+)\n\n不要：([^\n]+)\n\n证据：([^\n]+)$/gmu;
+  return[...source.matchAll(pattern)].map((match)=>({lawId:match[1]!,summary:match[2]!,forbidden:match[3]!.split('；').map((clause)=>clause.trim().replace(/。$/u,'')),evidenceModes:[...match[4]!.matchAll(/`([^`]+)`/gu)].map((item)=>item[1]!)}));
+};
+const validateRootLawMappings=(laws:Law[]):void=>{
+  const expected=rootLawExpectations();if(expected.length!==8)fail('SOURCE_PARSE_FAILED','root law source mapping');
+  for(const item of expected){const law=laws.find((candidate)=>candidate.lawId===item.lawId)??fail('SOURCE_PARSE_FAILED',item.lawId);if(law.summary!==item.summary||JSON.stringify(law.forbidden)!==JSON.stringify(item.forbidden)||JSON.stringify(law.evidenceModes)!==JSON.stringify(item.evidenceModes))fail('SOURCE_PARSE_FAILED',`${item.lawId} exact source mapping`)}
+};
+const validateForbiddenIntegrity=(laws:Law[]):void=>{for(const law of laws)for(const clause of law.forbidden)if(/(?:checkpoint o|the has|or a se)$/u.test(clause))fail('SOURCE_PARSE_FAILED',`${law.lawId} truncated forbidden clause`)};
 type RawManifest=Omit<Manifest,'manifestPath'>;
 const validManifestHeader=(raw:RawManifest,domain:string):boolean=>exactKeys(raw as Record<string,unknown>,MANIFEST_KEYS)&&raw.schemaVersion===4&&raw.status==='active'&&raw.capabilityDomain===domain&&DOMAIN_PATTERN.test(domain)&&Boolean(raw.lawBindings)&&typeof raw.lawBindings==='object'&&!Array.isArray(raw.lawBindings);
 const validateManifestLists=(raw:RawManifest,rel:string):void=>{
@@ -297,14 +308,33 @@ const verifyPinnedSpec=(pin:GovernanceSpec,file:string,consumerRemote:string):vo
   const contract=descriptor.contract as CrossRepoContract;if(sha(git(['show',`${binding.providerCommitSha}:${contract.authorityArtifact.path}`]))!==contract.authorityArtifact.sha256)fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:authority artifact`);
 };
 function verifyPinnedProviderDescriptors(){const consumerRemote=consumerRepository();for(const file of walk('docs/specs').filter((path)=>path.endsWith('.spec.json'))){const pin=parseJson<GovernanceSpec>(file);if(pin.specKind==='contract-pin')verifyPinnedSpec(pin,file,consumerRemote)}}
-function buildRegistry(){verifyEntry();const laws=loadLaws();const manifests=loadManifests(laws);loadContracts(laws,manifests);verifyNoRetiredLawReferences(laws);if(laws.some((law)=>law.enforcement===null))fail('ACTIVE_LAW_DENOMINATOR_MISMATCH','registry enforcement');const domains=manifests.map((m)=>({capabilityDomain:m.capabilityDomain,manifestPath:m.manifestPath,lawIds:m.lawIds,ownedPaths:m.ownedPaths,observedPaths:m.observedPaths})).sort((a,b)=>a.capabilityDomain.localeCompare(b.capabilityDomain));return {schemaVersion:4,sourceSpec:{path:SPEC,sha256:sha(bytes(SPEC))},lawCorpus:{baseLawPath:BASE,baseLawSha256:sha(bytes(BASE)),functionalLawPath:FUNCTIONAL,functionalLawSha256:sha(bytes(FUNCTIONAL))},laws,domains};}
+function buildRegistry(){verifyEntry();const laws=loadLaws();validateRootLawMappings(laws);validateForbiddenIntegrity(laws);const manifests=loadManifests(laws);loadContracts(laws,manifests);verifyNoRetiredLawReferences(laws);if(laws.some((law)=>law.enforcement===null))fail('ACTIVE_LAW_DENOMINATOR_MISMATCH','registry enforcement');const domains=manifests.map((m)=>({capabilityDomain:m.capabilityDomain,manifestPath:m.manifestPath,lawIds:m.lawIds,ownedPaths:m.ownedPaths,observedPaths:m.observedPaths})).sort((a,b)=>a.capabilityDomain.localeCompare(b.capabilityDomain));return {schemaVersion:4,sourceSpec:{path:SPEC,sha256:sha(bytes(SPEC))},lawCorpus:{baseLawPath:BASE,baseLawSha256:sha(bytes(BASE)),functionalLawPath:FUNCTIONAL,functionalLawSha256:sha(bytes(FUNCTIONAL))},laws,domains};}
 function writeRegistry(){const out=canonicalBytes(buildRegistry());mkdirSync(dirname(resolve(ROOT,REGISTRY)),{recursive:true});const tmp=resolve(ROOT,`${REGISTRY}.tmp-${process.pid}`);writeFileSync(tmp,out);JSON.parse(readFileSync(tmp,'utf8'));renameSync(tmp,resolve(ROOT,REGISTRY));console.log(`REGISTRY_BUILT ${sha(out)}`)}
-function checkProjection(){const before=candidateSnapshot();const expected=canonicalBytes(buildRegistry());if(candidateSnapshot()!==before)fail('CANDIDATE_DRIFT','candidate changed while building projection');if(!existsSync(resolve(ROOT,REGISTRY)))fail('GENERATED_FILESET_INVALID',REGISTRY);const generatedFiles=readdirSync(resolve(ROOT,'scripts/audit/generated')).filter((name)=>!name.startsWith('.')).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)));if(JSON.stringify(generatedFiles)!==JSON.stringify(['law-registry.generated.json']))fail('GENERATED_FILESET_INVALID',generatedFiles.join(','));if(text(REGISTRY)!==expected)fail('GENERATED_PROJECTION_STALE',REGISTRY);if(candidateSnapshot()!==before)fail('CANDIDATE_DRIFT','candidate changed while checking projection');console.log(`PROJECTION_CURRENT ${sha(expected)}`)}
+function checkProjection(){const before=candidateSnapshot();const expected=canonicalBytes(buildRegistry());requireCandidateStable(before,candidateSnapshot(),'candidate changed while building projection');const generatedFiles=existsSync(resolve(ROOT,REGISTRY))?readdirSync(resolve(ROOT,'scripts/audit/generated')).filter((name)=>!name.startsWith('.')).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right))):[];const actual=existsSync(resolve(ROOT,REGISTRY))?readFileSync(resolve(ROOT,REGISTRY)):Buffer.alloc(0);requireExactProjection(generatedFiles,['law-registry.generated.json'],actual,Buffer.from(expected));requireCandidateStable(before,candidateSnapshot(),'candidate changed while checking projection');console.log(`PROJECTION_CURRENT ${sha(expected)}`)}
 
-function candidateSnapshot(){const commit=execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT}).toString().trim();const diff=execFileSync('git',['diff','--binary','--no-ext-diff','HEAD','--'],{cwd:ROOT,maxBuffer:GIT_EVIDENCE_MAX_BUFFER});const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:ROOT,maxBuffer:GIT_EVIDENCE_MAX_BUFFER}).toString().split('\0').filter(Boolean).sort();const identity={commit,diffSha256:sha(diff),untracked:untracked.map((path)=>({path:norm(path),sha256:sha(bytes(path))}))};return sha(canonicalBytes(identity))}
+type CandidateDiff={status:'A'|'M'|'D';path:string;sha256:string|null};
+function candidateBaseSha(root=ROOT):string{
+  if(!existsSync(resolve(root,CHANGE)))return execFileSync('git',['rev-parse','HEAD'],{cwd:root}).toString().trim();
+  const source=readFileSync(resolve(root,CHANGE),'utf8');rejectDuplicateJsonKeys(source,resolve(root,CHANGE));const record=JSON.parse(source) as {baseSha?:unknown};
+  const baseSha=record.baseSha;
+  if(typeof baseSha!=='string')fail('CHANGE_RECORD_INVALID','baseSha');
+  return baseSha as string;
+}
+function candidateDiffs(root:string,baseSha:string):CandidateDiff[]{
+  const fileHash=(path:string)=>sha(readFileSync(resolve(root,path)));
+  const raw=execFileSync('git',['diff','--no-renames','--name-status','-z',baseSha,'--'],{cwd:root,maxBuffer:GIT_EVIDENCE_MAX_BUFFER}).toString().split('\0').filter(Boolean);
+  const diffs:CandidateDiff[]=[];
+  for(let index=0;index<raw.length;index+=2){const rawStatus=raw[index]?.[0];const path=norm(raw[index+1]??'');if(!path||!rawStatus)fail('SOURCE_PARSE_FAILED','candidate diff');const status=rawStatus==='A'?'A':rawStatus==='D'?'D':'M';diffs.push({status,path,sha256:status==='D'?null:fileHash(path)})}
+  const tracked=new Set(diffs.map((diff)=>diff.path));
+  const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:root,maxBuffer:GIT_EVIDENCE_MAX_BUFFER}).toString().split('\0').filter(Boolean).map(norm);
+  for(const path of untracked)if(!tracked.has(path))diffs.push({status:'A',path,sha256:fileHash(path)});
+  return diffs.sort((left,right)=>Buffer.compare(Buffer.from(left.path),Buffer.from(right.path))||left.status.localeCompare(right.status));
+}
+function candidateSnapshotAt(root:string,baseSha=candidateBaseSha(root)){const fileHash=(path:string)=>sha(readFileSync(resolve(root,path)));return sha(canonicalBytes({baseSha,diffs:candidateDiffs(root,baseSha),baseLawSha256:fileHash(BASE),functionalLawSha256:fileHash(FUNCTIONAL),registrySha256:fileHash(REGISTRY)}))}
+function candidateSnapshot(baseSha=candidateBaseSha()){return candidateSnapshotAt(ROOT,baseSha)}
 
 export {
   SPEC, FREEZE, BASE, FUNCTIONAL, REGISTRY, CHANGE, REPORT, EVIDENCE, verifyEntry, loadLaws, buildRegistry,
-  writeRegistry, checkProjection, verifyPinnedProviderDescriptors, candidateSnapshot,
+  writeRegistry, checkProjection, verifyPinnedProviderDescriptors, candidateSnapshot, candidateSnapshotAt,
 };
 export type { Level, Law, Manifest };

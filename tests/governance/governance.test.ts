@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { agentReleaseParticipants, assertStableProofFile, evidencePlan, qualityRunDirectory, validateQualityReport, validateRealProofExecutorOutputs, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance.js';
+import { agentReleaseParticipants, assertStableProofFile, evidencePlan, mutantCatalog, scopeEvidenceRef, validateQualityReport, validateRealProofExecutorOutputs, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-quality.js';
+import { qualityRunDirectory } from '../../scripts/audit/governance.js';
+import { candidateSnapshot } from '../../scripts/audit/governance-authority.js';
+import { sha } from '../../scripts/audit/governance-runtime.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-'))): string => {
@@ -17,8 +20,10 @@ const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-'))): s
     'docs/governance', 'docs/blueprints', 'docs/specs',
     'scripts/audit/domains', 'scripts/audit/generated',
     'scripts/exam', 'tests/governance/binding-negative-cases.test.ts',
+    'scripts/audit/binding-verdict.ts',
     'scripts/audit/governance-authority.ts', 'scripts/audit/governance-json.ts',
-    'scripts/audit/governance-quality.ts', 'scripts/audit/governance-runtime.ts', 'scripts/audit/governance.ts',
+    'scripts/audit/governance-invariants.ts', 'scripts/audit/governance-quality.ts', 'scripts/audit/governance-runtime.ts', 'scripts/audit/governance.ts',
+    'src/lib/browser/exact-target/browser-proof-journal.ts',
   ]) {
     const target = join(root, source);
     mkdirSync(dirname(target), { recursive: true });
@@ -398,14 +403,15 @@ test('quality report schema covers every active law and rejects fake outcomes', 
     lawId: law.lawId, declaredEvidenceModes: law.evidenceModes,
     requiredEvidenceModes: law.evidenceModes.filter((mode: string) => !mode.startsWith('dynamic.')),
     deferredEvidenceModes: law.evidenceModes.filter((mode: string) => mode.startsWith('dynamic.')),
-    scopeEvidenceRefs: [evidenceRef('scope', law.lawId)],
+    scopeEvidenceRefs: [scopeEvidenceRef(law)],
     components: [...(law.enforcement.staticBinding ? [component(law.enforcement.staticBinding, 'static')] : []), ...law.enforcement.examBindings.map((binding: any) => component(binding, 'exam'))].sort((left, right) => left.bindingId.localeCompare(right.bindingId)),
     outcome: 'PASS', findings: [],
   }));
-  const mutants = laws.flatMap((law) => [law.enforcement.staticBinding, ...law.enforcement.examBindings, ...law.enforcement.proofBindings].filter(Boolean).flatMap((binding: any) => binding.negativeCases.map((negative: any) => ({ mutantId: negative.negativeCaseId, bindingId: binding.bindingId, expectedCode: negative.expectedCode, actualCode: negative.expectedCode, evidenceRefs: [evidenceRef('test', negative.negativeCaseId)], outcome: 'PASS' })))).sort((left, right) => left.mutantId.localeCompare(right.mutantId));
+  const mutants = mutantCatalog(laws, 'READY');
+  const baseSha = execFileSync('git', ['rev-parse', 'HEAD']).toString().trim();
   const report = {
-    schemaVersion: 2, level: 'READY', baseSha: 'a'.repeat(40), candidateFingerprint: 'd'.repeat(64), candidateId: null,
-    registrySha256: 'b'.repeat(64), laws: items, mutants, outcome: 'PASS',
+    schemaVersion: 2, level: 'READY', baseSha, candidateFingerprint: candidateSnapshot(baseSha), candidateId: null,
+    registrySha256: sha(readFileSync('scripts/audit/generated/law-registry.generated.json')), laws: items, mutants, outcome: 'PASS',
   };
   assert.doesNotThrow(() => validateQualityReport(report, laws, 'READY'));
   assert.throws(() => validateQualityReport({ ...report, schemaVersion: 1 }, laws, 'READY'), /top-level/u);

@@ -106,9 +106,10 @@ export const inspectLegacyAppUserDemandPhysicalAbsence = (
   inspectedFiles: Set<string>,
 ): void => {
   const lawId = selectLawId(context.planEntry.lawIds, legacyLawIdValue);
-  inspectedFiles.add(migrationTablePath);
-  inspectAuthorityClauses(context, findings, inspectedFiles, lawId);
-  inspectLegacyDocumentAbsence(findings, inspectedFiles, lawId);
+  const targets=new Set(context.targetPaths);
+  if(targets.has(migrationTablePath))inspectedFiles.add(migrationTablePath);
+  if(targets.has(lawPath))inspectAuthorityClauses(context, findings, inspectedFiles, lawId);
+  if(targets.has(legacyDocPath))inspectLegacyDocumentAbsence(findings, inspectedFiles, lawId);
   inspectSourceReferences(context, findings, inspectedFiles, lawId);
-  inspectPackageReference(findings, inspectedFiles, lawId);
+  if(targets.has(packagePath))inspectPackageReference(findings, inspectedFiles, lawId);
 };

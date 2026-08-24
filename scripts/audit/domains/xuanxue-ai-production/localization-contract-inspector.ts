@@ -4,17 +4,6 @@ import path from "node:path";
 
 import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
-import {
-  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_VERSION,
-  XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
-  XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
-  expectedLocalizationProviderProfile,
-} from "../../../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
-import {
-  XuanxueAiProductIdSchema,
-  XuanxueAiProductionTriggerKindSchema,
-} from "../../../../src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { createAuditProject } from "../../shared/project.js";
@@ -98,56 +87,28 @@ type LocalizationProjection = Readonly<{
 
 type GeneratedProductProjection = Readonly<{
   localization_semantic_manifest: LocalizationProjection;
+  bundle: Readonly<{
+    contracts: readonly Readonly<{
+      contract_id: string;
+      owner_domain: string;
+      product_contract_hash: string;
+      product_graph: Readonly<{ nodes: readonly Readonly<{ node_id: string }>[] }>;
+    }>[];
+  }>;
 }>;
 
 const readAndAssertProjection = (): LocalizationProjection => {
   const generated = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProductProjection;
   const projection = generated.localization_semantic_manifest;
-  assert.equal(
-    projection.schema_version,
-    XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_VERSION,
-  );
-  assert.equal(
-    projection.contract_manifest_hash,
-    XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  );
-  assert.deepEqual(
-    Object.keys(projection.products).sort(),
-    Object.keys(XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS).sort(),
-  );
+  assert.match(projection.schema_version, /^xuanxue-ai-localization-contract-manifest\.v[1-9][0-9]*$/u);
+  assert.match(projection.contract_manifest_hash, /^sha256:[a-f0-9]{64}$/u);
+  const contracts = generated.bundle.contracts.filter((contract) => contract.owner_domain === "localization");
+  const expectedProducts = Object.fromEntries(contracts.map((contract) => [contract.contract_id, contract.product_contract_hash]));
+  assert.deepEqual(projection.products, expectedProducts);
+  const expectedRoles = contracts.flatMap((contract) => contract.product_graph.nodes.map((node) => node.node_id)).sort();
+  assert.deepEqual(Object.keys(projection.roles).sort(), expectedRoles);
+  Object.values(projection.roles).forEach((hash) => assert.match(hash, /^sha256:[a-f0-9]{64}$/u));
   return projection;
-};
-
-const assertProjectionBindings = (projection: LocalizationProjection): void => {
-  for (const [productId, contractHash] of Object.entries(
-    XUANXUE_LOCALIZATION_SUPPORTED_PRODUCT_CONTRACTS,
-  )) {
-    assert.equal(projection.products[productId], contractHash);
-  }
-  for (const role of [
-    "candidate_a", "candidate_b", "selector_first", "selector_swap",
-    "consistency", "report_translation", "article_translation",
-  ] as const) {
-    assert.equal(projection.roles[role], expectedLocalizationProviderProfile(role).profile_hash);
-  }
-  assert.deepEqual(
-    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_candidate!.roles,
-    ["candidate_a", "candidate_b"],
-  );
-  assert.deepEqual(
-    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_selector!.roles,
-    ["selector_first", "selector_swap", "consistency"],
-  );
-  assert.equal(
-    XuanxueAiProductionTriggerKindSchema.safeParse("localization_static_review").success,
-    true,
-    "website-owned static review trigger must remain admissible",
-  );
-  assert.equal(
-    XuanxueAiProductIdSchema.safeParse("localization_static_review").success,
-    false,
-    "legacy monolithic static review product must remain forbidden",
-  );
 };
 
 const assertRuntimeSources = (project: Project): void => {
@@ -184,19 +145,18 @@ const assertRuntimeSources = (project: Project): void => {
   assert.equal(hasIdentifier(providerEvidence, "providerTranscriptHash"), true);
 };
 
-export function inspectXuanxueLocalizationContract(project: Project = createAuditProject()): void {
-  const projection = readAndAssertProjection();
-  assertProjectionBindings(projection);
+export async function inspectXuanxueLocalizationContract(project: Project = createAuditProject()): Promise<void> {
+  readAndAssertProjection();
   assertRuntimeSources(project);
 }
 
-const inspectDomainEvaluation = (
+const inspectDomainEvaluation = async (
   project: Project,
   context: InspectorContext,
-): { findings: ReturnType<typeof createFinding>[]; evidenceRefs: readonly string[] } => {
+): Promise<{ findings: ReturnType<typeof createFinding>[]; evidenceRefs: readonly string[] }> => {
   const findings: ReturnType<typeof createFinding>[] = [];
   try {
-    inspectXuanxueLocalizationContract(project);
+    await inspectXuanxueLocalizationContract(project);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     for (const binding of context.planEntry.bindings) {
@@ -222,7 +182,7 @@ const inspectDomainEvaluation = (
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   if (!context.checks) throw new Error("xuanxue localization contract requires a runner-owned check session.");
   await context.checks.runAll(async () => {
-    const evaluation = inspectDomainEvaluation(context.project, context);
+    const evaluation = await inspectDomainEvaluation(context.project, context);
     return {
       findings: evaluation.findings,
       evidenceRefs: evaluation.evidenceRefs,

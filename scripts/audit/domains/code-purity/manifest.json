@@ -52,6 +52,7 @@
     "scripts/audit/domains/code-purity/**"
   ],
   "observedPaths": [
+    "package.json",
     "scripts/**",
     "src/**"
   ]

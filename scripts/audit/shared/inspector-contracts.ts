@@ -64,6 +64,10 @@ export type CompletedReport = {
 
 export type InspectorContext = {
   project: Project;
+  selectedLawId: string;
+  sealedRoot: string;
+  targetSet: Readonly<{ queryRef: string; count: number; sha256: string }>;
+  targetPaths: readonly string[];
   planEntry: AuditPlanEntry;
   generatedPlan: readonly AuditPlanEntry[];
   completedReports: Readonly<Record<string, CompletedReport>>;

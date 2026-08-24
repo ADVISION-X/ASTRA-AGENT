@@ -5,7 +5,7 @@
   "lawIds": [
     "LAW-LAW-SYSTEM-001-V1",
     "LAW-LAW-SYSTEM-002-V1",
-    "LAW-LAW-SYSTEM-003-V1",
+    "LAW-LAW-SYSTEM-003-V2",
     "LAW-LAW-SYSTEM-004-V1",
     "LAW-LAW-SYSTEM-005-V1",
     "LAW-LAW-SYSTEM-006-V1",
@@ -86,36 +86,36 @@
       ],
       "proofBindings": []
     },
-    "LAW-LAW-SYSTEM-003-V1": {
+    "LAW-LAW-SYSTEM-003-V2": {
       "staticBinding": {
-        "bindingId": "law.system.003.v1.static",
-        "checkId": "law.system.003.v1.static.check",
-        "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-003-V1",
-        "targetSelectorId": "law.system.003.v1.target",
+        "bindingId": "law.system.003.v2.static",
+        "checkId": "law.system.003.v2.static.check",
+        "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-003-V2",
+        "targetSelectorId": "law.system.003.v2.target",
         "evidenceModes": [
           "static.text",
           "static.json"
         ],
         "negativeCases": [
           {
-            "negativeCaseId": "law.system.003.v1.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.003.v1.static",
+            "negativeCaseId": "law.system.003.v2.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.003.v2.static",
             "expectedCode": "COMPONENT_FAILED"
           }
         ]
       },
       "examBindings": [
         {
-          "bindingId": "law.system.003.v1.exam-property.exam",
-          "examId": "law.system.003.v1.exam-property",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-003-V1|exam.property",
+          "bindingId": "law.system.003.v2.exam-property.exam",
+          "examId": "law.system.003.v2.exam-property",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-003-V2|exam.property",
           "evidenceModes": [
             "exam.property"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "law.system.003.v1.exam-property.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.003.v1.exam-property.exam",
+              "negativeCaseId": "law.system.003.v2.exam-property.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.003.v2.exam-property.exam",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
@@ -317,7 +317,17 @@
     "docs/blueprints/**",
     "docs/governance/**",
     "docs/specs/**",
+    "package.json",
+    "scripts/**",
     "scripts/audit/domains/**",
-    "scripts/audit/generated/**"
+    "scripts/audit/generated/**",
+    "scripts/audit/governance-authority.ts",
+    "scripts/audit/governance-invariants.ts",
+    "scripts/audit/governance-json.ts",
+    "scripts/audit/governance-runtime.ts",
+    "scripts/audit/governance.ts",
+    "scripts/startup/**",
+    "src/**",
+    "tests/**"
   ]
 }

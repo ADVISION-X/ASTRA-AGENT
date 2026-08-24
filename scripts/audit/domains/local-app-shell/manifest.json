@@ -47,7 +47,7 @@
         {
           "bindingId": "local.app.shell.001.v4.dynamic-browser.proof",
           "proofId": "local.app.shell.001.v4.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-APP-SHELL-001-V4|dynamic.browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-APP-SHELL-001-V4|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
@@ -62,7 +62,7 @@
         {
           "bindingId": "local.app.shell.001.v4.dynamic-service.proof",
           "proofId": "local.app.shell.001.v4.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-APP-SHELL-001-V4|dynamic.service",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-APP-SHELL-001-V4|dynamic.service",
           "evidenceModes": [
             "dynamic.service"
           ],
@@ -150,7 +150,7 @@
         {
           "bindingId": "local.app.shell.003.v1.dynamic-service.proof",
           "proofId": "local.app.shell.003.v1.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-APP-SHELL-003-V1|dynamic.service",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-APP-SHELL-003-V1|dynamic.service",
           "evidenceModes": [
             "dynamic.service"
           ],
