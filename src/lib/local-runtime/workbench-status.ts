@@ -28,21 +28,35 @@ type AiProductionHealthSnapshot = {
   readonly checkedAt: string;
 } | null;
 
+export const runtimeInitializationDisposition = (
+  failureReason: string | null,
+): Readonly<{ actionableMessage: string; ownerResponsible: string }> =>
+  failureReason?.includes("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID")
+    ? {
+        actionableMessage: "Keep Browser execution and claim blocked and do not modify the journal. Obtain explicit runtime-data and major law/schema authorization for local-browser-session recovery; until then preserve the original file and remain blocked.",
+        ownerResponsible: "local-browser-session",
+      }
+    : {
+        actionableMessage: "Inspect the startup terminal failure and repair the named runtime owner before restarting.",
+        ownerResponsible: "local-runtime",
+      };
+
 const readRuntimeInitializationComponent = (
   state: WorkbenchInitializationState,
-): WorkbenchHealthComponent => ({
-  name: "runtimeInitialization",
-  ok: state.status === "ready",
-  detail: state.status === "ready"
-    ? "Mandatory runtime owners initialized."
-    : state.status === "initializing"
-      ? "Mandatory runtime owners are initializing."
-      : `Mandatory runtime owner initialization failed: ${state.failureReason ?? "unknown failure"}`,
-  actionableMessage: state.status === "failed"
-    ? "Inspect the startup terminal failure and repair the named runtime owner before restarting."
-    : null,
-  ownerResponsible: "local-runtime",
-});
+): WorkbenchHealthComponent => {
+  const disposition = runtimeInitializationDisposition(state.failureReason);
+  return {
+    name: "runtimeInitialization",
+    ok: state.status === "ready",
+    detail: state.status === "ready"
+      ? "Mandatory runtime owners initialized."
+      : state.status === "initializing"
+        ? "Mandatory runtime owners are initializing."
+        : `Mandatory runtime owner initialization failed: ${state.failureReason ?? "unknown failure"}`,
+    actionableMessage: state.status === "failed" ? disposition.actionableMessage : null,
+    ownerResponsible: state.status === "failed" ? disposition.ownerResponsible : "local-runtime",
+  };
+};
 
 const readAiProductionComponents = (
   health: AiProductionHealthSnapshot,

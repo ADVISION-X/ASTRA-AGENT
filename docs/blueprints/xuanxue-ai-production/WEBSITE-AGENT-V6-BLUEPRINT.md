@@ -134,6 +134,17 @@ Browser side effect 只通过现役 public facade 取得当前 Workspace/Authori
 Workspace 不设墙钟过期。断线、重启、Reload、identity drift 或 revoke 后停止新 claim；已接受任务
 保持同一 job/attempt/checkpoint 为 `recovery_pending`。重新配对/认领后先对账，再恢复最早任务。
 
+Browser 私有 Owner 必须先取得唯一排他 Owner lock，再打开、完整验证并绑定唯一 append-only proof
+journal 的当前尾部；构造阶段、等待锁阶段和锁外不得缓存 sequence 或 previous-entry hash。Authority、
+Target、Document、command 与 lifecycle 事件只允许在该锁持有期间 durable 追加。shutdown 固定先撤销
+Workspace/Authority、写入并 fsync revoke 事件，再释放 Owner lock；新进程取得锁后必须重新读取最新尾部，
+不得沿用取得锁前的内存快照。
+
+proof journal 任一 schema、sequence、previous hash、entry hash 或尾行完整性失败时，Shell 与只读诊断面
+保持可用，但 Browser Authority、Target、execution 与 claim 必须失败关闭。恢复不得截断、重排、重算、
+覆盖或分叉续写原 journal，不得建立第二活动 journal/epoch；任何恢复都必须由 `local-browser-session`
+Owner 保留原文件 hash 和明确 recovery receipt，且不能把旧候选历史冒充当前 Browser proof。
+
 Mutation 只有 `PREPARED -> SEND -> CONFIRMED|FAILED|UNKNOWN`。UNKNOWN 永不自动 replay；
 `IF + AND -> THEN` 的每个动作只由自身后置 proof 解析。日志不是 evidence，Browser receipt 不是
 业务结果。

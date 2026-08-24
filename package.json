@@ -43,7 +43,7 @@
     "audit:projection:check": "node --import tsx scripts/audit/governance-v32.ts projection",
     "quality:check": "node --import tsx scripts/audit/governance-v32.ts quality",
     "audit:integrity:test": "node --import tsx --test tests/governance/*.test.ts",
-    "ci:full": "npm run quality:check -- READY",
+    "ci:full": "GRASSEYE_QUALITY_REPORT_MODE=external npm run quality:check -- READY",
     "lint": "npm run typecheck",
     "acceptance:app-shell-ui": "node --import tsx scripts/acceptance/app-shell-ui.acceptance.ts && node --import tsx scripts/acceptance/app-shell-localization.acceptance.ts && node --import tsx scripts/acceptance/app-shell-skill-registry.acceptance.ts",
     "acceptance:app-shell-ui:real-chrome": "node --import tsx scripts/acceptance/app-shell-ui.real-chrome.ts",

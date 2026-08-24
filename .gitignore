@@ -7,10 +7,12 @@ Users/nexgen/
 /*.zip
 dist/
 node_modules/
+output/
 .grasseye-data/
 .grasseye-local/
 .grasseye-local/browser-profiles/
 .grasseye-demo-data/
+.playwright-cli/
 runtime-evidence/
 tmp/
 .governance/runtime/

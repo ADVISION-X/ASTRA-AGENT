@@ -72,7 +72,7 @@ export class BrowserInfrastructureSupervisor {
   private readonly ownerLock: BrowserOwnerLock;
   private readonly broker: BrowserAuthorityBroker;
   private readonly websocket: BrowserAuthorityWebSocket;
-  private readonly proofJournal: BrowserProofJournal;
+  private proofJournal: BrowserProofJournal | null = null;
   private started = false;
   private ownerLockHeld = false;
   private connectionGeneration = 0;
@@ -80,17 +80,6 @@ export class BrowserInfrastructureSupervisor {
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
-    const candidateHash = /^sha256:[a-f0-9]{64}$/u.test(options.sourceFingerprint)
-      ? options.sourceFingerprint as `sha256:${string}`
-      : `sha256:${"0".repeat(64)}` as `sha256:${string}`;
-    this.proofJournal = new BrowserProofJournal(
-      join(options.dataDir, "browser", "proof-events.ndjson"),
-      {
-        candidateHash,
-        extensionId: options.profileConfig.extensionId,
-        releaseBuildId: options.releaseIdentity.releaseBuildId,
-      },
-    );
     this.websocket = this.createWebSocket();
     this.broker = new BrowserAuthorityBroker(
       this.issuer,
@@ -137,7 +126,7 @@ export class BrowserInfrastructureSupervisor {
   private onAuthenticated(input: Parameters<BrowserAuthorityWebSocketOptions["onAuthenticated"]>[0]): BrowserAuthorityReady {
     const ready = this.commitUnpackedWebSocketAuthentication(input);
     const current = this.issuer.current();
-    this.proofJournal.recordLifecycle({
+    this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "AUTHENTICATED",
       ...(current.kind === "PRESENT" ? {
@@ -152,7 +141,7 @@ export class BrowserInfrastructureSupervisor {
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
-    this.proofJournal.recordLifecycle({
+    this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "TARGET_CLAIMED",
       ...this.currentAuthorityRefHash(),
@@ -170,7 +159,7 @@ export class BrowserInfrastructureSupervisor {
 
   private onTargetRevoke(targetRef: string): void {
     this.broker.revokeOperatorTargetClaim(targetRef);
-    this.proofJournal.recordLifecycle({
+    this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "TARGET_REVOKED",
       ...this.currentAuthorityRefHash(),
@@ -189,7 +178,7 @@ export class BrowserInfrastructureSupervisor {
     const authenticated = this.issuer.current().kind === "PRESENT";
     const extensionFailure = refs?.diagnosticSource === "extension-frame"
       || refs?.diagnosticSource === "extension-runtime";
-    this.proofJournal.recordLifecycle({
+    this.journal().recordLifecycle({
       eventType: "LIFECYCLE",
       phase: "AUTHORITY_REVOKED",
       ...this.currentAuthorityRefHash(),
@@ -214,6 +203,18 @@ export class BrowserInfrastructureSupervisor {
     await this.ownerLock.acquire();
     this.ownerLockHeld = true;
     try {
+      const candidateHash = /^sha256:[a-f0-9]{64}$/u.test(this.options.sourceFingerprint)
+        ? this.options.sourceFingerprint as `sha256:${string}`
+        : `sha256:${"0".repeat(64)}` as `sha256:${string}`;
+      this.proofJournal = new BrowserProofJournal(
+        join(this.options.dataDir, "browser", "proof-events.ndjson"),
+        {
+          candidateHash,
+          extensionId: this.options.profileConfig.extensionId,
+          releaseBuildId: this.options.releaseIdentity.releaseBuildId,
+        },
+        () => this.ownerLock.assertHeld(),
+      );
       this.transport.start();
       this.started = true;
       this.emitBrowserRuntimeState(
@@ -227,6 +228,7 @@ export class BrowserInfrastructureSupervisor {
         "等待固定扩展提交一次性配对证明。",
       );
     } catch (error) {
+      this.proofJournal = null;
       await this.ownerLock.release();
       this.ownerLockHeld = false;
       throw error;
@@ -234,13 +236,26 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public async stop(reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): Promise<void> {
+    const current = this.issuer.current();
+    const authorityRefHash = current.kind === "PRESENT"
+      ? `sha256:${createHash("sha256").update(current.authority.authorityRef).digest("hex")}` as const
+      : undefined;
     this.workspace?.revoke();
     this.workspace = undefined;
     this.transport.disconnect(reasonCode);
+    if (authorityRefHash) {
+      this.journal().recordLifecycle({
+        eventType: "LIFECYCLE",
+        phase: "AUTHORITY_REVOKED",
+        authorityRefHash,
+        reason: reasonCode,
+      });
+    }
     if (this.ownerLockHeld) {
       await this.ownerLock.release();
       this.ownerLockHeld = false;
     }
+    this.proofJournal = null;
     this.started = false;
   }
 
@@ -326,7 +341,7 @@ export class BrowserInfrastructureSupervisor {
       new BrowserCommandActor(
         new BrowserCommandAdmissionBudget(),
         this.websocket,
-        this.proofJournal,
+        this.journal(),
         { assertCurrentAuthority: (permit) => {
           const slot = this.issuer.current();
           if (slot.kind === "ABSENT" || slot.authority.authorityRef !== current.authority.authorityRef || slot.authority.authorityEpoch !== current.authority.authorityEpoch) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -339,6 +354,11 @@ export class BrowserInfrastructureSupervisor {
       resolveCurrentTarget,
       resolveGrantPaths,
     );
+  }
+
+  private journal(): BrowserProofJournal {
+    if (!this.proofJournal) throw new Error("BROWSER_PROOF_JOURNAL_UNAVAILABLE");
+    return this.proofJournal;
   }
 
   private emitBrowserRuntimeState(

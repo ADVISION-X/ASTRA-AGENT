@@ -10,6 +10,10 @@ export class BrowserOwnerLock {
 
   public constructor(private readonly lockPath: string) {}
 
+  public assertHeld(): void {
+    if (!this.handle) throw new Error("BROWSER_CONTROLLER_ALREADY_OWNED");
+  }
+
   public async acquire(): Promise<void> {
     await mkdir(dirname(this.lockPath), { recursive: true });
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -56,7 +60,7 @@ export class BrowserOwnerLock {
    * and group/world-readable sockets; those states require operator repair.
    */
   public async removeProvenStaleSocket(socketPath: string): Promise<void> {
-    if (!this.handle) throw new Error("BROWSER_CONTROLLER_ALREADY_OWNED");
+    this.assertHeld();
     let stat: Awaited<ReturnType<typeof lstat>>;
     try {
       stat = await lstat(socketPath);

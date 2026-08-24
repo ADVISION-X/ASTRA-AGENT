@@ -16,6 +16,7 @@ import {
   getMissionReadinessReport,
   getMissionStartPreflight,
   getModeInfo,
+  runtimeInitializationDisposition,
 } from "./workbench-status.js";
 import type {
   WorkbenchHealthReport,
@@ -200,6 +201,7 @@ export class GrassEyeWorkbench {
         this.xuanxueAiProduction?.readProductionHealth() ?? null,
       );
     }
+    const disposition = runtimeInitializationDisposition(this.initializationState.failureReason);
     const runtimeComponent = {
       name: "runtimeInitialization",
       ok: false,
@@ -207,9 +209,11 @@ export class GrassEyeWorkbench {
         ? `Mandatory runtime owner initialization failed: ${this.initializationState.failureReason ?? "unknown failure"}`
         : "Mandatory runtime owners are initializing.",
       actionableMessage: this.initializationState.status === "failed"
-        ? "Repair the named runtime owner before restarting."
+        ? disposition.actionableMessage
         : null,
-      ownerResponsible: "local-runtime",
+      ownerResponsible: this.initializationState.status === "failed"
+        ? disposition.ownerResponsible
+        : "local-runtime",
     };
     return {
       status: "degraded",

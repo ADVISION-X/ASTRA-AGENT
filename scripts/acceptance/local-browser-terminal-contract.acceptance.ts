@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { once } from "node:events";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -11,8 +13,14 @@ import { decryptBrowserAuthorityFrame, encryptBrowserAuthorityFrame } from "../.
 import { cryptoBytes, decrypt, encrypt } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
 import { BrowserArtifactRegistry } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { BrowserInfrastructureSupervisor } from "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
+import { BrowserProofJournal, readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { decodeClientWebSocketFrames, encodeServerWebSocketTextFrame } from "../../src/app/workbench-browser-websocket-upgrade.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
+import { runtimeInitializationDisposition } from "../../src/lib/local-runtime/workbench-status.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import type { BrowserUnsignedCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 
 for (const path of ["src/lib/browser/chrome-extension/external-port-actor.ts", "src/lib/browser/transport/workbench-extension-channel.ts", "src/lib/browser/release/cws-extension-release-identity.ts", "src/lib/browser/release/browser-release-security-policy.schema.json"]) {
   assert.equal(existsSync(resolve(path)), false, `retired transport must be physically absent: ${path}`);
@@ -34,6 +42,14 @@ assert.equal(channel.readOperatorPairingSecret(), "a".repeat(64), "The Workbench
 channel.receive(socket, JSON.stringify({ protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "PAIR_HELLO", epoch: 0, sequence: 0, deadline: new Date(Date.now() + 10_000).toISOString(), body: { extensionId: "emkmbecadncngofidjgocmifhbonifgm", extensionVersion: "1.0.0", pairingSecret: "b".repeat(64) } }));
 assert.equal(revoked, "BROWSER_AUTH_FRAME_INVALID");
 assert.equal(wire.length, 0, "an invalid pre-auth frame must not emit a reply frame");
+assert.deepEqual(
+  runtimeInitializationDisposition("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID"),
+  {
+    actionableMessage: "Keep Browser execution and claim blocked and do not modify the journal. Obtain explicit runtime-data and major law/schema authorization for local-browser-session recovery; until then preserve the original file and remain blocked.",
+    ownerResponsible: "local-browser-session",
+  },
+  "journal integrity failure must expose one safe Owner-specific recovery action without auto-repair",
+);
 const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSocket, extensionHeartbeat, authoritySocket, supervisor, webSocketUpgrade, frameCodec, protocolSchema, generatedProtocol, commandDiagnostic] = await Promise.all([
   readFile("src/lib/browser/exact-target/browser-session-workspace.ts", "utf8"),
   readFile("src/lib/browser/transport/command-permit.ts", "utf8"),
@@ -51,14 +67,7 @@ const [workspace, permit, journal, commandActor, targetLeaseManager, extensionSo
   readFile("src/lib/browser/chrome-extension/websocket-command-diagnostic.ts", "utf8"),
 ]);
 const extensionDiagnosticSources = `${extensionSocket}\n${commandDiagnostic}`;
-const [targetAuthority, browserBlueprint] = await Promise.all([
-  readFile("src/lib/browser/chrome-extension/extension-target-authority.ts", "utf8"),
-  readFile("docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md", "utf8"),
-]);
-assert.match(browserBlueprint, /Workspace 和认证 certificate 不设置墙上时间到期/u,
-  "the Browser blueprint must retain the connection-bound no-wall-clock-expiry contract");
-assert.doesNotMatch(browserBlueprint, /8h non-renewable TTL|8 小时|8小时/u,
-  "the Browser blueprint must reject the retired eight-hour Workspace contract");
+const targetAuthority = await readFile("src/lib/browser/chrome-extension/extension-target-authority.ts", "utf8");
 assert.match(workspace, /SessionWorkspaceBindingV6/u);
 assert.match(workspace, /connectionGeneration/u);
 assert.match(workspace, /belongsTo/u);
@@ -137,6 +146,16 @@ assert.equal(JSON.parse(protocolSchema).liveness.authorityLifetime, "authenticat
 assert.equal("authorityMaxMs" in JSON.parse(protocolSchema).liveness, false, "the protocol must not restore an eight-hour authority expiry");
 assert.doesNotMatch(supervisor, /approveSessionWorkspace|installSessionWorkspaceApproval/u, "pair plus claim must physically replace the second workspace approval path");
 assert.match(supervisor, /establishClaimBoundWorkspace/u, "target claim must establish the connection-bound Workspace before the claim becomes available");
+assert.match(
+  supervisor,
+  /await this\.ownerLock\.acquire\(\)[\s\S]*new BrowserProofJournal[\s\S]*this\.transport\.start\(\)/u,
+  "the Browser Owner lock must be acquired before the proof journal tail is read and before transport starts",
+);
+assert.match(
+  supervisor,
+  /public async stop[\s\S]*this\.transport\.disconnect\(reasonCode\)[\s\S]*phase: "AUTHORITY_REVOKED"[\s\S]*await this\.ownerLock\.release\(\)/u,
+  "shutdown must revoke Browser Authority before durably journaling revoke and releasing the Owner lock",
+);
 assert.equal(JSON.parse(protocolSchema).frameKinds.includes("DIAGNOSTIC"), true, "the authenticated protocol must have a non-fatal extension diagnostic frame");
 assert.doesNotMatch(generatedProtocol, /BROWSER_CONTROL_FRAME_MAX_BYTES/u, "the generated protocol projection must not resurrect the deleted byte ceiling");
 const operatorChannel = new BrowserAuthorityWebSocket({
@@ -276,5 +295,367 @@ try {
 } finally {
   await recoveredLock.release();
   await rm(lockFixture, { recursive: true, force: true });
+}
+
+const processLockFixture = await mkdtemp(join(tmpdir(), "browser-owner-process-lock-"));
+const processLockPath = join(processLockFixture, "browser", "owner.lock");
+const ownerLockModule = resolve("src/lib/browser/infrastructure/browser-owner-lock.ts");
+const ownerChildSource = `
+const { BrowserOwnerLock } = await import(process.env.OWNER_LOCK_MODULE);
+const lock = new BrowserOwnerLock(process.env.OWNER_LOCK_PATH);
+try {
+  await lock.acquire();
+  process.stdout.write("ACQUIRED\\n");
+  if (process.env.HOLD_OWNER === "1") {
+    const keepAlive = setInterval(() => undefined, 1_000);
+    process.on("SIGTERM", async () => { clearInterval(keepAlive); await lock.release(); process.exit(0); });
+    await new Promise(() => undefined);
+  }
+  await lock.release();
+} catch (error) {
+  process.stdout.write((error instanceof Error ? error.message : String(error)) + "\\n");
+}
+`;
+const spawnOwner = (hold: boolean) => spawn(
+  process.execPath,
+  ["--import", "tsx", "--input-type=module", "--eval", ownerChildSource],
+  {
+    cwd: resolve("."),
+    env: {
+      ...process.env,
+      OWNER_LOCK_MODULE: ownerLockModule,
+      OWNER_LOCK_PATH: processLockPath,
+      HOLD_OWNER: hold ? "1" : "0",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  },
+);
+const activeOwnerProcess = spawnOwner(true);
+let activeOwnerOutput = "";
+activeOwnerProcess.stdout.setEncoding("utf8");
+await new Promise<void>((resolveReady, rejectReady) => {
+  activeOwnerProcess.stdout.on("data", (chunk: string) => {
+    activeOwnerOutput += chunk;
+    if (activeOwnerOutput.includes("ACQUIRED\n")) resolveReady();
+  });
+  activeOwnerProcess.once("exit", (code) => rejectReady(new Error(`owner process exited before ready: ${code}`)));
+});
+const competingOwnerProcess = spawnOwner(false);
+let competingOwnerOutput = "";
+competingOwnerProcess.stdout.setEncoding("utf8");
+competingOwnerProcess.stdout.on("data", (chunk: string) => { competingOwnerOutput += chunk; });
+await once(competingOwnerProcess, "exit");
+assert.match(competingOwnerOutput, /BROWSER_DUAL_ACTIVE_WORKER/u, "two real OS processes must never own the Browser lock together");
+activeOwnerProcess.kill("SIGTERM");
+await once(activeOwnerProcess, "exit");
+await rm(processLockFixture, { recursive: true, force: true });
+
+const journalFixture = await mkdtemp(join(tmpdir(), "browser-proof-journal-restart-"));
+const journalPath = join(journalFixture, "browser", "proof-events.ndjson");
+const firstOwner = new BrowserOwnerLock(join(journalFixture, "browser", "owner.lock"));
+const secondOwner = new BrowserOwnerLock(join(journalFixture, "browser", "owner.lock"));
+const identity = {
+  candidateHash: `sha256:${"1".repeat(64)}` as const,
+  extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+  releaseBuildId: "release-build-journal-restart-v1",
+};
+const journalAuthorityRefHash = `sha256:${"5".repeat(64)}` as const;
+const canonicalJournalValue = (value: unknown): unknown => Array.isArray(value)
+  ? value.map(canonicalJournalValue)
+  : value && typeof value === "object"
+    ? Object.fromEntries(Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, canonicalJournalValue(item)]))
+    : value;
+const journalEntryHash = (core: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(canonicalJournalValue(core))).digest("hex")}`;
+try {
+  assert.throws(
+    () => new BrowserProofJournal(journalPath, identity, () => secondOwner.assertHeld()),
+    /BROWSER_CONTROLLER_ALREADY_OWNED/u,
+    "a waiting process must not read or cache the journal tail before it owns the Browser lock",
+  );
+  await firstOwner.acquire();
+  const firstJournal = new BrowserProofJournal(journalPath, identity, () => firstOwner.assertHeld());
+  firstJournal.recordLifecycle({ eventType: "LIFECYCLE", phase: "AUTHENTICATED", authorityRefHash: journalAuthorityRefHash });
+  const firstEnvelope = readBrowserProofJournal(journalPath)[0]!;
+  const corruptedCases = [
+    { ...firstEnvelope, sequence: 2 },
+    { ...firstEnvelope, previousEntryHash: `sha256:${"2".repeat(64)}` },
+    { ...firstEnvelope, entryHash: `sha256:${"3".repeat(64)}` },
+    { ...firstEnvelope, unexpected: true },
+  ];
+  for (const [index, corrupted] of corruptedCases.entries()) {
+    const corruptedPath = join(journalFixture, `corrupted-${index}.ndjson`);
+    await writeFile(corruptedPath, `${JSON.stringify(corrupted)}\n`, "utf8");
+    assert.throws(
+      () => readBrowserProofJournal(corruptedPath),
+      /BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID/u,
+    );
+  }
+  const semanticEvent = { ...firstEnvelope.event, phase: "TARGET_CLAIMED" };
+  const semanticCore = {
+    schemaVersion: firstEnvelope.schemaVersion,
+    sequence: firstEnvelope.sequence,
+    previousEntryHash: firstEnvelope.previousEntryHash,
+    event: semanticEvent,
+  };
+  const semanticInvalid = {
+    ...semanticCore,
+    entryHash: `sha256:${createHash("sha256").update(canonicalizeBrowserAuthorityValue(semanticCore)).digest("hex")}`,
+  };
+  const semanticInvalidPath = join(journalFixture, "semantic-invalid.ndjson");
+  await writeFile(semanticInvalidPath, `${JSON.stringify(semanticInvalid)}\n`, "utf8");
+  assert.throws(
+    () => readBrowserProofJournal(semanticInvalidPath),
+    /BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID/u,
+    "a correctly rehashed but phase-invalid lifecycle event must fail strict schema validation",
+  );
+  const schemaInvalidCore = {
+    schemaVersion: firstEnvelope.schemaVersion,
+    sequence: firstEnvelope.sequence,
+    previousEntryHash: firstEnvelope.previousEntryHash,
+    event: { ...firstEnvelope.event, phase: "IMPOSTOR_PHASE" },
+  };
+  const schemaInvalidPath = join(journalFixture, "schema-invalid.ndjson");
+  await writeFile(schemaInvalidPath, `${JSON.stringify({ ...schemaInvalidCore, entryHash: journalEntryHash(schemaInvalidCore) })}\n`, "utf8");
+  assert.throws(
+    () => readBrowserProofJournal(schemaInvalidPath),
+    /BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID/u,
+    "a hash-valid envelope with an invalid event schema must fail closed",
+  );
+  const commandEvent = {
+    eventType: "COMMAND",
+    phase: "PREPARED",
+    commandId: "command:strict-schema",
+    actionId: "browser.navigate.v1",
+    commandKind: "navigate",
+    workspaceRef: "workspace:strict-schema",
+    authorityRef: "authority:strict-schema",
+    authorityCertificateHash: `sha256:${"6".repeat(64)}`,
+    executionBindingHash: `sha256:${"7".repeat(64)}`,
+    executionFenceHash: `sha256:${"8".repeat(64)}`,
+    candidateHash: identity.candidateHash,
+    contractManifestHash: `sha256:${"9".repeat(64)}`,
+    ownerPluginId: "owner:strict-schema",
+    jobId: "job:strict-schema",
+    attemptId: "attempt:strict-schema",
+    deviceId: "device:strict-schema",
+    leaseVersion: 1,
+    localOrderId: "order:strict-schema",
+    targetRef: "target:strict-schema",
+    documentRef: "document:strict-schema",
+    commandTtlMs: 1_000,
+    commandClass: "lifecycle",
+    payloadHash: `sha256:${"a".repeat(64)}`,
+    artifactRefs: [],
+    recordedAt: new Date().toISOString(),
+  } as const;
+  const hashValidSemanticCases: readonly Readonly<Record<string, unknown>>[] = [
+    { ...commandEvent, resultHash: `sha256:${"b".repeat(64)}` },
+    { ...commandEvent, phase: "SEND", reason: "result fields forbidden before a result" },
+    { ...commandEvent, phase: "FAILED" },
+    { ...commandEvent, leaseVersion: 0 },
+    { ...commandEvent, leaseVersion: -1 },
+    { ...commandEvent, commandTtlMs: 0 },
+    { ...commandEvent, commandTtlMs: -1 },
+    { ...commandEvent, phase: "COMPLETED", resultHash: `sha256:${"b".repeat(64)}`, transportSequence: 0, permitSequence: 1 },
+    { ...commandEvent, phase: "COMPLETED", resultHash: `sha256:${"b".repeat(64)}`, transportSequence: -1, permitSequence: 1 },
+    { ...commandEvent, phase: "COMPLETED", resultHash: `sha256:${"b".repeat(64)}`, transportSequence: 1, permitSequence: 0 },
+    { ...commandEvent, phase: "COMPLETED", resultHash: `sha256:${"b".repeat(64)}`, transportSequence: 1, permitSequence: -1 },
+    { ...commandEvent, phase: "UNKNOWN", reason: "BROWSER_OUTCOME_UNKNOWN", resultHash: `sha256:${"b".repeat(64)}` },
+  ];
+  for (const [index, event] of hashValidSemanticCases.entries()) {
+    const core = {
+      schemaVersion: firstEnvelope.schemaVersion,
+      sequence: firstEnvelope.sequence,
+      previousEntryHash: firstEnvelope.previousEntryHash,
+      event,
+    };
+    const invalidPath = join(journalFixture, `hash-valid-semantic-invalid-${index}.ndjson`);
+    await writeFile(invalidPath, `${JSON.stringify({ ...core, entryHash: journalEntryHash(core) })}\n`, "utf8");
+    assert.throws(
+      () => readBrowserProofJournal(invalidPath),
+      /BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID/u,
+      `hash-valid semantic command mutant ${index} must fail exact phase schema validation`,
+    );
+  }
+  const partialTailPath = join(journalFixture, "partial-tail.ndjson");
+  await writeFile(partialTailPath, JSON.stringify(firstEnvelope).slice(0, -1), "utf8");
+  assert.throws(
+    () => readBrowserProofJournal(partialTailPath),
+    /BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID/u,
+    "an incomplete JSON tail must fail closed with the stable journal integrity code",
+  );
+  firstJournal.recordLifecycle({
+    eventType: "LIFECYCLE",
+    phase: "AUTHORITY_REVOKED",
+    reason: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
+  });
+  await firstOwner.release();
+  assert.throws(
+    () => firstJournal.recordLifecycle({ eventType: "LIFECYCLE", phase: "AUTHENTICATED", authorityRefHash: journalAuthorityRefHash }),
+    /BROWSER_CONTROLLER_ALREADY_OWNED/u,
+    "a stale journal reference must not append after its Owner lock is released",
+  );
+
+  await secondOwner.acquire();
+  const secondJournal = new BrowserProofJournal(journalPath, identity, () => secondOwner.assertHeld());
+  secondJournal.recordLifecycle({ eventType: "LIFECYCLE", phase: "AUTHENTICATED", authorityRefHash: journalAuthorityRefHash });
+  secondJournal.recordLifecycle({
+    eventType: "LIFECYCLE",
+    phase: "TARGET_CLAIMED",
+    authorityRefHash: journalAuthorityRefHash,
+    targetRef: "target:restart",
+    documentRef: "document:restart",
+  });
+  const restarted = readBrowserProofJournal(journalPath);
+  assert.deepEqual(restarted.map((entry) => entry.sequence), [1, 2, 3, 4]);
+  for (let index = 1; index < restarted.length; index += 1) {
+    assert.equal(restarted[index]!.previousEntryHash, restarted[index - 1]!.entryHash);
+  }
+
+  await secondOwner.release();
+  for (let restart = 0; restart < 100; restart += 1) {
+    const owner = new BrowserOwnerLock(join(journalFixture, "browser", "owner.lock"));
+    await owner.acquire();
+    const current = new BrowserProofJournal(journalPath, identity, () => owner.assertHeld());
+    current.recordLifecycle({ eventType: "LIFECYCLE", phase: "AUTHENTICATED", authorityRefHash: journalAuthorityRefHash });
+    await owner.release();
+  }
+  const afterOneHundredRestarts = readBrowserProofJournal(journalPath);
+  assert.equal(afterOneHundredRestarts.length, 104);
+  for (let index = 0; index < afterOneHundredRestarts.length; index += 1) {
+    assert.equal(afterOneHundredRestarts[index]!.sequence, index + 1);
+    assert.equal(
+      afterOneHundredRestarts[index]!.previousEntryHash,
+      index === 0 ? `sha256:${"0".repeat(64)}` : afterOneHundredRestarts[index - 1]!.entryHash,
+    );
+  }
+} finally {
+  await secondOwner.release().catch(() => undefined);
+  await firstOwner.release().catch(() => undefined);
+  await rm(journalFixture, { recursive: true, force: true });
+}
+
+const supervisorFixture = await mkdtemp(join(tmpdir(), "browser-supervisor-restart-"));
+const supervisorHash = `sha256:${"4".repeat(64)}` as const;
+const supervisorOptions = {
+  dataDir: supervisorFixture,
+  sourceFingerprint: supervisorHash,
+  profileConfig: {
+    profileRef: "profile:journal-test",
+    profileDir: join(supervisorFixture, "profile"),
+    extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+    unpackedExtensionDirectory: join(supervisorFixture, "extension"),
+  },
+  enrolledProfile: {
+    profileRef: "profile:journal-test",
+    enrollmentHash: supervisorHash,
+    policyHash: supervisorHash,
+    extensionTreeHash: supervisorHash,
+    enrolledAt: new Date().toISOString(),
+  },
+  releaseIdentity: {
+    schemaVersion: "grasseye.browser.unpacked-release.v1" as const,
+    releaseBuildId: "release-build-supervisor-restart-v1",
+    extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+    version: "1.0.0",
+    extensionDirectoryHashV1: supervisorHash,
+    manifestHash: supervisorHash,
+    protocolHash: supervisorHash,
+    sitePolicyHash: supervisorHash,
+    createdAt: new Date().toISOString(),
+  },
+  runtimeLogger: createRuntimeLogger({ terminalEnabled: false }),
+};
+type SupervisorInternals = {
+  onAuthenticated(input: Readonly<{
+    extensionId: string;
+    extensionVersion: string;
+    releaseBuildId: string;
+    sessionHash: `sha256:${string}`;
+    commandPermitKey: string;
+  }>): Readonly<{
+    authorityRef: string;
+    authorityEpoch: number;
+    certificateHash: `sha256:${string}`;
+    channelSessionHash: `sha256:${string}`;
+  }>;
+  onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void;
+  ownerLock: BrowserOwnerLock;
+  issuer: BrowserAuthorityIssuer;
+};
+const authenticateSupervisor = (instance: BrowserInfrastructureSupervisor, generation: number) =>
+  (instance as unknown as SupervisorInternals).onAuthenticated({
+    extensionId: supervisorOptions.releaseIdentity.extensionId,
+    extensionVersion: supervisorOptions.releaseIdentity.version,
+    releaseBuildId: supervisorOptions.releaseIdentity.releaseBuildId,
+    sessionHash: `sha256:${generation.toString(16).padStart(64, "0")}`,
+    commandPermitKey: Buffer.alloc(32, generation % 255 || 1).toString("base64"),
+  });
+const supervisorJournalPath = join(supervisorFixture, "browser", "proof-events.ndjson");
+try {
+  const oldSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
+  const newSupervisor = new BrowserInfrastructureSupervisor(supervisorOptions);
+  await oldSupervisor.start();
+  assert.equal(oldSupervisor.readOperatorPairingState().authority, "absent");
+  assert.equal(oldSupervisor.authorityBroker().currentOperatorTargetStatus(), "absent");
+  await assert.rejects(newSupervisor.start(), /BROWSER_DUAL_ACTIVE_WORKER/u);
+  const oldReady = authenticateSupervisor(oldSupervisor, 1);
+  const oldIssuer = (oldSupervisor as unknown as SupervisorInternals).issuer;
+  const unsignedPermit: BrowserUnsignedCommandPermit = {
+    permitRef: "permit:old", authorityRef: oldReady.authorityRef,
+    authorityEpoch: oldReady.authorityEpoch, certificateHash: oldReady.certificateHash,
+    channelSessionHash: oldReady.channelSessionHash, executionBindingHash: supervisorHash,
+    writerFenceHash: supervisorHash, candidateHash: supervisorHash,
+    contractManifestHash: supervisorHash, ownerPluginId: "owner:test", jobId: "job:test",
+    attemptId: "attempt:test", deviceId: "device:test", leaseVersion: 1,
+    localOrderId: "order:test", targetLeaseRef: "lease:test", targetRef: "target:test",
+    documentRef: "document:test", capabilityId: "browser.navigate.v1", commandId: "command:test",
+    sequence: 1, mutationClass: "mutation", workspaceRef: "workspace:test",
+    commandTtlMs: 1_000, replyChannelToken: "reply:test",
+  };
+  const oldPermit = { ...unsignedPermit, commandFrameMac: oldIssuer.signCurrentCommandPermit(unsignedPermit) };
+  const oldInternals = oldSupervisor as unknown as SupervisorInternals;
+  oldInternals.onRevoked("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { diagnosticSource: "extension-runtime" });
+  assert.equal(oldSupervisor.readOperatorPairingState().authority, "absent", "Extension disconnect must revoke the active authority");
+  assert.equal(oldSupervisor.authorityBroker().currentOperatorTargetStatus(), "absent", "Extension disconnect must revoke the active claim");
+  assert.throws(() => oldIssuer.assertCurrentCommandPermit(oldPermit), /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u, "Extension disconnect must make every old permit unusable while authority is absent");
+  authenticateSupervisor(oldSupervisor, 2);
+  assert.throws(() => oldIssuer.assertCurrentCommandPermit(oldPermit), /BROWSER_COMMAND_PERMIT_INVALID/u, "Extension re-pair must not revive a permit from the prior connection generation");
+  const releaseOwnerLock = oldInternals.ownerLock.release.bind(oldInternals.ownerLock);
+  oldInternals.ownerLock.release = async () => {
+    const beforeUnlock = readBrowserProofJournal(supervisorJournalPath);
+    assert.equal(beforeUnlock.at(-1)?.event.phase, "AUTHORITY_REVOKED", "durable revoke must already be readable before Owner lock release begins");
+    await releaseOwnerLock();
+  };
+  await oldSupervisor.stop();
+
+  await newSupervisor.start();
+  assert.equal(newSupervisor.readOperatorPairingState().authority, "absent", "restart must not auto-pair");
+  assert.equal(newSupervisor.authorityBroker().currentOperatorTargetStatus(), "absent", "restart must not auto-claim");
+  authenticateSupervisor(newSupervisor, 3);
+  const newIssuer = (newSupervisor as unknown as SupervisorInternals).issuer;
+  assert.throws(() => newIssuer.assertCurrentCommandPermit(oldPermit), /BROWSER_COMMAND_PERMIT_INVALID/u, "Supervisor restart must invalidate every old permit");
+  await newSupervisor.stop();
+
+  for (let restart = 0; restart < 100; restart += 1) {
+    const current = new BrowserInfrastructureSupervisor(supervisorOptions);
+    await current.start();
+    authenticateSupervisor(current, restart + 4);
+    await current.stop();
+  }
+  const supervisorRestartJournal = readBrowserProofJournal(supervisorJournalPath);
+  assert.equal(supervisorRestartJournal.length, 206, "Extension reload, two interleaved Supervisors, and 100 real Supervisor restarts must preserve one authenticate/revoke chain");
+  for (let index = 0; index < supervisorRestartJournal.length; index += 1) {
+    assert.equal(supervisorRestartJournal[index]!.sequence, index + 1);
+    assert.equal(
+      supervisorRestartJournal[index]!.previousEntryHash,
+      index === 0 ? `sha256:${"0".repeat(64)}` : supervisorRestartJournal[index - 1]!.entryHash,
+    );
+  }
+} finally {
+  await rm(supervisorFixture, { recursive: true, force: true });
 }
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");

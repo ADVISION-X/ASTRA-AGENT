@@ -17,6 +17,7 @@
     ".github/instructions/agent-rules/**",
     ".gitignore",
     ".nvmrc",
+    ".vscode/**",
     "AGENTS.md",
     "docs/governance/**",
     "package-lock.json",

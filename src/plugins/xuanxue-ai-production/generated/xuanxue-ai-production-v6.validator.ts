@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT.
-// Provider: ADVISION-X/xuanxue-web@283f50cb68f4881fa986ede4ac369477c927380c:packages/ai-contracts/src/production-control/v6-contract.ts
+// Provider: ADVISION-X/xuanxue-web@c3aaa98e8777009e6040c86a08d34d19cdd5b67f:packages/ai-contracts/src/production-control/v6-contract.ts
 // Provider source SHA256: 0aee6f9579de1fd905c1e83280eeea3ade21a840c030f6a9c1dac4030779f1b8
 import { createHash } from "node:crypto";
 
