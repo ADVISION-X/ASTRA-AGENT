@@ -243,6 +243,21 @@ test('blueprint and contract pin mutants fail exact schema validation', async (t
   });
 });
 
+test('provider descriptor verification rejects a forged provider remote identity', () => {
+  const root = governanceFixture();
+  const providerRoot = resolve(root, '..', 'xuanxue-web');
+  try {
+    execFileSync('git', ['clone', '--no-checkout', resolve('..', 'xuanxue-web'), providerRoot], { stdio: 'pipe' });
+    execFileSync('git', ['config', 'remote.origin.url', 'git@github.com:ADVISION-X/forged-provider.git'], { cwd: providerRoot });
+    const baseSha = initializeGitFixture(root);
+    writeChangeRecord(root, baseSha, [], []);
+    expectGovernanceFailure(root, ['scope'], 'CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(providerRoot, { recursive: true, force: true });
+  }
+});
+
 test('active consumers cannot retain a retired law reference', () => {
   const root = governanceFixture();
   try {
