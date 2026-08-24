@@ -53,8 +53,7 @@ export const validateXuanxueTerminalReadbackReceipts = (
       && receipt.device_epoch === predecessor.deviceEpoch
       && receipt.worker_session_id === predecessor.workerSessionId
       && receipt.worker_session_epoch === predecessor.workerSessionEpoch
-      && typeof receipt.runtime_attestation_receipt_hash === "string"
-      && /^sha256:[a-f0-9]{64}$/u.test(receipt.runtime_attestation_receipt_hash);
+      && receipt.runtime_attestation_receipt_hash === predecessor.runtimeAttestationReceiptHash;
     if (valid) terminalReceiptHashes[status.job_id] = hashReceipt(receipt);
     return !valid;
   });
