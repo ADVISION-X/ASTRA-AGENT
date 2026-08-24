@@ -213,13 +213,12 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
   maxActive = 0;
   readonly activeByContinuation = new Map<string, number>();
   readonly maxActiveByContinuation = new Map<string, number>();
-  holdQimen = false;
+  heldTaskKind: string | null = null;
+  heldRoundId: string | null = null;
   bareOutputHashes = false;
   readonly faults = new FixtureGatewayFaults();
-  private releaseHeldQimen: (() => void) | null = null;
-  private readonly heldQimen = new Promise<void>((resolve) => {
-    this.releaseHeldQimen = resolve;
-  });
+  private releaseHeldRequest: (() => void) | null = null;
+  private heldRequest = Promise.resolve();
 
   constructor(
     private readonly generatedImageArtifact?: AiFeedResult["outputArtifacts"][number],
@@ -281,9 +280,9 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     const lane = this.start(request, options?.executionId ?? "");
     try {
       if (
-        this.holdQimen
-        && request.taskIdentity.taskKind === "qimen_professional_answer"
-      ) await this.heldQimen;
+        this.heldTaskKind === request.taskIdentity.taskKind
+        && (this.heldRoundId === null || this.heldRoundId === request.roundId)
+      ) await this.heldRequest;
       else await new Promise<void>((resolve) => setTimeout(resolve, 5));
       const result = providerResult(
         request,
@@ -310,9 +309,20 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     }
   }
 
-  releaseQimen(): void {
-    this.releaseHeldQimen?.();
-    this.releaseHeldQimen = null;
+  holdRequest(taskKind: string, roundId: string | null = null): void {
+    if (this.releaseHeldRequest) throw new Error("FIXTURE_GATEWAY_REQUEST_ALREADY_HELD");
+    this.heldTaskKind = taskKind;
+    this.heldRoundId = roundId;
+    this.heldRequest = new Promise<void>((resolve) => {
+      this.releaseHeldRequest = resolve;
+    });
+  }
+
+  releaseRequest(): void {
+    this.releaseHeldRequest?.();
+    this.releaseHeldRequest = null;
+    this.heldTaskKind = null;
+    this.heldRoundId = null;
   }
 }
 

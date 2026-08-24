@@ -50,7 +50,7 @@ assert.throws(
   () => assertXuanxueProductExecutionProjection(tamperedProjection),
   /XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID/u,
 );
-assert.equal(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT, "21dd0ba371775731ae75b6646e9a91cdd345df8f");
+assert.equal(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT, "c4cb3111ce4418b10edd893a9e08cf55c8154cc7");
 const generatedValidator = await readFile(path.resolve(
   "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
 ), "utf8");

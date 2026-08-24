@@ -25,7 +25,7 @@ export const acceptXuanxueAiProductionConcurrency = async (input: {
     createXuanxueAiProductionOrder(runtime, candidate);
   }
   const coordinator = new XuanxueAiProductionCoordinator(runtime);
-  gateway.holdQimen = true;
+  gateway.holdRequest("qimen_professional_answer", "analysis");
   const executions = parallelOrders.map((candidate) =>
     coordinator.execute(candidate.orderId));
   await new Promise<void>((resolve) => setTimeout(resolve, 100));
@@ -44,7 +44,7 @@ export const acceptXuanxueAiProductionConcurrency = async (input: {
     "the ten business seats must enter provider admission in durable oldest-first order",
   );
   assert.equal(gateway.maxActive, 10);
-  gateway.releaseQimen();
+  gateway.releaseRequest();
   const completed = await Promise.all(executions);
   assert.ok(completed.every((record) => record.status === "completed"));
   await coordinator.close();

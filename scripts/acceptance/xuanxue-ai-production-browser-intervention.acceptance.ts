@@ -10,7 +10,7 @@ import {
   XuanxueAiProductionStore,
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
-import { FixtureGateway, order } from "./xuanxue-ai-production-fixture.js";
+import { FixtureGateway, hash, order } from "./xuanxue-ai-production-fixture.js";
 
 const waitFor = async (predicate: () => boolean): Promise<void> => {
   for (let attempt = 0; attempt < 200; attempt += 1) {
@@ -95,7 +95,7 @@ try {
     ["analysis"],
   );
   createXuanxueAiProductionOrder(runtime, takeoverOrder);
-  gateway.holdQimen = true;
+  gateway.holdRequest("qimen_professional_answer", "analysis");
   const executing = coordinator.execute(takeoverOrder.orderId);
   await waitFor(() => gateway.started.some(
     (sourceTaskId) => sourceTaskId.startsWith(`${takeoverOrder.orderId}:`),
@@ -106,7 +106,7 @@ try {
     reason: "operator will inspect the provider checkpoint",
     requestId: "takeover-1",
   });
-  gateway.releaseQimen();
+  gateway.releaseRequest();
   const stopped = await executing;
   assert.equal(stopped.status, "recovery_pending");
   assert.equal(store.readIntervention(takeoverOrder.orderId).state, "taken_over");
@@ -129,8 +129,86 @@ try {
     "resume after raw checkpoint must not submit the completed stage again",
   );
 
+  const seoOrder = order(
+    "xuanxue_intervention_seo_after_stage_one",
+    "public_knowledge_article_pipeline",
+    ["corpus_research", "article_synthesis", "article_image_generation"],
+  );
+  seoOrder.materials[0]!.inputRefs = [{
+    id: "seo-recovery-corpus", kind: "public_knowledge_ready_corpus",
+    summary: "governed SEO recovery corpus", filePath: "/fixture/seo-recovery.md",
+    fileName: "00-本领域READY古籍全集.md", mimeType: "text/markdown; charset=utf-8",
+    sha256: hash("seo-recovery-corpus"), byteCount: 27,
+  }];
+  createXuanxueAiProductionOrder(runtime, seoOrder);
+  gateway.holdRequest("public_knowledge_article_pipeline", "corpus_research");
+  const seoExecuting = coordinator.execute(seoOrder.orderId);
+  await waitFor(() => gateway.started.some(
+    (sourceTaskId) => sourceTaskId.startsWith(`${seoOrder.orderId}:corpus_research`),
+  ));
+  store.requestIntervention("takeover", {
+    orderId: seoOrder.orderId, expectedRevision: 0,
+    reason: "simulate website process crash after SEO stage one response",
+    requestId: "seo-takeover-1",
+  });
+  gateway.releaseRequest();
+  const seoStopped = await seoExecuting;
+  assert.equal(seoStopped.status, "recovery_pending");
+  assert.equal(seoStopped.stages[0]?.stageId, "corpus_research");
+  assert.ok(seoStopped.stages[0]?.rawOutputHash);
+  const corpusSubmissionsBeforeResume = gateway.requests.filter(
+    (request) => request.taskIdentity.sourceTaskId.startsWith(`${seoOrder.orderId}:corpus_research`),
+  ).length;
+  store.resumeIntervention({
+    orderId: seoOrder.orderId, expectedRevision: 1,
+    reason: "resume from durable SEO stage one response checkpoint",
+    requestId: "seo-resume-1",
+  });
+  gateway.holdRequest("public_knowledge_article_pipeline", "article_synthesis");
+  const seoRecoveryExecution = coordinator.execute(seoOrder.orderId);
+  await waitFor(() => gateway.started.some(
+    (sourceTaskId) => sourceTaskId.startsWith(`${seoOrder.orderId}:article_synthesis`),
+  ));
+  store.requestIntervention("takeover", {
+    orderId: seoOrder.orderId, expectedRevision: 2,
+    reason: "stop after proving durable stage one recovery identity",
+    requestId: "seo-takeover-2",
+  });
+  gateway.releaseRequest();
+  const seoRecovered = await seoRecoveryExecution;
+  assert.equal(seoRecovered.status, "recovery_pending");
+  assert.equal(seoRecovered.stages[0]?.status, "completed");
+  assert.equal(seoRecovered.stages[1]?.status, "completed");
+  const corpusSubmissionsAfterResume = gateway.requests.filter(
+    (request) => request.taskIdentity.sourceTaskId.startsWith(`${seoOrder.orderId}:corpus_research`),
+  ).length;
+  assert.equal(corpusSubmissionsBeforeResume, 1);
+  assert.equal(corpusSubmissionsAfterResume, corpusSubmissionsBeforeResume);
+
+  const nonSeoSubmissionsAfterResume = gateway.requests.filter(
+    (request) => !request.taskIdentity.sourceTaskId.startsWith(`${seoOrder.orderId}:`),
+  ).length;
+  const faultReceipt = {
+    schema_version: "product-execution-agent-fault-receipt.v1",
+    F04: {
+      completed_stage_id: "corpus_research",
+      submissions_before_resume: corpusSubmissionsBeforeResume,
+      submissions_after_resume: corpusSubmissionsAfterResume,
+      duplicate_submit_count: corpusSubmissionsAfterResume - corpusSubmissionsBeforeResume,
+      recovery_status: seoRecovered.status,
+    },
+    F05: {
+      checkpoint: "after-response-checkpoint:analysis",
+      submissions_before_resume: requestCountAfterCheckpoint,
+      submissions_after_resume: nonSeoSubmissionsAfterResume,
+      duplicate_submit_count: nonSeoSubmissionsAfterResume - requestCountAfterCheckpoint,
+      terminal_status: "completed",
+    },
+  };
+
   await coordinator.close();
   store.close();
+  console.log(`PRODUCT_EXECUTION_AGENT_FAULT_RECEIPT=${JSON.stringify(faultReceipt)}`);
   console.log("XUANXUE_AI_PRODUCTION_BROWSER_INTERVENTION_ACCEPTANCE_PASS");
 } finally {
   await rm(dataDir, { recursive: true, force: true });
