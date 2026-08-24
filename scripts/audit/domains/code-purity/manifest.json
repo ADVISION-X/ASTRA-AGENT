@@ -1,0 +1,15 @@
+{
+  "capabilityDomain": "code-purity",
+  "lawIds": [
+    "LAW-CODE-PURITY-001-V1"
+  ],
+  "observedPaths": [
+    "scripts/**",
+    "src/**"
+  ],
+  "ownedPaths": [
+    "scripts/audit/domains/code-purity/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

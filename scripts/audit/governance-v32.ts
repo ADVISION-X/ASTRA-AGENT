@@ -192,6 +192,8 @@ const DOMAIN_READY_SCRIPTS:Record<string,string[]>=Object.freeze({
   'amazon-invoice-upload':['acceptance:amazon-invoice-upload-terminal'],
   'amazon-product-mining':['acceptance:amazon-product-mining'],
   'app-shell-ui':['acceptance:app-shell-ui'],
+  'audit-system':['audit:system:enforce','acceptance:audit-system-restoration'],
+  'code-purity':['audit:code-purity:enforce','acceptance:code-purity-zombie-deep'],
   'dom-automation':['acceptance:dom-automation-exact-target'],
   'forensics-persistence-capability':['acceptance:forensics-persistence-capability'],
   'local-app-shell':['acceptance:startup-entrypoint','acceptance:workbench-api-boundary'],
