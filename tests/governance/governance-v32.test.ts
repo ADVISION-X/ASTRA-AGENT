@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { evidencePlan, validateDynamicProofArtifact, validateQualityReport, validateReleaseProofPackage } from '../../scripts/audit/governance-v32.js';
+import { evidencePlan, resolveReleaseParticipants, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (): string => {
@@ -353,18 +353,10 @@ test('READY evidence applicability follows the actual diff and rejects a missing
   assert.throws(() => validateQualityReport(mutant, laws, 'READY'), /law /u);
 });
 
-test('RELEASE verifier binds fresh Dynamic Proof and the unique B.9 package schema', () => {
-  const now = Date.parse('2026-08-24T00:00:00.000Z');
+test('RELEASE consumes the real executor chain and the unique B.9 package schema', () => {
   const binding = { candidateId: 'a'.repeat(64), gitCommit: 'b'.repeat(40) };
-  const proof = {
-    schemaVersion: 1, ...binding,
-    lawIds: ['LAW-TEST-001-V1'], evidenceModes: ['dynamic.browser'], outcome: 'PASS',
-    recordedAt: '2026-08-23T23:59:00.000Z', expiresAt: '2026-08-24T00:01:00.000Z',
-    locators: ['browser-session:current'],
-  };
-  assert.doesNotThrow(() => validateDynamicProofArtifact(proof, binding, now));
-  assert.throws(() => validateDynamicProofArtifact({ ...proof, expiresAt: '2026-08-23T23:59:30.000Z' }, binding, now), /stale Dynamic Proof/u);
-  assert.throws(() => validateDynamicProofArtifact({ ...proof, candidateId: 'c'.repeat(64) }, binding, now), /invalid Dynamic Proof/u);
+  assert.throws(() => verifyXuanxueReleaseEvidence('/definitely/not/a/real-proof.json', () => ({ status: 0, stdout: 'PASS', stderr: '' })), /invalid real proof authority/u);
+  assert.throws(() => resolveReleaseParticipants([{ contractId: 'caller-authored', contractVersion: 1, repo: 'fake/repo', packagePath: 'fake.json' }]), /accepts only repoRoot and packagePath/u);
   const proofPackage = {
     schemaVersion: 1, ...binding,
     freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
@@ -375,6 +367,10 @@ test('RELEASE verifier binds fresh Dynamic Proof and the unique B.9 package sche
   assert.doesNotThrow(() => validateReleaseProofPackage(proofPackage));
   assert.throws(() => validateReleaseProofPackage({ ...proofPackage, releaseReceipt: true }), /invalid RELEASE proof package/u);
   const source = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
-  assert.doesNotMatch(source, /trusted dynamic proof verifier is not implemented/u);
+  assert.match(source, /xuanxue-ai-production\.real-chrome\.ts/u);
+  assert.match(source, /xuanxue-ai-production\.real-provider\.ts/u);
+  assert.match(source, /caller-authored Dynamic Proof wrappers are retired/u);
+  assert.match(source, /participant package is not bound to its committed candidate/u);
+  assert.match(source, /cyclic RELEASE participant dependency/u);
   assert.match(source, /RELEASE_PACKAGE/u);
 });
