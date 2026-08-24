@@ -16,7 +16,9 @@ const excluded = (path: string): boolean => path.includes("/node_modules/")
   || path.startsWith("scripts/acceptance/fixtures/")
   || path.startsWith("scripts/audit/generated/")
   || path.startsWith("src/plugins/xuanxue-ai-production/generated/")
-  || path.endsWith(".d.ts");
+  || path.endsWith(".d.ts")
+  || path.endsWith(".d.mts")
+  || path.endsWith(".d.cts");
 
 const sourceFiles = (project: Project, root: string): SourceFile[] => project.getSourceFiles()
   .filter((source) => {
