@@ -6,7 +6,9 @@
   "observedPaths": [
     "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts"
   ],
-  "ownedPaths": [],
+  "ownedPaths": [
+    "scripts/audit/domains/xuanxue-ai-production-localization-contract/**"
+  ],
   "schemaVersion": 3,
   "status": "active"
 }

@@ -7,6 +7,7 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
+    "scripts/audit/domains/forensics-persistence-capability/**",
     "src/capabilities/forensics-persistence/**",
     "src/lib/storage/**",
     "src/types/evidence.ts"

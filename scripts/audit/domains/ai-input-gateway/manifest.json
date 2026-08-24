@@ -11,6 +11,7 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
+    "scripts/audit/domains/ai-input-gateway/**",
     "src/capabilities/ai-input-gateway/**",
     "src/lib/online-ai/**"
   ],

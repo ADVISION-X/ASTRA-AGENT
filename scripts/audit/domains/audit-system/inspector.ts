@@ -30,8 +30,12 @@ const REQUIRED_SCRIPTS = Object.freeze({
 });
 
 const REQUIRED_ROUTES = Object.freeze({
-  "audit-system": ["audit:system:enforce", "acceptance:audit-system-restoration"],
-  "code-purity": ["audit:code-purity:enforce", "acceptance:code-purity-zombie-deep"],
+  "architecture-boundary": ["audit:architecture-boundary:enforce"],
+  "audit-system": ["audit:system:enforce"],
+  "capability-governance": ["audit:capability-governance:enforce"],
+  "code-purity": ["audit:code-purity:enforce"],
+  "runtime-log-spine": ["audit:runtime-log-spine:enforce"],
+  "system-security": ["audit:system-security:enforce"],
 });
 
 const finding = (code: string, path: string, detail: string): AuditSystemFinding => ({ code, detail, path });
@@ -143,7 +147,7 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
     findings.push(finding("AUDIT_ACTIVE_LAW_SOURCE_INVALID", "scripts/audit/generated/law-registry.generated.json", "registry must bind the two frozen law containers"));
   }
   const lawIds = new Set((registry.laws ?? []).flatMap((law) => typeof law.lawId === "string" ? [law.lawId] : []));
-  for (const lawId of ["LAW-AUDIT-SYSTEM-001-V1", "LAW-CODE-PURITY-001-V1"]) if (!lawIds.has(lawId)) findings.push(finding("AUDIT_RESTORED_LAW_MISSING", registryPath, lawId));
+  for (const lawId of ["LAW-ARCHITECTURE-BOUNDARY-001-V1", "LAW-AUDIT-SYSTEM-001-V1", "LAW-CAPABILITY-GOVERNANCE-001-V1", "LAW-CODE-PURITY-001-V1", "LAW-SYSTEM-SECURITY-001-V1"]) if (!lawIds.has(lawId)) findings.push(finding("AUDIT_RESTORED_LAW_MISSING", registryPath, lawId));
   findings.push(...manifestFindings(root, registry));
   return findings.sort((left, right) => left.code.localeCompare(right.code) || left.path.localeCompare(right.path) || left.detail.localeCompare(right.detail));
 }

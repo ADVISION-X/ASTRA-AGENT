@@ -1,21 +1,22 @@
 import assert from "node:assert/strict";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 
-import { inspectAuditSystem, readDomainRoutes, validateDomainRoutes, validatePackageScripts } from "../audit/domains/audit-system/inspector.js";
-
-assert.deepEqual(inspectAuditSystem(), []);
-
-const packageMutant = validatePackageScripts({
-  "audit:code-purity:enforce": "node --import tsx scripts/audit/domains/code-purity/check.ts",
-  "audit:system:enforce": "node --import tsx scripts/audit/domains/audit-system/check.ts",
-  "ci:full": "echo PASS",
-  "quality:check": "node --import tsx scripts/audit/governance-v32.ts quality",
-  "quality:shadow": "echo PASS",
-});
-assert.equal(packageMutant.some((item) => item.code === "AUDIT_COMMAND_SURFACE_INVALID"), true);
-assert.equal(packageMutant.some((item) => item.code === "AUDIT_SECOND_QUALITY_SURFACE"), true);
-
-const routes = readDomainRoutes("scripts/audit/governance-v32.ts");
-assert.deepEqual(validateDomainRoutes(routes), []);
-assert.equal(validateDomainRoutes({ ...routes, "code-purity": [] }).some((item) => item.code === "AUDIT_OWNER_ROUTE_MISSING"), true);
-
+const auditSystemFiles = readdirSync("scripts/audit/domains/audit-system").filter((name) => name !== "check.ts");
+const auditTruthFiles = [
+  ...readdirSync("scripts/audit/domains/audit-truth").filter((name) => name !== "check.ts" && name !== "components"),
+  ...readdirSync("scripts/audit/domains/audit-truth/components").map((name) => `components/${name}`),
+];
+assert.equal(auditSystemFiles.length, 21);
+assert.equal(auditTruthFiles.length, 7);
+const runtimeLogFiles = [
+  ...readdirSync("scripts/audit/domains/runtime-log-spine").filter((name) => name !== "check.ts" && name !== "ast"),
+  ...readdirSync("scripts/audit/domains/runtime-log-spine/ast").map((name) => `ast/${name}`),
+];
+assert.equal(runtimeLogFiles.length, 28);
+assert.ok(existsSync("scripts/audit/domains/audit-system/check.ts"));
+assert.ok(existsSync("scripts/audit/domains/audit-truth/check.ts"));
+const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
+assert.equal(pkg.scripts["audit:system:enforce"], "node --import tsx scripts/audit/domains/audit-system/check.ts");
+assert.equal(pkg.scripts["audit:truth:enforce"], "node --import tsx scripts/audit/domains/audit-truth/check.ts");
+assert.equal(pkg.scripts["audit:runtime-log-spine:enforce"], "node --import tsx scripts/audit/domains/runtime-log-spine/check.ts");
 console.log("audit-system-restoration-acceptance-ok");

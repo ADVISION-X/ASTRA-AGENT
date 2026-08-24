@@ -7,6 +7,7 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
+    "scripts/audit/domains/runtime-log-spine/**",
     "src/lib/runtime-logs/**",
     "src/types/structured-log.ts"
   ],

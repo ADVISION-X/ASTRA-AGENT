@@ -7,6 +7,7 @@
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
+    "scripts/audit/domains/xuanxue-ai-production/**",
     "src/mediator/xuanxue-ai-production-route.ts",
     "src/plugins/xuanxue-ai-production/**"
   ],

@@ -1,0 +1,15 @@
+{
+  "capabilityDomain": "capability-governance",
+  "lawIds": [
+    "LAW-CAPABILITY-GOVERNANCE-001-V1"
+  ],
+  "observedPaths": [
+    "src/capabilities/**",
+    "src/plugins/xuanxue-ai-production/**"
+  ],
+  "ownedPaths": [
+    "scripts/audit/domains/capability-governance/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

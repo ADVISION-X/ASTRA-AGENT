@@ -10,6 +10,7 @@
   ],
   "ownedPaths": [
     "docs/current-sub-capabilities.zh.md",
+    "scripts/audit/domains/app-shell-ui/**",
     "src/app/**",
     "src/types/plugin-intervention.ts"
   ],

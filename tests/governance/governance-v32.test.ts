@@ -76,10 +76,13 @@ test('CHANGE entry rejects a dirty target even when an environment variable clai
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('active corpus is exactly two files and base law has eight roots', () => {
+test('active corpus is exactly two files and base law keeps eight project roots plus authorized stable governance laws', () => {
   const base = readFileSync('.github/instructions/agent-rules/基础法案.md','utf8');
   const functional = readFileSync('.github/instructions/agent-rules/功能法案.md','utf8');
-  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 8);
+  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 21);
+  assert.match(base, /LAW-AUDIT-SYSTEM-001-V1/);
+  assert.match(base, /LAW-AUDIT-TRUTH-001-V1/);
+  assert.match(base, /LAW-CODE-PURITY-001-V1/);
   assert.ok((functional.match(/^```law-record$/gm) ?? []).length > 0);
   assert.deepEqual(readdirSync('.github/instructions/agent-rules').filter((name) => name.endsWith('.md')).sort(), ['功能法案.md','基础法案.md']);
 });

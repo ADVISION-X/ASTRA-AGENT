@@ -6,6 +6,7 @@
   ],
   "observedPaths": [],
   "ownedPaths": [
+    "scripts/audit/domains/startup-entrypoint/**",
     "scripts/startup/**"
   ],
   "schemaVersion": 3,

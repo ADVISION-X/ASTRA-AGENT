@@ -6,7 +6,9 @@
   "observedPaths": [
     "src/app/workbench-api-boundary.ts"
   ],
-  "ownedPaths": [],
+  "ownedPaths": [
+    "scripts/audit/domains/workbench-api-boundary/**"
+  ],
   "schemaVersion": 3,
   "status": "active"
 }

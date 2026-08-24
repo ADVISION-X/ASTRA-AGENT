@@ -1,0 +1,15 @@
+{
+  "capabilityDomain": "system-security",
+  "lawIds": [
+    "LAW-SYSTEM-SECURITY-001-V1"
+  ],
+  "observedPaths": [
+    "scripts/**",
+    "src/**"
+  ],
+  "ownedPaths": [
+    "scripts/audit/domains/system-security/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

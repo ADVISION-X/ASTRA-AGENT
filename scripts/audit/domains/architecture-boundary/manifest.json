@@ -1,0 +1,15 @@
+{
+  "capabilityDomain": "architecture-boundary",
+  "lawIds": [
+    "LAW-ARCHITECTURE-BOUNDARY-001-V1"
+  ],
+  "observedPaths": [
+    "scripts/**",
+    "src/**"
+  ],
+  "ownedPaths": [
+    "scripts/audit/domains/architecture-boundary/**"
+  ],
+  "schemaVersion": 3,
+  "status": "active"
+}

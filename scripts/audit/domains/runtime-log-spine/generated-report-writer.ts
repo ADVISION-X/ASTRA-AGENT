@@ -1,0 +1,93 @@
+import type { InspectorFinding } from "../../shared/inspector-contracts.js";
+import { createFinding } from "../../shared/finding-utils.js";
+import { clauseIdForLaw } from "../../shared/finding-utils.js";
+import { escapeMarkdownCell } from "../../shared/no-regex.js";
+import {
+  type RuntimeLogSpineFinding,
+  type RuntimeLogSpinePhase,
+} from "./constants.js";
+
+type RuntimeLogSpineReport = {
+  generatedAt: string;
+  status: "PASS" | "FAIL";
+  scannedFiles?: number;
+  inspectedFiles?: string[];
+  emitCallCount?: number;
+  consoleCallCount?: number;
+  consoleEscapeCount?: number;
+  eventTypeLiteralCount?: number;
+  missingModeVisibilityCount?: number;
+  missingTraceContractCount?: number;
+  catchBranchCount?: number;
+  catchBranchWithoutLogCount?: number;
+  failureBranchCount?: number;
+  failureWithoutClassCount?: number;
+  stageStartCount?: number;
+  stageTerminalCount?: number;
+  stagePairViolationCount?: number;
+  heavyPayloadFlowViolationCount?: number;
+  redactionViolationCount?: number;
+  summary: {
+    totalFindings: number;
+    fatalFindings: number;
+    scannedFiles: number;
+    emitCallCount: number;
+    consoleViolationCount: number;
+    failureWithoutClassCount: number;
+    stageCoveragePercent: number;
+  };
+  phases: RuntimeLogSpinePhase[];
+  findings: RuntimeLogSpineFinding[];
+};
+
+export const toInspectorFinding = (finding: RuntimeLogSpineFinding): InspectorFinding => createFinding({
+  checkId: finding.checkId,
+  lawId: finding.lawId,
+  clauseId: clauseIdForLaw(finding.lawId),
+  message: finding.message,
+  line: finding.line,
+  severity: finding.severity,
+  hint: finding.hint,
+  filePath: finding.file,
+});
+
+const escapeCell = escapeMarkdownCell;
+
+export const renderRuntimeLogSpineMarkdown = (report: RuntimeLogSpineReport): string => [
+  "# Runtime Log Spine Quality Report",
+  "",
+  `Status: ${report.status}`,
+  "",
+  "## Summary",
+  "",
+  `- Total findings: ${report.summary.totalFindings}`,
+  `- Fatal findings: ${report.summary.fatalFindings}`,
+  `- Scanned files: ${report.summary.scannedFiles}`,
+  `- Emit calls: ${report.summary.emitCallCount}`,
+  `- Console violations: ${report.consoleEscapeCount ?? report.summary.consoleViolationCount}`,
+  `- Failure events without class: ${report.summary.failureWithoutClassCount}`,
+  `- Stage coverage: ${report.summary.stageCoveragePercent}%`,
+  "",
+  "## Phases",
+  "",
+  "| Phase | Status | Findings |",
+  "|---|---:|---:|",
+  ...report.phases.map((phase) => `| ${escapeCell(phase.name)} | ${phase.status} | ${phase.findingCount} |`),
+  "",
+  "## Fatal Findings",
+  "",
+  report.findings.length === 0
+    ? "No fatal findings."
+    : [
+      "| Law | File | Line | Message | Hint |",
+      "|---|---|---:|---|---|",
+      ...report.findings.map((finding) =>
+        `| ${finding.lawId} | ${escapeCell(finding.file)} | ${finding.line} | ${escapeCell(finding.message)} | ${escapeCell(finding.hint)} |`,
+      ),
+    ].join("\n"),
+  "",
+  "## Coverage",
+  "",
+  "Coverage is computed from AST/text contract checks for console policy, event registry usage, emit trace contracts, mode visibility, stage pairs, catch branches, failure classes, redaction, debug bundles, AI contracts, and browser action contracts.",
+  "",
+].join("\n");

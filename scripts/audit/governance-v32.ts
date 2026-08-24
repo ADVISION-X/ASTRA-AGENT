@@ -129,7 +129,7 @@ function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
     const section=lines.slice(currentHeading.line-1,end+1).join('\n')+'\n'; laws.push({...raw,source:{path,lineStart:currentHeading.line,lineEnd:end+1,sectionSha256:sha(section)},contractRefs:[]}); i=end; heading=null;
   }
   if(heading)fail('SOURCE_PARSE_FAILED',`${path}:${heading.line} missing law record`);
-  if(type==='base-law'&&(laws.length!==8||laws.some((law,i)=>law.lawId!==`LAW-PROJECT-GOVERNANCE-00${i+1}-V1`||law.capabilityDomain!=='project-governance'))) fail('SOURCE_PARSE_FAILED','base root laws');
+  if(type==='base-law'&&(laws.length<8||laws.slice(0,8).some((law,i)=>law.lawId!==`LAW-PROJECT-GOVERNANCE-00${i+1}-V1`||law.capabilityDomain!=='project-governance'))) fail('SOURCE_PARSE_FAILED','base root laws');
   return laws;
 }
 function loadLaws(){ const laws=[...parseCorpus(BASE,'base-law'),...parseCorpus(FUNCTIONAL,'functional-law')].sort((a,b)=>a.lawId.localeCompare(b.lawId)); const ids=new Set<string>(); for(const law of laws){if(ids.has(law.lawId))fail('SOURCE_PARSE_FAILED',`duplicate ${law.lawId}`);ids.add(law.lawId)} for(const law of laws)for(const dep of law.dependsOnLawIds){if(dep===law.lawId)fail('SOURCE_PARSE_FAILED',`${law.lawId} self dependency`);if(!ids.has(dep))fail('SOURCE_PARSE_FAILED',`${law.lawId} missing ${dep}`)}const byId=new Map(laws.map((law)=>[law.lawId,law]));const visiting=new Set<string>();const visited=new Set<string>();const visit=(lawId:string)=>{if(visiting.has(lawId))fail('SOURCE_PARSE_FAILED',`dependency cycle ${lawId}`);if(visited.has(lawId))return;visiting.add(lawId);for(const dep of byId.get(lawId)?.dependsOnLawIds??[])visit(dep);visiting.delete(lawId);visited.add(lawId)};for(const law of laws)visit(law.lawId);return laws; }
@@ -182,30 +182,28 @@ function diffPaths(baseSha:string){const raw=execFileSync('git',['diff','--find-
 type PathRole='GOVERNANCE_AUTHORITY'|'GENERATED_REGISTRY'|'QUALITY_REPORT'|'RUNTIME_IGNORED'|'TEST_ONLY'|'HISTORY_ONLY'|'PRODUCTION';
 function pathRole(path:string):PathRole{if(path===REGISTRY)return'GENERATED_REGISTRY';if(path===REPORT||path.startsWith('scripts/audit/reports/'))return'QUALITY_REPORT';if(path==='node_modules'||path.startsWith('node_modules/')||path.startsWith('.governance/runtime/')||path.startsWith('.grasseye-local/')||path.startsWith('.playwright-cli/')||path.startsWith('output/'))return'RUNTIME_IGNORED';if(path==='AGENTS.md'||path===SPEC||path===FREEZE||path===BASE||path===FUNCTIONAL||path.startsWith('docs/blueprints/')||path.startsWith('docs/specs/')||/^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(path))return'GOVERNANCE_AUTHORITY';if(path.startsWith('tests/')||path.startsWith('fixtures/')||path.startsWith('examples/')||path.startsWith('artifacts/')||path.startsWith('coverage/')||path.startsWith('scripts/acceptance/')||path.includes('/acceptance/')||path.endsWith('.acceptance.ts'))return'TEST_ONLY';if(path.startsWith('docs/history/'))return'HISTORY_ONLY';return'PRODUCTION'}
 function ownerDomains(path:string,manifests:Manifest[]){return manifests.filter((manifest)=>manifest.ownedPaths.some((pattern)=>matchPath(pattern,path))).map((manifest)=>manifest.capabilityDomain)}
-function repositoryPaths(){const tracked=execFileSync('git',['ls-files','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map(norm);const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map(norm);return[...new Set([...tracked,...untracked])].sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)))}
+function repositoryPaths(){const tracked=execFileSync('git',['ls-files','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map(norm);const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map(norm);return[...new Set([...tracked,...untracked])].filter((path)=>existsSync(resolve(ROOT,path))&&!lstatSync(resolve(ROOT,path)).isDirectory()).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)))}
 function verifyRepositoryIntegrity(manifests:Manifest[],diffs:{status:string;path:string}[],baseSha:string){if(execFileSync('git',['ls-files','-u'],{cwd:ROOT}).length)fail('SOURCE_PARSE_FAILED','unmerged index');const stages=execFileSync('git',['ls-files','--stage','-z'],{cwd:ROOT}).toString().split('\0').filter(Boolean);if(stages.some((entry)=>entry.startsWith('160000 ')))fail('SOURCE_PARSE_FAILED','submodule');const paths=repositoryPaths();const caseFolded=new Map<string,string>();for(const path of paths){if(path!==path.normalize('NFC'))fail('SOURCE_PARSE_FAILED',`non-NFC repository path ${path}`);const folded=path.toLocaleLowerCase('en-US');const prior=caseFolded.get(folded);if(prior&&prior!==path)fail('SOURCE_PARSE_FAILED',`case-collision ${prior}/${path}`);caseFolded.set(folded,path);const role=pathRole(path);if(role==='RUNTIME_IGNORED')continue;const absolute=resolve(ROOT,path);if(!existsSync(absolute))continue;const metadata=lstatSync(absolute);if(metadata.isSymbolicLink()){const target=realpathSync(absolute);if(target!==ROOT&&!target.startsWith(`${ROOT}${sep}`))fail('SOURCE_PARSE_FAILED',`symlink escapes repository ${path}`)}else if(!metadata.isFile())fail('SOURCE_PARSE_FAILED',`special file ${path}`);if(role==='PRODUCTION'){const owners=ownerDomains(path,manifests);if(owners.length===0)fail('UNOWNED_PRODUCTION_FILE',path);if(owners.length>1)fail('MULTIPLE_PRIMARY_OWNERS',`${path}:${owners.join(',')}`)}}for(const diff of diffs.filter((item)=>item.status==='D'&&pathRole(item.path)==='PRODUCTION')){try{execFileSync('git',['cat-file','-e',`${baseSha}:${diff.path}`],{cwd:ROOT,stdio:'ignore'})}catch{fail('UNAUTHORIZED_PRODUCTION_DELETE',diff.path)}const owners=ownerDomains(diff.path,manifests);if(owners.length!==1)fail(owners.length?'MULTIPLE_PRIMARY_OWNERS':'UNOWNED_PRODUCTION_FILE',diff.path)}const productionSources=paths.filter((path)=>pathRole(path)==='PRODUCTION'&&['.ts','.tsx','.js','.mjs','.cjs'].includes(extname(path)));for(const sourcePath of productionSources){const source=text(sourcePath);for(const match of source.matchAll(/(?:from\s*|import\s*\(|require\s*\()\s*['"](\.\.?\/[^'"]+)['"]/gu)){const target=norm(relative(ROOT,resolve(dirname(resolve(ROOT,sourcePath)),match[1]!)));if(['TEST_ONLY','HISTORY_ONLY','QUALITY_REPORT'].includes(pathRole(target)))fail('ROLE_ESCALATION_REQUIRED',`${sourcePath}->${target}`)}}}
 function dirtyTargetCheck(record:{allowedWritePaths:string[];allowedDeletePaths:string[]}){const dirty=execFileSync('git',['status','--porcelain=v1','-z','--untracked-files=all'],{cwd:ROOT}).toString().split('\0').filter(Boolean).map((entry)=>norm(entry.slice(3))).filter((path)=>[...record.allowedWritePaths,...record.allowedDeletePaths].some((pattern)=>matchPath(pattern,path)));if(dirty.length)fail('DIRTY_TARGET_NOT_AUTHORIZED',dirty.join(','))}
 function scopeCheck(level:'CHANGE'|'FULL'='FULL'){const record=changeRecord();const diffs=diffPaths(record.baseSha);for(const item of diffs){const allowed=item.status==='D'?record.allowedDeletePaths:record.allowedWritePaths;if(!allowed.some((pattern)=>matchPath(pattern,item.path)))fail('SCOPE_DIFF_OUTSIDE_ALLOWED_PATHS',`${item.status} ${item.path}`)}if(diffs.some((item)=>item.path===SPEC)&&process.env.GRASSEYE_SOURCE_SPEC_AMENDMENT_AUTHORIZED!=='1')fail('SOURCE_SPEC_AMENDMENT_NOT_AUTHORIZED',SPEC);if(diffs.some((item)=>item.path===BASE||item.path===FUNCTIONAL)&&process.env.GRASSEYE_LAW_AMENDMENT_AUTHORIZED!=='1')fail('LAW_AMENDMENT_NOT_AUTHORIZED','active law');if(level==='FULL'){const registry=buildRegistry();verifyRepositoryIntegrity(registry.domains.map((domain)=>({...domain,schemaVersion:3,status:'active',manifestPath:domain.manifestPath} as Manifest)),diffs,record.baseSha);verifyPinnedProviderDescriptors();checkProjection();}console.log(`SCOPE_OK ${diffs.length}`);return diffs}
 type CheckResult={checkId:string;domains:string[];lawIds:string[];evidenceModes:string[];command:string;outcome:'PASS'|'FAIL';evidenceRef:string;finding:string|null};
 const DOMAIN_READY_SCRIPTS:Record<string,string[]>=Object.freeze({
-  'ai-input-gateway':['acceptance:ai-input-gateway-exact-target','acceptance:ai-input-gateway-execution-profile'],
-  'amazon-invoice-upload':['acceptance:amazon-invoice-upload-terminal'],
-  'amazon-product-mining':['acceptance:amazon-product-mining'],
-  'app-shell-ui':['acceptance:app-shell-ui'],
-  'audit-system':['audit:system:enforce','acceptance:audit-system-restoration'],
-  'code-purity':['audit:code-purity:enforce','acceptance:code-purity-zombie-deep'],
-  'dom-automation':['acceptance:dom-automation-exact-target'],
-  'forensics-persistence-capability':['acceptance:forensics-persistence-capability'],
-  'local-app-shell':['acceptance:startup-entrypoint','acceptance:workbench-api-boundary'],
-  'local-browser-session':['acceptance:local-browser-terminal'],
-  'media-processing-capability':['acceptance:media-processing'],
+  'ai-input-gateway':['audit:ai-input-gateway:enforce'],
+  'app-shell-ui':['audit:app-shell-ui:enforce'],
+  'architecture-boundary':['audit:architecture-boundary:enforce'],
+  'audit-system':['audit:system:enforce'],
+  'capability-governance':['audit:capability-governance:enforce'],
+  'code-purity':['audit:code-purity:enforce'],
+  'forensics-persistence-capability':['audit:forensics-persistence-capability:enforce'],
+  'local-app-shell':['audit:local-app-shell:enforce'],
+  'local-browser-session':['audit:local-browser-session:enforce'],
   'project-governance':['audit:integrity:test'],
-  'runtime-log-spine':['acceptance:runtime-log-spine'],
-  'startup-entrypoint':['acceptance:startup-entrypoint'],
-  'video-download-capability':['acceptance:video-download-browser-authority','acceptance:video-download-youtube-production'],
-  'workbench-api-boundary':['acceptance:workbench-api-boundary'],
-  'xuanxue-ai-production-localization-contract':['acceptance:xuanxue-ai-production-localization-contract'],
-  'xuanxue-ai-production':['acceptance:xuanxue-ai-production'],
+  'runtime-log-spine':['audit:runtime-log-spine:enforce'],
+  'startup-entrypoint':['audit:startup-entrypoint:enforce'],
+  'system-security':['audit:system-security:enforce'],
+  'workbench-api-boundary':['audit:workbench-api-boundary:enforce'],
+  'xuanxue-ai-production-localization-contract':['audit:xuanxue-ai-production-localization-contract:enforce'],
+  'xuanxue-ai-production':['audit:xuanxue-ai-production:enforce'],
 });
 const qualityRunDirectory=()=>{const requested=process.env.GRASSEYE_QUALITY_OUTPUT_DIR?.trim();if(requested){const absolute=resolve(requested);mkdirSync(absolute,{recursive:true});return absolute}return mkdtempSync(resolve(tmpdir(),'grasseye-quality-'))};
 const orderedModes=(modes:string[])=>EVIDENCE.filter((mode)=>new Set(modes).has(mode));

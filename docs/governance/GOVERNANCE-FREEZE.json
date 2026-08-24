@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "status": "SPEC_FROZEN",
   "specPath": "docs/governance/法案系统建设说明书-冻结定稿版.md",
-  "specSha256": "88366961abc3ee4ac74b41ab29deca9347cd18112bcdc5b5806f4fe627ee8d90",
+  "specSha256": "830602316611908c648dba7e3425b05cbc6ca85b13221af0667288272c21e6e6",
   "freezeVersion": "FROZEN-FINAL-V3.2",
   "amendmentAuthority": "explicit-human-only",
   "derivatives": {
     "pdf": {
       "enabled": true,
       "path": "docs/governance/法案系统建设说明书-冻结定稿版.pdf",
-      "sourceSha256": "88366961abc3ee4ac74b41ab29deca9347cd18112bcdc5b5806f4fe627ee8d90",
-      "fileSha256": "8a54ef936371335ecac437461b87922a5a938bf8d42a646a9058b2d4f54b55e1"
+      "sourceSha256": "830602316611908c648dba7e3425b05cbc6ca85b13221af0667288272c21e6e6",
+      "fileSha256": "608d304f06a0f9c7bf236aa2a53288e9835fd2b8beb96ec50ca31388afb5b1e7"
     }
   }
 }

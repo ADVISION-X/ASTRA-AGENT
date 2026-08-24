@@ -1,16 +1,15 @@
 import { pathToFileURL } from "node:url";
 
-import { inspectCodePurity } from "./inspector.js";
+import { runRestoredDomain } from "../../shared/restored-domain-runner.js";
+import { inspectDomain } from "./inspector.js";
 
-export function runCodePurityCheck(root = process.cwd()): void {
-  const findings = inspectCodePurity(root);
+export async function runCodePurityCheck(root = process.cwd()): Promise<void> {
+  const findings = await runRestoredDomain("code-purity", inspectDomain, root);
   if (findings.length > 0) {
-    for (const item of findings) process.stderr.write(`${item.code} ${item.path}:${item.line} ${item.symbol ? `${item.symbol} ` : ""}${item.detail}\n`);
-    process.stderr.write(`CODE_PURITY_FINDINGS ${findings.length}\n`);
-    process.exitCode = 1;
-    return;
+    findings.forEach((item) => process.stderr.write(`${item.checkId} ${item.filePath ?? "unknown"} ${item.message}\n`));
+    process.stderr.write(`CODE_PURITY_FINDINGS ${findings.length}\n`); process.exitCode = 1; return;
   }
   process.stdout.write("CODE_PURITY_ENFORCEMENT_PASS\n");
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) runCodePurityCheck();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await runCodePurityCheck();
