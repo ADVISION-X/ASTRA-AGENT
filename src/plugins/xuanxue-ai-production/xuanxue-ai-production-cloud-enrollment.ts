@@ -22,7 +22,6 @@ const EnrollmentEnvelopeSchema = z.object({
       status: z.enum(["active", "revoked"]),
       origin_allowlist: z.array(z.string().url()).min(1),
       control_contract_manifest_hash: hashSchema,
-      agent_build_hash: hashSchema,
     }).strict(),
     device_credential: z.string().min(1),
   }).strict().optional(),
@@ -35,14 +34,6 @@ const required = (name: string): string => {
   return value;
 };
 
-export const xuanxueAiProductionAgentBuildHash = (): `sha256:${string}` => {
-  const identity = process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim();
-  if (!identity || !/^sha256:[a-f0-9]{64}$/u.test(identity)) {
-    throw new Error("GRASSEYE_SOURCE_FINGERPRINT_REQUIRED");
-  }
-  return identity as `sha256:${string}`;
-};
-
 const enrollmentConfig = () => {
   const environmentId = required("XUANXUE_AI_PRODUCTION_ENVIRONMENT_ID");
   if (environmentId !== "production" && environmentId !== "isolated-test") throw new Error("XUANXUE_AI_PRODUCTION_ENVIRONMENT_INVALID");
@@ -53,7 +44,6 @@ const enrollmentConfig = () => {
     environmentId,
     origin,
     enrollmentToken: required("XUANXUE_AI_PRODUCTION_ENROLLMENT_TOKEN"),
-    agentBuildHash: xuanxueAiProductionAgentBuildHash(),
   } as const;
 };
 
@@ -70,7 +60,6 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
       request_id: requestId,
       environment_id: config.environmentId,
       enrollment_token: config.enrollmentToken,
-      agent_build_hash: config.agentBuildHash,
       control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
     }),
     signal: AbortSignal.timeout(30_000),
@@ -81,7 +70,6 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
   if (!response.ok || body.ok !== true || !device?.device_id || !credentialValue
     || device.environment_id !== config.environmentId || device.device_epoch !== 1
     || device.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH
-    || device.agent_build_hash !== config.agentBuildHash
     || !device.origin_allowlist?.includes(config.origin)) {
     throw new Error(`XUANXUE_AI_PRODUCTION_ENROLLMENT_FAILED:${body.error?.code ?? response.status}:V6_IDENTITY_MISMATCH`);
   }
@@ -94,7 +82,6 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
     device_id: device.device_id,
     device_epoch: device.device_epoch,
     credential: credentialValue,
-    agent_build_hash: config.agentBuildHash,
     control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
     enrolled_at: new Date().toISOString(),
   };

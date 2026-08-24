@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const website = process.env.XUANXUE_WEBSITE_REPOSITORY?.trim()
-  || "/Users/nexgen/Documents/xuanxue-web-agent-flow-work-order";
+  || "/Users/nexgen/Documents/xuanxue-web";
 const pinPath = path.join(root, "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json");
 const productPinPath = path.join(root, "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json");
 const outputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts");
@@ -42,7 +42,11 @@ if (sha256(manifestText) !== authority.sha256) {
 }
 const sourceText = fromProvider(binding.providerCommitSha, contractSourcePath);
 const hashImport = 'import { hashCanonicalJson } from "@xuanshu/hash-core";';
-if (!sourceText.startsWith(`${hashImport}\n`)) {
+const productImports = `import { productExecutionBundle } from "./product-execution.generated.js";
+import {
+  productExecutionContracts,
+} from "./product-execution-runtime.js";`;
+if (!sourceText.startsWith(`${hashImport}\n${productImports}\n`)) {
   throw new Error("XUANXUE_AI_PRODUCTION_V6_PROVIDER_SOURCE_INVALID");
 }
 
@@ -77,10 +81,20 @@ export const ClaimBatchReceiptV6Schema = generatedParser(assertClaimBatchReceipt
 export const HandoverV6Schema = generatedParser(assertHandoverV6);
 `;
 
+const productProjectionAdapter = `import {
+  XUANXUE_PRODUCT_EXECUTION_CONTRACTS,
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION,
+} from "../xuanxue-ai-production-product-contracts.js";
+
+const productExecutionBundle = XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle;
+const productExecutionContracts = XUANXUE_PRODUCT_EXECUTION_CONTRACTS;`;
+
 const generated = `// GENERATED FILE. DO NOT EDIT.\n`
   + `// Provider: ${binding.providerRepo}@${binding.providerCommitSha}:${contractSourcePath}\n`
   + `// Provider source SHA256: ${sha256(sourceText)}\n`
-  + sourceText.replace(hashImport, localHashImplementation.trimEnd())
+  + sourceText
+    .replace(hashImport, localHashImplementation.trimEnd())
+    .replace(productImports, productProjectionAdapter)
   + adapters;
 
 const productPin = JSON.parse(readFileSync(productPinPath, "utf8"));
@@ -141,14 +155,6 @@ if (localizationContracts.length !== 4
 }
 const productProjection = `${JSON.stringify({
   schema_version: "xuanxue-product-execution-projection.v1",
-  provider_repo: productBinding.providerRepo,
-  provider_commit_sha: productBinding.providerCommitSha,
-  provider_spec_ref: productBinding.providerSpecRef,
-  provider_contract_sha256: productBinding.contractSha256,
-  provider_descriptor_sha256: sha256(productDescriptorText),
-  provider_artifact_path: productAuthority.path,
-  provider_artifact_sha256: productAuthority.sha256,
-  localization_semantic_manifest_path: localizationProjectionPath,
   localization_semantic_manifest_sha256: sha256(localizationProjectionText),
   localization_semantic_manifest: localizationProjection,
   bundle: productBundle,

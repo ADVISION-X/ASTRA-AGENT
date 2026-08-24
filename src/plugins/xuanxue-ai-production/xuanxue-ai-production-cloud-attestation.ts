@@ -76,9 +76,15 @@ export const attestXuanxueAiProductionProviderRun = async (input: {
     throw new Error("XUANXUE_AI_PRODUCTION_CLOUD_ATTESTATION_JOB_SET_INVALID");
   }
   if (!input.readRuntimeState) throw new Error("XUANXUE_AI_PRODUCTION_RUNTIME_STATE_REQUIRED");
+  if (!/^sha256:[a-f0-9]{64}$/u.test(input.candidateHash)) {
+    throw new Error("XUANXUE_AI_PRODUCTION_CANDIDATE_HASH_INVALID");
+  }
   const credential = await readXuanxueAiProductionCloudCredential(input.dataDir);
-  if (credential.agent_build_hash !== input.candidateHash) throw new Error("XUANXUE_AI_PRODUCTION_CANDIDATE_HASH_MISMATCH");
-  const session = new XuanxueAiProductionWorkerSessionV6(credential, input.readRuntimeState);
+  const session = new XuanxueAiProductionWorkerSessionV6(
+    credential,
+    input.readRuntimeState,
+    input.candidateHash,
+  );
   await session.open();
   session.markLedgerReconciled();
   const receipt = await session.heartbeat();

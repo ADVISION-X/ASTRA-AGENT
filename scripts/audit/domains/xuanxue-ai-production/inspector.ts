@@ -294,11 +294,11 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
 });
 
 const collectJsonValues = (value: unknown, output = new Set<string>()): Set<string> => {
@@ -355,6 +355,39 @@ const inspectTransientLifecycleContract = (
   inspectTransientLifecycleBehavior(context, findings, lawId);
 };
 
+const inspectRuntimeIdentityReduction = (
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const projectionPath = "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json";
+  const credentialSource = readFileSync(resolveFromRepo(cloudCredentialPath), "utf8");
+  const enrollmentPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts";
+  const enrollmentSource = readFileSync(resolveFromRepo(enrollmentPath), "utf8");
+  const sessionPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts";
+  const sessionSource = readFileSync(resolveFromRepo(sessionPath), "utf8");
+  const projection = JSON.parse(readFileSync(resolveFromRepo(projectionPath), "utf8")) as Record<string, unknown>;
+  const projectionKeys = [
+    "bundle",
+    "localization_semantic_manifest",
+    "localization_semantic_manifest_sha256",
+    "schema_version",
+  ];
+  const invalid = [
+    credentialSource.includes("agent_build_hash"),
+    enrollmentSource.includes("agent_build_hash"),
+    sessionSource.includes("product_contract_hashes"),
+    !sessionSource.includes("product_bundle_hash: XUANXUE_AI_PRODUCTION_PRODUCT_BUNDLE_HASH_V6"),
+    JSON.stringify(Object.keys(projection).sort()) !== JSON.stringify(projectionKeys),
+  ].some(Boolean);
+  if (!invalid) return;
+  findings.push(finding(
+    lawId,
+    "xuanxue-ai-production/runtime-identity-minimal",
+    projectionPath,
+    "Runtime identity must keep build at session-open only, attest one product bundle hash, and exclude provider provenance from the generated runtime projection.",
+  ));
+};
+
 const inspectDomainPolicy = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -381,6 +414,7 @@ const inspectDomainPolicy = (
   inspectCloud(context, findings, laws.cloud, values);
   inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
   inspectTransientLifecycleContract(context, findings, laws.transient, values);
+  inspectRuntimeIdentityReduction(findings, laws.cloud);
   inspectSubmissionAdmissionBinding(context, findings, laws.durability);
 };
 

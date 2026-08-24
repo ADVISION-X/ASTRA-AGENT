@@ -5,7 +5,7 @@
   "version": 1,
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V8"
   ],
   "specKind": "contract-pin",
   "contract": {
@@ -14,7 +14,7 @@
     "providerRepo": "ADVISION-X/xuanxue-web",
     "providerDomain": "ai-acceptance",
     "providerSpecRef": "docs/specs/ai-acceptance/product-execution-contract.provider.spec.json",
-    "providerCommitSha": "4709ab29b4fe249dced3d657f1a838459be07448",
+    "providerCommitSha": "259d49a3dc3ad37d14b2604f5d298dbbdd7cebbc",
     "contractSha256": "7f40cb4dc5e286001894c77e8336300df7e47b3360b426ef3d142f9ca2bc6d77"
   }
 }

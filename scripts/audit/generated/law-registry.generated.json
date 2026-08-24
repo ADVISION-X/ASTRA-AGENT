@@ -367,7 +367,7 @@
     {
       "capabilityDomain": "xuanxue-ai-production",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+        "LAW-XUANXUE-AI-PRODUCTION-001-V8"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "observedPaths": [
@@ -405,7 +405,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "b458907cadfe643f2b222f06c97616d19abbb4a0f5840654a9c29df70884f61c",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "1a45bc72626c03b1313c92d9f95670ccdd6d47a43dd9ddcf3d178d8eeefeb45f"
+    "functionalLawSha256": "25393d47b1b7c585988703808e52757c4b64bdcca3cef8b217e28ac2b6969247"
   },
   "laws": [
     {
@@ -5188,15 +5188,15 @@
       "contractRefs": [
         {
           "path": "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-          "sha256": "f44b7e71b5504bb08c1fd5240e129487137d765a80be1c24e515b302dd40dc57"
+          "sha256": "a8dee90c26cc12fc28c2f5c8dd5d5dde2cee338586344866ec30d9a425bdf519"
         },
         {
           "path": "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
-          "sha256": "18d50b7781a8addee7f8f4a1c3e82e81c16cdd2d3e2a8941107454b57bbbf526"
+          "sha256": "3e417317efcc47af643e75168e8f08a4045891f65756ee8ff06f04864393cf2b"
         },
         {
           "path": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
-          "sha256": "988fec3749c85bfebcfc0c4db0535c698280381efc4196e4e935d49559e520fb"
+          "sha256": "7f9a91d11272e4fcbcb0ebc1061cd88d191dc30b7d4c2447e520cd3463d4b1ca"
         }
       ],
       "dependsOnLawIds": [
@@ -5208,159 +5208,159 @@
       "enforcement": {
         "examBindings": [
           {
-            "bindingId": "xuanxue.ai.production.001.v7.exam-golden.exam",
+            "bindingId": "xuanxue.ai.production.001.v8.exam-golden.exam",
             "evidenceModes": [
               "exam.golden"
             ],
-            "examId": "xuanxue.ai.production.001.v7.exam-golden",
-            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.golden",
+            "examId": "xuanxue.ai.production.001.v8.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V8|exam.golden",
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.exam-golden.exam.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-golden.exam"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v8.exam-golden.exam"
               }
             ]
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.exam-property.exam",
+            "bindingId": "xuanxue.ai.production.001.v8.exam-property.exam",
             "evidenceModes": [
               "exam.property"
             ],
-            "examId": "xuanxue.ai.production.001.v7.exam-property",
-            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.property",
+            "examId": "xuanxue.ai.production.001.v8.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V8|exam.property",
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.exam-property.exam.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-property.exam"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v8.exam-property.exam"
               }
             ]
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.exam-state-machine.exam",
+            "bindingId": "xuanxue.ai.production.001.v8.exam-state-machine.exam",
             "evidenceModes": [
               "exam.state-machine"
             ],
-            "examId": "xuanxue.ai.production.001.v7.exam-state-machine",
-            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.state-machine",
+            "examId": "xuanxue.ai.production.001.v8.exam-state-machine",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V8|exam.state-machine",
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.exam-state-machine.exam.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-state-machine.exam"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.exam-state-machine.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v8.exam-state-machine.exam"
               }
             ]
           }
         ],
         "proofBindings": [
           {
-            "bindingId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof",
+            "bindingId": "xuanxue.ai.production.001.v8.dynamic-authorization.proof",
             "evidenceModes": [
               "dynamic.authorization"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-authorization.proof"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-authorization.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-authorization.proof"
               }
             ],
-            "proofId": "xuanxue.ai.production.001.v7.dynamic-authorization",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.authorization"
+            "proofId": "xuanxue.ai.production.001.v8.dynamic-authorization",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.authorization"
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.dynamic-browser.proof",
+            "bindingId": "xuanxue.ai.production.001.v8.dynamic-browser.proof",
             "evidenceModes": [
               "dynamic.browser"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-browser.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-browser.proof"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-browser.proof"
               }
             ],
-            "proofId": "xuanxue.ai.production.001.v7.dynamic-browser",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.browser"
+            "proofId": "xuanxue.ai.production.001.v8.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.browser"
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.dynamic-performance.proof",
+            "bindingId": "xuanxue.ai.production.001.v8.dynamic-performance.proof",
             "evidenceModes": [
               "dynamic.performance"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-performance.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-performance.proof"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-performance.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-performance.proof"
               }
             ],
-            "proofId": "xuanxue.ai.production.001.v7.dynamic-performance",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.performance"
+            "proofId": "xuanxue.ai.production.001.v8.dynamic-performance",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.performance"
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.dynamic-provider.proof",
+            "bindingId": "xuanxue.ai.production.001.v8.dynamic-provider.proof",
             "evidenceModes": [
               "dynamic.provider"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-provider.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-provider.proof"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-provider.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-provider.proof"
               }
             ],
-            "proofId": "xuanxue.ai.production.001.v7.dynamic-provider",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.provider"
+            "proofId": "xuanxue.ai.production.001.v8.dynamic-provider",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.provider"
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof",
+            "bindingId": "xuanxue.ai.production.001.v8.dynamic-recovery.proof",
             "evidenceModes": [
               "dynamic.recovery"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-recovery.proof"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-recovery.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-recovery.proof"
               }
             ],
-            "proofId": "xuanxue.ai.production.001.v7.dynamic-recovery",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.recovery"
+            "proofId": "xuanxue.ai.production.001.v8.dynamic-recovery",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.recovery"
           },
           {
-            "bindingId": "xuanxue.ai.production.001.v7.dynamic-service.proof",
+            "bindingId": "xuanxue.ai.production.001.v8.dynamic-service.proof",
             "evidenceModes": [
               "dynamic.service"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-service.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-service.proof"
+                "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-service.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-service.proof"
               }
             ],
-            "proofId": "xuanxue.ai.production.001.v7.dynamic-service",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.service"
+            "proofId": "xuanxue.ai.production.001.v8.dynamic-service",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.service"
           }
         ],
         "staticBinding": {
-          "bindingId": "xuanxue.ai.production.001.v7.static",
-          "checkId": "xuanxue.ai.production.001.v7.static.check",
+          "bindingId": "xuanxue.ai.production.001.v8.static",
+          "checkId": "xuanxue.ai.production.001.v8.static.check",
           "evidenceModes": [
             "static.ast",
             "static.contract"
           ],
-          "inspectorRef": "scripts/audit/domains/xuanxue-ai-production/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-001-V7",
+          "inspectorRef": "scripts/audit/domains/xuanxue-ai-production/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-001-V8",
           "negativeCases": [
             {
               "expectedCode": "COMPONENT_FAILED",
-              "negativeCaseId": "xuanxue.ai.production.001.v7.static.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production%3Aenforce|xuanxue.ai.production.001.v7.static"
+              "negativeCaseId": "xuanxue.ai.production.001.v8.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production%3Aenforce|xuanxue.ai.production.001.v8.static"
             }
           ],
-          "targetSelectorId": "xuanxue.ai.production.001.v7.target"
+          "targetSelectorId": "xuanxue.ai.production.001.v8.target"
         }
       },
       "enforcementMode": "composite",
@@ -5393,22 +5393,22 @@
         "不得发生：second worker mediator scheduler queue ledger Browser Provider contract owner or transport",
         "不得发生：service class recovery partition registration order or in-memory ordering bypassing globally oldest eligible work",
         "不得发生：automatic replay of UNKNOWN or replacement job prompt for a recoverable original",
-        "不得发生：alias default normalization compatibility fallback shadow bridge dual reader or dual writer",
+        "不得发生：alias default normalization compatibility fallback shadow bridge dual reader dual writer，或将 build 写入长期 device enrollment/credential",
         "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt",
-        "不得发生：AGENT-owned Product Execution canonical source cross-job graph parent join business verdict handwritten product map successor Cloud Job or runtime Stage improvisation，或 absent stale mismatched noncanonical product_contract_hash 被 claim、local order、checkpoint、terminal 或 result 接受",
+        "不得发生：AGENT-owned Product Execution canonical source cross-job graph parent join business verdict handwritten product map successor Cloud Job or runtime Stage improvisation，或在 heartbeat 重报 build/逐产品 hash、在 runtime projection 复制 provider provenance",
         "不得发生：Static Contract Integration Fault Real Chrome Real Provider or 72h Soak evidence substituting for another layer or omitting any of the 75 governed scenarios"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V8",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1137,
         "lineStart": 1075,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "17e390406028028fc21ebf4bdfd8a4300632721c8114a02a864febd90582f7e0"
+        "sectionSha256": "c3cc6c3a102b65619690dab81ec66bb71d2cc092a5c21aaf4dc959ff7a02c826"
       },
       "status": "active",
-      "summary": "必须让 AGENT 只消费网站唯一产品投影，只负责 Local Order 的 Stage、Provider/Browser、checkpoint、result 与原 Order 恢复；唯一 session、签名 attestation、十业务席位、一个 Browser lane、outbox 和 terminal CAS 必须保持身份；产品合同、跨 Job graph、parent/join 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
+      "summary": "必须让 AGENT 只消费网站唯一产品投影，只负责 Local Order 执行与恢复；设备凭据只绑定长期设备身份，当前 build 只绑定 session，heartbeat 只报一个产品 bundle hash，provider provenance 只留在 pin/generator；唯一 session、签名 attestation、容量、outbox 与 terminal CAS 必须保持身份，阻断不得杀死诊断 Shell。",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
       "tier": "P0"
     },
     {

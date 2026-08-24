@@ -27,7 +27,6 @@ const credentialSchema = z.object({
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),
   credential: z.string().regex(/^aidc_v6_[A-Za-z0-9_-]{32,}$/u),
-  agent_build_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).transform((value): `sha256:${string}` => value as `sha256:${string}`),
   control_manifest_hash: z.string().regex(/^sha256:[a-f0-9]{64}$/u).transform((value): `sha256:${string}` => value as `sha256:${string}`),
   enrolled_at: z.string().min(1),
 }).strict();

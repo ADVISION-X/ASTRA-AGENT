@@ -141,7 +141,7 @@ try {
     origin: "https://agent.example.test",
     device_id: "device-1", device_epoch: 1,
     credential: `aidc_v6_${"x".repeat(32)}`,
-    agent_build_hash: hash, control_manifest_hash: hash,
+    control_manifest_hash: hash,
     enrolled_at: new Date().toISOString(),
   } as const;
   await writeXuanxueAiProductionCloudCredential(temporary, credential);

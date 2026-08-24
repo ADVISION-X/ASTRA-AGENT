@@ -10,7 +10,7 @@ import {
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
-import { XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 } from "./xuanxue-ai-production-product-contracts.js";
+import { XUANXUE_AI_PRODUCTION_PRODUCT_BUNDLE_HASH_V6 } from "./xuanxue-ai-production-product-contracts.js";
 import { parseXuanxueAiProductionJsonEnvelope } from "./xuanxue-ai-production-json-envelope.js";
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
@@ -56,6 +56,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
   public constructor(
     public readonly device: XuanxueAiProductionCloudCredential,
     private readonly runtimeState: () => Promise<XuanxueAiProductionRuntimeStateV6>,
+    private readonly agentBuildHash: `sha256:${string}`,
     private readonly workerInstanceId = `worker_${randomUUID()}`,
   ) {}
 
@@ -91,7 +92,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
         device_id: this.device.device_id,
         device_epoch: this.device.device_epoch,
         worker_instance_id: this.workerInstanceId,
-        agent_build_hash: this.device.agent_build_hash,
+        agent_build_hash: this.agentBuildHash,
         control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
       },
     ));
@@ -103,7 +104,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
       || session.origin !== this.device.origin
       || session.device_id !== this.device.device_id
       || session.device_epoch !== this.device.device_epoch
-      || session.agent_build_hash !== this.device.agent_build_hash
+      || session.agent_build_hash !== this.agentBuildHash
       || session.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
       throw new Error("XUANXUE_AI_PRODUCTION_SESSION_BINDING_INVALID");
     }
@@ -131,9 +132,8 @@ export class XuanxueAiProductionWorkerSessionV6 {
           attestation_seq: nextSeq,
           worker_session_id: this.workerSessionId,
           worker_session_epoch: this.workerSessionEpoch,
-          agent_build_hash: this.device.agent_build_hash,
           control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
-          product_contract_hashes: XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6,
+          product_bundle_hash: XUANXUE_AI_PRODUCTION_PRODUCT_BUNDLE_HASH_V6,
           business_capacity_total: 10,
           business_in_flight: state.businessInFlight,
           browser_action_capacity_total: 1,

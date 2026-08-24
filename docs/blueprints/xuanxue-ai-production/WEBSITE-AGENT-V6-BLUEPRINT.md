@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V8"
   ],
   "contractRefs": [
     "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
@@ -50,11 +50,11 @@
 ```
 
 状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V7`
+法案：`LAW-XUANXUE-AI-PRODUCTION-001-V8`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
-V6 方案 SHA-256：`85e2b60e0649dac79ba24f055895d6752548456a2c50919baa7ed5097644c48a`
-Product Execution 方案 SHA-256：`c57d406c2dc95f678cdf26a24b3ecd38b5226a4533a81ea50b4b833995420802`
+V6 方案 SHA-256：`70b6781cb42750132f65b714b8236059b95f689af00547ab900a50672ba79a2c`
+Product Execution 方案 SHA-256：`4e2310852e0bd596a5380263e69ceaa5f5c907f5fa30df2537fd8107f68dee1d`
 
 ## 接入
 
@@ -81,8 +81,10 @@ Browser 私有合同仍独占于
 ## Product Execution projection 与本地边界
 
 网站是玄学产品完整 FLOW 的唯一 source。网站 canonical compiler 产生只读 product projection，
-AGENT 现役唯一 provider generator 将精确 provider commit、contract bytes 与 hash 固定成本地
-generated artifact；该 artifact 不可手改，也不是第二 canonical。
+AGENT 现役唯一 provider generator 用 pin 校验精确 provider commit、descriptor、contract bytes 与
+artifact hash，再只把运行所需的 product bundle 和 localization semantic manifest 写入本地
+generated artifact；provider repo/commit/spec/artifact 等供应链 provenance 只留在 pin、generator 与
+发布检查中，不复制进 runtime projection。该 artifact 不可手改，也不是第二 canonical。
 
 每张 Cloud grant 必须在 claim、local immutable order、Stage 开始、checkpoint、terminal 与结果
 readback 逐点匹配同一非空 `product_contract_hash`。本地 generic executor 只能按 projection 的
@@ -118,8 +120,8 @@ Browser Authority 配对、正确 HTTPS Target 认领、Browser-required 测试�
 
 本地双仓联调固定使用 `isolated-test`：网站 origin 为 `http://127.0.0.1:4322`，本 Shell origin 为
 `http://127.0.0.1:4173`。enrollment 只允许首次 isolated-test 设备、凭据撤销、合法环境切换或
-origin/device epoch/合同身份变化时显式执行；普通启动与失败恢复不得重建设备，也不得使用 production
-device、credential、queue、状态或对象存储身份。
+origin/device epoch/长期控制合同身份变化时显式执行；普通 build 变化只关闭旧 session 并用同一设备凭据
+建立新 session，不得重建设备，也不得使用 production device、credential、queue、状态或对象存储身份。
 
 跨仓 session、heartbeat、claim、renew、release 与 terminal 只可在同一现役 provider descriptor 完整证明
 endpoint、认证、request/response schema 与 manifest hash 后运行。descriptor 缺失、candidate 漂移或任一项不兼容
@@ -136,7 +138,8 @@ explicit Browser Authority + Target state
 
 上一 session token generation 只允许同 session/epoch 60 秒在途重叠。Browser/Target/attestation
 任一缺失都令 browser-required claim blocked；不得先 claim 再以 Browser 错误释放。Heartbeat 独立于
-claim，并只在状态变化时完整记录。
+claim，只提交当前 session、控制 manifest、一个 `product_bundle_hash`、容量与运行状态；不得重复提交
+session 已绑定的 build，也不得展开提交 20 个逐产品合同 hash，并只在状态变化时完整记录。
 
 Cloud credential、Provider、worker session、Browser Authority 或 Target 失败时，Shell 仍须提供
 health/status 诊断面，同时将 execution/claim 精确标为 blocked。该降级状态不得创建第二

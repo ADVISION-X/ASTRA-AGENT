@@ -388,7 +388,9 @@ const sessionHeartbeatLoop = async (state: WorkerState): Promise<void> => {
   }
 };
 
-const assertCredentialBinding = (credential: XuanxueAiProductionCloudCredential): void => {
+const assertCredentialBinding = (
+  credential: XuanxueAiProductionCloudCredential,
+): `sha256:${string}` => {
   if (credential.protocol_version !== "xuanxue-ai-production-v6"
     || credential.control_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_DEVICE_CREDENTIAL_INVALID");
@@ -406,14 +408,16 @@ const assertCredentialBinding = (credential: XuanxueAiProductionCloudCredential)
     throw new Error("XUANXUE_AI_PRODUCTION_ORIGIN_BINDING_MISMATCH");
   }
   const sourceFingerprint = process.env.GRASSEYE_SOURCE_FINGERPRINT?.trim();
-  if (!sourceFingerprint || sourceFingerprint !== credential.agent_build_hash) {
+  if (!sourceFingerprint || !/^sha256:[a-f0-9]{64}$/u.test(sourceFingerprint)) {
     throw new Error("XUANXUE_AI_PRODUCTION_AGENT_BUILD_BINDING_MISMATCH");
   }
+  return sourceFingerprint as `sha256:${string}`;
 };
 
 const createWorkerState = (
   input: CloudWorkerInput,
   credential: XuanxueAiProductionCloudCredential,
+  agentBuildHash: `sha256:${string}`,
 ): WorkerState => {
   const database = openXuanxueAiProductionDatabase(input.dataDir);
   const outbox = new XuanxueAiProductionCloudOutbox(database);
@@ -428,7 +432,7 @@ const createWorkerState = (
     };
     if (stateRef) stateRef.lastRuntimeState = runtimeState;
     return runtimeState;
-  });
+  }, agentBuildHash);
   const state: WorkerState = {
     abort: new AbortController(), active: new Map(), credential,
     dataDir: input.dataDir, execution: input.execution,
@@ -484,8 +488,8 @@ export async function startXuanxueAiProductionCloudWorker(
   input: CloudWorkerInput,
 ): Promise<XuanxueAiProductionCloudWorkerHandle> {
   const credential = await readXuanxueAiProductionCloudCredential(input.dataDir);
-  assertCredentialBinding(credential);
-  const state = createWorkerState(input, credential);
+  const agentBuildHash = assertCredentialBinding(credential);
+  const state = createWorkerState(input, credential, agentBuildHash);
   await initializeWorkerState(state);
   publishHealth(state);
   const loop = workerLoop(state);

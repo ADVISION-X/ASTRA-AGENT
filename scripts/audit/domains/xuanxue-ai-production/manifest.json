@@ -3,69 +3,69 @@
   "capabilityDomain": "xuanxue-ai-production",
   "status": "active",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V8"
   ],
   "lawBindings": {
-    "LAW-XUANXUE-AI-PRODUCTION-001-V7": {
+    "LAW-XUANXUE-AI-PRODUCTION-001-V8": {
       "staticBinding": {
-        "bindingId": "xuanxue.ai.production.001.v7.static",
-        "checkId": "xuanxue.ai.production.001.v7.static.check",
-        "inspectorRef": "scripts/audit/domains/xuanxue-ai-production/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-001-V7",
-        "targetSelectorId": "xuanxue.ai.production.001.v7.target",
+        "bindingId": "xuanxue.ai.production.001.v8.static",
+        "checkId": "xuanxue.ai.production.001.v8.static.check",
+        "inspectorRef": "scripts/audit/domains/xuanxue-ai-production/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-001-V8",
+        "targetSelectorId": "xuanxue.ai.production.001.v8.target",
         "evidenceModes": [
           "static.ast",
           "static.contract"
         ],
         "negativeCases": [
           {
-            "negativeCaseId": "xuanxue.ai.production.001.v7.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production%3Aenforce|xuanxue.ai.production.001.v7.static",
+            "negativeCaseId": "xuanxue.ai.production.001.v8.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production%3Aenforce|xuanxue.ai.production.001.v8.static",
             "expectedCode": "COMPONENT_FAILED"
           }
         ]
       },
       "examBindings": [
         {
-          "bindingId": "xuanxue.ai.production.001.v7.exam-golden.exam",
-          "examId": "xuanxue.ai.production.001.v7.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.golden",
+          "bindingId": "xuanxue.ai.production.001.v8.exam-golden.exam",
+          "examId": "xuanxue.ai.production.001.v8.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V8|exam.golden",
           "evidenceModes": [
             "exam.golden"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-golden.exam",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v8.exam-golden.exam",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.exam-property.exam",
-          "examId": "xuanxue.ai.production.001.v7.exam-property",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.property",
+          "bindingId": "xuanxue.ai.production.001.v8.exam-property.exam",
+          "examId": "xuanxue.ai.production.001.v8.exam-property",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V8|exam.property",
           "evidenceModes": [
             "exam.property"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.exam-property.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-property.exam",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.exam-property.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v8.exam-property.exam",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.exam-state-machine.exam",
-          "examId": "xuanxue.ai.production.001.v7.exam-state-machine",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.state-machine",
+          "bindingId": "xuanxue.ai.production.001.v8.exam-state-machine.exam",
+          "examId": "xuanxue.ai.production.001.v8.exam-state-machine",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V8|exam.state-machine",
           "evidenceModes": [
             "exam.state-machine"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.exam-state-machine.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-state-machine.exam",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.exam-state-machine.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v8.exam-state-machine.exam",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
@@ -73,91 +73,91 @@
       ],
       "proofBindings": [
         {
-          "bindingId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof",
-          "proofId": "xuanxue.ai.production.001.v7.dynamic-authorization",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.authorization",
+          "bindingId": "xuanxue.ai.production.001.v8.dynamic-authorization.proof",
+          "proofId": "xuanxue.ai.production.001.v8.dynamic-authorization",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.authorization",
           "evidenceModes": [
             "dynamic.authorization"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-authorization.proof",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-authorization.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-authorization.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.dynamic-browser.proof",
-          "proofId": "xuanxue.ai.production.001.v7.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.browser",
+          "bindingId": "xuanxue.ai.production.001.v8.dynamic-browser.proof",
+          "proofId": "xuanxue.ai.production.001.v8.dynamic-browser",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.browser",
           "evidenceModes": [
             "dynamic.browser"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-browser.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-browser.proof",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-browser.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-browser.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.dynamic-performance.proof",
-          "proofId": "xuanxue.ai.production.001.v7.dynamic-performance",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.performance",
+          "bindingId": "xuanxue.ai.production.001.v8.dynamic-performance.proof",
+          "proofId": "xuanxue.ai.production.001.v8.dynamic-performance",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.performance",
           "evidenceModes": [
             "dynamic.performance"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-performance.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-performance.proof",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-performance.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-performance.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.dynamic-provider.proof",
-          "proofId": "xuanxue.ai.production.001.v7.dynamic-provider",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.provider",
+          "bindingId": "xuanxue.ai.production.001.v8.dynamic-provider.proof",
+          "proofId": "xuanxue.ai.production.001.v8.dynamic-provider",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.provider",
           "evidenceModes": [
             "dynamic.provider"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-provider.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-provider.proof",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-provider.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-provider.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof",
-          "proofId": "xuanxue.ai.production.001.v7.dynamic-recovery",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.recovery",
+          "bindingId": "xuanxue.ai.production.001.v8.dynamic-recovery.proof",
+          "proofId": "xuanxue.ai.production.001.v8.dynamic-recovery",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.recovery",
           "evidenceModes": [
             "dynamic.recovery"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-recovery.proof",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-recovery.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-recovery.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "xuanxue.ai.production.001.v7.dynamic-service.proof",
-          "proofId": "xuanxue.ai.production.001.v7.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.service",
+          "bindingId": "xuanxue.ai.production.001.v8.dynamic-service.proof",
+          "proofId": "xuanxue.ai.production.001.v8.dynamic-service",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-XUANXUE-AI-PRODUCTION-001-V8|dynamic.service",
           "evidenceModes": [
             "dynamic.service"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-service.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-service.proof",
+              "negativeCaseId": "xuanxue.ai.production.001.v8.dynamic-service.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v8.dynamic-service.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]

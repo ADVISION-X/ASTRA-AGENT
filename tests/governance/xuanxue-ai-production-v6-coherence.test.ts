@@ -21,14 +21,18 @@ test("V6 law, blueprint, pin, generator and runtime form one exact active chain"
     "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.manifest.json",
   );
   const generatedValidator = read("src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts");
+  const productProjection = parse<Record<string, unknown>>(
+    "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
+  );
   const generator = read("scripts/acceptance/generate-xuanxue-ai-production-v6-validator.mjs");
   const cloudContract = read("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.ts");
   const cloudClient = read("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-client.ts");
+  const cloudCredential = read("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-credential.ts");
   const cloudEnrollment = read("src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts");
   const workerSession = read("src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts");
   const packageJson = parse<{ scripts: Record<string, string> }>("package.json");
 
-  assert.match(law, /LAW-XUANXUE-AI-PRODUCTION-001-V7/u);
+  assert.match(law, /LAW-XUANXUE-AI-PRODUCTION-001-V8/u);
   assert.match(law, /summary.*AGENT.*网站/u);
   assert.match(blueprint, /状态：active V6 terminal/u);
   assert.match(blueprint, /xuanxue-ai-production-v6\.pin\.spec\.json/u);
@@ -43,6 +47,16 @@ test("V6 law, blueprint, pin, generator and runtime form one exact active chain"
   assert.match(generatedValidator, /protocol_version: "xuanxue-ai-production-v6"/u);
   assert.match(generator, /xuanxue-ai-production-v6\.pin\.spec\.json/u);
   assert.match(generator, /xuanxue-ai-production-v6\.validator\.ts/u);
+  assert.deepEqual(Object.keys(productProjection).sort(), [
+    "bundle",
+    "localization_semantic_manifest",
+    "localization_semantic_manifest_sha256",
+    "schema_version",
+  ]);
+  assert.doesNotMatch(cloudCredential, /agent_build_hash/u);
+  assert.doesNotMatch(cloudEnrollment, /agent_build_hash/u);
+  assert.match(workerSession, /product_bundle_hash: XUANXUE_AI_PRODUCTION_PRODUCT_BUNDLE_HASH_V6/u);
+  assert.doesNotMatch(workerSession, /product_contract_hashes/u);
   assert.match(cloudContract, /XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION[\s\S]*"xuanxue-ai-production-v6" as const/u);
   for (const runtime of [cloudClient, cloudEnrollment, workerSession]) {
     assert.match(runtime, /\/internal\/ai-production\/v6\//u);

@@ -9,7 +9,6 @@ import {
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
 import { resolveXuanxueAiProductionProfile } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.js";
 import {
-  XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT,
   xuanxueLocalOrderNode,
   xuanxueProductExecutionContract,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
@@ -32,7 +31,6 @@ for (const [product, stage] of expected) {
   assert.equal(profile.nodeId, stage);
 }
 
-assert.equal(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT.length, 40);
 assert.equal(expectedLocalizationProviderProfile("candidate_a").reasoning_effort, "xhigh");
 for (const role of [
   "candidate_b", "selector_first", "selector_swap", "consistency",

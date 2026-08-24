@@ -1,6 +1,6 @@
 // GENERATED FILE. DO NOT EDIT.
-// Provider: ADVISION-X/xuanxue-web@da921c8612fa43497d15c93f29f1e5e02905bc90:packages/ai-contracts/src/production-control/v6-contract.ts
-// Provider source SHA256: 0aee6f9579de1fd905c1e83280eeea3ade21a840c030f6a9c1dac4030779f1b8
+// Provider: ADVISION-X/xuanxue-web@259d49a3dc3ad37d14b2604f5d298dbbdd7cebbc:packages/ai-contracts/src/production-control/v6-contract.ts
+// Provider source SHA256: 3b8665f1f9eb8b0d8b8d751faf805077736cf608f27d666ac13fff9d22386d6a
 import { createHash } from "node:crypto";
 
 const canonicalForGeneratedHash = (value: unknown): unknown => {
@@ -13,6 +13,13 @@ const canonicalForGeneratedHash = (value: unknown): unknown => {
 };
 const hashCanonicalJson = (value: unknown): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(canonicalForGeneratedHash(value))).digest("hex")}`;
+import {
+  XUANXUE_PRODUCT_EXECUTION_CONTRACTS,
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION,
+} from "../xuanxue-ai-production-product-contracts.js";
+
+const productExecutionBundle = XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle;
+const productExecutionContracts = XUANXUE_PRODUCT_EXECUTION_CONTRACTS;
 
 export type V6Sha256 = `sha256:${string}`;
 export type ClaimOutcomeV6 =
@@ -27,7 +34,6 @@ export type DeviceEnrollmentV6 = Readonly<{
   request_id: string;
   environment_id: string;
   enrollment_token: string;
-  agent_build_hash: V6Sha256;
   control_manifest_hash: V6Sha256;
 }>;
 
@@ -60,9 +66,8 @@ export type WorkerRuntimeAttestationV6 = Readonly<{
   attestation_seq: number;
   worker_session_id: string;
   worker_session_epoch: number;
-  agent_build_hash: V6Sha256;
   control_manifest_hash: V6Sha256;
-  product_contract_hashes: readonly V6Sha256[];
+  product_bundle_hash: V6Sha256;
   business_capacity_total: 10;
   business_in_flight: number;
   browser_action_capacity_total: 1;
@@ -273,6 +278,8 @@ export const xuanxueAiProductionV6ContractManifest = Object.freeze({
   session_credential_ttl_seconds: 180,
   session_credential_overlap_seconds: 60,
   runtime_attestation_ttl_seconds: 45,
+  agent_build_binding_scope: "worker_session",
+  product_capability_identity: "product_bundle_hash",
   lease_seconds: 90,
   accept_seconds: 30,
   renew_after_ms: 20_000,
@@ -313,12 +320,11 @@ const exact = (value: Record<string, unknown>, keys: readonly string[], code: st
 
 export function assertDeviceEnrollmentV6(value: unknown): asserts value is DeviceEnrollmentV6 {
   if (!isRecord(value)) throw new Error("AI_V6_DEVICE_ENROLLMENT_INVALID");
-  exact(value, ["schema_version", "request_id", "environment_id", "enrollment_token", "agent_build_hash", "control_manifest_hash"], "AI_V6_DEVICE_ENROLLMENT_UNKNOWN_FIELD");
+  exact(value, ["schema_version", "request_id", "environment_id", "enrollment_token", "control_manifest_hash"], "AI_V6_DEVICE_ENROLLMENT_UNKNOWN_FIELD");
   if (value.schema_version !== "xuanxue-ai-device-enrollment.v6"
     || typeof value.request_id !== "string" || !value.request_id
     || !["production", "isolated-test"].includes(value.environment_id as string)
     || typeof value.enrollment_token !== "string" || value.enrollment_token.length < 16
-    || typeof value.agent_build_hash !== "string" || !HASH.test(value.agent_build_hash)
     || typeof value.control_manifest_hash !== "string" || !HASH.test(value.control_manifest_hash)) {
     throw new Error("AI_V6_DEVICE_ENROLLMENT_INVALID");
   }
@@ -391,16 +397,14 @@ export function assertWorkerRuntimeAttestationV6(
   value: unknown,
 ): asserts value is WorkerRuntimeAttestationV6 {
   if (!isRecord(value)) throw new Error("AI_V6_RUNTIME_ATTESTATION_INVALID");
-  exact(value, ["schema_version", "request_id", "attestation_seq", "worker_session_id", "worker_session_epoch", "agent_build_hash", "control_manifest_hash", "product_contract_hashes", "business_capacity_total", "business_in_flight", "browser_action_capacity_total", "browser_action_in_flight", "browser_authority_state", "browser_target_state", "browser_lane_state", "drain_state", "ledger_reconciled"], "AI_V6_RUNTIME_ATTESTATION_UNKNOWN_FIELD");
+  exact(value, ["schema_version", "request_id", "attestation_seq", "worker_session_id", "worker_session_epoch", "control_manifest_hash", "product_bundle_hash", "business_capacity_total", "business_in_flight", "browser_action_capacity_total", "browser_action_in_flight", "browser_authority_state", "browser_target_state", "browser_lane_state", "drain_state", "ledger_reconciled"], "AI_V6_RUNTIME_ATTESTATION_UNKNOWN_FIELD");
   if (value.schema_version !== "xuanxue-ai-worker-runtime-attestation.v6"
     || typeof value.request_id !== "string" || !value.request_id
     || typeof value.worker_session_id !== "string" || !value.worker_session_id
     || !Number.isInteger(value.worker_session_epoch) || (value.worker_session_epoch as number) < 1
     || !Number.isInteger(value.attestation_seq) || (value.attestation_seq as number) < 1
-    || typeof value.agent_build_hash !== "string" || !HASH.test(value.agent_build_hash)
     || typeof value.control_manifest_hash !== "string" || !HASH.test(value.control_manifest_hash)
-    || !Array.isArray(value.product_contract_hashes)
-    || !value.product_contract_hashes.every((item) => typeof item === "string" && HASH.test(item))
+    || typeof value.product_bundle_hash !== "string" || !HASH.test(value.product_bundle_hash)
     || value.business_capacity_total !== 10
     || !Number.isInteger(value.business_in_flight) || (value.business_in_flight as number) < 0 || (value.business_in_flight as number) > 10
     || value.browser_action_capacity_total !== 1
@@ -411,6 +415,9 @@ export function assertWorkerRuntimeAttestationV6(
     || !["open", "draining"].includes(value.drain_state as string)
     || typeof value.ledger_reconciled !== "boolean") {
     throw new Error("AI_V6_RUNTIME_ATTESTATION_INVALID");
+  }
+  if (value.product_bundle_hash !== productExecutionBundle.bundle_hash) {
+    throw new Error("AI_V6_PRODUCT_CONTRACT_DENOMINATOR_MISMATCH");
   }
 }
 
@@ -442,6 +449,13 @@ export function assertCloudExecutionGrantV6(value: unknown): asserts value is Cl
     || Date.parse(value.server_now) >= Date.parse(value.accept_by)
     || Date.parse(value.accept_by) >= Date.parse(value.lease_expires_at)) {
     throw new Error("AI_V6_GRANT_INVALID");
+  }
+  const productContract = productExecutionContracts.find(
+    (contract) => contract.product_contract_hash === value.product_contract_hash,
+  );
+  if (!productContract
+    || JSON.stringify(value.required_capabilities) !== JSON.stringify(productContract.required_capabilities)) {
+    throw new Error("AI_V6_GRANT_PRODUCT_CONTRACT_MISMATCH");
   }
 }
 

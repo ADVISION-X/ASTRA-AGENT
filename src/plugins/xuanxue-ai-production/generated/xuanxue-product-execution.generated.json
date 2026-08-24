@@ -1,13 +1,5 @@
 {
   "schema_version": "xuanxue-product-execution-projection.v1",
-  "provider_repo": "ADVISION-X/xuanxue-web",
-  "provider_commit_sha": "4709ab29b4fe249dced3d657f1a838459be07448",
-  "provider_spec_ref": "docs/specs/ai-acceptance/product-execution-contract.provider.spec.json",
-  "provider_contract_sha256": "7f40cb4dc5e286001894c77e8336300df7e47b3360b426ef3d142f9ca2bc6d77",
-  "provider_descriptor_sha256": "b7b41baa7579746e44168fb8a1b9a2022edea0f89d53743c2bfdbda20da50c31",
-  "provider_artifact_path": "artifacts/contracts/product-execution-contract.v1.json",
-  "provider_artifact_sha256": "39ed5d563f325e4e6331b7d549a403f0a60a3ff46453c2b7552a1709b53e8a82",
-  "localization_semantic_manifest_path": "artifacts/contracts/localization-production-contract.v1.json",
   "localization_semantic_manifest_sha256": "a4e0450473ca9e95683227b9511855c676e655ca20b838675d84edc83ab3be83",
   "localization_semantic_manifest": {
     "contract_manifest_hash": "sha256:b6c8f54d633eb24986989b6c64f97fcfba3cb5939d5db48c09a0cfcaebf4e528",
