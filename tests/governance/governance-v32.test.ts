@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { evidencePlan, resolveReleaseParticipants, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
+import { evidencePlan, resolveReleaseParticipants, validateParticipantReleaseReport, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (): string => {
@@ -356,7 +357,8 @@ test('READY evidence applicability follows the actual diff and rejects a missing
 test('RELEASE consumes the real executor chain and the unique B.9 package schema', () => {
   const binding = { candidateId: 'a'.repeat(64), gitCommit: 'b'.repeat(40) };
   assert.throws(() => verifyXuanxueReleaseEvidence('/definitely/not/a/real-proof.json', () => ({ status: 0, stdout: 'PASS', stderr: '' })), /invalid real proof authority/u);
-  assert.throws(() => resolveReleaseParticipants([{ contractId: 'caller-authored', contractVersion: 1, repo: 'fake/repo', packagePath: 'fake.json' }]), /accepts only repoRoot and packagePath/u);
+  assert.throws(() => resolveReleaseParticipants([{ contractId: 'caller-authored', contractVersion: 1, repo: 'fake/repo', packagePath: 'fake.json' }]), /accepts only repoRoot, packagePath and reportPath/u);
+  assert.throws(() => resolveReleaseParticipants([{ repoRoot: '.', packagePath: 'fake.json', reportPath: 'fake-report.json' }]), /cannot be the current repository/u);
   const proofPackage = {
     schemaVersion: 1, ...binding,
     freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
@@ -366,11 +368,22 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
   };
   assert.doesNotThrow(() => validateReleaseProofPackage(proofPackage));
   assert.throws(() => validateReleaseProofPackage({ ...proofPackage, releaseReceipt: true }), /invalid RELEASE proof package/u);
+  const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, canonical(item)])) : value;
+  const report = { schemaVersion: 1, level: 'RELEASE', baseSha: '3'.repeat(40), candidateId: binding.candidateId, registrySha256: proofPackage.registrySha256, laws: [{ lawId: 'LAW-TEST-001-V1', applicableEvidenceModes: [], deferredEvidenceModes: [], outcome: 'PASS', evidenceRefs: [], findings: [] }], outcome: 'PASS' };
+  const reportRaw = Buffer.from(`${JSON.stringify(canonical(report), null, 2)}\n`);
+  const boundPackage = { ...proofPackage, lawQualityReportSha256: createHash('sha256').update(reportRaw).digest('hex') };
+  assert.doesNotThrow(() => validateParticipantReleaseReport(reportRaw, boundPackage, { laws: [{ lawId: 'LAW-TEST-001-V1' }] }));
+  assert.throws(() => validateParticipantReleaseReport(reportRaw, { ...boundPackage, lawQualityReportSha256: '9'.repeat(64) }, { laws: [{ lawId: 'LAW-TEST-001-V1' }] }), /report hash mismatch/u);
+  const failedReport = { ...report, laws: [{ ...report.laws[0], outcome: 'FAIL', findings: ['REAL_RELEASE_NOT_COMPLETED'] }], outcome: 'FAIL' };
+  const failedRaw = Buffer.from(`${JSON.stringify(canonical(failedReport), null, 2)}\n`);
+  assert.throws(() => validateParticipantReleaseReport(failedRaw, { ...boundPackage, lawQualityReportSha256: createHash('sha256').update(failedRaw).digest('hex') }, { laws: [{ lawId: 'LAW-TEST-001-V1' }] }), /has not completed RELEASE PASS/u);
   const source = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
   assert.match(source, /xuanxue-ai-production\.real-chrome\.ts/u);
   assert.match(source, /xuanxue-ai-production\.real-provider\.ts/u);
   assert.match(source, /caller-authored Dynamic Proof wrappers are retired/u);
   assert.match(source, /participant package is not bound to its committed candidate/u);
+  assert.match(source, /participant RELEASE report hash mismatch/u);
+  assert.match(source, /participant has not completed RELEASE PASS/u);
   assert.match(source, /cyclic RELEASE participant dependency/u);
   assert.match(source, /RELEASE_PACKAGE/u);
 });
