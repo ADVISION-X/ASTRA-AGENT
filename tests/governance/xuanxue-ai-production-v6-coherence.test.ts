@@ -28,7 +28,7 @@ test("V6 law, blueprint, pin, generator and runtime form one exact active chain"
   const workerSession = read("src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts");
   const packageJson = parse<{ scripts: Record<string, string> }>("package.json");
 
-  assert.match(law, /LAW-XUANXUE-AI-PRODUCTION-001-V6/u);
+  assert.match(law, /LAW-XUANXUE-AI-PRODUCTION-001-V7/u);
   assert.match(law, /summary.*xuanxue-ai-production-v6/u);
   assert.match(blueprint, /状态：active V6 terminal/u);
   assert.match(blueprint, /xuanxue-ai-production-v6\.pin\.spec\.json/u);

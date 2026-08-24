@@ -1,15 +1,13 @@
 import { z } from "zod";
 
 import {
-  isXuanxueAiPaidFollowupProduct,
-  isXuanxueAiRequiredContinuationProduct,
-  isXuanxueAiReusableBaseConsumerProduct,
-  xuanxueAiRequiredContinuationProfiles,
-} from "./xuanxue-ai-production-conversation-policy.js";
-import {
   assertXuanxueLocalizationContract,
   isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
+import {
+  assertXuanxueProductContractHash,
+  xuanxueLocalOrderNode,
+} from "./xuanxue-ai-production-product-contracts.js";
 import {
   isXuanxueTerminalMetaphysicsProduct,
   isXuanxueTerminalMetaphysicsProfile,
@@ -22,71 +20,35 @@ const issue = (
   path: Array<string | number>,
 ): void => context.addIssue({ code: z.ZodIssueCode.custom, message, path });
 
-const allowedPaidFollowupParentStages: Readonly<Record<string, readonly string[]>> = {
-  bazi_report_followup: ["chart_interpretation", "question_analysis"],
-  qimen_report_followup: ["analysis", "followup"],
-  hehun_report_followup: ["final_compatibility", "followup"],
-};
-
-const inspectContinuationStage = (
-  order: XuanxueAiStoredOrder,
-  context: z.RefinementCtx,
-  selectorSwap: boolean,
-): void => {
-  if (selectorSwap && (
-    order.productId !== "localization_static_review_selector"
-    || order.conversationParent?.relation !== "same_conversation"
-    || order.conversationParent?.stageId !== "localization_selector"
-  )) {
-    issue(context, "XUANXUE_AI_PRODUCTION_LOCALIZATION_SELECTOR_PARENT_INVALID", ["conversationParent"]);
-  }
-  if (isXuanxueAiPaidFollowupProduct(order.productId) && order.conversationParent) {
-    const allowed = allowedPaidFollowupParentStages[order.productId] ?? [];
-    if (!allowed.includes(order.conversationParent.stageId)) {
-      issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID", ["conversationParent", "stageId"]);
-    }
-    return;
-  }
-  if (
-    isXuanxueAiRequiredContinuationProduct(order.productId)
-    && order.conversationParent?.stageId
-      !== xuanxueAiRequiredContinuationProfiles[order.productId].stageId
-  ) {
-    issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID", ["conversationParent", "stageId"]);
-  }
-};
-
-const inspectContinuationRelation = (
-  order: XuanxueAiStoredOrder,
-  context: z.RefinementCtx,
-): void => {
-  if (
-    isXuanxueAiReusableBaseConsumerProduct(order.productId)
-    && order.conversationParent?.relation !== "forked_from_checkpoint"
-  ) {
-    issue(context, "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED", ["conversationParent", "relation"]);
-  }
-  if (
-    isXuanxueAiPaidFollowupProduct(order.productId)
-    && order.conversationParent?.relation !== "same_conversation"
-  ) {
-    issue(context, "XUANXUE_AI_PRODUCTION_SAME_CONVERSATION_PARENT_REQUIRED", ["conversationParent", "relation"]);
-  }
-};
-
 export const inspectXuanxueContinuationPolicy = (
   order: XuanxueAiStoredOrder,
   context: z.RefinementCtx,
 ): void => {
-  const selectorSwap = order.localizationRole === "selector_swap";
-  const continuationRequired = order.productId === "manual_accuracy_challenge"
-    || isXuanxueAiRequiredContinuationProduct(order.productId)
-    || selectorSwap;
-  if (continuationRequired !== Boolean(order.conversationParent)) {
-    issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID", ["conversationParent"]);
+  try {
+    const node = xuanxueLocalOrderNode(
+      order.productId,
+      order.materials.map((material) => material.stageId),
+    );
+    const first = node.order_contract.stages
+      .slice()
+      .sort((left, right) => left.ordinal - right.ordinal)[0]!;
+    const relation = first.conversation_mode === "fork"
+      ? "forked_from_checkpoint"
+      : first.conversation_mode === "continue_exact"
+        ? "same_conversation"
+        : null;
+    if (Boolean(relation) !== Boolean(order.conversationParent)
+      || (relation && order.conversationParent?.relation !== relation)) {
+      issue(context, "XUANXUE_AI_PRODUCTION_CONTINUATION_PROFILE_INVALID", ["conversationParent"]);
+    }
+    assertXuanxueProductContractHash(order.productId, order.productContractHash);
+  } catch (error) {
+    issue(
+      context,
+      error instanceof Error ? error.message : "XUANXUE_PRODUCT_EXECUTION_LOCAL_ORDER_INVALID",
+      ["materials"],
+    );
   }
-  inspectContinuationStage(order, context, selectorSwap);
-  inspectContinuationRelation(order, context);
 };
 
 const exactTerminalProfile = (
@@ -109,7 +71,6 @@ const inspectNonLocalizationPolicy = (
 ): void => {
   if (
     order.contractManifestHash !== null
-    || order.productContractHash !== null
     || order.localizationRole !== null
   ) {
     issue(context, "XUANXUE_AI_PRODUCTION_LOCALIZATION_IDENTITY_FORBIDDEN", ["localizationRole"]);

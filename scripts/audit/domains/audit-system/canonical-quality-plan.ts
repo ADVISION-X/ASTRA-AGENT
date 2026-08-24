@@ -121,9 +121,9 @@ export const CANONICAL_ACCEPTANCE_BINDINGS: readonly AcceptanceBinding[] = Objec
     script: "acceptance:xuanxue-ai-production",
     ownerId: "xuanxue-ai-production",
     claims: [
-      claim("LAW-XUANXUE-AI-PRODUCTION-001-V6", "exam.golden"),
-      claim("LAW-XUANXUE-AI-PRODUCTION-001-V6", "exam.property"),
-      claim("LAW-XUANXUE-AI-PRODUCTION-001-V6", "exam.state-machine"),
+      claim("LAW-XUANXUE-AI-PRODUCTION-001-V7", "exam.golden"),
+      claim("LAW-XUANXUE-AI-PRODUCTION-001-V7", "exam.property"),
+      claim("LAW-XUANXUE-AI-PRODUCTION-001-V7", "exam.state-machine"),
     ],
   },
   {

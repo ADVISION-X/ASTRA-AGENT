@@ -9,10 +9,10 @@ import type {
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
   isXuanxueLocalizationProduct,
   type XuanxueLocalizationRole,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
+import { xuanxueAiProductionProductContractHashV6 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
 import {
   fixtureHash,
   fixtureModelIdentityProof,
@@ -213,13 +213,12 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
   maxActive = 0;
   readonly activeByContinuation = new Map<string, number>();
   readonly maxActiveByContinuation = new Map<string, number>();
-  holdQimen = false;
+  heldTaskKind: string | null = null;
+  heldRoundId: string | null = null;
   bareOutputHashes = false;
   readonly faults = new FixtureGatewayFaults();
-  private releaseHeldQimen: (() => void) | null = null;
-  private readonly heldQimen = new Promise<void>((resolve) => {
-    this.releaseHeldQimen = resolve;
-  });
+  private releaseHeldRequest: (() => void) | null = null;
+  private heldRequest = Promise.resolve();
 
   constructor(
     private readonly generatedImageArtifact?: AiFeedResult["outputArtifacts"][number],
@@ -281,9 +280,9 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     const lane = this.start(request, options?.executionId ?? "");
     try {
       if (
-        this.holdQimen
-        && request.taskIdentity.taskKind === "qimen_professional_answer"
-      ) await this.heldQimen;
+        this.heldTaskKind === request.taskIdentity.taskKind
+        && (this.heldRoundId === null || this.heldRoundId === request.roundId)
+      ) await this.heldRequest;
       else await new Promise<void>((resolve) => setTimeout(resolve, 5));
       const result = providerResult(
         request,
@@ -310,9 +309,20 @@ export class FixtureGateway implements AiInputGatewayAbilityGroup {
     }
   }
 
-  releaseQimen(): void {
-    this.releaseHeldQimen?.();
-    this.releaseHeldQimen = null;
+  holdRequest(taskKind: string, roundId: string | null = null): void {
+    if (this.releaseHeldRequest) throw new Error("FIXTURE_GATEWAY_REQUEST_ALREADY_HELD");
+    this.heldTaskKind = taskKind;
+    this.heldRoundId = roundId;
+    this.heldRequest = new Promise<void>((resolve) => {
+      this.releaseHeldRequest = resolve;
+    });
+  }
+
+  releaseRequest(): void {
+    this.releaseHeldRequest?.();
+    this.releaseHeldRequest = null;
+    this.heldTaskKind = null;
+    this.heldRoundId = null;
   }
 }
 
@@ -390,7 +400,6 @@ export const order = (
   localizationRole?: XuanxueLocalizationRole,
 ): XuanxueAiProductionOrder => {
   const localization = isXuanxueLocalizationProduct(productId);
-  const contract = localization ? XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS[productId] : null;
   if (localization && !localizationRole) throw new Error("fixture localization role is required");
   return {
   protocolVersion: "xuanxue-ai-production-v6",
@@ -406,8 +415,8 @@ export const order = (
   inputBundleRef: `bundle:${orderId}`,
   inputBundleHash: hash(`bundle:${orderId}`),
   requestHash: hash(`request:${orderId}`),
-  contractManifestHash: contract ? XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH : null,
-  productContractHash: contract?.product_contract_hash ?? null,
+  contractManifestHash: localization ? XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH : null,
+  productContractHash: xuanxueAiProductionProductContractHashV6(productId),
   localizationRole: localizationRole ?? null,
   providerExecutionProfile: fixtureOrderProviderExecutionProfile(productId, localizationRole),
   frozenSubject: fixtureFrozenSubject(orderId, productId, localization),

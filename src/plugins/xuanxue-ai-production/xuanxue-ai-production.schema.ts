@@ -17,55 +17,19 @@ import {
   xuanxueTerminalMetaphysicsProviderProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
 import type { AgentRuntimeReceiptV6 } from "./xuanxue-ai-production-browser-proof.js";
+import {
+  XUANXUE_AI_PRODUCTION_PRODUCT_IDS,
+  XUANXUE_AI_PRODUCTION_STAGE_IDS,
+} from "./xuanxue-ai-production-product-contracts.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
 export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
   "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION" as const;
 
-export const XuanxueAiProductIdSchema = z.enum([
-  "bazi_chart_interpretation",
-  "bazi_ai_full_analysis",
-  "bazi_report_followup",
-  "qimen_professional_answer",
-  "qimen_report_followup",
-  "hehun_ai_analysis",
-  "hehun_report_followup",
-  "naming_bazi_analysis_and_naming",
-  "naming_from_existing_bazi_report",
-  "bazi_canonical_base_interpretation",
-  "hehun_canonical_party_a_interpretation",
-  "hehun_canonical_party_b_interpretation",
-  "manual_accuracy_challenge",
-  "payment_screenshot_observation",
-  "public_knowledge_article_pipeline",
-  "localization_report_translation",
-  "localization_article_translation",
-  "localization_static_review_candidate",
-  "localization_static_review_selector",
-  "scheduled_quality_reflection",
-]);
-
-export const XuanxueAiStageIdSchema = z.enum([
-  "base_interpretation",
-  "chart_interpretation",
-  "question_analysis",
-  "analysis",
-  "followup",
-  "party_a_interpretation",
-  "party_b_interpretation",
-  "final_compatibility",
-  "naming_author",
-  "manual_accuracy_challenge",
-  "payment_screenshot_observation",
-  "corpus_research",
-  "article_synthesis",
-  "article_image_generation",
-  "report_translation",
-  "article_translation",
-  "localization_candidate",
-  "localization_selector",
-  "scheduled_quality_reflection",
-]);
+const productIdValues = XUANXUE_AI_PRODUCTION_PRODUCT_IDS as readonly [string, ...string[]];
+const stageIdValues = XUANXUE_AI_PRODUCTION_STAGE_IDS as readonly [string, ...string[]];
+export const XuanxueAiProductIdSchema = z.enum(productIdValues);
+export const XuanxueAiStageIdSchema = z.enum(stageIdValues);
 
 export const XuanxueAiProductionTriggerKindSchema = z.enum([
   "user_request",
@@ -191,7 +155,7 @@ export const XuanxueAiStoredProductionOrderSchema = z.object({
   requestHash: hashSchema,
   cloudExecutionIdentity: XuanxueAiCloudExecutionIdentitySchema.optional(),
   contractManifestHash: hashSchema.nullable(),
-  productContractHash: hashSchema.nullable(),
+  productContractHash: hashSchema,
   localizationRole: XuanxueLocalizationRoleSchema.nullable(),
   providerExecutionProfile: XuanxueStoredProviderExecutionProfileSchema.nullable(),
   frozenSubject: XuanxueAiFrozenSubjectSchema,
@@ -309,7 +273,7 @@ export interface XuanxueAiProductionResult {
   readonly inputBundleHash: string;
   readonly requestHash: string;
   readonly contractManifestHash: `sha256:${string}` | null;
-  readonly productContractHash: `sha256:${string}` | null;
+  readonly productContractHash: `sha256:${string}`;
   readonly localizationRole: z.infer<typeof XuanxueLocalizationRoleSchema> | null;
   readonly status: XuanxueAiOrderStatus;
   readonly finalStageId: XuanxueAiStageId;

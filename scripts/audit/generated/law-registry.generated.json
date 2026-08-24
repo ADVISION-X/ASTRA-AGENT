@@ -264,12 +264,13 @@
     {
       "capabilityDomain": "xuanxue-ai-production",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-001-V6"
+        "LAW-XUANXUE-AI-PRODUCTION-001-V7"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "observedPaths": [],
       "ownedPaths": [
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
+        "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
         "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
         "scripts/audit/domains/xuanxue-ai-production/**",
         "src/mediator/xuanxue-ai-production-route.ts",
@@ -294,7 +295,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "dca641a326e5a174cf4a0375bdf703e0918e187ed40a8676dbee9dcbfb14d523",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "a2aa72596fb4f8c1e532116bce5ce35816a070b7abdff1c59074a8b2fe05101b"
+    "functionalLawSha256": "5bc9c2845d17a3ab5e3ccb60ea886f623a3b4f2e514213c52637047ad8cd6bf3"
   },
   "laws": [
     {
@@ -1794,11 +1795,15 @@
       "contractRefs": [
         {
           "path": "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-          "sha256": "b471fdb20a19b12ff7e59050d661a1af3297573f8a1e7bdb3138c8e8251a97c8"
+          "sha256": "f44b7e71b5504bb08c1fd5240e129487137d765a80be1c24e515b302dd40dc57"
+        },
+        {
+          "path": "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
+          "sha256": "18d50b7781a8addee7f8f4a1c3e82e81c16cdd2d3e2a8941107454b57bbbf526"
         },
         {
           "path": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json",
-          "sha256": "1bf5040db90d2fe31da8ff73788e7287bf7fe4ac92697bd8c9a46caba2b1ffc1"
+          "sha256": "988fec3749c85bfebcfc0c4db0535c698280381efc4196e4e935d49559e520fb"
         }
       ],
       "dependsOnLawIds": [
@@ -1837,19 +1842,20 @@
         "不得发生：automatic replay of UNKNOWN or replacement job prompt for a recoverable original",
         "不得发生：alias default normalization compatibility fallback shadow bridge dual reader or dual writer",
         "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt",
+        "不得发生：AGENT-owned Product Execution canonical source cross-job graph parent join business verdict handwritten product map successor Cloud Job or runtime Stage improvisation，或 absent stale mismatched noncanonical product_contract_hash 被 claim、local order、checkpoint、terminal 或 result 接受",
         "不得发生：Static Contract Integration Fault Real Chrome Real Provider or 72h Soak evidence substituting for another layer or omitting any of the 75 governed scenarios"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1275,
+        "lineEnd": 1276,
         "lineStart": 1221,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "1bdf49db12bda087a70b32e9a2f95206eb17cc7bb2ea14ebeb11cf3443ec56e1"
+        "sectionSha256": "be0a8c925a4f2fc26ab93a712e5254c2f50eb839aed633571e76c9f43f719ca6"
       },
       "status": "active",
-      "summary": "必须只由 xuanxue-ai-production-v6 经 session-bound Cloud Worker→Mediator→Plugin 唯一链交付完整订单，以唯一 session、签名 attestation、十个业务席位、一个 Browser lane、durable outbox 与 first-terminal CAS 保持原业务身份，且执行阻断不得杀死诊断 Shell。",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V5",
+      "summary": "必须让 AGENT 只消费网站唯一产品投影，只负责 Local Order 的 Stage、Provider/Browser、checkpoint、result 与原 Order 恢复；唯一 session、签名 attestation、十业务席位、一个 Browser lane、outbox 和 terminal CAS 必须保持身份；产品合同、跨 Job graph、parent/join 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V6",
       "tier": "P0"
     },
     {
@@ -1871,8 +1877,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1304,
-        "lineStart": 1279,
+        "lineEnd": 1305,
+        "lineStart": 1280,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7fd8b840e4f38b799720c66dedb1826204137aa5296aefb38d2aab57f79b3736"
       },

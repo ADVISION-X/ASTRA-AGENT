@@ -126,11 +126,11 @@ const assertProjectionBindings = (projection: LocalizationProjection): void => {
     assert.equal(projection.roles[role], expectedLocalizationProviderProfile(role).profile_hash);
   }
   assert.deepEqual(
-    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_candidate.roles,
+    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_candidate!.roles,
     ["candidate_a", "candidate_b"],
   );
   assert.deepEqual(
-    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_selector.roles,
+    XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS.localization_static_review_selector!.roles,
     ["selector_first", "selector_swap", "consistency"],
   );
   assert.equal(

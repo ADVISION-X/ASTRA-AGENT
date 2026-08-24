@@ -70,7 +70,7 @@ export const completeXuanxueAiProductionOrder = (
     inputBundleHash: record.order.inputBundleHash,
     requestHash: record.order.requestHash,
     contractManifestHash: record.order.contractManifestHash as `sha256:${string}` | null,
-    productContractHash: record.order.productContractHash as `sha256:${string}` | null,
+    productContractHash: record.order.productContractHash as `sha256:${string}`,
     localizationRole: record.order.localizationRole,
     status: "completed",
     finalStageId: profile.finalStageId,

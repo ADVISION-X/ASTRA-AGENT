@@ -12,13 +12,8 @@ import type {
   XuanxueAiProductionProfile,
   XuanxueAiStageDefinition,
 } from "./xuanxue-ai-production.profile.js";
+import { assertXuanxueAiOrderMatchesProfile } from "./xuanxue-ai-production.profile.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
-import {
-  isXuanxueAiPaidFollowupProduct,
-  isXuanxueAiRequiredContinuationProduct,
-  isXuanxueAiReusableBaseConsumerProduct,
-  isAllowedXuanxueConversationParent,
-} from "./xuanxue-ai-production-conversation-policy.js";
 import {
   assertExactFrozenSubjectMatches,
   assertPersonParentMatches,
@@ -161,22 +156,6 @@ const continuationFor = (
   };
 };
 
-const assertLocalizationParentContract = (
-  child: XuanxueAiOrderRecord,
-  parent: XuanxueAiOrderRecord,
-): void => {
-  if (child.order.localizationRole !== "selector_swap") return;
-  if (
-    child.order.productId !== "localization_static_review_selector"
-    || parent.order.productId !== "localization_static_review_selector"
-    || parent.order.localizationRole !== "selector_first"
-    || child.order.contractManifestHash !== parent.order.contractManifestHash
-    || child.order.productContractHash !== parent.order.productContractHash
-  ) {
-    throw new Error("XUANXUE_AI_PRODUCTION_LOCALIZATION_PARENT_CONTRACT_MISMATCH");
-  }
-};
-
 const requireParentConversationProof = (
   runtime: XuanxueAiProductionRuntime,
   record: XuanxueAiOrderRecord,
@@ -191,18 +170,13 @@ const requireParentConversationProof = (
   if (!parentOrder || parentOrder.status !== "completed") {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_LOCAL_ORDER_MISSING");
   }
-  assertLocalizationParentContract(record, parentOrder);
-  if (isXuanxueAiRequiredContinuationProduct(record.order.productId)
-    && !isAllowedXuanxueConversationParent({
-      childProductId: record.order.productId,
-      parentProductId: parentOrder.order.productId,
-      parentStageId: parentRef.stageId,
-    })) {
+  const parentProfile = assertXuanxueAiOrderMatchesProfile(parentOrder.order);
+  if (parentRef.stageId !== parentProfile.finalStageId) {
     throw new Error("XUANXUE_AI_PRODUCTION_PARENT_PROFILE_MISMATCH");
   }
-  if (isXuanxueAiPaidFollowupProduct(record.order.productId)) {
+  if (parentRef.relation === "same_conversation") {
     assertExactFrozenSubjectMatches(record, parentOrder);
-  } else if (isXuanxueAiReusableBaseConsumerProduct(record.order.productId)) {
+  } else {
     const primaryPersonRef = record.order.frozenSubject.primaryPersonRef;
     if (!primaryPersonRef) throw new Error("XUANXUE_AI_PRODUCTION_PRIMARY_PERSON_NOT_FROZEN");
     assertPersonParentMatches({ child: record, parent: parentOrder, personRef: primaryPersonRef });
