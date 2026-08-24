@@ -97,6 +97,13 @@ const cloudAttestation = await attestXuanxueAiProductionProviderRun({
   dataDir: runRoot,
   candidateHash: dynamicProofBinding.candidate_hash,
   terminalJobIds,
+  predecessor: {
+    deviceId: evidence.runtimeReceipt.device_id,
+    deviceEpoch: evidence.runtimeReceipt.device_epoch,
+    workerSessionId: evidence.runtimeReceipt.worker_session_id,
+    workerSessionEpoch: evidence.runtimeReceipt.worker_session_epoch,
+    runtimeAttestationReceiptHash: evidence.runtimeReceipt.runtime_attestation_receipt_hash,
+  },
   readRuntimeState: async () => ({
     businessInFlight: 0,
     browserActionInFlight: evidence.runtimeReceipt.browser_lane_state === "busy" ? 1 : 0,
@@ -216,6 +223,28 @@ const tokens = outputs.map((output) =>
 assert.ok(tokens.every(Boolean));
 assert.equal(new Set(tokens).size, records.length);
 
+const continuationReceipt = {
+  schemaVersion: "xuanxue-ai-provider-continuation-proof.v1",
+  runId: dynamicProofBinding.run_id,
+  candidateHash: dynamicProofBinding.candidate_hash,
+  contractManifestHash: dynamicProofBinding.contract_manifest_hash,
+  predecessor: {
+    deviceId: evidence.runtimeReceipt.device_id,
+    deviceEpoch: evidence.runtimeReceipt.device_epoch,
+    workerSessionId: evidence.runtimeReceipt.worker_session_id,
+    workerSessionEpoch: evidence.runtimeReceipt.worker_session_epoch,
+    runtimeAttestationReceiptHash: evidence.runtimeReceipt.runtime_attestation_receipt_hash,
+  },
+  successor: {
+    deviceId: cloudAttestation.deviceId,
+    deviceEpoch: cloudAttestation.deviceEpoch,
+    workerSessionId: cloudAttestation.workerSessionId,
+    workerSessionEpoch: cloudAttestation.workerSessionEpoch,
+    runtimeAttestationReceiptHash: cloudAttestation.runtimeAttestationReceiptHash,
+  },
+  terminalReceiptHashes: cloudAttestation.terminalReceiptHashes,
+  capturedAt: cloudAttestation.heartbeatAt,
+};
 process.stdout.write(`${JSON.stringify({
   marker: "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]",
   runRoot,
@@ -223,14 +252,7 @@ process.stdout.write(`${JSON.stringify({
   candidateHash: dynamicProofBinding.candidate_hash,
   contractManifestHash: dynamicProofBinding.contract_manifest_hash,
   recordCount: records.length,
-  cloudDeviceId: cloudAttestation.deviceId,
-  cloudDeviceEpoch: cloudAttestation.deviceEpoch,
-  cloudWorkerSessionId: cloudAttestation.workerSessionId,
-  cloudWorkerSessionEpoch: cloudAttestation.workerSessionEpoch,
-  cloudRuntimeAttestationReceiptHash: cloudAttestation.runtimeAttestationReceiptHash,
-  predecessorWorkerSessionId: evidence.runtimeReceipt.worker_session_id,
-  predecessorWorkerSessionEpoch: evidence.runtimeReceipt.worker_session_epoch,
-  predecessorRuntimeAttestationReceiptHash: evidence.runtimeReceipt.runtime_attestation_receipt_hash,
+  continuationReceipt,
   cloudTerminalJobCount: cloudAttestation.terminalJobIds.length,
   status: "PASS",
 }, null, 2)}\n`);
