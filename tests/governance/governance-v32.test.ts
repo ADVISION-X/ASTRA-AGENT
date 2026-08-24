@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { agentReleaseParticipants, evidencePlan, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
+import { agentReleaseParticipants, assertStableProofFile, evidencePlan, validateQualityReport, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const governanceFixture = (): string => {
@@ -359,6 +359,11 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
   assert.deepEqual(agentReleaseParticipants(undefined), []);
   assert.throws(() => agentReleaseParticipants('[]'), /upstream participant leaf/u);
   assert.throws(() => agentReleaseParticipants('[{"repo":"caller-authored"}]'), /upstream participant leaf/u);
+  const proofDirectory = mkdtempSync(join(tmpdir(), 'stable-proof-'));
+  const proofPath = join(proofDirectory, 'proof.json');writeFileSync(proofPath, '{"a":1}\n');const before = readFileSync(proofPath);const stat = lstatSync(proofPath);const identity = { dev: stat.dev, ino: stat.ino, size: stat.size, mtimeMs: stat.mtimeMs };
+  assert.doesNotThrow(() => assertStableProofFile(proofPath, before, identity));
+  writeFileSync(proofPath, '{"b":2}\n');
+  assert.throws(() => assertStableProofFile(proofPath, before, identity), /real proof artifact changed/u);
   const proofPackage = {
     schemaVersion: 1, ...binding,
     freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
@@ -372,6 +377,9 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
   assert.match(source, /xuanxue-ai-production\.real-chrome\.ts/u);
   assert.match(source, /xuanxue-ai-production\.real-provider\.ts/u);
   assert.match(source, /caller-authored Dynamic Proof wrappers are retired/u);
+  assert.match(source, /real proof executor output does not match the bound artifacts/u);
+  assert.match(source, /dynamicProofEvidenceRefs:artifacts\.map/u);
+  assert.match(source, /real proof artifact changed during verification/u);
   assert.match(source, /AGENT RELEASE is the upstream participant leaf/u);
   assert.doesNotMatch(source, /resolveReleaseParticipants|validateParticipantReleaseReport/u);
   assert.match(source, /RELEASE_PACKAGE/u);
