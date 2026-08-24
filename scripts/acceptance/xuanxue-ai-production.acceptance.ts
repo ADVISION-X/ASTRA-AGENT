@@ -15,6 +15,8 @@ import {
 import { assertXuanxueAiProductionV6DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
 import { assertWorkerSessionOpenV6, CloudExecutionGrantV6Schema, XuanxueAiProductionV6ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.js";
 import {
+  assertXuanxueProductExecutionProjection,
+  XUANXUE_PRODUCT_EXECUTION_PROJECTION,
   XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6,
   XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
@@ -42,6 +44,12 @@ assert.deepEqual(manifest.claim_outcomes, [
 ]);
 assert.equal(new Set(XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6).size, 20);
 assert.ok(XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6.every((value) => /^sha256:[a-f0-9]{64}$/u.test(value)));
+const tamperedProjection = structuredClone(XUANXUE_PRODUCT_EXECUTION_PROJECTION);
+(tamperedProjection.bundle.contracts[0] as { owner_domain: string }).owner_domain = "tampered-owner";
+assert.throws(
+  () => assertXuanxueProductExecutionProjection(tamperedProjection),
+  /XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID/u,
+);
 assert.equal(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT, "21dd0ba371775731ae75b6646e9a91cdd345df8f");
 const generatedValidator = await readFile(path.resolve(
   "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",

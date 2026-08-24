@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -66,9 +67,27 @@ const projectionPath = path.resolve(
   "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
 );
 
-const parseProjection = (): GeneratedProjection => {
-  const value = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProjection;
+const canonical = (value: unknown): unknown => Array.isArray(value)
+  ? value.map(canonical)
+  : value && typeof value === "object"
+    ? Object.fromEntries(Object.keys(value as Record<string, unknown>).sort().map(
+      (key) => [key, canonical((value as Record<string, unknown>)[key])],
+    ))
+    : value;
+
+const sha256 = (value: string): string =>
+  createHash("sha256").update(value).digest("hex");
+
+const canonicalHash = (value: unknown): `sha256:${string}` =>
+  `sha256:${sha256(JSON.stringify(canonical(value)))}`;
+
+export const assertXuanxueProductExecutionProjection = (
+  value: GeneratedProjection,
+): void => {
   const contracts = value.bundle?.contracts;
+  const { bundle_hash: _bundleHash, ...bundleBody } = value.bundle ?? {} as GeneratedProjection["bundle"];
+  const providerArtifactBytes = `${JSON.stringify(value.bundle, null, 2)}\n`;
+  const localizationBytes = `${JSON.stringify(value.localization_semantic_manifest)}\n`;
   if (value.schema_version !== "xuanxue-product-execution-projection.v1"
     || !/^[a-f0-9]{40}$/u.test(value.provider_commit_sha)
     || !/^[a-f0-9]{64}$/u.test(value.provider_artifact_sha256)
@@ -84,9 +103,17 @@ const parseProjection = (): GeneratedProjection => {
     || contracts.some((contract) =>
       !/^sha256:[a-f0-9]{64}$/u.test(contract.product_contract_hash)
       || !Array.isArray(contract.product_graph?.nodes)
-      || contract.product_graph.nodes.length < 1)) {
+      || contract.product_graph.nodes.length < 1)
+    || canonicalHash(bundleBody) !== value.bundle.bundle_hash
+    || sha256(providerArtifactBytes) !== value.provider_artifact_sha256
+    || sha256(localizationBytes) !== value.localization_semantic_manifest_sha256) {
     throw new Error("XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID");
   }
+};
+
+const parseProjection = (): GeneratedProjection => {
+  const value = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProjection;
+  assertXuanxueProductExecutionProjection(value);
   return Object.freeze(value);
 };
 
