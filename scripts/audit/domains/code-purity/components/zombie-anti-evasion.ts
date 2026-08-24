@@ -81,23 +81,15 @@ const isGeneratedPlanOwnerImportContract = (
 };
 
 const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolean => {
-  const planSource = context.project.getSourceFile(resolveFromRepo(
-    "scripts/audit/domains/audit-system/canonical-quality-plan.ts",
-  ));
-  const governanceSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/governance-v32.ts"));
-  const bindingList = planSource?.getVariableDeclaration("CANONICAL_ACCEPTANCE_BINDINGS")?.getInitializer();
-  const bindingExists = bindingList?.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((object) =>
-    object.getProperty("script")?.getFirstDescendantByKind(SyntaxKind.StringLiteral)?.getLiteralValue()
-      === "acceptance:code-purity-zombie-deep") ?? false;
-  const importedBinding = governanceSource?.getImportDeclarations()
-    .find((declaration) => declaration.getModuleSpecifierValue() === "./domains/audit-system/canonical-quality-plan.js")
-    ?.getNamedImports().find((specifier) => specifier.getName() === "CANONICAL_ACCEPTANCE_BINDINGS");
-  const importedName = importedBinding?.getNameNode();
-  const consumedByAcceptanceRunner = importedName && Node.isIdentifier(importedName)
-    ? importedName.findReferencesAsNodes().some((reference) =>
-      reference.getFirstAncestorByKind(SyntaxKind.ForOfStatement) !== undefined)
-    : false;
-  return bindingExists && consumedByAcceptanceRunner;
+  const manifest = JSON.parse(readFileSync(resolveFromRepo(
+    "scripts/audit/domains/code-purity/manifest.json",
+  ), "utf8")) as {lawBindings?:Record<string,{examBindings?:Array<{examRef?:string}>}>};
+  const governanceSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/governance.ts"));
+  const bindingExists = manifest.lawBindings?.["LAW-CODE-PURITY-001-V1"]?.examBindings?.some((binding)=>
+    binding.examRef?.split("|")[1] === "acceptance%3Acode-purity-zombie-deep") ?? false;
+  const examRunnerIsConsumed = governanceSource?.getFunction("runAcceptanceChecks")
+    ?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal)=>literal.getLiteralValue()==="exam:check") ?? false;
+  return bindingExists && examRunnerIsConsumed;
 };
 
 const pushVoidKeepaliveFindings = (

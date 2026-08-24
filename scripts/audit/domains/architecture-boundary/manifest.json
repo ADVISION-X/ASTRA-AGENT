@@ -1,15 +1,40 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "architecture-boundary",
+  "status": "active",
   "lawIds": [
     "LAW-ARCHITECTURE-BOUNDARY-001-V1"
+  ],
+  "lawBindings": {
+    "LAW-ARCHITECTURE-BOUNDARY-001-V1": {
+      "staticBinding": {
+        "bindingId": "architecture.boundary.001.v1.static",
+        "checkId": "architecture.boundary.001.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/architecture-boundary/inspector.ts#inspectDomain|LAW-ARCHITECTURE-BOUNDARY-001-V1",
+        "targetSelectorId": "architecture.boundary.001.v1.target",
+        "evidenceModes": [
+          "static.filesystem",
+          "static.ast",
+          "static.types",
+          "static.dependency"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "architecture.boundary.001.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aarchitecture-boundary%3Aenforce|architecture.boundary.001.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [],
+      "proofBindings": []
+    }
+  },
+  "ownedPaths": [
+    "scripts/audit/domains/architecture-boundary/**"
   ],
   "observedPaths": [
     "scripts/**",
     "src/**"
-  ],
-  "ownedPaths": [
-    "scripts/audit/domains/architecture-boundary/**"
-  ],
-  "schemaVersion": 3,
-  "status": "active"
+  ]
 }

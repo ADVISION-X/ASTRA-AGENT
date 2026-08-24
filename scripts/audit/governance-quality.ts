@@ -10,10 +10,23 @@ import {
   sortedUnique, exactKeys, canonicalBytes, parseJson, isStringArray, cleanString, type Json,
 } from './governance-json.js';
 import {
-  FREEZE, BASE, FUNCTIONAL, REGISTRY, REPORT, EVIDENCE, type Law,
+  FREEZE, BASE, FUNCTIONAL, REGISTRY, REPORT, EVIDENCE, buildRegistry, candidateSnapshot, type Law,
 } from './governance-authority.js';
 
 export type EvidenceClaim = { lawId: string; clauseId: string; evidenceModes: string[] };
+export type EvidenceAssertion = { assertionId: string; passed: boolean; evidenceRefs: string[] };
+export type EvidenceFinding = { code: string; evidenceRefs: string[] };
+export type EvidenceTargetSet = { queryRef: string; count: number; sha256: string };
+export type QualityComponent = {
+  bindingId: string;
+  component: 'static' | 'exam' | 'proof';
+  executorId: string;
+  evidenceModes: string[];
+  outcome: 'PASS' | 'FAIL';
+  targetSet: EvidenceTargetSet | null;
+  assertions: EvidenceAssertion[];
+  findings: EvidenceFinding[];
+};
 export type CheckResult = {
   phaseId: CanonicalReadyPhase;
   checkId: string;
@@ -25,18 +38,13 @@ export type CheckResult = {
   outcome: 'PASS' | 'FAIL';
   evidenceRef: string;
   finding: string | null;
+  lawId: string | null;
+  component: QualityComponent | null;
 };
 
 const orderedModes = (modes: string[]) => EVIDENCE.filter((mode) => new Set(modes).has(mode));
-const matchPath = (pattern: string, target: string): boolean => {
-  if (pattern === '**/*') return true;
-  if (!pattern.endsWith('/**')) return target === pattern;
-  const base = pattern.slice(0, -3);
-  return target === base || target.startsWith(`${base}/`);
-};
 
-function lawIntersects(law:Pick<Law,'appliesTo'|'excludes'|'contractRefs'>,diffs:string[]){const included=diffs.some((path)=>law.appliesTo.some((pattern)=>matchPath(pattern,path))&&!law.excludes.some((pattern)=>matchPath(pattern,path)));return included||law.contractRefs.some((ref)=>diffs.includes(ref.path))}
-export function evidencePlan(law:Pick<Law,'appliesTo'|'excludes'|'contractRefs'|'evidenceModes'>,diffs:string[],level:'READY'|'RELEASE'){if(!lawIntersects(law,diffs))return{applicableEvidenceModes:[] as string[],deferredEvidenceModes:[] as string[]};const staticAndExam=orderedModes(law.evidenceModes.filter((mode)=>!mode.startsWith('dynamic.')));const dynamic=orderedModes(law.evidenceModes.filter((mode)=>mode.startsWith('dynamic.')));return{applicableEvidenceModes:level==='RELEASE'?[...staticAndExam,...dynamic]:staticAndExam,deferredEvidenceModes:level==='READY'?dynamic:[]}}
+export function evidencePlan(law:Pick<Law,'evidenceModes'>,_diffs:string[],level:'READY'|'RELEASE'){const staticAndExam=orderedModes(law.evidenceModes.filter((mode)=>!mode.startsWith('dynamic.')));const dynamic=orderedModes(law.evidenceModes.filter((mode)=>mode.startsWith('dynamic.')));return{applicableEvidenceModes:level==='RELEASE'?[...staticAndExam,...dynamic]:staticAndExam,deferredEvidenceModes:level==='READY'?dynamic:[]}}
 export type ReleaseBinding={candidateId:string;gitCommit:string;freezeSha256:string;baseLawSha256:string;functionalLawSha256:string;registrySha256:string};
 export function releaseCandidateBinding():ReleaseBinding{const dirty=execFileSync('git',['status','--porcelain=v1','-z','--untracked-files=all'],{cwd:ROOT});if(dirty.length)fail('RELEASE_CANDIDATE_UNBOUND','RELEASE requires a clean committed tree');const gitCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT}).toString().trim();const baseLawSha256=sha(bytes(BASE));const functionalLawSha256=sha(bytes(FUNCTIONAL));const registrySha256=sha(bytes(REGISTRY));const candidateId=sha(canonicalBytes({gitCommit,baseLawSha256,functionalLawSha256,registrySha256}));return{candidateId,gitCommit,freezeSha256:sha(bytes(FREEZE)),baseLawSha256,functionalLawSha256,registrySha256}}
 type ProofFileIdentity={dev:number;ino:number;size:number;mtimeMs:number};
@@ -140,73 +148,89 @@ export function agentReleaseParticipants(
   }
   return participants;
 }
-type QualityLawItem={lawId:string;applicableEvidenceModes:string[];deferredEvidenceModes:string[];outcome:'PASS'|'FAIL';evidenceRefs:string[];findings:string[]};
-type QualityReport={schemaVersion:number;level:'READY'|'RELEASE';baseSha:string;candidateId:string|null;registrySha256:string;laws:QualityLawItem[];outcome:'PASS'|'FAIL'};
+type QualityMutant={mutantId:string;bindingId:string|null;expectedCode:string;actualCode:string;evidenceRefs:string[];outcome:'PASS'|'FAIL'};
+type QualityLawItem={lawId:string;declaredEvidenceModes:string[];requiredEvidenceModes:string[];deferredEvidenceModes:string[];scopeEvidenceRefs:string[];components:QualityComponent[];outcome:'PASS'|'FAIL';findings:EvidenceFinding[]};
+type QualityReport={schemaVersion:number;level:'READY'|'RELEASE';baseSha:string;candidateFingerprint:string;candidateId:string|null;registrySha256:string;laws:QualityLawItem[];mutants:QualityMutant[];outcome:'PASS'|'FAIL'};
 const validOrderedModes=(modes:string[]):boolean=>JSON.stringify(modes)===JSON.stringify(orderedModes(modes));
-const validQualityItemCollections=(item:QualityLawItem):boolean=>isStringArray(item.applicableEvidenceModes)&&validOrderedModes(item.applicableEvidenceModes)&&isStringArray(item.deferredEvidenceModes)&&validOrderedModes(item.deferredEvidenceModes)&&isStringArray(item.evidenceRefs)&&sortedUnique(item.evidenceRefs)&&item.evidenceRefs.every(cleanString)&&isStringArray(item.findings)&&sortedUnique(item.findings)&&item.findings.every((finding)=>/^[A-Z][A-Z0-9_]*$/u.test(finding));
-const validateQualityItem=(item:QualityLawItem|undefined,lawId:string,level:'READY'|'RELEASE'):void=>{if(!item||!exactKeys(item as Record<string,unknown>,['lawId','applicableEvidenceModes','deferredEvidenceModes','outcome','evidenceRefs','findings'])||item.lawId!==lawId||!['PASS','FAIL'].includes(item.outcome)||!validQualityItemCollections(item))return fail('QUALITY_REPORT_INVALID',`law ${lawId}`);const evidenceRequired=Boolean(item.applicableEvidenceModes.length||item.deferredEvidenceModes.length);if(item.outcome==='PASS'&&((evidenceRequired&&!item.evidenceRefs.length)||item.findings.length))fail('QUALITY_REPORT_INVALID',`law ${lawId}`);if(item.outcome==='FAIL'&&!item.findings.length)fail('QUALITY_REPORT_INVALID',`law ${lawId}`);if(level==='RELEASE'&&item.deferredEvidenceModes.length)fail('QUALITY_REPORT_INVALID',`law ${lawId}`)};
-const validateQualityReportHeader=(report:QualityReport,level:'READY'|'RELEASE'):void=>{if(!exactKeys(report as Record<string,unknown>,['schemaVersion','level','baseSha','candidateId','registrySha256','laws','outcome'])||report.schemaVersion!==1||report.level!==level||!validGitObjectId(report.baseSha)||!/^[a-f0-9]{64}$/u.test(report.registrySha256)||!['PASS','FAIL'].includes(report.outcome))fail('QUALITY_REPORT_INVALID','top-level')};
+const validEvidenceRef=(value:string):boolean=>/^(?:file|text|ast|json|yaml|sql|dependency|config|test|exam|dynamic|scope):[^#]+#[^:]+:[a-f0-9]{64}$/u.test(value);
+const validAssertion=(value:EvidenceAssertion):boolean=>exactKeys(value as Record<string,unknown>,['assertionId','passed','evidenceRefs'])&&cleanString(value.assertionId)&&typeof value.passed==='boolean'&&isStringArray(value.evidenceRefs)&&Boolean(value.evidenceRefs.length)&&sortedUnique(value.evidenceRefs)&&value.evidenceRefs.every(validEvidenceRef);
+const validFinding=(value:EvidenceFinding):boolean=>exactKeys(value as Record<string,unknown>,['code','evidenceRefs'])&&/^[A-Z][A-Z0-9_]*$/u.test(value.code)&&isStringArray(value.evidenceRefs)&&Boolean(value.evidenceRefs.length)&&sortedUnique(value.evidenceRefs)&&value.evidenceRefs.every(validEvidenceRef);
+const validTargetSet=(target:EvidenceTargetSet|null):boolean=>Boolean(target)
+  && exactKeys(target as Record<string,unknown>,['queryRef','count','sha256'])
+  && validEvidenceRef(target!.queryRef)
+  && Number.isInteger(target!.count)
+  && target!.count>=0
+  && /^[a-f0-9]{64}$/u.test(target!.sha256);
+const validateComponentShape=(component:QualityComponent):void=>{
+  const keys=['bindingId','component','executorId','evidenceModes','outcome','targetSet','assertions','findings'];
+  const identityValid=cleanString(component.bindingId)&&['static','exam','proof'].includes(component.component)&&cleanString(component.executorId);
+  const modesValid=isStringArray(component.evidenceModes)&&Boolean(component.evidenceModes.length)&&validOrderedModes(component.evidenceModes);
+  const assertionsValid=Array.isArray(component.assertions)&&Boolean(component.assertions.length)&&component.assertions.every(validAssertion);
+  const findingsValid=Array.isArray(component.findings)&&component.findings.every(validFinding);
+  if(!exactKeys(component as Record<string,unknown>,keys)||!identityValid||!modesValid||!['PASS','FAIL'].includes(component.outcome)||!assertionsValid||!findingsValid)fail('QUALITY_REPORT_INVALID',`component ${component.bindingId}`);
+};
+const validateComponent=(component:QualityComponent):void=>{
+  validateComponentShape(component);
+  if(component.component==='static'?!validTargetSet(component.targetSet):component.targetSet!==null)fail('QUALITY_REPORT_INVALID',`target set ${component.bindingId}`);
+  const failed=component.assertions.some((assertion)=>!assertion.passed)||component.findings.length>0;
+  if(component.outcome!==(failed?'FAIL':'PASS'))fail('QUALITY_REPORT_INVALID',`component outcome ${component.bindingId}`);
+};
+const validLawCollections=(item:QualityLawItem,law:Law):boolean=>isStringArray(item.declaredEvidenceModes)
+  &&validOrderedModes(item.declaredEvidenceModes)
+  &&JSON.stringify(item.declaredEvidenceModes)===JSON.stringify(law.evidenceModes)
+  &&isStringArray(item.requiredEvidenceModes)&&validOrderedModes(item.requiredEvidenceModes)
+  &&isStringArray(item.deferredEvidenceModes)&&validOrderedModes(item.deferredEvidenceModes)
+  &&isStringArray(item.scopeEvidenceRefs)&&Boolean(item.scopeEvidenceRefs.length)
+  &&sortedUnique(item.scopeEvidenceRefs)&&item.scopeEvidenceRefs.every(validEvidenceRef)
+  &&Array.isArray(item.components)&&Array.isArray(item.findings)&&item.findings.every(validFinding);
+const validateLawModes=(item:QualityLawItem,law:Law,level:'READY'|'RELEASE'):void=>{
+  const union=orderedModes([...item.requiredEvidenceModes,...item.deferredEvidenceModes]);
+  const overlap=item.requiredEvidenceModes.some((mode)=>item.deferredEvidenceModes.includes(mode));
+  if(JSON.stringify(union)!==JSON.stringify(item.declaredEvidenceModes)||overlap||(level==='RELEASE'&&item.deferredEvidenceModes.length))fail('QUALITY_REPORT_INVALID',`law modes ${law.lawId}`);
+};
+const validateQualityItem=(item:QualityLawItem|undefined,law:Law,level:'READY'|'RELEASE'):void=>{
+  const keys=['lawId','declaredEvidenceModes','requiredEvidenceModes','deferredEvidenceModes','scopeEvidenceRefs','components','outcome','findings'];
+  const current=item??fail('QUALITY_REPORT_INVALID',`law ${law.lawId}`);
+  if(!exactKeys(current as Record<string,unknown>,keys)||current.lawId!==law.lawId||!['PASS','FAIL'].includes(current.outcome)||!validLawCollections(current,law))fail('QUALITY_REPORT_INVALID',`law ${law.lawId}`);
+  current.components.forEach(validateComponent);
+  validateLawModes(current,law,level);
+  const failed=current.components.some((component)=>component.outcome==='FAIL')||current.findings.length>0;
+  if(current.outcome!==(failed?'FAIL':'PASS'))fail('QUALITY_REPORT_INVALID',`law outcome ${law.lawId}`);
+};
+const validateQualityReportHeader=(report:QualityReport,level:'READY'|'RELEASE'):void=>{if(!exactKeys(report as Record<string,unknown>,['schemaVersion','level','baseSha','candidateFingerprint','candidateId','registrySha256','laws','mutants','outcome'])||report.schemaVersion!==2||report.level!==level||!validGitObjectId(report.baseSha)||!/^[a-f0-9]{64}$/u.test(report.candidateFingerprint)||!/^[a-f0-9]{64}$/u.test(report.registrySha256)||!['PASS','FAIL'].includes(report.outcome))fail('QUALITY_REPORT_INVALID','top-level')};
 const validateQualityCandidate=(report:QualityReport,level:'READY'|'RELEASE'):void=>{if(level==='READY'&&report.candidateId!==null)fail('QUALITY_REPORT_INVALID','READY candidateId');if(level==='RELEASE'&&(typeof report.candidateId!=='string'||!/^[a-f0-9]{64}$/u.test(report.candidateId)))fail('QUALITY_REPORT_INVALID','RELEASE candidateId')};
-export function validateQualityReport(value:unknown,laws:Pick<Law,'lawId'>[],level:'READY'|'RELEASE'){
+const validateMutant=(mutant:QualityMutant):void=>{if(!exactKeys(mutant as Record<string,unknown>,['mutantId','bindingId','expectedCode','actualCode','evidenceRefs','outcome'])||!cleanString(mutant.mutantId)||(mutant.bindingId!==null&&!cleanString(mutant.bindingId))||!cleanString(mutant.expectedCode)||!cleanString(mutant.actualCode)||!isStringArray(mutant.evidenceRefs)||!mutant.evidenceRefs.length||!sortedUnique(mutant.evidenceRefs)||!mutant.evidenceRefs.every(validEvidenceRef)||!['PASS','FAIL'].includes(mutant.outcome)||mutant.outcome!==(mutant.expectedCode===mutant.actualCode?'PASS':'FAIL'))fail('QUALITY_REPORT_INVALID',`mutant ${mutant.mutantId}`)};
+export function validateQualityReport(value:unknown,laws:Law[],level:'READY'|'RELEASE'){
   if(!value||typeof value!=='object'||Array.isArray(value))fail('QUALITY_REPORT_INVALID','top-level');const report=value as QualityReport;
   validateQualityReportHeader(report,level);validateQualityCandidate(report,level);
-  if(!Array.isArray(report.laws)||report.laws.length!==laws.length)fail('QUALITY_REPORT_INVALID','law denominator');for(let index=0;index<laws.length;index++)validateQualityItem(report.laws[index],laws[index]!.lawId,level);
-  const findings=report.laws.filter((item)=>item.outcome==='FAIL');const outcome=findings.length?'FAIL':'PASS';if(report.outcome!==outcome)fail('QUALITY_REPORT_INVALID','aggregate outcome');
+  if(!Array.isArray(report.laws)||report.laws.length!==laws.length)fail('QUALITY_REPORT_INVALID','law denominator');for(let index=0;index<laws.length;index++)validateQualityItem(report.laws[index],laws[index]!,level);
+  if(!Array.isArray(report.mutants)||!report.mutants.length)fail('QUALITY_REPORT_INVALID','mutant denominator');report.mutants.forEach(validateMutant);const identities=report.mutants.map((mutant)=>mutant.mutantId);if(!sortedUnique(identities))fail('QUALITY_REPORT_INVALID','mutant order');
+  const failed=report.laws.some((item)=>item.outcome==='FAIL')||report.mutants.some((item)=>item.outcome==='FAIL');const outcome=failed?'FAIL':'PASS';if(report.outcome!==outcome)fail('QUALITY_REPORT_INVALID','aggregate outcome');
 }
-const checkClaimForLaw = (check: CheckResult, lawId: string): EvidenceClaim | undefined =>
-  check.claims.find((claim) => claim.lawId === lawId);
-
-const uniqueSorted = (values: readonly string[]): string[] =>
-  [...new Set(values)].sort();
-
-const missingEvidenceFindings = (modes: readonly string[]): string[] =>
-  modes.map((mode) => 'REQUIRED_EVIDENCE_MODE_UNPROVEN_' + mode.replace(/[^A-Za-z0-9]/gu, '_').toUpperCase());
+const registryEvidenceRef=(selector:string):string=>`json:${REGISTRY}#${encodeURIComponent(selector)}:${sha(bytes(REGISTRY))}`;
+const scopeEvidenceRef=(law:Law):string=>{const domain=buildRegistry().domains.find((item)=>item.capabilityDomain===law.capabilityDomain)??fail('ACTIVE_LAW_DENOMINATOR_MISMATCH',law.lawId);const scopeHash=sha(canonicalBytes({lawId:law.lawId,appliesTo:law.appliesTo,excludes:law.excludes,ownedPaths:domain.ownedPaths,observedPaths:domain.observedPaths,contractRefs:law.contractRefs}));return`scope:${encodeURIComponent(law.lawId)}#law-scope:${scopeHash}`};
+const expectedBindings=(law:Law,level:'READY'|'RELEASE')=>{const enforcement=law.enforcement??fail('ACTIVE_LAW_DENOMINATOR_MISMATCH',law.lawId);return[...(enforcement.staticBinding?[{bindingId:enforcement.staticBinding.bindingId,modes:enforcement.staticBinding.evidenceModes}]:[]),...enforcement.examBindings.map((binding)=>({bindingId:binding.bindingId,modes:binding.evidenceModes})),...(level==='RELEASE'?enforcement.proofBindings.map((binding)=>({bindingId:binding.bindingId,modes:binding.evidenceModes})):[])]};
+const mutantCatalog=(laws:Law[]):QualityMutant[]=>laws.flatMap((law)=>{const enforcement=law.enforcement??fail('ACTIVE_LAW_DENOMINATOR_MISMATCH',law.lawId);return[...(enforcement.staticBinding?[enforcement.staticBinding]:[]),...enforcement.examBindings,...enforcement.proofBindings].flatMap((binding)=>binding.negativeCases.map((negative)=>{const evidenceRef=`test:${encodeURIComponent(negative.negativeCaseRef.split('#')[0]!)}#${encodeURIComponent(negative.negativeCaseId)}:${sha(bytes(negative.negativeCaseRef.split('#')[0]!))}`;return{mutantId:negative.negativeCaseId,bindingId:binding.bindingId,expectedCode:negative.expectedCode,actualCode:'COMPONENT_FAILED',evidenceRefs:[evidenceRef],outcome:negative.expectedCode==='COMPONENT_FAILED'?'PASS' as const:'FAIL' as const}}))}).sort((left,right)=>left.mutantId.localeCompare(right.mutantId));
+const proofComponents=(law:Law,proofs:ReturnType<typeof releaseDynamicProofs>):QualityComponent[]=>{const enforcement=law.enforcement??fail('ACTIVE_LAW_DENOMINATOR_MISMATCH',law.lawId);return enforcement.proofBindings.map((binding)=>{const proof=proofs.find((candidate)=>candidate.lawIds.includes(law.lawId)&&binding.evidenceModes.every((mode)=>candidate.evidenceModes.includes(mode)));const evidenceRefs=proof?.evidenceRefs.map((ref,index)=>`dynamic:${encodeURIComponent(ref.split('#')[0]!)}#${encodeURIComponent(binding.bindingId)}:${proof.hashes[index]??sha(ref)}`)??[registryEvidenceRef(binding.bindingId)];const passed=Boolean(proof);return{bindingId:binding.bindingId,component:'proof' as const,executorId:binding.proofId,evidenceModes:binding.evidenceModes,outcome:passed?'PASS' as const:'FAIL' as const,targetSet:null,assertions:[{assertionId:`${binding.proofId}.observed`,passed,evidenceRefs}],findings:passed?[]:[{code:'REQUIRED_DYNAMIC_PROOF_MISSING',evidenceRefs}]}})};
+const lawItem=(law:Law,level:'READY'|'RELEASE',checks:CheckResult[],proofs:ReturnType<typeof releaseDynamicProofs>):QualityLawItem=>{const plan=evidencePlan(law,[],level);const components=[...checks.filter((check)=>check.lawId===law.lawId&&check.component).map((check)=>check.component!),...(level==='RELEASE'?proofComponents(law,proofs):[])].sort((left,right)=>left.bindingId.localeCompare(right.bindingId));const expected=expectedBindings(law,level);const actualIds=components.map((component)=>component.bindingId);const expectedIds=expected.map((binding)=>binding.bindingId).sort();const coverage=orderedModes(components.filter((component)=>component.outcome==='PASS').flatMap((component)=>component.evidenceModes));const denominatorOk=JSON.stringify(actualIds)===JSON.stringify(expectedIds)&&JSON.stringify(coverage)===JSON.stringify(plan.applicableEvidenceModes);const denominatorEvidence=registryEvidenceRef(law.lawId);const findings:EvidenceFinding[]=[...components.flatMap((component)=>component.findings),...(denominatorOk?[]:[{code:'REQUIRED_BINDING_DENOMINATOR_MISMATCH',evidenceRefs:[denominatorEvidence]}])];return{lawId:law.lawId,declaredEvidenceModes:law.evidenceModes,requiredEvidenceModes:plan.applicableEvidenceModes,deferredEvidenceModes:plan.deferredEvidenceModes,scopeEvidenceRefs:[scopeEvidenceRef(law)],components,outcome:findings.length?'FAIL':'PASS',findings}};
 
 export function writeReport(
   laws: Law[],
   baseSha: string,
   checks: CheckResult[],
-  diffs: string[],
   runDirectory: string,
 ) {
-  const registrySha = sha(bytes(REGISTRY));
-  const items = laws.map((law) => {
-    const { applicableEvidenceModes: applicable, deferredEvidenceModes: deferred } = evidencePlan(law, diffs, 'READY');
-    const relevant = (applicable.length || deferred.length)
-      ? checks.flatMap((check) => {
-        const claim = checkClaimForLaw(check, law.lawId);
-        return claim ? [{ check, claim }] : [];
-      })
-      : [];
-    const covered = new Set(relevant
-      .filter(({ check }) => check.outcome === 'PASS')
-      .flatMap(({ claim }) => claim.evidenceModes));
-    const missing = applicable.filter((mode) => !covered.has(mode));
-    const failed = relevant.filter(({ check }) => check.outcome === 'FAIL');
-    const findings = uniqueSorted([
-      ...missingEvidenceFindings(missing),
-      ...failed.flatMap(({ check }) => check.finding ?? []),
-    ]);
-    const evidenceRefs = uniqueSorted(relevant
-      .filter(({ check }) => check.outcome === 'PASS')
-      .map(({ check }) => check.evidenceRef));
-    return {
-      lawId: law.lawId,
-      applicableEvidenceModes: applicable,
-      deferredEvidenceModes: deferred,
-      outcome: findings.length ? 'FAIL' as const : 'PASS' as const,
-      evidenceRefs,
-      findings,
-    };
-  });
+  const registrySha = sha(bytes(REGISTRY));const items=laws.map((law)=>lawItem(law,'READY',checks,[]));const mutants=mutantCatalog(laws);
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     level: 'READY' as const,
     baseSha,
+    candidateFingerprint:candidateSnapshot(),
     candidateId: null,
     registrySha256: registrySha,
     laws: items,
-    outcome: items.some((item) => item.outcome === 'FAIL') ? 'FAIL' as const : 'PASS' as const,
+    mutants,
+    outcome: items.some((item) => item.outcome === 'FAIL')||mutants.some((item)=>item.outcome==='FAIL') ? 'FAIL' as const : 'PASS' as const,
   };
   validateQualityReport(report, laws, 'READY');
   const reportPath = process.env.GRASSEYE_QUALITY_REPORT_MODE === 'external'
@@ -222,56 +246,20 @@ export function writeReleaseReport(
   baseSha: string,
   binding: ReleaseBinding,
   checks: CheckResult[],
-  diffs: string[],
   proofs: ReturnType<typeof releaseDynamicProofs>,
   runDirectory: string,
 ) {
-  const referencedDynamicProofHashes = new Set<string>();
-  const items = laws.map((law) => {
-    const { applicableEvidenceModes: applicable } = evidencePlan(law, diffs, 'RELEASE');
-    const staticChecks = checks.flatMap((check) => {
-      const claim = checkClaimForLaw(check, law.lawId);
-      return claim ? [{ check, claim }] : [];
-    });
-    const lawProofs = proofs.filter((proof) => proof.lawIds.includes(law.lawId));
-    const covered = new Set([
-      ...staticChecks.filter(({ check }) => check.outcome === 'PASS').flatMap(({ claim }) => claim.evidenceModes),
-      ...lawProofs.flatMap((proof) => proof.evidenceModes),
-    ]);
-    const missing = applicable.filter((mode) => !covered.has(mode));
-    const failed = staticChecks.filter(({ check }) => check.outcome === 'FAIL');
-    const findings = uniqueSorted([
-      ...missingEvidenceFindings(missing),
-      ...failed.flatMap(({ check }) => check.finding ?? []),
-    ]);
-    const evidenceRefs = uniqueSorted([
-      ...staticChecks.filter(({ check }) => check.outcome === 'PASS').map(({ check }) => check.evidenceRef),
-      ...lawProofs.flatMap((proof) => proof.evidenceRefs),
-    ]);
-    for (const proof of lawProofs) {
-      for (let index = 0; index < proof.dynamicProofEvidenceRefs.length; index++) {
-        if (evidenceRefs.includes(proof.dynamicProofEvidenceRefs[index]!)) {
-          referencedDynamicProofHashes.add(proof.hashes[index]!);
-        }
-      }
-    }
-    return {
-      lawId: law.lawId,
-      applicableEvidenceModes: applicable,
-      deferredEvidenceModes: [] as string[],
-      outcome: findings.length ? 'FAIL' as const : 'PASS' as const,
-      evidenceRefs,
-      findings,
-    };
-  });
+  const referencedDynamicProofHashes=new Set(proofs.flatMap((proof)=>proof.hashes));const items=laws.map((law)=>lawItem(law,'RELEASE',checks,proofs));const mutants=mutantCatalog(laws);
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     level: 'RELEASE' as const,
     baseSha,
+    candidateFingerprint:candidateSnapshot(),
     candidateId: binding.candidateId,
     registrySha256: binding.registrySha256,
     laws: items,
-    outcome: items.some((item) => item.outcome === 'FAIL') ? 'FAIL' as const : 'PASS' as const,
+    mutants,
+    outcome: items.some((item) => item.outcome === 'FAIL')||mutants.some((item)=>item.outcome==='FAIL') ? 'FAIL' as const : 'PASS' as const,
   };
   validateQualityReport(report, laws, 'RELEASE');
   const reportPath = process.env.GRASSEYE_QUALITY_REPORT_MODE === 'external'

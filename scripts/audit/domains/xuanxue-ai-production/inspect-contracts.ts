@@ -112,31 +112,44 @@ const inspectWholeOrderContract = (
   ],
 });
 
-const inspectFixedProfiles = (
+const inspectGeneratedProfiles = (
   findings: InspectorFinding[],
   lawId: string,
   values: ReadonlySet<string>,
-): void => requireValues(findings, {
-  lawId,
-  checkId: "xuanxue-ai-production/fixed-profiles",
-  filePath: profilePath,
-  messagePrefix: "Fixed product profiles must contain",
-  values,
-  required: [
-    "resolveXuanxueAiProductionProfile", "assertXuanxueAiOrderMatchesProfile", "dependsOn",
-    "continuationFrom", "generatedInputsFrom", "party_a_interpretation", "party_b_interpretation",
-    "final_compatibility", "conversationParent", "joinParents",
-    "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED", "XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH",
-    "XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED",
-    "xuanxueAiPaidFollowupProfiles", "xuanxueAiReusableBaseConsumerProfiles",
-    "xuanxueAiRequiredContinuationProfiles", "isXuanxueAiPaidFollowupProduct",
-    "isXuanxueAiRequiredContinuationProduct", "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
-    "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID", "localization_report_translation",
-    "localization_article_translation", "localization_static_review_candidate",
-    "localization_static_review_selector", "candidate_a", "candidate_b", "selector_first",
-    "selector_swap", "consistency",
-  ],
-});
+): void => {
+  requireValues(findings, {
+    lawId,
+    checkId: "xuanxue-ai-production/generated-profiles",
+    filePath: profilePath,
+    messagePrefix: "Generated product profile consumer must contain",
+    values,
+    required: [
+      "XUANXUE_PRODUCT_EXECUTION_PROJECTION", "xuanxueProductExecutionContract",
+      "xuanxueLocalOrderNode", "resolveXuanxueAiProductionProfile",
+      "assertXuanxueAiOrderMatchesProfile", "dependsOn", "continuationFrom",
+      "generatedInputsFrom", "conversationParent", "joinParents",
+      "XUANXUE_PRODUCT_EXECUTION_LOCAL_ORDER_NODE_INVALID",
+      "XUANXUE_AI_PRODUCTION_GENERATED_STAGE_CHAIN_INVALID",
+      "XUANXUE_AI_PRODUCTION_CONVERSATION_BINDING_INVALID",
+      "XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH",
+      "XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED",
+    ],
+  });
+  forbidValues(findings, {
+    lawId,
+    checkId: "xuanxue-ai-production/no-fixed-profile-shadow",
+    filePath: profilePath,
+    messagePrefix: "Generated product profile consumer must not retain",
+    values,
+    forbidden: [
+      "xuanxueAiPaidFollowupProfiles", "xuanxueAiReusableBaseConsumerProfiles",
+      "xuanxueAiRequiredContinuationProfiles", "isXuanxueAiPaidFollowupProduct",
+      "isXuanxueAiRequiredContinuationProduct", "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED",
+      "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
+      "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID",
+    ],
+  });
+};
 
 const inspectProviderControls = (
   findings: InspectorFinding[],
@@ -175,7 +188,7 @@ export const inspectXuanxueContracts = (
   terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
   inspectWholeOrderContract(findings, boundaryLawId, values);
-  inspectFixedProfiles(findings, boundaryLawId, values);
+  inspectGeneratedProfiles(findings, boundaryLawId, values);
   inspectProviderControls(findings, boundaryLawId, values);
   inspectTerminalMetaphysicsProfile(
     findings,

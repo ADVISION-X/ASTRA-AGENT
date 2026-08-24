@@ -1,7 +1,7 @@
 import { pathToFileURL } from "node:url";
 
 import { runRestoredDomain } from "../../shared/restored-domain-runner.js";
-import { inspectDomain } from "../xuanxue-ai-production/localization-contract-inspector.js";
+import { inspectDomain } from "./inspector.js";
 
 export async function runXuanxueAiProductionLocalizationContractCheck(root = process.cwd()): Promise<void> {
   const findings = await runRestoredDomain("xuanxue-ai-production-localization-contract", inspectDomain, root);

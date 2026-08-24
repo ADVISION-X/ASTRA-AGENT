@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { Node, Project, type ArrayLiteralExpression, type ObjectLiteralExpression } from "ts-morph";
+import { Project } from "ts-morph";
 
 import { inspectAcceptanceDeliveryIsolation } from "./acceptance-delivery-isolation-inspector.js";
 import { inspectBinaryVerdict } from "./binary-verdict-inspector.js";
@@ -20,6 +20,8 @@ import { inspectPrimaryEvidence } from "./primary-evidence-inspector.js";
 import { inspectStaleCodePurityReport } from "./stale-code-purity-text-report.js";
 import { inspectTaskPersistenceIsolation } from "./task-persistence-isolation-inspector.js";
 import { validateAcceptanceBindings } from "./canonical-quality-plan.js";
+import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 
 export type AuditSystemFinding = {
   code: string;
@@ -44,7 +46,7 @@ const REQUIRED_SCRIPTS = Object.freeze({
   "audit:system:enforce": "node --import tsx scripts/audit/domains/audit-system/check.ts",
   "audit:truth:enforce": "node --import tsx scripts/audit/domains/audit-truth/check.ts",
   "ci:full": "GRASSEYE_QUALITY_REPORT_MODE=external npm run quality:check -- READY",
-  "quality:check": "node --import tsx scripts/audit/governance-v32.ts quality",
+  "quality:check": "node --import tsx scripts/audit/governance.ts quality",
 });
 
 const finding = (code: string, path: string, detail: string): AuditSystemFinding => ({ code, detail, path });
@@ -58,61 +60,6 @@ export function validatePackageScripts(scripts: Record<string, string>): AuditSy
   const qualityNames = Object.keys(scripts).filter((name) => name.includes("quality") || name.includes("verdict"));
   const unexpected = qualityNames.filter((name) => name !== "quality:check");
   if (unexpected.length > 0) findings.push(finding("AUDIT_SECOND_QUALITY_SURFACE", "package.json", unexpected.sort().join(",")));
-  return findings;
-}
-
-const unwrapObject = (initializer: Node | undefined): ObjectLiteralExpression | undefined => {
-  if (!initializer) return undefined;
-  if (Node.isObjectLiteralExpression(initializer)) return initializer;
-  if (!Node.isCallExpression(initializer)) return undefined;
-  const first = initializer.getArguments()[0];
-  return first && Node.isObjectLiteralExpression(first) ? first : undefined;
-};
-
-const stringValues = (array: ArrayLiteralExpression): string[] => array.getElements().flatMap((element) => Node.isStringLiteral(element) ? [element.getLiteralValue()] : []);
-
-export function readDomainRoutes(sourcePath: string): Record<string, string[]> {
-  const project = new Project({ skipAddingFilesFromTsConfig: true });
-  const source = project.addSourceFileAtPath(sourcePath);
-  const declaration = source.getVariableDeclarationOrThrow("DOMAIN_READY_SCRIPTS");
-  const object = unwrapObject(declaration.getInitializer());
-  if (!object) return {};
-  const routes: Record<string, string[]> = {};
-  for (const property of object.getProperties()) {
-    if (!Node.isPropertyAssignment(property)) continue;
-    const initializer = property.getInitializer();
-    if (!initializer || !Node.isArrayLiteralExpression(initializer)) continue;
-    const name = property.getNameNode();
-    if (Node.isStringLiteral(name)) routes[name.getLiteralValue()] = stringValues(initializer);
-    else if (Node.isIdentifier(name)) routes[name.getText()] = stringValues(initializer);
-  }
-  return routes;
-}
-
-export function validateDomainRoutes(
-  routes: Record<string, string[]>,
-  scripts: Readonly<Record<string, string>>,
-  laws: readonly RegistryLaw[],
-): AuditSystemFinding[] {
-  const findings: AuditSystemFinding[] = [];
-  const expectedDomains = [...new Set(laws.flatMap((law) => typeof law.capabilityDomain === "string" ? [law.capabilityDomain] : []))].sort();
-  const actualDomains = Object.keys(routes).sort();
-  if (JSON.stringify(actualDomains) !== JSON.stringify(expectedDomains)) {
-    findings.push(finding("AUDIT_OWNER_ROUTE_DENOMINATOR_INVALID", "scripts/audit/governance-v32.ts", JSON.stringify(actualDomains)));
-  }
-  const routeOwners = new Map<string, string>();
-  for (const domain of expectedDomains) {
-    const domainRoutes = routes[domain] ?? [];
-    if (domainRoutes.length === 0 || new Set(domainRoutes).size !== domainRoutes.length) {
-      findings.push(finding("AUDIT_OWNER_ROUTE_MISSING", "scripts/audit/governance-v32.ts", `${domain}:${JSON.stringify(domainRoutes)}`));
-    }
-    for (const script of domainRoutes) {
-      if (!scripts[script]) findings.push(finding("AUDIT_OWNER_ROUTE_SCRIPT_MISSING", "package.json", `${domain}:${script}`));
-      const prior = routeOwners.get(script);
-      if (prior && prior !== domain) findings.push(finding("AUDIT_OWNER_ROUTE_SHARED", "scripts/audit/governance-v32.ts", `${prior},${domain}:${script}`));
-      routeOwners.set(script, domain);
-    }
-  }
   return findings;
 }
 
@@ -135,7 +82,7 @@ const manifestFindings = (root: string, registry: Registry): AuditSystemFinding[
     }
     const manifest = readJson<Manifest>(absolute);
     const actual = stringArray(manifest.lawIds);
-    if (manifest.schemaVersion !== 3 || manifest.status !== "active" || manifest.capabilityDomain !== domain || JSON.stringify(actual) !== JSON.stringify(lawIds.sort())) {
+    if (manifest.schemaVersion !== 4 || manifest.status !== "active" || manifest.capabilityDomain !== domain || JSON.stringify(actual) !== JSON.stringify(lawIds.sort())) {
       findings.push(finding("AUDIT_MANIFEST_LAW_DENOMINATOR_INVALID", relative, domain));
     }
   }
@@ -145,7 +92,7 @@ const manifestFindings = (root: string, registry: Registry): AuditSystemFinding[
 export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
   const packagePath = resolve(root, "package.json");
   const registryPath = resolve(root, "scripts/audit/generated/law-registry.generated.json");
-  const governancePath = resolve(root, "scripts/audit/governance-v32.ts");
+  const governancePath = resolve(root, "scripts/audit/governance.ts");
   const authorityPath = resolve(root, "scripts/audit/governance-authority.ts");
   const qualityPath = resolve(root, "scripts/audit/governance-quality.ts");
   const pkg = readJson<PackageJson>(packagePath);
@@ -158,7 +105,6 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
   const findings: AuditSystemFinding[] = [
     ...validatePackageScripts(pkg.scripts ?? {}),
     ...validateAcceptanceBindings(pkg.scripts ?? {}, registry.laws ?? []).map((detail) => finding("AUDIT_ACCEPTANCE_BINDING_INVALID", "package.json", detail)),
-    ...validateDomainRoutes(readDomainRoutes(governancePath), pkg.scripts ?? {}, registry.laws ?? []),
     ...inspectAcceptanceDeliveryIsolation(project),
     ...inspectBinaryVerdict(quality),
     ...inspectCiControlIntegrity(governance, quality, pkg),
@@ -170,7 +116,7 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
     ...inspectNodeHttpServer(project),
     ...inspectOwnerEvaluationIntegrity(governance),
     ...inspectOwnerFilesystemMutation(project),
-    ...inspectOwnerRegistrations(root, governance),
+    ...inspectOwnerRegistrations(root),
     ...inspectPhysicalCheckReceipt(governance),
     ...inspectPrimaryEvidence(quality),
     ...inspectStaleCodePurityReport(root),
@@ -184,4 +130,19 @@ export function inspectAuditSystem(root = process.cwd()): AuditSystemFinding[] {
   }
   findings.push(...manifestFindings(root, registry));
   return findings.sort((left, right) => left.code.localeCompare(right.code) || left.path.localeCompare(right.path) || left.detail.localeCompare(right.detail));
+}
+
+export async function inspectDomain(context: InspectorContext): Promise<SessionInspectorOutput> {
+  let outputFindings = [] as ReturnType<typeof createFinding>[];
+  await context.checks.runAll(async () => {
+    const lawId = selectLawId(context.planEntry.lawIds, "LAW-AUDIT-SYSTEM-001-V2");
+    outputFindings = inspectAuditSystem().map((item) => createFinding({
+      lawId,
+      checkId: item.code,
+      filePath: item.path,
+      message: item.detail,
+    }));
+    return { findings: outputFindings, evidenceRefs: [context.planEntry.ownerInspectorPath] };
+  });
+  return context.checks.output();
 }

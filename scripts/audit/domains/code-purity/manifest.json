@@ -1,15 +1,58 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "code-purity",
+  "status": "active",
   "lawIds": [
     "LAW-CODE-PURITY-001-V1"
+  ],
+  "lawBindings": {
+    "LAW-CODE-PURITY-001-V1": {
+      "staticBinding": {
+        "bindingId": "code.purity.001.v1.static",
+        "checkId": "code.purity.001.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/code-purity/inspector.ts#inspectDomain|LAW-CODE-PURITY-001-V1",
+        "targetSelectorId": "code.purity.001.v1.target",
+        "evidenceModes": [
+          "static.filesystem",
+          "static.ast",
+          "static.types",
+          "static.dependency",
+          "static.config",
+          "static.json"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "code.purity.001.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Acode-purity%3Aenforce|code.purity.001.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "code.purity.001.v1.exam-golden.exam",
+          "examId": "code.purity.001.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Acode-purity-zombie-deep|LAW-CODE-PURITY-001-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "code.purity.001.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Acode-purity-zombie-deep|code.purity.001.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
+  "ownedPaths": [
+    "scripts/audit/domains/code-purity/**"
   ],
   "observedPaths": [
     "scripts/**",
     "src/**"
-  ],
-  "ownedPaths": [
-    "scripts/audit/domains/code-purity/**"
-  ],
-  "schemaVersion": 3,
-  "status": "active"
+  ]
 }

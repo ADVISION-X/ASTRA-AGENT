@@ -6,7 +6,7 @@ const read = (file: string): string => readFileSync(file, "utf8");
 const parse = <T>(file: string): T => JSON.parse(read(file)) as T;
 
 test("V6 law, blueprint, pin, generator and runtime form one exact active chain", () => {
-  const law = read(".github/instructions/agent-rules/功能法案.md");
+  const law = `${read(".github/instructions/agent-rules/基础法案.md")}\n${read(".github/instructions/agent-rules/功能法案.md")}`;
   const blueprint = read("docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md");
   const pin = parse<{
     version: number;
@@ -29,7 +29,7 @@ test("V6 law, blueprint, pin, generator and runtime form one exact active chain"
   const packageJson = parse<{ scripts: Record<string, string> }>("package.json");
 
   assert.match(law, /LAW-XUANXUE-AI-PRODUCTION-001-V7/u);
-  assert.match(law, /summary.*xuanxue-ai-production-v6/u);
+  assert.match(law, /summary.*AGENT.*网站/u);
   assert.match(blueprint, /状态：active V6 terminal/u);
   assert.match(blueprint, /xuanxue-ai-production-v6\.pin\.spec\.json/u);
   assert.equal(pin.version, 6);

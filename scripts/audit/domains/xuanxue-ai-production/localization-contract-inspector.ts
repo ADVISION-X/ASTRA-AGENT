@@ -24,7 +24,7 @@ import { astIdentifierName } from "../../shared/ast-node-identity.js";
 const root = process.cwd();
 const projectionPath = path.join(
   root,
-  "artifacts/contracts/localization-production-contract.v1.json",
+  "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
 );
 
 const criticalRuntimeFiles = [
@@ -96,8 +96,13 @@ type LocalizationProjection = Readonly<{
   roles: Record<string, string>;
 }>;
 
+type GeneratedProductProjection = Readonly<{
+  localization_semantic_manifest: LocalizationProjection;
+}>;
+
 const readAndAssertProjection = (): LocalizationProjection => {
-  const projection = JSON.parse(readFileSync(projectionPath, "utf8")) as LocalizationProjection;
+  const generated = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProductProjection;
+  const projection = generated.localization_semantic_manifest;
   assert.equal(
     projection.schema_version,
     XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_VERSION,
@@ -208,7 +213,7 @@ const inspectDomainEvaluation = (
     findings,
     evidenceRefs: [
       context.planEntry.ownerInspectorPath,
-      "artifacts/contracts/localization-production-contract.v1.json",
+      "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
       ...criticalRuntimeFiles,
     ],
   };

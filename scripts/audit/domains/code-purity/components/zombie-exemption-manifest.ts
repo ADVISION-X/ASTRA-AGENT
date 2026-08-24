@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 import { z } from "zod";
 
@@ -84,11 +84,24 @@ const assertUnique = (label: string, entries: readonly unknown[]): void => {
   }
 };
 
+const manifestBindingExports = (): ZombieEntryExportExemption[] => {
+  const domains=resolveFromRepo("scripts/audit/domains");const entries:ZombieEntryExportExemption[]=[];
+  for(const domain of readdirSync(domains,{withFileTypes:true}).filter((item)=>item.isDirectory())){
+    const path=resolveFromRepo(`scripts/audit/domains/${domain.name}/manifest.json`);if(!existsSync(path))continue;
+    const manifest=JSON.parse(readFileSync(path,"utf8")) as {lawBindings?:Record<string,{staticBinding?:{inspectorRef?:string}|null;examBindings?:Array<{examRef?:string}>;proofBindings?:Array<{proofRef?:string}>}>};
+    for(const bindings of Object.values(manifest.lawBindings??{}))for(const ref of [bindings.staticBinding?.inspectorRef,...(bindings.examBindings??[]).map((item)=>item.examRef),...(bindings.proofBindings??[]).map((item)=>item.proofRef)]){
+      const [filePath,selector]=ref?.split("#")??[];const exportName=selector?.split("|")[0];
+      if(filePath&&exportName)entries.push({filePath,exportName,reason:"Manifest v4 stable enforcement binding."});
+    }
+  }
+  return [...new Map(entries.map((entry)=>[`${entry.filePath}#${entry.exportName}`,entry])).values()].sort((left,right)=>`${left.filePath}#${left.exportName}`.localeCompare(`${right.filePath}#${right.exportName}`));
+};
+
 export const createZombieExemptionManifest = (): ZombieExemptionManifest => {
   const authority = authoritySchema.parse(JSON.parse(readFileSync(resolveFromRepo(AUTHORITY_PATH), "utf8")));
   const collections = {
     auditInspectionFiles: authority.auditInspectionFiles,
-    externalEntryExports: authority.externalEntryExports,
+    externalEntryExports: [...authority.externalEntryExports,...manifestBindingExports()],
     externalEntryFiles: authority.externalEntryFiles,
     lawfulDynamicImports: authority.lawfulDynamicImports,
     lawfulDynamicNamespaceConsumers: authority.lawfulDynamicNamespaceConsumers,

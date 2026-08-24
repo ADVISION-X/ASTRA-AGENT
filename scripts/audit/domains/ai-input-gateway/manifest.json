@@ -1,5 +1,7 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "ai-input-gateway",
+  "status": "active",
   "lawIds": [
     "LAW-AI-INPUT-GATEWAY-001-V1",
     "LAW-AI-INPUT-GATEWAY-002-V1",
@@ -9,12 +11,270 @@
     "LAW-AI-INPUT-GATEWAY-006-V1",
     "LAW-AI-INPUT-GATEWAY-007-V1"
   ],
-  "observedPaths": [],
+  "lawBindings": {
+    "LAW-AI-INPUT-GATEWAY-001-V1": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.001.v1.static",
+        "checkId": "ai.input.gateway.001.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-001-V1",
+        "targetSelectorId": "ai.input.gateway.001.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.001.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.001.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.001.v1.exam-golden.exam",
+          "examId": "ai.input.gateway.001.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-001-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.001.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.001.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-AI-INPUT-GATEWAY-002-V1": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.002.v1.static",
+        "checkId": "ai.input.gateway.002.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-002-V1",
+        "targetSelectorId": "ai.input.gateway.002.v1.target",
+        "evidenceModes": [
+          "static.ast"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.002.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.002.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.002.v1.exam-golden.exam",
+          "examId": "ai.input.gateway.002.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-002-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.002.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.002.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-AI-INPUT-GATEWAY-003-V1": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.003.v1.static",
+        "checkId": "ai.input.gateway.003.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-003-V1",
+        "targetSelectorId": "ai.input.gateway.003.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.003.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.003.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.003.v1.exam-golden.exam",
+          "examId": "ai.input.gateway.003.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-003-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.003.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.003.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-AI-INPUT-GATEWAY-004-V1": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.004.v1.static",
+        "checkId": "ai.input.gateway.004.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-004-V1",
+        "targetSelectorId": "ai.input.gateway.004.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.004.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.004.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.004.v1.exam-golden.exam",
+          "examId": "ai.input.gateway.004.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-004-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.004.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.004.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-AI-INPUT-GATEWAY-005-V4": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.005.v4.static",
+        "checkId": "ai.input.gateway.005.v4.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-005-V4",
+        "targetSelectorId": "ai.input.gateway.005.v4.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.005.v4.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.005.v4.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.005.v4.exam-golden.exam",
+          "examId": "ai.input.gateway.005.v4.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-005-V4|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.005.v4.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.005.v4.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-AI-INPUT-GATEWAY-006-V1": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.006.v1.static",
+        "checkId": "ai.input.gateway.006.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-006-V1",
+        "targetSelectorId": "ai.input.gateway.006.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.006.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.006.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.006.v1.exam-golden.exam",
+          "examId": "ai.input.gateway.006.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-006-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.006.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.006.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-AI-INPUT-GATEWAY-007-V1": {
+      "staticBinding": {
+        "bindingId": "ai.input.gateway.007.v1.static",
+        "checkId": "ai.input.gateway.007.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-007-V1",
+        "targetSelectorId": "ai.input.gateway.007.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "ai.input.gateway.007.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.007.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "ai.input.gateway.007.v1.exam-golden.exam",
+          "examId": "ai.input.gateway.007.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-007-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "ai.input.gateway.007.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.007.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
   "ownedPaths": [
     "scripts/audit/domains/ai-input-gateway/**",
     "src/capabilities/ai-input-gateway/**",
     "src/lib/online-ai/**"
   ],
-  "schemaVersion": 3,
-  "status": "active"
+  "observedPaths": []
 }

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 4,
+  "capabilityDomain": "domain-registry",
+  "status": "active",
+  "lawIds": [
+    "LAW-DOMAIN-REGISTRY-001-V1"
+  ],
+  "lawBindings": {
+    "LAW-DOMAIN-REGISTRY-001-V1": {
+      "staticBinding": {
+        "bindingId": "domain.registry.001.v1.static",
+        "checkId": "domain.registry.001.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/domain-registry/inspector.ts#inspectDomain|LAW-DOMAIN-REGISTRY-001-V1",
+        "targetSelectorId": "domain.registry.001.v1.target",
+        "evidenceModes": [
+          "static.filesystem",
+          "static.contract",
+          "static.json"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "domain.registry.001.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|domain.registry.001.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "domain.registry.001.v1.exam-property.exam",
+          "examId": "domain.registry.001.v1.exam-property",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-DOMAIN-REGISTRY-001-V1|exam.property",
+          "evidenceModes": [
+            "exam.property"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "domain.registry.001.v1.exam-property.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|domain.registry.001.v1.exam-property.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
+  "ownedPaths": [
+    "scripts/audit/domains/domain-registry/**"
+  ],
+  "observedPaths": [
+    ".github/instructions/agent-rules/**",
+    "scripts/audit/domains/**",
+    "scripts/audit/generated/law-registry.generated.json"
+  ]
+}

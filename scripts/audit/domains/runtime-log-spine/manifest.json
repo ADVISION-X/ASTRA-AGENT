@@ -1,16 +1,129 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "runtime-log-spine",
+  "status": "active",
   "lawIds": [
     "LAW-RUNTIME-LOG-SPINE-001-V3",
     "LAW-RUNTIME-LOG-SPINE-002-V2",
     "LAW-RUNTIME-LOG-SPINE-003-V2"
   ],
-  "observedPaths": [],
+  "lawBindings": {
+    "LAW-RUNTIME-LOG-SPINE-001-V3": {
+      "staticBinding": {
+        "bindingId": "runtime.log.spine.001.v3.static",
+        "checkId": "runtime.log.spine.001.v3.static.check",
+        "inspectorRef": "scripts/audit/domains/runtime-log-spine/inspector.ts#inspectDomain|LAW-RUNTIME-LOG-SPINE-001-V3",
+        "targetSelectorId": "runtime.log.spine.001.v3.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "runtime.log.spine.001.v3.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aruntime-log-spine%3Aenforce|runtime.log.spine.001.v3.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "runtime.log.spine.001.v3.exam-golden.exam",
+          "examId": "runtime.log.spine.001.v3.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aruntime-log-spine|LAW-RUNTIME-LOG-SPINE-001-V3|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "runtime.log.spine.001.v3.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aruntime-log-spine|runtime.log.spine.001.v3.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-RUNTIME-LOG-SPINE-002-V2": {
+      "staticBinding": {
+        "bindingId": "runtime.log.spine.002.v2.static",
+        "checkId": "runtime.log.spine.002.v2.static.check",
+        "inspectorRef": "scripts/audit/domains/runtime-log-spine/inspector.ts#inspectDomain|LAW-RUNTIME-LOG-SPINE-002-V2",
+        "targetSelectorId": "runtime.log.spine.002.v2.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "runtime.log.spine.002.v2.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aruntime-log-spine%3Aenforce|runtime.log.spine.002.v2.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "runtime.log.spine.002.v2.exam-golden.exam",
+          "examId": "runtime.log.spine.002.v2.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aruntime-log-spine|LAW-RUNTIME-LOG-SPINE-002-V2|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "runtime.log.spine.002.v2.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aruntime-log-spine|runtime.log.spine.002.v2.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-RUNTIME-LOG-SPINE-003-V2": {
+      "staticBinding": {
+        "bindingId": "runtime.log.spine.003.v2.static",
+        "checkId": "runtime.log.spine.003.v2.static.check",
+        "inspectorRef": "scripts/audit/domains/runtime-log-spine/inspector.ts#inspectDomain|LAW-RUNTIME-LOG-SPINE-003-V2",
+        "targetSelectorId": "runtime.log.spine.003.v2.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "runtime.log.spine.003.v2.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aruntime-log-spine%3Aenforce|runtime.log.spine.003.v2.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "runtime.log.spine.003.v2.exam-golden.exam",
+          "examId": "runtime.log.spine.003.v2.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aruntime-log-spine|LAW-RUNTIME-LOG-SPINE-003-V2|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "runtime.log.spine.003.v2.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aruntime-log-spine|runtime.log.spine.003.v2.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
   "ownedPaths": [
     "scripts/audit/domains/runtime-log-spine/**",
     "src/lib/runtime-logs/**",
     "src/types/structured-log.ts"
   ],
-  "schemaVersion": 3,
-  "status": "active"
+  "observedPaths": []
 }

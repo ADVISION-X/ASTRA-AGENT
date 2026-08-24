@@ -1,10 +1,33 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "capabilityDomain": "audit-truth",
   "status": "active",
   "lawIds": [
     "LAW-AUDIT-TRUTH-001-V1"
   ],
+  "lawBindings": {
+    "LAW-AUDIT-TRUTH-001-V1": {
+      "staticBinding": {
+        "bindingId": "audit.truth.001.v1.static",
+        "checkId": "audit.truth.001.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/audit-truth/inspector.ts#inspectDomain|LAW-AUDIT-TRUTH-001-V1",
+        "targetSelectorId": "audit.truth.001.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "audit.truth.001.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Atruth%3Aenforce|audit.truth.001.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [],
+      "proofBindings": []
+    }
+  },
   "ownedPaths": [
     "scripts/audit/domains/audit-truth/**"
   ],

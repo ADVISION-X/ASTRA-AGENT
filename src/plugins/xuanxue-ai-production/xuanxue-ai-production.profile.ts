@@ -114,13 +114,33 @@ const assertTypedJoinBinding = (
   node: GeneratedProductNode,
 ): void => {
   const joins = order.joinParents;
-  if (node.join_binding === "none" && joins.length !== 0) {
+  assertJoinBindingCardinality(node, joins.length);
+  const joinSlots = assertJoinParentIdentity(order, joins);
+  if (node.join_binding === "exact_slots_a_and_b_with_person_identity") {
+    assertExactTypedJoinBinding(order, node, joinSlots);
+  }
+  if (node.join_binding === "optional_typed_person_material_only") {
+    assertOptionalTypedJoinBinding(order, joins.length, joinSlots);
+  }
+};
+
+const assertJoinBindingCardinality = (
+  node: GeneratedProductNode,
+  joinCount: number,
+): void => {
+  if (node.join_binding === "none" && joinCount !== 0) {
     throw new Error("XUANXUE_AI_PRODUCTION_TYPED_JOIN_NOT_ALLOWED");
   }
   if (node.join_binding === "exact_slots_a_and_b_with_person_identity"
-    && joins.length !== 2) {
+    && joinCount !== 2) {
     throw new Error("XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED");
   }
+};
+
+const assertJoinParentIdentity = (
+  order: XuanxueAiProductionOrder,
+  joins: XuanxueAiProductionOrder["joinParents"],
+): Set<string> => {
   const joinSlots = new Set<string>();
   const executions = new Set<string>();
   for (const parent of joins) {
@@ -137,41 +157,54 @@ const assertTypedJoinBinding = (
     joinSlots.add(parent.participantSlotRef);
     executions.add(parent.executionId);
   }
-  if (node.join_binding === "exact_slots_a_and_b_with_person_identity") {
-    const requiredParents = xuanxueProductExecutionContract(order.productId)
-      .product_graph.edges
-      .filter((edge) => edge.to === node.node_id && edge.type.startsWith("typed_parent_slot_"))
-      .map((edge) => ({
-        stageId: edge.from,
-        roleCode: `party_${edge.type.slice("typed_parent_slot_".length)}`,
-      }));
-    const participantRoles = order.frozenSubject.participants.map(
-      (participant) => participant.roleCode,
-    );
-    if (order.frozenSubject.primaryPersonRef !== null
-      || requiredParents.length !== joins.length
-      || order.frozenSubject.participants.length !== requiredParents.length
-      || requiredParents.some((required) =>
-        participantRoles.filter((role) => role === required.roleCode).length !== 1
-        || !joins.some((parent) =>
-          parent.participantRoleCode === required.roleCode
-          && parent.stageId === required.stageId))) {
-      throw new Error("XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED");
-    }
+  return joinSlots;
+};
+
+const assertExactTypedJoinBinding = (
+  order: XuanxueAiProductionOrder,
+  node: GeneratedProductNode,
+  joinSlots: ReadonlySet<string>,
+): void => {
+  const joins = order.joinParents;
+  const requiredParents = xuanxueProductExecutionContract(order.productId)
+    .product_graph.edges
+    .filter((edge) => edge.to === node.node_id && edge.type.startsWith("typed_parent_slot_"))
+    .map((edge) => ({
+      stageId: edge.from,
+      roleCode: `party_${edge.type.slice("typed_parent_slot_".length)}`,
+    }));
+  const participantRoles = order.frozenSubject.participants.map(
+    (participant) => participant.roleCode,
+  );
+  const bindingMismatch = requiredParents.some((required) =>
+    participantRoles.filter((role) => role === required.roleCode).length !== 1
+    || !joins.some((parent) => parent.participantRoleCode === required.roleCode
+      && parent.stageId === required.stageId));
+  if (order.frozenSubject.primaryPersonRef !== null
+    || requiredParents.length !== joins.length
+    || order.frozenSubject.participants.length !== requiredParents.length
+    || joinSlots.size !== joins.length
+    || bindingMismatch) {
+    throw new Error("XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED");
   }
-  if (node.join_binding === "optional_typed_person_material_only") {
-    const target = order.frozenSubject.participants.filter(
-      (participant) => participant.personRef === order.frozenSubject.primaryPersonRef,
-    );
-    const auxiliarySlots = order.frozenSubject.participants
-      .filter((participant) => participant.personRef !== order.frozenSubject.primaryPersonRef)
-      .map((participant) => participant.slotRef);
-    if (target.length !== 1
-      || target[0]?.roleCode !== "naming_target"
-      || auxiliarySlots.length !== joins.length
-      || auxiliarySlots.some((slot) => !joinSlots.has(slot))) {
-      throw new Error("XUANXUE_AI_PRODUCTION_NAMING_TYPED_JOINS_INVALID");
-    }
+};
+
+const assertOptionalTypedJoinBinding = (
+  order: XuanxueAiProductionOrder,
+  joinCount: number,
+  joinSlots: ReadonlySet<string>,
+): void => {
+  const target = order.frozenSubject.participants.filter(
+    (participant) => participant.personRef === order.frozenSubject.primaryPersonRef,
+  );
+  const auxiliarySlots = order.frozenSubject.participants
+    .filter((participant) => participant.personRef !== order.frozenSubject.primaryPersonRef)
+    .map((participant) => participant.slotRef);
+  if (target.length !== 1
+    || target[0]?.roleCode !== "naming_target"
+    || auxiliarySlots.length !== joinCount
+    || auxiliarySlots.some((slot) => !joinSlots.has(slot))) {
+    throw new Error("XUANXUE_AI_PRODUCTION_NAMING_TYPED_JOINS_INVALID");
   }
 };
 

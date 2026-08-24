@@ -53,20 +53,39 @@
     {
       "capabilityDomain": "audit-system",
       "lawIds": [
-        "LAW-AUDIT-SYSTEM-001-V1"
+        "LAW-AUDIT-SYSTEM-001-V2",
+        "LAW-AUDIT-SYSTEM-002-V2",
+        "LAW-AUDIT-SYSTEM-003-V2",
+        "LAW-AUDIT-SYSTEM-004-V2",
+        "LAW-AUDIT-SYSTEM-005-V2",
+        "LAW-AUDIT-SYSTEM-006-V2",
+        "LAW-AUDIT-SYSTEM-007-V2",
+        "LAW-AUDIT-SYSTEM-008-V2",
+        "LAW-AUDIT-SYSTEM-009-V2",
+        "LAW-AUDIT-SYSTEM-010-V2",
+        "LAW-AUDIT-SYSTEM-011-V2",
+        "LAW-AUDIT-SYSTEM-012-V2",
+        "LAW-AUDIT-SYSTEM-013-V2",
+        "LAW-AUDIT-SYSTEM-014-V2"
       ],
       "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
       "observedPaths": [
-        ".github/instructions/agent-rules/**",
+        ".github/**",
+        ".gitignore",
+        ".nvmrc",
+        ".playwright-cli/**",
+        ".vscode/**",
+        "AGENTS.md",
+        "artifacts/**",
+        "docs/**",
+        "output/**",
+        "package-lock.json",
         "package.json",
-        "scripts/audit/domains/**",
-        "scripts/audit/generated/**",
-        "scripts/audit/governance-authority.ts",
-        "scripts/audit/governance-json.ts",
-        "scripts/audit/governance-quality.ts",
-        "scripts/audit/governance-runtime.ts",
-        "scripts/audit/governance-v32.ts",
-        "tests/governance/**"
+        "pnpm-workspace.yaml",
+        "scripts/**",
+        "src/**",
+        "tests/**",
+        "tsconfig.json"
       ],
       "ownedPaths": [
         "scripts/audit/build/**",
@@ -118,6 +137,37 @@
       ]
     },
     {
+      "capabilityDomain": "domain-registry",
+      "lawIds": [
+        "LAW-DOMAIN-REGISTRY-001-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/domain-registry/manifest.json",
+      "observedPaths": [
+        ".github/instructions/agent-rules/**",
+        "scripts/audit/domains/**",
+        "scripts/audit/generated/law-registry.generated.json"
+      ],
+      "ownedPaths": [
+        "scripts/audit/domains/domain-registry/**"
+      ]
+    },
+    {
+      "capabilityDomain": "exam-system",
+      "lawIds": [
+        "LAW-EXAM-SYSTEM-001-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/exam-system/manifest.json",
+      "observedPaths": [
+        "package.json",
+        "scripts/audit/generated/law-registry.generated.json",
+        "tests/governance/**"
+      ],
+      "ownedPaths": [
+        "scripts/audit/domains/exam-system/**",
+        "scripts/exam/**"
+      ]
+    },
+    {
       "capabilityDomain": "forensics-persistence-capability",
       "lawIds": [
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
@@ -131,6 +181,32 @@
         "src/capabilities/forensics-persistence/**",
         "src/lib/storage/**",
         "src/types/evidence.ts"
+      ]
+    },
+    {
+      "capabilityDomain": "law-system",
+      "lawIds": [
+        "LAW-LAW-SYSTEM-001-V1",
+        "LAW-LAW-SYSTEM-002-V1",
+        "LAW-LAW-SYSTEM-003-V1",
+        "LAW-LAW-SYSTEM-004-V1",
+        "LAW-LAW-SYSTEM-005-V1",
+        "LAW-LAW-SYSTEM-006-V1",
+        "LAW-LAW-SYSTEM-007-V1",
+        "LAW-LAW-SYSTEM-008-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/law-system/manifest.json",
+      "observedPaths": [
+        ".github/instructions/agent-rules/**",
+        "AGENTS.md",
+        "docs/blueprints/**",
+        "docs/governance/**",
+        "docs/specs/**",
+        "scripts/audit/domains/**",
+        "scripts/audit/generated/**"
+      ],
+      "ownedPaths": [
+        "scripts/audit/domains/law-system/**"
       ]
     },
     {
@@ -174,17 +250,26 @@
     {
       "capabilityDomain": "project-governance",
       "lawIds": [
-        "LAW-PROJECT-GOVERNANCE-001-V1",
-        "LAW-PROJECT-GOVERNANCE-002-V1",
-        "LAW-PROJECT-GOVERNANCE-003-V1",
-        "LAW-PROJECT-GOVERNANCE-004-V1",
-        "LAW-PROJECT-GOVERNANCE-005-V1",
-        "LAW-PROJECT-GOVERNANCE-006-V1",
-        "LAW-PROJECT-GOVERNANCE-007-V1",
-        "LAW-PROJECT-GOVERNANCE-008-V1"
+        "LAW-PROJECT-GOVERNANCE-001-V2",
+        "LAW-PROJECT-GOVERNANCE-002-V2",
+        "LAW-PROJECT-GOVERNANCE-003-V2",
+        "LAW-PROJECT-GOVERNANCE-004-V2",
+        "LAW-PROJECT-GOVERNANCE-005-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2",
+        "LAW-PROJECT-GOVERNANCE-007-V2",
+        "LAW-PROJECT-GOVERNANCE-008-V2"
       ],
       "manifestPath": "scripts/audit/domains/project-governance/manifest.json",
-      "observedPaths": [],
+      "observedPaths": [
+        ".github/**",
+        ".playwright-cli/**",
+        "artifacts/**",
+        "docs/**",
+        "output/**",
+        "scripts/**",
+        "src/**",
+        "tests/**"
+      ],
       "ownedPaths": [
         ".github/instructions/agent-rules/**",
         ".gitignore",
@@ -195,13 +280,13 @@
         "package-lock.json",
         "package.json",
         "pnpm-workspace.yaml",
-        "scripts/audit/domains/project-governance/manifest.json",
+        "scripts/audit/domains/project-governance/**",
         "scripts/audit/generated/**",
         "scripts/audit/governance-authority.ts",
         "scripts/audit/governance-json.ts",
         "scripts/audit/governance-quality.ts",
         "scripts/audit/governance-runtime.ts",
-        "scripts/audit/governance-v32.ts",
+        "scripts/audit/governance.ts",
         "tests/governance/**",
         "tsconfig.json"
       ]
@@ -293,9 +378,9 @@
   ],
   "lawCorpus": {
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
-    "baseLawSha256": "dca641a326e5a174cf4a0375bdf703e0918e187ed40a8676dbee9dcbfb14d523",
+    "baseLawSha256": "54a3c6c9bfd54c62871aad0d648c9053b0cfdd50a9050532dea52e9b719522a3",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "5bc9c2845d17a3ab5e3ccb60ea886f623a3b4f2e514213c52637047ad8cd6bf3"
+    "functionalLawSha256": "cc4ecf433d9585c82c1cfeadde662603a4e1be4693a43b6cacdb04db9d76fa5e"
   },
   "laws": [
     {
@@ -305,6 +390,43 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.001.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.001.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-001-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.001.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.001.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.001.v1.static",
+          "checkId": "ai.input.gateway.001.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.001.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -339,6 +461,42 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.002.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.002.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-002-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.002.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.002.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.002.v1.static",
+          "checkId": "ai.input.gateway.002.v1.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-002-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.002.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.002.v1.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.002.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -374,6 +532,43 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.003.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.003.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-003-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.003.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.003.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.003.v1.static",
+          "checkId": "ai.input.gateway.003.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-003-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.003.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.003.v1.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.003.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -410,6 +605,43 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.004.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.004.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-004-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.004.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.004.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.004.v1.static",
+          "checkId": "ai.input.gateway.004.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-004-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.004.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.004.v1.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.004.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -443,6 +675,43 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.005.v4.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.005.v4.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-005-V4|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.005.v4.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.005.v4.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.005.v4.static",
+          "checkId": "ai.input.gateway.005.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-005-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.005.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.005.v4.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.005.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -458,9 +727,9 @@
         "不得发生：routing, retrying, deduplicating, continuing, forking or recovering a task from provider title text",
         "不得发生：binding or routing a transient /c/WEB: URL as a canonical conversation",
         "不得发生：same-origin tab fallback, active/front/first tab selection, foreground-window dependence or offscreen blind click",
-        "不得发生：in-memory-only submission priority, unordered submission or patrol races, preserving a dead-process waiter without a current eligible Cloud grant, releasing a live current-grant submission ticket before checkpoint o",
-        "不得发生：fixed reasoning-slider indexes, coordinate-to-reasoning arithmetic, model fallback, reasoning downgrade, caller split model/reasoning controls after production admission, or profile proof that does not match the has",
-        "不得发生：caller-supplied chat title, title text derived from prompt/user/report content, machine title used as primary identity, title search used as final route proof, rename debt worker, periodic title housekeeping or a se",
+        "不得发生：in-memory-only submission priority, unordered submission or patrol races, preserving a dead-process waiter without a current eligible Cloud grant, or releasing a live current-grant submission ticket before checkpoint or terminal proof",
+        "不得发生：fixed reasoning-slider indexes, coordinate-to-reasoning arithmetic, model fallback, reasoning downgrade, caller split model/reasoning controls after production admission, or profile proof that does not match the hashed semantic profile",
+        "不得发生：caller-supplied chat title, title text derived from prompt/user/report content, machine title used as primary identity, title search used as final route proof, rename debt worker, periodic title housekeeping or a second title owner",
         "不得发生：publishing a title-managed production GPT checkpoint before exact profile/title proof exists",
         "不得发生：detaching provider post-processing as fire-and-forget work after checkpoint publication",
         "不得发生：using stale BrowserDocumentRef coordinates after navigation or DOM document replacement",
@@ -474,7 +743,7 @@
         "lineEnd": 184,
         "lineStart": 143,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "12ef61ccb16fd3e0f45901cb38fc69c9650abe4d02cbad4d6415c3ae330f8e33"
+        "sectionSha256": "933f46f1c89307cfd2ef45891bdd4d5f060305bab91189d54046dd0a8f4c5e2a"
       },
       "status": "active",
       "summary": "必须保持以下不变量：GPT Web uses one Session Controller to bind task identity, semantic execution profile, exact conversation topology, bounded page actions and compulsory privacy-safe title finalization without making titles a routing identity.",
@@ -488,6 +757,43 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.006.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.006.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-006-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.006.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.006.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.006.v1.static",
+          "checkId": "ai.input.gateway.006.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-006-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.006.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.006.v1.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.006.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -518,6 +824,43 @@
       "capabilityDomain": "ai-input-gateway",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "ai.input.gateway.007.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "ai.input.gateway.007.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aai-input-gateway|LAW-AI-INPUT-GATEWAY-007-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "ai.input.gateway.007.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aai-input-gateway|ai.input.gateway.007.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "ai.input.gateway.007.v1.static",
+          "checkId": "ai.input.gateway.007.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/ai-input-gateway/inspector.ts#inspectDomain|LAW-AI-INPUT-GATEWAY-007-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "ai.input.gateway.007.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aai-input-gateway%3Aenforce|ai.input.gateway.007.v1.static"
+            }
+          ],
+          "targetSelectorId": "ai.input.gateway.007.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -548,6 +891,42 @@
       "capabilityDomain": "app-shell-ui",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "app.shell.ui.001.v2.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "app.shell.ui.001.v2.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aapp-shell-ui|LAW-APP-SHELL-UI-001-V2|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "app.shell.ui.001.v2.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aapp-shell-ui|app.shell.ui.001.v2.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "app.shell.ui.001.v2.static",
+          "checkId": "app.shell.ui.001.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/app-shell-ui/inspector.ts#inspectDomain|LAW-APP-SHELL-UI-001-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "app.shell.ui.001.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aapp-shell-ui%3Aenforce|app.shell.ui.001.v2.static"
+            }
+          ],
+          "targetSelectorId": "app.shell.ui.001.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -586,6 +965,42 @@
       "capabilityDomain": "app-shell-ui",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "app.shell.ui.002.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "app.shell.ui.002.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aapp-shell-ui|LAW-APP-SHELL-UI-002-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "app.shell.ui.002.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aapp-shell-ui|app.shell.ui.002.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "app.shell.ui.002.v1.static",
+          "checkId": "app.shell.ui.002.v1.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/app-shell-ui/inspector.ts#inspectDomain|LAW-APP-SHELL-UI-002-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "app.shell.ui.002.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aapp-shell-ui%3Aenforce|app.shell.ui.002.v1.static"
+            }
+          ],
+          "targetSelectorId": "app.shell.ui.002.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -619,6 +1034,42 @@
       "capabilityDomain": "app-shell-ui",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "app.shell.ui.003.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "app.shell.ui.003.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aapp-shell-ui|LAW-APP-SHELL-UI-003-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "app.shell.ui.003.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aapp-shell-ui|app.shell.ui.003.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "app.shell.ui.003.v1.static",
+          "checkId": "app.shell.ui.003.v1.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/app-shell-ui/inspector.ts#inspectDomain|LAW-APP-SHELL-UI-003-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "app.shell.ui.003.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aapp-shell-ui%3Aenforce|app.shell.ui.003.v1.static"
+            }
+          ],
+          "targetSelectorId": "app.shell.ui.003.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -651,8 +1102,31 @@
       "capabilityDomain": "architecture-boundary",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-PROJECT-GOVERNANCE-002-V1"
+        "LAW-PROJECT-GOVERNANCE-002-V2"
       ],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "architecture.boundary.001.v1.static",
+          "checkId": "architecture.boundary.001.v1.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.ast",
+            "static.types",
+            "static.dependency"
+          ],
+          "inspectorRef": "scripts/audit/domains/architecture-boundary/inspector.ts#inspectDomain|LAW-ARCHITECTURE-BOUNDARY-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "architecture.boundary.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aarchitecture-boundary%3Aenforce|architecture.boundary.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "architecture.boundary.001.v1.target"
+        }
+      },
       "enforcementMode": "static",
       "evidenceModes": [
         "static.filesystem",
@@ -676,7 +1150,7 @@
         "lineEnd": 378,
         "lineStart": 342,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "32a737a7296dad6d44ea5cf9a46d631ec5de3118e8759f45a06220152fd74531"
+        "sectionSha256": "433e3d253320914d7ae9692c46d1f223573286cb5c38581ad2451aefdfaae06a"
       },
       "status": "active",
       "summary": "必须保持玄学需求经唯一 Mediator、xuanxue Plugin、公共 Capability facade、Child Ability、Evidence/Log/Result 的单线架构，并使每个 source root 只有一个职责和一个 Owner。",
@@ -690,48 +1164,965 @@
       "capabilityDomain": "audit-system",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-PROJECT-GOVERNANCE-001-V1",
-        "LAW-PROJECT-GOVERNANCE-002-V1",
-        "LAW-PROJECT-GOVERNANCE-004-V1",
-        "LAW-PROJECT-GOVERNANCE-006-V1",
-        "LAW-PROJECT-GOVERNANCE-007-V1"
+        "LAW-PROJECT-GOVERNANCE-002-V2",
+        "LAW-PROJECT-GOVERNANCE-007-V2"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.001.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.001.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-001-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.001.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.001.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.001.v2.static",
+          "checkId": "audit.system.001.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-001-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.001.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.001.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.001.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
-        "static.filesystem",
         "static.ast",
-        "static.contract",
-        "static.dependency",
-        "static.config",
-        "static.json",
-        "exam.golden"
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：质检入口绕过唯一 active law、Manifest、registry、检查回执或逐 lawId 报告。",
-        "不得发生：第二 quality 命令、第二 verdict、平行 runner、手工 law mapping 或手工 generated truth。",
-        "不得发生：能力域缺失唯一 Manifest、唯一检查路由、唯一 Owner，或一个检查越权替多个域裁决。",
-        "不得发生：runner、测试、报告或 generated artifact 反向取得法案主权。",
-        "不得发生：仅凭退出码、文件存在、历史结果、fixture、mock、warning 或自然语言制造 PASS。",
-        "不得发生：Static、Exam、Dynamic 证据互相冒充，或适用证据未执行仍生成 PASS。",
-        "不得发生：质检器使用源文本关键词、正则命中、固定值或自报声明冒充 AST、symbol、依赖或运行证据。",
-        "不得发生：owner 检查未真实执行、finding 未改变 verdict、FAIL 被吞掉或降级为 warning。",
-        "不得发生：候选、法案、registry、证据或执法表面漂移后继续复用旧结论。",
-        "不得发生：质检系统删除、跳过或不路由 code-purity 现役检查。",
-        "不得发生：为恢复旧系统重新建立与冻结说明书冲突的多份 matrix、plan、conflict 或报告真相。",
-        "不得发生：审计系统不能检查自身唯一入口、路由完整性、报告分母和负向失败能力。"
+        "不得在 Audit runner 内重建 law parser、Owner map、routing map 或第二执行计划。",
+        "不得接受陈旧、手改或无法 exact-byte 重算的 projection。"
       ],
-      "lawId": "LAW-AUDIT-SYSTEM-001-V1",
+      "lawId": "LAW-AUDIT-SYSTEM-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 429,
-        "lineStart": 382,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "fa22b678ff4f29f548f3078967379070863851a0e530566757a367174c311922"
+        "lineEnd": 42,
+        "lineStart": 13,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "c14f7934a4546592cbf9fef497c30ff3258f8d24ed46976a9ed2d3aafe64671a"
       },
       "status": "active",
-      "summary": "必须使质检系统保持从两份 active law、唯一 Manifest/Owner、唯一 registry、真实检查回执到逐 lawId 二元报告的单一可复放执法链，并以自检和故障注入证明任何违法都会失败关闭。",
-      "supersedesLawId": null,
+      "summary": "必须使 Audit 的执法计划只来自唯一 law registry projection。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-001-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-PROJECT-GOVERNANCE-002-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.002.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.002.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-002-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.002.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.002.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.002.v2.static",
+          "checkId": "audit.system.002.v2.static.check",
+          "evidenceModes": [
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-002-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.002.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.002.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.002.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得让 bindingId、checkId、examId、proofId 或 Ref 重复。",
+        "不得遗漏必需组件、增加法条未要求组件或用一个模糊 binding 覆盖多个 lawId。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-002-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 73,
+        "lineStart": 44,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "f9efbe9daddae820a9e0711782161c46ce124560d966a751bab23a50a0ca436d"
+      },
+      "status": "active",
+      "summary": "必须使每个 active lawId 的 required evidenceModes 与 Manifest v4 中的 Static、Exam、Dynamic bindings精确相等。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-002-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-001-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.003.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.003.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-003-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.003.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.003.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.003.v2.static",
+          "checkId": "audit.system.003.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-003-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.003.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.003.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.003.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得在 candidate 漂移后继续消费旧 index。",
+        "不得让 inspector 直接读盘、联网、增量补读或构建第二证据索引。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-003-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 104,
+        "lineStart": 75,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "f9bae6b4d399fc66b241f0d2f5885bad22771ff765bd4303e8883232145aeac9"
+      },
+      "status": "active",
+      "summary": "必须使同一候选的证据索引只存在于唯一逐法质量报告，且全部组件绑定同一 candidate fingerprint。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-003-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-002-V2",
+        "LAW-AUDIT-SYSTEM-003-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.004.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.004.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-004-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.004.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.004.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.004.v2.static",
+          "checkId": "audit.system.004.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-004-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.004.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.004.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.004.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得用文件存在、token 命中、数量或固定值直接通过。",
+        "不得让一个 predicate 返回多个 lawId、空 assertions 或 domain 汇总结果。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-004-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 135,
+        "lineStart": 106,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "12d2ba937ee0cc7f08596239e5171c305bbf3f1885bfcb5997dfff5227bf6ebd"
+      },
+      "status": "active",
+      "summary": "必须使每个含 static evidence 的 lawId 由唯一 checkId 执行独立 predicate，并产生独立结果。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-004-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-004-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.005.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.005.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-005-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.005.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.005.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.005.v2.static",
+          "checkId": "audit.system.005.v2.static.check",
+          "evidenceModes": [
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-005-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.005.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.005.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.005.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得以 warning、partial、人工接受、catch 后继续或覆盖率百分比放行。",
+        "不得让 finding 与 PASS 同时存在。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-005-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 166,
+        "lineStart": 137,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "0b88fa226bf014a9881b2e988f6724ee9fed8cc6e6ab9ebf65eab7b1e6641c3b"
+      },
+      "status": "active",
+      "summary": "必须使任一 assertion 失败、finding、parse blocker、分母不完整或 executor 异常导致整条法案失败。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-005-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-004-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.006.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.006.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-006-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.006.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.006.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.006.v2.static",
+          "checkId": "audit.system.006.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-006-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.006.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.006.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.006.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得消费历史 Exam 或 Dynamic PASS。",
+        "不得由 Static 启动服务、浏览器、数据库、存储或 provider。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-006-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 197,
+        "lineStart": 168,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "b5f2339f84af4c70fe00667ef0472b26bcaf92013f56d66b3484c675432be411"
+      },
+      "status": "active",
+      "summary": "必须使 Static Audit 只证明静态结构，Exam 与 Dynamic Proof 仅由各自 runner 执行和裁决。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-006-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-003-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.007.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.007.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-007-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.007.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.007.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.007.v2.static",
+          "checkId": "audit.system.007.v2.static.check",
+          "evidenceModes": [
+            "static.dependency"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-007-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.007.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.007.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.007.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.dependency",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得以 tests、fixtures、examples、golden、mutation、artifacts、coverage 或历史报告证明业务实现成立。",
+        "不得把被生产链消费的 fixture 标成非生产。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-007-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 228,
+        "lineStart": 199,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "8729602263626498d7dba85b0229ffa8cab8cc861b0f155f1d8c7e53753b97b3"
+      },
+      "status": "active",
+      "summary": "必须使业务静态证据只来自生产分母、权威文件和 active contract。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-007-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-001-V2",
+        "LAW-PROJECT-GOVERNANCE-007-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.008.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.008.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-008-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.008.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.008.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.008.v2.static",
+          "checkId": "audit.system.008.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-008-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.008.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.008.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.008.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得把旧 report 当作 projection freshness 证明。",
+        "不得自动调用 audit:build、忽略多余 generated 文件或在 stale projection 上继续。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-008-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 259,
+        "lineStart": 230,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "1b84bdc0e928fa8cc73d4888e209d665dfbbcd55cfa4a9db4e7d1674c840d2d7"
+      },
+      "status": "active",
+      "summary": "必须在执行任何 inspector 前只读重算唯一 registry projection，并对任一字节漂移失败关闭。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-008-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-003-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.009.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.009.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-009-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.009.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.009.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.009.v2.static",
+          "checkId": "audit.system.009.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-009-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.009.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.009.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.009.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得发布部分旧候选、部分新候选的证据集合。",
+        "不得忽略 tracked deletion 或未授权生产文件。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-009-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 290,
+        "lineStart": 261,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "71251cd1838568e2766a522cdb7229f2d0befaf8097b0e591001c22fc4366e64"
+      },
+      "status": "active",
+      "summary": "必须在质量链关键节点重算 candidate fingerprint，并在任一漂移时废弃本次全部证据。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-009-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-004-V2",
+        "LAW-AUDIT-SYSTEM-005-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.010.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.010.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-010-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.010.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.010.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.010.v2.static",
+          "checkId": "audit.system.010.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-010-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.010.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.010.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.010.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得固定返回 PASS、吞异常或把 target 数量当作充分证明。",
+        "不得让纯 absence 检查缺少 scope denominator ref。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-010-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 321,
+        "lineStart": 292,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "1707b8ca0cc508b3df869f10569566139dc337963fd6e6fa804110eb8653c860"
+      },
+      "status": "active",
+      "summary": "必须使每个成功组件至少包含一个可复放 assertion 与精确 evidenceRef。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-010-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-PROJECT-GOVERNANCE-002-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.011.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.011.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-011-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.011.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.011.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.011.v2.static",
+          "checkId": "audit.system.011.v2.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-011-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.011.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.011.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.011.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.filesystem",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得让容器 Owner 接管其它 lawId 的逻辑 Owner。",
+        "不得设置 alias、default owner、prefix fallback、共享 binding 或运行时改名。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-011-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 352,
+        "lineStart": 323,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "7523719e1ec296a16ecc6cbd825fba5efcc5295af6bbb2a9e07ee4b3dac107c4"
+      },
+      "status": "active",
+      "summary": "必须使 lawId、capabilityDomain、Manifest、binding、executor 结果和 report lawId 完全一致。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-011-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-PROJECT-GOVERNANCE-007-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.012.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.012.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-012-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.012.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.012.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.012.v2.static",
+          "checkId": "audit.system.012.v2.static.check",
+          "evidenceModes": [
+            "static.dependency"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-012-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.012.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.012.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.012.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.dependency",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得保留可达的 compatibility reader 让旧质量链继续执法。",
+        "不得读取历史 PASS、旧 report 或迁移前 law map 作为当前证据。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-012-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 382,
+        "lineStart": 354,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "47cfc847af294b160031f6a231a5754197be9f60407f4d5fd5ae1557d950d7cc"
+      },
+      "status": "active",
+      "summary": "必须使历史方案、旧 registry、旧 runner 与旧报告对当前质量链没有执行入边。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-012-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-002-V2",
+        "LAW-AUDIT-SYSTEM-005-V2",
+        "LAW-AUDIT-SYSTEM-006-V2",
+        "LAW-AUDIT-SYSTEM-009-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.013.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.013.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-013-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.013.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.013.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.013.v2.static",
+          "checkId": "audit.system.013.v2.static.check",
+          "evidenceModes": [
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-013-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.013.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.013.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.013.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得产生 SKIPPED_AS_PASS、NOT_APPLICABLE_AS_PASS 或人工补签状态。",
+        "不得让 Static、Exam 或 Dynamic 单项 PASS 冒充 composite law PASS。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-013-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 415,
+        "lineStart": 384,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "bee90a5f2c240e9c97a080e27e7aff476f9b8609b5ce769e13ff05ecb99abdf1"
+      },
+      "status": "active",
+      "summary": "必须按 required evidenceModes 完整聚合组件，任一缺失、失败、过期或候选不一致均使整法失败。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-013-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "audit-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-013-V2",
+        "LAW-PROJECT-GOVERNANCE-008-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "audit.system.014.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "audit.system.014.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-AUDIT-SYSTEM-014-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "audit.system.014.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|audit.system.014.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.system.014.v2.static",
+          "checkId": "audit.system.014.v2.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-system/inspector.ts#inspectDomain|LAW-AUDIT-SYSTEM-014-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.system.014.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem%3Aenforce|audit.system.014.v2.static"
+            }
+          ],
+          "targetSelectorId": "audit.system.014.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得产生第二报告、第二 verdict 或可覆盖的报告 cache。",
+        "不得由 Static、Exam、Dynamic runner 或第二 writer 写最终 verdict artifact。"
+      ],
+      "lawId": "LAW-AUDIT-SYSTEM-014-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 446,
+        "lineStart": 417,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "4c8192fe7604046ca251ec0f3f9983d9114d5e73d6763a3cc1d57f42b83942bc"
+      },
+      "status": "active",
+      "summary": "必须由唯一 quality aggregator 和唯一 report writer 原子写入唯一逐法质量报告。",
+      "supersedesLawId": "LAW-AUDIT-SYSTEM-014-V1",
       "tier": "P0"
     },
     {
@@ -742,9 +2133,30 @@
       "capabilityDomain": "audit-truth",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-AUDIT-SYSTEM-001-V1",
-        "LAW-PROJECT-GOVERNANCE-006-V1"
+        "LAW-AUDIT-SYSTEM-001-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
       ],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "audit.truth.001.v1.static",
+          "checkId": "audit.truth.001.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/audit-truth/inspector.ts#inspectDomain|LAW-AUDIT-TRUTH-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "audit.truth.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Atruth%3Aenforce|audit.truth.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "audit.truth.001.v1.target"
+        }
+      },
       "enforcementMode": "static",
       "evidenceModes": [
         "static.ast",
@@ -764,10 +2176,10 @@
       "lawId": "LAW-AUDIT-TRUTH-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 469,
-        "lineStart": 433,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "5ed15c2ed79b7685de762dba44403e8c1a819cd454b34c013f26e89953ef534e"
+        "lineEnd": 486,
+        "lineStart": 450,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "80b42c8e45fea68d0f2d8499831b1c51c817ff2bd686e98b72c7d0aa5321803d"
       },
       "status": "active",
       "summary": "必须使全部现役质检器以可复放的结构、符号、依赖、控制流和真实检查回执证明结论，并由独立反伪造检查确保任一 finding 或缺失证据都会失败关闭。",
@@ -783,6 +2195,45 @@
       "dependsOnLawIds": [
         "LAW-ARCHITECTURE-BOUNDARY-001-V1"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "capability.governance.001.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "capability.governance.001.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aarchitecture-active-plugin-mediators|LAW-CAPABILITY-GOVERNANCE-001-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "capability.governance.001.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aarchitecture-active-plugin-mediators|capability.governance.001.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "capability.governance.001.v1.static",
+          "checkId": "capability.governance.001.v1.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.ast",
+            "static.types",
+            "static.dependency"
+          ],
+          "inspectorRef": "scripts/audit/domains/capability-governance/inspector.ts#inspectDomain|LAW-CAPABILITY-GOVERNANCE-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "capability.governance.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Acapability-governance%3Aenforce|capability.governance.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "capability.governance.001.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.filesystem",
@@ -803,8 +2254,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 508,
-        "lineStart": 473,
+        "lineEnd": 417,
+        "lineStart": 382,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a98a35349e72fbe7a877bb110ebbe196dc0f9cb8e49d3d5f3dbe9019fea75219"
       },
@@ -821,11 +2272,52 @@
       "capabilityDomain": "code-purity",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-AUDIT-SYSTEM-001-V1",
-        "LAW-PROJECT-GOVERNANCE-002-V1",
-        "LAW-PROJECT-GOVERNANCE-005-V1",
-        "LAW-PROJECT-GOVERNANCE-006-V1"
+        "LAW-AUDIT-SYSTEM-001-V2",
+        "LAW-PROJECT-GOVERNANCE-002-V2",
+        "LAW-PROJECT-GOVERNANCE-005-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "code.purity.001.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "code.purity.001.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Acode-purity-zombie-deep|LAW-CODE-PURITY-001-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "code.purity.001.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Acode-purity-zombie-deep|code.purity.001.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "code.purity.001.v1.static",
+          "checkId": "code.purity.001.v1.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.ast",
+            "static.types",
+            "static.dependency",
+            "static.config",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/code-purity/inspector.ts#inspectDomain|LAW-CODE-PURITY-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "code.purity.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Acode-purity%3Aenforce|code.purity.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "code.purity.001.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.filesystem",
@@ -860,13 +2352,166 @@
       "lawId": "LAW-CODE-PURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 565,
-        "lineStart": 512,
-        "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "3d1f4c1e1eec0c69e4a11e20f123d3ca307c87c1185e4c93b372bcb2c7d4ff28"
+        "lineEnd": 543,
+        "lineStart": 490,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "522ce0176416d11e1ffbd3cd32f7f5677cae1e59fef58bd0893dba3912350e80"
       },
       "status": "active",
       "summary": "必须使每个活动源码文件证明唯一 Owner、单一角色和真实活性，并以 AST、类型、symbol graph、模块图及反规避检查对结构红线、Owner 边界、类型逃逸、伪运行、兼容双轨和全部 zombie surface 实行零容忍二元执法。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "scripts/audit/domains/**",
+        "scripts/audit/generated/law-registry.generated.json",
+        "scripts/audit/governance-authority.ts"
+      ],
+      "capabilityDomain": "domain-registry",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-004-V1",
+        "LAW-PROJECT-GOVERNANCE-002-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "domain.registry.001.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "domain.registry.001.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-DOMAIN-REGISTRY-001-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "domain.registry.001.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|domain.registry.001.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "domain.registry.001.v1.static",
+          "checkId": "domain.registry.001.v1.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.contract",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/domain-registry/inspector.ts#inspectDomain|LAW-DOMAIN-REGISTRY-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "domain.registry.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|domain.registry.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "domain.registry.001.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.filesystem",
+        "static.contract",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得建立未登记 capabilityDomain、重复 domain、第二 Owner map、共享 primary Owner 或无主生产路径。",
+        "不得让 observedPaths、generated projection、历史目录或消费关系取得写主权。",
+        "不得让 Manifest、法案、registry 与执行结果中的 domain 或 lawId 身份不一致。"
+      ],
+      "lawId": "LAW-DOMAIN-REGISTRY-001-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 582,
+        "lineStart": 547,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "3bd077126e6fb08fb60d416d0d90e8b618166dab874194a6c5a381bda63e2798"
+      },
+      "status": "active",
+      "summary": "必须使每个 active capabilityDomain 具有唯一 Manifest、唯一 primary Owner、完整路径主权和与唯一 registry 精确一致的身份。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "package.json",
+        "scripts/exam/**",
+        "tests/governance/**"
+      ],
+      "capabilityDomain": "exam-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-AUDIT-SYSTEM-002-V2",
+        "LAW-AUDIT-SYSTEM-006-V2",
+        "LAW-AUDIT-SYSTEM-009-V2",
+        "LAW-PROJECT-GOVERNANCE-006-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "exam.system.001.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "exam.system.001.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-EXAM-SYSTEM-001-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "exam.system.001.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|exam.system.001.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "exam.system.001.v1.static",
+          "checkId": "exam.system.001.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/exam-system/inspector.ts#inspectDomain|LAW-EXAM-SYSTEM-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "exam.system.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|exam.system.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "exam.system.001.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "static.contract",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得建立第二 Exam orchestrator、手写不完整考试分母、重复 examId、未知命令、隐式 skip 或无界超时。",
+        "不得在首个非 PASS 后继续启动考试、忽略候选漂移、复用跨候选 receipt 或留下孤儿进程。",
+        "不得让 Exam 生成最终 quality verdict、冒充 Dynamic Proof 或用固定 PASS、空断言和缺失负向用例放行。"
+      ],
+      "lawId": "LAW-EXAM-SYSTEM-001-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 621,
+        "lineStart": 586,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "a1794d01d0bd93c33196edcc935e9be2935ff936b18d49f009e9300713c3d68b"
+      },
+      "status": "active",
+      "summary": "必须使唯一 Exam runner 从 Manifest 的 examBindings 重建完整分母，绑定当前候选执行并把独立可复放结果交给唯一 quality aggregator。",
       "supersedesLawId": null,
       "tier": "P0"
     },
@@ -877,6 +2522,43 @@
       "capabilityDomain": "forensics-persistence-capability",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "forensics.persistence.capability.001.v2.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "forensics.persistence.capability.001.v2.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aforensics-persistence-capability|LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "forensics.persistence.capability.001.v2.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aforensics-persistence-capability|forensics.persistence.capability.001.v2.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "forensics.persistence.capability.001.v2.static",
+          "checkId": "forensics.persistence.capability.001.v2.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/forensics-persistence-capability/inspector.ts#inspectDomain|LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "forensics.persistence.capability.001.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aforensics-persistence-capability%3Aenforce|forensics.persistence.capability.001.v2.static"
+            }
+          ],
+          "targetSelectorId": "forensics.persistence.capability.001.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -890,8 +2572,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 595,
-        "lineStart": 569,
+        "lineEnd": 447,
+        "lineStart": 421,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "caeaa96da1a17f7d30a85ec07e8f5cbe001585937d9c58a3981735cd7e1a6bbe"
       },
@@ -907,6 +2589,43 @@
       "capabilityDomain": "forensics-persistence-capability",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "forensics.persistence.capability.002.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "forensics.persistence.capability.002.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aforensics-persistence-capability|LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "forensics.persistence.capability.002.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aforensics-persistence-capability|forensics.persistence.capability.002.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "forensics.persistence.capability.002.v1.static",
+          "checkId": "forensics.persistence.capability.002.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/forensics-persistence-capability/inspector.ts#inspectDomain|LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "forensics.persistence.capability.002.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aforensics-persistence-capability%3Aenforce|forensics.persistence.capability.002.v1.static"
+            }
+          ],
+          "targetSelectorId": "forensics.persistence.capability.002.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -920,8 +2639,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 623,
-        "lineStart": 597,
+        "lineEnd": 475,
+        "lineStart": 449,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e22b043e67fb2c8230e2259e87e0cad05b4c5f67af20dea515318c27f54e543c"
       },
@@ -937,6 +2656,43 @@
       "capabilityDomain": "forensics-persistence-capability",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "forensics.persistence.capability.003.v2.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "forensics.persistence.capability.003.v2.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aforensics-persistence-capability|LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "forensics.persistence.capability.003.v2.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aforensics-persistence-capability|forensics.persistence.capability.003.v2.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "forensics.persistence.capability.003.v2.static",
+          "checkId": "forensics.persistence.capability.003.v2.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/forensics-persistence-capability/inspector.ts#inspectDomain|LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "forensics.persistence.capability.003.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aforensics-persistence-capability%3Aenforce|forensics.persistence.capability.003.v2.static"
+            }
+          ],
+          "targetSelectorId": "forensics.persistence.capability.003.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -950,8 +2706,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 651,
-        "lineStart": 625,
+        "lineEnd": 503,
+        "lineStart": 477,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "be65e853818944f36dd01b622e6325282d41cf246c2c5ceadab6e44cffa968a1"
       },
@@ -962,11 +2718,658 @@
     },
     {
       "appliesTo": [
+        ".github/instructions/agent-rules/**",
+        "AGENTS.md",
+        "docs/**/*.md"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-PROJECT-GOVERNANCE-001-V2",
+        "LAW-PROJECT-GOVERNANCE-002-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.001.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.001.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-001-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.001.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.001.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.001.v1.static",
+          "checkId": "law.system.001.v1.static.check",
+          "evidenceModes": [
+            "static.text"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.001.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.text",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得在 instructions、README、AGENTS、施工图、规格、注释或任务上下文中建立第三法案源。",
+        "不得仅扫描 law-record fence 而放过普通规范性文字形成 shadow law。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-001-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 656,
+        "lineStart": 625,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "7c65ead92e85390fc3919f0d9c6a1ab792645b96863da1bfe36c0fac8af56a7f"
+      },
+      "status": "active",
+      "summary": "必须使 active 法案容器精确为基础法案和功能法案两份，并使其它文件中的未绑定规范性句子为零。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        ".github/instructions/agent-rules/**",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-001-V1",
+        "LAW-PROJECT-GOVERNANCE-005-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.002.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.002.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-002-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.002.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.002.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.002.v1.static",
+          "checkId": "law.system.002.v1.static.check",
+          "evidenceModes": [
+            "static.text",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-002-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.002.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.002.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.002.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.text",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得接受未知字段、默认补值、宽松 Markdown 修复、隐藏要求或镜像分叉。",
+        "不得把一个不可独立裁决的复合口号作为单一 lawId。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-002-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 689,
+        "lineStart": 658,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "42bc9f8b7b3b2efecee4bacb14872be458b63e85c7e220be9f892daa9ddde4f0"
+      },
+      "status": "active",
+      "summary": "必须使每个 law-record 采用唯一 schema、原子 requirement、非空 forbidden 和与机器字段逐字一致的人读镜像。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        ".github/instructions/agent-rules/**",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-002-V1",
+        "LAW-PROJECT-GOVERNANCE-007-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.003.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.003.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-003-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.003.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.003.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.003.v1.static",
+          "checkId": "law.system.003.v1.static.check",
+          "evidenceModes": [
+            "static.text",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-003-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.003.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.003.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.003.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.text",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得复用编号承载无关语义、跳过前一 major 版本或让同一完整 lawId 在历史中出现不同规范指纹。",
+        "不得让 Codex 自行选择历史比较范围或忽略当前 HEAD 祖先中的冲突。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-003-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 722,
+        "lineStart": 691,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "1ca820dc7b36fc7622073aa85d30af82b835ad54051c52baf09120d8578f2374"
+      },
+      "status": "active",
+      "summary": "必须使 lawId 前缀、capabilityDomain、编号、版本和 supersedesLawId 形成可由当前 Git 祖先历史复放的唯一谱系。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "scripts/audit/domains/**/*.json",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-002-V1",
+        "LAW-PROJECT-GOVERNANCE-003-V2",
+        "LAW-PROJECT-GOVERNANCE-005-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.004.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.004.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-004-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.004.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.004.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.004.v1.static",
+          "checkId": "law.system.004.v1.static.check",
+          "evidenceModes": [
+            "static.contract",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-004-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.004.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.004.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.004.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得使用彼此分离且可能错位的 lawIds/checkIds 数组或多张人工映射表。",
+        "不得让任一 evidenceMode 没有对应 binding，或让 binding 声明法条未要求的证据。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-004-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 756,
+        "lineStart": 724,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "09e571ecbe66712ece36e1251c309c99d6d32d40fe35c3dbde273c67053b7aa2"
+      },
+      "status": "active",
+      "summary": "必须使每个 active lawId 在唯一 Manifest 原子记录中绑定全部 Static、Exam 与 Dynamic evidenceModes，且分母精确相等。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "docs/blueprints/**",
+        "docs/specs/**",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-004-V1",
+        "LAW-PROJECT-GOVERNANCE-002-V2",
+        "LAW-PROJECT-GOVERNANCE-003-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.005.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.005.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-005-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.005.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.005.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.005.v1.static",
+          "checkId": "law.system.005.v1.static.check",
+          "evidenceModes": [
+            "static.contract",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-005-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.005.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.005.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.005.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得依赖自由 Markdown 推断 contract、proof frequency、surface、调用方向或 spec closure。",
+        "不得在消费端复制跨域合同或让规格改变法案 tier、Owner 与禁止面。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-005-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 791,
+        "lineStart": 758,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "2d8edeb0fb9aa0b7d2f1f75d25c11aff65807ff597a42dd9c452bab91bc8f8f0"
+      },
+      "status": "active",
+      "summary": "必须使按实际复杂度建立的施工图与规格具有可解析 schema、唯一 Owner、版本和 lawId 绑定。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "scripts/audit/generated/**",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-004-V1",
+        "LAW-LAW-SYSTEM-005-V1",
+        "LAW-PROJECT-GOVERNANCE-002-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.006.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.006.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-006-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.006.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.006.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.006.v1.static",
+          "checkId": "law.system.006.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-006-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.006.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.006.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.006.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得建立第二 compiler、第二 registry projection、人工 registry 或让 compiler 读取历史报告和外部系统。",
+        "不得让 generated artifact 输出 PASS、READY 或规范性新义务。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-006-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 825,
+        "lineStart": 793,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "f64f15fca80de68191bcd561a2f6b8d755acd5fe278c20feb60e251d26e56e6f"
+      },
+      "status": "active",
+      "summary": "必须使唯一纯 compiler 从冻结说明书、两份法案、Manifests、施工图和规格生成唯一 deterministic registry projection。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "scripts/audit/generated/**",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-006-V1"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.007.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.007.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-007-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.007.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.007.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.007.v1.static",
+          "checkId": "law.system.007.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-007-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.007.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.007.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.007.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得由检查入口自动修复 projection、留下部分新旧文件或接受 key 顺序和 hash 漂移。",
+        "不得把 report、cache、summary 或时间字段伪装为 projection。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-007-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 857,
+        "lineStart": 827,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "0aab1a7f46564a55103dcb6c0b4843ee29aa5821ba265a7277edec2962ebd35d"
+      },
+      "status": "active",
+      "summary": "必须使 audit:build 原子写入唯一 registry projection，并使 projection check 复用同一 compiler 进行 exact-byte 只读比较。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        ".github/instructions/agent-rules/**",
+        "docs/governance/**",
+        "scripts/audit/governance.ts"
+      ],
+      "capabilityDomain": "law-system",
+      "contractRefs": [],
+      "dependsOnLawIds": [
+        "LAW-LAW-SYSTEM-006-V1",
+        "LAW-LAW-SYSTEM-007-V1",
+        "LAW-PROJECT-GOVERNANCE-006-V2",
+        "LAW-PROJECT-GOVERNANCE-008-V2"
+      ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "law.system.008.v1.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "law.system.008.v1.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-LAW-SYSTEM-008-V1|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "law.system.008.v1.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|law.system.008.v1.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "law.system.008.v1.static",
+          "checkId": "law.system.008.v1.static.check",
+          "evidenceModes": [
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/law-system/inspector.ts#inspectDomain|LAW-LAW-SYSTEM-008-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "law.system.008.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|law.system.008.v1.static"
+            }
+          ],
+          "targetSelectorId": "law.system.008.v1.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得在真实工作树暴露新 source 配旧 projection、旧 freeze 配新说明书或继续写入时使用失效 route。",
+        "不得让 amendment 同时施工未授权业务功能或保留新旧治理兼容桥。"
+      ],
+      "lawId": "LAW-LAW-SYSTEM-008-V1",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 892,
+        "lineStart": 859,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "66ca0e9ae93055d71a6d2efe30212e2b40b19e3f174e48c5d48f53209253be61"
+      },
+      "status": "active",
+      "summary": "必须使 law-amendment 和 source-spec-amendment 在隔离 staging 中完成新 source、binding、projection、freeze 和 post-route 验证后一次性应用。",
+      "supersedesLawId": null,
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
         "src/lib/local-runtime/**"
       ],
       "capabilityDomain": "local-app-shell",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "local.app.shell.001.v4.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "local.app.shell.001.v4.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-app-shell|LAW-LOCAL-APP-SHELL-001-V4|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.app.shell.001.v4.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-app-shell|local.app.shell.001.v4.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [
+          {
+            "bindingId": "local.app.shell.001.v4.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.app.shell.001.v4.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.app.shell.001.v4.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "local.app.shell.001.v4.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-APP-SHELL-001-V4|dynamic.browser"
+          },
+          {
+            "bindingId": "local.app.shell.001.v4.dynamic-service.proof",
+            "evidenceModes": [
+              "dynamic.service"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.app.shell.001.v4.dynamic-service.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.app.shell.001.v4.dynamic-service.proof"
+              }
+            ],
+            "proofId": "local.app.shell.001.v4.dynamic-service",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-APP-SHELL-001-V4|dynamic.service"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.app.shell.001.v4.static",
+          "checkId": "local.app.shell.001.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-app-shell/inspector.ts#inspectDomain|LAW-LOCAL-APP-SHELL-001-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.app.shell.001.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-app-shell%3Aenforce|local.app.shell.001.v4.static"
+            }
+          ],
+          "targetSelectorId": "local.app.shell.001.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -990,8 +3393,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 691,
-        "lineStart": 655,
+        "lineEnd": 543,
+        "lineStart": 507,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "31c52b98d92104f00d7eec9c7456b8979585b1ce23e983d65d75fd8d40fea9a8"
       },
@@ -1007,6 +3410,42 @@
       "capabilityDomain": "local-app-shell",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "local.app.shell.002.v3.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "local.app.shell.002.v3.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-app-shell|LAW-LOCAL-APP-SHELL-002-V3|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.app.shell.002.v3.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-app-shell|local.app.shell.002.v3.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "local.app.shell.002.v3.static",
+          "checkId": "local.app.shell.002.v3.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-app-shell/inspector.ts#inspectDomain|LAW-LOCAL-APP-SHELL-002-V3",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.app.shell.002.v3.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-app-shell%3Aenforce|local.app.shell.002.v3.static"
+            }
+          ],
+          "targetSelectorId": "local.app.shell.002.v3.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1022,8 +3461,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 721,
-        "lineStart": 693,
+        "lineEnd": 573,
+        "lineStart": 545,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "389aaa51becaf7db2b8dc589d2da85769098dcf07487658ba47005238854751e"
       },
@@ -1041,6 +3480,58 @@
       "dependsOnLawIds": [
         "LAW-LOCAL-APP-SHELL-001-V4"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "local.app.shell.003.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "local.app.shell.003.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-app-shell|LAW-LOCAL-APP-SHELL-003-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.app.shell.003.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-app-shell|local.app.shell.003.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [
+          {
+            "bindingId": "local.app.shell.003.v1.dynamic-service.proof",
+            "evidenceModes": [
+              "dynamic.service"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.app.shell.003.v1.dynamic-service.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.app.shell.003.v1.dynamic-service.proof"
+              }
+            ],
+            "proofId": "local.app.shell.003.v1.dynamic-service",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-APP-SHELL-003-V1|dynamic.service"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.app.shell.003.v1.static",
+          "checkId": "local.app.shell.003.v1.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-app-shell/inspector.ts#inspectDomain|LAW-LOCAL-APP-SHELL-003-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.app.shell.003.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-app-shell%3Aenforce|local.app.shell.003.v1.static"
+            }
+          ],
+          "targetSelectorId": "local.app.shell.003.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1056,8 +3547,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 753,
-        "lineStart": 723,
+        "lineEnd": 605,
+        "lineStart": 575,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "3d2cae80601416063f5add24d84c79fa73ec1d3384ab58ad23dc897492149c30"
       },
@@ -1073,6 +3564,43 @@
       "capabilityDomain": "local-browser-session",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [
+          {
+            "bindingId": "local.browser.session.001.v4.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.001.v4.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.001.v4.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "local.browser.session.001.v4.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-001-V4|dynamic.browser"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.browser.session.001.v4.static",
+          "checkId": "local.browser.session.001.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-001-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.browser.session.001.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.001.v4.static"
+            }
+          ],
+          "targetSelectorId": "local.browser.session.001.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1095,8 +3623,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 792,
-        "lineStart": 757,
+        "lineEnd": 644,
+        "lineStart": 609,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "70db9ecf114d54d31745acddb9b66a168e0e179d73e3c40571849097b56f9149"
       },
@@ -1112,6 +3640,43 @@
       "capabilityDomain": "local-browser-session",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [
+          {
+            "bindingId": "local.browser.session.002.v4.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.002.v4.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.002.v4.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "local.browser.session.002.v4.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-002-V4|dynamic.browser"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.browser.session.002.v4.static",
+          "checkId": "local.browser.session.002.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-002-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.browser.session.002.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.002.v4.static"
+            }
+          ],
+          "targetSelectorId": "local.browser.session.002.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1135,8 +3700,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 830,
-        "lineStart": 794,
+        "lineEnd": 682,
+        "lineStart": 646,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ef465eab8678478f13346bdb9b7e49a8815520a5cc7af941e52b8d76c73d26ae"
       },
@@ -1152,6 +3717,43 @@
       "capabilityDomain": "local-browser-session",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [
+          {
+            "bindingId": "local.browser.session.003.v6.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.003.v6.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.003.v6.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "local.browser.session.003.v6.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-003-V6|dynamic.browser"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.browser.session.003.v6.static",
+          "checkId": "local.browser.session.003.v6.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-003-V6",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.browser.session.003.v6.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.003.v6.static"
+            }
+          ],
+          "targetSelectorId": "local.browser.session.003.v6.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1176,8 +3778,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 869,
-        "lineStart": 832,
+        "lineEnd": 721,
+        "lineStart": 684,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ccc430195865f83e44616a37546e1803d0d386d7b14f58065ebdcbb6cbbbe880"
       },
@@ -1198,6 +3800,73 @@
         }
       ],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "local.browser.session.004.v5.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "local.browser.session.004.v5.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V5|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.004.v5.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v5.exam-golden.exam"
+              }
+            ]
+          },
+          {
+            "bindingId": "local.browser.session.004.v5.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "local.browser.session.004.v5.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V5|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.004.v5.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v5.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [
+          {
+            "bindingId": "local.browser.session.004.v5.dynamic-recovery.proof",
+            "evidenceModes": [
+              "dynamic.recovery"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.004.v5.dynamic-recovery.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.004.v5.dynamic-recovery.proof"
+              }
+            ],
+            "proofId": "local.browser.session.004.v5.dynamic-recovery",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-004-V5|dynamic.recovery"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.browser.session.004.v5.static",
+          "checkId": "local.browser.session.004.v5.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-004-V5",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.browser.session.004.v5.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.004.v5.static"
+            }
+          ],
+          "targetSelectorId": "local.browser.session.004.v5.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1224,8 +3893,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 910,
-        "lineStart": 871,
+        "lineEnd": 762,
+        "lineStart": 723,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "123ed5311bd4a5b600bde48062ed763212f130a1479fbdcfd17533bde177db58"
       },
@@ -1241,6 +3910,43 @@
       "capabilityDomain": "local-browser-session",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [
+          {
+            "bindingId": "local.browser.session.005.v4.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.005.v4.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.005.v4.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "local.browser.session.005.v4.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-005-V4|dynamic.browser"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.browser.session.005.v4.static",
+          "checkId": "local.browser.session.005.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-005-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.browser.session.005.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.005.v4.static"
+            }
+          ],
+          "targetSelectorId": "local.browser.session.005.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1258,8 +3964,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 942,
-        "lineStart": 912,
+        "lineEnd": 794,
+        "lineStart": 764,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cc193d7f3e27dd7059126fb022caaa583b98220d34357a457481cc5811783329"
       },
@@ -1275,6 +3981,43 @@
       "capabilityDomain": "local-browser-session",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [
+          {
+            "bindingId": "local.browser.session.006.v2.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "local.browser.session.006.v2.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.006.v2.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "local.browser.session.006.v2.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-LOCAL-BROWSER-SESSION-006-V2|dynamic.browser"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "local.browser.session.006.v2.static",
+          "checkId": "local.browser.session.006.v2.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-006-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "local.browser.session.006.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.006.v2.static"
+            }
+          ],
+          "targetSelectorId": "local.browser.session.006.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1288,8 +4031,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 970,
-        "lineStart": 944,
+        "lineEnd": 822,
+        "lineStart": 796,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a43039bdea1cc79d1844511c74fa299120bb420551f53398491e584e291ee82d"
       },
@@ -1305,27 +4048,65 @@
       "capabilityDomain": "project-governance",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "static",
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.001.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.001.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-001-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.001.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.001.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.001.v2.static",
+          "checkId": "project.governance.001.v2.static.check",
+          "evidenceModes": [
+            "static.text",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-001-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.001.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.001.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.001.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
       "evidenceModes": [
         "static.text",
-        "static.contract"
+        "static.contract",
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得让任务提示词、代码、测试、generated artifact 或历史报告覆盖上级规范。",
-        "不得在未获授权时修改 active law。"
+        "不得让任务提示词、代码、测试、generated artifact、历史报告、技术便利或局部实现覆盖上级规范主权",
+        "不得在未获人类明确授权时修改 active law，也不得让 evidence 反向取得规范主权"
       ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-001-V1",
+      "lawId": "LAW-PROJECT-GOVERNANCE-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 39,
-        "lineStart": 13,
+        "lineEnd": 923,
+        "lineStart": 896,
         "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "1f9d92ebe6e16db6824ade397d2f4cccb77fee179d4bb0ca64afe6f0824d0db1"
+        "sectionSha256": "b252171aaea5c68a72665a69b26e1d7e15f3516a1e79e3338dc4b59baa414645"
       },
       "status": "active",
-      "summary": "必须按照现役说明书、基础法案、功能法案、按需施工图与规格、实现、当前证据的顺序裁决冲突。",
-      "supersedesLawId": null,
+      "summary": "必须把人类任务授权只用于确定本次范围，并按照说明书、基础法案、功能法案、施工图、spec、Manifest、registry、任务记录、实现和当前证据的顺序裁决冲突。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-001-V1",
       "tier": "P0"
     },
     {
@@ -1335,26 +4116,66 @@
       "capabilityDomain": "project-governance",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "static",
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.002.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.002.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-002-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.002.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.002.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.002.v2.static",
+          "checkId": "project.governance.002.v2.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.dependency"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-002-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.002.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.002.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.002.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
       "evidenceModes": [
         "static.filesystem",
-        "static.dependency"
+        "static.dependency",
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得建立长期平行主链、第二 registry、第二 Owner map、第二 compiler 或第二质量 verdict。"
+        "不得建立未按第 43.2 节登记的 compatibility、fallback、shadow、bridge 或 dual-write，也不得建立长期平行主链、第二 registry、第二 Owner map、第二 compiler 或第二质量 verdict",
+        "不得让 projection、缓存、历史副本、observedPaths、shared/common 容器或消费关系取得源头主权",
+        "不得先创建无 Owner 的文件、目录、入口、依赖、配置、合同或外部 surface 再补治理"
       ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-002-V1",
+      "lawId": "LAW-PROJECT-GOVERNANCE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 66,
-        "lineStart": 41,
+        "lineEnd": 953,
+        "lineStart": 925,
         "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "631539d63ab52e7a1438b822d952f5ad5d6db0ebc9b4f597a786b4edf264232f"
+        "sectionSha256": "197134e6debd40e045e055e2cfa3cfffd64027c7873c83a71e4494c652b248d3"
       },
       "status": "active",
-      "summary": "必须使每项生产事实、能力、合同、入口、registry、质量入口和路径具有一个现役真相源及一个 primary Owner。",
-      "supersedesLawId": null,
+      "summary": "必须使每项生产事实、能力、合同、入口、registry、compiler、runner、report writer、生产路径和外部 surface 具有一个现役真相源及一个 primary Owner。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-002-V1",
       "tier": "P0"
     },
     {
@@ -1364,27 +4185,65 @@
       "capabilityDomain": "project-governance",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "static",
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.003.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.003.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-003-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.003.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.003.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.003.v2.static",
+          "checkId": "project.governance.003.v2.static.check",
+          "evidenceModes": [
+            "static.filesystem",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-003-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.003.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.003.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.003.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
       "evidenceModes": [
         "static.filesystem",
-        "static.contract"
+        "static.contract",
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得修改允许范围之外的路径或先写后补。",
-        "不得覆盖用户原有改动或为只读任务建立 runtime 事务。"
+        "不得顺手深化、扩域、重构、预留未来能力、修改允许范围之外的路径或先写后补",
+        "不得覆盖用户原有改动、篡改 baseline/change record 逃避检查或为只读任务建立 runtime 事务"
       ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-003-V1",
+      "lawId": "LAW-PROJECT-GOVERNANCE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 94,
-        "lineStart": 68,
+        "lineEnd": 982,
+        "lineStart": 955,
         "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "399f62f3c8efe2d22c390ab4f2b86c726a3ac5d03e62e21c97614a23b61dc486"
+        "sectionSha256": "485b62958bf7b4bdfc4651a2f19be1348c628682d1c300f06c91561a23e09791"
       },
       "status": "active",
-      "summary": "必须使 READ_ONLY 直接读取且零落盘，并使 CHANGE 在首次写入前只记录 baseSha、allowedWritePaths 和 allowedDeletePaths，并在结束时核对实际差异。",
-      "supersedesLawId": null,
+      "summary": "必须使 READ_ONLY 直接读取且零落盘，并使 CHANGE 在首次目标写入前记录真实 `baseSha`、允许写删路径及完整初始闭包，运行只读 entry，结束时核对 dirty target 与实际差异。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-003-V1",
       "tier": "P0"
     },
     {
@@ -1394,26 +4253,65 @@
       "capabilityDomain": "project-governance",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "static",
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.004.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.004.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-004-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.004.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.004.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.004.v2.static",
+          "checkId": "project.governance.004.v2.static.check",
+          "evidenceModes": [
+            "static.text",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-004-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.004.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.004.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.004.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
       "evidenceModes": [
         "static.text",
-        "static.contract"
+        "static.contract",
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得把阶段、MVP、preview、静态检查或部分证据冒充生产发布完成。"
+        "不得把阶段、MVP、preview、未来接入、默认关闭、人工晋级、待完善、临时壳、静态检查或部分证据冒充完整终态或生产发布完成",
+        "不得用任务拆分改变已经授权能力的完整交付分母"
       ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-004-V1",
+      "lawId": "LAW-PROJECT-GOVERNANCE-004-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 121,
-        "lineStart": 96,
+        "lineEnd": 1011,
+        "lineStart": 984,
         "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "be5ab0f41b251f1e1786ad91c7ec2539f0cb1986ce692835845d409958dd2d0e"
+        "sectionSha256": "3f0140a71fe517f34582b94dddae2f1b608c37e67cbbd0e79cf56171fd0afb21"
       },
       "status": "active",
-      "summary": "必须对 CHANGE、READY、RELEASE 分级裁决，并明确每一级已完成和未完成内容。",
-      "supersedesLawId": null,
+      "summary": "必须使 active 法案、施工图和规格直接描述完整生产终态，并对 CHANGE、READY、RELEASE 分级裁决且明确每一级已完成与未完成内容。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-004-V1",
       "tier": "P0"
     },
     {
@@ -1423,86 +4321,65 @@
       "capabilityDomain": "project-governance",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "static",
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.005.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.005.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-005-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.005.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.005.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.005.v2.static",
+          "checkId": "project.governance.005.v2.static.check",
+          "evidenceModes": [
+            "static.contract",
+            "static.config"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-005-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.005.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.005.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.005.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
       "evidenceModes": [
         "static.contract",
-        "static.config"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得形成两个长期真相源。",
-        "不得到期不删。",
-        "不得把迁移状态冒充最终终态。"
-      ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-005-V1",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 150,
-        "lineStart": 123,
-        "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "848fe0126fed497ad53faf7436f5f2a691af19d6b563b29702d1a4c94775b432"
-      },
-      "status": "active",
-      "summary": "必须使迁移桥、用于迁移的 feature flag、dual-read、dual-write、shadow traffic 或 adapter 具有 Owner、监控、期限、删除日期、回滚条件和删除验收。",
-      "supersedesLawId": null,
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "**/*"
-      ],
-      "capabilityDomain": "project-governance",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
-        "static.contract"
-      ],
-      "excludes": [],
-      "forbidden": [
-        "不得用错误证据类型、历史结果、fixture、mock、warning、coverage 或自然语言声明放行。"
-      ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-006-V1",
-      "schemaVersion": 2,
-      "source": {
-        "lineEnd": 176,
-        "lineStart": 152,
-        "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "ffee6dab7d4d60f185dec3aff85746fb3c1979d23c75baa84bec840b86ada417"
-      },
-      "status": "active",
-      "summary": "必须使 Static、Exam、Dynamic 只证明各自实际观察对象，并使 READY、RELEASE 的逐 lawId 报告绑定当前等级和候选。",
-      "supersedesLawId": null,
-      "tier": "P0"
-    },
-    {
-      "appliesTo": [
-        "**/*"
-      ],
-      "capabilityDomain": "project-governance",
-      "contractRefs": [],
-      "dependsOnLawIds": [],
-      "enforcementMode": "static",
-      "evidenceModes": [
         "static.config",
-        "static.json"
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得由普通任务自动改写权威。",
-        "不得让历史文件、旧报告或 retired law 取得当前主权。"
+        "不得形成两个长期真相源、复活旧入口、旧 runner、旧 generated 或旧 Owner mapping",
+        "不得到期不删，也不得把迁移状态冒充最终终态"
       ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-007-V1",
+      "lawId": "LAW-PROJECT-GOVERNANCE-005-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 204,
-        "lineStart": 178,
+        "lineEnd": 1040,
+        "lineStart": 1013,
         "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "666d2cb76eb67b74c9c39c011dc201d20964efdcb659302ab597dc8f67e30832"
+        "sectionSha256": "0355a28b600bb03383268954f67c70cc482dab826c86bc4ea02448c2694ec958"
       },
       "status": "active",
-      "summary": "必须以 freeze 保护说明书，以当前 hash 绑定法案和 registry，并使 AGENTS 符合本说明书、历史只用于追溯。",
-      "supersedesLawId": null,
+      "summary": "必须使迁移桥、用于迁移的 feature flag、dual-read、dual-write、shadow traffic 或 adapter 具有 Owner、监控、期限、删除日期、回滚条件和物理删除验收。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-005-V1",
       "tier": "P0"
     },
     {
@@ -1512,25 +4389,199 @@
       "capabilityDomain": "project-governance",
       "contractRefs": [],
       "dependsOnLawIds": [],
-      "enforcementMode": "static",
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.006.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.006.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-006-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.006.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.006.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.006.v2.static",
+          "checkId": "project.governance.006.v2.static.check",
+          "evidenceModes": [
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-006-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.006.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.006.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.006.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
       "evidenceModes": [
-        "static.contract"
+        "static.contract",
+        "exam.property"
       ],
       "excludes": [],
       "forbidden": [
-        "不得以 CHANGE、READY、旧候选证据或缺失外部证明的状态宣称 SYSTEM_PROVEN。"
+        "不得用 warning、partial、coverage、人工声明、历史结果、fixture、mock、错误证据类型或单一组件 PASS 放行整条法案",
+        "不得让 Static、Exam 或 Dynamic Proof 互相冒充，也不得在证据缺失、失败、过期或 candidate 漂移后继续放行"
       ],
-      "lawId": "LAW-PROJECT-GOVERNANCE-008-V1",
+      "lawId": "LAW-PROJECT-GOVERNANCE-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 230,
-        "lineStart": 206,
+        "lineEnd": 1068,
+        "lineStart": 1042,
         "path": ".github/instructions/agent-rules/基础法案.md",
-        "sectionSha256": "410023800bb20cdc08f41d16754ba47c5cbfe780130ed41d89077dfa2156933b"
+        "sectionSha256": "0ca66517846155c7f69d973ba9354834688bd67eb7c6a9140c28e921d2a0bb73"
       },
       "status": "active",
-      "summary": "必须使 RELEASE 绑定 candidateId、Git commit、法案与 registry hash、逐法条报告、适用 Dynamic Proof 和跨仓发布结果。",
-      "supersedesLawId": null,
+      "summary": "必须使每个 active lawId 绑定全部必需证据组件，使 Static、Exam、Dynamic 只证明各自对象，并使逐法条报告绑定当前等级和候选。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-006-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "project-governance",
+      "contractRefs": [],
+      "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.007.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.007.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-007-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.007.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.007.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.007.v2.static",
+          "checkId": "project.governance.007.v2.static.check",
+          "evidenceModes": [
+            "static.text",
+            "static.config",
+            "static.json"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-007-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.007.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.007.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.007.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.text",
+        "static.config",
+        "static.json",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得由普通任务自动改写说明书、AGENTS、freeze、active law 或工具链 pin",
+        "不得让历史文件、旧报告、retired law、旧 generated 或旧入口取得当前主权或成为当前质量输入"
+      ],
+      "lawId": "LAW-PROJECT-GOVERNANCE-007-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 1098,
+        "lineStart": 1070,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "c9ce2c229b5418f9e11bf8678dea5da9ec39cc6618a1aa0b22362290aa848de3"
+      },
+      "status": "active",
+      "summary": "必须以 freeze 仅绑定说明书及已启用派生物，以当前 source checks 验证 AGENTS、active law 与 registry，并使历史材料对当前执行分母零输入。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-007-V1",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        "**/*"
+      ],
+      "capabilityDomain": "project-governance",
+      "contractRefs": [],
+      "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "project.governance.008.v2.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "project.governance.008.v2.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|exam%3Agovernance-bindings|LAW-PROJECT-GOVERNANCE-008-V2|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "project.governance.008.v2.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|exam%3Agovernance-bindings|project.governance.008.v2.exam-property.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "project.governance.008.v2.static",
+          "checkId": "project.governance.008.v2.static.check",
+          "evidenceModes": [
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/project-governance/inspector.ts#inspectDomain|LAW-PROJECT-GOVERNANCE-008-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "project.governance.008.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aintegrity%3Atest|project.governance.008.v2.static"
+            }
+          ],
+          "targetSelectorId": "project.governance.008.v2.target"
+        }
+      },
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.contract",
+        "exam.property"
+      ],
+      "excludes": [],
+      "forbidden": [
+        "不得遗漏实现、合同、错误恢复、证据、generated projection、旧路径退休或跨仓参与者闭合",
+        "不得以 CHANGE、READY、旧候选证据、局部 Owner PASS 或缺失外部证明的状态宣称 `SYSTEM_PROVEN`"
+      ],
+      "lawId": "LAW-PROJECT-GOVERNANCE-008-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 1126,
+        "lineStart": 1100,
+        "path": ".github/instructions/agent-rules/基础法案.md",
+        "sectionSha256": "79c7f88ba16c44407ad13a98ed475bdfc100521b42c6b90d405a90093e3753f8"
+      },
+      "status": "active",
+      "summary": "必须使任务完整闭合，使唯一逐法报告绑定 RELEASE candidateId 与全部 required evidence，并使唯一 proof package 绑定 Git commit、法案、registry、报告、Dynamic Proof 及 required 跨仓结果。",
+      "supersedesLawId": "LAW-PROJECT-GOVERNANCE-008-V1",
       "tier": "P0"
     },
     {
@@ -1540,6 +4591,43 @@
       "capabilityDomain": "runtime-log-spine",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "runtime.log.spine.001.v3.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "runtime.log.spine.001.v3.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aruntime-log-spine|LAW-RUNTIME-LOG-SPINE-001-V3|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "runtime.log.spine.001.v3.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aruntime-log-spine|runtime.log.spine.001.v3.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "runtime.log.spine.001.v3.static",
+          "checkId": "runtime.log.spine.001.v3.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/runtime-log-spine/inspector.ts#inspectDomain|LAW-RUNTIME-LOG-SPINE-001-V3",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "runtime.log.spine.001.v3.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aruntime-log-spine%3Aenforce|runtime.log.spine.001.v3.static"
+            }
+          ],
+          "targetSelectorId": "runtime.log.spine.001.v3.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1558,8 +4646,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1005,
-        "lineStart": 974,
+        "lineEnd": 857,
+        "lineStart": 826,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "8747614fa256230bffd554727a2b558fa83490ffe5aa98ed3d93068cd19a5d09"
       },
@@ -1575,6 +4663,43 @@
       "capabilityDomain": "runtime-log-spine",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "runtime.log.spine.002.v2.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "runtime.log.spine.002.v2.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aruntime-log-spine|LAW-RUNTIME-LOG-SPINE-002-V2|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "runtime.log.spine.002.v2.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aruntime-log-spine|runtime.log.spine.002.v2.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "runtime.log.spine.002.v2.static",
+          "checkId": "runtime.log.spine.002.v2.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/runtime-log-spine/inspector.ts#inspectDomain|LAW-RUNTIME-LOG-SPINE-002-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "runtime.log.spine.002.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aruntime-log-spine%3Aenforce|runtime.log.spine.002.v2.static"
+            }
+          ],
+          "targetSelectorId": "runtime.log.spine.002.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1588,8 +4713,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1033,
-        "lineStart": 1007,
+        "lineEnd": 885,
+        "lineStart": 859,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e3186e69c9f950663e5ea32d672691475d6af62399654f9410e902683b1a6878"
       },
@@ -1605,6 +4730,43 @@
       "capabilityDomain": "runtime-log-spine",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "runtime.log.spine.003.v2.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "runtime.log.spine.003.v2.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aruntime-log-spine|LAW-RUNTIME-LOG-SPINE-003-V2|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "runtime.log.spine.003.v2.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aruntime-log-spine|runtime.log.spine.003.v2.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "runtime.log.spine.003.v2.static",
+          "checkId": "runtime.log.spine.003.v2.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/runtime-log-spine/inspector.ts#inspectDomain|LAW-RUNTIME-LOG-SPINE-003-V2",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "runtime.log.spine.003.v2.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aruntime-log-spine%3Aenforce|runtime.log.spine.003.v2.static"
+            }
+          ],
+          "targetSelectorId": "runtime.log.spine.003.v2.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1618,8 +4780,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1061,
-        "lineStart": 1035,
+        "lineEnd": 913,
+        "lineStart": 887,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d21d700896cbc87150efee1567319160be95b38ae59123a849034f58be23ed6d"
       },
@@ -1635,6 +4797,59 @@
       "capabilityDomain": "startup-entrypoint",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "startup.entrypoint.001.v4.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "startup.entrypoint.001.v4.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Astartup-entrypoint|LAW-STARTUP-ENTRYPOINT-001-V4|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "startup.entrypoint.001.v4.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Astartup-entrypoint|startup.entrypoint.001.v4.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [
+          {
+            "bindingId": "startup.entrypoint.001.v4.dynamic-service.proof",
+            "evidenceModes": [
+              "dynamic.service"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "startup.entrypoint.001.v4.dynamic-service.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|startup.entrypoint.001.v4.dynamic-service.proof"
+              }
+            ],
+            "proofId": "startup.entrypoint.001.v4.dynamic-service",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-STARTUP-ENTRYPOINT-001-V4|dynamic.service"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "startup.entrypoint.001.v4.static",
+          "checkId": "startup.entrypoint.001.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/startup-entrypoint/inspector.ts#inspectDomain|LAW-STARTUP-ENTRYPOINT-001-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "startup.entrypoint.001.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Astartup-entrypoint%3Aenforce|startup.entrypoint.001.v4.static"
+            }
+          ],
+          "targetSelectorId": "startup.entrypoint.001.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1660,8 +4875,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1103,
-        "lineStart": 1065,
+        "lineEnd": 955,
+        "lineStart": 917,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "4a7e6227af49c8e83bbd14f5303af6e5f02c8e61940c6673618597ead0a7c898"
       },
@@ -1677,9 +4892,62 @@
       "capabilityDomain": "startup-entrypoint",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-PROJECT-GOVERNANCE-002-V1",
+        "LAW-PROJECT-GOVERNANCE-002-V2",
         "LAW-STARTUP-ENTRYPOINT-001-V4"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "startup.entrypoint.002.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "startup.entrypoint.002.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Astartup-entrypoint|LAW-STARTUP-ENTRYPOINT-002-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "startup.entrypoint.002.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Astartup-entrypoint|startup.entrypoint.002.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [
+          {
+            "bindingId": "startup.entrypoint.002.v1.dynamic-service.proof",
+            "evidenceModes": [
+              "dynamic.service"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "startup.entrypoint.002.v1.dynamic-service.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|startup.entrypoint.002.v1.dynamic-service.proof"
+              }
+            ],
+            "proofId": "startup.entrypoint.002.v1.dynamic-service",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-STARTUP-ENTRYPOINT-002-V1|dynamic.service"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "startup.entrypoint.002.v1.static",
+          "checkId": "startup.entrypoint.002.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/startup-entrypoint/inspector.ts#inspectDomain|LAW-STARTUP-ENTRYPOINT-002-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "startup.entrypoint.002.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Astartup-entrypoint%3Aenforce|startup.entrypoint.002.v1.static"
+            }
+          ],
+          "targetSelectorId": "startup.entrypoint.002.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1698,10 +4966,10 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1139,
-        "lineStart": 1105,
+        "lineEnd": 991,
+        "lineStart": 957,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "cfbffa2c63d58501bd83661358b01f8997afa5f60d363ea666c0f6c4296a95fb"
+        "sectionSha256": "b926e0b7731e9df2c022903af5657301b3a21bf3b044505f1071675af0ce04b2"
       },
       "status": "active",
       "summary": "必须使 grasseye:start 仅加载本仓唯一 .env.local、预检 Browser artifact、建立 4173 Shell 并安全清理本仓 listener；本地联调只用 isolated-test，依赖失败保留 Shell 且阻断 execution/claim。",
@@ -1719,6 +4987,46 @@
         "LAW-ARCHITECTURE-BOUNDARY-001-V1",
         "LAW-RUNTIME-LOG-SPINE-001-V3"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "system.security.001.v1.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "system.security.001.v1.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Asystem-security|LAW-SYSTEM-SECURITY-001-V1|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "system.security.001.v1.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Asystem-security|system.security.001.v1.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "system.security.001.v1.static",
+          "checkId": "system.security.001.v1.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.types",
+            "static.contract",
+            "static.dependency",
+            "static.config"
+          ],
+          "inspectorRef": "scripts/audit/domains/system-security/inspector.ts#inspectDomain|LAW-SYSTEM-SECURITY-001-V1",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "system.security.001.v1.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem-security%3Aenforce|system.security.001.v1.static"
+            }
+          ],
+          "targetSelectorId": "system.security.001.v1.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1740,8 +5048,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1181,
-        "lineStart": 1143,
+        "lineEnd": 1033,
+        "lineStart": 995,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d783b2ff0e78d49129a6ba0bc5e40f53e3f33cb92beaaeffa5722d7d43fc0575"
       },
@@ -1757,6 +5065,43 @@
       "capabilityDomain": "workbench-api-boundary",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [],
+        "proofBindings": [
+          {
+            "bindingId": "workbench.api.boundary.001.v4.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "workbench.api.boundary.001.v4.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|workbench.api.boundary.001.v4.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "workbench.api.boundary.001.v4.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-WORKBENCH-API-BOUNDARY-001-V4|dynamic.browser"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "workbench.api.boundary.001.v4.static",
+          "checkId": "workbench.api.boundary.001.v4.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/workbench-api-boundary/inspector.ts#inspectDomain|LAW-WORKBENCH-API-BOUNDARY-001-V4",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "workbench.api.boundary.001.v4.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aworkbench-api-boundary%3Aenforce|workbench.api.boundary.001.v4.static"
+            }
+          ],
+          "targetSelectorId": "workbench.api.boundary.001.v4.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1776,8 +5121,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1217,
-        "lineStart": 1185,
+        "lineEnd": 1069,
+        "lineStart": 1037,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "5c5c4c64d1c81c6c3856be6b9eabe91e08cb5b742296429babf37abfc051d825"
       },
@@ -1812,6 +5157,164 @@
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-STARTUP-ENTRYPOINT-001-V4"
       ],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "xuanxue.ai.production.001.v7.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-golden.exam"
+              }
+            ]
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.exam-property.exam",
+            "evidenceModes": [
+              "exam.property"
+            ],
+            "examId": "xuanxue.ai.production.001.v7.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.property",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-property.exam"
+              }
+            ]
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.exam-state-machine.exam",
+            "evidenceModes": [
+              "exam.state-machine"
+            ],
+            "examId": "xuanxue.ai.production.001.v7.exam-state-machine",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production|LAW-XUANXUE-AI-PRODUCTION-001-V7|exam.state-machine",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.exam-state-machine.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production|xuanxue.ai.production.001.v7.exam-state-machine.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof",
+            "evidenceModes": [
+              "dynamic.authorization"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-authorization.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-authorization.proof"
+              }
+            ],
+            "proofId": "xuanxue.ai.production.001.v7.dynamic-authorization",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.authorization"
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.dynamic-browser.proof",
+            "evidenceModes": [
+              "dynamic.browser"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-browser.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-browser.proof"
+              }
+            ],
+            "proofId": "xuanxue.ai.production.001.v7.dynamic-browser",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.browser"
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.dynamic-performance.proof",
+            "evidenceModes": [
+              "dynamic.performance"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-performance.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-performance.proof"
+              }
+            ],
+            "proofId": "xuanxue.ai.production.001.v7.dynamic-performance",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.performance"
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.dynamic-provider.proof",
+            "evidenceModes": [
+              "dynamic.provider"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-provider.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-provider.proof"
+              }
+            ],
+            "proofId": "xuanxue.ai.production.001.v7.dynamic-provider",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.provider"
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof",
+            "evidenceModes": [
+              "dynamic.recovery"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-recovery.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-recovery.proof"
+              }
+            ],
+            "proofId": "xuanxue.ai.production.001.v7.dynamic-recovery",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.recovery"
+          },
+          {
+            "bindingId": "xuanxue.ai.production.001.v7.dynamic-service.proof",
+            "evidenceModes": [
+              "dynamic.service"
+            ],
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.001.v7.dynamic-service.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|xuanxue.ai.production.001.v7.dynamic-service.proof"
+              }
+            ],
+            "proofId": "xuanxue.ai.production.001.v7.dynamic-service",
+            "proofRef": "scripts/audit/governance-quality.ts#releaseDynamicProofs|LAW-XUANXUE-AI-PRODUCTION-001-V7|dynamic.service"
+          }
+        ],
+        "staticBinding": {
+          "bindingId": "xuanxue.ai.production.001.v7.static",
+          "checkId": "xuanxue.ai.production.001.v7.static.check",
+          "evidenceModes": [
+            "static.ast",
+            "static.contract"
+          ],
+          "inspectorRef": "scripts/audit/domains/xuanxue-ai-production/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-001-V7",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "xuanxue.ai.production.001.v7.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production%3Aenforce|xuanxue.ai.production.001.v7.static"
+            }
+          ],
+          "targetSelectorId": "xuanxue.ai.production.001.v7.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1848,8 +5351,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1276,
-        "lineStart": 1221,
+        "lineEnd": 1128,
+        "lineStart": 1073,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "be0a8c925a4f2fc26ab93a712e5254c2f50eb839aed633571e76c9f43f719ca6"
       },
@@ -1865,6 +5368,42 @@
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
       "contractRefs": [],
       "dependsOnLawIds": [],
+      "enforcement": {
+        "examBindings": [
+          {
+            "bindingId": "xuanxue.ai.production.localization.contract.001.v3.exam-golden.exam",
+            "evidenceModes": [
+              "exam.golden"
+            ],
+            "examId": "xuanxue.ai.production.localization.contract.001.v3.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production-localization-contract|LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3|exam.golden",
+            "negativeCases": [
+              {
+                "expectedCode": "COMPONENT_FAILED",
+                "negativeCaseId": "xuanxue.ai.production.localization.contract.001.v3.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production-localization-contract|xuanxue.ai.production.localization.contract.001.v3.exam-golden.exam"
+              }
+            ]
+          }
+        ],
+        "proofBindings": [],
+        "staticBinding": {
+          "bindingId": "xuanxue.ai.production.localization.contract.001.v3.static",
+          "checkId": "xuanxue.ai.production.localization.contract.001.v3.static.check",
+          "evidenceModes": [
+            "static.ast"
+          ],
+          "inspectorRef": "scripts/audit/domains/xuanxue-ai-production-localization-contract/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
+          "negativeCases": [
+            {
+              "expectedCode": "COMPONENT_FAILED",
+              "negativeCaseId": "xuanxue.ai.production.localization.contract.001.v3.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production-localization-contract%3Aenforce|xuanxue.ai.production.localization.contract.001.v3.static"
+            }
+          ],
+          "targetSelectorId": "xuanxue.ai.production.localization.contract.001.v3.target"
+        }
+      },
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
@@ -1877,8 +5416,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1305,
-        "lineStart": 1280,
+        "lineEnd": 1157,
+        "lineStart": 1132,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "7fd8b840e4f38b799720c66dedb1826204137aa5296aefb38d2aab57f79b3736"
       },
@@ -1888,9 +5427,9 @@
       "tier": "P0"
     }
   ],
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "sourceSpec": {
     "path": "docs/governance/法案系统建设说明书-冻结定稿版.md",
-    "sha256": "88366961abc3ee4ac74b41ab29deca9347cd18112bcdc5b5806f4fe627ee8d90"
+    "sha256": "e6ad66d8f67cd3a72db0428a31984677d33207cc841d17b5ba34c0f9ac57f563"
   }
 }

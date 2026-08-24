@@ -16,8 +16,14 @@ type Law = {
   capabilityDomain: string; enforcementMode: 'static'|'exam'|'dynamic'|'composite'; evidenceModes: string[];
   summary: string; appliesTo: string[]; excludes: string[]; forbidden: string[]; dependsOnLawIds: string[];
   source: { path: string; lineStart: number; lineEnd: number; sectionSha256: string }; contractRefs: {path:string;sha256:string}[];
+  enforcement: LawBindings | null;
 };
-type Manifest = { schemaVersion:3; capabilityDomain:string; status:'active'; lawIds:string[]; ownedPaths:string[]; observedPaths:string[]; manifestPath:string };
+type NegativeCase = { negativeCaseId:string; negativeCaseRef:string; expectedCode:string };
+type StaticBinding = { bindingId:string; checkId:string; inspectorRef:string; targetSelectorId:string; evidenceModes:string[]; negativeCases:NegativeCase[] };
+type ExamBinding = { bindingId:string; examId:string; examRef:string; evidenceModes:string[]; negativeCases:NegativeCase[] };
+type ProofBinding = { bindingId:string; proofId:string; proofRef:string; evidenceModes:string[]; negativeCases:NegativeCase[] };
+type LawBindings = { staticBinding:StaticBinding|null; examBindings:ExamBinding[]; proofBindings:ProofBinding[] };
+type Manifest = { schemaVersion:4; capabilityDomain:string; status:'active'; lawIds:string[]; lawBindings:Record<string,LawBindings>; ownedPaths:string[]; observedPaths:string[]; manifestPath:string };
 
 const SPEC = 'docs/governance/法案系统建设说明书-冻结定稿版.md';
 const FREEZE = 'docs/governance/GOVERNANCE-FREEZE.json';
@@ -26,9 +32,14 @@ const FUNCTIONAL = '.github/instructions/agent-rules/功能法案.md';
 const REGISTRY = 'scripts/audit/generated/law-registry.generated.json';
 const CHANGE = '.governance/runtime/change.json';
 const REPORT = 'scripts/audit/reports/law-quality.report.json';
-const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不落盘、不加锁、不建立 runtime 任务事务。\n2. CHANGE 首次写入前运行 \`governance:entry\`，只记录 baseSha、allowedWritePaths 和 allowedDeletePaths。\n3. 修改不得超出 change record；扩大范围必须先更新同一 record。\n4. READY 不等于 RELEASE；不得以静态检查、普通测试或部分证据冒充生产发布。\n5. RELEASE 才绑定完整 candidateId，并执行发布适用的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. active law 只在明确人类授权下修改。\n9. 任一 finding、候选漂移、错误证据类型或伪 PASS 必须失败关闭。\n`;
+const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不落盘、不加锁、不建立 runtime 任务事务。\n2. CHANGE 首次目标写入前只建立三字段 change record，并运行只读 \`governance:entry\`。\n3. 修改不得超出 change record；扩大范围必须先更新同一 record。\n4. READY 不等于 RELEASE；不得以静态检查、普通测试或部分证据冒充生产发布。\n5. RELEASE 才绑定完整 candidateId，并执行全部 active law 声明的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. active law 只在明确人类授权下修改。\n9. 任一 finding、候选漂移、错误证据类型或伪 PASS 必须失败关闭。\n`;
 const LAW_KEYS = ['appliesTo','capabilityDomain','dependsOnLawIds','enforcementMode','evidenceModes','excludes','forbidden','lawId','schemaVersion','status','summary','supersedesLawId','tier'];
-const MANIFEST_KEYS = ['capabilityDomain','lawIds','observedPaths','ownedPaths','schemaVersion','status'];
+const MANIFEST_KEYS = ['capabilityDomain','lawBindings','lawIds','observedPaths','ownedPaths','schemaVersion','status'];
+const LAW_BINDING_KEYS = ['examBindings','proofBindings','staticBinding'];
+const STATIC_BINDING_KEYS = ['bindingId','checkId','evidenceModes','inspectorRef','negativeCases','targetSelectorId'];
+const EXAM_BINDING_KEYS = ['bindingId','evidenceModes','examId','examRef','negativeCases'];
+const PROOF_BINDING_KEYS = ['bindingId','evidenceModes','negativeCases','proofId','proofRef'];
+const NEGATIVE_CASE_KEYS = ['expectedCode','negativeCaseId','negativeCaseRef'];
 const BLUEPRINT_KEYS = ['blueprintId','contractRefs','dependencyEdges','lawIds','owner','prohibitedDependencyEdges','schemaVersion','status'];
 const SPEC_KEYS = ['contract','lawIds','owner','schemaVersion','specId','specKind','status','version'];
 const EVIDENCE = ['static.filesystem','static.text','static.ast','static.types','static.contract','static.dependency','static.config','static.json','static.yaml','static.sql','static.migration','exam.golden','exam.property','exam.state-machine','dynamic.browser','dynamic.service','dynamic.database','dynamic.storage','dynamic.provider','dynamic.authorization','dynamic.recovery','dynamic.performance'];
@@ -36,16 +47,23 @@ const PUBLIC_SCRIPTS = ['governance:entry','governance:scope:check','audit:build
 const CI_FULL_COMMAND = 'GRASSEYE_QUALITY_REPORT_MODE=external npm run quality:check -- READY';
 const LAW_ID_PATTERN = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;
 const DOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+const SPEC_SHA256 = 'e6ad66d8f67cd3a72db0428a31984677d33207cc841d17b5ba34c0f9ac57f563';
 
-type FreezeRecord={schemaVersion:number;status:string;specPath:string;specSha256:string;freezeVersion:string;amendmentAuthority:string;derivatives:{pdf:{enabled:boolean;path:string;sourceSha256:string;fileSha256:string}}};
+type FreezeRecord={schemaVersion:number;status:string;specPath:string;specSha256:string;freezeVersion:string;amendmentAuthority:string;derivatives:{pdf:{enabled:boolean;path:string|null;sourceSha256:string|null;fileSha256:string|null}}};
+type PdfDerivative=FreezeRecord['derivatives']['pdf'];
+function verifyPdfDerivative(freeze:FreezeRecord,pdf:PdfDerivative|undefined){
+  const derivative=pdf??fail('FREEZE_HASH_MISMATCH','pdf fields');
+  if(!exactKeys(derivative,['enabled','path','sourceSha256','fileSha256'])) fail('FREEZE_HASH_MISMATCH','pdf fields');
+  if(typeof derivative.enabled!=='boolean') fail('FREEZE_HASH_MISMATCH','pdf enabled');
+  if(!derivative.enabled){if(derivative.path!==null||derivative.sourceSha256!==null||derivative.fileSha256!==null)fail('FREEZE_HASH_MISMATCH','disabled pdf fields');return}
+  if(typeof derivative.path!=='string'||typeof derivative.sourceSha256!=='string'||typeof derivative.fileSha256!=='string'||derivative.sourceSha256!==freeze.specSha256||sha(bytes(derivative.path))!==derivative.fileSha256) fail('FREEZE_HASH_MISMATCH','pdf hash');
+}
 function verifyFreeze(){
   const freeze=parseJson<FreezeRecord>(FREEZE);
   if(!exactKeys(freeze,['schemaVersion','status','specPath','specSha256','freezeVersion','amendmentAuthority','derivatives'])) fail('FREEZE_HASH_MISMATCH','freeze fields');
-  if(freeze.schemaVersion!==2||freeze.status!=='SPEC_FROZEN'||freeze.specPath!==SPEC||freeze.freezeVersion!=='FROZEN-FINAL-V3.2'||freeze.amendmentAuthority!=='explicit-human-only') fail('FREEZE_HASH_MISMATCH','freeze values');
+  if(freeze.schemaVersion!==2||freeze.status!=='SPEC_FROZEN'||freeze.specPath!==SPEC||freeze.specSha256!==SPEC_SHA256||freeze.freezeVersion!=='FROZEN-FINAL-V3.3'||freeze.amendmentAuthority!=='explicit-human-only') fail('FREEZE_HASH_MISMATCH','freeze values');
   if(sha(bytes(SPEC))!==freeze.specSha256) fail('FREEZE_HASH_MISMATCH','spec hash');
-  const pdf=freeze.derivatives?.pdf;
-  if(!pdf||!exactKeys(pdf,['enabled','path','sourceSha256','fileSha256'])) fail('FREEZE_HASH_MISMATCH','pdf fields');
-  if(pdf.enabled && (pdf.sourceSha256!==freeze.specSha256||typeof pdf.path!=='string'||sha(bytes(pdf.path))!==pdf.fileSha256)) fail('FREEZE_HASH_MISMATCH','pdf hash');
+  verifyPdfDerivative(freeze,freeze.derivatives?.pdf);
 }
 function verifyAgents(){ if(text('AGENTS.md')!==AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH','AGENTS.md'); }
 function verifyCommands(){
@@ -53,7 +71,7 @@ function verifyCommands(){
   for(const name of PUBLIC_SCRIPTS) if(typeof scripts[name]!=='string') fail('ENTRY_CONTRACT_MISMATCH',`missing ${name}`);
   const old=Object.keys(scripts).filter((name)=>name.startsWith('governance:')&&!PUBLIC_SCRIPTS.includes(name));
   if(old.length) fail('ENTRY_CONTRACT_MISMATCH',`retired commands: ${old.join(',')}`);
-  if(scripts['ci:full']!==CI_FULL_COMMAND||scripts['quality:check']!=='node --import tsx scripts/audit/governance-v32.ts quality') fail('ENTRY_CONTRACT_MISMATCH','canonical quality command');
+  if(scripts['ci:full']!==CI_FULL_COMMAND||scripts['quality:check']!=='node --import tsx scripts/audit/governance.ts quality') fail('ENTRY_CONTRACT_MISMATCH','canonical quality command');
   const extraQuality=Object.keys(scripts).filter((name)=>/quality|verdict/iu.test(name)&&!['ci:full','quality:check'].includes(name));
   if(extraQuality.length)fail('ENTRY_CONTRACT_MISMATCH',`second quality command: ${extraQuality.sort().join(',')}`);
 }
@@ -95,12 +113,17 @@ const validateLawContent=(raw:Law):void=>{
 const readLawRecord=(lines:string[],start:number,path:string,heading:LawHeading,domain:string):{law:Law;end:number;version:LawVersion}=>{
   let end=start;while(end<lines.length&&lines[end]!=='```')end++;if(end>=lines.length)fail('SOURCE_PARSE_FAILED',`${path}:unclosed`);
   const raw=parseLawJson(lines.slice(start,end).join('\n'),`${path}:${start+1}`);validateLawSchema(raw,heading,domain,path);const version=validateLawVersion(raw,domain);validateLawEvidence(raw);validateLawPaths(raw);validateLawContent(raw);
-  const section=lines.slice(heading.line-1,end+1).join('\n')+'\n';return{law:{...raw,source:{path,lineStart:heading.line,lineEnd:end+1,sectionSha256:sha(section)},contractRefs:[]},end,version};
+  const section=lines.slice(heading.line-1,end+1).join('\n')+'\n';return{law:{...raw,source:{path,lineStart:heading.line,lineEnd:end+1,sectionSha256:sha(section)},contractRefs:[],enforcement:null},end,version};
 };
 const validDomainTransition=(type:'base-law'|'functional-law',heading:LawHeading|null,previousDomain:string,next:string):boolean=>DOMAIN_PATTERN.test(next)&&!heading&&(type==='base-law'||!previousDomain||Buffer.compare(Buffer.from(previousDomain),Buffer.from(next))<0);
 const orphanLawFence=(line:string):boolean=>line.startsWith('```')||/^\s+```/u.test(line);
 const lawVersionOutOfOrder=(type:'base-law'|'functional-law',previous:LawVersion|null,next:LawVersion):boolean=>type==='functional-law'&&Boolean(previous)&&(previous!.key>next.key||(previous!.key===next.key&&previous!.major>=next.major));
-const validBaseRootLaws=(laws:Law[]):boolean=>laws.length===8&&laws.every((law,index)=>law.lawId===`LAW-PROJECT-GOVERNANCE-00${index+1}-V1`&&law.capabilityDomain==='project-governance');
+const requiredBaseLawIds = [
+  ...Array.from({length:8},(_,index)=>`LAW-PROJECT-GOVERNANCE-00${index+1}-V2`),
+  ...Array.from({length:8},(_,index)=>`LAW-LAW-SYSTEM-00${index+1}-V1`),
+  ...Array.from({length:14},(_,index)=>`LAW-AUDIT-SYSTEM-${String(index+1).padStart(3,'0')}-V2`),
+].sort();
+const validBaseRootLaws=(laws:Law[]):boolean=>requiredBaseLawIds.every((lawId)=>laws.some((law)=>law.lawId===lawId));
 const corpusLines=(path:string,type:'base-law'|'functional-law'):string[]=>{frontMatter(path,type,type==='base-law'?100:90);const source=text(path);if(source.includes('\r')||path!==path.normalize('NFC'))fail('SOURCE_PARSE_FAILED',`${path} encoding`);return source.split('\n')};
 type CorpusState={domain:string;previousDomain:string;heading:LawHeading|null;previousLaw:LawVersion|null;laws:Law[]};
 const consumeDomainHeading=(state:CorpusState,line:string,type:'base-law'|'functional-law',path:string,lineNumber:number):boolean=>{
@@ -131,13 +154,67 @@ function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
 }
 function loadLaws(){ const laws=[...parseCorpus(BASE,'base-law'),...parseCorpus(FUNCTIONAL,'functional-law')].sort((a,b)=>a.lawId.localeCompare(b.lawId)); const ids=new Set<string>(); for(const law of laws){if(ids.has(law.lawId))fail('SOURCE_PARSE_FAILED',`duplicate ${law.lawId}`);ids.add(law.lawId)} for(const law of laws)for(const dep of law.dependsOnLawIds){if(dep===law.lawId)fail('SOURCE_PARSE_FAILED',`${law.lawId} self dependency`);if(!ids.has(dep))fail('SOURCE_PARSE_FAILED',`${law.lawId} missing ${dep}`)}const byId=new Map(laws.map((law)=>[law.lawId,law]));const visiting=new Set<string>();const visited=new Set<string>();const visit=(lawId:string)=>{if(visiting.has(lawId))fail('SOURCE_PARSE_FAILED',`dependency cycle ${lawId}`);if(visited.has(lawId))return;visiting.add(lawId);for(const dep of byId.get(lawId)?.dependsOnLawIds??[])visit(dep);visiting.delete(lawId);visited.add(lawId)};for(const law of laws)visit(law.lawId);return laws; }
 type RawManifest=Omit<Manifest,'manifestPath'>;
-const validateManifest=(raw:RawManifest,rel:string,domain:string,laws:Law[]):Manifest=>{
-  if(!exactKeys(raw as Record<string,unknown>,MANIFEST_KEYS)||raw.schemaVersion!==3||raw.status!=='active'||raw.capabilityDomain!==domain||!DOMAIN_PATTERN.test(domain))fail('SOURCE_PARSE_FAILED',`${rel} schema`);
+const validManifestHeader=(raw:RawManifest,domain:string):boolean=>exactKeys(raw as Record<string,unknown>,MANIFEST_KEYS)&&raw.schemaVersion===4&&raw.status==='active'&&raw.capabilityDomain===domain&&DOMAIN_PATTERN.test(domain)&&Boolean(raw.lawBindings)&&typeof raw.lawBindings==='object'&&!Array.isArray(raw.lawBindings);
+const validateManifestLists=(raw:RawManifest,rel:string):void=>{
   for(const key of ['lawIds','ownedPaths','observedPaths'] as const){const values=raw[key];if(!isStringArray(values)||!sortedUnique(values)||values.some((value)=>!cleanString(value)))fail('SOURCE_PARSE_FAILED',`${rel} ${key}`)}
   for(const pattern of [...raw.ownedPaths,...raw.observedPaths])if(!pathPatternValid(pattern)||pattern==='**/*')fail('SOURCE_PARSE_FAILED',`${rel} path grammar`);
   if(raw.ownedPaths.some((owned)=>raw.observedPaths.includes(owned)))fail('SOURCE_PARSE_FAILED',`${rel} owned/observed overlap`);
+};
+const validateManifest=(raw:RawManifest,rel:string,domain:string,laws:Law[]):Manifest=>{
+  if(!validManifestHeader(raw,domain))fail('SOURCE_PARSE_FAILED',`${rel} schema`);validateManifestLists(raw,rel);
   const expected=laws.filter((law)=>law.capabilityDomain===domain).map((law)=>law.lawId).sort();if(JSON.stringify(raw.lawIds)!==JSON.stringify(expected)||!expected.length)fail('SOURCE_PARSE_FAILED',`${rel} lawIds`);
   return{...raw,manifestPath:rel};
+};
+const orderedEvidenceModes=(modes:string[]):boolean=>JSON.stringify(modes)===JSON.stringify(EVIDENCE.filter((mode)=>modes.includes(mode)));
+const validateRef=(ref:string,code:string):void=>{
+  const match=ref.match(/^([^#]+)#([A-Za-z_$][A-Za-z0-9_$]*)(?:\|[^\n]+)*$/u);
+  if(!match||!pathPatternValid(match[1]!)||!existsSync(resolve(ROOT,match[1]!)))fail(code,ref);
+  const validMatch=match!;const source=text(validMatch[1]!);const name=validMatch[2]!.replace(/[.*+?^${}()|[\]\\]/gu,'\\$&');
+  if(!new RegExp(`export\\s+(?:async\\s+)?(?:function|const|class)\\s+${name}\\b`,'u').test(source))fail(code,ref);
+};
+const validateNegativeCases=(cases:NegativeCase[],bindingId:string):void=>{
+  if(!Array.isArray(cases)||!cases.length)return fail('NEGATIVE_CASE_MISSING',bindingId);
+  const keys:string[]=[];
+  for(const item of cases){
+    if(!item||!exactKeys(item as Record<string,unknown>,NEGATIVE_CASE_KEYS)||!cleanString(item.negativeCaseId)||!cleanString(item.negativeCaseRef)||!cleanString(item.expectedCode)||!/^[A-Z][A-Z0-9_]*$/u.test(item.expectedCode))fail('NEGATIVE_CASE_MISSING',bindingId);
+    validateRef(item.negativeCaseRef,'NEGATIVE_CASE_REF_MISSING');keys.push(item.negativeCaseId);
+  }
+  if(!sortedUnique(keys))fail('NEGATIVE_CASE_MISSING',bindingId);
+};
+const validateStaticBinding=(binding:StaticBinding|null,law:Law):void=>{
+  const expected=law.evidenceModes.filter((mode)=>mode.startsWith('static.'));
+  if(!expected.length){if(binding!==null)fail('UNDECLARED_EVIDENCE_BINDING',law.lawId);return}
+  if(!binding||!exactKeys(binding as Record<string,unknown>,STATIC_BINDING_KEYS))return fail('LAW_BINDING_MISSING',law.lawId);
+  if(!cleanString(binding.bindingId)||!cleanString(binding.checkId)||!cleanString(binding.inspectorRef)||!cleanString(binding.targetSelectorId)||!isStringArray(binding.evidenceModes)||!orderedEvidenceModes(binding.evidenceModes)||JSON.stringify(binding.evidenceModes)!==JSON.stringify(expected))fail('EVIDENCE_MODE_UNBOUND',law.lawId);
+  validateRef(binding.inspectorRef,'INSPECTOR_MISSING');validateNegativeCases(binding.negativeCases,binding.bindingId);
+};
+const evidenceBindingParts=(binding:ExamBinding|ProofBinding,kind:'exam'|'dynamic'):{identity:string;ref:string;keys:string[]}=>kind==='exam'
+  ?{identity:(binding as ExamBinding).examId,ref:(binding as ExamBinding).examRef,keys:EXAM_BINDING_KEYS}
+  :{identity:(binding as ProofBinding).proofId,ref:(binding as ProofBinding).proofRef,keys:PROOF_BINDING_KEYS};
+const validateEvidenceBinding=(binding:ExamBinding|ProofBinding,law:Law,kind:'exam'|'dynamic'):{bindingId:string;modes:string[]}=>{
+  const parts=evidenceBindingParts(binding,kind);
+  if(!binding||!exactKeys(binding as Record<string,unknown>,parts.keys))fail('LAW_BINDING_MISSING',law.lawId);
+  if(!cleanString(binding.bindingId)||!cleanString(parts.identity)||!cleanString(parts.ref)||!isStringArray(binding.evidenceModes)||!binding.evidenceModes.length||!orderedEvidenceModes(binding.evidenceModes))fail('EVIDENCE_MODE_UNBOUND',law.lawId);
+  validateRef(parts.ref,'EXECUTOR_REF_MISSING');validateNegativeCases(binding.negativeCases,binding.bindingId);
+  return{bindingId:binding.bindingId,modes:binding.evidenceModes};
+};
+const validateEvidenceBindings=(bindings:(ExamBinding|ProofBinding)[],law:Law,kind:'exam'|'dynamic'):void=>{
+  if(!Array.isArray(bindings))fail('LAW_BINDING_MISSING',law.lawId);
+  const expected=law.evidenceModes.filter((mode)=>mode.startsWith(`${kind}.`));const actual:string[]=[];const bindingIds:string[]=[];
+  for(const binding of bindings){const result=validateEvidenceBinding(binding,law,kind);actual.push(...result.modes);bindingIds.push(result.bindingId)}
+  const orderedActual=EVIDENCE.filter((mode)=>actual.includes(mode));
+  if(!sortedUnique(bindingIds)||actual.length!==new Set(actual).size||JSON.stringify(orderedActual)!==JSON.stringify(expected))fail(actual.some((mode)=>!expected.includes(mode))?'UNDECLARED_EVIDENCE_BINDING':'EVIDENCE_MODE_UNBOUND',law.lawId);
+};
+const addUnique=(seen:Set<string>,value:string,code:string):void=>{if(seen.has(value))fail(code,value);seen.add(value)};
+const validateManifestBindings=(manifests:Manifest[],laws:Law[]):void=>{
+  const lawById=new Map(laws.map((law)=>[law.lawId,law]));const identities=new Set<string>();const refs=new Set<string>();const negativeIds=new Set<string>();const negativeRefs=new Set<string>();
+  for(const manifest of manifests){
+    const keys=Object.keys(manifest.lawBindings);if(!sortedUnique(keys)||JSON.stringify(keys)!==JSON.stringify(manifest.lawIds))fail('ACTIVE_LAW_DENOMINATOR_MISMATCH',manifest.capabilityDomain);
+    for(const lawId of manifest.lawIds){const law=lawById.get(lawId)??fail('LAW_BINDING_MISSING',lawId);const candidate=manifest.lawBindings[lawId];if(!candidate||!exactKeys(candidate as Record<string,unknown>,LAW_BINDING_KEYS))fail('LAW_BINDING_MISSING',lawId);const binding=candidate!;validateStaticBinding(binding.staticBinding,law);validateEvidenceBindings(binding.examBindings,law,'exam');validateEvidenceBindings(binding.proofBindings,law,'dynamic');
+      const all=[...(binding.staticBinding?[binding.staticBinding]:[]),...binding.examBindings,...binding.proofBindings];for(const item of all){addUnique(identities,item.bindingId,'LAW_BINDING_DUPLICATE');const ref='inspectorRef'in item?item.inspectorRef:'examRef'in item?item.examRef:item.proofRef;addUnique(refs,ref,'PREDICATE_IDENTITY_MISMATCH');if('checkId'in item)addUnique(identities,item.checkId,'PREDICATE_IDENTITY_MISMATCH');if('examId'in item)addUnique(identities,item.examId,'PREDICATE_IDENTITY_MISMATCH');if('proofId'in item)addUnique(identities,item.proofId,'PREDICATE_IDENTITY_MISMATCH');for(const negative of item.negativeCases){addUnique(negativeIds,negative.negativeCaseId,'NEGATIVE_CASE_MISSING');addUnique(negativeRefs,negative.negativeCaseRef,'NEGATIVE_CASE_REF_MISSING')}}
+      law.enforcement=binding;
+    }
+  }
 };
 const validateManifestCoverage=(manifests:Manifest[],laws:Law[]):void=>{const domains=new Set(laws.map((law)=>law.capabilityDomain));if(manifests.length!==domains.size)fail('SOURCE_PARSE_FAILED','unexpected manifest domain');for(const domain of domains)if(!manifests.some((manifest)=>manifest.capabilityDomain===domain))fail('SOURCE_PARSE_FAILED',`missing manifest ${domain}`)};
 const pathsOverlap=(left:string,right:string):boolean=>{const covers=(parent:string,child:string)=>parent.endsWith('/**')?(child===parent.slice(0,-3)||child.startsWith(`${parent.slice(0,-3)}/`)):parent===child;return covers(left,right)||covers(right,left)};
@@ -145,7 +222,7 @@ const validateManifestOwners=(manifests:Manifest[]):void=>{const owners:{pattern
 function loadManifests(laws:Law[]):Manifest[]{
   const dir=resolve(ROOT,'scripts/audit/domains'); const entries=readdirSync(dir,{withFileTypes:true}).filter((e)=>e.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name)); const manifests:Manifest[]=[];
   for(const entry of entries){const rel=`scripts/audit/domains/${entry.name}/manifest.json`;if(existsSync(resolve(ROOT,rel)))manifests.push(validateManifest(parseJson<RawManifest>(rel),rel,entry.name,laws))}
-  validateManifestCoverage(manifests,laws);validateManifestOwners(manifests);
+  validateManifestCoverage(manifests,laws);validateManifestOwners(manifests);validateManifestBindings(manifests,laws);
   return manifests;
 }
 const REPO_PATTERN=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
@@ -220,7 +297,7 @@ const verifyPinnedSpec=(pin:GovernanceSpec,file:string,consumerRemote:string):vo
   const contract=descriptor.contract as CrossRepoContract;if(sha(git(['show',`${binding.providerCommitSha}:${contract.authorityArtifact.path}`]))!==contract.authorityArtifact.sha256)fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:authority artifact`);
 };
 function verifyPinnedProviderDescriptors(){const consumerRemote=consumerRepository();for(const file of walk('docs/specs').filter((path)=>path.endsWith('.spec.json'))){const pin=parseJson<GovernanceSpec>(file);if(pin.specKind==='contract-pin')verifyPinnedSpec(pin,file,consumerRemote)}}
-function buildRegistry(){verifyEntry();const laws=loadLaws();const manifests=loadManifests(laws);loadContracts(laws,manifests);verifyNoRetiredLawReferences(laws);const domains=manifests.map((m)=>({capabilityDomain:m.capabilityDomain,manifestPath:m.manifestPath,lawIds:m.lawIds,ownedPaths:m.ownedPaths,observedPaths:m.observedPaths})).sort((a,b)=>a.capabilityDomain.localeCompare(b.capabilityDomain));return {schemaVersion:3,sourceSpec:{path:SPEC,sha256:sha(bytes(SPEC))},lawCorpus:{baseLawPath:BASE,baseLawSha256:sha(bytes(BASE)),functionalLawPath:FUNCTIONAL,functionalLawSha256:sha(bytes(FUNCTIONAL))},laws,domains};}
+function buildRegistry(){verifyEntry();const laws=loadLaws();const manifests=loadManifests(laws);loadContracts(laws,manifests);verifyNoRetiredLawReferences(laws);if(laws.some((law)=>law.enforcement===null))fail('ACTIVE_LAW_DENOMINATOR_MISMATCH','registry enforcement');const domains=manifests.map((m)=>({capabilityDomain:m.capabilityDomain,manifestPath:m.manifestPath,lawIds:m.lawIds,ownedPaths:m.ownedPaths,observedPaths:m.observedPaths})).sort((a,b)=>a.capabilityDomain.localeCompare(b.capabilityDomain));return {schemaVersion:4,sourceSpec:{path:SPEC,sha256:sha(bytes(SPEC))},lawCorpus:{baseLawPath:BASE,baseLawSha256:sha(bytes(BASE)),functionalLawPath:FUNCTIONAL,functionalLawSha256:sha(bytes(FUNCTIONAL))},laws,domains};}
 function writeRegistry(){const out=canonicalBytes(buildRegistry());mkdirSync(dirname(resolve(ROOT,REGISTRY)),{recursive:true});const tmp=resolve(ROOT,`${REGISTRY}.tmp-${process.pid}`);writeFileSync(tmp,out);JSON.parse(readFileSync(tmp,'utf8'));renameSync(tmp,resolve(ROOT,REGISTRY));console.log(`REGISTRY_BUILT ${sha(out)}`)}
 function checkProjection(){const before=candidateSnapshot();const expected=canonicalBytes(buildRegistry());if(candidateSnapshot()!==before)fail('CANDIDATE_DRIFT','candidate changed while building projection');if(!existsSync(resolve(ROOT,REGISTRY)))fail('GENERATED_FILESET_INVALID',REGISTRY);const generatedFiles=readdirSync(resolve(ROOT,'scripts/audit/generated')).filter((name)=>!name.startsWith('.')).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right)));if(JSON.stringify(generatedFiles)!==JSON.stringify(['law-registry.generated.json']))fail('GENERATED_FILESET_INVALID',generatedFiles.join(','));if(text(REGISTRY)!==expected)fail('GENERATED_PROJECTION_STALE',REGISTRY);if(candidateSnapshot()!==before)fail('CANDIDATE_DRIFT','candidate changed while checking projection');console.log(`PROJECTION_CURRENT ${sha(expected)}`)}
 
@@ -231,4 +308,3 @@ export {
   writeRegistry, checkProjection, verifyPinnedProviderDescriptors, candidateSnapshot,
 };
 export type { Level, Law, Manifest };
-

@@ -4,7 +4,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writ
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-import { rejectDuplicateJsonKeys } from "../audit/governance-v32.js";
+import { rejectDuplicateJsonKeys } from "../audit/governance.js";
 
 assert.doesNotThrow(() => rejectDuplicateJsonKeys('{"lawId":"LAW-DEMO-001-V1","forbidden":["不得放行"]}', "valid"));
 assert.throws(() => rejectDuplicateJsonKeys('{"lawId":"LAW-DEMO-001-V1","lawId":"LAW-DEMO-002-V1"}', "duplicate"), /duplicate JSON key lawId/u);
@@ -19,8 +19,9 @@ const fixture = (): string => {
     ".github/instructions/agent-rules/功能法案.md",
     "docs/governance", "docs/blueprints", "docs/specs",
     "scripts/audit/domains", "scripts/audit/generated",
+    "scripts/exam", "tests/governance/binding-negative-cases.test.ts",
     "scripts/audit/governance-authority.ts", "scripts/audit/governance-json.ts",
-    "scripts/audit/governance-quality.ts", "scripts/audit/governance-runtime.ts", "scripts/audit/governance-v32.ts",
+    "scripts/audit/governance-quality.ts", "scripts/audit/governance-runtime.ts", "scripts/audit/governance.ts",
   ]) {
     const target = join(root, source);
     mkdirSync(dirname(target), { recursive: true });
@@ -33,7 +34,7 @@ const mustReject = (mutate: (root: string) => void, code: string): void => {
   try {
     mutate(root);
     assert.throws(
-      () => execFileSync(process.execPath, ["--import", "tsx", "scripts/audit/governance-v32.ts", "build"], { cwd: root, stdio: "pipe" }),
+      () => execFileSync(process.execPath, ["--import", "tsx", "scripts/audit/governance.ts", "build"], { cwd: root, stdio: "pipe" }),
       (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes(code),
     );
   } finally {
@@ -44,7 +45,7 @@ const mustReject = (mutate: (root: string) => void, code: string): void => {
 mustReject((root) => {
   const path = join(root, ".github/instructions/agent-rules/基础法案.md");
   const source = readFileSync(path, "utf8");
-  const last = source.match(/### \[LAW-PROJECT-GOVERNANCE-008-V1\][\s\S]+?```law-record\n[\s\S]+?\n```/u)?.[0];
+  const last = source.match(/### \[LAW-PROJECT-GOVERNANCE-008-V2\][\s\S]+?```law-record\n[\s\S]+?\n```/u)?.[0];
   assert.ok(last);
   writeFileSync(path, `${source.trimEnd()}\n\n${last.replaceAll("008", "009")}\n`);
 }, "SOURCE_PARSE_FAILED base root laws");
@@ -63,7 +64,7 @@ mustReject((root) => {
     status: "active",
     version: 1,
     owner: "project-governance",
-    lawIds: ["LAW-PROJECT-GOVERNANCE-001-V1"],
+    lawIds: ["LAW-PROJECT-GOVERNANCE-001-V2"],
     specKind: "migration",
     contract: {
       currentAuthority: "legacy-owner",

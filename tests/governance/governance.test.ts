@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { agentReleaseParticipants, assertStableProofFile, evidencePlan, validateQualityReport, validateRealProofExecutorOutputs, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance-v32.js';
+import { agentReleaseParticipants, assertStableProofFile, evidencePlan, qualityRunDirectory, validateQualityReport, validateRealProofExecutorOutputs, validateReleaseProofPackage, verifyXuanxueReleaseEvidence } from '../../scripts/audit/governance.js';
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
-const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-v32-'))): string => {
+const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-'))): string => {
   mkdirSync(root, { recursive: true });
   symlinkSync(resolve('node_modules'), join(root, 'node_modules'), 'dir');
   for (const source of [
@@ -16,8 +16,9 @@ const governanceFixture = (root = mkdtempSync(join(tmpdir(), 'governance-v32-'))
     '.github/instructions/agent-rules/基础法案.md', '.github/instructions/agent-rules/功能法案.md',
     'docs/governance', 'docs/blueprints', 'docs/specs',
     'scripts/audit/domains', 'scripts/audit/generated',
+    'scripts/exam', 'tests/governance/binding-negative-cases.test.ts',
     'scripts/audit/governance-authority.ts', 'scripts/audit/governance-json.ts',
-    'scripts/audit/governance-quality.ts', 'scripts/audit/governance-runtime.ts', 'scripts/audit/governance-v32.ts',
+    'scripts/audit/governance-quality.ts', 'scripts/audit/governance-runtime.ts', 'scripts/audit/governance.ts',
   ]) {
     const target = join(root, source);
     mkdirSync(dirname(target), { recursive: true });
@@ -43,21 +44,21 @@ const writeChangeRecord = (root: string, baseSha: string, allowedWritePaths: str
 
 const expectGovernanceFailure = (root: string, args: string[], code: string, env: NodeJS.ProcessEnv = process.env): void => {
   assert.throws(
-    () => execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance-v32.ts', ...args], { cwd: root, stdio: 'pipe', env }),
+    () => execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', ...args], { cwd: root, stdio: 'pipe', env }),
     (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes(code),
   );
 };
 
-test('V3.2 exposes only the five public governance commands', () => {
+test('V3.3 exposes only the five public governance commands', () => {
   const scripts = readJson('package.json').scripts as Record<string, string>;
   const names = Object.keys(scripts).filter((name) => name.startsWith('governance:') || ['audit:build','audit:projection:check','quality:check'].includes(name));
   assert.deepEqual(names.sort(), ['audit:build','audit:projection:check','governance:entry','governance:scope:check','quality:check'].sort());
   assert.equal(scripts['ci:full'], 'GRASSEYE_QUALITY_REPORT_MODE=external npm run quality:check -- READY');
 });
 
-test('V3.2 READ_ONLY entry is read-only and accepts the frozen authority', () => {
+test('V3.3 READ_ONLY entry is read-only and accepts the frozen authority', () => {
   const before = execFileSync('git', ['status','--porcelain=v1','-z']).toString('hex');
-  execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance-v32.ts','entry','READ_ONLY'], {
+  execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance.ts','entry','READ_ONLY'], {
     stdio: 'pipe',
   });
   const after = execFileSync('git', ['status','--porcelain=v1','-z']).toString('hex');
@@ -72,30 +73,32 @@ test('CHANGE entry rejects a dirty target even when an environment variable clai
     const packagePath = join(root, 'package.json');
     writeFileSync(packagePath, `${readFileSync(packagePath, 'utf8')}\n`);
     assert.throws(
-      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance-v32.ts','entry','CHANGE'], { cwd: root, stdio: 'pipe', env: { ...process.env, GRASSEYE_DIRTY_TARGET_AUTHORIZED: '1' } }),
+      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance.ts','entry','CHANGE'], { cwd: root, stdio: 'pipe', env: { ...process.env, GRASSEYE_DIRTY_TARGET_AUTHORIZED: '1' } }),
       (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes('DIRTY_TARGET_NOT_AUTHORIZED'),
     );
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('active corpus is exactly two files and base law contains exactly the eight project roots', () => {
+test('active corpus is exactly two files and base law contains the V3.3 root systems', () => {
   const base = readFileSync('.github/instructions/agent-rules/基础法案.md','utf8');
   const functional = readFileSync('.github/instructions/agent-rules/功能法案.md','utf8');
-  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 8);
+  assert.equal((base.match(/^```law-record$/gm) ?? []).length, 34);
   for (let index = 1; index <= 8; index += 1) {
-    assert.match(base, new RegExp(`LAW-PROJECT-GOVERNANCE-00${index}-V1`, 'u'));
+    assert.match(base, new RegExp(`LAW-PROJECT-GOVERNANCE-00${index}-V2`, 'u'));
   }
-  assert.doesNotMatch(base, /LAW-AUDIT-SYSTEM-001-V1|LAW-AUDIT-TRUTH-001-V1|LAW-CODE-PURITY-001-V1/u);
-  assert.equal((functional.match(/^```law-record$/gm) ?? []).length, 36);
-  assert.match(functional, /LAW-AUDIT-SYSTEM-001-V1/u);
-  assert.match(functional, /LAW-AUDIT-TRUTH-001-V1/u);
-  assert.match(functional, /LAW-CODE-PURITY-001-V1/u);
+  assert.match(base, /LAW-AUDIT-SYSTEM-001-V2/u);
+  assert.match(base, /LAW-AUDIT-TRUTH-001-V1/u);
+  assert.match(base, /LAW-CODE-PURITY-001-V1/u);
+  assert.match(base, /LAW-DOMAIN-REGISTRY-001-V1/u);
+  assert.match(base, /LAW-EXAM-SYSTEM-001-V1/u);
+  assert.match(base, /LAW-LAW-SYSTEM-008-V1/u);
+  assert.equal((functional.match(/^```law-record$/gm) ?? []).length, 33);
   assert.deepEqual(readdirSync('.github/instructions/agent-rules').filter((name) => name.endsWith('.md')).sort(), ['功能法案.md','基础法案.md']);
 });
 
 test('generated directory contains only the registry projection', () => {
   assert.deepEqual(readdirSync('scripts/audit/generated').filter((name) => !name.startsWith('.')).sort(), ['law-registry.generated.json']);
-  assert.equal(readJson('scripts/audit/generated/law-registry.generated.json').schemaVersion, 3);
+  assert.equal(readJson('scripts/audit/generated/law-registry.generated.json').schemaVersion, 4);
 });
 
 test('entry fails closed when AGENTS drifts', () => {
@@ -103,10 +106,42 @@ test('entry fails closed when AGENTS drifts', () => {
   try {
     writeFileSync(join(root, 'AGENTS.md'), '# drift\n');
     assert.throws(
-      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance-v32.ts','entry','READ_ONLY'], { cwd: root, stdio: 'pipe' }),
+      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance.ts','entry','READ_ONLY'], { cwd: root, stdio: 'pipe' }),
       (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes('ENTRY_CONTRACT_MISMATCH'),
     );
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('entry rejects disabled PDF metadata unless all derivative fields are null', () => {
+  const root = governanceFixture();
+  try {
+    const freezePath = join(root, 'docs/governance/GOVERNANCE-FREEZE.json');
+    const freeze = readJson(freezePath);
+    ((freeze.derivatives as Record<string, unknown>).pdf as Record<string, unknown>).enabled = false;
+    writeFileSync(freezePath, `${JSON.stringify(freeze, null, 2)}\n`);
+    expectGovernanceFailure(root, ['entry', 'READ_ONLY'], 'FREEZE_HASH_MISMATCH');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('quality output directory rejects repository paths and temporary symlink escapes', async (t) => {
+  const original = process.env.GRASSEYE_QUALITY_OUTPUT_DIR;
+  const temporary = mkdtempSync(join(tmpdir(), 'quality-output-boundary-'));
+  try {
+    await t.test('direct repository path', () => {
+      process.env.GRASSEYE_QUALITY_OUTPUT_DIR = join(resolve('.'), '.governance/runtime/ci-output');
+      assert.throws(() => qualityRunDirectory(), (error: unknown) => (error as { code?: string }).code === 'CI_OUTPUT_PATH_INVALID');
+    });
+    await t.test('temporary symlink into repository', () => {
+      const link = join(temporary, 'repository-link');
+      symlinkSync(resolve('.'), link, 'dir');
+      process.env.GRASSEYE_QUALITY_OUTPUT_DIR = join(link, '.governance/runtime/ci-output');
+      assert.throws(() => qualityRunDirectory(), (error: unknown) => (error as { code?: string }).code === 'CI_OUTPUT_PATH_INVALID');
+    });
+  } finally {
+    if (original === undefined) delete process.env.GRASSEYE_QUALITY_OUTPUT_DIR;
+    else process.env.GRASSEYE_QUALITY_OUTPUT_DIR = original;
+    rmSync(temporary, { recursive: true, force: true });
+  }
 });
 
 test('entry rejects a wrapped full-CI command and a second verdict command', async (t) => {
@@ -136,7 +171,7 @@ test('projection rejects a second generated artifact', () => {
     initializeGitFixture(root);
     writeFileSync(join(root, 'scripts/audit/generated/second.generated.json'), '{}\n');
     assert.throws(
-      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance-v32.ts','projection'], { cwd: root, stdio: 'pipe' }),
+      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance.ts','projection'], { cwd: root, stdio: 'pipe' }),
       (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes('GENERATED_FILESET_INVALID'),
     );
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -149,7 +184,7 @@ test('law parser rejects an invalid supersedes relationship', () => {
     const source = readFileSync(lawPath, 'utf8');
     writeFileSync(lawPath, source.replace('"supersedesLawId": null', '"supersedesLawId": "LAW-AI-INPUT-GATEWAY-001-V0"'));
     assert.throws(
-      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance-v32.ts','build'], { cwd: root, stdio: 'pipe' }),
+      () => execFileSync(process.execPath, ['--import','tsx','scripts/audit/governance.ts','build'], { cwd: root, stdio: 'pipe' }),
       (error: unknown) => String((error as { stderr?: Buffer }).stderr).includes('SOURCE_PARSE_FAILED LAW-AI-INPUT-GATEWAY-001-V1 supersedes'),
     );
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -180,9 +215,9 @@ test('law parser rejects BOM, invalid UTF-8, second metadata, orphan fences, bad
     ['dependency cycle', (root) => {
       const file = join(root, '.github/instructions/agent-rules/基础法案.md');
       let source = readFileSync(file, 'utf8');
-      source = source.replace('"dependsOnLawIds": []', '"dependsOnLawIds": ["LAW-PROJECT-GOVERNANCE-002-V1"]');
+      source = source.replace('"dependsOnLawIds": []', '"dependsOnLawIds": ["LAW-PROJECT-GOVERNANCE-002-V2"]');
       const second = source.indexOf('"dependsOnLawIds": []');
-      source = `${source.slice(0, second)}"dependsOnLawIds": ["LAW-PROJECT-GOVERNANCE-001-V1"]${source.slice(second + '"dependsOnLawIds": []'.length)}`;
+      source = `${source.slice(0, second)}"dependsOnLawIds": ["LAW-PROJECT-GOVERNANCE-001-V2"]${source.slice(second + '"dependsOnLawIds": []'.length)}`;
       writeFileSync(file, source);
     }],
   ];
@@ -303,9 +338,9 @@ test('authorized deletion is verified against the base candidate original Owner'
     writeFileSync(join(root, manifestPath), `${JSON.stringify(manifest, null, 2)}\n`);
     rmSync(join(root, retiredPath));
     writeChangeRecord(root, baseSha, [manifestPath, registryPath], [retiredPath]);
-    execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance-v32.ts', 'build'], { cwd: root, stdio: 'pipe' });
+    execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'build'], { cwd: root, stdio: 'pipe' });
     assert.throws(
-      () => execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance-v32.ts', 'scope'], { cwd: root, stdio: 'pipe' }),
+      () => execFileSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'scope'], { cwd: root, stdio: 'pipe' }),
       (error: unknown) => {
         const stderr = String((error as { stderr?: Buffer }).stderr);
         assert.doesNotMatch(stderr, /UNOWNED_PRODUCTION_FILE/);
@@ -351,40 +386,46 @@ test('projection fails closed when the candidate drifts during construction', ()
 });
 
 test('quality report schema covers every active law and rejects fake outcomes', () => {
-  const laws = (readJson('scripts/audit/generated/law-registry.generated.json').laws as Array<{ lawId: string }>);
+  const laws = (readJson('scripts/audit/generated/law-registry.generated.json').laws as Array<any>);
+  const evidenceRef = (kind: string, selector: string) => `${kind}:fixture#${selector}:${'c'.repeat(64)}`;
+  const component = (binding: any, kind: 'static' | 'exam') => ({
+    bindingId: binding.bindingId, component: kind, executorId: kind === 'static' ? binding.checkId : binding.examId,
+    evidenceModes: binding.evidenceModes, outcome: 'PASS',
+    targetSet: kind === 'static' ? { queryRef: evidenceRef('scope', binding.targetSelectorId), count: 0, sha256: 'c'.repeat(64) } : null,
+    assertions: [{ assertionId: `${binding.bindingId}.result`, passed: true, evidenceRefs: [evidenceRef(kind === 'static' ? 'ast' : 'exam', binding.bindingId)] }], findings: [],
+  });
   const items = laws.map((law) => ({
-    lawId: law.lawId, applicableEvidenceModes: [], deferredEvidenceModes: [], outcome: 'PASS', evidenceRefs: [`/tmp/${law.lawId}.receipt.json#sha256=${'c'.repeat(64)}`], findings: [],
+    lawId: law.lawId, declaredEvidenceModes: law.evidenceModes,
+    requiredEvidenceModes: law.evidenceModes.filter((mode: string) => !mode.startsWith('dynamic.')),
+    deferredEvidenceModes: law.evidenceModes.filter((mode: string) => mode.startsWith('dynamic.')),
+    scopeEvidenceRefs: [evidenceRef('scope', law.lawId)],
+    components: [...(law.enforcement.staticBinding ? [component(law.enforcement.staticBinding, 'static')] : []), ...law.enforcement.examBindings.map((binding: any) => component(binding, 'exam'))].sort((left, right) => left.bindingId.localeCompare(right.bindingId)),
+    outcome: 'PASS', findings: [],
   }));
+  const mutants = laws.flatMap((law) => [law.enforcement.staticBinding, ...law.enforcement.examBindings, ...law.enforcement.proofBindings].filter(Boolean).flatMap((binding: any) => binding.negativeCases.map((negative: any) => ({ mutantId: negative.negativeCaseId, bindingId: binding.bindingId, expectedCode: negative.expectedCode, actualCode: negative.expectedCode, evidenceRefs: [evidenceRef('test', negative.negativeCaseId)], outcome: 'PASS' })))).sort((left, right) => left.mutantId.localeCompare(right.mutantId));
   const report = {
-    schemaVersion: 1, level: 'READY', baseSha: 'a'.repeat(40), candidateId: null,
-    registrySha256: 'b'.repeat(64), laws: items, outcome: 'PASS',
+    schemaVersion: 2, level: 'READY', baseSha: 'a'.repeat(40), candidateFingerprint: 'd'.repeat(64), candidateId: null,
+    registrySha256: 'b'.repeat(64), laws: items, mutants, outcome: 'PASS',
   };
   assert.doesNotThrow(() => validateQualityReport(report, laws, 'READY'));
-  assert.throws(() => validateQualityReport({ ...report, schemaVersion: 2 }, laws, 'READY'), /top-level/u);
+  assert.throws(() => validateQualityReport({ ...report, schemaVersion: 1 }, laws, 'READY'), /top-level/u);
   assert.throws(() => validateQualityReport({ ...report, laws: items.slice(1) }, laws, 'READY'), /law denominator/u);
   const emptyEvidence = structuredClone(report);
-  emptyEvidence.laws[0]!.applicableEvidenceModes = ['static.ast'];
-  emptyEvidence.laws[0]!.evidenceRefs = [];
-  assert.throws(() => validateQualityReport(emptyEvidence, laws, 'READY'), /law /u);
+  emptyEvidence.laws[0]!.components[0]!.assertions[0]!.evidenceRefs = [];
+  assert.throws(() => validateQualityReport(emptyEvidence, laws, 'READY'), /component /u);
   const fake = structuredClone(report);
   fake.laws[0]!.outcome = 'NOT_APPLICABLE';
   assert.throws(() => validateQualityReport(fake, laws, 'READY'), /law /u);
 });
 
-test('READY evidence applicability follows the actual diff and rejects a missing applicable receipt', () => {
+test('READY keeps every active law in the evidence denominator regardless of the diff', () => {
   const law = {
     appliesTo: ['src/owned/**'], excludes: ['src/owned/ignored.ts'], contractRefs: [{ path: 'docs/specs/owned.contract.spec.json', sha256: 'a'.repeat(64) }],
     evidenceModes: ['static.ast', 'exam.golden', 'dynamic.provider'],
   };
-  assert.deepEqual(evidencePlan(law, ['src/other.ts'], 'READY'), { applicableEvidenceModes: [], deferredEvidenceModes: [] });
+  assert.deepEqual(evidencePlan(law, ['src/other.ts'], 'READY'), { applicableEvidenceModes: ['static.ast', 'exam.golden'], deferredEvidenceModes: ['dynamic.provider'] });
   assert.deepEqual(evidencePlan(law, ['src/owned/live.ts'], 'READY'), { applicableEvidenceModes: ['static.ast', 'exam.golden'], deferredEvidenceModes: ['dynamic.provider'] });
   assert.deepEqual(evidencePlan(law, ['docs/specs/owned.contract.spec.json'], 'RELEASE'), { applicableEvidenceModes: ['static.ast', 'exam.golden', 'dynamic.provider'], deferredEvidenceModes: [] });
-  const laws = [{ lawId: 'LAW-OWNED-001-V1' }];
-  const inactive = { schemaVersion: 1, level: 'READY', baseSha: 'a'.repeat(40), candidateId: null, registrySha256: 'b'.repeat(64), laws: [{ lawId: laws[0]!.lawId, applicableEvidenceModes: [], deferredEvidenceModes: [], outcome: 'PASS', evidenceRefs: [], findings: [] }], outcome: 'PASS' };
-  assert.doesNotThrow(() => validateQualityReport(inactive, laws, 'READY'));
-  const mutant = structuredClone(inactive);
-  mutant.laws[0]!.applicableEvidenceModes = ['static.ast'];
-  assert.throws(() => validateQualityReport(mutant, laws, 'READY'), /law /u);
 });
 
 test('RELEASE consumes the real executor chain and the unique B.9 package schema', () => {
@@ -395,11 +436,18 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
     repo: 'ADVISION-X/xuanxue-web',
     releaseSha256: '9'.repeat(64),
   };
+  const productParticipant = {
+    contractId: 'ai-acceptance.product-execution-contract',
+    contractVersion: 1,
+    repo: 'ADVISION-X/xuanxue-web',
+    releaseSha256: '8'.repeat(64),
+  };
+  const participants = [productParticipant, participant];
   assert.throws(() => verifyXuanxueReleaseEvidence('/definitely/not/a/real-proof.json', () => ({ status: 0, stdout: 'PASS', stderr: '' })), /invalid real proof authority/u);
   assert.throws(() => agentReleaseParticipants(undefined), /direct provider RELEASE participants are required/u);
   assert.throws(() => agentReleaseParticipants('[]'), /do not match direct contract pins/u);
   assert.throws(() => agentReleaseParticipants('[{"repo":"caller-authored"}]'), /invalid RELEASE participant/u);
-  assert.deepEqual(agentReleaseParticipants(JSON.stringify([participant])), [participant]);
+  assert.deepEqual(agentReleaseParticipants(JSON.stringify(participants)), participants);
   const proofDirectory = mkdtempSync(join(tmpdir(), 'stable-proof-'));
   const proofPath = join(proofDirectory, 'proof.json');writeFileSync(proofPath, '{"a":1}\n');const before = readFileSync(proofPath);const stat = lstatSync(proofPath);const identity = { dev: stat.dev, ino: stat.ino, size: stat.size, mtimeMs: stat.mtimeMs };
   assert.doesNotThrow(() => assertStableProofFile(proofPath, before, identity));
@@ -410,7 +458,7 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
     freezeSha256: 'c'.repeat(64), baseLawSha256: 'd'.repeat(64),
     functionalLawSha256: 'e'.repeat(64), registrySha256: 'f'.repeat(64),
     lawQualityReportSha256: '1'.repeat(64), dynamicProofHashes: ['2'.repeat(64)],
-    crossRepoParticipants: [participant],
+    crossRepoParticipants: participants,
   };
   assert.doesNotThrow(() => validateReleaseProofPackage(proofPackage));
   assert.throws(() => validateReleaseProofPackage({ ...proofPackage, releaseReceipt: true }), /invalid RELEASE proof package/u);
@@ -426,7 +474,7 @@ test('RELEASE consumes the real executor chain and the unique B.9 package schema
   assert.match(qualitySource, /direct provider RELEASE participants are required/u);
   assert.doesNotMatch(qualitySource, /upstream participant leaf/u);
   assert.doesNotMatch(qualitySource, /resolveReleaseParticipants|validateParticipantReleaseReport/u);
-  const entrySource = readFileSync('scripts/audit/governance-v32.ts', 'utf8');
+  const entrySource = readFileSync('scripts/audit/governance.ts', 'utf8');
   assert.match(entrySource, /RELEASE_PACKAGE/u);
 });
 

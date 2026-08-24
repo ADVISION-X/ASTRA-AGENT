@@ -11,127 +11,6 @@ export const CANONICAL_READY_PHASES = Object.freeze([
 ] as const);
 
 export type CanonicalReadyPhase = typeof CANONICAL_READY_PHASES[number];
-export type ExamEvidenceFacet = "exam.golden" | "exam.property" | "exam.state-machine";
-
-export type AcceptanceClaim = Readonly<{
-  lawId: string;
-  clauseId: string;
-  evidenceFacet: ExamEvidenceFacet;
-}>;
-
-export type AcceptanceBinding = Readonly<{
-  script: string;
-  ownerId: string;
-  claims: readonly AcceptanceClaim[];
-}>;
-
-const claim = (lawId: string, evidenceFacet: ExamEvidenceFacet): AcceptanceClaim => ({
-  lawId,
-  clauseId: `${lawId.toLowerCase()}-requirement`,
-  evidenceFacet,
-});
-
-export const CANONICAL_ACCEPTANCE_BINDINGS: readonly AcceptanceBinding[] = Object.freeze([
-  {
-    script: "acceptance:ai-input-gateway",
-    ownerId: "ai-input-gateway",
-    claims: [
-      claim("LAW-AI-INPUT-GATEWAY-001-V1", "exam.golden"),
-      claim("LAW-AI-INPUT-GATEWAY-002-V1", "exam.golden"),
-      claim("LAW-AI-INPUT-GATEWAY-003-V1", "exam.golden"),
-      claim("LAW-AI-INPUT-GATEWAY-004-V1", "exam.golden"),
-      claim("LAW-AI-INPUT-GATEWAY-005-V4", "exam.golden"),
-      claim("LAW-AI-INPUT-GATEWAY-006-V1", "exam.golden"),
-      claim("LAW-AI-INPUT-GATEWAY-007-V1", "exam.golden"),
-    ],
-  },
-  {
-    script: "acceptance:app-shell-ui",
-    ownerId: "app-shell-ui",
-    claims: [
-      claim("LAW-APP-SHELL-UI-001-V2", "exam.golden"),
-      claim("LAW-APP-SHELL-UI-002-V1", "exam.golden"),
-      claim("LAW-APP-SHELL-UI-003-V1", "exam.golden"),
-    ],
-  },
-  {
-    script: "acceptance:audit-system",
-    ownerId: "audit-system",
-    claims: [claim("LAW-AUDIT-SYSTEM-001-V1", "exam.golden")],
-  },
-  {
-    script: "acceptance:architecture-active-plugin-mediators",
-    ownerId: "capability-governance",
-    claims: [claim("LAW-CAPABILITY-GOVERNANCE-001-V1", "exam.golden")],
-  },
-  {
-    script: "acceptance:code-purity-zombie-deep",
-    ownerId: "code-purity",
-    claims: [claim("LAW-CODE-PURITY-001-V1", "exam.golden")],
-  },
-  {
-    script: "acceptance:forensics-persistence-capability",
-    ownerId: "forensics-persistence-capability",
-    claims: [
-      claim("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", "exam.golden"),
-      claim("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1", "exam.golden"),
-      claim("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", "exam.golden"),
-    ],
-  },
-  {
-    script: "acceptance:local-app-shell",
-    ownerId: "local-app-shell",
-    claims: [
-      claim("LAW-LOCAL-APP-SHELL-001-V4", "exam.golden"),
-      claim("LAW-LOCAL-APP-SHELL-002-V3", "exam.golden"),
-      claim("LAW-LOCAL-APP-SHELL-003-V1", "exam.golden"),
-    ],
-  },
-  {
-    script: "acceptance:local-browser-terminal",
-    ownerId: "local-browser-session",
-    claims: [
-      claim("LAW-LOCAL-BROWSER-SESSION-004-V5", "exam.golden"),
-      claim("LAW-LOCAL-BROWSER-SESSION-004-V5", "exam.property"),
-    ],
-  },
-  {
-    script: "acceptance:runtime-log-spine",
-    ownerId: "runtime-log-spine",
-    claims: [
-      claim("LAW-RUNTIME-LOG-SPINE-001-V3", "exam.golden"),
-      claim("LAW-RUNTIME-LOG-SPINE-002-V2", "exam.golden"),
-      claim("LAW-RUNTIME-LOG-SPINE-003-V2", "exam.golden"),
-    ],
-  },
-  {
-    script: "acceptance:startup-entrypoint",
-    ownerId: "startup-entrypoint",
-    claims: [
-      claim("LAW-STARTUP-ENTRYPOINT-001-V4", "exam.golden"),
-      claim("LAW-STARTUP-ENTRYPOINT-002-V1", "exam.golden"),
-    ],
-  },
-  {
-    script: "acceptance:system-security",
-    ownerId: "system-security",
-    claims: [claim("LAW-SYSTEM-SECURITY-001-V1", "exam.golden")],
-  },
-  {
-    script: "acceptance:xuanxue-ai-production",
-    ownerId: "xuanxue-ai-production",
-    claims: [
-      claim("LAW-XUANXUE-AI-PRODUCTION-001-V7", "exam.golden"),
-      claim("LAW-XUANXUE-AI-PRODUCTION-001-V7", "exam.property"),
-      claim("LAW-XUANXUE-AI-PRODUCTION-001-V7", "exam.state-machine"),
-    ],
-  },
-  {
-    script: "acceptance:xuanxue-ai-production-localization-contract",
-    ownerId: "xuanxue-ai-production-localization-contract",
-    claims: [claim("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", "exam.golden")],
-  },
-]);
 
 export const UNCLAIMED_MUTATION_SCRIPTS = Object.freeze([
   "acceptance:constitutional-boundary-anti-escape",
@@ -172,26 +51,12 @@ export function resolveAcceptanceLeaves(
   return leaves;
 }
 
-type LawEvidenceRecord = { lawId?: unknown; capabilityDomain?: unknown; evidenceModes?: unknown };
-
-const claimKey = (lawId: string, evidenceFacet: string): string => `${lawId}|${evidenceFacet}`;
-
-type LawExamRecord = { ownerId: string; evidenceModes: string[] };
-
-const buildLawRecords = (laws: readonly LawEvidenceRecord[]): Map<string, LawExamRecord> => new Map(
-  laws.flatMap((law) =>
-    typeof law.lawId === "string" && typeof law.capabilityDomain === "string" && Array.isArray(law.evidenceModes)
-      ? [[law.lawId, {
-          ownerId: law.capabilityDomain,
-          evidenceModes: law.evidenceModes.filter((mode): mode is string => typeof mode === "string"),
-        }] as const]
-      : []),
-);
-
-const requiredExamClaims = (lawRecords: ReadonlyMap<string, LawExamRecord>): Set<string> => new Set(
-  [...lawRecords.entries()].flatMap(([lawId, record]) =>
-    record.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => claimKey(lawId, mode))),
-);
+type RegistryExamBinding = { bindingId?:unknown;examId?:unknown;examRef?:unknown;evidenceModes?:unknown };
+type LawEvidenceRecord = {
+  lawId?:unknown;evidenceModes?:unknown;
+  enforcement?:{examBindings?:unknown};
+};
+type ValidationState={identities:Set<string>;refs:Set<string>};
 
 const pushScriptResolutionFinding = (
   scripts: Readonly<Record<string, string>>,
@@ -203,21 +68,23 @@ const pushScriptResolutionFinding = (
   }
 };
 
-const validateBindingClaims = (
-  binding: AcceptanceBinding,
-  lawRecords: ReadonlyMap<string, LawExamRecord>,
-  observedClaims: Set<string>,
-  findings: string[],
-): void => {
-  for (const current of binding.claims) {
-    const law = lawRecords.get(current.lawId);
-    const key = claimKey(current.lawId, current.evidenceFacet);
-    if (!law || law.ownerId !== binding.ownerId) findings.push(`ACCEPTANCE_LAW_OWNER_MISMATCH:${binding.script}:${current.lawId}`);
-    if (!law?.evidenceModes.includes(current.evidenceFacet)) findings.push(`ACCEPTANCE_EVIDENCE_FACET_UNDECLARED:${binding.script}:${key}`);
-    if (current.clauseId !== `${current.lawId.toLowerCase()}-requirement`) findings.push(`ACCEPTANCE_CLAUSE_INVALID:${binding.script}:${current.lawId}`);
-    if (observedClaims.has(key)) findings.push(`ACCEPTANCE_CLAIM_DUPLICATE:${key}`);
-    observedClaims.add(key);
-  }
+const examSelector=(ref:string):string[]=>ref.split("#")[1]?.split("|")??[];
+
+const addIdentity=(state:ValidationState,value:string,findings:string[]):void=>{if(state.identities.has(value))findings.push(`ACCEPTANCE_IDENTITY_DUPLICATE:${value}`);state.identities.add(value)};
+const validateExamBinding=(raw:RegistryExamBinding,lawId:string,scripts:Readonly<Record<string,string>>,state:ValidationState,findings:string[]):string[]=>{
+  if(typeof raw.bindingId!=="string"||typeof raw.examId!=="string"||typeof raw.examRef!=="string"||!Array.isArray(raw.evidenceModes)){findings.push(`ACCEPTANCE_BINDING_INVALID:${lawId}`);return[]}
+  const selector=examSelector(raw.examRef);const modes=raw.evidenceModes.filter((mode):mode is string=>typeof mode==="string");
+  if(selector.length!==4||selector[0]!=="runExamBinding"||selector[2]!==lawId||modes.length!==1||selector[3]!==modes[0])findings.push(`ACCEPTANCE_REF_INVALID:${raw.bindingId}`);
+  addIdentity(state,raw.bindingId,findings);addIdentity(state,raw.examId,findings);
+  if(state.refs.has(raw.examRef))findings.push(`ACCEPTANCE_REF_DUPLICATE:${raw.examRef}`);state.refs.add(raw.examRef);
+  pushScriptResolutionFinding(scripts,decodeURIComponent(selector[1]??""),findings);return modes;
+};
+const validateExamLaw=(law:LawEvidenceRecord,scripts:Readonly<Record<string,string>>,state:ValidationState,findings:string[]):void=>{
+  if(typeof law.lawId!=="string"||!Array.isArray(law.evidenceModes)){findings.push("ACCEPTANCE_LAW_INVALID");return}
+  const expected=law.evidenceModes.filter((mode):mode is string=>typeof mode==="string"&&mode.startsWith("exam.")).sort();
+  const bindings=law.enforcement?.examBindings;if(!Array.isArray(bindings)){findings.push(`ACCEPTANCE_BINDING_MISSING:${law.lawId}`);return}
+  const actual=(bindings as RegistryExamBinding[]).flatMap((raw)=>validateExamBinding(raw,law.lawId as string,scripts,state,findings)).sort();
+  if(JSON.stringify(actual)!==JSON.stringify(expected))findings.push(`ACCEPTANCE_EXAM_DENOMINATOR_MISMATCH:${law.lawId}`);
 };
 
 const validateRuntimeLogLeaves = (scripts: Readonly<Record<string, string>>, findings: string[]): void => {
@@ -234,19 +101,9 @@ export function validateAcceptanceBindings(
   laws: readonly LawEvidenceRecord[],
 ): string[] {
   const findings: string[] = [];
-  const lawRecords = buildLawRecords(laws);
-  const requiredClaims = requiredExamClaims(lawRecords);
-  const observedClaims = new Set<string>();
-  const seenScripts = new Set<string>();
-  for (const binding of CANONICAL_ACCEPTANCE_BINDINGS) {
-    if (seenScripts.has(binding.script)) findings.push(`ACCEPTANCE_BINDING_DUPLICATE:${binding.script}`);
-    seenScripts.add(binding.script);
-    if (binding.claims.length === 0) findings.push(`ACCEPTANCE_BINDING_EMPTY:${binding.script}`);
-    pushScriptResolutionFinding(scripts, binding.script, findings);
-    validateBindingClaims(binding, lawRecords, observedClaims, findings);
-  }
-  for (const required of requiredClaims) if (!observedClaims.has(required)) findings.push(`ACCEPTANCE_EXAM_CLAIM_MISSING:${required}`);
-  for (const observed of observedClaims) if (!requiredClaims.has(observed)) findings.push(`ACCEPTANCE_EXAM_CLAIM_UNEXPECTED:${observed}`);
+  const state:ValidationState={identities:new Set(),refs:new Set()};
+  for(const law of laws)validateExamLaw(law,scripts,state,findings);
+  pushScriptResolutionFinding(scripts,"exam:check",findings);
   for (const script of UNCLAIMED_MUTATION_SCRIPTS) pushScriptResolutionFinding(scripts, script, findings);
   validateRuntimeLogLeaves(scripts, findings);
   return findings.sort();

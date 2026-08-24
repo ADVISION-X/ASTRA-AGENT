@@ -1,14 +1,52 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "xuanxue-ai-production-localization-contract",
+  "status": "active",
   "lawIds": [
     "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3"
   ],
-  "observedPaths": [
-    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts"
-  ],
+  "lawBindings": {
+    "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3": {
+      "staticBinding": {
+        "bindingId": "xuanxue.ai.production.localization.contract.001.v3.static",
+        "checkId": "xuanxue.ai.production.localization.contract.001.v3.static.check",
+        "inspectorRef": "scripts/audit/domains/xuanxue-ai-production-localization-contract/inspector.ts#inspectDomain|LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
+        "targetSelectorId": "xuanxue.ai.production.localization.contract.001.v3.target",
+        "evidenceModes": [
+          "static.ast"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "xuanxue.ai.production.localization.contract.001.v3.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Axuanxue-ai-production-localization-contract%3Aenforce|xuanxue.ai.production.localization.contract.001.v3.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "xuanxue.ai.production.localization.contract.001.v3.exam-golden.exam",
+          "examId": "xuanxue.ai.production.localization.contract.001.v3.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Axuanxue-ai-production-localization-contract|LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "xuanxue.ai.production.localization.contract.001.v3.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Axuanxue-ai-production-localization-contract|xuanxue.ai.production.localization.contract.001.v3.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
   "ownedPaths": [
     "scripts/audit/domains/xuanxue-ai-production-localization-contract/**"
   ],
-  "schemaVersion": 3,
-  "status": "active"
+  "observedPaths": [
+    "src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.ts"
+  ]
 }

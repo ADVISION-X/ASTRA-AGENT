@@ -56,6 +56,7 @@ export const removedSecondChainPaths = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-checkpoint-proof.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-conversation-rebuild.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-graph-recovery.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
   "scripts/acceptance/xuanxue-ai-production-parent-rebuild-acceptance.ts",
 ] as const;
 
@@ -68,7 +69,6 @@ export const pluginPaths = [
   "src/app/workbench-xuanxue-ai-production-routes.ts",
   "src/app/workbench-xuanxue-ai-production-client.ts",
   "src/app/workbench-api-boundary.ts",
-  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-conversation-policy.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-database.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-orders.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-store-cloud-recovery.ts",

@@ -1,15 +1,56 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "capability-governance",
+  "status": "active",
   "lawIds": [
     "LAW-CAPABILITY-GOVERNANCE-001-V1"
+  ],
+  "lawBindings": {
+    "LAW-CAPABILITY-GOVERNANCE-001-V1": {
+      "staticBinding": {
+        "bindingId": "capability.governance.001.v1.static",
+        "checkId": "capability.governance.001.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/capability-governance/inspector.ts#inspectDomain|LAW-CAPABILITY-GOVERNANCE-001-V1",
+        "targetSelectorId": "capability.governance.001.v1.target",
+        "evidenceModes": [
+          "static.filesystem",
+          "static.ast",
+          "static.types",
+          "static.dependency"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "capability.governance.001.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Acapability-governance%3Aenforce|capability.governance.001.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "capability.governance.001.v1.exam-golden.exam",
+          "examId": "capability.governance.001.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aarchitecture-active-plugin-mediators|LAW-CAPABILITY-GOVERNANCE-001-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "capability.governance.001.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aarchitecture-active-plugin-mediators|capability.governance.001.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
+  "ownedPaths": [
+    "scripts/audit/domains/capability-governance/**"
   ],
   "observedPaths": [
     "src/capabilities/**",
     "src/plugins/xuanxue-ai-production/**"
-  ],
-  "ownedPaths": [
-    "scripts/audit/domains/capability-governance/**"
-  ],
-  "schemaVersion": 3,
-  "status": "active"
+  ]
 }

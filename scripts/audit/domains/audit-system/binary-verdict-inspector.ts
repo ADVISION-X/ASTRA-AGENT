@@ -10,6 +10,6 @@ export const inspectBinaryVerdict = (source: SourceFile): Finding[] => {
   const names = identifierNames(validator);
   const findings: Finding[] = [];
   for (const required of ["PASS", "FAIL"]) if (!values.has(required)) findings.push({ code: "AUDIT_BINARY_VERDICT_MISSING", detail: required, path: source.getFilePath() });
-  for (const required of ["findings", "outcome", "laws"]) if (!names.has(required)) findings.push({ code: "AUDIT_VERDICT_DENOMINATOR_BROKEN", detail: required, path: source.getFilePath() });
+  for (const required of ["failed", "mutants", "outcome", "laws"]) if (!names.has(required)) findings.push({ code: "AUDIT_VERDICT_DENOMINATOR_BROKEN", detail: required, path: source.getFilePath() });
   return findings;
 };

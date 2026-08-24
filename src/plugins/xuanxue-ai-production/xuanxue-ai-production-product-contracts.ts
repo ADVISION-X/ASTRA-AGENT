@@ -89,30 +89,44 @@ export const assertXuanxueProductExecutionProjection = (
   const { bundle_hash: _bundleHash, ...bundleBody } = value.bundle ?? {} as GeneratedProjection["bundle"];
   const providerArtifactBytes = `${JSON.stringify(value.bundle, null, 2)}\n`;
   const localizationBytes = `${JSON.stringify(value.localization_semantic_manifest)}\n`;
-  if (value.schema_version !== "xuanxue-product-execution-projection.v1"
-    || !/^[a-f0-9]{40}$/u.test(value.provider_commit_sha)
-    || !/^[a-f0-9]{64}$/u.test(value.provider_artifact_sha256)
-    || !/^[a-f0-9]{64}$/u.test(value.localization_semantic_manifest_sha256)
-    || value.localization_semantic_manifest?.schema_version
-      !== "xuanxue-ai-localization-contract-manifest.v1"
-    || !/^sha256:[a-f0-9]{64}$/u.test(
-      value.localization_semantic_manifest?.contract_manifest_hash,
-    )
-    || !/^sha256:[a-f0-9]{64}$/u.test(value.bundle?.bundle_hash)
-    || value.bundle?.contract_count !== 20
-    || !Array.isArray(contracts)
-    || contracts.length !== 20
-    || new Set(contracts.map((contract) => contract.contract_id)).size !== 20
-    || contracts.some((contract) =>
-      !/^sha256:[a-f0-9]{64}$/u.test(contract.product_contract_hash)
-      || !Array.isArray(contract.product_graph?.nodes)
-      || contract.product_graph.nodes.length < 1)
-    || canonicalHash(bundleBody) !== value.bundle.bundle_hash
-    || sha256(providerArtifactBytes) !== value.provider_artifact_sha256
-    || sha256(localizationBytes) !== value.localization_semantic_manifest_sha256) {
+  if (!projectionIdentityIsValid(value)
+    || !projectionContractsAreValid(contracts)
+    || !projectionHashesAreValid(value, bundleBody, providerArtifactBytes, localizationBytes)) {
     throw new Error("XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID");
   }
 };
+
+const projectionIdentityIsValid = (value: GeneratedProjection): boolean =>
+  value.schema_version === "xuanxue-product-execution-projection.v1"
+  && /^[a-f0-9]{40}$/u.test(value.provider_commit_sha)
+  && /^[a-f0-9]{64}$/u.test(value.provider_artifact_sha256)
+  && /^[a-f0-9]{64}$/u.test(value.localization_semantic_manifest_sha256)
+  && value.localization_semantic_manifest?.schema_version
+    === "xuanxue-ai-localization-contract-manifest.v1"
+  && /^sha256:[a-f0-9]{64}$/u.test(
+    value.localization_semantic_manifest?.contract_manifest_hash,
+  )
+  && /^sha256:[a-f0-9]{64}$/u.test(value.bundle?.bundle_hash)
+  && value.bundle?.contract_count === 20;
+
+const projectionContractsAreValid = (
+  contracts: readonly GeneratedProductExecutionContract[] | undefined,
+): contracts is readonly GeneratedProductExecutionContract[] => Array.isArray(contracts)
+  && contracts.length === 20
+  && new Set(contracts.map((contract) => contract.contract_id)).size === 20
+  && contracts.every((contract) =>
+    /^sha256:[a-f0-9]{64}$/u.test(contract.product_contract_hash)
+    && Array.isArray(contract.product_graph?.nodes)
+    && contract.product_graph.nodes.length > 0);
+
+const projectionHashesAreValid = (
+  value: GeneratedProjection,
+  bundleBody: Omit<GeneratedProjection["bundle"], "bundle_hash">,
+  providerArtifactBytes: string,
+  localizationBytes: string,
+): boolean => canonicalHash(bundleBody) === value.bundle.bundle_hash
+  && sha256(providerArtifactBytes) === value.provider_artifact_sha256
+  && sha256(localizationBytes) === value.localization_semantic_manifest_sha256;
 
 const parseProjection = (): GeneratedProjection => {
   const value = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProjection;
@@ -121,8 +135,6 @@ const parseProjection = (): GeneratedProjection => {
 };
 
 export const XUANXUE_PRODUCT_EXECUTION_PROJECTION = parseProjection();
-export const XUANXUE_PRODUCT_EXECUTION_BUNDLE_HASH =
-  XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.bundle_hash;
 export const XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT =
   XUANXUE_PRODUCT_EXECUTION_PROJECTION.provider_commit_sha;
 export const XUANXUE_PRODUCT_EXECUTION_CONTRACTS = Object.freeze(

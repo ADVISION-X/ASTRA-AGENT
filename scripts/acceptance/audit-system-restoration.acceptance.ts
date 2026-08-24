@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 import {
-  CANONICAL_ACCEPTANCE_BINDINGS,
   CANONICAL_READY_PHASES,
   validateAcceptanceBindings,
 } from "../audit/domains/audit-system/canonical-quality-plan.js";
@@ -27,7 +26,7 @@ assert.ok(!existsSync("docs/governance/AGENT-foundation-recovery-ledger.json"));
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
 const registry = JSON.parse(readFileSync("scripts/audit/generated/law-registry.generated.json", "utf8")) as {
-  laws: Array<{ lawId: string; capabilityDomain: string; evidenceModes: string[] }>;
+  laws: Array<{ lawId: string; capabilityDomain: string; evidenceModes: string[]; enforcement:{examBindings:unknown[]} }>;
 };
 
 assert.equal(pkg.scripts["audit:system:enforce"], "node --import tsx scripts/audit/domains/audit-system/check.ts");
@@ -45,7 +44,6 @@ assert.deepEqual(CANONICAL_READY_PHASES, [
   "generated-artifact-truth",
   "acceptance-runner",
 ]);
-assert.ok(CANONICAL_ACCEPTANCE_BINDINGS.length > 0);
 assert.deepEqual(validateAcceptanceBindings(pkg.scripts, registry.laws), []);
 
 console.log("audit-system-restoration-acceptance-ok");

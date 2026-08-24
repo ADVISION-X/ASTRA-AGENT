@@ -7,48 +7,17 @@ const project = new Project({ useInMemoryFileSystem: true });
 
 const functionBody = (mutation: "baseline" | "decoy" | "no-validation" | "wrong-payload" | "wrong-order", release = false): string => {
   if (mutation === "decoy") return `
-    const decoy = () => { const applicableEvidenceModes = []; const evidenceRefs = []; const findings = []; const missing = []; const outcome = "PASS"; validateQualityReport({}); };
-    const report = { laws: [], outcome: "PASS" };
+    const decoy = () => { const items = []; const mutants = []; const candidateFingerprint = candidateSnapshot(); validateQualityReport({}); };
+    const report = { laws: [], mutants: [], outcome: "PASS" };
     writeFileSync("report.json", canonicalBytes(report));
   `;
   const validation = mutation === "no-validation" ? "" : "validateQualityReport(report);";
   const payload = mutation === "wrong-payload" ? "canonicalBytes({ outcome: 'PASS' })" : "canonicalBytes(report)";
   const write = `writeFileSync("report.json", ${payload});`;
-  const evidence = release ? `
-      const staticChecks = checks.flatMap((check) => {
-        const claim = checkClaimForLaw(check, law.lawId);
-        return claim ? [{ check, claim }] : [];
-      });
-      const lawProofs = proofs.filter((proof) => proof.lawIds.includes(law.lawId));
-      const covered = new Set([
-        ...staticChecks.filter(({ check }) => check.outcome === "PASS").flatMap(({ claim }) => claim.evidenceModes),
-        ...lawProofs.flatMap((proof) => proof.evidenceModes),
-      ]);
-      const missing = applicable.filter((mode: string) => !covered.has(mode));
-      const failed = staticChecks.filter(({ check }) => check.outcome === "FAIL");
-      const findings = [...missing, ...failed.flatMap(({ check }) => check.finding ?? [])];
-      const evidenceRefs = [
-        ...staticChecks.filter(({ check }) => check.outcome === "PASS").map(({ check }) => check.evidenceRef),
-        ...lawProofs.flatMap((proof) => proof.evidenceRefs),
-      ];
-  ` : `
-      const relevant = checks.flatMap((check) => {
-        const claim = checkClaimForLaw(check, law.lawId);
-        return claim ? [{ check, claim }] : [];
-      });
-      const covered = new Set(relevant.filter(({ check }) => check.outcome === "PASS").flatMap(({ claim }) => claim.evidenceModes));
-      const missing = applicable.filter((mode: string) => !covered.has(mode));
-      const failed = relevant.filter(({ check }) => check.outcome === "FAIL");
-      const findings = [...missing, ...failed.flatMap(({ check }) => check.finding ?? [])];
-      const evidenceRefs = relevant.filter(({ check }) => check.outcome === "PASS").map(({ check }) => check.evidenceRef);
-  `;
   return `
-    const items = laws.map((law: { lawId: string }) => {
-      const { applicableEvidenceModes: applicable, deferredEvidenceModes: deferred } = evidencePlan(law);
-      ${evidence}
-      return { lawId: law.lawId, applicableEvidenceModes: applicable, deferredEvidenceModes: deferred, outcome: findings.length ? "FAIL" : "PASS", evidenceRefs, findings };
-    });
-    const report = { laws: items, outcome: items.some((item) => item.outcome === "FAIL") ? "FAIL" : "PASS" };
+    const items = laws.map((law: { lawId: string }) => lawItem(law, checks, ${release ? "proofs" : "[]"}));
+    const mutants = mutantCatalog(laws);
+    const report = { candidateFingerprint: candidateSnapshot(), laws: items, mutants, outcome: items.some((item) => item.outcome === "FAIL") || mutants.some((item) => item.outcome === "FAIL") ? "FAIL" : "PASS" };
     ${mutation === "wrong-order" ? `${write}${validation}` : `${validation}${write}`}
   `;
 };
@@ -56,7 +25,9 @@ const functionBody = (mutation: "baseline" | "decoy" | "no-validation" | "wrong-
 const sourceFor = (mutation: "baseline" | "decoy" | "no-validation" | "wrong-payload" | "wrong-order") => project.createSourceFile(
   `/repo/${mutation}.ts`,
   `
-    declare const evidencePlan: (law: unknown) => { applicableEvidenceModes: string[]; deferredEvidenceModes: string[] };
+    declare const candidateSnapshot: () => string;
+    declare const lawItem: (law: unknown, checks: unknown, proofs: unknown) => { outcome: string };
+    declare const mutantCatalog: (laws: unknown) => Array<{ outcome: string }>;
     declare const validateQualityReport: (report: unknown) => void;
     declare const writeFileSync: (path: string, data: unknown) => void;
     declare const canonicalBytes: (value: unknown) => Uint8Array;

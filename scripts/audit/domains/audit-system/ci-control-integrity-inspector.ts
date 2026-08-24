@@ -4,11 +4,11 @@ type Finding = { code: string; detail: string; path: string };
 type PackageJson = { scripts?: Record<string, string> };
 
 const publicCommands = new Map<string, string>([
-  ["audit:build", "node --import tsx scripts/audit/governance-v32.ts build"],
-  ["audit:projection:check", "node --import tsx scripts/audit/governance-v32.ts projection"],
-  ["governance:entry", "node --import tsx scripts/audit/governance-v32.ts entry CHANGE"],
-  ["governance:scope:check", "node --import tsx scripts/audit/governance-v32.ts scope"],
-  ["quality:check", "node --import tsx scripts/audit/governance-v32.ts quality"],
+  ["audit:build", "node --import tsx scripts/audit/governance.ts build"],
+  ["audit:projection:check", "node --import tsx scripts/audit/governance.ts projection"],
+  ["governance:entry", "node --import tsx scripts/audit/governance.ts entry CHANGE"],
+  ["governance:scope:check", "node --import tsx scripts/audit/governance.ts scope"],
+  ["quality:check", "node --import tsx scripts/audit/governance.ts quality"],
 ]);
 
 export const inspectCiControlIntegrity = (

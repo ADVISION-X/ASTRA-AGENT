@@ -1,17 +1,130 @@
 {
+  "schemaVersion": 4,
   "capabilityDomain": "forensics-persistence-capability",
+  "status": "active",
   "lawIds": [
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2"
   ],
-  "observedPaths": [],
+  "lawBindings": {
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2": {
+      "staticBinding": {
+        "bindingId": "forensics.persistence.capability.001.v2.static",
+        "checkId": "forensics.persistence.capability.001.v2.static.check",
+        "inspectorRef": "scripts/audit/domains/forensics-persistence-capability/inspector.ts#inspectDomain|LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
+        "targetSelectorId": "forensics.persistence.capability.001.v2.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "forensics.persistence.capability.001.v2.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aforensics-persistence-capability%3Aenforce|forensics.persistence.capability.001.v2.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "forensics.persistence.capability.001.v2.exam-golden.exam",
+          "examId": "forensics.persistence.capability.001.v2.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aforensics-persistence-capability|LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "forensics.persistence.capability.001.v2.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aforensics-persistence-capability|forensics.persistence.capability.001.v2.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1": {
+      "staticBinding": {
+        "bindingId": "forensics.persistence.capability.002.v1.static",
+        "checkId": "forensics.persistence.capability.002.v1.static.check",
+        "inspectorRef": "scripts/audit/domains/forensics-persistence-capability/inspector.ts#inspectDomain|LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
+        "targetSelectorId": "forensics.persistence.capability.002.v1.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "forensics.persistence.capability.002.v1.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aforensics-persistence-capability%3Aenforce|forensics.persistence.capability.002.v1.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "forensics.persistence.capability.002.v1.exam-golden.exam",
+          "examId": "forensics.persistence.capability.002.v1.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aforensics-persistence-capability|LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "forensics.persistence.capability.002.v1.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aforensics-persistence-capability|forensics.persistence.capability.002.v1.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    },
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2": {
+      "staticBinding": {
+        "bindingId": "forensics.persistence.capability.003.v2.static",
+        "checkId": "forensics.persistence.capability.003.v2.static.check",
+        "inspectorRef": "scripts/audit/domains/forensics-persistence-capability/inspector.ts#inspectDomain|LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
+        "targetSelectorId": "forensics.persistence.capability.003.v2.target",
+        "evidenceModes": [
+          "static.ast",
+          "static.contract"
+        ],
+        "negativeCases": [
+          {
+            "negativeCaseId": "forensics.persistence.capability.003.v2.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aforensics-persistence-capability%3Aenforce|forensics.persistence.capability.003.v2.static",
+            "expectedCode": "COMPONENT_FAILED"
+          }
+        ]
+      },
+      "examBindings": [
+        {
+          "bindingId": "forensics.persistence.capability.003.v2.exam-golden.exam",
+          "examId": "forensics.persistence.capability.003.v2.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aforensics-persistence-capability|LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2|exam.golden",
+          "evidenceModes": [
+            "exam.golden"
+          ],
+          "negativeCases": [
+            {
+              "negativeCaseId": "forensics.persistence.capability.003.v2.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aforensics-persistence-capability|forensics.persistence.capability.003.v2.exam-golden.exam",
+              "expectedCode": "COMPONENT_FAILED"
+            }
+          ]
+        }
+      ],
+      "proofBindings": []
+    }
+  },
   "ownedPaths": [
     "scripts/audit/domains/forensics-persistence-capability/**",
     "src/capabilities/forensics-persistence/**",
     "src/lib/storage/**",
     "src/types/evidence.ts"
   ],
-  "schemaVersion": 3,
-  "status": "active"
+  "observedPaths": []
 }

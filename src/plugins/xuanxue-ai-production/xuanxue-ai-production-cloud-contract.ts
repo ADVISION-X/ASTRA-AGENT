@@ -21,6 +21,7 @@ import {
   assertXuanxueProductContractHash,
   xuanxueLocalOrderNode,
 } from "./xuanxue-ai-production-product-contracts.js";
+import { CloudFrozenSubjectSchema } from "./xuanxue-ai-production-cloud-subject-contract.js";
 
 export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
   "xuanxue-ai-production-v6" as const;
@@ -35,45 +36,6 @@ export const XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH =
   "sha256:84c4d00a33f712454278ec47896a96eadf61083c3e8df4e2547a7bc473287dd9" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
-
-const CloudFrozenSubjectSchema = z.object({
-  privacy_owner_ref: z.string().min(1),
-  snapshot_ref: z.string().min(1),
-  snapshot_hash: hashSchema,
-  case_revision_ref: z.string().min(1),
-  primary_person_ref: z.string().min(1).nullable(),
-  participant_manifest_hash: hashSchema,
-  participants: z.array(z.object({
-    slot_ref: z.string().min(1),
-    role_code: z.string().min(1),
-    person_ref: z.string().min(1),
-    profile_version_ref: z.string().min(1),
-    chart_state_ref: z.string().min(1),
-    chart_state_version: z.string().min(1),
-    chart_state_hash: hashSchema,
-    purpose_code: z.string().min(1),
-    authorization_receipt_ref: z.string().min(1),
-  }).strict()).max(32),
-}).strict().superRefine((subject, context) => {
-  const contextOnlyOwner =
-    subject.privacy_owner_ref === "localization-catalog"
-    || subject.privacy_owner_ref === "public-knowledge-content";
-  const contextOnly = contextOnlyOwner && subject.primary_person_ref === null;
-  if (!contextOnly && subject.participants.length === 0) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_FROZEN_SUBJECT_PARTICIPANT_REQUIRED",
-      path: ["participants"],
-    });
-  }
-  if (contextOnly && subject.participants.length > 0) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_CONTEXT_ONLY_SUBJECT_MUST_NOT_HAVE_PARTICIPANTS",
-      path: ["participants"],
-    });
-  }
-});
 
 const CloudConversationParentSchema = z.object({
   relation: z.enum(["same_conversation", "forked_from_checkpoint"]),

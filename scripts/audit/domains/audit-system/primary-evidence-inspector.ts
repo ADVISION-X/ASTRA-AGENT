@@ -29,20 +29,6 @@ const reportObject = (declaration: FunctionDeclaration): ObjectLiteralExpression
   return initializer && Node.isObjectLiteralExpression(initializer) ? initializer : undefined;
 };
 
-const itemObject = (declaration: FunctionDeclaration): ObjectLiteralExpression | undefined => {
-  const initializer = variable(declaration, "items")?.getInitializer();
-  if (!initializer || !Node.isCallExpression(initializer)) return undefined;
-  const expression = initializer.getExpression();
-  if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "map") return undefined;
-  const callback = initializer.getArguments()[0];
-  if (!callback || (!Node.isArrowFunction(callback) && !Node.isFunctionExpression(callback))) return undefined;
-  const body = callback.getBody();
-  if (Node.isObjectLiteralExpression(body)) return body;
-  return body.getDescendantsOfKind(SyntaxKind.ReturnStatement)
-    .map((statement) => statement.getExpression())
-    .find((returned): returned is ObjectLiteralExpression => Boolean(returned && Node.isObjectLiteralExpression(returned)));
-};
-
 const directlyExecuted = (node: MorphNode, declaration: FunctionDeclaration): boolean =>
   node.getFirstAncestor(Node.isFunctionLikeDeclaration) === declaration
   && !isDefinitelyUnreachable(node, declaration);
@@ -71,46 +57,13 @@ const hasCanonicalReportWrite = (declaration: FunctionDeclaration): boolean =>
 
 type BrokenFinding = (detail: string) => Finding;
 
-const inspectLawItem = (declaration: FunctionDeclaration, broken: BrokenFinding): Finding[] => {
-  const findings: Finding[] = [];
-  const item = itemObject(declaration);
-  if (!item) findings.push(broken("law-items-map"));
-  else {
-    for (const name of ["lawId", "applicableEvidenceModes", "deferredEvidenceModes", "outcome", "evidenceRefs", "findings"]) {
-      if (!propertyExpression(item, name)) findings.push(broken(`law-item.${name}`));
-    }
-    if (!containsNames(propertyExpression(item, "evidenceRefs"), ["evidenceRefs"])) findings.push(broken("law-item.evidenceRefs-path"));
-    if (!containsNames(propertyExpression(item, "findings"), ["findings"])) findings.push(broken("law-item.findings-path"));
-    if (!containsNames(propertyExpression(item, "outcome"), ["findings"])) findings.push(broken("law-item.outcome-path"));
-  }
-  return findings;
-};
-
-const inspectEvidencePaths = (
-  declaration: FunctionDeclaration,
-  functionName: string,
-  broken: BrokenFinding,
-): Finding[] => {
-  const findings: Finding[] = [];
-  const missing = variable(declaration, "missing")?.getInitializer();
-  const findingsValue = variable(declaration, "findings")?.getInitializer();
-  const evidenceRefs = variable(declaration, "evidenceRefs")?.getInitializer();
-  if (!containsNames(missing, ["applicable", "covered"])) findings.push(broken("missing-evidence-path"));
-  if (!containsNames(findingsValue, ["missing", "failed"])) findings.push(broken("findings-path"));
-  const evidenceInputs = functionName === "writeReleaseReport"
-    ? ["staticChecks", "lawProofs", "outcome", "evidenceRefs"]
-    : ["relevant", "outcome", "evidenceRef"];
-  if (!containsNames(evidenceRefs, evidenceInputs)) findings.push(broken("evidence-refs-path"));
-  return findings;
-};
-
 const inspectReportPath = (declaration: FunctionDeclaration, broken: BrokenFinding): Finding[] => {
   const findings: Finding[] = [];
   const report = reportObject(declaration);
   if (!report) findings.push(broken("report-object"));
   else {
     if (!containsNames(propertyExpression(report, "laws"), ["items"])) findings.push(broken("report-laws-path"));
-    if (!containsNames(propertyExpression(report, "outcome"), ["items", "outcome"])) findings.push(broken("report-outcome-path"));
+    if (!containsNames(propertyExpression(report, "outcome"), ["items", "mutants"])) findings.push(broken("report-outcome-path"));
   }
   if (!hasReportValidation(declaration)) findings.push(broken("validateQualityReport(report)"));
   if (!hasCanonicalReportWrite(declaration)) findings.push(broken("writeFileSync(canonicalBytes(report))"));
@@ -119,7 +72,7 @@ const inspectReportPath = (declaration: FunctionDeclaration, broken: BrokenFindi
 
 const inspectEvidenceOrder = (declaration: FunctionDeclaration, broken: BrokenFinding): Finding[] => {
   const calls = callNamesInOrder(declaration);
-  const evidencePlanIndex = calls.indexOf("evidencePlan");
+  const evidencePlanIndex = calls.indexOf("candidateSnapshot");
   const validationIndex = calls.indexOf("validateQualityReport");
   const writeIndex = calls.indexOf("writeFileSync");
   return evidencePlanIndex < 0 || validationIndex <= evidencePlanIndex || writeIndex <= validationIndex
@@ -135,14 +88,13 @@ const inspectFunction = (source: SourceFile, functionName: string): Finding[] =>
   });
   if (!declaration) return [broken("declaration")];
   const names = identifierSet(declaration);
-  const exactClaimInputs = ["checkClaimForLaw", "claim", "evidenceModes", "lawId"];
-  return [
-    ...exactClaimInputs.filter((name) => !names.has(name)).map((name) => broken(`exact-law-claim.${name}`)),
-    ...inspectLawItem(declaration, broken),
-    ...inspectEvidencePaths(declaration, functionName, broken),
-    ...inspectReportPath(declaration, broken),
-    ...inspectEvidenceOrder(declaration, broken),
-  ];
+  const required = ["candidateSnapshot", "items", "laws", "mutants", "outcome", "report", "validateQualityReport"];
+  const report = reportObject(declaration);
+  const findings = required.filter((name) => !names.has(name)).map((name) => broken(`required.${name}`));
+  if (!report || !containsNames(propertyExpression(report, "laws"), ["items"]) || !containsNames(propertyExpression(report, "mutants"), ["mutants"])) findings.push(broken("single-report-denominator"));
+  findings.push(...inspectReportPath(declaration, broken));
+  findings.push(...inspectEvidenceOrder(declaration, broken));
+  return findings;
 };
 
 export const inspectPrimaryEvidence = (source: SourceFile): Finding[] => [
