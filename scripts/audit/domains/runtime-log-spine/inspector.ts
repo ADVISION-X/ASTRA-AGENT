@@ -1,14 +1,14 @@
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns } from "./phase-runs.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
   const findings = collected.phaseRuns.flatMap((phase) => phase.findings).map(toInspectorFinding);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "runtime-log-spine/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths],
   };

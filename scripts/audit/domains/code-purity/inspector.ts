@@ -1,6 +1,6 @@
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { runCodePurityPhases } from "./components/code-purity-phase-runner.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 
 
@@ -10,7 +10,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "code-purity/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings: phaseRun.findings,
     inspectedFiles: [...context.targetPaths],
   };

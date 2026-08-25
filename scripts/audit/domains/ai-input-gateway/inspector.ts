@@ -6,7 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -433,7 +433,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "ai-input-gateway/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };

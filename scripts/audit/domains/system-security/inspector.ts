@@ -2,7 +2,7 @@ import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } 
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -132,7 +132,7 @@ export const inspectSystemSecurityProject = (project: Project): InspectorFinding
 const evaluate = (context: InspectorContext): InspectorEvaluation => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
-  executedChecks: completedStaticChecks(context, "system-security/owner-static-check"),
+  executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
   findings: inspectSystemSecurityProject(context.project),
   inspectedFiles: [...context.targetPaths],
 });

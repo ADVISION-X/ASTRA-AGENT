@@ -6,7 +6,7 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 
 
@@ -41,7 +41,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "architecture-boundary/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths],
   };

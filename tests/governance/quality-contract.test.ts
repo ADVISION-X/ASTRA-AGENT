@@ -25,7 +25,8 @@ import type { InspectorContext, InspectorEvaluation } from "../../scripts/audit/
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
+import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
 
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
@@ -92,6 +93,27 @@ test("every active Exam and Dynamic route has an explicit object-semantic clause
   for (const law of registry.laws) for (const mode of law.evidenceModes) {
     if (!mode.startsWith("exam.") && !mode.startsWith("dynamic.")) continue;
     assert.ok(proofClauseIndexesFor(law.lawId, mode, law.forbidden.length), `${law.lawId}:${mode}`);
+  }
+});
+
+test("every active Static route has fixed clause coverage bound to domain semantic checks", () => {
+  const registry = buildRegistry();
+  const domains = [...new Set(registry.laws.map((law) => law.capabilityDomain))].sort();
+  const signature = (input: { lawId: string; evidenceMode: string; clauses: readonly string[] }): string =>
+    `${input.lawId}\0${input.evidenceMode}\0${JSON.stringify([...input.clauses].sort())}`;
+  for (const domain of domains) {
+    const laws = registry.laws.filter((law) => law.capabilityDomain === domain);
+    const expected = laws.flatMap((law) => {
+      const modes = requiredModes(law, "READY");
+      return modes.filter((mode) => mode.startsWith("static.")).map((evidenceMode) => signature({
+        lawId: law.lawId,
+        evidenceMode,
+        clauses: clausesForEvidenceMode(law, modes, evidenceMode),
+      }));
+    }).sort();
+    const routes = staticClauseRoutesForDomain(domain);
+    assert.deepEqual(routes.map(signature).sort(), expected, domain);
+    assert.equal(routes.every((route) => route.semanticChecks.length > 0), true, domain);
   }
 });
 
@@ -388,7 +410,10 @@ test("static finalization rejects an omitted executed clause check", async () =>
   await assert.rejects(
     () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
-      executedChecks: [{ lawId: "LAW-FIXTURE-001-V1", evidenceMode: "static.ast", clauses: ["summary"], checkId: "fixture/summary-check" }],
+      executedChecks: [{
+        lawId: "LAW-FIXTURE-001-V1", evidenceMode: "static.ast", clauses: ["summary"],
+        checkId: "fixture/summary-check", semanticChecks: ["inspectFixture"],
+      }],
     }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
@@ -436,7 +461,7 @@ test("a no-op inspector cannot mint PASS from a readable complete target set", a
   );
 });
 
-test("a self-attested inspector cannot copy the requested clause plan into PASS", async () => {
+test("an unrelated function call cannot authenticate a copied static clause plan", async () => {
   const context = {
     sealedRoot: process.cwd(),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
@@ -448,9 +473,12 @@ test("a self-attested inspector cannot copy the requested clause plan into PASS"
     }],
   } as unknown as InspectorContext;
   await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectNothing() { return {
+    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectNothing() { String("unrelated-call"); return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
-      executedChecks: completedStaticChecks(context, "fixture/copied-request-plan"),
+      executedChecks: [{
+        lawId: "LAW-FIXTURE-001-V1", evidenceMode: "static.ast", clauses: ["forbidden:0", "summary"],
+        checkId: "fixture/copied-request-plan", semanticChecks: ["String"],
+      }],
     }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );

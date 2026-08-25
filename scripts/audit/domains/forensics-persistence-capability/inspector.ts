@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -178,7 +178,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "forensics-persistence/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths],
   };

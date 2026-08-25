@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -202,7 +202,7 @@ export const inspectLocalAppShellProject = (
 const evaluate = (context: InspectorContext): InspectorEvaluation => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
-  executedChecks: completedStaticChecks(context, "local-app-shell/owner-static-check"),
+  executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
   findings: inspectLocalAppShellProject(context.project, context.targetPaths, context.planEntry.lawIds[0]),
   inspectedFiles: [...context.targetPaths],
 });

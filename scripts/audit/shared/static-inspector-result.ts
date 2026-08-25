@@ -1,10 +1,14 @@
-import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { Node, Project, SyntaxKind } from "ts-morph";
 
 import { fail } from "../governance-runtime.js";
 import type {
   InspectorContext, InspectorEvaluation, InspectorExecutedCheck, InspectorLawRequirement, InspectorLawResult, InspectorOutput,
 } from "./inspector-contracts.js";
 import { inspectTargetObjects } from "./static-target-object-inspector.js";
+import { staticClauseRoutesForDomain } from "./static-clause-routes.js";
 
 const evidenceKind: Readonly<Record<string, string>> = {
   "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
@@ -18,39 +22,45 @@ export type StaticLawRoute = Readonly<{
 }>;
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
-const semanticExecutorCalls = (execute: StaticInspectorExecutor): string[] => {
-  const project = new Project({ useInMemoryFileSystem: true });
-  let source: SourceFile;
-  try {
-    source = project.createSourceFile("executor.ts", `const executor = ${execute.toString()};`);
-  } catch {
-    return [];
-  }
-  return source.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+const enforcementRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+
+const resolvedSymbolPaths = (identifier: import("ts-morph").Identifier): string[] => {
+  const symbol = identifier.getSymbol();
+  if (!symbol) return [];
+  let resolvedSymbol = symbol;
+  try { resolvedSymbol = symbol.getAliasedSymbol() ?? symbol; } catch { /* local symbol */ }
+  return resolvedSymbol.getDeclarations().map((declaration) => declaration.getSourceFile().getFilePath());
+};
+
+const domainSemanticExecutorCalls = (context: InspectorContext, executorName: string): Set<string> => {
+  const project = new Project({ tsConfigFilePath: resolve(enforcementRoot, "tsconfig.json") });
+  const source = project.getSourceFile(resolve(enforcementRoot, context.planEntry.ownerInspectorPath));
+  if (!source) return new Set();
+  const functionBody = source.getFunction(executorName)?.getBody()
+    ?? source.getVariableDeclaration(executorName)?.getInitializer();
+  if (!functionBody) return new Set();
+  const domainRoot = `${resolve(enforcementRoot, "scripts/audit/domains", context.planEntry.capabilityDomain)}/`;
+  return new Set(functionBody.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
     const expression = call.getExpression();
-    if (Node.isIdentifier(expression)) return [expression.getText()];
-    if (Node.isPropertyAccessExpression(expression)) return [expression.getName()];
-    return [];
-  }).filter((name) => name !== "completedStaticChecks");
+    if (!Node.isIdentifier(expression)) return [];
+    const declarationPaths = resolvedSymbolPaths(expression);
+    return declarationPaths.some((path) => path.startsWith(domainRoot)) ? [expression.getText()] : [];
+  }));
 };
 
 const validateSemanticExecutor = (
-  context: InspectorContext, execute: StaticInspectorExecutor,
+  context: InspectorContext, executorName: string, evaluation: InspectorEvaluation,
 ): void => {
-  if (semanticExecutorCalls(execute).length === 0) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:semantic-execution`);
+  const executedSemanticChecks = domainSemanticExecutorCalls(context, executorName);
+  const requiredSemanticChecks = ordered(evaluation.executedChecks.flatMap((check) => check.semanticChecks));
+  if (!requiredSemanticChecks.length
+    || requiredSemanticChecks.some((semanticCheck) => !executedSemanticChecks.has(semanticCheck))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:semantic-execution-binding`);
   }
 };
 
-export const completedStaticChecks = (
-  context: InspectorContext, checkId: string,
-): InspectorExecutedCheck[] => context.lawRequirements.flatMap((requirement) =>
-  Object.entries(requirement.clausesByMode).map(([evidenceMode, clauses]) => ({
-    lawId: requirement.lawId,
-    evidenceMode,
-    clauses: ordered(clauses),
-    checkId,
-  })));
+export const authenticatedStaticChecks = (domain: string): InspectorExecutedCheck[] =>
+  staticClauseRoutesForDomain(domain);
 
 const validateStaticRoutes = (
   context: InspectorContext, routes: readonly StaticLawRoute[],
@@ -83,6 +93,8 @@ const validateExecutedChecks = (context: InspectorContext, evaluation: Inspector
   }
   const actual = evaluation.executedChecks.map(checkSignature);
   if (evaluation.executedChecks.some((check) => !check || !Array.isArray(check.clauses)
+    || !Array.isArray(check.semanticChecks) || check.semanticChecks.length === 0
+    || JSON.stringify(check.semanticChecks) !== JSON.stringify(ordered(check.semanticChecks))
     || typeof check.lawId !== "string" || typeof check.evidenceMode !== "string"
     || !/^[a-z0-9]+(?:[a-z0-9-]*)(?:\/[a-z0-9]+(?:[a-z0-9-]*))*$/u.test(check.checkId))
     || actual.length !== new Set(actual).size
@@ -93,7 +105,7 @@ const validateExecutedChecks = (context: InspectorContext, evaluation: Inspector
 
 const validateStaticEvaluation = (
   context: InspectorContext, evaluation: InspectorEvaluation, requiredIds: readonly string[],
-  requiredTargets: readonly string[], executorName: string, execute: StaticInspectorExecutor,
+  requiredTargets: readonly string[], executorName: string,
 ): void => {
   inspectTargetObjects(context, requiredTargets);
   if (evaluation.capabilityDomain !== context.planEntry.capabilityDomain
@@ -109,7 +121,7 @@ const validateStaticEvaluation = (
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:target-denominator`);
   }
   validateExecutedChecks(context, evaluation);
-  validateSemanticExecutor(context, execute);
+  validateSemanticExecutor(context, executorName, evaluation);
 };
 
 const resultForRequirement = (
@@ -126,7 +138,7 @@ const resultForRequirement = (
       passed: findings.length === 0,
       refs: ordered([
         ...check.clauses.map((clause) =>
-          `${evidenceKind[check.evidenceMode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};checkId=${check.checkId};clause=${clause};mode=${check.evidenceMode};targetCount=${requirement.targetSet.count}`)}`),
+          `${evidenceKind[check.evidenceMode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};checkId=${check.checkId};semanticChecks=${check.semanticChecks.join(",")};clause=${clause};mode=${check.evidenceMode};targetCount=${requirement.targetSet.count}`)}`),
         requirement.targetSet.queryRef,
       ]),
     })),
@@ -148,7 +160,7 @@ export const finalizeStaticInspection = async (
   let evaluation: InspectorEvaluation;
   try { evaluation = await execute(context); }
   catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}`); }
-  validateStaticEvaluation(context, evaluation, requiredIds, requiredTargets, executorName, execute);
+  validateStaticEvaluation(context, evaluation, requiredIds, requiredTargets, executorName);
   const executionId = `${context.planEntry.capabilityDomain}/${executorName}`;
   const lawResults = context.lawRequirements.map((requirement) =>
     resultForRequirement(context, evaluation, requirement, executionId));

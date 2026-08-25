@@ -8,7 +8,7 @@ import {
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
@@ -376,7 +376,7 @@ const inspectDomainEvaluation = async (
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "xuanxue-ai-production/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths],
   };

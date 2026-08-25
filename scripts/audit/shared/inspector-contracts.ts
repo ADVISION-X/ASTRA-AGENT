@@ -25,6 +25,7 @@ export type InspectorExecutedCheck = {
   evidenceMode: string;
   clauses: string[];
   checkId: string;
+  semanticChecks: string[];
 };
 export type InspectorLawRequirement = {
   lawId: string;

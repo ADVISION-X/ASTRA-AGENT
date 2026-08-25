@@ -5,7 +5,7 @@ import { inspectAppShellLayout } from "./inspector-layout.js";
 import { inspectAppShellLocalization } from "./inspector-localization.js";
 import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V2");
@@ -19,7 +19,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "app-shell-ui/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths],
   };

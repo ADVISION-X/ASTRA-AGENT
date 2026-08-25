@@ -10,7 +10,7 @@ import {
   type InspectorEvaluation,
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
-import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { authenticatedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import {
@@ -476,7 +476,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: completedStaticChecks(context, "local-browser-session/owner-static-check"),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };
