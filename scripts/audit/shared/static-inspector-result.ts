@@ -23,7 +23,7 @@ export const staticLawCoverage = (
   }
   return {
     lawId,
-    clausesByMode: Object.fromEntries(evidenceModes.map((mode) => [mode, ordered([
+    clausesByMode: Object.fromEntries(ordered(evidenceModes).map((mode) => [mode, ordered([
       ...(mode === primary ? primaryForbiddenIndexes.map((index) => `forbidden:${index}`) : []), "summary",
     ])])),
   };
