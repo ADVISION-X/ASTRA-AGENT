@@ -385,6 +385,6 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", forbiddenCount: 16,
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", semanticDigest: "186dd6b33b13b8ad3c9d12450981265c3650a50d283404c5eb7083b1d91c1728",
   }], inspectDomainEvaluation);
 };

@@ -185,8 +185,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [
-    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", forbiddenCount: 1 },
-    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2", forbiddenCount: 1 },
-    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", forbiddenCount: 1 },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", semanticDigest: "e2ecda34633fa66e8530c027d20ad23aeedbc4c224543324a44ef4d533935b57" },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2", semanticDigest: "4c5dedd2035816fe031ee429cdd0dad8e25034c6c09a7d14a3125abc0c819884" },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", semanticDigest: "d93c00d193027b5ffa4449f637a2ec3e3cb2baa3583b2e483932192fee6183c4" },
   ], inspectDomainEvaluation);
 };

@@ -8,9 +8,10 @@ import { canonicalBytes, exactKeys, rejectDuplicateJsonKeys } from "../governanc
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
+import { staticLawSemanticDigest } from "./static-inspector-result.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
-import { dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
+import { assertProofProducerDigest, dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -188,6 +189,8 @@ const runStaticDomain = (
       const lawPaths = targetPathsByLaw.get(law.lawId) ?? [];
       return {
         lawId: law.lawId,
+        semanticDigest: staticLawSemanticDigest(law.summary, law.forbidden),
+        forbiddenCount: law.forbidden.length,
         clausesByMode: Object.fromEntries(law.evidenceModes.filter((mode) => mode.startsWith("static."))
           .map((mode) => [mode, clausesForEvidenceMode(law, requiredModes(law, level), mode)])),
         targetPaths: lawPaths,
@@ -277,15 +280,6 @@ const proofRequestIndex = (
   return { expected, byRoute };
 };
 
-const assertObservationRequest = (
-  observation: QualityProofObservation, request: QualityProofRequest, key: string,
-): void => {
-  if (observation.proofRunId !== request.proofRunId || observation.candidate !== request.candidate
-    || observation.proofKind !== request.proofKind) {
-    fail("LAW_EVIDENCE_MISSING", `unauthenticated:${key.replace("\0", ":")}`);
-  }
-};
-
 export const bindNativeProofObservations = (
   stdout: string,
   routes: readonly ProofRoute[],
@@ -302,8 +296,6 @@ export const bindNativeProofObservations = (
     const key = `${observation.lawId}\0${observation.evidenceMode}`;
     if (!index.expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
     if (bound.has(key)) fail("LAW_EVIDENCE_DUPLICATE", key.replace("\0", ":"));
-    const request = index.byRoute.get(key)!;
-    assertObservationRequest(observation, request, key);
     const route = routes.find(({ law, mode }) => `${law.lawId}\0${mode}` === key)!;
     if (!observationMatchesRoute({
       kind, script, domain: route.law.capabilityDomain, lawId: observation.lawId,
@@ -327,6 +319,7 @@ const commandReceipt = (
     lawId: law.lawId, evidenceMode: mode, proofRunId, candidate, proofKind: kind,
   }));
   assertCleanCandidate(candidate, `${script}:before`);
+  assertProofProducerDigest(script);
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
   const execution = spawnSync("npm", ["run", script], {
     cwd: ROOT,
@@ -338,7 +331,6 @@ const commandReceipt = (
       GOVERNANCE_PROOF_KIND: kind,
       GOVERNANCE_PROOF_RUN_ID: proofRunId,
       GOVERNANCE_PROOF_CANDIDATE: candidate,
-      GOVERNANCE_PROOF_REQUESTS: JSON.stringify(requests),
     },
   });
   assertCleanCandidate(candidate, `${script}:after`);

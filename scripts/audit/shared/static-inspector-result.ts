@@ -1,4 +1,4 @@
-import { fail } from "../governance-runtime.js";
+import { fail, sha } from "../governance-runtime.js";
 import type {
   InspectorContext, InspectorEvaluation, InspectorLawRequirement, InspectorOutput,
 } from "./inspector-contracts.js";
@@ -13,14 +13,12 @@ const ordered = (values: readonly string[]): string[] => [...new Set(values)].so
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 export type StaticLawRoute = Readonly<{
   lawId: string;
-  forbiddenCount: number;
+  semanticDigest: string;
 }>;
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
-const availableClauses = (route: StaticLawRoute): string[] => [
-  ...Array.from({ length: route.forbiddenCount }, (_, index) => `forbidden:${index}`),
-  "summary",
-].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+export const staticLawSemanticDigest = (summary: string, forbidden: readonly string[]): string =>
+  sha(JSON.stringify({ summary, forbidden }));
 
 
 export const finalizeStaticInspection = async (
@@ -34,15 +32,19 @@ export const finalizeStaticInspection = async (
   }
   const requiredIds = context.lawRequirements.map((law) => law.lawId);
   if (JSON.stringify(ordered(routes.map((route) => route.lawId))) !== JSON.stringify(requiredIds)
-    || routes.some((route) => !Number.isInteger(route.forbiddenCount) || route.forbiddenCount < 1)) {
+    || routes.some((route) => !/^[a-f0-9]{64}$/u.test(route.semanticDigest))) {
     fail("LAW_CHECK_ROUTE_MISSING", context.planEntry.capabilityDomain);
   }
   const routesByLaw = new Map(routes.map((route) => [route.lawId, route]));
   for (const requirement of context.lawRequirements) {
     const route = routesByLaw.get(requirement.lawId) ?? fail("LAW_CHECK_ROUTE_MISSING", requirement.lawId);
     const requiredClauses = ordered(Object.values(requirement.clausesByMode).flat());
-    const available = availableClauses(route);
-    if (!requiredClauses.includes("summary") || requiredClauses.some((clause) => !available.includes(clause))) {
+    const availableClauses = ordered([
+      ...Array.from({ length: requirement.forbiddenCount }, (_, index) => `forbidden:${index}`), "summary",
+    ]);
+    if (!Number.isInteger(requirement.forbiddenCount) || requirement.forbiddenCount < 1
+      || !requiredClauses.includes("summary") || requiredClauses.some((clause) => !availableClauses.includes(clause))
+      || route.semanticDigest !== requirement.semanticDigest) {
       fail("LAW_CHECK_ROUTE_MISSING", `${requirement.lawId}:clause`);
     }
   }
@@ -74,7 +76,7 @@ export const finalizeStaticInspection = async (
         passed: findings.length === 0,
         refs: ordered([
           ...clauses.map((clause) =>
-            `${evidenceKind[mode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};clause=${clause};mode=${mode};targetCount=${requirement.targetSet.count}`)}`),
+            `${evidenceKind[mode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};clause=${clause};semanticDigest=${requirement.semanticDigest};mode=${mode};targetCount=${requirement.targetSet.count}`)}`),
           requirement.targetSet.queryRef,
         ]),
       })),

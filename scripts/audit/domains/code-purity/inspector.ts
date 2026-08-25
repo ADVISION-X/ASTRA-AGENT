@@ -18,6 +18,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-CODE-PURITY-001-V2", forbiddenCount: 17,
+    lawId: "LAW-CODE-PURITY-001-V2", semanticDigest: "3a1e4be079b7e58040303d2fa8d8467e18098dccfe9564329d174ac164bfc25b",
   }], inspectDomainEvaluation);
 };

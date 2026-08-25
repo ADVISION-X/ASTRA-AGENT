@@ -483,11 +483,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", forbiddenCount: 10 },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", forbiddenCount: 11 },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", forbiddenCount: 12 },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", forbiddenCount: 16 },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", forbiddenCount: 5 },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", forbiddenCount: 1 },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", semanticDigest: "8e75cd9810c70d19ee706bef9cb8fc93cb86c15030b8c89d32b5f7c6c91263ee" },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", semanticDigest: "2c9954d5102f63258293242f77a28f254aab092165fd23b3f20b174832b58d73" },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", semanticDigest: "10d589648333fc6a50a11936bd7b8e247636db0c6437679bf08a34f33c8a5f2d" },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", semanticDigest: "4bd51473d4b164054109b589599e181d7787a722510bc494eb8443adcded5786" },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", semanticDigest: "05bb6fa1b0e8b59663417c47b249aea3ae79c8a66a3c1b8c9c077a335468ae58" },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", semanticDigest: "41149e0e5a36ba381a83e4c2395c7b2cee668a88ba84d1582579c3a4e956d738" },
   ], inspectDomainEvaluation);
 };

@@ -350,6 +350,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", forbiddenCount: 7,
+    lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", semanticDigest: "a1cc2c4af8614622a053e74432f93aa09d89dce0c78e368ffcfb45e571ceea28",
   }], inspectDomainEvaluation);
 };

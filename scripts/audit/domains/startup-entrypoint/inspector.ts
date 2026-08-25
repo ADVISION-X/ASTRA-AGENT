@@ -193,7 +193,7 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [
-    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", forbiddenCount: 12 },
-    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", forbiddenCount: 5 },
+    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", semanticDigest: "112e600780020a12fdf108fef2dcae6454e4e8c9a4801f58fd020df507f0ae04" },
+    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", semanticDigest: "e1e3c29ea2afc74a969500ca2e805e7ede746ea34a864c0e3fdd1d8d2bd1c811" },
   ], inspectDomainEvaluation);
 };

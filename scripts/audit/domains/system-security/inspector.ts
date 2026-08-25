@@ -138,6 +138,6 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => ({
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: LAW_ID, forbiddenCount: 6,
+    lawId: LAW_ID, semanticDigest: "06b43248b76c97efe83cb61e90aa7ab4c91c7a729eef9b0aa3e9ce2442c09682",
   }], evaluate);
 };

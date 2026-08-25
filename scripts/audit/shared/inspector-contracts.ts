@@ -21,6 +21,8 @@ export type InspectorEvaluation = {
 };
 export type InspectorLawRequirement = {
   lawId: string;
+  semanticDigest: string;
+  forbiddenCount: number;
   clausesByMode: Record<string, string[]>;
   targetPaths: string[];
   targetSet: { queryRef: string; count: number };

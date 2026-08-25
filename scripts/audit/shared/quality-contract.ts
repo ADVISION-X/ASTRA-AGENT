@@ -1,8 +1,8 @@
-import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
 import { exactKeys } from "../governance-json.js";
-import { ROOT, fail, validGitObjectId } from "../governance-runtime.js";
+import { ROOT, fail, sha, validGitObjectId } from "../governance-runtime.js";
 import type { Law, Level } from "../governance-authority.js";
 import { proofClauseIndexesFor } from "./quality-routes.js";
 
@@ -150,9 +150,18 @@ const repositoryObjectExists = (locator: string): boolean => {
   const escaped = relative(root, realpathSync(absolute));
   return escaped !== ".." && !escaped.startsWith("../") && lstatSync(absolute).isFile();
 };
+const externalReceiptMatches = (reference: ParsedEvidenceRef): boolean => {
+  if (!reference.receipt || !reference.locator.startsWith("/") || !existsSync(reference.locator)) return false;
+  try {
+    const stat = lstatSync(reference.locator);
+    if (!stat.isFile() || stat.isSymbolicLink()) return false;
+    const expected = reference.receipt.startsWith("sha256:") ? reference.receipt.slice(7) : reference.receipt;
+    return sha(readFileSync(reference.locator)) === expected;
+  } catch { return false; }
+};
 const validEvidenceObject = (reference: ParsedEvidenceRef): boolean => {
   const external = reference.kind === "exam" || reference.kind === "dynamic";
-  if (external) return reference.receipt !== undefined;
+  if (external) return externalReceiptMatches(reference);
   if (reference.receipt !== undefined) return false;
   if (reference.kind !== "scope") return repositoryObjectExists(reference.locator);
   return /^LAW-[A-Z0-9-]+$/u.test(reference.locator) && reference.selector === "appliesTo-minus-excludes";
