@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-contract.js";
@@ -36,6 +37,7 @@ try {
     extensionId: evidence.extensionId, workerSessionId: receipt.worker_session_id,
     runtimeAttestationReceiptHash: receipt.runtime_attestation_receipt_hash,
   })}\n`);
+  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.browser", locator: "dynamic:xuanxue:bound-real-chrome", observedValue: `workerSession=${receipt.worker_session_id};attestation=${receipt.runtime_attestation_receipt_hash}` });
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }

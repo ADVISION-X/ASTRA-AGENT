@@ -10,6 +10,7 @@ import {
   type InspectorEvaluation,
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import {
@@ -417,6 +418,41 @@ const inspectJournalRecoveryBoundary = (
   }
 };
 
+const inspectOpaqueAuthorityBoundary = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const transport = requireSource(context, findings, lawId, sourcePaths[0]);
+  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
+  const broker = requireSource(context, findings, lawId, sourcePaths[18]);
+  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
+  if (!transport || !journal || !broker || !supervisor) return;
+  requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
+    "Public Browser authority and artifact status must expose opaque references and hashes.");
+  requireIdentifiers(journal, ["payloadHash", "resultHash", "artifactRefs", "targetRef", "documentRef"], findings, lawId,
+    "Durable Browser proof must retain opaque references and content hashes instead of raw page or filesystem payloads.");
+  requireIdentifiers(supervisor, ["authorityRefHash"], findings, lawId,
+    "Runtime diagnostics must expose only the hashed Browser authority reference.");
+  const forbiddenRawFields = new Set([
+    "targetId", "documentId", "filePath", "filePaths", "resolvedPath", "sourcePath", "rawPath",
+    "pageContent", "outerHTML", "innerHTML", "cookie", "cookies", "credential", "credentials", "password", "authorization",
+  ]);
+  for (const [repoPath, source] of [
+    [sourcePaths[0], transport],
+    [sourcePaths[7], journal],
+    [sourcePaths[3], supervisor],
+  ] as const) {
+    const leaked = [...identifiers(source)].find((name) => forbiddenRawFields.has(name));
+    if (leaked) findings.push(createLocalFinding({
+      checkId: "browser-authority/opaque-proof-boundary",
+      lawId,
+      filePath: repoPath,
+      message: `Browser wire, durable proof and diagnostics must not expose raw authority/page/path field ${leaked}.`,
+    }));
+  }
+};
+
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const findings: InspectorFinding[] = [];
@@ -436,6 +472,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectAuthenticatedRuntimeRegressionGuards(context, findings);
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
   inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
+  inspectOpaqueAuthorityBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2"));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -445,13 +482,10 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("local-browser-session requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context);
+  return finalizeStaticInspection(context, evaluation, [
+    "LAW-LOCAL-BROWSER-SESSION-001-V4", "LAW-LOCAL-BROWSER-SESSION-002-V4",
+    "LAW-LOCAL-BROWSER-SESSION-003-V6", "LAW-LOCAL-BROWSER-SESSION-004-V6",
+    "LAW-LOCAL-BROWSER-SESSION-005-V4", "LAW-LOCAL-BROWSER-SESSION-006-V2",
+  ]);
 };

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { recoverBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal-recovery.js";
@@ -37,6 +38,7 @@ try {
     firstInvalidLine: recovered.firstInvalidLine,
     fixtureOwnership: "temporary-owned",
   })}\n`);
+  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery", locator: "dynamic:browser-journal:authorized-atomic-recovery", observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
 } finally {
   if (previousAuthorization === undefined) delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
   else process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED = previousAuthorization;

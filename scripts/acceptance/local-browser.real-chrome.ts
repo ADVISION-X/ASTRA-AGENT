@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
@@ -70,3 +71,8 @@ process.stdout.write(`${JSON.stringify({
   commandSequence: completed.sequence,
   revokedSequence: revoked.sequence,
 })}\n`);
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", evidenceMode: "dynamic.browser", locator: "dynamic:browser:authenticated-lifecycle", observedValue: `authenticated=${authenticated.sequence};revoked=${revoked.sequence}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenceMode: "dynamic.browser", locator: "dynamic:browser:fixed-unpacked-authority", observedValue: `extension=${GRASSEYE_UNPACKED_EXTENSION_ID};authority=${authorityRefHash}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "dynamic.browser", locator: "dynamic:browser:exact-target-claim", observedValue: `claim=${claimed.sequence};command=${completed.sequence}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "dynamic.browser", locator: "dynamic:browser:release-identity", observedValue: `release=${releaseRecord.releaseBuildId};candidate=${candidateHash}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", evidenceMode: "dynamic.browser", locator: "dynamic:browser:opaque-proof-receipt", observedValue: `authorityHash=${authorityRefHash};resultHash=${completed.event.eventType === "COMMAND" ? completed.event.resultHash : "missing"}` });

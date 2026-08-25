@@ -8,6 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -206,10 +207,6 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => ({
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("local-app-shell requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const result = evaluate(context);
-    return { findings: result.findings, evidenceRefs: [context.planEntry.ownerInspectorPath, ...result.inspectedFiles] };
-  });
-  return context.checks.output();
+  const result = evaluate(context);
+  return finalizeStaticInspection(context, result, [LAW_SHELL, LAW_BOUNDARY, LAW_STATUS]);
 };

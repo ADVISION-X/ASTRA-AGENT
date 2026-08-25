@@ -2,6 +2,7 @@ import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } 
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -137,10 +138,6 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => ({
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("system-security requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const result = evaluate(context);
-    return { findings: result.findings, evidenceRefs: [context.planEntry.ownerInspectorPath, ...result.inspectedFiles] };
-  });
-  return context.checks.output();
+  const result = evaluate(context);
+  return finalizeStaticInspection(context, result, [LAW_ID]);
 };

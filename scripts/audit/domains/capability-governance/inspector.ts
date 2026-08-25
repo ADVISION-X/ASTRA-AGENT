@@ -10,6 +10,7 @@ import {
   isCapabilityPrivateImplementationSection,
   isExternalCapabilityConsumer,
 } from "../../shared/repo-path-classifier.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -315,13 +316,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("capability-group-governance requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context);
+  return finalizeStaticInspection(context, evaluation, ["LAW-CAPABILITY-GOVERNANCE-001-V1"]);
 };

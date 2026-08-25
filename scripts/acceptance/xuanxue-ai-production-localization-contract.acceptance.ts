@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import {
   XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
@@ -83,3 +84,4 @@ assert.throws(() => assertXuanxueLocalizationContract({
 process.stdout.write(
   "[ACCEPTANCE] localization generated projection PASS: four products, seven role-bound local orders, exact hashes and no parallel topology.\n",
 );
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", evidenceMode: "exam.golden", locator: "acceptance:xuanxue-localization:contract-projection", observedValue: "four products seven role-bound local orders exact hashes and no parallel topology" });

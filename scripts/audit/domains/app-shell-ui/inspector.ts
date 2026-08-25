@@ -5,6 +5,7 @@ import { inspectAppShellLayout } from "./inspector-layout.js";
 import { inspectAppShellLocalization } from "./inspector-localization.js";
 import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V2");
@@ -25,13 +26,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("app-shell-ui requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context);
+  return finalizeStaticInspection(context, evaluation, [
+    "LAW-APP-SHELL-UI-001-V2", "LAW-APP-SHELL-UI-002-V1", "LAW-APP-SHELL-UI-003-V1",
+  ]);
 };

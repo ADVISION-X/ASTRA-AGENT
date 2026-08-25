@@ -16,7 +16,7 @@ import { inspectDomain as inspectWorkbenchApiBoundary } from "../domains/workben
 import { inspectDomain as inspectXuanxueProduction } from "../domains/xuanxue-ai-production/inspector.js";
 import { inspectDomain as inspectXuanxueLocalization } from "../domains/xuanxue-ai-production-localization-contract/inspector.js";
 import { createAuditProject } from "./project.js";
-import type { InspectorCheckBodyResult, InspectorContext, InspectorFinding, SessionInspectorOutput } from "./inspector-contracts.js";
+import type { InspectorContext, SessionInspectorOutput } from "./inspector-contracts.js";
 
 type DomainInspector = (context: InspectorContext) => Promise<SessionInspectorOutput>;
 type WorkerRequest = {
@@ -66,52 +66,6 @@ const plan = (input: WorkerRequest): InspectorContext["planEntry"] => ({
   blueprintRefs: [],
 });
 
-const evidenceKind: Record<string, string> = {
-  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
-  "static.contract": "config", "static.dependency": "dependency", "static.config": "config",
-  "static.json": "json", "static.yaml": "yaml", "static.sql": "sql", "static.migration": "file",
-};
-const refForMode = (input: WorkerRequest, law: WorkerRequest["laws"][number], mode: string): string => {
-  const target = law.targetPaths[0] ?? input.ownerInspectorPath;
-  const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};targetSetSha256=${law.targetSet.sha256};count=${law.targetSet.count}`);
-  return `${evidenceKind[mode] ?? "file"}:${target}#${selector}`;
-};
-
-const session = (input: WorkerRequest): InspectorContext["checks"] => {
-  let findings: readonly InspectorFinding[] = [];
-  let evidenceRefs: readonly string[] = [];
-  return {
-    run: async (_checkId: string, body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>) => body(),
-    runAll: async (body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>) => {
-      const result = await body();
-      findings = result.findings;
-      evidenceRefs = result.evidenceRefs;
-      return result;
-    },
-    output: () => ({
-      capabilityDomain: input.capabilityDomain,
-      reportedLawIds: input.laws.map((law) => law.lawId),
-      checkRuns: input.laws.flatMap((law) => Object.keys(law.clausesByMode).map((mode) => ({
-        lawId: law.lawId, mode, checkId: `${input.capabilityDomain}/owner-assertion-set`, evidenceRefs,
-      }))),
-      lawResults: input.laws.map((law) => {
-        const lawFindings = findings.filter((finding) => finding.lawId === law.lawId);
-        return {
-          lawId: law.lawId,
-          assertions: Object.entries(law.clausesByMode).map(([mode, clauses]) => ({
-            clauses,
-            evidenceMode: mode,
-            passed: lawFindings.length === 0,
-            refs: [refForMode(input, law, mode), law.targetSet.queryRef].sort(),
-          })),
-          findings: lawFindings,
-        };
-      }),
-      inspectedFiles: evidenceRefs.filter((ref) => !ref.endsWith("/inspector.ts")),
-    }),
-  };
-};
-
 export const runInspectionWorker = async (): Promise<void> => {
   const input = request();
   const inspector = inspectors[input.capabilityDomain];
@@ -127,9 +81,9 @@ export const runInspectionWorker = async (): Promise<void> => {
       sha256: input.laws.map((law) => law.targetSet.sha256).join(""),
     },
     targetPaths: input.targetPaths,
+    lawRequirements: input.laws,
     planEntry,
     generatedPlan: [planEntry],
-    checks: session(input),
   };
   const output = await inspector(context);
   process.stdout.write(`GOVERNANCE_INSPECTOR_RESULT ${JSON.stringify(output)}\n`);

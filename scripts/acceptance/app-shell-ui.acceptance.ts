@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const read = (filePath: string): string => readFileSync(filePath, "utf8");
 
@@ -69,3 +70,4 @@ for (const retiredPath of [
 }
 
 process.stdout.write("[ACCEPTANCE][app-shell-ui] PASS\n");
+emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-001-V2", evidenceMode: "exam.golden", locator: "acceptance:app-shell-ui:single-shell-layout", observedValue: "single governed App Shell layout and retired surfaces verified" });

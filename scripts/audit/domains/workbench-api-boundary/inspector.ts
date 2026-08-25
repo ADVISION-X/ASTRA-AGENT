@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 import {
   Node,
@@ -348,13 +349,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("workbench-api-boundary requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context);
+  return finalizeStaticInspection(context, evaluation, ["LAW-WORKBENCH-API-BOUNDARY-001-V4"]);
 };

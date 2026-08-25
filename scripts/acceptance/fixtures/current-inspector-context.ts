@@ -1,17 +1,12 @@
 import type { Project } from "ts-morph";
 
-import type {
-  InspectorCheckBodyResult,
-  InspectorContext,
-  InspectorFinding,
-} from "../../audit/shared/inspector-contracts.js";
+import type { InspectorContext } from "../../audit/shared/inspector-contracts.js";
 
 export const createInspectorContextFixture = (
   project: Project,
   capabilityDomain: string,
   lawIds: string[],
 ): InspectorContext => {
-  let findings: readonly InspectorFinding[] = [];
   const planEntry: InspectorContext["planEntry"] = {
     capabilityDomain,
     manifestPath: `scripts/audit/domains/${capabilityDomain}/manifest.json`,
@@ -21,31 +16,19 @@ export const createInspectorContextFixture = (
     bindings: [],
     blueprintRefs: [],
   };
-  const runBody = async (
-    body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>,
-  ): Promise<InspectorCheckBodyResult> => {
-    const result = await body();
-    findings = result.findings;
-    return result;
-  };
   return {
     project,
     selectedLawId: lawIds[0] ?? "LAW-FIXTURE-001-V1",
     sealedRoot: process.cwd(),
     targetSet: { queryRef: "scope:fixture#fixture:" + "0".repeat(64), count: 0, sha256: "0".repeat(64) },
     targetPaths: [],
+    lawRequirements: lawIds.map((lawId) => ({
+      lawId,
+      clausesByMode: { "static.ast": ["summary"] },
+      targetPaths: [],
+      targetSet: { queryRef: `scope:${lawId}#fixture`, count: 0, sha256: "0".repeat(64) },
+    })),
     planEntry,
     generatedPlan: [],
-    checks: {
-      run: async (_checkId, body) => runBody(body),
-      runAll: runBody,
-      output: () => ({
-        capabilityDomain,
-        reportedLawIds: lawIds,
-        checkRuns: [],
-        lawResults: lawIds.map((lawId) => ({ lawId, assertions: [], findings: findings.filter((finding) => finding.lawId === lawId) })),
-        inspectedFiles: [],
-      }),
-    },
   };
 };

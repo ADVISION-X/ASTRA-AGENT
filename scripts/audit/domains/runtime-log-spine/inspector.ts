@@ -1,6 +1,7 @@
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns } from "./phase-runs.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
   const findings = collected.phaseRuns.flatMap((phase) => phase.findings).map(toInspectorFinding);
@@ -17,13 +18,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("runtime-log-spine requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context);
+  return finalizeStaticInspection(context, evaluation, [
+    "LAW-RUNTIME-LOG-SPINE-001-V3", "LAW-RUNTIME-LOG-SPINE-002-V2", "LAW-RUNTIME-LOG-SPINE-003-V2",
+  ]);
 };

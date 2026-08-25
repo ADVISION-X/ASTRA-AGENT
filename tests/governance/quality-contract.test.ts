@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
+import { Project } from "ts-morph";
 
 import { BASE, assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource, type Law } from "../../scripts/audit/governance-authority.js";
 import { validateLocalSpecContract } from "../../scripts/audit/governance-local-spec-contract.js";
@@ -16,7 +17,10 @@ import {
   requiredModes,
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
-import { assertCandidateStable, assertExactProviderContract, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { assertCandidateStable, assertExactProviderContract, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
+import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
+import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
@@ -123,6 +127,74 @@ test("quality report rejects empty and fixed-PASS evidence references", () => {
   assert.throws(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [fixed] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+});
+
+test("a fixed stdout marker cannot mint evidence for unexecuted law routes", () => {
+  const first = fixtureLaw();
+  const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
+  const routes = [
+    { law: first, mode: "exam.golden" },
+    { law: second, mode: "exam.golden" },
+  ];
+  assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes).size, 0);
+  const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
+    lawId: first.lawId,
+    evidenceMode: "exam.golden",
+    locator: "acceptance:fixture:first",
+    observedValue: "first route actually asserted",
+  })}\n`;
+  assert.equal(bindNativeProofObservations(oneNativeObservation, routes).size, 1,
+    "one native observation must not synthesize the second law route");
+});
+
+test("native proof observations reject one locator reused across law routes", () => {
+  const first = fixtureLaw();
+  const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
+  const lines = [first, second].map((law) => `${proofObservationPrefix}${JSON.stringify({
+    lawId: law.lawId,
+    evidenceMode: "exam.golden",
+    locator: "acceptance:fixture:reused",
+    observedValue: law.lawId,
+  })}`).join("\n");
+  assert.throws(
+    () => bindNativeProofObservations(lines, [
+      { law: first, mode: "exam.golden" },
+      { law: second, mode: "exam.golden" },
+    ]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+  );
+  assert.throws(
+    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, [
+      { law: first, mode: "exam.golden" },
+    ]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+});
+
+test("static finalization rejects a law with no explicit inspector route", () => {
+  const context = {
+    project: new Project({ useInMemoryFileSystem: true }),
+    selectedLawId: "LAW-FIXTURE-001-V1",
+    sealedRoot: "/sealed",
+    targetSet: { queryRef: "scope:fixture", count: 1, sha256: "a".repeat(64) },
+    targetPaths: ["src/fixture.ts"],
+    lawRequirements: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"].map((lawId) => ({
+      lawId,
+      clausesByMode: { "static.ast": ["summary"] },
+      targetPaths: ["src/fixture.ts"],
+      targetSet: { queryRef: `scope:${lawId}`, count: 1, sha256: "a".repeat(64) },
+    })),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+  } as unknown as InspectorContext;
+  assert.throws(
+    () => finalizeStaticInspection(context, {
+      capabilityDomain: "fixture",
+      reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
+      findings: [],
+      inspectedFiles: ["src/fixture.ts"],
+    }, ["LAW-FIXTURE-001-V1"]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
   );
 });
 

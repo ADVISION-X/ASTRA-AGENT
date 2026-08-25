@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { Project } from "ts-morph";
 
 import { inspectSystemSecurityProject } from "../audit/domains/system-security/inspector.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const inspect = (path: string, source: string) => {
   const project = new Project({ useInMemoryFileSystem: true });
@@ -30,3 +31,4 @@ assert.ok(inspect("src/plugins/xuanxue-ai-production/cloud-client.ts", "export c
   .some((finding) => finding.checkId === "system-security/unsafe-catch-fallback"));
 
 console.log("system-security-acceptance-ok");
+emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V1", evidenceMode: "exam.golden", locator: "acceptance:system-security:attack-mutants", observedValue: "cloud browser-control extension-owner-bypass and unsafe-fallback mutants rejected" });

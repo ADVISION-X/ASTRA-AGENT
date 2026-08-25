@@ -8,6 +8,7 @@ import { attachApprovedWebChatFilesOnce, WebChatAttachmentCapabilityFailure } fr
 import { AiFeedInputSchema } from "../schema.js";
 import type { AttachmentMutationBrowser } from "../providers/web-chat-attachment-transport.js";
 import type { BrowserFileArtifactGrantV1 } from "../../../lib/browser/browser-authority-api.js";
+import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 
 const digest = (bytes: Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -140,3 +141,5 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child registers staged artifacts, issues opaque grants and submits one exact-target batch\n");
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-004-V1", evidenceMode: "exam.golden", locator: "acceptance:attachment:opaque-grant-proof", observedValue: "staged artifacts and opaque grants retain exact proof" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-007-V1", evidenceMode: "exam.golden", locator: "acceptance:attachment:approved-input-refs", observedValue: "caller inputRefs bind staged file hashes and one exact-target batch" });

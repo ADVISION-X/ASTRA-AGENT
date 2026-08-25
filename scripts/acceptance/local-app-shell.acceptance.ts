@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { Project, SyntaxKind, Node } from "ts-morph";
 
 import { inspectLocalAppShellProject } from "../audit/domains/local-app-shell/inspector.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const paths = [
   "src/app/server.ts",
@@ -66,3 +67,6 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
 }
 
 console.log("local-app-shell-acceptance-ok");
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "exam.golden", locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-002-V3", evidenceMode: "exam.golden", locator: "acceptance:local-shell:boundary-mutants", observedValue: "foreign and duplicate Shell boundary mutants rejected" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "exam.golden", locator: "acceptance:local-shell:degraded-readiness", observedValue: "execution dependency failure keeps diagnostic Shell ready" });

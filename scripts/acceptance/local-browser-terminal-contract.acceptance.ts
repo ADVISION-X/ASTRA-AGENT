@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { BrowserAuthorityWebSocket, parseBrowserAuthorityTargetClaim } from "../../src/lib/browser/transport/browser-authority-websocket.js";
 import { canonicalizeBrowserAuthorityValue, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
@@ -485,3 +486,4 @@ try {
 
 await verifyBrowserSupervisorRestartContract();
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "exam.golden", locator: "acceptance:browser-terminal:atomic-journal", observedValue: "single mutation terminal contract and journal ownership verified" });

@@ -19,27 +19,19 @@ export type InspectorEvaluation = {
   findings: InspectorFinding[];
   inspectedFiles: string[];
 };
+export type InspectorLawRequirement = {
+  lawId: string;
+  clausesByMode: Record<string, string[]>;
+  targetPaths: string[];
+  targetSet: { queryRef: string; count: number; sha256: string };
+};
 export type InspectorOutput = {
   capabilityDomain: string;
   reportedLawIds: string[];
   lawResults: InspectorLawResult[];
   inspectedFiles: string[];
 };
-export type InspectorCheckBodyResult = {
-  findings: readonly InspectorFinding[];
-  evidenceRefs: readonly string[];
-};
-export type InspectorCheckSession = {
-  run(checkId: string, body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
-  runAll(body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
-  output(): SessionInspectorOutput;
-};
-export type SessionInspectorOutput = Omit<InspectorOutput, "inspectedFiles" | "lawResults" | "reportedLawIds"> & {
-  reportedLawIds: readonly string[];
-  checkRuns: readonly unknown[];
-  lawResults: readonly InspectorLawResult[];
-  inspectedFiles: readonly string[];
-};
+export type SessionInspectorOutput = InspectorOutput;
 type AuditPlanEntry = {
   capabilityDomain: string;
   manifestPath: string;
@@ -62,7 +54,7 @@ export type InspectorContext = {
   sealedRoot: string;
   targetSet: Readonly<{ queryRef: string; count: number; sha256: string }>;
   targetPaths: readonly string[];
+  lawRequirements: readonly InspectorLawRequirement[];
   planEntry: AuditPlanEntry;
   generatedPlan: readonly AuditPlanEntry[];
-  checks: InspectorCheckSession;
 };

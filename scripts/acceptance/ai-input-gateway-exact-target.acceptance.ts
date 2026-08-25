@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { Project, SyntaxKind } from "ts-morph";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 assert.equal(existsSync("src/capabilities/ai-input-gateway/runtime/web-chat-single-provider-tab.ts"), false);
 assert.equal(existsSync("src/capabilities/ai-input-gateway/providers/web-chat-fork-tab-control.ts"), false);
@@ -31,3 +32,4 @@ assert.equal(freshLiterals.has("BROWSER_TARGET_INVALID"), true,
 assert.equal(freshLiterals.has("WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID"), true,
   "Bounded hydrated-node exhaustion must preserve one explicit recoverable reason.");
 process.stdout.write("[ai-input-gateway-exact-target] PASS\n");
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V1", evidenceMode: "exam.golden", locator: "acceptance:exact-target:caller-owned-lease", observedValue: "BrowserTargetLease exact-target atomic boundary verified" });

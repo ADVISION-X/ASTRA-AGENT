@@ -6,6 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -25,6 +26,7 @@ import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
 import { inspectAttachmentChild } from "./attachment-inspector.js";
 import { inspectAtomicIfAndThenActions } from "./atomic-if-and-then-inspector.js";
+import { inspectBoundedChoiceJudge, inspectCallerApprovedInputReferences } from "./authority-boundary-inspector.js";
 
 const literalContains = (source: SourceFile, value: string): boolean =>
   [...stringLiterals(source)].some((literal) => literal.includes(value));
@@ -399,6 +401,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
   const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
   const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V1");
+  const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V1");
+  const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V1");
   const findings: Finding[] = [];
   for (const repoPath of P.governedPaths.filter((path) => context.targetPaths.includes(path))) {
     const absolutePath = resolveFromRepo(repoPath);
@@ -424,6 +428,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectGeneratedImageCapture(context, findings, parallelLawId);
   inspectAtomicIfAndThenActions(context, findings, atomicLawId);
   inspectConversationTopology(context, findings, parallelLawId);
+  inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId);
+  inspectCallerApprovedInputReferences(context, findings, approvedInputLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -432,13 +438,10 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("ai-input-gateway requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context);
+  return finalizeStaticInspection(context, evaluation, [
+    "LAW-AI-INPUT-GATEWAY-001-V1", "LAW-AI-INPUT-GATEWAY-002-V1", "LAW-AI-INPUT-GATEWAY-003-V1",
+    "LAW-AI-INPUT-GATEWAY-004-V1", "LAW-AI-INPUT-GATEWAY-005-V4", "LAW-AI-INPUT-GATEWAY-006-V1",
+    "LAW-AI-INPUT-GATEWAY-007-V1",
+  ]);
 };

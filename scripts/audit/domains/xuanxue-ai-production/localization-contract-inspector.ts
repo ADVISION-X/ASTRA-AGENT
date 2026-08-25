@@ -9,6 +9,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const root = process.cwd();
 const projectionPath = path.join(
@@ -172,21 +173,18 @@ const inspectDomainEvaluation = async (
   return {
     findings,
     evidenceRefs: [
-      context.planEntry.ownerInspectorPath,
       "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
       ...criticalRuntimeFiles,
-    ],
+    ].filter((path) => context.targetPaths.includes(path)),
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("xuanxue localization contract requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context.project, context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: evaluation.evidenceRefs,
-    };
-  });
-  return context.checks.output();
+  const evaluation = await inspectDomainEvaluation(context.project, context);
+  return finalizeStaticInspection(context, {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
+    findings: evaluation.findings,
+    inspectedFiles: [...evaluation.evidenceRefs],
+  }, ["LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3"]);
 };

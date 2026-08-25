@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { RuntimeLogEventType } from "../../src/lib/runtime-logs/index.js";
 import {
@@ -48,3 +49,4 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] runtime-log-debug-bundle PASS\n");
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V2", evidenceMode: "exam.golden", locator: "acceptance:runtime-log:debug-bundle", observedValue: "round-bound debug bundle retains redacted runtime log" });

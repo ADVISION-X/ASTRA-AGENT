@@ -9,13 +9,15 @@ import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
+import { parseQualityProofObservations, type QualityProofObservation } from "./proof-observation.js";
 
 type TargetSet = { queryRef: string; count: number; sha256: string };
 type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofRoute = { law: Law; mode: string };
 type ProofResultInput = {
   kind: "exam" | "dynamic"; routes: ProofRoute[]; path: string; digest: string;
-  locator: string; observedValue: string; passed: boolean; executionStatus: number | null;
+  observations: ReadonlyMap<string, QualityProofObservation>;
+  executionPassed: boolean; executionStatus: number | null;
 };
 type Dependency = { contractId: string; providerRepo: string; version: number };
 type BoundParticipant = { path: string; report: QualityParticipant };
@@ -71,26 +73,6 @@ const dynamicScripts: Record<string, Partial<Record<string, string>>> = {
     "dynamic.recovery": "acceptance:xuanxue-ai-production:real-proof-verify",
     "dynamic.performance": "acceptance:xuanxue-ai-production:real-proof-verify",
   },
-};
-
-const proofMarkers: Record<string, string> = {
-  "acceptance:ai-input-gateway": "[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS",
-  "acceptance:app-shell-ui": "[ACCEPTANCE][app-shell-skill-registry] PASS",
-  "acceptance:architecture-active-plugin-mediators": "architecture-active-plugin-mediators-acceptance-ok",
-  "acceptance:code-purity-zombie-deep": "code-purity-zombie-deep-acceptance-ok",
-  "acceptance:forensics-persistence-capability": "[ACCEPTANCE] forensics-persistence-capability PASS",
-  "acceptance:local-app-shell": "local-app-shell-acceptance-ok",
-  "acceptance:local-browser-terminal": "LOCAL_RUNTIME_BROWSER_AUTHORITY_ACCEPTANCE_PASS",
-  "acceptance:runtime-log-spine": "runtime-log-spine-ast-anti-escape-acceptance-ok",
-  "acceptance:startup-entrypoint": "startup initialization health acceptance: PASS",
-  "acceptance:system-security": "system-security-acceptance-ok",
-  "acceptance:xuanxue-ai-production": "[ACCEPTANCE][XUANXUE-AI-PRODUCTION-CLOUD-ATTESTATION-V6] PASS",
-  "acceptance:xuanxue-ai-production-localization-contract": "[ACCEPTANCE] localization generated projection PASS",
-  "acceptance:app-shell-ui:real-chrome": "[ACCEPTANCE][APP-SHELL-UI][REAL-CHROME-PHYSICAL-CLEANUP]",
-  "acceptance:local-browser-real-chrome": "\"status\":\"CHROME_VERIFIED\"",
-  "proof:local-browser-journal-recovery": "\"status\":\"RECOVERY_VERIFIED\"",
-  "acceptance:xuanxue-ai-production:real-chrome": "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V6]",
-  "acceptance:xuanxue-ai-production:real-proof-verify": "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]",
 };
 
 export const dynamicScriptFor = (domain: string, mode: string): string =>
@@ -254,7 +236,7 @@ const runStaticDomain = (
   if (output.capabilityDomain !== domain || JSON.stringify(output.reportedLawIds) !== JSON.stringify(lawIds)) {
     fail("LAW_DENOMINATOR_MISSING", domain);
   }
-  if (output.lawResults.length !== laws.length || !output.checkRuns.length) {
+  if (output.lawResults.length !== laws.length) {
     fail("LAW_DENOMINATOR_MISSING", `${domain}:execution receipt`);
   }
   const allowed = new Set(paths);
@@ -275,34 +257,68 @@ const staticLawResult = (result: InspectorLawResult): LawExecutionResult => ({
   })),
 });
 
-const lastObservation = (stdout: string): string => stdout.split("\n").map((line) => line.trim()).filter(Boolean).at(-1) ?? "";
 export const assertCandidateStable = (expected: string, actual: string, label: string): void => {
   if (actual !== expected) fail("CANDIDATE_DRIFT", label);
 };
 const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   const results = new Map<string, ProofResult>();
   for (const { law, mode } of input.routes) {
-    const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};locator=${input.locator};observed=${input.observedValue}`);
+    const observation = input.observations.get(`${law.lawId}\0${mode}`);
+    const locator = observation?.locator ?? "native-observation:missing";
+    const observedValue = observation?.observedValue ?? "QUALITY_PROOF_OBSERVATION_MISSING";
+    const passed = input.executionPassed && observation !== undefined;
+    const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};locator=${locator};observed=${observedValue}`);
     const ref = `${input.kind}:${input.path}#${selector}@${input.digest}`;
     const current = results.get(law.lawId) ?? { assertions: [], findings: [] };
     current.assertions.push({
       clauses: clausesForEvidenceMode(law, requiredModes(law, input.kind === "exam" ? "READY" : "RELEASE"), mode),
-      evidenceMode: mode, passed: input.passed, refs: [ref],
+      evidenceMode: mode, passed, refs: [ref],
     });
-    if (!input.passed) current.findings.push({ code: input.executionStatus === 0 ? "EMPTY_EVIDENCE_REFS" : "CHECK_EXECUTION_FAILED", evidenceRefs: [ref] });
+    if (!passed) current.findings.push({ code: input.executionStatus === 0 ? "LAW_EVIDENCE_MISSING" : "CHECK_EXECUTION_FAILED", evidenceRefs: [ref] });
     results.set(law.lawId, current);
   }
   return results;
 };
 
+export const bindNativeProofObservations = (
+  stdout: string,
+  routes: readonly ProofRoute[],
+): Map<string, QualityProofObservation> => {
+  const expected = new Set(routes.map(({ law, mode }) => `${law.lawId}\0${mode}`));
+  const bound = new Map<string, QualityProofObservation>();
+  let observations: QualityProofObservation[];
+  try { observations = parseQualityProofObservations(stdout); }
+  catch { return fail("LAW_EVIDENCE_MISSING", "invalid native proof observation"); }
+  for (const observation of observations) {
+    const key = `${observation.lawId}\0${observation.evidenceMode}`;
+    if (!expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
+    if (bound.has(key)) fail("LAW_EVIDENCE_DUPLICATE", key.replace("\0", ":"));
+    if ([...bound.values()].some((current) => current.locator === observation.locator)) {
+      fail("LAW_EVIDENCE_DUPLICATE", `locator:${observation.locator}`);
+    }
+    bound.set(key, observation);
+  }
+  return bound;
+};
+
 const commandReceipt = (
-  kind: "exam" | "dynamic", domain: string, script: string, routes: ProofRoute[],
+  kind: "exam" | "dynamic", script: string, routes: ProofRoute[],
   runDirectory: string, candidate: string,
 ): Map<string, ProofResult> => {
   const startedAt = new Date().toISOString();
   const before = candidateSnapshot();
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
-  const execution = spawnSync("npm", ["run", script], { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: timeoutMs, env: process.env });
+  const execution = spawnSync("npm", ["run", script], {
+    cwd: ROOT,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: timeoutMs,
+    env: {
+      ...process.env,
+      GOVERNANCE_PROOF_KIND: kind,
+      GOVERNANCE_PROOF_ROUTES: JSON.stringify(routes.map(({ law, mode }) => ({ lawId: law.lawId, evidenceMode: mode }))),
+    },
+  });
   const after = candidateSnapshot();
   assertCandidateStable(before, after, script);
   assertCandidateStable(candidate, after, script);
@@ -311,24 +327,25 @@ const commandReceipt = (
   const stderrPath = resolve(runDirectory, `${kind}-${token}.stderr.txt`);
   writeFileSync(stdoutPath, execution.stdout ?? "", { mode: 0o600 });
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
-  const marker = proofMarkers[script] ?? fail("LAW_EVIDENCE_MISSING", `${script}:semantic marker`);
-  const locator = `stdout:contains:${marker}`;
-  const lastOutput = lastObservation(execution.stdout ?? "");
-  const observedValue = (execution.stdout ?? "").includes(marker) ? marker : lastOutput;
-  const passed = execution.status === 0 && observedValue === marker && execution.signal === null;
+  const observations = bindNativeProofObservations(execution.stdout ?? "", routes);
+  const executionPassed = execution.status === 0 && execution.signal === null;
   const path = resolve(runDirectory, `${kind}-${token}.receipt.json`);
   const receipt = {
     schemaVersion: 2, kind, candidate, command: `npm run ${script}`, timeoutMs, startedAt,
     finishedAt: new Date().toISOString(), exitStatus: execution.status, signal: execution.signal ?? null,
     stdoutPath, stdoutSha256: sha(readFileSync(stdoutPath)), stderrPath, stderrSha256: sha(readFileSync(stderrPath)),
-    observations: routes.map(({ law, mode }) => ({ lawId: law.lawId, evidenceMode: mode,
-      locator, observedValue, passed })),
+    observations: routes.map(({ law, mode }) => {
+      const observation = observations.get(`${law.lawId}\0${mode}`);
+      return { lawId: law.lawId, evidenceMode: mode, locator: observation?.locator ?? "native-observation:missing",
+        observedValue: observation?.observedValue ?? "QUALITY_PROOF_OBSERVATION_MISSING",
+        passed: executionPassed && observation !== undefined };
+    }),
     cleanup: { processExited: execution.signal === null, temporaryEvidenceExternal: path.startsWith(resolve(tmpdir())) },
   };
   writeFileSync(path, canonicalBytes(receipt), { mode: 0o600 });
   const digest = sha(readFileSync(path));
-  if (!passed) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
-  return proofResults({ kind, routes, path, digest, locator, observedValue, passed, executionStatus: execution.status });
+  if (!executionPassed || observations.size !== routes.length) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
+  return proofResults({ kind, routes, path, digest, observations, executionPassed, executionStatus: execution.status });
 };
 
 const outputDirectory = (): string => {
@@ -370,7 +387,7 @@ const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, Law
       .flatMap((law) => law.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => ({ law, mode })));
     if (!routes.length) continue;
     const script = examScripts[domain.capabilityDomain] ?? fail("LAW_EVIDENCE_MISSING", `${domain.capabilityDomain}:exam`);
-    addProofs(resultsByLaw, commandReceipt("exam", domain.capabilityDomain, script, routes, context.runDirectory, context.candidate));
+    addProofs(resultsByLaw, commandReceipt("exam", script, routes, context.runDirectory, context.candidate));
   }
 };
 
@@ -381,7 +398,7 @@ const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, 
     routesByScript.set(script, [...(routesByScript.get(script) ?? []), { law, mode }]);
   }
   for (const [script, routes] of routesByScript) addProofs(resultsByLaw,
-    commandReceipt("dynamic", routes[0]!.law.capabilityDomain, script, routes, context.runDirectory, context.candidate));
+    commandReceipt("dynamic", script, routes, context.runDirectory, context.candidate));
 };
 
 export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
 import {
@@ -41,6 +42,8 @@ type ProviderRecord = {
     detectedFileCount: number;
   } | null;
 };
+
+const proofStartedAt = Date.now();
 
 const runRoot = process.env.XUANXUE_AI_REAL_RUN_ROOT?.trim();
 assert.ok(runRoot, "XUANXUE_AI_REAL_RUN_ROOT is required");
@@ -246,6 +249,8 @@ const continuationReceipt = {
   terminalReceiptHashes: cloudAttestation.terminalReceiptHashes,
   capturedAt: cloudAttestation.heartbeatAt,
 };
+const proofDurationMs = Date.now() - proofStartedAt;
+assert.ok(proofDurationMs <= 300_000, `real Provider verification exceeded 300000ms: ${proofDurationMs}`);
 process.stdout.write(`${JSON.stringify({
   marker: "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]",
   runRoot,
@@ -257,3 +262,8 @@ process.stdout.write(`${JSON.stringify({
   cloudTerminalJobCount: cloudAttestation.terminalJobIds.length,
   status: "PASS",
 }, null, 2)}\n`);
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.service", locator: "dynamic:xuanxue:worker-session-continuation", observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.provider", locator: "dynamic:xuanxue:provider-record-checkpoints", observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.authorization", locator: "dynamic:xuanxue:session-attestation-rotation", observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.recovery", locator: "dynamic:xuanxue:terminal-continuation-receipts", observedValue: `terminalReceipts=${Object.keys(continuationReceipt.terminalReceiptHashes).length}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.performance", locator: "dynamic:xuanxue:provider-verification-duration", observedValue: `durationMs=${proofDurationMs};records=${records.length};limitMs=300000` });

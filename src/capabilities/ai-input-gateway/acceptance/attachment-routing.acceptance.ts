@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 
 import { resolveWebChatAttachmentTransportKind } from "../children/attach-approved-web-chat-files-once.js";
 import { AiFeedInputSchema } from "../schema.js";
@@ -31,3 +32,4 @@ assert.throws(
 );
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment routing PASS\n");
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-003-V1", evidenceMode: "exam.golden", locator: "acceptance:attachment-routing:transport-not-public", observedValue: "caller cannot select attachment transport" });

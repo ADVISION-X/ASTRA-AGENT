@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import {
   appShellProofPaths,
@@ -13,3 +14,5 @@ process.stdout.write(`${JSON.stringify({
   status: "CHROME_VERIFIED",
   ...result,
 })}\n`);
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser", locator: "dynamic:app-shell:physical-layout", observedValue: `candidate=${result.candidateHash};browser=${result.browserVersion}` });
+emitQualityProofObservation({ lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", evidenceMode: "dynamic.browser", locator: "dynamic:app-shell:workbench-known-route", observedValue: `workbench=127.0.0.1:4173;candidate=${result.candidateHash}` });
