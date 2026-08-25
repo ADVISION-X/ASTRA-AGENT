@@ -14,13 +14,20 @@ const ordered = (values: readonly string[]): string[] => [...new Set(values)].so
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
 export const staticLawCoverage = (
-  lawId: string, forbiddenCount: number, evidenceModes: readonly string[],
-): { lawId: string; clausesByMode: Record<string, string[]> } => ({
-  lawId,
-  clausesByMode: Object.fromEntries(evidenceModes.map((mode) => [mode, ordered([
-    ...Array.from({ length: forbiddenCount }, (_, index) => `forbidden:${index}`), "summary",
-  ])])),
-});
+  lawId: string, forbiddenCount: number, evidenceModes: readonly string[], primaryForbiddenIndexes: readonly number[],
+): { lawId: string; clausesByMode: Record<string, string[]> } => {
+  const primary = evidenceModes.includes("static.ast") ? "static.ast" : evidenceModes[0];
+  if (!primary || primaryForbiddenIndexes.some((index) => !Number.isInteger(index) || index < 0 || index >= forbiddenCount)
+    || primaryForbiddenIndexes.length !== new Set(primaryForbiddenIndexes).size) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${lawId}:owner-clause-coverage`);
+  }
+  return {
+    lawId,
+    clausesByMode: Object.fromEntries(evidenceModes.map((mode) => [mode, ordered([
+      ...(mode === primary ? primaryForbiddenIndexes.map((index) => `forbidden:${index}`) : []), "summary",
+    ])])),
+  };
+};
 
 const validateStaticCoverage = (context: InspectorContext, evaluation: InspectorEvaluation): string[] => {
   const requiredIds = context.lawRequirements.map((law) => law.lawId);

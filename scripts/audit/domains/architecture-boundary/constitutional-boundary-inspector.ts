@@ -390,7 +390,7 @@ export const inspectConstitutionalBoundary = async (context: InspectorContext): 
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [staticLawCoverage("LAW-ARCHITECTURE-BOUNDARY-001-V1", 7, [
       "static.filesystem", "static.ast", "static.types", "static.dependency",
-    ])],
+    ], [0, 1, 2, 3, 4, 5, 6])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...inspectedFiles].sort(),

@@ -134,7 +134,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [staticLawCoverage(LAW_ID, 6, [
       "static.ast", "static.types", "static.contract", "static.dependency", "static.config",
-    ])],
+    ], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings: inspectSystemSecurityProject(context.project),
     inspectedFiles: [...context.targetPaths],

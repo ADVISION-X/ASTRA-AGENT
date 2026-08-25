@@ -228,9 +228,9 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [
-      staticLawCoverage(LAW_SHELL, 9, ["static.ast", "static.contract"]),
-      staticLawCoverage(LAW_BOUNDARY, 4, ["static.ast"]),
-      staticLawCoverage(LAW_STATUS, 3, ["static.ast"]),
+      staticLawCoverage(LAW_SHELL, 9, ["static.ast", "static.contract"], [4, 7, 8]),
+      staticLawCoverage(LAW_BOUNDARY, 4, ["static.ast"], []),
+      staticLawCoverage(LAW_STATUS, 3, ["static.ast"], [0, 1]),
     ],
     reportedLawIds: context.planEntry.lawIds,
     findings: findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message)),

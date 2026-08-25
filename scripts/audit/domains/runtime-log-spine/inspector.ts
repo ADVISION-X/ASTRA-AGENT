@@ -30,9 +30,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [
-      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-001-V3", 6, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-002-V3", 1, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-003-V3", 1, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-001-V3", 6, ["static.ast", "static.contract"], []),
+      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-002-V3", 1, ["static.ast", "static.contract"], []),
+      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-003-V3", 1, ["static.ast", "static.contract"], []),
     ],
     reportedLawIds: context.planEntry.lawIds,
     findings,

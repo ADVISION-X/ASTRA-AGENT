@@ -128,7 +128,7 @@ const inspectDomainEvaluation = async (
   }
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [staticLawCoverage("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", 1, ["static.ast"])],
+    coverage: [staticLawCoverage("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", 1, ["static.ast"], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],

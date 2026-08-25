@@ -470,12 +470,12 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-001-V4", 10, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-002-V4", 11, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-003-V6", 12, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-004-V7", 16, ["static.ast"]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-005-V4", 5, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-006-V3", 1, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-001-V4", 10, ["static.ast", "static.contract"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-002-V4", 11, ["static.ast", "static.contract"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-003-V6", 12, ["static.ast", "static.contract"], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-004-V7", 16, ["static.ast"], [10, 11, 12, 13, 14, 15]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-005-V4", 5, ["static.ast", "static.contract"], [0, 1, 2, 3, 4]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-006-V3", 1, ["static.ast", "static.contract"], [0]),
     ],
     reportedLawIds: context.planEntry.lawIds,
     findings,

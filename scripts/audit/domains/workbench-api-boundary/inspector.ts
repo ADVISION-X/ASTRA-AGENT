@@ -344,7 +344,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: domain,
-    coverage: [staticLawCoverage("LAW-WORKBENCH-API-BOUNDARY-001-V4", 7, ["static.ast", "static.contract"])],
+    coverage: [staticLawCoverage("LAW-WORKBENCH-API-BOUNDARY-001-V4", 7, ["static.ast", "static.contract"], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],

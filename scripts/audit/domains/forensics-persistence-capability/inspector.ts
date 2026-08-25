@@ -196,9 +196,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [
-      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3", 1, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3", 1, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3", 1, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3", 1, ["static.ast", "static.contract"], []),
+      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3", 1, ["static.ast", "static.contract"], []),
+      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3", 1, ["static.ast", "static.contract"], []),
     ],
     reportedLawIds: context.planEntry.lawIds,
     findings,

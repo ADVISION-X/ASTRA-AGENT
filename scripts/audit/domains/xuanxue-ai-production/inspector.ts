@@ -375,7 +375,7 @@ const inspectDomainEvaluation = async (
   inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [staticLawCoverage("LAW-XUANXUE-AI-PRODUCTION-001-V10", 16, ["static.ast", "static.contract"])],
+    coverage: [staticLawCoverage("LAW-XUANXUE-AI-PRODUCTION-001-V10", 16, ["static.ast", "static.contract"], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],

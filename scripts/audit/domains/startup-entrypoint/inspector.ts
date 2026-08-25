@@ -186,8 +186,8 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     coverage: [
-      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-001-V4", 12, ["static.ast", "static.contract"]),
-      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-002-V1", 5, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-001-V4", 12, ["static.ast", "static.contract"], [11]),
+      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-002-V1", 5, ["static.ast", "static.contract"], [0]),
     ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
