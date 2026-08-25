@@ -10,6 +10,9 @@ import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExec
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation } from "./proof-observation.js";
+import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
+
+export { dynamicScriptFor } from "./quality-routes.js";
 
 type TargetSet = { queryRef: string; count: number; sha256: string };
 type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
@@ -38,45 +41,6 @@ const matches = (pattern: string, path: string): boolean => pattern === "**/*" |
     return index >= 0 && path.startsWith(`${pattern.slice(0, index)}/`)
       && path.endsWith(`.${pattern.slice(index + marker.length)}`);
   })();
-
-const examScripts: Record<string, string> = {
-  "ai-input-gateway": "acceptance:ai-input-gateway",
-  "app-shell-ui": "acceptance:app-shell-ui",
-  "capability-governance": "acceptance:architecture-active-plugin-mediators",
-  "code-purity": "acceptance:code-purity-zombie-deep",
-  "forensics-persistence-capability": "acceptance:forensics-persistence-capability",
-  "local-app-shell": "acceptance:local-app-shell",
-  "local-browser-session": "acceptance:local-browser-terminal",
-  "runtime-log-spine": "acceptance:runtime-log-spine",
-  "startup-entrypoint": "acceptance:startup-entrypoint",
-  "system-security": "acceptance:system-security",
-  "xuanxue-ai-production": "acceptance:xuanxue-ai-production",
-  "xuanxue-ai-production-localization-contract": "acceptance:xuanxue-ai-production-localization-contract",
-};
-
-const dynamicScripts: Record<string, Partial<Record<string, string>>> = {
-  "local-app-shell": {
-    "dynamic.browser": "acceptance:app-shell-ui:real-chrome",
-    "dynamic.service": "acceptance:startup-entrypoint",
-  },
-  "local-browser-session": {
-    "dynamic.browser": "acceptance:local-browser-real-chrome",
-    "dynamic.recovery": "proof:local-browser-journal-recovery",
-  },
-  "startup-entrypoint": { "dynamic.service": "acceptance:startup-entrypoint" },
-  "workbench-api-boundary": { "dynamic.browser": "acceptance:app-shell-ui:real-chrome" },
-  "xuanxue-ai-production": {
-    "dynamic.browser": "acceptance:xuanxue-ai-production:real-chrome",
-    "dynamic.service": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.provider": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.authorization": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.recovery": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.performance": "acceptance:xuanxue-ai-production:real-proof-verify",
-  },
-};
-
-export const dynamicScriptFor = (domain: string, mode: string): string =>
-  dynamicScripts[domain]?.[mode] ?? fail("RELEASE_EVIDENCE_MISSING", `${domain}:${mode}`);
 
 const consumerDependencies = (): Dependency[] => repositoryPaths()
   .filter((path) => path.startsWith("docs/specs/") && path.endsWith(".json"))
@@ -148,9 +112,13 @@ const bindReleaseParticipants = (): BoundParticipant[] => {
   });
 };
 
+export const assertParticipantCommitIdentity = (expected: string, actual: string, repo: string): void => {
+  if (actual !== expected) fail("RELEASE_PARTICIPANT_DRIFT", repo);
+};
+
 const assertParticipantCommits = (participants: readonly BoundParticipant[]): void => {
-  for (const participant of participants) if (gitAt(participant.path, ["rev-parse", "HEAD"]) !== participant.report.gitCommit) {
-    fail("RELEASE_PARTICIPANT_DRIFT", participant.report.repo);
+  for (const participant of participants) {
+    assertParticipantCommitIdentity(participant.report.gitCommit, gitAt(participant.path, ["rev-parse", "HEAD"]), participant.report.repo);
   }
 };
 
@@ -386,7 +354,7 @@ const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, Law
     const routes = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain)
       .flatMap((law) => law.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => ({ law, mode })));
     if (!routes.length) continue;
-    const script = examScripts[domain.capabilityDomain] ?? fail("LAW_EVIDENCE_MISSING", `${domain.capabilityDomain}:exam`);
+    const script = examScriptFor(domain.capabilityDomain);
     addProofs(resultsByLaw, commandReceipt("exam", script, routes, context.runDirectory, context.candidate));
   }
 };

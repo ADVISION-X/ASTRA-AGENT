@@ -17,9 +17,10 @@ import {
   requiredModes,
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
-import { assertCandidateStable, assertExactProviderContract, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
+import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 
 const fixtureLaw = (): Law => ({
@@ -89,6 +90,59 @@ test("quality report rejects missing evidence modes and unsupported PASS claims"
   assert.throws(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [falseWithoutFinding] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_FAILED",
+  );
+});
+
+test("quality report rejects missing, duplicate, and extra active law results", () => {
+  const first = fixtureLaw();
+  const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
+  const laws = [first, second];
+  const exact = [resultFor(first), resultFor(second)];
+  for (const results of [
+    exact.slice(0, 1),
+    [exact[0]!, exact[0]!],
+    [...exact, resultFor({ ...fixtureLaw(), lawId: "LAW-FIXTURE-003-V1" })],
+  ]) assert.throws(
+    () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws, results }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_DENOMINATOR_MISSING",
+  );
+});
+
+test("quality report rejects duplicate and extra required evidence modes", () => {
+  const law = fixtureLaw();
+  const duplicate = resultFor(law);
+  duplicate.assertions.push({ ...duplicate.assertions[0]!, refs: [...duplicate.assertions[0]!.refs] });
+  assert.throws(
+    () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [duplicate] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+  );
+  const extra = resultFor(law);
+  extra.assertions.push({ clauses: ["summary"], evidenceMode: "exam.property", passed: true, refs: ["exam:fixture#script%3Dextra%3Bexit%3D0"] });
+  assert.throws(
+    () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [extra] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "UNDECLARED_EVIDENCE_MODE",
+  );
+});
+
+test("RELEASE rejects a missing Dynamic Proof and missing or drifted participant commit", () => {
+  const law = fixtureLaw();
+  assert.throws(
+    () => buildQualityReport({ level: "RELEASE", gitCommit: "a".repeat(40), laws: [law], results: [resultFor(law)] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+  assert.throws(
+    () => buildQualityReport({ level: "RELEASE", gitCommit: "a".repeat(40), laws: [law], results: [{
+      ...resultFor(law),
+      assertions: [...resultFor(law).assertions, {
+        clauses: ["summary"], evidenceMode: "dynamic.service", passed: true,
+        refs: ["dynamic:fixture#script%3Dservice%3Bexit%3D0"],
+      }],
+    }], participants: [{ repo: "ADVISION-X/provider", gitCommit: "", contracts: [{ contractId: "fixture", version: 1 }] }] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "QUALITY_PARTICIPANTS_INVALID",
+  );
+  assert.throws(
+    () => assertParticipantCommitIdentity("a".repeat(40), "b".repeat(40), "ADVISION-X/provider"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "RELEASE_PARTICIPANT_DRIFT",
   );
 });
 
@@ -319,4 +373,15 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
   for (const law of registry.laws) for (const mode of law.evidenceModes.filter((item) => item.startsWith("dynamic."))) {
     assert.ok(dynamicScriptFor(law.capabilityDomain, mode).length > 0, `${law.lawId}:${mode}`);
   }
+});
+
+test("CHANGE routes an ordinary Exam to every affected domain without running unrelated domains", () => {
+  const registry = buildRegistry();
+  assert.deepEqual(relevantExamScripts(["src/lib/storage/fixture.ts"], registry), [
+    "acceptance:code-purity-zombie-deep",
+    "acceptance:forensics-persistence-capability",
+    "acceptance:system-security",
+  ]);
+  assert.equal(relevantExamScripts(["src/lib/storage/fixture.ts"], registry)
+    .includes("acceptance:xuanxue-ai-production"), false);
 });

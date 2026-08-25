@@ -3,8 +3,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { buildRegistry, candidateSnapshot, checkProjection, diffPaths, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level } from './governance-authority.js';
+import { buildRegistry, candidateSnapshot, checkProjection, diffPaths, REGISTRY, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
+import { relevantExamScripts } from './shared/quality-routes.js';
 
 const governanceSource = (path: string): boolean => path === 'AGENTS.md'
   || path === '.github/instructions/agent-rules/基础法案.md'
@@ -57,6 +58,12 @@ function run(command: string, args: string[]): void {
   if (result.status !== 0) fail('CHECK_EXECUTION_FAILED', `${command} ${args.join(' ')}`);
 }
 
+function projectionCheck(): void {
+  const before = candidateSnapshot();
+  checkProjection();
+  if (before !== candidateSnapshot()) fail('CANDIDATE_DRIFT', 'audit:projection:check');
+}
+
 function projectChecks(): void {
   run('npm', ['run', 'typecheck']);
   const tests = readdirSync('tests/governance').filter((name) => name.endsWith('.test.ts')).sort().map((name) => `tests/governance/${name}`);
@@ -64,6 +71,13 @@ function projectChecks(): void {
   run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
   run('npm', ['run', 'acceptance:architecture-active-plugin-mediators']);
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
+}
+
+const projectedRegistry = (): Registry => JSON.parse(readFileSync(REGISTRY, 'utf8')) as Registry;
+
+function relevantChangeChecks(changes: Array<{ status: string; path: string }>, registry: Registry): void {
+  run('npm', ['run', 'typecheck']);
+  for (const script of relevantExamScripts(changes.map((change) => change.path), registry)) run('npm', ['run', script]);
 }
 
 async function quality(level: Level): Promise<void> {
@@ -79,9 +93,13 @@ async function quality(level: Level): Promise<void> {
     if (changes.some((change) => governanceSource(change.path))) {
       const registry = buildRegistry();
       verifyChangeOwnership(changes, registry);
-      checkProjection();
+      projectionCheck();
       projectChecks();
-    } else run('npm', ['run', 'typecheck']);
+    } else {
+      const registry = projectedRegistry();
+      verifyChangeOwnership(changes, registry);
+      relevantChangeChecks(changes, registry);
+    }
     if (initial !== candidateSnapshot()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');
     process.stdout.write('CHANGE_PASS\n');
     return;
@@ -98,7 +116,7 @@ async function quality(level: Level): Promise<void> {
 export async function main(): Promise<void> {
   const [command, argument] = process.argv.slice(2);
   if (command === 'build') return writeRegistry();
-  if (command === 'projection') return checkProjection();
+  if (command === 'projection') return projectionCheck();
   if (command === 'quality') return quality((argument ?? 'CHANGE') as Level);
   fail('ENTRY_CONTRACT_MISMATCH', 'unknown command');
 }
