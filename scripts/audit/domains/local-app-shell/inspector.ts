@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -202,14 +202,15 @@ export const inspectLocalAppShellProject = (
 const evaluate = (context: InspectorContext): InspectorEvaluation => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
+  executedChecks: completedStaticChecks(context, "local-app-shell/owner-static-check"),
   findings: inspectLocalAppShellProject(context.project, context.targetPaths, context.planEntry.lawIds[0]),
   inspectedFiles: [...context.targetPaths],
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [
-    { lawId: LAW_SHELL, semanticDigest: "5cbdbe8f1ddcdcd4fbc5bd7a28e70db753681bb4f672ee5af915ad73596c3f73" },
-    { lawId: LAW_BOUNDARY, semanticDigest: "ec2a5b8eda62937ebff0ab9264979212efad0d964a84feaab5297259b647a118" },
-    { lawId: LAW_STATUS, semanticDigest: "742ae9e46a39c131d83838c043d20d6faa21299907ef8fff1a06951f7eb20f7f" },
+    { lawId: LAW_SHELL },
+    { lawId: LAW_BOUNDARY },
+    { lawId: LAW_STATUS },
   ], evaluate);
 };

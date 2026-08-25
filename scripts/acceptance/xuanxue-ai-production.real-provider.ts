@@ -52,13 +52,15 @@ assert.equal(
   canonicalXuanxueRealRunRoot(),
   "real Provider proof must consume the production Workbench data directory",
 );
-const bindingRaw = await readFile(realDynamicProofBindingArgument(), "utf8");
+const bindingPath = realDynamicProofBindingArgument();
+const evidencePath = realChromeEvidenceArgument();
+const bindingRaw = await readFile(bindingPath, "utf8");
 const dynamicProofBinding = XuanxueDynamicProofBindingContract.validate(
   JSON.parse(bindingRaw),
   currentXuanxueSourceCandidate(),
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
 );
-const evidence = readXuanxueRealChromeEvidence(realChromeEvidenceArgument());
+const evidence = readXuanxueRealChromeEvidence(evidencePath);
 validateBoundRuntimeReceipt({ evidence, binding: dynamicProofBinding, runRoot });
 const executionDirectory = path.join(
   runRoot,
@@ -262,8 +264,22 @@ process.stdout.write(`${JSON.stringify({
   cloudTerminalJobCount: cloudAttestation.terminalJobIds.length,
   status: "PASS",
 }, null, 2)}\n`);
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.service", locator: "dynamic:xuanxue:worker-session-continuation", observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.provider", locator: "dynamic:xuanxue:provider-record-checkpoints", observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.authorization", locator: "dynamic:xuanxue:session-attestation-rotation", observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.recovery", locator: "dynamic:xuanxue:terminal-continuation-receipts", observedValue: `terminalReceipts=${Object.keys(continuationReceipt.terminalReceiptHashes).length}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.performance", locator: "dynamic:xuanxue:provider-verification-duration", observedValue: `durationMs=${proofDurationMs};records=${records.length};limitMs=300000` });
+const attestationReceipt = continuationReceipt.successor.runtimeAttestationReceiptHash.replace(/^sha256:/u, "");
+const providerReceipt = Object.values(dynamicProofBinding.provider_record_hashes)[0];
+const terminalReceipt = Object.values(continuationReceipt.terminalReceiptHashes)[0];
+assert.ok(providerReceipt && terminalReceipt);
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.service",
+  locator: executionDirectory, receipt: attestationReceipt,
+  observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.provider",
+  locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
+  observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.authorization",
+  locator: executionDirectory, receipt: attestationReceipt,
+  observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.recovery",
+  locator: executionDirectory, receipt: terminalReceipt.replace(/^sha256:/u, ""),
+  observedValue: `terminalReceipts=${Object.keys(continuationReceipt.terminalReceiptHashes).length}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.performance",
+  locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
+  observedValue: `durationMs=${proofDurationMs};records=${records.length};limitMs=300000` });

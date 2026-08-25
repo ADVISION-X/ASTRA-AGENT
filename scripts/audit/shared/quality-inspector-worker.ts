@@ -21,7 +21,7 @@ import type { InspectorContext, SessionInspectorOutput } from "./inspector-contr
 type DomainInspector = (context: InspectorContext) => Promise<SessionInspectorOutput>;
 type WorkerRequest = {
   capabilityDomain: string;
-  laws: Array<{ lawId: string; semanticDigest: string; forbiddenCount: number; clausesByMode: Record<string, string[]>; targetPaths: string[]; targetSet: { queryRef: string; count: number } }>;
+  laws: Array<{ lawId: string; forbiddenCount: number; clausesByMode: Record<string, string[]>; targetPaths: string[]; targetSet: { queryRef: string; count: number } }>;
   ownerInspectorPath: string;
   sealedRoot: string;
   targetPaths: string[];

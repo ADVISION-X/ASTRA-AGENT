@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 import {
   Node,
@@ -342,7 +342,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
-
+    executedChecks: completedStaticChecks(context, "workbench-api-boundary/owner-static-check"),
     findings,
     inspectedFiles: [...context.targetPaths],
   };
@@ -350,6 +350,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", semanticDigest: "a1cc2c4af8614622a053e74432f93aa09d89dce0c78e368ffcfb45e571ceea28",
+    lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4",
   }], inspectDomainEvaluation);
 };

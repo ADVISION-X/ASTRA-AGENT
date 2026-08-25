@@ -17,7 +17,8 @@ const fail = (reason: string): never => {
 };
 
 try {
-  const evidence = readXuanxueRealChromeEvidence(realChromeEvidenceArgument());
+  const evidencePath = realChromeEvidenceArgument();
+  const evidence = readXuanxueRealChromeEvidence(evidencePath);
   assert.equal(evidence.schemaVersion, "xuanxue-ai-production-real-chrome-evidence.v6");
   assert.equal(evidence.contractManifestHash, XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH);
   assert.equal(evidence.extensionId, GRASSEYE_UNPACKED_EXTENSION_ID);
@@ -37,7 +38,9 @@ try {
     extensionId: evidence.extensionId, workerSessionId: receipt.worker_session_id,
     runtimeAttestationReceiptHash: receipt.runtime_attestation_receipt_hash,
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.browser", locator: "dynamic:xuanxue:bound-real-chrome", observedValue: `workerSession=${receipt.worker_session_id};attestation=${receipt.runtime_attestation_receipt_hash}` });
+  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.browser",
+    locator: evidencePath, receipt: receipt.runtime_attestation_receipt_hash.replace(/^sha256:/u, ""),
+    observedValue: `workerSession=${receipt.worker_session_id};attestation=${receipt.runtime_attestation_receipt_hash}` });
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }

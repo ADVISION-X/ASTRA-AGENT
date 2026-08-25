@@ -6,7 +6,7 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 
 
@@ -41,7 +41,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-
+    executedChecks: completedStaticChecks(context, "architecture-boundary/owner-static-check"),
     findings,
     inspectedFiles: [...context.targetPaths],
   };
@@ -49,6 +49,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-ARCHITECTURE-BOUNDARY-001-V1", semanticDigest: "756e89cf516fda03c1fee6b80ac4ee867faa69f2c99a24952ae7777b5dc1cb77",
+    lawId: "LAW-ARCHITECTURE-BOUNDARY-001-V1",
   }], inspectDomainEvaluation);
 };

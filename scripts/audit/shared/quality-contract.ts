@@ -1,8 +1,8 @@
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
 import { exactKeys } from "../governance-json.js";
-import { ROOT, fail, sha, validGitObjectId } from "../governance-runtime.js";
+import { ROOT, fail, validGitObjectId } from "../governance-runtime.js";
 import type { Law, Level } from "../governance-authority.js";
 import { proofClauseIndexesFor } from "./quality-routes.js";
 
@@ -136,8 +136,10 @@ const parseEvidenceRef = (value: string): ParsedEvidenceRef | null => {
   const match = /^([a-z]+):([^#@]+)#([^#@]+)(?:@((?:sha256:)?[a-f0-9]{64}))?$/u.exec(value);
   if (!match || !evidenceKinds.has(match[1]!) || /[\0-\x1f\x7f]/u.test(value)) return null;
   const selector = canonicalPercentEncoded(match[3]!);
-  if (selector === null || /[#:@]/u.test(match[3]!) || match[2]!.includes(":")) return null;
-  return { kind: match[1]!, locator: match[2]!, selector, ...(match[4] ? { receipt: match[4] } : {}) };
+  const dynamicLocator = match[1] === "dynamic" ? canonicalPercentEncoded(match[2]!) : match[2]!;
+  if (selector === null || /[#:@]/u.test(match[3]!) || dynamicLocator === null
+    || (match[1] !== "dynamic" && match[2]!.includes(":"))) return null;
+  return { kind: match[1]!, locator: dynamicLocator, selector, ...(match[4] ? { receipt: match[4] } : {}) };
 };
 const validRepositoryLocator = (locator: string): boolean => !locator.startsWith("/")
   && !locator.startsWith("\\") && !locator.includes("%")
@@ -150,18 +152,9 @@ const repositoryObjectExists = (locator: string): boolean => {
   const escaped = relative(root, realpathSync(absolute));
   return escaped !== ".." && !escaped.startsWith("../") && lstatSync(absolute).isFile();
 };
-const externalReceiptMatches = (reference: ParsedEvidenceRef): boolean => {
-  if (!reference.receipt || !reference.locator.startsWith("/") || !existsSync(reference.locator)) return false;
-  try {
-    const stat = lstatSync(reference.locator);
-    if (!stat.isFile() || stat.isSymbolicLink()) return false;
-    const expected = reference.receipt.startsWith("sha256:") ? reference.receipt.slice(7) : reference.receipt;
-    return sha(readFileSync(reference.locator)) === expected;
-  } catch { return false; }
-};
 const validEvidenceObject = (reference: ParsedEvidenceRef): boolean => {
-  const external = reference.kind === "exam" || reference.kind === "dynamic";
-  if (external) return externalReceiptMatches(reference);
+  if (reference.kind === "dynamic") return Boolean(reference.receipt)
+    && /^(?:https?:\/\/|tcp:\/\/|process:|\/)/u.test(reference.locator);
   if (reference.receipt !== undefined) return false;
   if (reference.kind !== "scope") return repositoryObjectExists(reference.locator);
   return /^LAW-[A-Z0-9-]+$/u.test(reference.locator) && reference.selector === "appliesTo-minus-excludes";

@@ -7,7 +7,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
@@ -130,6 +130,7 @@ const inspectDomainEvaluation = async (
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+    executedChecks: completedStaticChecks(context, "xuanxue-localization/owner-static-check"),
     findings,
     inspectedFiles: [...context.targetPaths],
   };
@@ -137,6 +138,6 @@ const inspectDomainEvaluation = async (
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4", semanticDigest: "de74eb0b903cf2e889c26d4b0a34939d4be3564d7c3d88ff07379215ceb4f4aa",
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
   }], inspectDomainEvaluation);
 };

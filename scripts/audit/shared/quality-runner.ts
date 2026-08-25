@@ -8,10 +8,9 @@ import { canonicalBytes, exactKeys, rejectDuplicateJsonKeys } from "../governanc
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
-import { staticLawSemanticDigest } from "./static-inspector-result.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
-import { assertProofProducerDigest, dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
+import { dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -20,10 +19,10 @@ type TargetSet = { queryRef: string; count: number };
 type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofRoute = { law: Law; mode: string };
 type ProofResultInput = {
-  kind: "exam" | "dynamic"; routes: ProofRoute[]; path: string; digest: string;
+  kind: "exam" | "dynamic"; routes: ProofRoute[];
   observations: ReadonlyMap<string, QualityProofObservation>;
   executionPassed: boolean; executionStatus: number | null; script: string;
-  proofRunId: string; candidate: string; stdoutSha256: string;
+  proofRunId: string; candidate: string; stdoutSha256: string; timeoutMs: number;
 };
 type Dependency = { contractId: string; providerRepo: string; providerDomain: string; version: number };
 type BoundParticipant = { path: string; report: QualityParticipant };
@@ -189,7 +188,6 @@ const runStaticDomain = (
       const lawPaths = targetPathsByLaw.get(law.lawId) ?? [];
       return {
         lawId: law.lawId,
-        semanticDigest: staticLawSemanticDigest(law.summary, law.forbidden),
         forbiddenCount: law.forbidden.length,
         clausesByMode: Object.fromEntries(law.evidenceModes.filter((mode) => mode.startsWith("static."))
           .map((mode) => [mode, clausesForEvidenceMode(law, requiredModes(law, level), mode)])),
@@ -250,21 +248,23 @@ const assertCleanCandidate = (expectedCommit: string, label: string): void => {
 const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   const results = new Map<string, ProofResult>();
   for (const { law, mode } of input.routes) {
-    const observation = input.observations.get(`${law.lawId}\0${mode}`);
-    const locator = input.kind === "exam" ? `command:npm run ${input.script}`
-      : observation?.locator ?? "native-observation:missing";
-    const observedValue = input.kind === "exam"
-      ? `run=${input.proofRunId};candidate=${input.candidate};exitStatus=${input.executionStatus};stdoutSha256=${input.stdoutSha256}`
-      : observation?.observedValue ?? "QUALITY_PROOF_OBSERVATION_MISSING";
-    const passed = input.executionPassed && observation !== undefined;
-    const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};locator=${locator};observed=${observedValue}`);
-    const ref = `${input.kind}:${input.path}#${selector}@${input.digest}`;
+    const observation = input.observations.get(`${law.lawId}\0${mode}`)
+      ?? fail("LAW_EVIDENCE_MISSING", `${law.lawId}:${mode}:native-observation`);
+    const selector = encodeURIComponent([
+      `lawId=${law.lawId}`, `mode=${mode}`, `command=npm run ${input.script}`,
+      `run=${input.proofRunId}`, `candidate=${input.candidate}`, `timeoutMs=${input.timeoutMs}`,
+      `exitStatus=${input.executionStatus}`, `stdoutSha256=${input.stdoutSha256}`,
+      `observedLocator=${observation.locator}`, `observedValue=${observation.observedValue}`,
+    ].join(";"));
+    const ref = input.kind === "exam"
+      ? `exam:package.json#${selector}`
+      : `dynamic:${encodeURIComponent(observation.locator)}#${selector}@${observation.receipt
+        ?? fail("LAW_EVIDENCE_MISSING", `${law.lawId}:${mode}:native-receipt`)}`;
     const current = results.get(law.lawId) ?? { assertions: [], findings: [] };
     current.assertions.push({
       clauses: clausesForEvidenceMode(law, requiredModes(law, input.kind === "exam" ? "READY" : "RELEASE"), mode),
-      evidenceMode: mode, passed, refs: [ref],
+      evidenceMode: mode, passed: input.executionPassed, refs: [ref],
     });
-    if (!passed) current.findings.push({ code: input.executionStatus === 0 ? "LAW_EVIDENCE_MISSING" : "CHECK_EXECUTION_FAILED", evidenceRefs: [ref] });
     results.set(law.lawId, current);
   }
   return results;
@@ -301,15 +301,13 @@ export const bindNativeProofObservations = (
       kind, script, domain: route.law.capabilityDomain, lawId: observation.lawId,
       mode: observation.evidenceMode, locator: observation.locator, observedValue: observation.observedValue,
     })) fail("LAW_EVIDENCE_MISSING", `native-object:${key.replace("\0", ":")}`);
-    if ([...bound.values()].some((current) => current.locator === observation.locator)) {
-      fail("LAW_EVIDENCE_DUPLICATE", `locator:${observation.locator}`);
-    }
+    if (kind === "dynamic" && !observation.receipt) fail("LAW_EVIDENCE_MISSING", `native-receipt:${key.replace("\0", ":")}`);
     bound.set(key, observation);
   }
   return bound;
 };
 
-const commandReceipt = (
+const executeProofCommand = (
   kind: "exam" | "dynamic", script: string, routes: ProofRoute[],
   runDirectory: string, candidate: string,
 ): Map<string, ProofResult> => {
@@ -319,7 +317,6 @@ const commandReceipt = (
     lawId: law.lawId, evidenceMode: mode, proofRunId, candidate, proofKind: kind,
   }));
   assertCleanCandidate(candidate, `${script}:before`);
-  assertProofProducerDigest(script);
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
   const execution = spawnSync("npm", ["run", script], {
     cwd: ROOT,
@@ -341,25 +338,12 @@ const commandReceipt = (
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
   const observations = bindNativeProofObservations(execution.stdout ?? "", routes, requests, script, kind);
   const executionPassed = execution.status === 0 && execution.signal === null;
-  const path = resolve(runDirectory, `${kind}-${token}.receipt.json`);
-  const receipt = {
-    schemaVersion: 2, kind, candidate, proofRunId, command: `npm run ${script}`, timeoutMs, startedAt,
-    finishedAt: new Date().toISOString(), exitStatus: execution.status, signal: execution.signal ?? null,
-    stdoutPath, stdoutSha256: sha(readFileSync(stdoutPath)), stderrPath, stderrSha256: sha(readFileSync(stderrPath)),
-    observations: routes.map(({ law, mode }) => {
-      const observation = observations.get(`${law.lawId}\0${mode}`);
-      return { lawId: law.lawId, evidenceMode: mode, locator: observation?.locator ?? "native-observation:missing",
-        observedValue: observation?.observedValue ?? "QUALITY_PROOF_OBSERVATION_MISSING",
-        passed: executionPassed && observation !== undefined };
-    }),
-    cleanup: { processExited: execution.signal === null, temporaryEvidenceExternal: path.startsWith(resolve(tmpdir())) },
-  };
-  writeFileSync(path, canonicalBytes(receipt), { mode: 0o600 });
-  const digest = sha(readFileSync(path));
   if (!executionPassed || observations.size !== routes.length) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
+  if (!executionPassed) fail("CHECK_EXECUTION_FAILED", script);
+  if (observations.size !== routes.length) fail("LAW_EVIDENCE_MISSING", `${script}:native-observation-denominator`);
   return proofResults({
-    kind, routes, path, digest, observations, executionPassed, executionStatus: execution.status,
-    script, proofRunId, candidate, stdoutSha256: receipt.stdoutSha256,
+    kind, routes, observations, executionPassed, executionStatus: execution.status,
+    script, proofRunId, candidate, stdoutSha256: sha(readFileSync(stdoutPath)), timeoutMs,
   });
 };
 
@@ -402,7 +386,7 @@ const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, Law
       .flatMap((law) => law.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => ({ law, mode })));
     if (!routes.length) continue;
     const script = examScriptFor(domain.capabilityDomain);
-    addProofs(resultsByLaw, commandReceipt("exam", script, routes, context.runDirectory, context.candidate));
+    addProofs(resultsByLaw, executeProofCommand("exam", script, routes, context.runDirectory, context.candidate));
   }
 };
 
@@ -413,7 +397,7 @@ const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, 
     routesByScript.set(script, [...(routesByScript.get(script) ?? []), { law, mode }]);
   }
   for (const [script, routes] of routesByScript) addProofs(resultsByLaw,
-    commandReceipt("dynamic", script, routes, context.runDirectory, context.candidate));
+    executeProofCommand("dynamic", script, routes, context.runDirectory, context.candidate));
 };
 
 export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {

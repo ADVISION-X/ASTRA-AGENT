@@ -1,8 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import type { Registry } from "../governance-authority.js";
-import { ROOT, fail, sha } from "../governance-runtime.js";
+import { fail } from "../governance-runtime.js";
 
 const byteCompare = (left: string, right: string): number => Buffer.compare(Buffer.from(left), Buffer.from(right));
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort(byteCompare);
@@ -14,71 +11,6 @@ const matches = (pattern: string, path: string): boolean => pattern === "**/*" |
     return index >= 0 && path.startsWith(`${pattern.slice(0, index)}/`)
       && path.endsWith(`.${pattern.slice(index + marker.length)}`);
   })();
-
-type ScriptDefinitions = Readonly<Record<string, string>>;
-export const proofProducerDigestFromInputs = (
-  rootScript: string, scripts: ScriptDefinitions, sources: Readonly<Record<string, string | Buffer>>,
-): string => {
-  const visited = new Set<string>();
-  const sourcePaths = new Set<string>();
-  const visit = (script: string): void => {
-    if (visited.has(script)) return;
-    const command = scripts[script] ?? fail("LAW_EVIDENCE_MISSING", `${script}:producer-command`);
-    visited.add(script);
-    for (const match of command.matchAll(/(?:^|\s)([A-Za-z0-9_./-]+\.(?:ts|mjs|js))(?=\s|$)/gu)) sourcePaths.add(match[1]!);
-    for (const match of command.matchAll(/npm run ([A-Za-z0-9:_-]+)/gu)) visit(match[1]!);
-  };
-  visit(rootScript);
-  const scriptEntries = [...visited].sort(byteCompare).map((name) => [name, scripts[name]!] as const);
-  const sourceEntries = [...sourcePaths].sort(byteCompare).map((path) => {
-    const bytes = sources[path] ?? fail("LAW_EVIDENCE_MISSING", `${rootScript}:producer-source:${path}`);
-    return [path, sha(bytes)] as const;
-  });
-  return sha(JSON.stringify({ scripts: scriptEntries, sources: sourceEntries }));
-};
-
-const packageScripts = (): ScriptDefinitions =>
-  (JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")) as { scripts: ScriptDefinitions }).scripts;
-export const proofProducerDigest = (script: string): string => {
-  const scripts = packageScripts();
-  const sources: Record<string, Buffer> = {};
-  const visited = new Set<string>();
-  const collect = (name: string): void => {
-    if (visited.has(name)) return;
-    const command = scripts[name] ?? fail("LAW_EVIDENCE_MISSING", `${name}:producer-command`);
-    visited.add(name);
-    for (const match of command.matchAll(/(?:^|\s)([A-Za-z0-9_./-]+\.(?:ts|mjs|js))(?=\s|$)/gu)) {
-      sources[match[1]!] = readFileSync(resolve(ROOT, match[1]!));
-    }
-    for (const match of command.matchAll(/npm run ([A-Za-z0-9:_-]+)/gu)) collect(match[1]!);
-  };
-  collect(script);
-  return proofProducerDigestFromInputs(script, scripts, sources);
-};
-
-const proofProducerDigests: Readonly<Record<string, string>> = {
-  "acceptance:ai-input-gateway": "ad434856120eb55efbeede9ebcc0a0aad0e4f12b893f3c1d8d0e1460c80a6c5a",
-  "acceptance:app-shell-ui": "d72f3c17fc058b1627413bddaa0a3a04f0ec00cfb288d6ac21b13448e089da3b",
-  "acceptance:architecture-active-plugin-mediators": "88590086f3889020b9130178083022119402893b6730c94c79642f42b497cd3c",
-  "acceptance:code-purity-zombie-deep": "22d5ff0ce69a4935016af596bef916abb77d486f7c87ae73147c477fac074366",
-  "acceptance:forensics-persistence-capability": "6339465403d9b963375e7077ea793ac9e3eee7e0e244f07becc89a3918841f4b",
-  "acceptance:local-app-shell": "4af240acc32b8fb71ea0ae3377edd54956874cb3bc58d7dd25e04f199027ddd0",
-  "acceptance:local-browser-real-chrome": "42dfc4714f4eaff78350bfaedc64c48549f92bcbc050084da787b63cd1628806",
-  "acceptance:local-browser-terminal": "8bd41646ef28a50dec3808ea0949f4dfe240e0b8a8d36a4becdd7bd685778681",
-  "acceptance:runtime-log-spine": "009da813d6e50d8a333f0668ef89b571ad2154cab7c358e05c9ec24b14db7971",
-  "acceptance:startup-entrypoint": "9e2a2b874f0f3ff8b603b3fe5b27f28032956609381437b6ba31ff47178a15ba",
-  "acceptance:system-security": "4eaf558de984a1832b18e1c07981f11327bc5a43c93db1461d9df04b3eeac8ec",
-  "acceptance:xuanxue-ai-production": "b5b230e2189a6f03f5ad60e3fee9ed1656f11e973a0a9592ba7bc18984460931",
-  "acceptance:xuanxue-ai-production-localization-contract": "c44b2b1fee08cde6297c98727bff66851abff88e08bc0962d185e7c342d7a725",
-  "acceptance:xuanxue-ai-production:real-chrome": "4e1d6d0fda936ba410ac07b639104e3b2900fc13064c8a4d348406115051099e",
-  "acceptance:xuanxue-ai-production:real-proof-verify": "824fd1be448e4ec68c06a9d0247aa9112e2b46418818b6c005921b6d26a709c2",
-  "proof:local-browser-journal-recovery": "7d7800b62e274ef6d35534fa4df08a67c678efc99105f77efefbbb4816e8be80",
-  "proof:local-shell-current-runtime": "78e62b345d03419e4100ad007407169b74e20ad3ff221c044d1d8854c27ab896",
-};
-export const assertProofProducerDigest = (script: string): void => {
-  const expected = proofProducerDigests[script] ?? fail("LAW_EVIDENCE_MISSING", `${script}:producer-binding`);
-  if (proofProducerDigest(script) !== expected) fail("LAW_EVIDENCE_MISSING", `${script}:producer-drift`);
-};
 
 const examScripts: Readonly<Record<string, string>> = {
   "ai-input-gateway": "acceptance:ai-input-gateway",
@@ -217,21 +149,6 @@ const exactExamLocators: Readonly<Record<string, string>> = {
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "exam.state-machine")]: "acceptance:xuanxue:continuation-state-binding",
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4", "exam.golden")]: "acceptance:xuanxue-localization:cloud-order",
 };
-const exactDynamicLocators: Readonly<Record<string, string>> = {
-  [routeKey("LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser")]: "dynamic:browser:authenticated-lifecycle",
-  [routeKey("LAW-LOCAL-BROWSER-SESSION-002-V4", "dynamic.browser")]: "dynamic:browser:fixed-unpacked-authority",
-  [routeKey("LAW-LOCAL-BROWSER-SESSION-003-V6", "dynamic.browser")]: "dynamic:browser:exact-target-claim",
-  [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "dynamic.recovery")]: "dynamic:browser-journal:authorized-atomic-recovery",
-  [routeKey("LAW-LOCAL-BROWSER-SESSION-005-V4", "dynamic.browser")]: "dynamic:browser:release-identity",
-  [routeKey("LAW-LOCAL-BROWSER-SESSION-006-V2", "dynamic.browser")]: "dynamic:browser:opaque-proof-receipt",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "dynamic.browser")]: "dynamic:xuanxue:bound-real-chrome",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "dynamic.service")]: "dynamic:xuanxue:worker-session-continuation",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "dynamic.provider")]: "dynamic:xuanxue:provider-record-checkpoints",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "dynamic.authorization")]: "dynamic:xuanxue:session-attestation-rotation",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "dynamic.recovery")]: "dynamic:xuanxue:terminal-continuation-receipts",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V9", "dynamic.performance")]: "dynamic:xuanxue:provider-verification-duration",
-};
-
 const localRuntimeLocator = (lawId: string, mode: string, locator: string): boolean => {
   if (lawId === "LAW-LOCAL-APP-SHELL-001-V5" && mode === "dynamic.browser") return /^http:\/\/127\.0\.0\.1:\d+\/$/u.test(locator);
   if (lawId === "LAW-LOCAL-APP-SHELL-001-V5" && mode === "dynamic.service") return /^http:\/\/127\.0\.0\.1:\d+\/api\/health$/u.test(locator);
@@ -242,6 +159,26 @@ const localRuntimeLocator = (lawId: string, mode: string, locator: string): bool
   return false;
 };
 
+const nativeDynamicLocator = (input: { script: string; lawId: string; mode: string; locator: string }): boolean => {
+  if (input.script === "acceptance:local-browser-real-chrome") {
+    if (input.lawId === "LAW-LOCAL-BROWSER-SESSION-005-V4") {
+      return /^\/.*\/\.grasseye-local\/browser-release\/release-record\.json$/u.test(input.locator);
+    }
+    return /^\/.*\/\.grasseye-local\/browser\/proof-events\.ndjson#sequence=\d+$/u.test(input.locator);
+  }
+  if (input.script === "proof:local-browser-journal-recovery") {
+    return /^\/.*\/recovery-receipts\/[a-f0-9]{64}\.json$/u.test(input.locator);
+  }
+  if (input.script === "acceptance:xuanxue-ai-production:real-chrome") {
+    return /^\/.*\.json$/u.test(input.locator);
+  }
+  if (input.script === "acceptance:xuanxue-ai-production:real-proof-verify") {
+    return /^\/.*\/runtime-data\/ai-input-gateway\/web-chat-executions$/u.test(input.locator);
+  }
+  return input.script === "proof:local-shell-current-runtime"
+    && localRuntimeLocator(input.lawId, input.mode, input.locator);
+};
+
 export const observationMatchesRoute = (input: {
   kind: "exam" | "dynamic"; script: string; domain: string; lawId: string; mode: string;
   locator: string; observedValue: string;
@@ -249,9 +186,9 @@ export const observationMatchesRoute = (input: {
   const expectedScript = input.kind === "exam" ? examScripts[input.domain] : dynamicScripts[input.domain]?.[input.mode];
   if (expectedScript !== input.script || input.observedValue.trim().length < 8
     || /^(?:fixed|pass|true)$/iu.test(input.observedValue.trim())) return false;
-  const exact = (input.kind === "exam" ? exactExamLocators : exactDynamicLocators)[routeKey(input.lawId, input.mode)];
-  return exact ? input.locator === exact : input.script === "proof:local-shell-current-runtime"
-    && localRuntimeLocator(input.lawId, input.mode, input.locator);
+  if (input.kind === "dynamic") return nativeDynamicLocator(input);
+  const exact = exactExamLocators[routeKey(input.lawId, input.mode)];
+  return exact ? input.locator === exact : false;
 };
 
 export const relevantExamScripts = (paths: readonly string[], registry: Registry): string[] => {

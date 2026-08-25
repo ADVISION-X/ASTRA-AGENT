@@ -8,7 +8,7 @@ import {
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
@@ -376,6 +376,7 @@ const inspectDomainEvaluation = async (
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+    executedChecks: completedStaticChecks(context, "xuanxue-ai-production/owner-static-check"),
     findings,
     inspectedFiles: [...context.targetPaths],
   };
@@ -385,6 +386,6 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", semanticDigest: "186dd6b33b13b8ad3c9d12450981265c3650a50d283404c5eb7083b1d91c1728",
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9",
   }], inspectDomainEvaluation);
 };

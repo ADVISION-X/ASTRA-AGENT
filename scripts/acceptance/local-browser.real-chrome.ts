@@ -12,17 +12,21 @@ import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const candidateHash = buildStartupSourceFingerprint(root);
 const journalPath = path.join(root, ".grasseye-local", "browser", "proof-events.ndjson");
-const releaseRecord = JSON.parse(readFileSync(path.join(
+const releaseRecordPath = path.join(
   root,
   ".grasseye-local",
   "browser-release",
   "release-record.json",
-), "utf8")) as { releaseBuildId: string };
+);
+const releaseRecord = JSON.parse(readFileSync(releaseRecordPath, "utf8")) as {
+  releaseBuildId: string; manifestHash: `sha256:${string}`;
+};
 const envelopes = readBrowserProofJournal(journalPath);
 const now = Date.now();
 const maxAgeMs = 30 * 60 * 1_000;
 const authorityHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const nativeReceipt = (value: `sha256:${string}`): string => value.slice("sha256:".length);
 const recent = envelopes.filter(({ event }) =>
   event.candidateHash === candidateHash
   && now - Date.parse(event.recordedAt) >= 0
@@ -55,6 +59,7 @@ const completed = recent.find(({ event }, index) => index > claimedIndex
   && Number.isInteger(event.transportSequence)
   && Number.isInteger(event.permitSequence));
 assert.ok(completed);
+assert.ok(completed.event.eventType === "COMMAND" && completed.event.resultHash);
 const completedIndex = recent.indexOf(completed);
 const revoked = recent.find(({ event }, index) => index > completedIndex
   && event.eventType === "LIFECYCLE"
@@ -71,8 +76,18 @@ process.stdout.write(`${JSON.stringify({
   commandSequence: completed.sequence,
   revokedSequence: revoked.sequence,
 })}\n`);
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", evidenceMode: "dynamic.browser", locator: "dynamic:browser:authenticated-lifecycle", observedValue: `authenticated=${authenticated.sequence};revoked=${revoked.sequence}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenceMode: "dynamic.browser", locator: "dynamic:browser:fixed-unpacked-authority", observedValue: `extension=${GRASSEYE_UNPACKED_EXTENSION_ID};authority=${authorityRefHash}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "dynamic.browser", locator: "dynamic:browser:exact-target-claim", observedValue: `claim=${claimed.sequence};command=${completed.sequence}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "dynamic.browser", locator: "dynamic:browser:release-identity", observedValue: `release=${releaseRecord.releaseBuildId};candidate=${candidateHash}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", evidenceMode: "dynamic.browser", locator: "dynamic:browser:opaque-proof-receipt", observedValue: `authorityHash=${authorityRefHash};resultHash=${completed.event.eventType === "COMMAND" ? completed.event.resultHash : "missing"}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", evidenceMode: "dynamic.browser",
+  locator: `${journalPath}#sequence=${revoked.sequence}`, receipt: nativeReceipt(revoked.entryHash),
+  observedValue: `authenticated=${authenticated.sequence};revoked=${revoked.sequence}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenceMode: "dynamic.browser",
+  locator: `${journalPath}#sequence=${authenticated.sequence}`, receipt: nativeReceipt(authenticated.entryHash),
+  observedValue: `extension=${GRASSEYE_UNPACKED_EXTENSION_ID};authority=${authorityRefHash}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "dynamic.browser",
+  locator: `${journalPath}#sequence=${completed.sequence}`, receipt: nativeReceipt(completed.entryHash),
+  observedValue: `claim=${claimed.sequence};command=${completed.sequence}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "dynamic.browser",
+  locator: releaseRecordPath, receipt: nativeReceipt(releaseRecord.manifestHash),
+  observedValue: `release=${releaseRecord.releaseBuildId};candidate=${candidateHash}` });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", evidenceMode: "dynamic.browser",
+  locator: `${journalPath}#sequence=${completed.sequence}`, receipt: nativeReceipt(completed.event.resultHash),
+  observedValue: `authorityHash=${authorityRefHash};resultHash=${completed.event.eventType === "COMMAND" ? completed.event.resultHash : "missing"}` });

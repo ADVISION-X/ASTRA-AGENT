@@ -38,7 +38,9 @@ try {
     firstInvalidLine: recovered.firstInvalidLine,
     fixtureOwnership: "temporary-owned",
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery", locator: "dynamic:browser-journal:authorized-atomic-recovery", observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
+  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery",
+    locator: recovered.recoveryReceiptPath, receipt: recovered.recoveryId.slice("sha256:".length),
+    observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
 } finally {
   if (previousAuthorization === undefined) delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
   else process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED = previousAuthorization;

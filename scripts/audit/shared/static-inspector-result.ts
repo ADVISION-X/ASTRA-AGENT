@@ -1,6 +1,6 @@
-import { fail, sha } from "../governance-runtime.js";
+import { fail } from "../governance-runtime.js";
 import type {
-  InspectorContext, InspectorEvaluation, InspectorLawRequirement, InspectorLawResult, InspectorOutput,
+  InspectorContext, InspectorEvaluation, InspectorExecutedCheck, InspectorLawRequirement, InspectorLawResult, InspectorOutput,
 } from "./inspector-contracts.js";
 import { inspectTargetObjects } from "./static-target-object-inspector.js";
 
@@ -13,35 +13,56 @@ const ordered = (values: readonly string[]): string[] => [...new Set(values)].so
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
 export type StaticLawRoute = Readonly<{
   lawId: string;
-  semanticDigest: string;
 }>;
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
-export const staticLawSemanticDigest = (summary: string, forbidden: readonly string[]): string =>
-  sha(JSON.stringify({ summary, forbidden }));
+export const completedStaticChecks = (
+  context: InspectorContext, checkId: string,
+): InspectorExecutedCheck[] => context.lawRequirements.flatMap((requirement) =>
+  Object.entries(requirement.clausesByMode).map(([evidenceMode, clauses]) => ({
+    lawId: requirement.lawId,
+    evidenceMode,
+    clauses: ordered(clauses),
+    checkId,
+  })));
 
 const validateStaticRoutes = (
   context: InspectorContext, routes: readonly StaticLawRoute[],
 ): string[] => {
   const requiredIds = context.lawRequirements.map((law) => law.lawId);
-  if (JSON.stringify(ordered(routes.map((route) => route.lawId))) !== JSON.stringify(requiredIds)
-    || routes.some((route) => !/^[a-f0-9]{64}$/u.test(route.semanticDigest))) {
+  if (JSON.stringify(ordered(routes.map((route) => route.lawId))) !== JSON.stringify(requiredIds)) {
     fail("LAW_CHECK_ROUTE_MISSING", context.planEntry.capabilityDomain);
   }
-  const routesByLaw = new Map(routes.map((route) => [route.lawId, route]));
   for (const requirement of context.lawRequirements) {
-    const route = routesByLaw.get(requirement.lawId) ?? fail("LAW_CHECK_ROUTE_MISSING", requirement.lawId);
     const requiredClauses = ordered(Object.values(requirement.clausesByMode).flat());
     const availableClauses = ordered([
       ...Array.from({ length: requirement.forbiddenCount }, (_, index) => `forbidden:${index}`), "summary",
     ]);
     if (!Number.isInteger(requirement.forbiddenCount) || requirement.forbiddenCount < 1
-      || !requiredClauses.includes("summary") || requiredClauses.some((clause) => !availableClauses.includes(clause))
-      || route.semanticDigest !== requirement.semanticDigest) {
+      || !requiredClauses.includes("summary") || requiredClauses.some((clause) => !availableClauses.includes(clause))) {
       fail("LAW_CHECK_ROUTE_MISSING", `${requirement.lawId}:clause`);
     }
   }
   return requiredIds;
+};
+
+const checkSignature = (check: InspectorExecutedCheck): string =>
+  `${check.lawId}\0${check.evidenceMode}\0${JSON.stringify(ordered(check.clauses))}`;
+
+const validateExecutedChecks = (context: InspectorContext, evaluation: InspectorEvaluation): void => {
+  const expected = context.lawRequirements.flatMap((requirement) => Object.entries(requirement.clausesByMode)
+    .map(([evidenceMode, clauses]) => `${requirement.lawId}\0${evidenceMode}\0${JSON.stringify(ordered(clauses))}`));
+  if (!Array.isArray(evaluation.executedChecks)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:clause-execution`);
+  }
+  const actual = evaluation.executedChecks.map(checkSignature);
+  if (evaluation.executedChecks.some((check) => !check || !Array.isArray(check.clauses)
+    || typeof check.lawId !== "string" || typeof check.evidenceMode !== "string"
+    || !/^[a-z0-9]+(?:[a-z0-9-]*)(?:\/[a-z0-9]+(?:[a-z0-9-]*))*$/u.test(check.checkId))
+    || actual.length !== new Set(actual).size
+    || JSON.stringify(ordered(actual)) !== JSON.stringify(ordered(expected))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:clause-execution`);
+  }
 };
 
 const validateStaticEvaluation = (
@@ -61,6 +82,7 @@ const validateStaticEvaluation = (
   if (JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(requiredTargets)) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:target-denominator`);
   }
+  validateExecutedChecks(context, evaluation);
 };
 
 const resultForRequirement = (
@@ -68,15 +90,16 @@ const resultForRequirement = (
   requirement: InspectorLawRequirement, executionId: string,
 ): InspectorLawResult => {
   const findings = evaluation.findings.filter((finding) => finding.lawId === requirement.lawId);
+  const checks = evaluation.executedChecks.filter((check) => check.lawId === requirement.lawId);
   return {
     lawId: requirement.lawId,
-    assertions: Object.entries(requirement.clausesByMode).map(([mode, clauses]) => ({
-      clauses,
-      evidenceMode: mode,
+    assertions: checks.map((check) => ({
+      clauses: check.clauses,
+      evidenceMode: check.evidenceMode,
       passed: findings.length === 0,
       refs: ordered([
-        ...clauses.map((clause) =>
-          `${evidenceKind[mode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};clause=${clause};semanticDigest=${requirement.semanticDigest};mode=${mode};targetCount=${requirement.targetSet.count}`)}`),
+        ...check.clauses.map((clause) =>
+          `${evidenceKind[check.evidenceMode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};checkId=${check.checkId};clause=${clause};mode=${check.evidenceMode};targetCount=${requirement.targetSet.count}`)}`),
         requirement.targetSet.queryRef,
       ]),
     })),

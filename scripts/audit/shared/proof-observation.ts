@@ -3,6 +3,7 @@ export type QualityProofObservation = Readonly<{
   evidenceMode: string;
   locator: string;
   observedValue: string;
+  receipt?: string;
 }>;
 
 export type QualityProofRequest = Readonly<{
@@ -16,12 +17,14 @@ export type QualityProofRequest = Readonly<{
 export const proofObservationPrefix = "QUALITY_PROOF_OBSERVATION ";
 
 export const emitQualityProofObservation = (
-  observation: Pick<QualityProofObservation, "lawId" | "evidenceMode" | "locator" | "observedValue">,
+  observation: QualityProofObservation,
 ): void => {
+  const dynamic = observation.evidenceMode.startsWith("dynamic.");
   if (!observation.lawId.startsWith("LAW-")
     || !/^(exam|dynamic)\./u.test(observation.evidenceMode)
     || !observation.locator.trim()
-    || !observation.observedValue.trim()) {
+    || !observation.observedValue.trim()
+    || (dynamic ? !/^[a-f0-9]{64}$/u.test(observation.receipt ?? "") : observation.receipt !== undefined)) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }
   process.stdout.write(`${proofObservationPrefix}${JSON.stringify(observation)}\n`);
@@ -30,10 +33,13 @@ export const emitQualityProofObservation = (
 export const parseQualityProofObservations = (stdout: string): QualityProofObservation[] =>
   stdout.split("\n").filter((line) => line.startsWith(proofObservationPrefix)).map((line) => {
     const parsed = JSON.parse(line.slice(proofObservationPrefix.length)) as Partial<QualityProofObservation>;
-    if (Object.keys(parsed).sort().join(",") !== "evidenceMode,lawId,locator,observedValue"
+    const dynamic = parsed.evidenceMode?.startsWith("dynamic.") ?? false;
+    const expectedKeys = dynamic ? "evidenceMode,lawId,locator,observedValue,receipt" : "evidenceMode,lawId,locator,observedValue";
+    if (Object.keys(parsed).sort().join(",") !== expectedKeys
       || typeof parsed.lawId !== "string" || typeof parsed.evidenceMode !== "string"
       || typeof parsed.locator !== "string" || typeof parsed.observedValue !== "string"
-      || !parsed.locator.trim() || !parsed.observedValue.trim()) {
+      || !parsed.locator.trim() || !parsed.observedValue.trim()
+      || (dynamic ? typeof parsed.receipt !== "string" || !/^[a-f0-9]{64}$/u.test(parsed.receipt) : parsed.receipt !== undefined)) {
       throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
     }
     return parsed as QualityProofObservation;

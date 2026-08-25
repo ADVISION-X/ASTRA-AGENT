@@ -118,9 +118,20 @@ try {
 assert(observation);
 const runtimeValue = `run=${proofRunId};candidate=${proofCandidate};pid=${observation.listenerPid};health=${observation.health.status}`;
 const browserValue = `${runtimeValue};browser=${observation.browserVersion};screenshotSha256=${observation.screenshotSha256}`;
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser", locator: `${baseUrl}/`, observedValue: browserValue });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service", locator: `${baseUrl}/api/health`, observedValue: runtimeValue });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service", locator: `${baseUrl}/api/health#components`, observedValue: `${runtimeValue};components=${observation.health.components?.length ?? 0}` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", locator: `process:${observation.listenerPid}`, observedValue: `${runtimeValue};startup=grasseye:start;cleanup=verified` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "dynamic.service", locator: `tcp://127.0.0.1:${port}`, observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });
-emitQualityProofObservation({ lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", evidenceMode: "dynamic.browser", locator: `${baseUrl}/`, observedValue: `${browserValue};knownRoute=/` });
+const runtimeReceipt = createHash("sha256").update(JSON.stringify(observation.health)).digest("hex");
+const listenerReceipt = createHash("sha256").update(JSON.stringify({ port, pid: observation.listenerPid, root })).digest("hex");
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.browser",
+  locator: `${baseUrl}/`, receipt: observation.screenshotSha256, observedValue: browserValue });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service",
+  locator: `${baseUrl}/api/health`, receipt: runtimeReceipt, observedValue: runtimeValue });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service",
+  locator: `${baseUrl}/api/health#components`, receipt: runtimeReceipt,
+  observedValue: `${runtimeValue};components=${observation.health.components?.length ?? 0}` });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service",
+  locator: `process:${observation.listenerPid}`, receipt: listenerReceipt,
+  observedValue: `${runtimeValue};startup=grasseye:start;cleanup=verified` });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "dynamic.service",
+  locator: `tcp://127.0.0.1:${port}`, receipt: listenerReceipt,
+  observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });
+emitQualityProofObservation({ lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", evidenceMode: "dynamic.browser",
+  locator: `${baseUrl}/`, receipt: observation.screenshotSha256, observedValue: `${browserValue};knownRoute=/` });

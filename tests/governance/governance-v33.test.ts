@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -75,6 +75,43 @@ test('production consumption of a TEST_ONLY module requires role escalation', ()
   assert.doesNotThrow(() => assertRoleConsumptionEdges([
     { consumer: 'scripts/acceptance/app-shell-ui.acceptance.ts', consumed: 'src/app/server.ts' },
   ]));
+});
+
+test('real discovery rejects module, package-config, and filesystem consumption of TEST_ONLY paths', () => {
+  const fixturePath = 'tests/governance/quality-contract.test.ts';
+  const mutations: Array<(repository: string) => void> = [
+    (repository) => writeFileSync(resolve(repository, 'scripts/audit/governance.ts'),
+      `${readFileSync(resolve(repository, 'scripts/audit/governance.ts'), 'utf8')}\nimport "../../tests/governance/quality-contract.test.js";\n`),
+    (repository) => {
+      const packagePath = resolve(repository, 'package.json');
+      const value = JSON.parse(readFileSync(packagePath, 'utf8')) as { scripts: Record<string, string> };
+      value.scripts['internal:role-consumption-mutant'] = `node --import tsx ${fixturePath}`;
+      writeFileSync(packagePath, `${JSON.stringify(value, null, 2)}\n`);
+    },
+    (repository) => writeFileSync(resolve(repository, 'scripts/audit/governance.ts'),
+      `${readFileSync(resolve(repository, 'scripts/audit/governance.ts'), 'utf8')}\nimport { readFileSync as readRoleFixture } from "node:fs";\nvoid readRoleFixture("${fixturePath}");\n`),
+  ];
+  for (const [mutationIndex, mutate] of mutations.entries()) {
+    const temporary = mkdtempSync(resolve(tmpdir(), 'governance-role-consumption-'));
+    const repository = resolve(temporary, 'repo');
+    try {
+      execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+      writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
+      symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+      copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/governance-role-consumption.ts'),
+        resolve(repository, 'scripts/audit/shared/governance-role-consumption.ts'));
+      mutate(repository);
+      const execution = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e',
+        'import { verifyPathRoleEscalation } from "./scripts/audit/shared/governance-role-consumption.ts"; verifyPathRoleEscalation();'], {
+        cwd: repository, encoding: 'utf8',
+      });
+      assert.notEqual(execution.status, 0,
+        `role consumption mutation ${mutationIndex} unexpectedly passed: ${execution.stdout}${execution.stderr}`);
+      assert.match(`${execution.stdout}${execution.stderr}`, /ROLE_ESCALATION_REQUIRED/u);
+    } finally {
+      rmSync(temporary, { force: true, recursive: true });
+    }
+  }
 });
 
 test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spec authority', () => {

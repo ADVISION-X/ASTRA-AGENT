@@ -6,7 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -433,18 +433,19 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+    executedChecks: completedStaticChecks(context, "ai-input-gateway/owner-static-check"),
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [
-    { lawId: "LAW-AI-INPUT-GATEWAY-001-V1", semanticDigest: "6d7291bf95bfe64f0f089e9a215a1caa7d3d9d026926bac87daf7b05bd19603a" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-002-V1", semanticDigest: "d557c47fd19739cc6ba2b939bac0d35c39a00e883896e90a83b85f273ab42f1e" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-003-V1", semanticDigest: "efc981d5a84fd5f1e20ec3d896836e0707bb33bd2743c53e5d1bcd36054d6c56" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-004-V1", semanticDigest: "7cd2990f4e533edab7b19621869a31e0a1da9a333cce6226f602644910ba9a57" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-005-V4", semanticDigest: "f1a904286825d50233ca721dbbf9d498e06307fe35111b29a3649e27c20afcad" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-006-V1", semanticDigest: "434e0b86c07fc3f1b39e8118596660d2bcd7f5e4f0917fb90978660acbcd00aa" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-007-V1", semanticDigest: "6dfc1fa5cd803bb06e0c376722f7fe0b108ef59c954eed44de39537b1e82e5fd" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-001-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-002-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-003-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-004-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-005-V4" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-006-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-007-V1" },
   ], inspectDomainEvaluation);
 };

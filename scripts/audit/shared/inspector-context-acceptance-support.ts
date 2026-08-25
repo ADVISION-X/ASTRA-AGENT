@@ -2,7 +2,6 @@ import type { Project } from "ts-morph";
 
 import { buildRegistry } from "../governance-authority.js";
 import type { InspectorContext } from "./inspector-contracts.js";
-import { staticLawSemanticDigest } from "./static-inspector-result.js";
 
 export const createInspectorContextFixture = (
   project: Project,
@@ -27,7 +26,6 @@ export const createInspectorContextFixture = (
     targetPaths: [],
     lawRequirements: lawIds.map((lawId) => ({
       lawId,
-      semanticDigest: staticLawSemanticDigest(laws.get(lawId)!.summary, laws.get(lawId)!.forbidden),
       forbiddenCount: laws.get(lawId)!.forbidden.length,
       clausesByMode: { "static.ast": ["summary"] },
       targetPaths: [],
