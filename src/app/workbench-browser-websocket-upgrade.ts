@@ -4,6 +4,7 @@ import type { Duplex } from "node:stream";
 import type { Socket } from "node:net";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { GRASSEYE_BROWSER_EXTENSION_ORIGIN } from "./workbench-api-boundary.js";
 
 const path = "/browser-authority/v1";
 const acceptKey = (key: string): string => createHash("sha1").update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
@@ -13,8 +14,9 @@ export const upgradeWorkbenchBrowserAuthoritySocket = (input: Readonly<{ request
   const upgrade = input.request.headers.upgrade;
   const key = input.request.headers["sec-websocket-key"];
   const version = input.request.headers["sec-websocket-version"];
+  const origin = input.request.headers.origin;
   const address = (input.socket as Socket).remoteAddress;
-  if (requestUrl.pathname !== path || typeof key !== "string" || version !== "13" || typeof upgrade !== "string" || upgrade.toLowerCase() !== "websocket" || !isLoopback(address)) return false;
+  if (requestUrl.pathname !== path || typeof key !== "string" || version !== "13" || typeof upgrade !== "string" || upgrade.toLowerCase() !== "websocket" || origin !== GRASSEYE_BROWSER_EXTENSION_ORIGIN || !isLoopback(address)) return false;
   input.socket.write(["HTTP/1.1 101 Switching Protocols", "Upgrade: websocket", "Connection: Upgrade", `Sec-WebSocket-Accept: ${acceptKey(key)}`, "", ""].join("\r\n"));
   const endpoint = input.workbench.acceptBrowserAuthoritySocket({
     send: (payload) => input.socket.write(encodeServerWebSocketTextFrame(payload)),

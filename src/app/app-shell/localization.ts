@@ -17,7 +17,6 @@ const appShellZhCopyEntries = [
   ["Toggle inspector", "切换检查器"],
   ["Toggle console", "切换控制台"],
   ["Refresh shell", "刷新工作台"],
-  ["Browser pairing", "浏览器配对"],
   ["Language", "语言"],
   ["Chinese", "中文"],
   ["English", "English"],

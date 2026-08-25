@@ -32,6 +32,8 @@ assert.doesNotMatch(worker, /Runtime\.evaluate/u, "The extension executor must n
 assert.match(worker, /DOM\.setFileInputFiles/u, "The registered exact-target file-input command must reach the Chrome DevTools file-input primitive.");
 assert.match(worker, /#upload-files/u, "The file-input executor must remain pinned to the observed ChatGPT document input.");
 assert.equal("externally_connectable" in manifest, false, "The MV3 manifest cannot retain page relay connectivity.");
+assert.equal("storage" in manifest, false, "Automatic pairing and reload must remain memory-only.");
+assert.deepEqual(manifest.permissions, ["debugger", "activeTab", "alarms"], "The fixed extension may add only the alarm wake permission.");
 assert.deepEqual(manifest.host_permissions, ["http://127.0.0.1/*"], "The MV3 manifest may reach only the fixed loopback authority endpoint.");
 assert.match(pairingPage, /lang="zh-CN"/u, "The fixed operator pairing page must default to Chinese.");
 assert.match(popup, /GRASSEYE_BROWSER_STATUS/u, "Reopening the popup must recover current in-memory authentication status.");
@@ -42,6 +44,10 @@ assert.match(worker, /getPlatformInfo/u, "The bundled MV3 worker must retain its
 assert.match(worker, /close\(4e3,/u, "The bundled worker must retain explicit programmatic close diagnostics.");
 assert.doesNotMatch(worker, /BROWSER_PAIRING_ALREADY_AUTHENTICATED/u, "Repeating pair after authentication must not create a Chrome extension error.");
 assert.match(worker, /failedFrameKind/u, "The bundled worker must retain authenticated frame diagnostics after production rebuild.");
-assert.match(popupSource, /请先在 GrassEye Workbench/u, "The popup must direct the operator to the one legal pairing-secret source.");
+assert.doesNotMatch(pairingPage, /type="password"|pairing-secret/u, "The popup must not ask the operator to copy or paste a secret.");
+assert.match(popupSource, /readWorkbenchPairingState/u, "The popup reconnect action must use the governed automatic bootstrap.");
+assert.match(worker, /GRASSEYE_AUTO_PAIRING_ALARM/u, "The service worker must retain the governed automatic pairing wake path.");
+assert.match(worker, /runtime\.reload/u, "A stale unpacked extension must reload itself after exact build-identity comparison.");
+assert.match(worker, /releaseBuildId/u, "Automatic reload must compare the AGENT and loaded extension build identities.");
 
 console.log("BROWSER_EXTENSION_BUILD_ACCEPTANCE_PASS");

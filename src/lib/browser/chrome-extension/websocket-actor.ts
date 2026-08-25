@@ -7,6 +7,7 @@ import { readExtensionChromeApi, type ExtensionChromeApi } from "./extension-run
 import { ExtensionTargetAuthority } from "./extension-target-authority.js";
 import { ExtensionHeartbeat } from "./extension-heartbeat.js";
 import { PairingCompletionGate } from "./pairing-completion-gate.js";
+import { PairingAutoBootstrap } from "./pairing-auto-bootstrap.js";
 import {
   BROWSER_COMMAND_DEFAULT_DEADLINE_MS,
   BROWSER_PROTOCOL_REVISION,
@@ -143,6 +144,7 @@ export class ExtensionWebSocketActor {
   private readonly targetClaims = new TargetClaimAwaiter();
   private readonly targetAuthority: ExtensionTargetAuthority;
   private readonly heartbeat: ExtensionHeartbeat;
+  private readonly autoBootstrap: PairingAutoBootstrap;
 
   public constructor(private readonly chromeApi: ExtensionChromeApi) {
     this.targetAuthority = new ExtensionTargetAuthority(
@@ -155,6 +157,10 @@ export class ExtensionWebSocketActor {
       (socket) => this.sendEncrypted(socket, "HEARTBEAT", {}),
       (error) => this.reportRuntimeFailure(error, "liveness-pulse"),
     );
+    this.autoBootstrap = new PairingAutoBootstrap(chromeApi, {
+      canAttemptAutomaticPairing: () => this.canAttemptAutomaticPairing(),
+      pair: (pairingSecret) => this.pair(pairingSecret),
+    }, __GRASSEYE_RELEASE_BUILD_ID__);
   }
 
   public start(): void {
@@ -169,7 +175,7 @@ export class ExtensionWebSocketActor {
     this.chromeApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (sender.id !== this.chromeApi.runtime.id) return false;
       const request = asRecord(message);
-      if (request?.kind === "GRASSEYE_PAIRING_SECRET" && typeof request.pairingSecret === "string") {
+      if (request?.kind === "GRASSEYE_AUTOMATIC_PAIRING_SECRET" && typeof request.pairingSecret === "string") {
         void this.pair(request.pairingSecret).then(
           () => sendResponse({ ok: true }),
           (error: unknown) => sendResponse({ ok: false, errorCode: errorCode(error) }),
@@ -177,7 +183,11 @@ export class ExtensionWebSocketActor {
         return true;
       }
       if (request?.kind === "GRASSEYE_BROWSER_STATUS") {
-        sendResponse({ ok: true, authenticated: this.state === "CONNECTED" && this.commandReady });
+        sendResponse({
+          ok: true,
+          authenticated: this.state === "CONNECTED" && this.commandReady,
+          automaticPairingErrorCode: this.autoBootstrap.currentFailureCode(),
+        });
         return false;
       }
       if (request?.kind === "GRASSEYE_CLAIM_ACTIVE_TARGET") {
@@ -194,6 +204,11 @@ export class ExtensionWebSocketActor {
       return false;
     });
     this.targetAuthority.start();
+    this.autoBootstrap.start();
+  }
+
+  public canAttemptAutomaticPairing(): boolean {
+    return this.state !== "CONNECTING" && this.state !== "PAIRING" && this.state !== "CONNECTED";
   }
 
   public setOneTimePairingSecret(pairingSecret: string): void {
@@ -418,6 +433,7 @@ export class ExtensionWebSocketActor {
     if (socket !== this.socket) return;
     this.socket = null;
     this.state = "CLOSED";
+    this.pairingSecret = null;
     this.pending = null;
     this.session = null;
     this.commandReady = false;
@@ -432,6 +448,8 @@ export class ExtensionWebSocketActor {
     const socket = this.socket;
     this.socket = null;
     this.state = "CLOSED";
+    this.pairingSecret = null;
+    this.pending = null;
     this.session = null;
     this.commandReady = false;
     this.pairingCompletion.fail("BROWSER_AUTHENTICATION_INCOMPLETE");

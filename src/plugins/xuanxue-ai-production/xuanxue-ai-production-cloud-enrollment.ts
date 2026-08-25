@@ -22,10 +22,17 @@ const EnrollmentEnvelopeSchema = z.object({
       status: z.enum(["active", "revoked"]),
       origin_allowlist: z.array(z.string().url()).min(1),
       control_contract_manifest_hash: hashSchema,
+      product_bundle_hash: hashSchema,
+      credential_revocation_epoch: z.number().int().nonnegative(),
     }).strict(),
     device_credential: z.string().min(1),
   }).strict().optional(),
-  error: z.object({ code: z.string().min(1).optional() }).strict().optional(),
+  error: z.object({
+    code: z.string().min(1).optional(),
+    message: z.string().min(1).optional(),
+    status: z.number().int().optional(),
+    request_id: z.string().min(1).optional(),
+  }).strict().optional(),
 }).strict();
 
 const required = (name: string): string => {
@@ -64,7 +71,6 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
       request_id: requestId,
       environment_id: config.environmentId,
       enrollment_token: config.enrollmentToken,
-      control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
     }),
     signal: AbortSignal.timeout(30_000),
   });
@@ -86,7 +92,8 @@ export async function enrollXuanxueAiProductionCloudDevice(input?: {
     device_id: device.device_id,
     device_epoch: device.device_epoch,
     credential: credentialValue,
-    control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
+    control_manifest_hash: device.control_contract_manifest_hash,
+    product_bundle_hash: device.product_bundle_hash,
     enrolled_at: new Date().toISOString(),
   };
   await writeXuanxueAiProductionCloudCredential(dataDir, credential);

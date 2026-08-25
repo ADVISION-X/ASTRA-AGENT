@@ -1,11 +1,16 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
+import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../lib/browser/release/unpacked-extension-release-identity.js";
+
+export const GRASSEYE_BROWSER_EXTENSION_ORIGIN = `chrome-extension://${GRASSEYE_UNPACKED_EXTENSION_ID}`;
+export const GRASSEYE_TOOL_EXTENSION_ID_HEADER = "x-grasseye-tool-extension-id";
 
 export type WorkbenchApiRouteRule = {
   method: "GET" | "POST" | "DELETE";
   pathPattern: "exact" | "prefix";
   path: string;
   localUiAllowed: boolean;
+  localExtensionAllowed?: boolean;
   externalApiAllowed: boolean;
   requiresSiteHmac: boolean;
   jobOwner?: string;
@@ -18,7 +23,7 @@ export type WorkbenchApiBoundaryDecision =
       kind: "allowed";
       corsHeaders: Record<string, string>;
       routeRule: WorkbenchApiRouteRule;
-      originCategory: "local-ui" | "external-website";
+      originCategory: "local-ui" | "local-extension" | "external-website";
     }
   | {
       kind: "blocked";
@@ -53,7 +58,7 @@ export const EXTERNAL_REQUEST_FORBIDDEN_KEYS = [
 export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
   { method: "GET", pathPattern: "exact", path: "/api/health", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "workbench_health" },
   { method: "GET", pathPattern: "exact", path: "/api/mode", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "workbench_mode" },
-  { method: "GET", pathPattern: "exact", path: "/api/browser-authority/pairing", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "local_browser_authority_pairing" },
+  { method: "GET", pathPattern: "exact", path: "/api/browser-authority/pairing", localUiAllowed: false, localExtensionAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "local_browser_authority_pairing" },
   { method: "GET", pathPattern: "exact", path: "/api/xuanxue-ai-production/status", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_status" },
   { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/pause", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_pause" },
   { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/cancel", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_cancel" },
@@ -86,10 +91,10 @@ const matchRouteRule = (method: string | undefined, path: string): WorkbenchApiR
   ) ?? null;
 };
 
-const buildCorsHeaders = (origin: string | undefined): Record<string, string> => ({
+const buildCorsHeaders = (origin: string | undefined, methods = "GET,POST,DELETE,OPTIONS"): Record<string, string> => ({
   ...(origin ? { "access-control-allow-origin": origin } : {}),
-  "access-control-allow-headers": "content-type,x-grasseye-signature,x-grasseye-source-system,x-grasseye-request-id",
-  "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+  "access-control-allow-headers": "content-type,x-grasseye-tool-extension-id,x-grasseye-signature,x-grasseye-source-system,x-grasseye-request-id",
+  "access-control-allow-methods": methods,
   "vary": "Origin",
 });
 
@@ -99,9 +104,20 @@ const getLocalOrigins = (baseUrl: string): Set<string> => {
   return new Set([url.origin, `http://127.0.0.1${port}`, `http://localhost${port}`]);
 };
 
-const readOriginCategory = (origin: string | undefined, baseUrl: string): "local-ui" | "external-website" | "blocked" => {
+const readOriginCategory = (
+  origin: string | undefined,
+  baseUrl: string,
+  headers: IncomingHttpHeaders,
+): "local-ui" | "local-extension" | "external-website" | "blocked" => {
+  const extensionIdentity = readHeader(headers, GRASSEYE_TOOL_EXTENSION_ID_HEADER);
+  const extensionIdentityMatches = extensionIdentity === GRASSEYE_UNPACKED_EXTENSION_ID;
+  const extensionPreflight = splitCsv(readHeader(headers, "access-control-request-headers"))
+    .some((header) => header.toLowerCase() === GRASSEYE_TOOL_EXTENSION_ID_HEADER);
   if (!origin) {
-    return "local-ui";
+    return extensionIdentityMatches ? "local-extension" : "local-ui";
+  }
+  if (origin === GRASSEYE_BROWSER_EXTENSION_ORIGIN) {
+    return extensionIdentityMatches || extensionPreflight ? "local-extension" : "blocked";
   }
   if (origin === "null" || origin.startsWith("file://") || origin.startsWith("chrome-extension://")) {
     return "blocked";
@@ -211,6 +227,14 @@ const decideLocalWorkbenchApiBoundary = (input: {
   ? { kind: "allowed", corsHeaders: input.corsHeaders, routeRule: input.routeRule, originCategory: input.originCategory }
   : block(403, "route_not_local_allowed", "route_not_local_allowed", input.corsHeaders);
 
+const decideLocalExtensionWorkbenchApiBoundary = (input: {
+  corsHeaders: Record<string, string>;
+  originCategory: "local-extension";
+  routeRule: WorkbenchApiRouteRule;
+}): WorkbenchApiBoundaryDecision => input.routeRule.localExtensionAllowed === true
+  ? { kind: "allowed", corsHeaders: input.corsHeaders, routeRule: input.routeRule, originCategory: input.originCategory }
+  : block(403, "route_not_extension_allowed", "route_not_extension_allowed", input.corsHeaders);
+
 type ExternalWorkbenchApiBoundaryInput = {
   bodyPreview?: unknown;
   corsHeaders: Record<string, string>;
@@ -293,8 +317,13 @@ export function handleWorkbenchApiBoundary(input: {
   if (!input.path.startsWith("/api/")) {
     return { kind: "not_api_request" };
   }
-  const originCategory = readOriginCategory(input.origin, input.baseUrl);
-  const corsHeaders = originCategory === "blocked" ? buildCorsHeaders(undefined) : buildCorsHeaders(input.origin ?? input.baseUrl);
+  const originCategory = readOriginCategory(input.origin, input.baseUrl, input.headers);
+  const responseOrigin = originCategory === "local-extension"
+    ? GRASSEYE_BROWSER_EXTENSION_ORIGIN
+    : input.origin ?? input.baseUrl;
+  const corsHeaders = originCategory === "blocked"
+    ? buildCorsHeaders(undefined)
+    : buildCorsHeaders(responseOrigin, originCategory === "local-extension" ? "GET,OPTIONS" : undefined);
   if (originCategory === "blocked") {
     return block(403, "origin_not_allowed", "origin_not_allowed", corsHeaders);
   }
@@ -308,6 +337,9 @@ export function handleWorkbenchApiBoundary(input: {
   }
   if (originCategory === "local-ui") {
     return decideLocalWorkbenchApiBoundary({ corsHeaders, originCategory, routeRule });
+  }
+  if (originCategory === "local-extension") {
+    return decideLocalExtensionWorkbenchApiBoundary({ corsHeaders, originCategory, routeRule });
   }
   return decideExternalWorkbenchApiBoundary({
     bodyPreview: input.bodyPreview,

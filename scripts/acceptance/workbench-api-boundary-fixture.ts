@@ -45,6 +45,13 @@ const createFakeWorkbench = (): FakeWorkbench => {
     readBrowserAuthorityPairingState() {
       return { authority: "absent", pairingSecret: null };
     },
+    readBrowserExtensionBootstrapState() {
+      return {
+        authority: "absent",
+        pairingSecret: "a".repeat(64),
+        releaseBuildId: "build-00000000-0000-4000-8000-000000000000",
+      };
+    },
     readXuanxueAiProductionQuarantine() {
       return null;
     },

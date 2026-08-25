@@ -11,6 +11,7 @@ import { startLocalService, stopLocalService } from "./lib/service-process.mjs";
 import { waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
 import { buildStartupSourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { runBrowserRuntimePreflight } from "./lib/browser-runtime-preflight.mjs";
+import { ensureCurrentBrowserRuntimeArtifact } from "./lib/browser-runtime-artifact.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
@@ -123,6 +124,21 @@ async function verifyBrowserRuntime() {
   );
 }
 
+async function prepareBrowserRuntimeArtifact(root) {
+  const startedAt = Date.now();
+  logEvent("STARTUP", "bootstrap", "browser_artifact_sync", "started", "checking the fixed Browser extension artifact against current governed sources");
+  const result = await ensureCurrentBrowserRuntimeArtifact({ rootDir: root });
+  if (result.rebuilt) {
+    logPass("STARTUP", "bootstrap", "browser_artifact_sync", "passed", "rebuilt the stale fixed extension artifact; the installed unpacked extension will reload after the Workbench publishes the new build identity", {
+      durationMs: Date.now() - startedAt,
+    });
+    return;
+  }
+  logPass("STARTUP", "bootstrap", "browser_artifact_sync", "passed", "the fixed extension artifact already matches current governed sources", {
+    durationMs: Date.now() - startedAt,
+  });
+}
+
 async function startService(root) {
   const serviceStart = Date.now();
   logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
@@ -221,6 +237,7 @@ async function performLaunch(flags, root, onServiceStarted) {
   await ensureDependencies(root);
   await runUpdatePreflight(root, flags);
   await clearWorkbenchPort();
+  await prepareBrowserRuntimeArtifact(root);
   await verifyBrowserRuntime();
   const serviceHandle = await startService(root);
   onServiceStarted(serviceHandle);

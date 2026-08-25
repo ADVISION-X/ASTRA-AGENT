@@ -3,7 +3,7 @@
   "capabilityDomain": "workbench-api-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-WORKBENCH-API-BOUNDARY-001-V4"
+    "LAW-WORKBENCH-API-BOUNDARY-001-V5"
   ],
   "ownedPaths": [
     "scripts/acceptance/workbench-api-boundary-fixture.ts",
@@ -11,6 +11,9 @@
     "scripts/audit/domains/workbench-api-boundary/**"
   ],
   "observedPaths": [
-    "src/app/workbench-api-boundary.ts"
+    "docs/blueprints/workbench-api-boundary/EXTENSION-PAIRING-BOOTSTRAP-V1-BLUEPRINT.md",
+    "src/app/create-workbench-server.ts",
+    "src/app/workbench-api-boundary.ts",
+    "src/app/workbench-browser-websocket-upgrade.ts"
   ]
 }

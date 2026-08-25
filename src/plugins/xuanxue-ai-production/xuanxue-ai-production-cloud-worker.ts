@@ -8,7 +8,6 @@ import {
 } from "./xuanxue-ai-production-cloud-client.js";
 import { failXuanxueAiProductionJob } from "./xuanxue-ai-production-cloud-terminal.js";
 import {
-  XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudClaimedJob,
   type XuanxueAiProductionCloudCredential,
   type XuanxueAiProductionCloudWorkerHandle,
@@ -105,7 +104,7 @@ const currentHealth = (state: WorkerState): XuanxueAiProductionWorkerHealth => (
   browserAuthorityState: state.lastRuntimeState.browserAuthorityState,
   browserTargetState: state.lastRuntimeState.browserTargetState,
   browserLaneState: state.lastRuntimeState.browserLaneState,
-  contractManifestHash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
+  contractManifestHash: state.credential.control_manifest_hash,
   activeCount: state.active.size, lastSuccessfulHeartbeatAt: state.lastSuccessfulHeartbeatAt,
   lastErrorCode: state.lastErrorCode, lastErrorReason: state.lastErrorReason,
   checkedAt: new Date().toISOString(),
@@ -221,7 +220,7 @@ const assertCloudGrant = (
     || grant.worker_session_id !== state.session.workerSessionId
     || grant.worker_session_epoch !== state.session.workerSessionEpoch
     || grant.execution_fence.lease_version !== job.lease_version
-    || grant.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
+    || grant.control_contract_manifest_hash !== state.credential.control_manifest_hash) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_GRANT_REJECTED");
   }
 };
@@ -392,7 +391,8 @@ const assertCredentialBinding = (
   credential: XuanxueAiProductionCloudCredential,
 ): `sha256:${string}` => {
   if (credential.protocol_version !== "xuanxue-ai-production-v6"
-    || credential.control_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
+    || !/^sha256:[a-f0-9]{64}$/u.test(credential.control_manifest_hash)
+    || !/^sha256:[a-f0-9]{64}$/u.test(credential.product_bundle_hash)) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_DEVICE_CREDENTIAL_INVALID");
   }
   const configuredBase = process.env.XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL?.trim().replace(/\/+$/u, "");

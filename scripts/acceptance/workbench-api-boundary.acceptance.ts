@@ -2,10 +2,13 @@ import { strict as assert } from "node:assert";
 import { createHmac } from "node:crypto";
 
 import {
+  GRASSEYE_BROWSER_EXTENSION_ORIGIN,
+  GRASSEYE_TOOL_EXTENSION_ID_HEADER,
   handleWorkbenchApiBoundary,
   WORKBENCH_API_ROUTE_RULES,
   type WorkbenchApiRouteRule,
 } from "../../src/app/workbench-api-boundary.js";
+import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import {
@@ -17,13 +20,60 @@ import {
 
 const assertLocalShellRoutes = async (): Promise<void> => {
   await withServer(async ({ rootUrl }) => {
-    for (const route of ["/api/health", "/api/mode", "/api/browser-authority/pairing"]) {
+    for (const route of ["/api/health", "/api/mode"]) {
       const response = await fetch(`${rootUrl}${route}`, {
         headers: { Origin: localBaseUrl },
       });
       assert.equal(response.status, 200, `${route} must remain local-only and available`);
       assert.equal(response.headers.get("access-control-allow-origin"), localBaseUrl);
     }
+  });
+};
+
+const assertFixedExtensionPairingBoundary = async (): Promise<void> => {
+  await withServer(async ({ rootUrl }) => {
+    const response = await fetch(`${rootUrl}/api/browser-authority/pairing`, {
+      headers: { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_UNPACKED_EXTENSION_ID },
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 200);
+    assert.equal(body.authority, "absent");
+    assert.match(String(body.pairingSecret), /^[a-f0-9]{64}$/u);
+    assert.match(String(body.releaseBuildId), /^build-[a-f0-9-]{36}$/u);
+    assert.equal(response.headers.get("access-control-allow-origin"), GRASSEYE_BROWSER_EXTENSION_ORIGIN);
+    assert.equal(response.headers.get("cache-control"), "no-store, max-age=0");
+    assert.equal(response.headers.get("pragma"), "no-cache");
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  });
+
+  for (const origin of [localBaseUrl, "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "https://example.com", "null", "file://"]) {
+    await withServer(async ({ rootUrl }) => {
+      const response = await fetch(`${rootUrl}/api/browser-authority/pairing`, {
+        headers: { Origin: origin, [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_UNPACKED_EXTENSION_ID },
+      });
+      assert.equal(response.status, 403, `pairing route must reject ${origin}`);
+      assert.notEqual(response.headers.get("access-control-allow-origin"), "*");
+    });
+  }
+  for (const headers of [
+    {},
+    { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    { Origin: GRASSEYE_BROWSER_EXTENSION_ORIGIN },
+  ]) {
+    await withServer(async ({ rootUrl }) => {
+      const response = await fetch(`${rootUrl}/api/browser-authority/pairing`, { headers });
+      assert.equal(response.status, 403);
+    });
+  }
+  await withServer(async ({ rootUrl }) => {
+    const response = await fetch(`${rootUrl}/api/health`, {
+      headers: {
+        Origin: GRASSEYE_BROWSER_EXTENSION_ORIGIN,
+        [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_UNPACKED_EXTENSION_ID,
+      },
+    });
+    assert.equal(response.status, 403, "the fixed extension may not use any other Workbench API");
   });
 };
 
@@ -139,12 +189,13 @@ const assertPerSiteHmacBoundary = (): void => {
 };
 
 await assertLocalShellRoutes();
+await assertFixedExtensionPairingBoundary();
 await assertXuanxueLocalIntervention();
 await assertXuanxueExternalIngressBlocked();
 await assertRetiredRoutesAbsent();
 assertPerSiteHmacBoundary();
 emitQualityProofObservation({
-  lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4",
+  lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V5",
   evidenceMode: "exam.golden",
   locator: "acceptance:workbench-api-boundary:per-site-hmac",
   observedValue: "known external route accepts only its source-bound HMAC and rejects missing foreign or invalid signatures",

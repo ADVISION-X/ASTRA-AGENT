@@ -6,6 +6,8 @@ const CloudJsonEnvelopeSchema = z.object({
   error: z.object({
     code: z.string().min(1).optional(),
     message: z.string().min(1).optional(),
+    status: z.number().int().optional(),
+    request_id: z.string().min(1).optional(),
   }).strict().optional(),
 }).strict();
 

@@ -131,9 +131,11 @@ const handleWorkbenchMetaRequest = async (input: {
     return true;
   }
   if (input.request.method === "GET" && input.url.pathname === "/api/browser-authority/pairing") {
-    writeJson(input.response, 200, input.workbench.readBrowserAuthorityPairingState(), {
+    writeJson(input.response, 200, input.workbench.readBrowserExtensionBootstrapState(), {
       "cache-control": "no-store, max-age=0",
+      "pragma": "no-cache",
       "referrer-policy": "no-referrer",
+      "x-content-type-options": "nosniff",
     });
     return true;
   }

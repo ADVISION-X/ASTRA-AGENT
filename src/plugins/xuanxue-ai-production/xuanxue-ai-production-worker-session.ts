@@ -7,7 +7,6 @@ import {
   type WorkerSessionCredentialV6,
 } from "./xuanxue-ai-production-runtime-protocol.js";
 import {
-  XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
 import { parseXuanxueAiProductionJsonEnvelope } from "./xuanxue-ai-production-json-envelope.js";
@@ -21,8 +20,17 @@ const OpenSessionResponseSchema = z.object({
     origin: z.string().url(),
     device_id: z.string().min(1),
     device_epoch: z.number().int().positive(),
+    worker_instance_id: z.string().min(1),
     agent_build_hash: hashSchema,
     control_contract_manifest_hash: hashSchema,
+    status: z.enum(["opening", "online", "claim_blocked", "claim_eligible", "draining", "superseded", "closed"]),
+    token_generation: z.number().int().positive(),
+    current_token_expires_at: z.string().datetime(),
+    attestation_seq: z.number().int().nonnegative(),
+    latest_attestation_receipt_hash: hashSchema.nullable(),
+    latest_attestation_expires_at: z.string().datetime().nullable(),
+    normalized_capabilities: z.record(z.unknown()),
+    last_authenticated_activity_at: z.string().datetime(),
   }).strict(),
   session_credential: z.unknown(),
 }).strict();
@@ -92,7 +100,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
         device_epoch: this.device.device_epoch,
         worker_instance_id: this.workerInstanceId,
         agent_build_hash: this.agentBuildHash,
-        control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
+        control_manifest_hash: this.device.control_manifest_hash,
       },
     ));
     const sessionCredential = WorkerSessionCredentialV6Schema.parse(response.session_credential);
@@ -104,7 +112,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
       || session.device_id !== this.device.device_id
       || session.device_epoch !== this.device.device_epoch
       || session.agent_build_hash !== this.agentBuildHash
-      || session.control_contract_manifest_hash !== XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH) {
+      || session.control_contract_manifest_hash !== this.device.control_manifest_hash) {
       throw new Error("XUANXUE_AI_PRODUCTION_SESSION_BINDING_INVALID");
     }
     this.sessionCredential = sessionCredential;
@@ -131,9 +139,8 @@ export class XuanxueAiProductionWorkerSessionV6 {
           attestation_seq: nextSeq,
           worker_session_id: this.workerSessionId,
           worker_session_epoch: this.workerSessionEpoch,
-          agent_build_hash: this.agentBuildHash,
-          control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
-          product_contract_hashes: [],
+          control_manifest_hash: this.device.control_manifest_hash,
+          product_bundle_hash: this.device.product_bundle_hash,
           business_capacity_total: 10,
           business_in_flight: state.businessInFlight,
           browser_action_capacity_total: 1,
@@ -207,6 +214,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
       headers: {
         authorization: `Bearer ${this.device.credential}`,
         origin: this.device.origin,
+        "x-ai-agent-origin": this.device.origin,
         "content-type": "application/json",
       },
       body: JSON.stringify(body),
@@ -220,6 +228,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
       ...init,
       headers: {
         origin: this.device.origin,
+        "x-ai-agent-origin": this.device.origin,
         authorization: `Bearer ${credential.token}`,
         "content-type": "application/json",
         ...(init.headers ?? {}),

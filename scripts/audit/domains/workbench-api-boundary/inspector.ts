@@ -32,6 +32,8 @@ type Summary = {
 
 const domain = "workbench-api-boundary";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
+const serverPath = "src/app/create-workbench-server.ts";
+const websocketUpgradePath = "src/app/workbench-browser-websocket-upgrade.ts";
 
 const requiredForbiddenKeys = [
   "selector",
@@ -300,7 +302,7 @@ const inspectRequiredFiles = (
   findings: InspectorFinding[],
   lawId: string,
 ): SourceFile[] => {
-  const files = [boundaryPath];
+  const files = [boundaryPath, serverPath, websocketUpgradePath];
   for (const repoPath of files) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
@@ -311,22 +313,62 @@ const inspectRequiredFiles = (
       });
     }
   }
-  return [boundaryPath]
+  return files
     .map((repoPath) => source(project, repoPath))
     .filter((item): item is SourceFile => item !== null);
+};
+
+const inspectExtensionPairingBoundary = (
+  project: Project,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const boundary = source(project, boundaryPath);
+  const server = source(project, serverPath);
+  const upgrade = source(project, websocketUpgradePath);
+  if (!boundary || !server || !upgrade) return;
+  const combined = [boundary.getFullText(), server.getFullText(), upgrade.getFullText()].join("\n");
+  for (const required of [
+    "GRASSEYE_BROWSER_EXTENSION_ORIGIN",
+    "GRASSEYE_TOOL_EXTENSION_ID_HEADER",
+    "localExtensionAllowed",
+    "local-extension",
+    "route_not_extension_allowed",
+    "no-store, max-age=0",
+    "no-cache",
+    "no-referrer",
+    "nosniff",
+  ]) {
+    if (combined.includes(required)) continue;
+    addFinding(findings, {
+      checkId: "workbench-api-boundary/extension-pairing-bootstrap",
+      lawId,
+      filePath: boundaryPath,
+      message: `The fixed extension pairing boundary must retain ${required}.`,
+    });
+  }
+  if (!upgrade.getFullText().includes("origin !== GRASSEYE_BROWSER_EXTENSION_ORIGIN")
+    || !upgrade.getFullText().includes("!isLoopback(address)")) {
+    addFinding(findings, {
+      checkId: "workbench-api-boundary/extension-websocket-origin",
+      lawId,
+      filePath: websocketUpgradePath,
+      message: "Browser WebSocket upgrade must require both loopback transport and the exact fixed extension Origin.",
+    });
+  }
 };
 
 
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawIds = {
-    ingress: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
-    cors: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
-    auth: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
-    route: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
-    shape: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
-    callback: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
-    audit: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
+    ingress: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
+    cors: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
+    auth: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
+    route: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
+    shape: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
+    callback: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
+    audit: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V5"),
   };
   const findings: InspectorFinding[] = [];
   const summary = initialSummary();
@@ -339,6 +381,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary });
     inspectPerSiteHmac({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.auth, summary });
   }
+  inspectExtensionPairingBoundary(context.project, findings, lawIds.ingress);
   inspectSecondServers(context.project, findings, summary, lawIds.ingress);
   inspectCallbackEscapes(context.project, findings, summary, lawIds.callback);
 
@@ -352,7 +395,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = "LAW-WORKBENCH-API-BOUNDARY-001-V4";
+  const lawId = "LAW-WORKBENCH-API-BOUNDARY-001-V5";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   const passed = findings.length === 0;
   return validateStaticInspection(context, {

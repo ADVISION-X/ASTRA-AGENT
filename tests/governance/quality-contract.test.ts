@@ -149,7 +149,7 @@ test("Workbench static inspection changes verdict for global-key and incomplete 
       boundaryPath: "src/app/workbench-api-boundary.ts",
       file,
       findings,
-      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4",
+      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V5",
       summary: { ingressIdentityViolations: 0, perSiteHmacViolations: 0 },
     });
     return findings.length;
@@ -364,7 +364,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", mode: "dynamic.recovery",
     locator: `/tmp/recovery-receipts/${"a".repeat(64)}.json`, observedValue: "atomic recovery verified" }), true);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:local-browser-real-chrome",
-    domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", mode: "dynamic.browser",
+    domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-003-V7", mode: "dynamic.browser",
     locator: "/repo/.grasseye-local/browser/proof-events.ndjson#sequence=3", observedValue: "claim and command verified" }), true);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:xuanxue-ai-production:real-proof-verify",
     domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.provider",

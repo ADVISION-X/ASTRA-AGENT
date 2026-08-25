@@ -5,6 +5,9 @@ import { join, relative, resolve } from "node:path";
 const extensionDirectory = resolve(process.cwd(), ".grasseye-local", "browser-build", "extension");
 const releaseRecordPath = resolve(process.cwd(), ".grasseye-local", "browser-release", "release-record.json");
 const manifestPath = resolve(extensionDirectory, "manifest.json");
+const buildManifestPath = resolve(extensionDirectory, "extension-build-manifest.json");
+const sourceManifestPath = resolve(process.cwd(), "src/lib/browser/chrome-extension/manifest.json");
+const sourcePairingPagePath = resolve(process.cwd(), "src/lib/browser/chrome-extension/pairing.html");
 const protocolPath = resolve(process.cwd(), "src/lib/browser/protocol/browser-protocol.schema.json");
 const sitePolicyPath = resolve(process.cwd(), "src/lib/browser/exact-target/browser-site-policy-registry.ts");
 const extensionId = "emkmbecadncngofidjgocmifhbonifgm";
@@ -15,7 +18,7 @@ const requiredIdentityFields = Object.freeze([
   "protocolHash",
   "sitePolicyHash",
 ]);
-const requiredPermissions = Object.freeze(["activeTab", "debugger"]);
+const requiredPermissions = Object.freeze(["activeTab", "alarms", "debugger"]);
 const requiredHostPermissions = Object.freeze(["http://127.0.0.1/*"]);
 
 const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -56,6 +59,20 @@ const isExactManifest = (manifest, record, manifestSource) =>
   && requiredHostPermissions.every((host) => manifest.host_permissions.includes(host))
   && sha256(manifestSource) === record.manifestHash;
 
+const hasCurrentBuildInputs = async (receipt) => {
+  if (!isRecord(receipt)
+    || receipt.schemaVersion !== "grasseye.browser.extension-build.v1"
+    || !Array.isArray(receipt.inputs)
+    || receipt.inputs.length === 0) return false;
+  const root = resolve(process.cwd());
+  return (await Promise.all(receipt.inputs.map(async (entry) => {
+    if (!isRecord(entry) || typeof entry.path !== "string" || !hashPattern.test(entry.sha256)) return false;
+    const inputPath = resolve(root, entry.path);
+    if (inputPath !== root && !inputPath.startsWith(`${root}/`)) return false;
+    try { return sha256(await readFile(inputPath)) === entry.sha256; } catch { return false; }
+  }))).every(Boolean);
+};
+
 const repairRequired = (failureReason) => Object.freeze({
   status: "READY",
   authorityState: "BROWSER_AUTHORITY_ABSENT",
@@ -67,17 +84,25 @@ const repairRequired = (failureReason) => Object.freeze({
 export async function runBrowserRuntimePreflight() {
   try {
     await access(extensionDirectory);
-    const [recordSource, manifestSource, protocolSource, sitePolicySource] = await Promise.all([
+    const [recordSource, manifestSource, buildManifestSource, sourceManifest, pairingPage, sourcePairingPage, protocolSource, sitePolicySource] = await Promise.all([
       readFile(releaseRecordPath, "utf8"),
       readFile(manifestPath),
+      readFile(buildManifestPath, "utf8"),
+      readFile(sourceManifestPath),
+      readFile(resolve(extensionDirectory, "pairing.html")),
+      readFile(sourcePairingPagePath),
       readFile(protocolPath),
       readFile(sitePolicyPath),
     ]);
     const record = JSON.parse(recordSource);
     if (!isReleaseRecord(record)) return repairRequired("BROWSER_UNPACKED_RELEASE_IDENTITY_INVALID");
     const manifest = JSON.parse(manifestSource.toString("utf8"));
+    const buildManifest = JSON.parse(buildManifestSource);
     const extensionDirectoryHashV1 = await hashExtensionDirectoryV1(extensionDirectory);
     if (!isExactManifest(manifest, record, manifestSource)
+      || !(await hasCurrentBuildInputs(buildManifest))
+      || !manifestSource.equals(sourceManifest)
+      || !pairingPage.equals(sourcePairingPage)
       || extensionDirectoryHashV1 !== record.extensionDirectoryHashV1
       || sha256(protocolSource) !== record.protocolHash
       || sha256(sitePolicySource) !== record.sitePolicyHash) {

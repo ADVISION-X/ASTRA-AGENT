@@ -80,16 +80,16 @@ process.stdout.write(`${JSON.stringify({
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", evidenceMode: "dynamic.browser",
   locator: `${journalPath}#sequence=${revoked.sequence}`, receipt: nativeReceipt(revoked.entryHash),
   observedValue: `authenticated=${authenticated.sequence};revoked=${revoked.sequence}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenceMode: "dynamic.browser",
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-002-V5", evidenceMode: "dynamic.browser",
   locator: `${journalPath}#sequence=${authenticated.sequence}`, receipt: nativeReceipt(authenticated.entryHash),
   observedValue: `extension=${GRASSEYE_UNPACKED_EXTENSION_ID};authority=${authorityRefHash}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "dynamic.browser",
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-003-V7", evidenceMode: "dynamic.browser",
   locator: `${journalPath}#sequence=${completed.sequence}`, receipt: nativeReceipt(completed.entryHash),
   observedValue: `claim=${claimed.sequence};command=${completed.sequence}` });
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.storage",
   locator: `${journalPath}#sequence=${revoked.sequence}`, receipt: nativeReceipt(revoked.entryHash),
   observedValue: `durableChain=${authenticated.sequence},${claimed.sequence},${completed.sequence},${revoked.sequence}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "dynamic.browser",
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V5", evidenceMode: "dynamic.browser",
   locator: releaseRecordPath, receipt: nativeReceipt(releaseRecord.manifestHash),
   observedValue: `release=${releaseRecord.releaseBuildId};candidate=${candidateHash}` });
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V3", evidenceMode: "dynamic.browser",

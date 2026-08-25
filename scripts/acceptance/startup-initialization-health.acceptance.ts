@@ -9,6 +9,8 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
 import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-preflight.mjs";
+import { GRASSEYE_TOOL_EXTENSION_ID_HEADER } from "../../src/app/workbench-api-boundary.js";
+import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { clearPortListeners } from "../startup/lib/process-control.mjs";
 import { waitForWorkbenchHealth } from "../startup/lib/service-readiness.mjs";
 
@@ -195,8 +197,10 @@ const assertDiagnosticShellHealth = async (port: number): Promise<void> => {
   };
   assert.equal(health.status, "degraded");
   assert.equal(health.components?.find((component) => component.name === "runtimeInitialization")?.ok, false);
-  const pairingResponse = await fetch(`http://127.0.0.1:${port}/api/browser-authority/pairing`);
-  assert.equal(pairingResponse.status, 200, "operator pairing diagnostics must remain available");
+  const pairingResponse = await fetch(`http://127.0.0.1:${port}/api/browser-authority/pairing`, {
+    headers: { [GRASSEYE_TOOL_EXTENSION_ID_HEADER]: GRASSEYE_UNPACKED_EXTENSION_ID },
+  });
+  assert.equal(pairingResponse.status, 200, "the fixed extension pairing bootstrap must remain available while execution is blocked");
 };
 
 const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promise<void> => {
@@ -278,4 +282,4 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V2", evidenceMode: "exam.golden", locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "unpacked preflight and repository-owned listener cleanup verified" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V3", evidenceMode: "exam.golden", locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });

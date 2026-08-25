@@ -14,6 +14,7 @@ export type WorkbenchBrowserAuthority = Readonly<{
     & Partial<Pick<ReturnType<BrowserInfrastructureSupervisor["authorityBroker"]>, "currentOperatorTargetStatus">>;
   health(): BrowserHealthSnapshot;
   readOperatorPairingState(): Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }>;
+  readReleaseBuildId(): string;
   readProductionRuntimeState(): Readonly<{
     browserAuthorityState: "present" | "absent";
     browserTargetState: "claimed" | "absent";
@@ -58,6 +59,7 @@ export const createWorkbenchBrowserAuthority = async (
     broker: supervisor.authorityBroker(),
     health: () => supervisor.health(),
     readOperatorPairingState: () => supervisor.readOperatorPairingState(),
+    readReleaseBuildId: () => releaseIdentity.releaseBuildId,
     readProductionRuntimeState: () => ({
       browserAuthorityState: supervisor.authorityBroker().currentStatus().kind === "AVAILABLE" ? "present" : "absent",
       browserTargetState: supervisor.authorityBroker().currentOperatorTargetStatus(),

@@ -111,34 +111,6 @@ const refreshShell = async () => {
     writeActivity("shell refresh failed: " + error.message, "failed");
   }
 };
-const openBrowserPairing = async () => {
-  try {
-    const pairing = await readJson("/api/browser-authority/pairing", { cache: "no-store" });
-    if (pairing.authority === "present") {
-      openInspector({
-        kind: "browser authority",
-        title: "浏览器扩展已经完成认证",
-        payload: { "下一步": "切换到目标 HTTPS 标签页并在扩展中认领当前标签页。" },
-      });
-      return;
-    }
-    if (typeof pairing.pairingSecret !== "string" || !/^[a-f0-9]{64}$/.test(pairing.pairingSecret)) {
-      throw new Error("BROWSER_PAIRING_SECRET_UNAVAILABLE");
-    }
-    await navigator.clipboard.writeText(pairing.pairingSecret);
-    openInspector({
-      kind: "browser authority",
-      title: "一次性配对密钥已复制",
-      payload: {
-        "第 1 步": "打开 GrassEye Browser Authority 扩展。",
-        "第 2 步": "粘贴密钥并完成配对。",
-        "第 3 步": "切换到目标 HTTPS 标签页并认领。",
-      },
-    });
-  } catch (error) {
-    writeActivity("browser pairing preparation failed: " + error.message, "failed");
-  }
-};
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-skill-id]").forEach((item) => {
     item.addEventListener("click", () => showSkill(item.dataset.skillId));
@@ -146,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed"));
   qs("[data-inspector-toggle]")?.addEventListener("click", () => document.body.classList.toggle("inspector-collapsed"));
   qs("[data-refresh-shell]")?.addEventListener("click", refreshShell);
-  qs("[data-browser-pairing]")?.addEventListener("click", openBrowserPairing);
   showSkill("xuanxue-ai-production");
   refreshShell();
 });

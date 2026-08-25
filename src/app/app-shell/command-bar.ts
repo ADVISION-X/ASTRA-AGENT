@@ -13,7 +13,6 @@ export const renderCommandBar = (): string => `
     <span class="status-badge status-watch">mode <b data-mode-status>-</b></span>
   </div>
   <div class="command-actions" data-locale-toggle-host>
-    <button class="btn secondary compact-button" type="button" data-browser-pairing>Browser pairing</button>
     ${renderLocaleToggle()}
     <button class="icon-button" type="button" data-sidebar-toggle aria-label="Toggle sidebar" title="Toggle sidebar">⌥</button>
     <button class="icon-button" type="button" data-inspector-toggle aria-label="Toggle inspector" title="Toggle inspector">⌘</button>

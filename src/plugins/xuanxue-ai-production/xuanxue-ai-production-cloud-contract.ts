@@ -30,7 +30,7 @@ export const XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION =
  * individual localization order still carries its own product contract hash.
  */
 export const XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH =
-  "sha256:84c4d00a33f712454278ec47896a96eadf61083c3e8df4e2547a7bc473287dd9" as const;
+  "sha256:3edf94b5eb622d2de8a2909e6b6f5fd65605686d68705cf448bc1c560c00c6ef" as const;
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
@@ -441,6 +441,7 @@ export interface XuanxueAiProductionCloudCredential {
   readonly device_epoch: number;
   readonly credential: string;
   readonly control_manifest_hash: `sha256:${string}`;
+  readonly product_bundle_hash: `sha256:${string}`;
   readonly enrolled_at: string;
 }
 

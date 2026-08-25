@@ -6,16 +6,13 @@
     <title>GrassEye 浏览器授权</title>
     <style>
       body { box-sizing: border-box; font: 13px system-ui, sans-serif; margin: 0; min-width: 300px; padding: 16px; }
-      label, input, button { display: block; width: 100%; }
-      input { box-sizing: border-box; font-family: ui-monospace, monospace; margin: 8px 0; padding: 8px; }
+      button { display: block; width: 100%; }
       button { margin-top: 8px; padding: 8px; }
       #status { min-height: 18px; margin-top: 10px; }
     </style>
   </head>
   <body>
-    <label for="pairing-secret">一次性配对密钥</label>
-    <input id="pairing-secret" autocomplete="off" inputmode="text" maxlength="64" pattern="[a-f0-9]{64}" spellcheck="false" type="password">
-    <button id="pair">配对固定扩展</button>
+    <button id="reconnect">自动连接 AGENT</button>
     <button id="claim" disabled>认领当前 HTTPS 标签页</button>
     <div id="status" role="status" aria-live="polite"></div>
     <script src="pairing-popup.js" type="module"></script>

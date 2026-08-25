@@ -44,6 +44,10 @@ const buildWorkbenchHandle = (
     getDataDir: () => dataDir,
     acceptBrowserAuthoritySocket: (input) => assembly.browserAuthority.acceptBrowserAuthoritySocket(input),
     readBrowserAuthorityPairingState: () => assembly.browserAuthority.readOperatorPairingState(),
+    readBrowserExtensionBootstrapState: () => ({
+      ...assembly.browserAuthority.readOperatorPairingState(),
+      releaseBuildId: assembly.browserAuthority.readReleaseBuildId(),
+    }),
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
     ...buildXuanxueAiProductionHandle(xuanxueAiProduction),
@@ -165,6 +169,14 @@ export class GrassEyeWorkbench {
       ["readBrowserAuthorityPairingState", () => () => this.assembly?.browserAuthority.readOperatorPairingState() ?? {
         authority: "absent" as const,
         pairingSecret: null,
+      }],
+      ["readBrowserExtensionBootstrapState", () => () => this.assembly ? {
+        ...this.assembly.browserAuthority.readOperatorPairingState(),
+        releaseBuildId: this.assembly.browserAuthority.readReleaseBuildId(),
+      } : {
+        authority: "absent" as const,
+        pairingSecret: null,
+        releaseBuildId: null,
       }],
     ]).get(property);
     if (fixed) return fixed();

@@ -142,6 +142,7 @@ try {
     device_id: "device-1", device_epoch: 1,
     credential: `aidc_v6_${"x".repeat(32)}`,
     control_manifest_hash: hash,
+    product_bundle_hash: hash,
     enrolled_at: new Date().toISOString(),
   } as const;
   await writeXuanxueAiProductionCloudCredential(temporary, credential);

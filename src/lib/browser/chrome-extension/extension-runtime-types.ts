@@ -5,6 +5,7 @@ export type ExtensionChromeApi = Readonly<{
     id: string;
     getManifest(): Readonly<{ version: string }>;
     getPlatformInfo(): Promise<unknown>;
+    reload(): void;
     onMessage: Readonly<{
       addListener(listener: (
         message: unknown,
@@ -12,6 +13,7 @@ export type ExtensionChromeApi = Readonly<{
         sendResponse: (response: unknown) => void,
       ) => boolean | void): void;
     }>;
+    onStartup: Readonly<{ addListener(listener: () => void): void }>;
   }>;
   debugger: Readonly<{
     attach(target: ExtensionDebuggee, version: string): Promise<void>;
@@ -21,6 +23,17 @@ export type ExtensionChromeApi = Readonly<{
   }>;
   tabs: Readonly<{
     query(queryInfo: Readonly<{ active: boolean; currentWindow: boolean }>): Promise<readonly Readonly<{ id?: number; url?: string; title?: string }>[]>;
+    onUpdated: Readonly<{
+      addListener(listener: (
+        tabId: number,
+        changeInfo: Readonly<{ status?: string; url?: string }>,
+        tab: Readonly<{ id?: number; url?: string; title?: string }>,
+      ) => void): void;
+    }>;
+  }>;
+  alarms: Readonly<{
+    create(name: string, alarmInfo: Readonly<{ periodInMinutes: number }>): Promise<void>;
+    onAlarm: Readonly<{ addListener(listener: (alarm: Readonly<{ name: string }>) => void): void }>;
   }>;
 }>;
 
@@ -33,7 +46,8 @@ const isChromeApi = (value: unknown): value is ExtensionChromeApi => {
   if (!isRecord(value)) return false;
   return isRuntimeApi(value.runtime)
     && isDebuggerApi(value.debugger)
-    && isTabsApi(value.tabs);
+    && isTabsApi(value.tabs)
+    && isAlarmsApi(value.alarms);
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -46,7 +60,9 @@ const isRuntimeApi = (value: unknown): boolean =>
   && typeof value.id === "string"
   && typeof value.getManifest === "function"
   && typeof value.getPlatformInfo === "function"
-  && hasListener(value.onMessage);
+  && typeof value.reload === "function"
+  && hasListener(value.onMessage)
+  && hasListener(value.onStartup);
 
 const isDebuggerApi = (value: unknown): boolean =>
   isRecord(value)
@@ -56,4 +72,7 @@ const isDebuggerApi = (value: unknown): boolean =>
   && hasListener(value.onDetach);
 
 const isTabsApi = (value: unknown): boolean =>
-  isRecord(value) && typeof value.query === "function";
+  isRecord(value) && typeof value.query === "function" && hasListener(value.onUpdated);
+
+const isAlarmsApi = (value: unknown): boolean =>
+  isRecord(value) && typeof value.create === "function" && hasListener(value.onAlarm);

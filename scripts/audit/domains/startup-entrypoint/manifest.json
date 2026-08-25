@@ -4,14 +4,16 @@
   "status": "active",
   "lawIds": [
     "LAW-STARTUP-ENTRYPOINT-001-V4",
-    "LAW-STARTUP-ENTRYPOINT-002-V2"
+    "LAW-STARTUP-ENTRYPOINT-002-V3"
   ],
   "ownedPaths": [
+    "scripts/acceptance/startup-browser-artifact-sync.acceptance.ts",
     "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/audit/domains/startup-entrypoint/**",
     "scripts/startup/**"
   ],
   "observedPaths": [
+    "docs/blueprints/startup-entrypoint/STARTUP-BROWSER-ARTIFACT-SYNC-V1-BLUEPRINT.md",
     "package.json"
   ]
 }

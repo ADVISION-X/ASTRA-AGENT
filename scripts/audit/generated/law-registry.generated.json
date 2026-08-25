@@ -145,14 +145,15 @@
       "capabilityDomain": "local-browser-session",
       "lawIds": [
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
-        "LAW-LOCAL-BROWSER-SESSION-002-V4",
-        "LAW-LOCAL-BROWSER-SESSION-003-V6",
+        "LAW-LOCAL-BROWSER-SESSION-002-V5",
+        "LAW-LOCAL-BROWSER-SESSION-003-V7",
         "LAW-LOCAL-BROWSER-SESSION-004-V8",
-        "LAW-LOCAL-BROWSER-SESSION-005-V4",
+        "LAW-LOCAL-BROWSER-SESSION-005-V5",
         "LAW-LOCAL-BROWSER-SESSION-006-V3"
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md",
         "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md"
       ],
       "ownedPaths": [
@@ -162,8 +163,10 @@
         "scripts/acceptance/browser-extension-build.acceptance.ts",
         "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
         "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",
+        "scripts/acceptance/local-browser-auto-pairing.acceptance.ts",
         "scripts/acceptance/local-browser-journal-recovery.dynamic.ts",
         "scripts/acceptance/local-browser-property-model.acceptance.ts",
+        "scripts/acceptance/local-browser-real-chrome-auto-pairing.acceptance.ts",
         "scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
         "scripts/acceptance/local-browser-supervisor-restart.acceptance-support.ts",
         "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
@@ -196,13 +199,15 @@
       "capabilityDomain": "startup-entrypoint",
       "lawIds": [
         "LAW-STARTUP-ENTRYPOINT-001-V4",
-        "LAW-STARTUP-ENTRYPOINT-002-V2"
+        "LAW-STARTUP-ENTRYPOINT-002-V3"
       ],
       "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
       "observedPaths": [
+        "docs/blueprints/startup-entrypoint/STARTUP-BROWSER-ARTIFACT-SYNC-V1-BLUEPRINT.md",
         "package.json"
       ],
       "ownedPaths": [
+        "scripts/acceptance/startup-browser-artifact-sync.acceptance.ts",
         "scripts/acceptance/startup-initialization-health.acceptance.ts",
         "scripts/audit/domains/startup-entrypoint/**",
         "scripts/startup/**"
@@ -226,11 +231,14 @@
     {
       "capabilityDomain": "workbench-api-boundary",
       "lawIds": [
-        "LAW-WORKBENCH-API-BOUNDARY-001-V4"
+        "LAW-WORKBENCH-API-BOUNDARY-001-V5"
       ],
       "manifestPath": "scripts/audit/domains/workbench-api-boundary/manifest.json",
       "observedPaths": [
-        "src/app/workbench-api-boundary.ts"
+        "docs/blueprints/workbench-api-boundary/EXTENSION-PAIRING-BOOTSTRAP-V1-BLUEPRINT.md",
+        "src/app/create-workbench-server.ts",
+        "src/app/workbench-api-boundary.ts",
+        "src/app/workbench-browser-websocket-upgrade.ts"
       ],
       "ownedPaths": [
         "scripts/acceptance/workbench-api-boundary-fixture.ts",
@@ -1013,7 +1021,9 @@
         "src/lib/browser/**"
       ],
       "capabilityDomain": "local-browser-session",
-      "contractRefs": [],
+      "contractRefs": [
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md"
+      ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1029,22 +1039,25 @@
         "不得发生：agent reconnect",
         "不得发生：fake credentialless reconnect",
         "不得发生：pairing-secret persistence",
+        "不得发生：要求操作者复制、粘贴或持久保存一次性 pairing secret",
+        "不得发生：固定扩展身份、精确 loopback route 与请求来源边界之外领取 pairing secret",
+        "不得发生：Extension 构建身份与 AGENT 当前 releaseBuildId 不一致时继续配对而不先 reload",
         "不得发生：heartbeat authority minting",
         "不得发生：45-second authority expiry",
         "不得发生：idle or diagnostic-triggered disconnect",
         "不得发生：command failure visible only in chrome extensions",
         "不得发生：second keepalive transport"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 695,
+        "lineEnd": 698,
         "lineStart": 659,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Pairing and session authentication bind exact release, profile, Chrome and directional cryptographic session state before PRESENT.",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-002-V3",
+      "summary": "必须由固定 unpacked MV3 从受限 loopback pairing route 领取当前 256-bit 内存一次性密钥，构建身份不一致先自我 reload，再复用唯一加密 WebSocket 完成完整新认证；密钥不得要求操作者复制、不得持久化，PRESENT 仍绑定精确 release、profile、Chrome 与双向密码学 session。",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
       "tier": "P0"
     },
     {
@@ -1052,7 +1065,9 @@
         "src/lib/browser/**"
       ],
       "capabilityDomain": "local-browser-session",
-      "contractRefs": [],
+      "contractRefs": [
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md"
+      ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1064,6 +1079,8 @@
       "forbidden": [
         "不得发生：separate Workspace approval UI or API",
         "不得发生：per-job operator approval",
+        "不得发生：automatic target claim",
+        "不得发生：reusable bootstrap credential",
         "不得发生：8h or any wall-clock Workspace/authority expiry",
         "不得发生：automatic Workspace renewal",
         "不得发生：newer-job-before-oldest-unfinished recovery",
@@ -1075,16 +1092,16 @@
         "不得发生：physical resource caller control",
         "不得发生：target guessing"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 734,
-        "lineStart": 697,
+        "lineEnd": 739,
+        "lineStart": 700,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Manual pair plus target claim atomically establishes one connection-bound Session Workspace; dynamic Authority/Target/Document leases and a fixed registry are the only browser command authority.",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-003-V5",
+      "summary": "必须保持以下不变量：Fresh memory-only automatic pairing bootstrap plus manual target claim atomically establishes one connection-bound Session Workspace; automatic pairing never claims a tab or starts a job, and dynamic Authority/Target/Document leases plus one fixed registry remain the only browser command authority.",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
       "tier": "P0"
     },
     {
@@ -1127,8 +1144,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V8",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 780,
-        "lineStart": 736,
+        "lineEnd": 785,
+        "lineStart": 741,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1141,7 +1158,9 @@
         "src/lib/browser/**"
       ],
       "capabilityDomain": "local-browser-session",
-      "contractRefs": [],
+      "contractRefs": [
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-RELOAD-V1-BLUEPRINT.md"
+      ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1155,18 +1174,20 @@
         "不得发生：dual protocol",
         "不得发生：single-end rollback",
         "不得发生：old artifact fallback",
+        "不得发生：AGENT 启动继续使用与当前 governed extension sources 不一致的固定 artifact",
+        "不得发生：扩展 reload 前未比较 AGENT 当前 releaseBuildId，或用永久 token、storage、CWS、Native Messaging 代替 unpacked reload",
         "不得发生：arbitrary JSON asserted as real Chrome proof"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 812,
-        "lineStart": 782,
+        "lineEnd": 819,
+        "lineStart": 787,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Release/update/rollback uses one fixed unpacked identity and never reactivates CWS or a compatibility chain.",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-005-V3",
+      "summary": "必须保持以下不变量：Release/update/rollback uses one fixed unpacked identity; startup may rebuild only a missing or stale fixed artifact from current governed sources, and the already loaded extension reloads itself only when AGENT publishes a different exact releaseBuildId, without CWS, storage, Native Messaging or a compatibility chain.",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "tier": "P0"
     },
     {
@@ -1189,8 +1210,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 840,
-        "lineStart": 814,
+        "lineEnd": 847,
+        "lineStart": 821,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1223,8 +1244,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 875,
-        "lineStart": 844,
+        "lineEnd": 882,
+        "lineStart": 851,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1252,8 +1273,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 903,
-        "lineStart": 877,
+        "lineEnd": 910,
+        "lineStart": 884,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1281,8 +1302,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 931,
-        "lineStart": 905,
+        "lineEnd": 938,
+        "lineStart": 912,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1323,8 +1344,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 974,
-        "lineStart": 935,
+        "lineEnd": 981,
+        "lineStart": 942,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1338,7 +1359,9 @@
         "scripts/startup/**"
       ],
       "capabilityDomain": "startup-entrypoint",
-      "contractRefs": [],
+      "contractRefs": [
+        "docs/blueprints/startup-entrypoint/STARTUP-BROWSER-ARTIFACT-SYNC-V1-BLUEPRINT.md"
+      ],
       "dependsOnLawIds": [
         "LAW-STARTUP-ENTRYPOINT-001-V4"
       ],
@@ -1352,22 +1375,23 @@
       "excludes": [],
       "forbidden": [
         "不得发生：启动、停止、探测或取得网站进程主权。",
-        "不得发生：自动 enrollment、安装/Reload/配对 Extension、认领 Target、打开 GPT 页面、创建 synthetic job、认领任务或执行任务以证明启动成功。",
-        "不得发生：CI、audit、typecheck、acceptance、Browser build/verify/real-chrome 作为普通启动步骤。",
+        "不得发生：自动 enrollment、安装 Extension、由启动器配对 Extension、认领 Target、打开 GPT 页面、创建 synthetic job、认领任务或执行任务以证明启动成功。",
+        "不得发生：除按当前 governed sources 重建缺失或 stale 的唯一固定 unpacked artifact 之外，将 CI、audit、typecheck、acceptance、Browser verify/real-chrome 作为普通启动步骤。",
+        "不得发生：启动器直接调用 Extension reload；reload 只能由固定扩展在受限 pairing bootstrap 比较 AGENT 当前 releaseBuildId 后自行执行。",
         "不得发生：日常启动自动触发 --update、第二 .env loader、父级/网站环境注入、localhost/LNA/API key/回调第二业务入口、第二 Shell、第二 Cloud Worker 或临时 fallback。",
         "不得发生：建立 isolated-test、test-mode、阶段态、过程态或任何非 production 运行身份。",
         "不得发生：把 AGENT 安装到网站服务器、交给网站或 systemd 管理，或把当前同一台 Mac 误写成同一部署单元。"
       ],
-      "lawId": "LAW-STARTUP-ENTRYPOINT-002-V2",
+      "lawId": "LAW-STARTUP-ENTRYPOINT-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1011,
-        "lineStart": 976,
+        "lineEnd": 1019,
+        "lineStart": 983,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使 grasseye:start 仅加载本仓唯一 .env.local、预检 Browser artifact、建立本地 Mac 上的 4173 production Shell 并安全清理本仓 listener；网站与 PostgreSQL 当前同在 Mac、未来同在服务器，AGENT 始终留在本地 Mac，依赖失败保留 Shell 且阻断 execution/claim。",
-      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
+      "summary": "必须使 grasseye:start 仅加载本仓唯一 .env.local、从当前 governed sources 同步唯一固定 Browser artifact、建立本地 Mac 上的 4173 production Shell 并安全清理本仓 listener；扩展在 Shell 发布当前构建身份后自行更新并自动配对，但 Target claim 与任务执行仍由操作者和业务 Owner 控制；依赖失败保留 Shell 且阻断 execution/claim。",
+      "supersedesLawId": "LAW-STARTUP-ENTRYPOINT-002-V2",
       "tier": "P0"
     },
     {
@@ -1402,8 +1426,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1053,
-        "lineStart": 1015,
+        "lineEnd": 1061,
+        "lineStart": 1023,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1416,7 +1440,9 @@
         "src/app/workbench-api-boundary.ts"
       ],
       "capabilityDomain": "workbench-api-boundary",
-      "contractRefs": [],
+      "contractRefs": [
+        "docs/blueprints/workbench-api-boundary/EXTENSION-PAIRING-BOOTSTRAP-V1-BLUEPRINT.md"
+      ],
       "dependsOnLawIds": [],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1432,18 +1458,20 @@
         "不得发生：arbitrary callback",
         "不得发生：Browser control fields",
         "不得发生：inbound browser relay",
+        "不得发生：固定扩展之外的网页、其他扩展、null/file 来源或无身份本机请求读取 pairing bootstrap",
+        "不得发生：固定扩展通过 pairing route 之外的 Workbench API，或 pairing 响应被缓存、重定向、记录 secret",
         "不得发生：API gateway duplicate"
       ],
-      "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
+      "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1089,
-        "lineStart": 1057,
+        "lineEnd": 1099,
+        "lineStart": 1065,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Every remaining authorized external website ingress is a known business route authenticated by a per-site HMAC; xuanxue AI production is outbound Cloud Pull and has no external ingress policy.",
-      "supersedesLawId": "LAW-WORKBENCH-API-BOUNDARY-001-V3",
+      "summary": "必须保持以下不变量：Every authorized external website ingress remains a known per-site-HMAC business route; the fixed local extension is a separate least-privilege origin category allowed only to GET the no-store pairing bootstrap, while xuanxue AI production remains outbound Cloud Pull with no external ingress policy.",
+      "supersedesLawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "tier": "P0"
     },
     {
@@ -1510,8 +1538,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V11",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1159,
-        "lineStart": 1093,
+        "lineEnd": 1169,
+        "lineStart": 1103,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1543,8 +1571,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1193,
-        "lineStart": 1163,
+        "lineEnd": 1203,
+        "lineStart": 1173,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
