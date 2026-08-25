@@ -19,7 +19,7 @@ export type StaticLawRoute = Readonly<{
 }>;
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
-const routedClauses = (route: StaticLawRoute): string[] => [
+const availableClauses = (route: StaticLawRoute): string[] => [
   ...Array.from({ length: route.forbiddenCount }, (_, index) => `forbidden:${index}`),
   "summary",
 ].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
@@ -71,7 +71,8 @@ export const finalizeStaticInspection = async (
   const lawResults = context.lawRequirements.map((requirement) => {
     const route = routesByLaw.get(requirement.lawId) ?? fail("LAW_CHECK_ROUTE_MISSING", requirement.lawId);
     const requiredClauses = ordered(Object.values(requirement.clausesByMode).flat());
-    if (JSON.stringify(routedClauses(route)) !== JSON.stringify(requiredClauses)) {
+    const available = availableClauses(route);
+    if (!requiredClauses.includes("summary") || requiredClauses.some((clause) => !available.includes(clause))) {
       fail("LAW_CHECK_ROUTE_MISSING", `${requirement.lawId}:clause`);
     }
     consumeTargetSet(context, requirement);
