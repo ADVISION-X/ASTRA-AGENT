@@ -406,9 +406,7 @@ const inspectDomainEvaluation = async (
 export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, [{
+  return finalizeStaticInspection(context, [{
     lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", forbiddenCount: 16,
-    checkIds: ["xuanxue-ai-production/domain-policy"],
-  }]);
+  }], inspectDomainEvaluation);
 };

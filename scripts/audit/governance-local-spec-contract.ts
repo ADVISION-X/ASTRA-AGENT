@@ -24,10 +24,23 @@ const storageContract = (contract: Contract): boolean => exactKeys(contract, ["f
   && cleanString(contract.recordName) && nonEmptyStringMap(contract.fields);
 const configContract = (contract: Contract): boolean => exactKeys(contract, ["keys"])
   && nonEmptyStringMap(contract.keys);
-const migrationContract = (contract: Contract, owner: string): boolean => exactKeys(contract, [
-  "deleteAcceptance", "deleteDate", "endDate", "monitoringMetric", "newPath", "oldPath", "owner",
-  "rollbackCondition", "startDate",
-]) && Object.values(contract).every(cleanString) && contract.owner === owner;
+const isoDate = (value: unknown): boolean => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/u.test(value)
+  && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+
+const migrationContract = (contract: Contract): boolean => {
+  if (!exactKeys(contract, [
+    "compatibilityMechanisms", "currentAuthority", "maximumDurationDays", "monitoring", "removalAcceptance",
+    "removalDate", "rollbackCondition", "startDate", "targetAuthority",
+  ]) || !cleanString(contract.currentAuthority) || !cleanString(contract.targetAuthority)
+    || !isStringArray(contract.compatibilityMechanisms) || !sortedUnique(contract.compatibilityMechanisms as string[])
+    || !isStringArray(contract.monitoring) || !sortedUnique(contract.monitoring as string[])
+    || !isStringArray(contract.removalAcceptance) || !sortedUnique(contract.removalAcceptance as string[])
+    || !cleanString(contract.rollbackCondition) || !isoDate(contract.startDate) || !isoDate(contract.removalDate)
+    || !Number.isInteger(contract.maximumDurationDays) || Number(contract.maximumDurationDays) < 1) return false;
+  const start = Date.parse(`${String(contract.startDate)}T00:00:00Z`);
+  const removal = Date.parse(`${String(contract.removalDate)}T00:00:00Z`);
+  return removal >= start && removal <= start + Number(contract.maximumDurationDays) * 86_400_000;
+};
 
 export const validateLocalSpecContract = (raw: LocalSpec, file: string): void => {
   const contract = raw.contract as Contract;
@@ -39,7 +52,7 @@ export const validateLocalSpecContract = (raw: LocalSpec, file: string): void =>
     "state-machine": () => stringArrays(contract, ["states", "transitions"]),
     config: () => configContract(contract),
     security: () => stringArrays(contract, ["controls"]),
-    migration: () => migrationContract(contract, raw.owner),
+    migration: () => migrationContract(contract),
   };
   if (!validators[raw.specKind]?.()) fail("SOURCE_PARSE_FAILED", `${file}:${raw.specKind}`);
 };

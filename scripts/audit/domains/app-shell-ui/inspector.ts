@@ -26,10 +26,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, [
-    { lawId: "LAW-APP-SHELL-UI-001-V2", forbiddenCount: 10, checkIds: ["app-shell-ui/layout-boundary"] },
-    { lawId: "LAW-APP-SHELL-UI-002-V1", forbiddenCount: 5, checkIds: ["app-shell-ui/localization"] },
-    { lawId: "LAW-APP-SHELL-UI-003-V2", forbiddenCount: 3, checkIds: ["app-shell-ui/legacy-authority-absence"] },
-  ]);
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-APP-SHELL-UI-001-V2", forbiddenCount: 10 },
+    { lawId: "LAW-APP-SHELL-UI-002-V1", forbiddenCount: 5 },
+    { lawId: "LAW-APP-SHELL-UI-003-V2", forbiddenCount: 3 },
+  ], inspectDomainEvaluation);
 };

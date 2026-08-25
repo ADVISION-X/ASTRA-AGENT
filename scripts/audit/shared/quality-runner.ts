@@ -1,21 +1,20 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
-import { buildRegistry, candidateSnapshot, gitCommit, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
+import { buildRegistry, diffPaths, gitCommit, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
 import { canonicalBytes } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
-import { parseQualityProofObservations, type QualityProofBinding, type QualityProofObservation } from "./proof-observation.js";
-import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
+import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
+import { dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
 
-type TargetSet = { queryRef: string; count: number; sha256: string };
+type TargetSet = { queryRef: string; count: number };
 type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
 type ProofRoute = { law: Law; mode: string };
 type ProofResultInput = {
@@ -142,7 +141,6 @@ export const computeTargetPaths = (law: Law, registry: Registry): string[] => {
 const targetSet = (lawId: string, paths: readonly string[]): TargetSet => ({
   queryRef: `scope:${lawId}#appliesTo-minus-excludes`,
   count: paths.length,
-  sha256: sha(paths.map((path) => `${path}\n`).join("")),
 });
 
 const copyTargets = (paths: readonly string[], runDirectory: string, domain: string): string => {
@@ -230,6 +228,10 @@ const staticLawResult = (result: InspectorLawResult): LawExecutionResult => ({
 export const assertCandidateStable = (expected: string, actual: string, label: string): void => {
   if (actual !== expected) fail("CANDIDATE_DRIFT", label);
 };
+const assertCleanCandidate = (expectedCommit: string, label: string): void => {
+  assertCandidateStable(expectedCommit, gitCommit(), label);
+  if (diffPaths().length) fail("CANDIDATE_DRIFT", `${label}:dirty-worktree`);
+};
 const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   const results = new Map<string, ProofResult>();
   for (const { law, mode } of input.routes) {
@@ -253,43 +255,33 @@ const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   return results;
 };
 
-const proofBindingIndex = (
-  routes: readonly ProofRoute[], bindings: readonly QualityProofBinding[],
-): Readonly<{ expected: ReadonlySet<string>; byRoute: ReadonlyMap<string, QualityProofBinding> }> => {
+const proofRequestIndex = (
+  routes: readonly ProofRoute[], requests: readonly QualityProofRequest[],
+): Readonly<{ expected: ReadonlySet<string>; byRoute: ReadonlyMap<string, QualityProofRequest> }> => {
   const expected = new Set(routes.map(({ law, mode }) => `${law.lawId}\0${mode}`));
-  const byRoute = new Map(bindings.map((binding) => [`${binding.lawId}\0${binding.evidenceMode}`, binding]));
-  if (expected.size !== routes.length || byRoute.size !== bindings.length || bindings.length !== routes.length
-    || [...expected].some((key) => !byRoute.has(key))) fail("LAW_EVIDENCE_MISSING", "native proof route binding");
+  const byRoute = new Map(requests.map((request) => [`${request.lawId}\0${request.evidenceMode}`, request]));
+  if (expected.size !== routes.length || byRoute.size !== requests.length || requests.length !== routes.length
+    || [...expected].some((key) => !byRoute.has(key))) fail("LAW_EVIDENCE_MISSING", "native proof route request");
   return { expected, byRoute };
 };
 
-const assertObservationBinding = (
-  observation: QualityProofObservation, binding: QualityProofBinding, key: string,
+const assertObservationRequest = (
+  observation: QualityProofObservation, request: QualityProofRequest, key: string,
 ): void => {
-  if (observation.proofRunId !== binding.proofRunId || observation.candidate !== binding.candidate
-    || observation.proofKind !== binding.proofKind || observation.routeReceipt !== binding.routeReceipt) {
+  if (observation.proofRunId !== request.proofRunId || observation.candidate !== request.candidate
+    || observation.proofKind !== request.proofKind) {
     fail("LAW_EVIDENCE_MISSING", `unauthenticated:${key.replace("\0", ":")}`);
-  }
-};
-
-const assertDynamicNativeObject = (
-  observation: QualityProofObservation, binding: QualityProofBinding, key: string,
-): void => {
-  if (observation.proofKind !== "dynamic") return;
-  const locatorAllowed = /^(?:https?:\/\/|tcp:\/\/|process:|dynamic:(?:browser|browser-journal|xuanxue):)/u.test(observation.locator);
-  const runBound = observation.observedValue.includes(`run=${binding.proofRunId}`)
-    && observation.observedValue.includes(`candidate=${binding.candidate}`);
-  if (!locatorAllowed || !runBound || /^(?:pass|true)$/iu.test(observation.observedValue.trim())) {
-    fail("LAW_EVIDENCE_MISSING", `native-object:${key.replace("\0", ":")}`);
   }
 };
 
 export const bindNativeProofObservations = (
   stdout: string,
   routes: readonly ProofRoute[],
-  bindings: readonly QualityProofBinding[],
+  requests: readonly QualityProofRequest[],
+  script: string,
+  kind: "exam" | "dynamic",
 ): Map<string, QualityProofObservation> => {
-  const index = proofBindingIndex(routes, bindings);
+  const index = proofRequestIndex(routes, requests);
   const bound = new Map<string, QualityProofObservation>();
   let observations: QualityProofObservation[];
   try { observations = parseQualityProofObservations(stdout); }
@@ -298,9 +290,13 @@ export const bindNativeProofObservations = (
     const key = `${observation.lawId}\0${observation.evidenceMode}`;
     if (!index.expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
     if (bound.has(key)) fail("LAW_EVIDENCE_DUPLICATE", key.replace("\0", ":"));
-    const binding = index.byRoute.get(key)!;
-    assertObservationBinding(observation, binding, key);
-    assertDynamicNativeObject(observation, binding, key);
+    const request = index.byRoute.get(key)!;
+    assertObservationRequest(observation, request, key);
+    const route = routes.find(({ law, mode }) => `${law.lawId}\0${mode}` === key)!;
+    if (!observationMatchesRoute({
+      kind, script, domain: route.law.capabilityDomain, lawId: observation.lawId,
+      mode: observation.evidenceMode, locator: observation.locator, observedValue: observation.observedValue,
+    })) fail("LAW_EVIDENCE_MISSING", `native-object:${key.replace("\0", ":")}`);
     if ([...bound.values()].some((current) => current.locator === observation.locator)) {
       fail("LAW_EVIDENCE_DUPLICATE", `locator:${observation.locator}`);
     }
@@ -315,12 +311,10 @@ const commandReceipt = (
 ): Map<string, ProofResult> => {
   const startedAt = new Date().toISOString();
   const proofRunId = sha(`${candidate}\0${kind}\0${script}\0${startedAt}\0${process.pid}`);
-  const bindingSecret = randomBytes(32).toString("hex");
-  const bindings: QualityProofBinding[] = routes.map(({ law, mode }) => ({
+  const requests: QualityProofRequest[] = routes.map(({ law, mode }) => ({
     lawId: law.lawId, evidenceMode: mode, proofRunId, candidate, proofKind: kind,
-    routeReceipt: sha(`${bindingSecret}\0${proofRunId}\0${candidate}\0${kind}\0${script}\0${law.lawId}\0${mode}`),
   }));
-  const before = candidateSnapshot();
+  assertCleanCandidate(candidate, `${script}:before`);
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
   const execution = spawnSync("npm", ["run", script], {
     cwd: ROOT,
@@ -332,18 +326,16 @@ const commandReceipt = (
       GOVERNANCE_PROOF_KIND: kind,
       GOVERNANCE_PROOF_RUN_ID: proofRunId,
       GOVERNANCE_PROOF_CANDIDATE: candidate,
-      GOVERNANCE_PROOF_BINDINGS: JSON.stringify(bindings),
+      GOVERNANCE_PROOF_REQUESTS: JSON.stringify(requests),
     },
   });
-  const after = candidateSnapshot();
-  assertCandidateStable(before, after, script);
-  assertCandidateStable(candidate, after, script);
+  assertCleanCandidate(candidate, `${script}:after`);
   const token = sha(`${kind}:${script}`).slice(0, 12);
   const stdoutPath = resolve(runDirectory, `${kind}-${token}.stdout.txt`);
   const stderrPath = resolve(runDirectory, `${kind}-${token}.stderr.txt`);
   writeFileSync(stdoutPath, execution.stdout ?? "", { mode: 0o600 });
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
-  const observations = bindNativeProofObservations(execution.stdout ?? "", routes, bindings);
+  const observations = bindNativeProofObservations(execution.stdout ?? "", routes, requests, script, kind);
   const executionPassed = execution.status === 0 && execution.signal === null;
   const path = resolve(runDirectory, `${kind}-${token}.receipt.json`);
   const receipt = {
@@ -395,7 +387,7 @@ const staticResults = (context: QualityRunContext): Map<string, LawExecutionResu
       if (resultsByLaw.has(result.lawId)) fail("LAW_EVIDENCE_DUPLICATE", result.lawId);
       resultsByLaw.set(result.lawId, result);
     }
-    assertCandidateStable(context.candidate, candidateSnapshot(), domain.capabilityDomain);
+    assertCleanCandidate(context.candidate, domain.capabilityDomain);
   }
   return resultsByLaw;
 };
@@ -424,8 +416,9 @@ export const runFullQuality = async (level: Level): Promise<{ reportPath: string
   if (level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "full quality requires READY or RELEASE");
   const registry = buildRegistry();
   const laws = registry.laws;
-  const candidate = candidateSnapshot();
   const commit = gitCommit();
+  if (diffPaths().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");
+  const candidate = commit;
   const runDirectory = outputDirectory();
   const boundParticipants = level === "RELEASE" ? bindReleaseParticipants() : [];
   const context: QualityRunContext = { candidate, laws, registry, runDirectory, reportLevel: level === "READY" ? "READY" : "RELEASE" };
@@ -433,7 +426,7 @@ export const runFullQuality = async (level: Level): Promise<{ reportPath: string
   runExamProofs(context, resultsByLaw);
   if (level === "RELEASE") runDynamicProofs(context, resultsByLaw);
   const results = laws.map((law) => resultsByLaw.get(law.lawId) ?? fail("LAW_DENOMINATOR_MISSING", law.lawId));
-  assertCandidateStable(candidate, candidateSnapshot(), level);
+  assertCleanCandidate(candidate, level);
   assertParticipantCommits(boundParticipants);
   const report = buildQualityReport({
     level, gitCommit: commit, laws, results,

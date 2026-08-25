@@ -23,7 +23,7 @@ export type InspectorLawRequirement = {
   lawId: string;
   clausesByMode: Record<string, string[]>;
   targetPaths: string[];
-  targetSet: { queryRef: string; count: number; sha256: string };
+  targetSet: { queryRef: string; count: number };
 };
 export type InspectorOutput = {
   capabilityDomain: string;
@@ -52,7 +52,7 @@ export type InspectorContext = {
   project: Project;
   selectedLawId: string;
   sealedRoot: string;
-  targetSet: Readonly<{ queryRef: string; count: number; sha256: string }>;
+  targetSet: Readonly<{ queryRef: string; count: number }>;
   targetPaths: readonly string[];
   lawRequirements: readonly InspectorLawRequirement[];
   planEntry: AuditPlanEntry;

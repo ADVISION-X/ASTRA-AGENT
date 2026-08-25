@@ -17,9 +17,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, [{
+  return finalizeStaticInspection(context, [{
     lawId: "LAW-CODE-PURITY-001-V2", forbiddenCount: 17,
-    checkIds: ["code-purity/phase-runner"],
-  }]);
+  }], inspectDomainEvaluation);
 };

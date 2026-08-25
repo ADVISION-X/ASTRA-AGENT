@@ -21,7 +21,7 @@ import type { InspectorContext, SessionInspectorOutput } from "./inspector-contr
 type DomainInspector = (context: InspectorContext) => Promise<SessionInspectorOutput>;
 type WorkerRequest = {
   capabilityDomain: string;
-  laws: Array<{ lawId: string; clausesByMode: Record<string, string[]>; targetPaths: string[]; targetSet: { queryRef: string; count: number; sha256: string } }>;
+  laws: Array<{ lawId: string; clausesByMode: Record<string, string[]>; targetPaths: string[]; targetSet: { queryRef: string; count: number } }>;
   ownerInspectorPath: string;
   sealedRoot: string;
   targetPaths: string[];
@@ -78,7 +78,6 @@ export const runInspectionWorker = async (): Promise<void> => {
     targetSet: {
       queryRef: `scope:${input.capabilityDomain}#domain-union`,
       count: input.targetPaths.length,
-      sha256: input.laws.map((law) => law.targetSet.sha256).join(""),
     },
     targetPaths: input.targetPaths,
     lawRequirements: input.laws,

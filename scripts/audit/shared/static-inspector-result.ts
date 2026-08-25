@@ -16,8 +16,8 @@ const ordered = (values: readonly string[]): string[] => [...new Set(values)].so
 export type StaticLawRoute = Readonly<{
   lawId: string;
   forbiddenCount: number;
-  checkIds: readonly string[];
 }>;
+export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
 const routedClauses = (route: StaticLawRoute): string[] => [
   ...Array.from({ length: route.forbiddenCount }, (_, index) => `forbidden:${index}`),
@@ -36,17 +36,28 @@ const consumeTargetSet = (context: InspectorContext, requirement: InspectorLawRe
   return [...requirement.targetPaths];
 };
 
-export const finalizeStaticInspection = (
+export const finalizeStaticInspection = async (
   context: InspectorContext,
-  evaluation: InspectorEvaluation,
   routes: readonly StaticLawRoute[],
-): InspectorOutput => {
+  execute: StaticInspectorExecutor,
+): Promise<InspectorOutput> => {
+  const executorName = execute.name;
+  if (!/^[A-Za-z][A-Za-z0-9]*$/u.test(executorName)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:unnamed-executor`);
+  }
   const requiredIds = context.lawRequirements.map((law) => law.lawId);
   if (JSON.stringify(ordered(routes.map((route) => route.lawId))) !== JSON.stringify(requiredIds)
-    || routes.some((route) => !Number.isInteger(route.forbiddenCount) || route.forbiddenCount < 1
-      || !route.checkIds.length || route.checkIds.some((checkId) => !/^[a-z0-9-]+\/[a-z0-9-]+$/u.test(checkId)))) {
+    || routes.some((route) => !Number.isInteger(route.forbiddenCount) || route.forbiddenCount < 1)) {
     fail("LAW_CHECK_ROUTE_MISSING", context.planEntry.capabilityDomain);
   }
+  let evaluation: InspectorEvaluation;
+  try { evaluation = await execute(context); }
+  catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}`); }
+  if (evaluation.capabilityDomain !== context.planEntry.capabilityDomain
+    || JSON.stringify(evaluation.reportedLawIds) !== JSON.stringify(requiredIds)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:result`);
+  }
+  const executionId = `${context.planEntry.capabilityDomain}/${executorName}`;
   const routesByLaw = new Map(routes.map((route) => [route.lawId, route]));
   const declaredInspected = new Set(evaluation.inspectedFiles);
   if (declaredInspected.size !== evaluation.inspectedFiles.length
@@ -69,8 +80,8 @@ export const finalizeStaticInspection = (
         evidenceMode: mode,
         passed: findings.length === 0,
         refs: ordered([
-          ...clauses.flatMap((clause) => route.checkIds.map((checkId) =>
-            `${evidenceKind[mode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`checkId=${checkId};clause=${clause};mode=${mode};targetCount=${requirement.targetSet.count};targetSetSha256=${requirement.targetSet.sha256}`)}`)),
+          ...clauses.map((clause) =>
+            `${evidenceKind[mode] ?? "file"}:${context.planEntry.ownerInspectorPath}#${encodeURIComponent(`executionId=${executionId};clause=${clause};mode=${mode};targetCount=${requirement.targetSet.count}`)}`),
           requirement.targetSet.queryRef,
         ]),
       })),

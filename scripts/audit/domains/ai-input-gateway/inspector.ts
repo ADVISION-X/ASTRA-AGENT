@@ -438,14 +438,13 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, [
-    { lawId: "LAW-AI-INPUT-GATEWAY-001-V1", forbiddenCount: 5, checkIds: ["ai-input-gateway/provider-boundary"] },
-    { lawId: "LAW-AI-INPUT-GATEWAY-002-V1", forbiddenCount: 7, checkIds: ["ai-input-gateway/exact-target"] },
-    { lawId: "LAW-AI-INPUT-GATEWAY-003-V1", forbiddenCount: 7, checkIds: ["ai-input-gateway/attachment-routing"] },
-    { lawId: "LAW-AI-INPUT-GATEWAY-004-V1", forbiddenCount: 4, checkIds: ["ai-input-gateway/attachment-proof"] },
-    { lawId: "LAW-AI-INPUT-GATEWAY-005-V4", forbiddenCount: 16, checkIds: ["ai-input-gateway/bounded-controller"] },
-    { lawId: "LAW-AI-INPUT-GATEWAY-006-V1", forbiddenCount: 1, checkIds: ["ai-input-gateway/bounded-judge"] },
-    { lawId: "LAW-AI-INPUT-GATEWAY-007-V1", forbiddenCount: 1, checkIds: ["ai-input-gateway/approved-input"] },
-  ]);
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-AI-INPUT-GATEWAY-001-V1", forbiddenCount: 5 },
+    { lawId: "LAW-AI-INPUT-GATEWAY-002-V1", forbiddenCount: 7 },
+    { lawId: "LAW-AI-INPUT-GATEWAY-003-V1", forbiddenCount: 7 },
+    { lawId: "LAW-AI-INPUT-GATEWAY-004-V1", forbiddenCount: 4 },
+    { lawId: "LAW-AI-INPUT-GATEWAY-005-V4", forbiddenCount: 16 },
+    { lawId: "LAW-AI-INPUT-GATEWAY-006-V1", forbiddenCount: 1 },
+    { lawId: "LAW-AI-INPUT-GATEWAY-007-V1", forbiddenCount: 1 },
+  ], inspectDomainEvaluation);
 };

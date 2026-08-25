@@ -107,13 +107,28 @@ export const requiredModes = (law: Law, level: "READY" | "RELEASE"): string[] =>
 export const deferredModes = (law: Law, level: "READY" | "RELEASE"): string[] =>
   level === "READY" ? ordered(law.evidenceModes.filter((mode) => mode.startsWith("dynamic."))) : [];
 
-const validEvidenceRef = (value: string): boolean => {
-  const match = /^([a-z]+):([^#]+)#([^@]+)(?:@((?:sha256:)?[a-f0-9]{64}))?$/u.exec(value);
-  if (!match || !evidenceKinds.has(match[1]!) || !match[2] || !match[3] || /[\0-\x1f\x7f]/u.test(value)) return false;
-  let selector: string;
-  try { selector = decodeURIComponent(match[3]); } catch { return false; }
-  const external = match[1] === "exam" || match[1] === "dynamic";
+const canonicalPercentEncoded = (value: string): string | null => {
+  try {
+    const decoded = decodeURIComponent(value);
+    return encodeURIComponent(decoded) === value ? decoded : null;
+  } catch { return null; }
+};
+
+export const validEvidenceRef = (value: string): boolean => {
+  const match = /^([a-z]+):([^#@]+)#([^#@]+)(?:@((?:sha256:)?[a-f0-9]{64}))?$/u.exec(value);
+  if (!match || !evidenceKinds.has(match[1]!) || /[\0-\x1f\x7f]/u.test(value)) return false;
+  const kind = match[1]!;
+  const locator = match[2]!;
+  const selector = canonicalPercentEncoded(match[3]!);
+  if (selector === null || /[#:@]/u.test(match[3]!) || locator.includes(":")) return false;
+  const external = kind === "exam" || kind === "dynamic";
   if (external !== Boolean(match[4])) return false;
+  if (kind === "scope") {
+    if (match[4] || !/^LAW-[A-Z0-9-]+$/u.test(locator) || selector !== "appliesTo-minus-excludes") return false;
+  } else if (!external) {
+    if (locator.startsWith("/") || locator.startsWith("\\") || locator.includes(":")
+      || locator.includes("%") || locator.split(/[\\/]/u).some((part) => part === "" || part === "." || part === "..")) return false;
+  }
   return !/(?:^|[;=])(?:fixed|pass|true)(?:$|[;=])/iu.test(selector);
 };
 

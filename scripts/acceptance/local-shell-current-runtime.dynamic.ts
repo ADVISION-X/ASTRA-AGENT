@@ -17,7 +17,7 @@ const proofRunId = process.env.GOVERNANCE_PROOF_RUN_ID?.trim() ?? "";
 const proofCandidate = process.env.GOVERNANCE_PROOF_CANDIDATE?.trim() ?? "";
 assert.equal(process.env.GOVERNANCE_PROOF_KIND, "dynamic");
 assert.match(proofRunId, /^[a-f0-9]{64}$/u);
-assert.match(proofCandidate, /^[a-f0-9]{64}$/u);
+assert.match(proofCandidate, /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u);
 
 const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const freePort = async (): Promise<number> => {

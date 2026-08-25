@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { buildRegistry, candidateSnapshot, checkProjection, diffPaths, REGISTRY, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { buildRegistry, checkProjection, diffPaths, gitCommit, REGISTRY, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
 
@@ -58,19 +58,25 @@ function assertHighImpactAuthorization(changes: Array<{ status: string; path: st
   if (highImpact && process.env.GRASSEYE_HIGH_IMPACT_AUTHORIZED !== '1') fail('USER_REQUEST_CONFLICTS_WITH_ACTIVE_LAW', 'high-impact change requires explicit authorization');
 }
 
+const changeDenominator = (): string => JSON.stringify(diffPaths().map((change) => [
+  change.status,
+  change.path,
+  change.status === 'D' ? null : readFileSync(resolve(ROOT, change.path)).toString('base64'),
+]));
+
 function run(command: string, args: string[]): void {
-  const before = candidateSnapshot();
+  const before = changeDenominator();
   const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
-  if (before !== candidateSnapshot()) fail('CANDIDATE_DRIFT', `${command} ${args.join(' ')}`);
+  if (before !== changeDenominator()) fail('CANDIDATE_DRIFT', `${command} ${args.join(' ')}`);
   if (result.status !== 0) fail('CHECK_EXECUTION_FAILED', `${command} ${args.join(' ')}`);
 }
 
 function projectionCheck(): void {
-  const before = candidateSnapshot();
+  const before = changeDenominator();
   checkProjection();
-  if (before !== candidateSnapshot()) fail('CANDIDATE_DRIFT', 'audit:projection:check');
+  if (before !== changeDenominator()) fail('CANDIDATE_DRIFT', 'audit:projection:check');
 }
 
 function projectChecks(): void {
@@ -92,7 +98,7 @@ function relevantChangeChecks(changes: Array<{ status: string; path: string }>, 
 async function quality(level: Level): Promise<void> {
   if (!['CHANGE', 'READY', 'RELEASE'].includes(level)) fail('ENTRY_CONTRACT_MISMATCH', `invalid level ${level}`);
   verifyEntry();
-  const initial = candidateSnapshot();
+  const initial = level === 'CHANGE' ? changeDenominator() : gitCommit();
   const changes = diffPaths();
   assertAuthorization(changes);
   assertDomainAdmission(changes);
@@ -109,7 +115,7 @@ async function quality(level: Level): Promise<void> {
       verifyChangeOwnership(changes, registry);
       relevantChangeChecks(changes, registry);
     }
-    if (initial !== candidateSnapshot()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');
+    if (initial !== changeDenominator()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');
     process.stdout.write('CHANGE_PASS\n');
     return;
   }
@@ -117,7 +123,7 @@ async function quality(level: Level): Promise<void> {
   checkProjection();
   verifyProductionOwnership();
   projectChecks();
-  if (initial !== candidateSnapshot()) fail('CANDIDATE_DRIFT', level);
+  if (initial !== gitCommit() || diffPaths().length) fail('CANDIDATE_DRIFT', level);
   const result = await runFullQuality(level);
   if (result.outcome !== 'PASS') fail('LAW_FAILED', result.reportPath);
 }

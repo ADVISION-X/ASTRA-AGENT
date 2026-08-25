@@ -6,32 +6,31 @@ export type QualityProofObservation = Readonly<{
   proofRunId: string;
   candidate: string;
   proofKind: "exam" | "dynamic";
-  routeReceipt: string;
 }>;
 
-export type QualityProofBinding = Readonly<{
+export type QualityProofRequest = Readonly<{
   lawId: string;
   evidenceMode: string;
   proofRunId: string;
   candidate: string;
   proofKind: "exam" | "dynamic";
-  routeReceipt: string;
 }>;
 
 export const proofObservationPrefix = "QUALITY_PROOF_OBSERVATION ";
 
 const routeKey = (lawId: string, evidenceMode: string): string => `${lawId}\0${evidenceMode}`;
 const validDigest = (value: string): boolean => /^[a-f0-9]{64}$/u.test(value);
+const validCandidate = (value: string): boolean => /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u.test(value);
 
-const bindingsFromEnvironment = (): QualityProofBinding[] => {
-  const source = process.env.GOVERNANCE_PROOF_BINDINGS?.trim();
+const requestsFromEnvironment = (): QualityProofRequest[] => {
+  const source = process.env.GOVERNANCE_PROOF_REQUESTS?.trim();
   if (!source) return [];
-  const parsed = JSON.parse(source) as QualityProofBinding[];
-  if (!Array.isArray(parsed) || parsed.some((binding) => !binding || typeof binding !== "object"
-    || !binding.lawId.startsWith("LAW-") || !/^(exam|dynamic)\./u.test(binding.evidenceMode)
-    || !validDigest(binding.proofRunId) || !validDigest(binding.candidate)
-    || !validDigest(binding.routeReceipt) || !["exam", "dynamic"].includes(binding.proofKind))) {
-    throw new Error("QUALITY_PROOF_BINDING_INVALID");
+  const parsed = JSON.parse(source) as QualityProofRequest[];
+  if (!Array.isArray(parsed) || parsed.some((request) => !request || typeof request !== "object"
+    || !request.lawId.startsWith("LAW-") || !/^(exam|dynamic)\./u.test(request.evidenceMode)
+    || !validDigest(request.proofRunId) || !validCandidate(request.candidate)
+    || !["exam", "dynamic"].includes(request.proofKind))) {
+    throw new Error("QUALITY_PROOF_REQUEST_INVALID");
   }
   return parsed;
 };
@@ -45,15 +44,10 @@ export const emitQualityProofObservation = (
     || !observation.observedValue.trim()) {
     throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
   }
-  const bindings = bindingsFromEnvironment();
-  if (!bindings.length) return;
-  const binding = bindings.find((candidate) => routeKey(candidate.lawId, candidate.evidenceMode)
+  const request = requestsFromEnvironment().find((candidate) => routeKey(candidate.lawId, candidate.evidenceMode)
     === routeKey(observation.lawId, observation.evidenceMode));
-  if (!binding) return;
-  const observedValue = binding.proofKind === "dynamic"
-    ? `run=${binding.proofRunId};candidate=${binding.candidate};${observation.observedValue}`
-    : observation.observedValue;
-  process.stdout.write(`${proofObservationPrefix}${JSON.stringify({ ...observation, observedValue, ...binding })}\n`);
+  if (!request) return;
+  process.stdout.write(`${proofObservationPrefix}${JSON.stringify({ ...observation, ...request })}\n`);
 };
 
 export const parseQualityProofObservations = (stdout: string): QualityProofObservation[] =>
@@ -63,8 +57,7 @@ export const parseQualityProofObservations = (stdout: string): QualityProofObser
       || typeof parsed.locator !== "string" || typeof parsed.observedValue !== "string"
       || typeof parsed.proofRunId !== "string" || typeof parsed.candidate !== "string"
       || (parsed.proofKind !== "exam" && parsed.proofKind !== "dynamic")
-      || typeof parsed.routeReceipt !== "string" || !validDigest(parsed.proofRunId)
-      || !validDigest(parsed.candidate) || !validDigest(parsed.routeReceipt)
+      || !validDigest(parsed.proofRunId) || !validCandidate(parsed.candidate)
       || !parsed.locator.trim() || !parsed.observedValue.trim()) {
       throw new Error("QUALITY_PROOF_OBSERVATION_INVALID");
     }

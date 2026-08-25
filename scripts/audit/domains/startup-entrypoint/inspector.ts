@@ -177,27 +177,23 @@ const inspectLocalStartupAuthorityBoundary = (
   }
 };
 
-const inspectDomainEvaluation = (context: InspectorContext): Readonly<{
-  findings: Finding[];
-  evidenceRefs: readonly string[];
-}> => {
+const inspectDomainEvaluation = (context: InspectorContext) => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V1");
   const findings: Finding[] = [];
   inspectStartupBoundary(context, findings, lawId);
   inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId);
-  return { findings, evidenceRefs: [packagePath, launchPath, preflightPath, processControlPath] };
+  return {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
+    findings,
+    inspectedFiles: [packagePath, launchPath, preflightPath, processControlPath],
+  };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, {
-    capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-    findings: evaluation.findings,
-    inspectedFiles: [...evaluation.evidenceRefs],
-  }, [
-    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", forbiddenCount: 12, checkIds: ["startup-entrypoint/owned-shell"] },
-    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", forbiddenCount: 5, checkIds: ["startup-entrypoint/local-boundary"] },
-  ]);
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", forbiddenCount: 12 },
+    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", forbiddenCount: 5 },
+  ], inspectDomainEvaluation);
 };

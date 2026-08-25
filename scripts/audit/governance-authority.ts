@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFile
 import { dirname, resolve } from 'node:path';
 import { canonicalBytes, cleanString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
-import { ROOT, bytes, fail, norm, repositoryPaths, sha, text, validGitObjectId, walk } from './governance-runtime.js';
+import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
 export { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
 export type Level = 'CHANGE' | 'READY' | 'RELEASE';
@@ -319,7 +319,8 @@ const validEndpoint = (value: unknown, domains: ReadonlySet<string>, remoteDomai
   return cleanString(endpoint.domain) && (endpoint.repo === 'local' ? domains.has(endpoint.domain) : remoteDomains.get(endpoint.repo)?.has(endpoint.domain) === true);
 };
 const validEdges = (
-  raw: Record<string, unknown>, active: ReadonlySet<string>, domains: ReadonlySet<string>, refs: ReadonlySet<string>,
+  raw: Record<string, unknown>, active: ReadonlySet<string>, blueprintLawIds: ReadonlySet<string>,
+  domains: ReadonlySet<string>, refs: ReadonlySet<string>,
   remoteDomains: ReadonlyMap<string, ReadonlySet<string>>,
 ): boolean => {
   if (!Array.isArray(raw.dependencyEdges) || !Array.isArray(raw.prohibitedDependencyEdges)) return false;
@@ -332,7 +333,8 @@ const validEdges = (
     || (edge.from.repo !== edge.to.repo && edge.contractRef === null))) return false;
   if (prohibited.some((edge) => !edge || !exactKeys(edge, ['from', 'lawId', 'to'])
     || !validEndpoint(edge.from, domains, remoteDomains) || !validEndpoint(edge.to, domains, remoteDomains)
-    || endpointSignature(edge.from) === endpointSignature(edge.to) || !active.has(edge.lawId))) return false;
+    || endpointSignature(edge.from) === endpointSignature(edge.to)
+    || !active.has(edge.lawId) || !blueprintLawIds.has(edge.lawId))) return false;
   const allowedKeys = allowed.map(edgeSignature); const prohibitedKeys = prohibited.map(edgeSignature);
   if (!sortedUnique(allowedKeys) || !sortedUnique(prohibitedKeys)) return false;
   const allowedDirections = new Set(allowed.map((edge) => `${endpointSignature(edge.from)}\0${endpointSignature(edge.to)}`));
@@ -354,7 +356,7 @@ export const blueprintValid = (
     && isStringArray(lawIds) && lawIds.length > 0 && sortedUnique(lawIds)
     && lawIds.every((lawId) => active.has(lawId) && lawDomains.get(lawId) === raw.owner)
     && isStringArray(refs) && sortedUnique(refs) && refs.every((path) => specPaths.has(path))
-    && validEdges(raw, active, domains, new Set(refs), remoteDomains);
+    && validEdges(raw, active, new Set(lawIds), domains, new Set(refs), remoteDomains);
 };
 
 function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
@@ -475,9 +477,4 @@ export function diffPaths(base = 'HEAD'): Array<{ status: string; path: string }
   const tracked = new Set(changes.map((change) => change.path));
   for (const path of execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { cwd: ROOT }).toString().split('\0').filter(Boolean).map(norm)) if (!tracked.has(path)) changes.push({ status: 'A', path });
   return changes.sort((left, right) => byteCompare(left.path, right.path) || byteCompare(left.status, right.status));
-}
-
-export function candidateSnapshot(): string {
-  const files = repositoryPaths();
-  return sha(canonicalBytes({ commit: gitCommit(), diffs: diffPaths(), files: files.map((path) => [path, sha(bytes(path))]) }));
 }

@@ -207,10 +207,9 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => ({
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const result = evaluate(context);
-  return finalizeStaticInspection(context, result, [
-    { lawId: LAW_SHELL, forbiddenCount: 9, checkIds: ["local-app-shell/single-shell"] },
-    { lawId: LAW_BOUNDARY, forbiddenCount: 4, checkIds: ["local-app-shell/runtime-boundary"] },
-    { lawId: LAW_STATUS, forbiddenCount: 3, checkIds: ["local-app-shell/status-separation"] },
-  ]);
+  return finalizeStaticInspection(context, [
+    { lawId: LAW_SHELL, forbiddenCount: 9 },
+    { lawId: LAW_BOUNDARY, forbiddenCount: 4 },
+    { lawId: LAW_STATUS, forbiddenCount: 3 },
+  ], evaluate);
 };

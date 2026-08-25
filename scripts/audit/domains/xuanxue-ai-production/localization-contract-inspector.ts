@@ -152,12 +152,11 @@ export async function inspectXuanxueLocalizationContract(project: Project = crea
 }
 
 const inspectDomainEvaluation = async (
-  project: Project,
   context: InspectorContext,
-): Promise<{ findings: ReturnType<typeof createFinding>[]; evidenceRefs: readonly string[] }> => {
+) => {
   const findings: ReturnType<typeof createFinding>[] = [];
   try {
-    await inspectXuanxueLocalizationContract(project);
+    await inspectXuanxueLocalizationContract(context.project);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     for (const binding of context.planEntry.bindings) {
@@ -171,23 +170,19 @@ const inspectDomainEvaluation = async (
     }
   }
   return {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
     findings,
-    evidenceRefs: [
+    inspectedFiles: [
       "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
       ...criticalRuntimeFiles,
-    ].filter((path) => context.targetPaths.includes(path)),
+    ].filter((path) => context.targetPaths.includes(path))
+      .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right))),
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context.project, context);
-  return finalizeStaticInspection(context, {
-    capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-    findings: evaluation.findings,
-    inspectedFiles: [...evaluation.evidenceRefs].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right))),
-  }, [{
+  return finalizeStaticInspection(context, [{
     lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", forbiddenCount: 1,
-    checkIds: ["xuanxue-localization/contract-projection"],
-  }]);
+  }], inspectDomainEvaluation);
 };

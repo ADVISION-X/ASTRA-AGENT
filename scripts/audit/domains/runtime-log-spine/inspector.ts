@@ -18,10 +18,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, [
-    { lawId: "LAW-RUNTIME-LOG-SPINE-001-V3", forbiddenCount: 6, checkIds: ["runtime-log-spine/redaction-and-contract"] },
-    { lawId: "LAW-RUNTIME-LOG-SPINE-002-V2", forbiddenCount: 1, checkIds: ["runtime-log-spine/stage-pair"] },
-    { lawId: "LAW-RUNTIME-LOG-SPINE-003-V2", forbiddenCount: 1, checkIds: ["runtime-log-spine/debug-bundle"] },
-  ]);
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-RUNTIME-LOG-SPINE-001-V3", forbiddenCount: 6 },
+    { lawId: "LAW-RUNTIME-LOG-SPINE-002-V2", forbiddenCount: 1 },
+    { lawId: "LAW-RUNTIME-LOG-SPINE-003-V2", forbiddenCount: 1 },
+  ], inspectDomainEvaluation);
 };

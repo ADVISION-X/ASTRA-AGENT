@@ -16,12 +16,13 @@ import {
   clausesForLaw,
   deferredModes,
   requiredModes,
+  validEvidenceRef,
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
-import type { QualityProofBinding } from "../../scripts/audit/shared/proof-observation.js";
+import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 
@@ -51,7 +52,7 @@ const resultFor = (law: Law): LawExecutionResult => {
       clauses: clausesForEvidenceMode(law, required, mode),
       evidenceMode: mode,
       passed: true,
-      refs: [mode.startsWith("exam.") ? `exam:fixture#script%3Dfixture%3Bexit%3D0@${"a".repeat(64)}` : "ast:src/fixture/index.ts#fixture"],
+      refs: [mode.startsWith("exam.") ? `exam:fixture#script%3Dfixture%3Bexit%3D0@${"a".repeat(64)}` : "ast:scripts/audit/shared/quality-contract.ts#fixture"],
     })),
     findings: [],
   };
@@ -196,106 +197,107 @@ test("external Exam and Dynamic evidence requires a native receipt or SHA-256 su
   );
 });
 
-const proofBindings = (
+test("evidence refs reject absolute repository objects and raw or noncanonical reserved characters", () => {
+  assert.equal(validEvidenceRef("ast:/tmp/not-in-repository.ts#selector"), false);
+  assert.equal(validEvidenceRef("ast:scripts/audit/shared/quality-contract.ts#raw:selector"), false);
+  assert.equal(validEvidenceRef("ast:scripts/audit/shared/quality-contract.ts#raw%3aselector"), false);
+  assert.equal(validEvidenceRef("ast:scripts/audit/shared/quality-contract.ts#raw%3Aselector"), true);
+});
+
+const proofRequests = (
   routes: Array<{ law: Law; mode: string }>, proofKind: "exam" | "dynamic" = "exam",
-): QualityProofBinding[] => routes.map(({ law, mode }, index) => ({
-  lawId: law.lawId, evidenceMode: mode, proofRunId: "a".repeat(64), candidate: "b".repeat(64),
-  proofKind, routeReceipt: String(index + 1).repeat(64),
+): QualityProofRequest[] => routes.map(({ law, mode }) => ({
+  lawId: law.lawId, evidenceMode: mode, proofRunId: "a".repeat(64), candidate: "b".repeat(40),
+  proofKind,
 }));
 
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
-  const first = fixtureLaw();
-  const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
-  const routes = [
-    { law: first, mode: "exam.golden" },
-    { law: second, mode: "exam.golden" },
-  ];
-  const bindings = proofBindings(routes);
-  assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes, bindings).size, 0);
+  const first = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-001-V1", capabilityDomain: "ai-input-gateway" };
+  const routes = [{ law: first, mode: "exam.golden" }];
+  const requests = proofRequests(routes);
+  const script = "acceptance:ai-input-gateway";
+  assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes, requests, script, "exam").size, 0);
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
     lawId: first.lawId,
     evidenceMode: "exam.golden",
-    locator: "acceptance:fixture:first",
+    locator: "acceptance:provider-boundary:injected-browser",
     observedValue: "first route actually asserted",
-    ...bindings[0],
+    ...requests[0],
   })}\n`;
-  assert.equal(bindNativeProofObservations(oneNativeObservation, routes, bindings).size, 1,
-    "one native observation must not synthesize the second law route");
+  assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
   const invented = `${proofObservationPrefix}${JSON.stringify({
-    lawId: first.lawId, evidenceMode: "exam.golden", locator: "invented://no-real-object",
-    observedValue: "PASS", proofRunId: "f".repeat(64), candidate: "b".repeat(64),
-    proofKind: "exam", routeReceipt: bindings[0]!.routeReceipt,
+    lawId: first.lawId, evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:injected-browser",
+    observedValue: "forged execution result", proofRunId: "f".repeat(64), candidate: "b".repeat(40),
+    proofKind: "exam",
   })}\n`;
   assert.throws(
-    () => bindNativeProofObservations(invented, routes, bindings),
+    () => bindNativeProofObservations(invented, routes, requests, script, "exam"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
 
 test("native proof observations reject one locator reused across law routes", () => {
-  const first = fixtureLaw();
-  const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
-  const routes = [first, second].map((law) => ({ law, mode: "exam.golden" }));
-  const bindings = proofBindings(routes);
-  const lines = [first, second].map((law, index) => `${proofObservationPrefix}${JSON.stringify({
+  const law = { ...fixtureLaw(), lawId: "LAW-AI-INPUT-GATEWAY-002-V1", capabilityDomain: "ai-input-gateway" };
+  const routes = [{ law, mode: "exam.golden" }];
+  const requests = proofRequests(routes);
+  const line = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId,
     evidenceMode: "exam.golden",
-    locator: "acceptance:fixture:reused",
-    observedValue: law.lawId,
-    ...bindings[index],
-  })}`).join("\n");
+    locator: "acceptance:exact-target:caller-owned-lease",
+    observedValue: "exact target route executed",
+    ...requests[0],
+  })}`;
   assert.throws(
-    () => bindNativeProofObservations(lines, routes, bindings),
+    () => bindNativeProofObservations(`${line}\n${line}`, routes, requests, "acceptance:ai-input-gateway", "exam"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
   );
   assert.throws(
-    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, routes, bindings),
+    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, routes, requests, "acceptance:ai-input-gateway", "exam"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
 
-test("an authenticated Dynamic marker still cannot claim an invented native object", () => {
-  const law = fixtureLaw();
+test("a Dynamic producer cannot self-authenticate an invented native object", () => {
+  const law = { ...fixtureLaw(), lawId: "LAW-LOCAL-APP-SHELL-001-V5", capabilityDomain: "local-app-shell" };
   const routes = [{ law, mode: "dynamic.service" }];
-  const bindings = proofBindings(routes, "dynamic");
+  const requests = proofRequests(routes, "dynamic");
   const marker = `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId, evidenceMode: "dynamic.service", locator: "invented://no-real-object",
-    observedValue: `run=${bindings[0]!.proofRunId};candidate=${bindings[0]!.candidate};value=forged`,
-    ...bindings[0],
+    observedValue: "value=forged", ...requests[0],
   })}`;
   assert.throws(
-    () => bindNativeProofObservations(marker, routes, bindings),
+    () => bindNativeProofObservations(marker, routes, requests, "proof:local-shell-current-runtime", "dynamic"),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
 
-test("static finalization rejects a law with no explicit inspector route", () => {
+test("static finalization rejects a law with no explicit inspector route", async () => {
   const context = {
     project: new Project({ useInMemoryFileSystem: true }),
     selectedLawId: "LAW-FIXTURE-001-V1",
     sealedRoot: "/sealed",
-    targetSet: { queryRef: "scope:fixture", count: 1, sha256: "a".repeat(64) },
+    targetSet: { queryRef: "scope:fixture", count: 1 },
     targetPaths: ["src/fixture.ts"],
     lawRequirements: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"].map((lawId) => ({
       lawId,
       clausesByMode: { "static.ast": ["summary"] },
       targetPaths: ["src/fixture.ts"],
-      targetSet: { queryRef: `scope:${lawId}`, count: 1, sha256: "a".repeat(64) },
+      targetSet: { queryRef: `scope:${lawId}`, count: 1 },
     })),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
   } as unknown as InspectorContext;
-  assert.throws(
-    () => finalizeStaticInspection(context, {
+  await assert.rejects(
+    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1 }], function inspectFixture() { return {
       capabilityDomain: "fixture",
       reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
       findings: [],
       inspectedFiles: ["src/fixture.ts"],
-    }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
+    }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
   );
 });
 
-test("static finalization rejects a new law clause without an explicit owner check route", () => {
+test("static finalization rejects a new law clause without an explicit owner check route", async () => {
   const context = {
     sealedRoot: "/sealed",
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
@@ -303,19 +305,19 @@ test("static finalization rejects a new law clause without an explicit owner che
       lawId: "LAW-FIXTURE-001-V1",
       clausesByMode: { "static.ast": ["forbidden:0", "forbidden:1", "summary"] },
       targetPaths: ["src/fixture.ts"],
-      targetSet: { queryRef: "scope:fixture", count: 1, sha256: "a".repeat(64) },
+      targetSet: { queryRef: "scope:fixture", count: 1 },
     }],
   } as unknown as InspectorContext;
-  assert.throws(
-    () => finalizeStaticInspection(context, {
+  await assert.rejects(
+    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1 }], function inspectFixture() { return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       findings: [], inspectedFiles: ["src/fixture.ts"],
-    }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
+    }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
   );
 });
 
-test("static finalization rejects a declared route that did not inspect its complete target set", () => {
+test("static finalization invokes the named owner executor and rejects an unreadable complete target set", async () => {
   const context = {
     sealedRoot: "/sealed",
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
@@ -323,16 +325,18 @@ test("static finalization rejects a declared route that did not inspect its comp
       lawId: "LAW-FIXTURE-001-V1",
       clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
       targetPaths: ["src/fixture-a.ts", "src/fixture-b.ts"],
-      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2, sha256: "a".repeat(64) },
+      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  assert.throws(
-    () => finalizeStaticInspection(context, {
+  let executed = false;
+  await assert.rejects(
+    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1 }], function inspectFixture() { executed = true; return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
       findings: [], inspectedFiles: ["src/fixture-a.ts"],
-    }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
+    }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
+  assert.equal(executed, true);
 });
 
 test("a finding propagates from one law result to the only top-level verdict", () => {
@@ -432,8 +436,49 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     from: { domain: law.capabilityDomain, repo: "local", unexpected: true },
     to: { domain: secondDomain, repo: "local" } }] };
   assert.equal(blueprintValid(invalid, ...contexts), false);
+  const foreignLawId = "LAW-BLUEPRINT-FOREIGN-001-V1";
+  const foreignLawEdge = { ...base, prohibitedDependencyEdges: [{
+    from: { domain: law.capabilityDomain, repo: "local" },
+    lawId: foreignLawId,
+    to: { domain: secondDomain, repo: "local" },
+  }] };
+  assert.equal(blueprintValid(
+    foreignLawEdge,
+    new Set([law.lawId, foreignLawId]),
+    domains,
+    new Set<string>(),
+    new Map<string, Set<string>>(),
+    new Map([[law.lawId, law.capabilityDomain], [foreignLawId, law.capabilityDomain]]),
+  ), false);
   assert.throws(
     () => validateLocalSpecContract({ owner: law.capabilityDomain, specKind: "config", contract: { arbitrary: "value" } }, "mutation.json"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+  assert.doesNotThrow(() => validateLocalSpecContract({
+    owner: law.capabilityDomain,
+    specKind: "migration",
+    contract: {
+      currentAuthority: "legacy-authority",
+      targetAuthority: "current-authority",
+      compatibilityMechanisms: [],
+      startDate: "2026-08-25",
+      monitoring: [],
+      rollbackCondition: "restore the prior authority",
+      maximumDurationDays: 1,
+      removalDate: "2026-08-26",
+      removalAcceptance: [],
+    },
+  }, "migration.json"));
+  assert.throws(
+    () => validateLocalSpecContract({
+      owner: law.capabilityDomain,
+      specKind: "migration",
+      contract: {
+        deleteAcceptance: "deleted", deleteDate: "2026-08-26", endDate: "2026-08-26",
+        monitoringMetric: "errors", newPath: "new", oldPath: "old", owner: law.capabilityDomain,
+        rollbackCondition: "rollback", startDate: "2026-08-25",
+      },
+    }, "alternate-migration.json"),
     (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
   );
 });
