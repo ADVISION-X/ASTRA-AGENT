@@ -85,8 +85,10 @@ const isGeneratedPlanOwnerImportContract = (
 
 const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolean => {
   const governanceSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/governance.ts"));
-  return governanceSource?.getFunction("projectChecks") !== undefined
-    && readPackageScripts(context)["acceptance:code-purity-zombie-deep"] !== undefined;
+  const projectChecks = governanceSource?.getFunction("projectChecks");
+  const qualityConsumesAcceptance = projectChecks?.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .some((literal) => literal.getLiteralValue() === "acceptance:code-purity-zombie-deep") ?? false;
+  return qualityConsumesAcceptance && readPackageScripts(context)["acceptance:code-purity-zombie-deep"] !== undefined;
 };
 
 const pushVoidKeepaliveFindings = (

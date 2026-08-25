@@ -78,7 +78,9 @@ const receipt = createAgentRuntimeReceiptV6({
 });
 assert.equal(receipt.schema_version, "xuanxue-agent-runtime-receipt.v6");
 
-const fixtureProductContract = XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts[0]!;
+const fixtureProductContract = XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts[0] as typeof XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts[number] & {
+  required_capabilities: readonly string[];
+};
 const grant = CloudExecutionGrantV6Schema.parse({
   schema_version: "xuanxue-ai-cloud-execution-grant.v6",
   control_protocol_version: "xuanxue-ai-production-v6",
