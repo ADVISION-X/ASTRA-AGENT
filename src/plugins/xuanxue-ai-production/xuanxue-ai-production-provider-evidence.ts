@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 
 import type { AiFeedResult } from "../../capabilities/ai-input-gateway/index.js";
-import { isXuanxueLocalizationProduct } from "./xuanxue-ai-production-localization-contract.js";
 import type { XuanxueAiOrderRecord } from "./xuanxue-ai-production.schema.js";
 import {
-  isXuanxueTerminalMetaphysicsProduct,
   isXuanxueTerminalMetaphysicsProfile,
   xuanxueTerminalMetaphysicsProviderProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
@@ -37,7 +35,7 @@ const localizationProviderEvidenceFailure = (
   result: AiFeedResult,
   order: XuanxueAiOrderRecord["order"],
 ): string | null => {
-  if (!isXuanxueLocalizationProduct(order.productId)) return null;
+  if (order.serviceClass !== "localization") return null;
   const expected = order.providerExecutionProfile;
   const identity = result.providerProof.modelIdentityProof;
   const transcript = result.providerProof.providerTranscriptJsonl;
@@ -62,7 +60,7 @@ const terminalMetaphysicsProviderEvidenceFailure = (
   result: AiFeedResult,
   order: XuanxueAiOrderRecord["order"],
 ): string | null => {
-  if (!isXuanxueTerminalMetaphysicsProduct(order.productId)) return null;
+  if (order.serviceClass === "localization" || order.providerExecutionProfile === null) return null;
   const expected = order.providerExecutionProfile as Record<string, unknown> | null;
   const profileProof = result.providerProof.providerExecutionProfileProof;
   const identity = result.providerProof.modelIdentityProof;

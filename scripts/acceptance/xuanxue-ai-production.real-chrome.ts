@@ -37,7 +37,7 @@ try {
     extensionId: evidence.extensionId, workerSessionId: receipt.worker_session_id,
     runtimeAttestationReceiptHash: receipt.runtime_attestation_receipt_hash,
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", evidenceMode: "dynamic.browser", locator: "dynamic:xuanxue:bound-real-chrome", observedValue: `workerSession=${receipt.worker_session_id};attestation=${receipt.runtime_attestation_receipt_hash}` });
+  emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.browser", locator: "dynamic:xuanxue:bound-real-chrome", observedValue: `workerSession=${receipt.worker_session_id};attestation=${receipt.runtime_attestation_receipt_hash}` });
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }

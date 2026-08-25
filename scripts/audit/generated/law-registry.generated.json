@@ -210,7 +210,7 @@
     {
       "capabilityDomain": "xuanxue-ai-production",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-001-V8"
+        "LAW-XUANXUE-AI-PRODUCTION-001-V9"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "observedPaths": [
@@ -232,7 +232,7 @@
     {
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3"
+        "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production-localization-contract/manifest.json",
       "observedPaths": [
@@ -1437,10 +1437,10 @@
         "不得发生：automatic replay of UNKNOWN or replacement job prompt for a recoverable original",
         "不得发生：alias default normalization compatibility fallback shadow bridge dual reader or dual writer",
         "不得发生：stale foreign or caller-minted Chrome Provider candidate receipt",
-        "不得发生：AGENT-owned Product Execution canonical source cross-job graph parent join business verdict handwritten product map successor Cloud Job or runtime Stage improvisation，或 absent stale mismatched noncanonical product_contract_hash 被 claim、local order、checkpoint、terminal 或 result 接受",
+        "不得发生：provider commit/hash、provider contract bytes、产品 bundle 或 generated projection 固定在 consumer 仓库；AGENT-owned Product Execution canonical source、cross-job graph、business verdict、handwritten product map、successor Cloud Job 或 runtime Stage improvisation；或 Cloud grant、local order、checkpoint、terminal 与 result 的 product_contract_hash 身份不一致",
         "不得发生：Static Contract Integration Fault Real Chrome Real Provider or 72h Soak evidence substituting for another layer or omitting any of the 75 governed scenarios"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V8",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V9",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1114,
@@ -1448,8 +1448,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须让 AGENT 只消费网站唯一产品投影，只负责 Local Order 的 Stage、Provider/Browser、checkpoint、result 与原 Order 恢复；唯一 session、签名 attestation、十业务席位、一个 Browser lane、outbox 和 terminal CAS 必须保持身份；产品合同、跨 Job graph、parent/join 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
+      "summary": "必须让 AGENT 只消费经过鉴权的 immutable Cloud order，不保存网站合同、commit、hash 或产品投影副本；本仓只负责订单内通用 Stage 顺序、Provider/Browser、checkpoint、result 与原 Order 恢复。唯一 session、签名 attestation、十业务席位、一个 Browser lane、outbox 和 terminal CAS 必须保持身份；产品合同、跨 Job graph 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V8",
       "tier": "P0"
     },
     {
@@ -1473,7 +1473,7 @@
       "forbidden": [
         "不得发生：不得绕过该能力的唯一现役主链。"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1148,
@@ -1481,8 +1481,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：AGENT mirrors the website-owned localization manifest only to validate authenticated inbound whole orders; no cloud transport or second product truth remains.",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V2",
+      "summary": "必须保持以下不变量：AGENT only validates the authenticated immutable localization order identity and local Stage structure; no website manifest copy, provider projection, cloud transport duplicate, or second product truth remains.",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "tier": "P0"
     }
   ],

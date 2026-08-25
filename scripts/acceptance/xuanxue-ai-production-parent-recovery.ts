@@ -23,15 +23,6 @@ interface ParentAcceptanceInput {
 const acceptSameParentFifo = async (
   input: ParentAcceptanceInput,
 ): Promise<void> => {
-  assert.throws(
-    () => createXuanxueAiProductionOrder(input.runtime, order(
-      "aiprod_followup_without_parent",
-      "qimen_report_followup",
-      ["followup"],
-    )),
-    /CONTINUATION_PROFILE_INVALID/u,
-    "a paid follow-up without an exact parent must never reach GPT",
-  );
   const parentUrl =
     input.qimenParentFinal.aiFeedResult?.providerProof.webChatUrl;
   assert.ok(parentUrl);

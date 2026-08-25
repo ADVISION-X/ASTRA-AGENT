@@ -32,9 +32,9 @@ const migrationContract = (contract: Contract): boolean => {
     "compatibilityMechanisms", "currentAuthority", "maximumDurationDays", "monitoring", "removalAcceptance",
     "removalDate", "rollbackCondition", "startDate", "targetAuthority",
   ]) || !cleanString(contract.currentAuthority) || !cleanString(contract.targetAuthority)
-    || !isStringArray(contract.compatibilityMechanisms) || !sortedUnique(contract.compatibilityMechanisms as string[])
-    || !isStringArray(contract.monitoring) || !sortedUnique(contract.monitoring as string[])
-    || !isStringArray(contract.removalAcceptance) || !sortedUnique(contract.removalAcceptance as string[])
+    || !isStringArray(contract.compatibilityMechanisms) || (contract.compatibilityMechanisms as string[]).length === 0 || !sortedUnique(contract.compatibilityMechanisms as string[])
+    || !isStringArray(contract.monitoring) || (contract.monitoring as string[]).length === 0 || !sortedUnique(contract.monitoring as string[])
+    || !isStringArray(contract.removalAcceptance) || (contract.removalAcceptance as string[]).length === 0 || !sortedUnique(contract.removalAcceptance as string[])
     || !cleanString(contract.rollbackCondition) || !isoDate(contract.startDate) || !isoDate(contract.removalDate)
     || !Number.isInteger(contract.maximumDurationDays) || Number(contract.maximumDurationDays) < 1) return false;
   const start = Date.parse(`${String(contract.startDate)}T00:00:00Z`);

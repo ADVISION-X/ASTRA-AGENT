@@ -58,7 +58,7 @@ export const pluginPaths = [
   cloudCredentialPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.ts",
-  "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-runtime-protocol.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",

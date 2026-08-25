@@ -17,19 +17,13 @@ import {
   xuanxueTerminalMetaphysicsProviderProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
 import type { AgentRuntimeReceiptV6 } from "./xuanxue-ai-production-browser-proof.js";
-import {
-  XUANXUE_AI_PRODUCTION_PRODUCT_IDS,
-  XUANXUE_AI_PRODUCTION_STAGE_IDS,
-} from "./xuanxue-ai-production-product-contracts.js";
 
 export const XUANXUE_AI_PRODUCTION_JOB_ID = "xuanxue-ai-production" as const;
 export const XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION =
   "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION" as const;
 
-const productIdValues = XUANXUE_AI_PRODUCTION_PRODUCT_IDS as readonly [string, ...string[]];
-const stageIdValues = XUANXUE_AI_PRODUCTION_STAGE_IDS as readonly [string, ...string[]];
-export const XuanxueAiProductIdSchema = z.enum(productIdValues);
-export const XuanxueAiStageIdSchema = z.enum(stageIdValues);
+export const XuanxueAiProductIdSchema = z.string().min(1).max(200);
+export const XuanxueAiStageIdSchema = z.string().min(1).max(200);
 
 export const XuanxueAiProductionTriggerKindSchema = z.enum([
   "user_request",

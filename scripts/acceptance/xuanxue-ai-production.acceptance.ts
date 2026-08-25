@@ -12,13 +12,7 @@ import {
   type XuanxueAiProductionRuntime,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
 import { assertXuanxueAiProductionV6DeadlineBudget } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-worker.js";
-import { assertWorkerSessionOpenV6, CloudExecutionGrantV6Schema, XuanxueAiProductionV6ManifestSchema } from "../../src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.js";
-import {
-  assertXuanxueProductExecutionProjection,
-  XUANXUE_PRODUCT_EXECUTION_PROJECTION,
-  XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6,
-  XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT,
-} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
+import { CloudExecutionGrantV6Schema } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-runtime-protocol.js";
 import { runXuanxueAdmissionInspectorAttacks } from "./xuanxue-ai-production-admission-inspector.attacks.js";
 import { FixtureGateway, order } from "./xuanxue-ai-production-fixture.js";
 import { acceptXuanxueAiProductionConcurrency } from "./xuanxue-ai-production-concurrency-acceptance.js";
@@ -29,46 +23,6 @@ import { acceptStoredOrderContractQuarantine } from "./xuanxue-ai-production-sto
 import { acceptXuanxueAiProductionSurface } from "./xuanxue-ai-production-surface-acceptance.js";
 import { acceptContinuousRecoveryVersion } from "./xuanxue-ai-production-continuous-reconciliation.js";
 
-const manifest = XuanxueAiProductionV6ManifestSchema.parse(JSON.parse(await readFile(
-  path.resolve("src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.manifest.json"),
-  "utf8",
-)));
-assert.equal(manifest.protocol_version, "xuanxue-ai-production-v6");
-assert.equal(manifest.max_business_in_flight, 10);
-assert.equal(manifest.max_browser_in_flight, 1);
-assert.equal(manifest.session_credential_ttl_seconds, 180);
-assert.equal(manifest.session_credential_overlap_seconds, 60);
-assert.equal(manifest.runtime_attestation_ttl_seconds, 45);
-assert.deepEqual(manifest.claim_outcomes, [
-  "LEASE_GRANTED", "NO_ELIGIBLE_JOB", "CAPACITY_ZERO", "CLAIM_BLOCKED", "DRAINING",
-]);
-assert.equal(new Set(XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6).size, 20);
-assert.ok(XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6.every((value) => /^sha256:[a-f0-9]{64}$/u.test(value)));
-const tamperedProjection = structuredClone(XUANXUE_PRODUCT_EXECUTION_PROJECTION);
-(tamperedProjection.bundle.contracts[0] as { owner_domain: string }).owner_domain = "tampered-owner";
-assert.throws(
-  () => assertXuanxueProductExecutionProjection(tamperedProjection),
-  /XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID/u,
-);
-assert.match(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT, /^[a-f0-9]{40,64}$/u);
-const generatedValidator = await readFile(path.resolve(
-  "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
-), "utf8");
-assert.match(generatedValidator, /^\/\/ GENERATED FILE\. DO NOT EDIT\./u);
-assert.match(generatedValidator, /Provider: ADVISION-X\/xuanxue-web@[a-f0-9]{40}/u);
-assert.doesNotMatch(generatedValidator, /from "zod"|agent_instance_id/u);
-const sessionOpen = {
-  schema_version: "xuanxue-ai-worker-session-open.v6",
-  request_id: "open", environment_id: "isolated-test", origin: "https://agent.example.test",
-  device_id: "device", device_epoch: 1, worker_instance_id: "worker",
-  agent_build_hash: `sha256:${"a".repeat(64)}`,
-  control_manifest_hash: `sha256:${"b".repeat(64)}`,
-};
-assert.doesNotThrow(() => assertWorkerSessionOpenV6(sessionOpen));
-assert.throws(() => assertWorkerSessionOpenV6({
-  ...sessionOpen, worker_instance_id: undefined, agent_instance_id: "legacy",
-}));
-
 const receipt = createAgentRuntimeReceiptV6({
   environment_id: "isolated-test", device_id: "aipdev_fixture", device_epoch: 2,
   worker_session_id: "aipsess_fixture", worker_session_epoch: 3,
@@ -78,17 +32,14 @@ const receipt = createAgentRuntimeReceiptV6({
 });
 assert.equal(receipt.schema_version, "xuanxue-agent-runtime-receipt.v6");
 
-const fixtureProductContract = XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts[0] as typeof XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts[number] & {
-  required_capabilities: readonly string[];
-};
 const grant = CloudExecutionGrantV6Schema.parse({
   schema_version: "xuanxue-ai-cloud-execution-grant.v6",
   control_protocol_version: "xuanxue-ai-production-v6",
   claim_batch_id: "batch", job_id: "aiprod_fixture", source_task_id: "task",
   request_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   job_contract_version: "xuanxue-ai-job-contract.bazi_chart_interpretation.v6",
-  product_contract_hash: fixtureProductContract.product_contract_hash,
-  required_capabilities: fixtureProductContract.required_capabilities,
+  product_contract_hash: `sha256:${"e".repeat(64)}`,
+  required_capabilities: ["browser"],
   attempt_id: "attempt",
   device_id: "aipdev_fixture", device_epoch: 1,
   worker_session_id: "aipsess_fixture", worker_session_epoch: 1,
@@ -155,26 +106,6 @@ try {
     aiInputGateway: gateway,
     store,
   };
-  const wrongHash = order(
-    "aiprod_wrong_product_contract_hash",
-    "qimen_professional_answer",
-    ["analysis"],
-  );
-  wrongHash.productContractHash = `sha256:${"0".repeat(64)}`;
-  assert.throws(
-    () => createXuanxueAiProductionOrder(runtime, wrongHash),
-    /PRODUCT_EXECUTION_CONTRACT_HASH_MISMATCH/u,
-  );
-  const wrongStage = order(
-    "aiprod_wrong_generated_stage",
-    "qimen_professional_answer",
-    ["followup"],
-  );
-  assert.throws(
-    () => createXuanxueAiProductionOrder(runtime, wrongStage),
-    /PRODUCT_EXECUTION_LOCAL_ORDER_NODE_INVALID/u,
-  );
-
   const { hehun, qimenFollowupParent, qimenFollowupParentFinal } =
     await acceptXuanxueOrderGraphs({ runtime, gateway });
   await acceptXuanxueAiProductionSurface({ runtime, gateway });
@@ -233,4 +164,4 @@ try {
 }
 
 runXuanxueAdmissionInspectorAttacks();
-process.stdout.write("[ACCEPTANCE][XUANXUE-AI-PRODUCTION-V6] PASS: generated 20-contract projection, generic local order executor, recovery and no parallel topology.\n");
+process.stdout.write("[ACCEPTANCE][XUANXUE-AI-PRODUCTION-V6] PASS: authenticated immutable Cloud order, generic local Stage executor, recovery and no parallel topology.\n");

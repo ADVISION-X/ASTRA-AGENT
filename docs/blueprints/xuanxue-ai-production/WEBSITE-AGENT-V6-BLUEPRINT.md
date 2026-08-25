@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V8"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V9"
   ],
   "contractRefs": [
     "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
@@ -50,14 +50,14 @@
 ```
 
 状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V8`
+法案：`LAW-XUANXUE-AI-PRODUCTION-001-V9`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
 ## 接入
 
 ```txt
 xuanxue-web canonical V6 control artifact
-  + exact Product Execution generated projection
+  + authenticated immutable Cloud order
   -> one outbound HTTPS Cloud Worker
   -> src/mediator/xuanxue-ai-production-route.ts
   -> src/plugins/xuanxue-ai-production/ immutable Local Order
@@ -66,8 +66,8 @@ xuanxue-web canonical V6 control artifact
   -> checkpoint / outbox / first-terminal CAS
 ```
 
-网站 artifact 是 V6 Cloud schema/manifest/vector/fixture 的唯一 owner；AGENT builder 生成 strict
-validator。Cloud contract 不含 Workspace、Target、Document、command、mutation journal 或 Browser
+网站 artifact 是 V6 Cloud schema/manifest/vector/fixture 的唯一 owner；AGENT 只维护消费端最小严格
+wire parser，不复制网站合同 artifact。Cloud contract 不含 Workspace、Target、Document、command、mutation journal 或 Browser
 TTL。Plugin 只拥有 immutable local order、local Stage state、execution/recovery、
 Provider/Browser capability sequencing、checkpoint 和 result；Product Execution Contract canonical、
 跨 Job Product Graph、product-specific Stage topology、parent/join 与业务完成裁决均归网站。
@@ -75,24 +75,26 @@ Browser 私有合同仍独占于
 `local-browser-session`，唯一 WebSocket 不改名、不复制。
 网站不得直连 Extension，Extension 不得访问 Cloud；二者只经 AGENT 现役 public facade 间接协作。
 
-## Product Execution projection 与本地边界
+## Product Execution 与本地边界
 
-网站是玄学产品完整 FLOW 的唯一 source。网站 canonical compiler 产生只读 product projection，
-AGENT 现役唯一 provider generator 将精确 provider commit、contract bytes 与 hash 固定成本地
-generated artifact；该 artifact 不可手改，也不是第二 canonical。
+网站是玄学产品完整 FLOW 的唯一 source。AGENT 只通过两份最小 dependency spec 声明
+`contractId + version + providerRepo`，本仓不得保存 provider commit、provider contract bytes、
+provider artifact hash 或产品 bundle 副本。跨仓合同存在性与版本只在 RELEASE 从必要 participant
+的原生 Git commit 扫描；CHANGE 与 READY 不读取或固定 provider 工作树。
 
 每张 Cloud grant 必须在 claim、local immutable order、Stage 开始、checkpoint、terminal 与结果
-readback 逐点匹配同一非空 `product_contract_hash`。本地 generic executor 只能按 projection 的
-ordinal、dependsOn、continuationFrom、generatedInputsFrom、parent、typed join、conversation 和
-finalStage 执行。completed Stage 默认不重跑，已有 checkpoint 不重复 submit，UNKNOWN mutation
+readback 逐点匹配同一非空 `product_contract_hash`。网站把已裁决的本 Job Stage 按顺序装入经过
+鉴权的 immutable Cloud order；本地 generic executor 只按该不可变顺序建立 Stage 链，不读取产品
+映射、不推导后继 Job、不裁决跨 Job graph。parent、typed join 与 conversation 只验证 Cloud order
+携带的具名身份、hash 和 checkpoint，不另查本地产品表。completed Stage 默认不重跑，已有 checkpoint 不重复 submit，UNKNOWN mutation
 永不自动 replay；恢复只回到原 job、attempt、order、Stage 与 checkpoint。
 
 AGENT 不得创建网站后继 Cloud Job，不得根据 Provider 回答、Browser 页面、token 长度或 operator
 偏好增删、重排、替换或追加业务 Stage。活动 runtime 中不得保留手写 product→Stage profile、
-followup/reusable-base parent map、join count、conversation mode 或 productId 特例分支；若文件名
-因 import surface 保留，只能成为消费 generated projection 的 thin wrapper。
+followup/reusable-base parent map、join count、conversation mode 或 productId 特例分支；本地 profile
+只能从已鉴权 immutable Cloud order 的 materials 顺序生成。
 
-Product Execution projection 和 V6 均不得包含 selector、css、xpath、坐标、JavaScript、tab/window、
+Cloud order 和 V6 均不得包含 selector、css、xpath、坐标、JavaScript、tab/window、
 任意 Browser action list、provider URL、browser command、next action、sleep 或 retry click。
 这些物理动作只能由 Browser Authority public facade 根据当前页面与 action registry 裁决。
 
@@ -104,7 +106,7 @@ Product Execution projection 和 V6 均不得包含 selector、css、xpath、坐
 Shell ready
 -> keep diagnostic HTTP/status surface available even when execution dependencies fail
 -> validate hardened device credential and exact environment/origin
--> load V6 manifest/product contract
+-> validate local consumer parser and dependency declarations
 -> reconcile local nonterminal ledger and durable outbox
 -> open one worker session with higher server epoch and report `worker_instance_id`
 ```
@@ -200,8 +202,8 @@ claim admission、queue/outbox 和 e2e proof。任一局部 ready 不代表端�
 
 ## 删除式迁移
 
-同一 change-set 完成 V6 builder、validator、session client、worker、outbox、tests 和 evidence。
-切换依次冻结候选、双仓实现、由网站 artifact 生成 validator、取得七层证据、网站停建 V5 job、
+同一 change-set 完成 V6 consumer parser、session client、worker、outbox、tests 和 evidence。
+切换依次冻结候选、双仓实现、验证 consumer parser、取得七层证据、网站停建 V5 job、
 AGENT drain 并停 claim V5、排空活动 lease、保持终态 V5 历史不变、在原 identity 上迁移安全未完成
 任务并写 event、以一个 release 激活网站/AGENT/Extension 且删除 V5 active surface、打开 V6 session、
 配对并认领 Target、普通 claim 保持 blocked 只跑一条 canary、PASS 后开放、最后审计 runtime 仅 V6。
@@ -213,11 +215,12 @@ bridge/alias/default/normalization/dual read/write 必须物理为零。激活�
 
 同时物理退休 AGENT 手写 product→Stage topology、product-specific conversation/reusable-parent map、
 typed join count 与任何完成当前 Job 后自行选择下一网站 Job 的分支。切换后 active runtime 只消费
-网站 committed descriptor 经唯一 generator 产生的 generated projection；不得保留 compatibility reader。
+经过鉴权的 immutable Cloud order；不得保留 provider projection、compatibility reader 或第二链。
 
 ## 验收边界
 
-任务内单项验证依次覆盖 Product projection pin/hash、generated bytes、Stage ordinal/dependency、
+任务内单项验证依次覆盖 dependency 最小声明、无 provider bytes/commit/hash、Cloud grant 与 local order
+身份一致、Stage 顺序/dependency、
 conversation/parent/join 正反例、零手写 topology，以及 strict V6 contract、session conflict/supersede/token rotation、attestation
 stale/replay、typed/idempotent claim、Browser absent no-claim、oldest eligible、十席位一 mutation、
 accept/release/renew/checkpoint/CAS、outbox restart、UNKNOWN、handover、drain 和 V5-zero。

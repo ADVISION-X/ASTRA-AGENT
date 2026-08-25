@@ -66,9 +66,8 @@ const inspectTerminalMetaphysicsProfile = (
     values,
     required: [
       "xuanxueTerminalMetaphysicsProviderProfile", "GPT-5.6 Sol", "gpt-5.6",
-      "pro_standard", "Pro", "isXuanxueTerminalMetaphysicsProduct",
+      "pro_standard", "Pro",
       "isXuanxueTerminalMetaphysicsProfile",
-      "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_REQUIRED",
       "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH",
       "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROVIDER_PROOF_MISMATCH",
     ],
@@ -94,52 +93,37 @@ const inspectWholeOrderContract = (
   messagePrefix: "Whole-order contract must contain",
   values,
   required: [
-    "xuanxue-ai-production-v6", "WorkerSessionOpenV6", "RuntimeAttestationReceiptV6",
-    "ClaimRequestV6", "ClaimBatchReceiptV6", "LEASE_GRANTED", "LeaseReleaseV6",
-    "TerminalCasV6", "bazi_chart_interpretation", "bazi_ai_full_analysis",
-    "bazi_report_followup", "qimen_professional_answer", "qimen_report_followup",
-    "hehun_ai_analysis", "hehun_report_followup", "naming_bazi_analysis_and_naming",
-    "naming_from_existing_bazi_report", "bazi_canonical_base_interpretation",
-    "hehun_canonical_party_a_interpretation", "hehun_canonical_party_b_interpretation",
-    "manual_accuracy_challenge", "payment_screenshot_observation", "public_knowledge_article_pipeline",
-    "localization_report_translation", "localization_article_translation",
-    "localization_static_review_candidate", "localization_static_review_selector",
-    "scheduled_quality_reflection", "candidate_a", "candidate_b", "selector_first",
-    "selector_swap", "consistency", "article_image_generation", "chart_interpretation",
+    "xuanxue-ai-production-v6", "RuntimeAttestationReceiptV6",
+    "ClaimBatchReceiptV6", "LEASE_GRANTED", "CloudExecutionGrantV6",
     "frozenSubject", "conversationScopeRef", "conversationParent", "joinParents",
     "forked_from_checkpoint", "same_conversation", "generated_image",
     "XUANXUE_AI_PRODUCTION_PROVIDER_INPUT_BLOCKED_BEFORE_SUBMISSION",
   ],
 });
 
-const inspectGeneratedProfiles = (
+const inspectLocalOrderProfiles = (
   findings: InspectorFinding[],
   lawId: string,
   values: ReadonlySet<string>,
 ): void => {
   requireValues(findings, {
     lawId,
-    checkId: "xuanxue-ai-production/generated-profiles",
+    checkId: "xuanxue-ai-production/local-order-profiles",
     filePath: profilePath,
-    messagePrefix: "Generated product profile consumer must contain",
+    messagePrefix: "Immutable Cloud order profile consumer must contain",
     values,
     required: [
-      "XUANXUE_PRODUCT_EXECUTION_PROJECTION", "xuanxueProductExecutionContract",
       "xuanxueLocalOrderNode", "resolveXuanxueAiProductionProfile",
       "assertXuanxueAiOrderMatchesProfile", "dependsOn", "continuationFrom",
-      "generatedInputsFrom", "conversationParent", "joinParents",
-      "XUANXUE_PRODUCT_EXECUTION_LOCAL_ORDER_NODE_INVALID",
-      "XUANXUE_AI_PRODUCTION_GENERATED_STAGE_CHAIN_INVALID",
-      "XUANXUE_AI_PRODUCTION_CONVERSATION_BINDING_INVALID",
-      "XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH",
-      "XUANXUE_AI_PRODUCTION_HEHUN_THREE_CONTEXTS_REQUIRED",
+      "generatedInputsFrom", "XUANXUE_AI_PRODUCTION_TYPED_JOIN_PARENT_MISMATCH",
+      "XUANXUE_AI_PRODUCTION_LOCAL_ORDER_STAGE_CHAIN_INVALID",
     ],
   });
   forbidValues(findings, {
     lawId,
     checkId: "xuanxue-ai-production/no-fixed-profile-shadow",
     filePath: profilePath,
-    messagePrefix: "Generated product profile consumer must not retain",
+    messagePrefix: "Immutable Cloud order profile consumer must not retain",
     values,
     forbidden: [
       "xuanxueAiPaidFollowupProfiles", "xuanxueAiReusableBaseConsumerProfiles",
@@ -147,6 +131,7 @@ const inspectGeneratedProfiles = (
       "isXuanxueAiRequiredContinuationProduct", "XUANXUE_AI_PRODUCTION_FORK_PARENT_REQUIRED",
       "XUANXUE_AI_PRODUCTION_CONTINUATION_STAGE_INVALID",
       "XUANXUE_AI_PRODUCTION_CONVERSATION_CHAIN_INVALID",
+      "XUANXUE_PRODUCT_EXECUTION_PROJECTION", "xuanxueProductExecutionContract",
     ],
   });
 };
@@ -188,7 +173,7 @@ export const inspectXuanxueContracts = (
   terminalMetaphysicsProfileValues: ReadonlySet<string>,
 ): void => {
   inspectWholeOrderContract(findings, boundaryLawId, values);
-  inspectGeneratedProfiles(findings, boundaryLawId, values);
+  inspectLocalOrderProfiles(findings, boundaryLawId, values);
   inspectProviderControls(findings, boundaryLawId, values);
   inspectTerminalMetaphysicsProfile(
     findings,

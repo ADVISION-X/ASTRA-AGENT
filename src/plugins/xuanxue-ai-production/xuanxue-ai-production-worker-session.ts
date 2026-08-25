@@ -5,12 +5,11 @@ import {
   WorkerSessionCredentialV6Schema,
   type RuntimeAttestationReceiptV6,
   type WorkerSessionCredentialV6,
-} from "./generated/xuanxue-ai-production-v6.validator.js";
+} from "./xuanxue-ai-production-runtime-protocol.js";
 import {
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   type XuanxueAiProductionCloudCredential,
 } from "./xuanxue-ai-production-cloud-contract.js";
-import { XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6 } from "./xuanxue-ai-production-product-contracts.js";
 import { parseXuanxueAiProductionJsonEnvelope } from "./xuanxue-ai-production-json-envelope.js";
 
 const hashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
@@ -133,7 +132,7 @@ export class XuanxueAiProductionWorkerSessionV6 {
           worker_session_epoch: this.workerSessionEpoch,
           agent_build_hash: this.device.agent_build_hash,
           control_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
-          product_contract_hashes: XUANXUE_AI_PRODUCTION_SUPPORTED_PRODUCT_CONTRACT_HASHES_V6,
+          product_contract_hashes: [],
           business_capacity_total: 10,
           business_in_flight: state.businessInFlight,
           browser_action_capacity_total: 1,

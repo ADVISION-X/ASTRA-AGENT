@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
@@ -293,29 +291,12 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
 });
-
-const collectJsonValues = (value: unknown, output = new Set<string>()): Set<string> => {
-  if (typeof value === "string") {
-    output.add(value);
-    return output;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectJsonValues(item, output));
-    return output;
-  }
-  if (!value || typeof value !== "object") return output;
-  for (const [key, item] of Object.entries(value)) {
-    output.add(key);
-    collectJsonValues(item, output);
-  }
-  return output;
-};
 
 const collectDomainSources = (
   context: InspectorContext,
@@ -328,10 +309,7 @@ const collectDomainSources = (
     const result = source(context, findings, boundaryLaw, filePath);
     return result ? [result] : [];
   });
-  const projectionPath = "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json";
-  const projection = JSON.parse(readFileSync(resolveFromRepo(projectionPath), "utf8")) as unknown;
-  const projectionValues = collectJsonValues(projection);
-  return { sources, values: new Set([...collectXuanxueSourceValues(sources), ...projectionValues]) };
+  return { sources, values: collectXuanxueSourceValues(sources) };
 };
 
 const inspectTransientLifecycleContract = (
@@ -407,6 +385,6 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", forbiddenCount: 16,
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", forbiddenCount: 16,
   }], inspectDomainEvaluation);
 };

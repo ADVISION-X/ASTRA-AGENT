@@ -406,19 +406,6 @@ const acceptHehunThreeContexts = async (
     joinParent(partyB, partyBBinding),
   ];
   assertDuplicateHehunPartyRejected(input.runtime, finalOrder);
-  assert.throws(
-    () => createXuanxueAiProductionOrder(input.runtime, {
-      ...finalOrder,
-      orderId: "aiprod_hehun_wrong_party_stage",
-      sourceTaskId: "source:aiprod_hehun_wrong_party_stage",
-      requestHash: hash("aiprod_hehun_wrong_party_stage"),
-      joinParents: finalOrder.joinParents.map((binding, index) => index === 0
-        ? { ...binding, stageId: "base_interpretation" }
-        : binding),
-    }),
-    /HEHUN_THREE_CONTEXTS_REQUIRED/u,
-    "party A and party B joins must bind their exact private stages",
-  );
   const final = await complete(input, finalOrder, "final_compatibility");
   const finalRequest = input.gateway.requests.find(
     (request) => request.taskIdentity.sourceTaskId

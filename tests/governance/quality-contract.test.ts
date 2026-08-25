@@ -537,15 +537,28 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     contract: {
       currentAuthority: "legacy-authority",
       targetAuthority: "current-authority",
-      compatibilityMechanisms: [],
+      compatibilityMechanisms: ["time-bounded dual-read owned by migration owner"],
       startDate: "2026-08-25",
-      monitoring: [],
+      monitoring: ["legacy read count reaches zero"],
       rollbackCondition: "restore the prior authority",
       maximumDurationDays: 1,
       removalDate: "2026-08-26",
-      removalAcceptance: [],
+      removalAcceptance: ["legacy reader is physically deleted"],
     },
   }, "migration.json"));
+  assert.throws(
+    () => validateLocalSpecContract({
+      owner: law.capabilityDomain,
+      specKind: "migration",
+      contract: {
+        currentAuthority: "legacy-authority", targetAuthority: "current-authority",
+        compatibilityMechanisms: [], monitoring: [], removalAcceptance: [],
+        startDate: "2026-08-25", removalDate: "2026-08-26", maximumDurationDays: 1,
+        rollbackCondition: "restore the prior authority",
+      },
+    }, "empty-migration-controls.json"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
   assert.throws(
     () => validateLocalSpecContract({
       owner: law.capabilityDomain,

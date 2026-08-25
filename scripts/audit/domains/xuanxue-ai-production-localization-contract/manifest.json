@@ -3,7 +3,7 @@
   "capabilityDomain": "xuanxue-ai-production-localization-contract",
   "status": "active",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3"
+    "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4"
   ],
   "ownedPaths": [
     "scripts/audit/domains/xuanxue-ai-production-localization-contract/**"

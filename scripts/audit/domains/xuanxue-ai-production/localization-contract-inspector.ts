@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 
 import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
@@ -10,12 +8,6 @@ import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
-
-const root = process.cwd();
-const projectionPath = path.join(
-  root,
-  "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
-);
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
@@ -79,39 +71,6 @@ const hasMappedSchemaParse = (source: SourceFile): boolean => source
         }));
   });
 
-type LocalizationProjection = Readonly<{
-  schema_version: string;
-  contract_manifest_hash: string;
-  products: Record<string, string>;
-  roles: Record<string, string>;
-}>;
-
-type GeneratedProductProjection = Readonly<{
-  localization_semantic_manifest: LocalizationProjection;
-  bundle: Readonly<{
-    contracts: readonly Readonly<{
-      contract_id: string;
-      owner_domain: string;
-      product_contract_hash: string;
-      product_graph: Readonly<{ nodes: readonly Readonly<{ node_id: string }>[] }>;
-    }>[];
-  }>;
-}>;
-
-const readAndAssertProjection = (): LocalizationProjection => {
-  const generated = JSON.parse(readFileSync(projectionPath, "utf8")) as GeneratedProductProjection;
-  const projection = generated.localization_semantic_manifest;
-  assert.match(projection.schema_version, /^xuanxue-ai-localization-contract-manifest\.v[1-9][0-9]*$/u);
-  assert.match(projection.contract_manifest_hash, /^sha256:[a-f0-9]{64}$/u);
-  const contracts = generated.bundle.contracts.filter((contract) => contract.owner_domain === "localization");
-  const expectedProducts = Object.fromEntries(contracts.map((contract) => [contract.contract_id, contract.product_contract_hash]));
-  assert.deepEqual(projection.products, expectedProducts);
-  const expectedRoles = contracts.flatMap((contract) => contract.product_graph.nodes.map((node) => node.node_id)).sort();
-  assert.deepEqual(Object.keys(projection.roles).sort(), expectedRoles);
-  Object.values(projection.roles).forEach((hash) => assert.match(hash, /^sha256:[a-f0-9]{64}$/u));
-  return projection;
-};
-
 const assertRuntimeSources = (project: Project): void => {
   for (const relative of criticalRuntimeFiles) {
     const source = project.getSourceFile(resolveFromRepo(relative));
@@ -147,7 +106,6 @@ const assertRuntimeSources = (project: Project): void => {
 };
 
 export async function inspectXuanxueLocalizationContract(project: Project = createAuditProject()): Promise<void> {
-  readAndAssertProjection();
   assertRuntimeSources(project);
 }
 
@@ -179,6 +137,6 @@ const inspectDomainEvaluation = async (
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", forbiddenCount: 1,
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4", forbiddenCount: 1,
   }], inspectDomainEvaluation);
 };

@@ -25,7 +25,7 @@ import { openXuanxueAiProductionDatabase } from "./xuanxue-ai-production-store-d
 import { cleanXuanxueAiProductionGeneratedInputs, reconcileXuanxueAiProductionGeneratedInputOrphans } from "./xuanxue-ai-production-transient-lifecycle.js";
 import type { XuanxueAiExecutionDeadlineBudget } from "./xuanxue-ai-production.runtime.js";
 import { XuanxueAiProductionWorkerSessionV6, type XuanxueAiProductionRuntimeStateV6 } from "./xuanxue-ai-production-worker-session.js";
-import type { CloudExecutionGrantV6 } from "./generated/xuanxue-ai-production-v6.validator.js";
+import type { CloudExecutionGrantV6 } from "./xuanxue-ai-production-runtime-protocol.js";
 import {
   cloudWorkerPollIntervalMs, isRecoverableCloudWorkerFailure, isWorkerContractFailure,
   reportCloudWorkerError, safeWorkerReason, waitForCloudWorker, workerErrorCode,

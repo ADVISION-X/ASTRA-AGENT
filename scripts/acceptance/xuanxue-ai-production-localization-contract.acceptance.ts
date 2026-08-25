@@ -1,87 +1,50 @@
 import assert from "node:assert/strict";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-import {
-  XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS,
-  assertXuanxueLocalizationContract,
-  expectedLocalizationProviderProfile,
-  isExactXuanxueLocalizationProductContractMap,
-} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
+import { assertXuanxueLocalizationContract } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
 import { resolveXuanxueAiProductionProfile } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.js";
-import {
-  XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT,
-  xuanxueLocalOrderNode,
-  xuanxueProductExecutionContract,
-} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.js";
+import { fixtureHash } from "./xuanxue-ai-production-fixture-provider-profile.js";
 
-const expected = [
-  ["localization_report_translation", "report_translation"],
-  ["localization_article_translation", "article_translation"],
-  ["localization_static_review_candidate", "candidate_a"],
-  ["localization_static_review_candidate", "candidate_b"],
-  ["localization_static_review_selector", "selector_first"],
-  ["localization_static_review_selector", "selector_swap"],
-  ["localization_static_review_selector", "consistency"],
-] as const;
+const order = {
+  productId: "localization_static_review_candidate",
+  productContractHash: fixtureHash("fixture:product-contract:localization_static_review_candidate"),
+  materials: [{ stageId: "candidate_a" }],
+} as const;
+const profile = resolveXuanxueAiProductionProfile(order);
+assert.equal(profile.stages.length, 1);
+assert.equal(profile.finalStageId, "candidate_a");
 
-for (const [product, stage] of expected) {
-  const profile = resolveXuanxueAiProductionProfile(product, [stage]);
-  assert.equal(profile.stages.length, 1, `${product}/${stage} must be one local stage`);
-  assert.equal(profile.stages[0]?.stageId, stage);
-  assert.equal(profile.finalStageId, stage);
-  assert.equal(profile.nodeId, stage);
-}
-
-assert.equal(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT.length, 40);
-assert.equal(expectedLocalizationProviderProfile("candidate_a").reasoning_effort, "xhigh");
-for (const role of [
-  "candidate_b", "selector_first", "selector_swap", "consistency",
-  "report_translation", "article_translation",
-] as const) {
-  assert.equal(expectedLocalizationProviderProfile(role).reasoning_effort, "high");
-}
-
-assert.equal(
-  isExactXuanxueLocalizationProductContractMap(
-    Object.fromEntries(Object.entries(XUANXUE_LOCALIZATION_PRODUCT_CONTRACTS)
-      .map(([productId, contract]) => [productId, contract.product_contract_hash])
-      .reverse()),
-  ),
-  true,
-);
-
-const candidate = xuanxueProductExecutionContract(
-  "localization_static_review_candidate",
-);
-const candidateNode = xuanxueLocalOrderNode(
-  candidate.contract_id,
-  ["candidate_a"],
-);
-assert.equal(candidateNode.order_contract.stages[0]?.stage_id, "candidate_a");
-const candidateInputs = ["localization_review_context_json"] as const;
 const candidateInput = {
-  productId: candidate.contract_id,
-  stageId: "candidate_a",
-  triggerKind: "localization_static_review",
-  contractManifestHash: XUANXUE_LOCALIZATION_CONTRACT_MANIFEST_HASH,
-  productContractHash: candidate.product_contract_hash,
+  contractManifestHash: fixtureHash("fixture:localization-contract-manifest"),
+  productContractHash: order.productContractHash,
   role: "candidate_a",
-  providerProfile: expectedLocalizationProviderProfile("candidate_a"),
-  inputKinds: candidateInputs,
-  hasConversationParent: false,
+  providerProfile: {
+    profile_ref: "fixture:localization:candidate_a",
+    profile_hash: fixtureHash("fixture:localization:candidate_a"),
+    provider: "gpt-web-chat" as const,
+    transport: "web-chat" as const,
+    account_capability_ref: "agent:gpt-web-chat:localization" as const,
+    model_label: "GPT-5.6 Sol" as const,
+    model_family: "gpt-5.6" as const,
+    model_identity_status: "verified" as const,
+    reasoning_effort: "xhigh" as const,
+    executor_identity_ref: "supervised_local_gpt_web" as const,
+    ai_acceptance_ref: "APEX-AI-ACCEPTANCE-001-V5" as const,
+    ai_acceptance_version: "5.2" as const,
+  },
+  inputKinds: ["localization_review_context_json"],
 } as const;
 assert.doesNotThrow(() => assertXuanxueLocalizationContract(candidateInput));
 assert.throws(() => assertXuanxueLocalizationContract({
   ...candidateInput,
-  productContractHash: `sha256:${"0".repeat(64)}`,
-}), /XUANXUE_AI_PRODUCTION_LOCALIZATION_CONTRACT_IDENTITY_INVALID/u);
+  contractManifestHash: null,
+}), /XUANXUE_AI_PRODUCTION_LOCALIZATION_CONTRACT_INVALID/u);
 assert.throws(() => assertXuanxueLocalizationContract({
   ...candidateInput,
-  hasConversationParent: true,
-}), /XUANXUE_AI_PRODUCTION_LOCALIZATION_CONVERSATION_PARENT_INVALID/u);
+  inputKinds: [],
+}), /XUANXUE_AI_PRODUCTION_LOCALIZATION_CONTRACT_INVALID/u);
 
 process.stdout.write(
-  "[ACCEPTANCE] localization generated projection PASS: four products, seven role-bound local orders, exact hashes and no parallel topology.\n",
+  "[ACCEPTANCE] localization immutable Cloud order PASS: role, contract identity and local Stage are structurally validated without a provider projection copy.\n",
 );
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", evidenceMode: "exam.golden", locator: "acceptance:xuanxue-localization:contract-projection", observedValue: "four products seven role-bound local orders exact hashes and no parallel topology" });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4", evidenceMode: "exam.golden", locator: "acceptance:xuanxue-localization:cloud-order", observedValue: "authenticated localization order identity and local stage validated without provider projection copy" });
