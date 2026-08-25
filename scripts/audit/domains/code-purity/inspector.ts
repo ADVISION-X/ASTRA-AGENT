@@ -12,7 +12,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     reportedLawIds: context.planEntry.lawIds,
 
     findings: phaseRun.findings,
-    inspectedFiles: [...phaseRun.inspectedFiles].sort(),
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

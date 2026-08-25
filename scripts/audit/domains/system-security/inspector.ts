@@ -133,8 +133,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
   findings: inspectSystemSecurityProject(context.project),
-  inspectedFiles: context.project.getSourceFiles().filter((file) => !file.isDeclarationFile()).map(sourcePath)
-    .filter((path) => path.startsWith("src/") || path.startsWith("scripts/")).sort(),
+  inspectedFiles: [...context.targetPaths],
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {

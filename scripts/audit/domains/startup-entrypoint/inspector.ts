@@ -187,7 +187,7 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [packagePath, launchPath, preflightPath, processControlPath],
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

@@ -173,11 +173,7 @@ const inspectDomainEvaluation = async (
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [
-      "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json",
-      ...criticalRuntimeFiles,
-    ].filter((path) => context.targetPaths.includes(path))
-      .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right))),
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

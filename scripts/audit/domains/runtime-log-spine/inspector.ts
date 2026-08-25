@@ -5,15 +5,12 @@ import { finalizeStaticInspection } from "../../shared/static-inspector-result.j
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
   const findings = collected.phaseRuns.flatMap((phase) => phase.findings).map(toInspectorFinding);
-  const inspectedFiles = [...new Set(collected.phaseRuns.flatMap((phase) => phase.inspectedFiles))]
-    .filter((path) => context.targetPaths.includes(path)).sort();
-
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
 
     findings,
-    inspectedFiles,
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

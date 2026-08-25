@@ -179,7 +179,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [...inspectedFiles].filter((path) => context.targetPaths.includes(path)).sort(),
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

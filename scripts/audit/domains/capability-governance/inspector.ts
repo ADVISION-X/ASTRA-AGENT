@@ -311,7 +311,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     reportedLawIds: context.planEntry.lawIds,
 
     findings,
-    inspectedFiles: [...scan.inspectedFiles].sort(),
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

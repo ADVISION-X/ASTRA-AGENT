@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { extname, relative, resolve } from "node:path";
+import { TextDecoder } from "node:util";
+import { parseDocument } from "yaml";
 
+import { rejectDuplicateJsonKeys } from "../governance-json.js";
 import { fail } from "../governance-runtime.js";
 import type {
   InspectorContext, InspectorEvaluation, InspectorLawRequirement, InspectorOutput,
@@ -24,16 +27,40 @@ const availableClauses = (route: StaticLawRoute): string[] => [
   "summary",
 ].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
 
-const consumeTargetSet = (context: InspectorContext, requirement: InspectorLawRequirement): string[] => {
+const utf8 = new TextDecoder("utf-8", { fatal: true });
+const binarySignatureValid = (extension: string, value: Buffer): boolean => {
+  if (extension === ".png") return value.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (extension === ".jpg") return value[0] === 0xff && value[1] === 0xd8;
+  if (extension === ".pdf") return value.subarray(0, 5).toString("ascii") === "%PDF-";
+  if (extension === ".zip") return value[0] === 0x50 && value[1] === 0x4b;
+  return false;
+};
+const inspectTargetObjects = (context: InspectorContext, targetPaths: readonly string[]): void => {
   const root = resolve(context.sealedRoot);
-  for (const path of requirement.targetPaths) {
+  for (const path of targetPaths) {
     const absolute = resolve(root, path);
     const escaped = relative(root, absolute);
     if (escaped === ".." || escaped.startsWith("../")) fail("TARGET_OUTSIDE_DOMAIN_AUTHORITY", path);
-    try { readFileSync(absolute); }
-    catch { fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:${path}`); }
+    let value: Buffer;
+    try { value = readFileSync(absolute); } catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", path); }
+    const extension = extname(path).toLocaleLowerCase("en-US");
+    if ([".png", ".jpg", ".pdf", ".zip"].includes(extension)) {
+      if (!binarySignatureValid(extension, value)) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:binary-signature`);
+      continue;
+    }
+    let source: string;
+    try { source = utf8.decode(value); } catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:utf8`); }
+    if (extension === ".json") {
+      rejectDuplicateJsonKeys(source, path);
+      try { JSON.parse(source); } catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:json`); }
+    } else if (extension === ".yaml" || extension === ".yml") {
+      const document = parseDocument(source, { strict: true, uniqueKeys: true });
+      if (document.errors.length || document.warnings.length) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:yaml`);
+    } else if ([".ts", ".mts", ".js", ".mjs"].includes(extension)) {
+      const ast = context.project.getSourceFile(absolute);
+      if (!ast || ast.getFullText() !== source) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:ast`);
+    }
   }
-  return [...requirement.targetPaths];
 };
 
 export const finalizeStaticInspection = async (
@@ -50,32 +77,34 @@ export const finalizeStaticInspection = async (
     || routes.some((route) => !Number.isInteger(route.forbiddenCount) || route.forbiddenCount < 1)) {
     fail("LAW_CHECK_ROUTE_MISSING", context.planEntry.capabilityDomain);
   }
-  let evaluation: InspectorEvaluation;
-  try { evaluation = await execute(context); }
-  catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}`); }
-  if (evaluation.capabilityDomain !== context.planEntry.capabilityDomain
-    || JSON.stringify(evaluation.reportedLawIds) !== JSON.stringify(requiredIds)) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:result`);
-  }
-  const executionId = `${context.planEntry.capabilityDomain}/${executorName}`;
   const routesByLaw = new Map(routes.map((route) => [route.lawId, route]));
-  const declaredInspected = new Set(evaluation.inspectedFiles);
-  if (declaredInspected.size !== evaluation.inspectedFiles.length
-    || JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(ordered(evaluation.inspectedFiles))) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:inspection-order`);
-  }
-  const requiredTargets = ordered(context.lawRequirements.flatMap((requirement) => requirement.targetPaths));
-  if (JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(requiredTargets)) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:target-denominator`);
-  }
-  const lawResults = context.lawRequirements.map((requirement) => {
+  for (const requirement of context.lawRequirements) {
     const route = routesByLaw.get(requirement.lawId) ?? fail("LAW_CHECK_ROUTE_MISSING", requirement.lawId);
     const requiredClauses = ordered(Object.values(requirement.clausesByMode).flat());
     const available = availableClauses(route);
     if (!requiredClauses.includes("summary") || requiredClauses.some((clause) => !available.includes(clause))) {
       fail("LAW_CHECK_ROUTE_MISSING", `${requirement.lawId}:clause`);
     }
-    consumeTargetSet(context, requirement);
+  }
+  const requiredTargets = ordered(context.lawRequirements.flatMap((requirement) => requirement.targetPaths));
+  let evaluation: InspectorEvaluation;
+  try { evaluation = await execute(context); }
+  catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}`); }
+  inspectTargetObjects(context, requiredTargets);
+  if (evaluation.capabilityDomain !== context.planEntry.capabilityDomain
+    || JSON.stringify(evaluation.reportedLawIds) !== JSON.stringify(requiredIds)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:result`);
+  }
+  const executionId = `${context.planEntry.capabilityDomain}/${executorName}`;
+  const declaredInspected = new Set(evaluation.inspectedFiles);
+  if (declaredInspected.size !== evaluation.inspectedFiles.length
+    || JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(ordered(evaluation.inspectedFiles))) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:inspection-order`);
+  }
+  if (JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(requiredTargets)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:target-denominator`);
+  }
+  const lawResults = context.lawRequirements.map((requirement) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === requirement.lawId);
     return {
       lawId: requirement.lawId,
