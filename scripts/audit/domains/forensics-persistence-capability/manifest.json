@@ -3,9 +3,9 @@
   "capabilityDomain": "forensics-persistence-capability",
   "status": "active",
   "lawIds": [
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2",
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2"
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3"
   ],
   "ownedPaths": [
     "scripts/acceptance/forensics-persistence-capability.acceptance.ts",

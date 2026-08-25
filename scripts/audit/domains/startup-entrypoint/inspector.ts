@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const packagePath = "package.json";
 const launchPath = "scripts/startup/launch-grasseye.mjs";
@@ -192,8 +192,20 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4" },
-    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1" },
-  ], inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResults = [
+    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", ast: staticClauses(11) },
+    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", ast: staticClauses(0) },
+  ].map(({ lawId, ast }) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: [
+      { clauses: ast, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+    ], findings };
+  });
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults, inspectedFiles: evaluation.inspectedFiles,
+  });
 };

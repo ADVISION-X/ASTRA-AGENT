@@ -8,8 +8,8 @@
     "LAW-AI-INPUT-GATEWAY-003-V1",
     "LAW-AI-INPUT-GATEWAY-004-V1",
     "LAW-AI-INPUT-GATEWAY-005-V4",
-    "LAW-AI-INPUT-GATEWAY-006-V1",
-    "LAW-AI-INPUT-GATEWAY-007-V1"
+    "LAW-AI-INPUT-GATEWAY-006-V2",
+    "LAW-AI-INPUT-GATEWAY-007-V2"
   ],
   "ownedPaths": [
     "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",

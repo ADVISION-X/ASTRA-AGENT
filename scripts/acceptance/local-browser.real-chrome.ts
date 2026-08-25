@@ -92,6 +92,6 @@ emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenc
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "dynamic.browser",
   locator: releaseRecordPath, receipt: nativeReceipt(releaseRecord.manifestHash),
   observedValue: `release=${releaseRecord.releaseBuildId};candidate=${candidateHash}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", evidenceMode: "dynamic.browser",
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-006-V3", evidenceMode: "dynamic.browser",
   locator: `${journalPath}#sequence=${completed.sequence}`, receipt: nativeReceipt(completed.event.resultHash),
   observedValue: `authorityHash=${authorityRefHash};resultHash=${completed.event.eventType === "COMMAND" ? completed.event.resultHash : "missing"}` });

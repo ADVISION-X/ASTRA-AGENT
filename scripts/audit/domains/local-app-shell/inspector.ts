@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -234,9 +234,19 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: LAW_SHELL },
-    { lawId: LAW_BOUNDARY },
-    { lawId: LAW_STATUS },
-  ], evaluate);
+  const evaluation = evaluate(context);
+  const lawResults = [
+    { lawId: LAW_SHELL, modes: [{ evidenceMode: "static.ast", clauses: staticClauses(4, 7, 8) }, { evidenceMode: "static.contract", clauses: staticClauses() }] },
+    { lawId: LAW_BOUNDARY, modes: [{ evidenceMode: "static.ast", clauses: staticClauses() }] },
+    { lawId: LAW_STATUS, modes: [{ evidenceMode: "static.ast", clauses: staticClauses(0, 1) }] },
+  ].map(({ lawId, modes }) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    return { lawId, assertions: modes.map(({ evidenceMode, clauses }) => ({
+      clauses, evidenceMode, passed: findings.length === 0, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    })), findings };
+  });
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults, inspectedFiles: evaluation.inspectedFiles,
+  });
 };

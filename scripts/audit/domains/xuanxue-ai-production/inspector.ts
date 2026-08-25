@@ -8,7 +8,7 @@ import {
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
@@ -384,7 +384,16 @@ const inspectDomainEvaluation = async (
 export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10",
-  }], inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V10";
+  const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const passed = findings.length === 0;
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain,
+    reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
+      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    })), findings }],
+    inspectedFiles: evaluation.inspectedFiles,
+  });
 };

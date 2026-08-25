@@ -15,8 +15,6 @@ export const createInspectorContextFixture = (
     ownerInspectorPath: `scripts/audit/domains/${capabilityDomain}/inspector.ts`,
     executionGroup: "foundation",
     lawIds,
-    bindings: [],
-    blueprintRefs: [],
   };
   return {
     project,

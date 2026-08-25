@@ -4,7 +4,7 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
@@ -447,7 +447,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
   const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4");
-  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2");
+  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V3");
   const findings: InspectorFinding[] = [];
   for (const path of [...sourcePaths, targetAuthorityPath].filter((candidate) => context.targetPaths.includes(candidate))) {
     if (context.project.getSourceFile(resolveFromRepo(path))) continue;
@@ -476,12 +476,24 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2" },
-  ], inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResults = [
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", ast: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), contract: true },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", ast: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), contract: true },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", ast: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), contract: true },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", ast: staticClauses(10, 11, 12, 13, 14, 15), contract: false },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", ast: staticClauses(0, 1, 2, 3, 4), contract: true },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V3", ast: staticClauses(0), contract: true },
+  ].map(({ lawId, ast, contract }) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: [
+      { clauses: ast, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      ...(contract ? [{ clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") }] : []),
+    ], findings };
+  });
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults, inspectedFiles: evaluation.inspectedFiles,
+  });
 };

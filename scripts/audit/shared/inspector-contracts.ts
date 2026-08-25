@@ -39,15 +39,6 @@ type AuditPlanEntry = {
   ownerInspectorPath: string;
   executionGroup: "foundation" | "domain" | "meta";
   lawIds: string[];
-  bindings: Array<{
-    lawId: string;
-    clauseId: string;
-    checkIds: string[];
-    sourceEvidence: Array<{ filePath: string; symbolName: string }>;
-    evidenceMode: "static" | "acceptance" | "real-chrome" | "model+acceptance+real-chrome" | "artifact+real-chrome";
-    primaryEvidence?: { engine: "ast" | "fs" | "config"; sourceEvidenceIndex: number };
-  }>;
-  blueprintRefs: Array<{ filePath: string; requiredAnchors: string[] }>;
 };
 export type InspectorContext = {
   project: Project;

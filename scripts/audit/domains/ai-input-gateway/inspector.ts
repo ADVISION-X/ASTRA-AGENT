@@ -6,7 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -401,8 +401,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
   const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
   const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V2");
-  const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V1");
-  const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V1");
+  const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V2");
+  const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V2");
   const findings: Finding[] = [];
   for (const repoPath of P.governedPaths.filter((path) => context.targetPaths.includes(path))) {
     const absolutePath = resolveFromRepo(repoPath);
@@ -439,13 +439,30 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-AI-INPUT-GATEWAY-001-V1" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-002-V2" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-003-V1" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-004-V1" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-005-V4" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-006-V1" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-007-V1" },
-  ], inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResults = ([
+    ["LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"]],
+    ["LAW-AI-INPUT-GATEWAY-002-V2", ["static.ast"]],
+    ["LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"]],
+    ["LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"]],
+    ["LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"]],
+    ["LAW-AI-INPUT-GATEWAY-006-V2", ["static.ast", "static.contract"]],
+    ["LAW-AI-INPUT-GATEWAY-007-V2", ["static.ast", "static.contract"]],
+  ] as const).map(([lawId, evidenceModes]) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    return {
+      lawId: lawId!,
+      assertions: evidenceModes!.map((evidenceMode) => ({
+        clauses: staticClauses(), evidenceMode, passed: findings.length === 0,
+        refs: staticEvidenceRefs(context, lawId!, evidenceMode),
+      })),
+      findings,
+    };
+  });
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain,
+    reportedLawIds: evaluation.reportedLawIds,
+    lawResults,
+    inspectedFiles: evaluation.inspectedFiles,
+  });
 };

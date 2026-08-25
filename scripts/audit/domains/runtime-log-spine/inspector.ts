@@ -2,7 +2,7 @@ import { type InspectorContext, type InspectorEvaluation, type SessionInspectorO
 import { selectLawId } from "../../shared/finding-utils.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const findingsForLaw = (collected: CollectedPhaseRuns, lawId: string) => collected.phaseRuns
   .flatMap((phase) => phase.findings)
@@ -20,8 +20,8 @@ const collectRuntimeContractFindings = (context: InspectorContext, lawId: string
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const operationalLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-001-V3");
-  const redactionLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-002-V2");
-  const contractLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-003-V2");
+  const redactionLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-002-V3");
+  const contractLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-003-V3");
   const findings = [
     ...collectRuntimeOperationalTraceFindings(context, operationalLawId),
     ...collectRuntimeRedactionFindings(context, redactionLawId),
@@ -36,9 +36,16 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-RUNTIME-LOG-SPINE-001-V3" },
-    { lawId: "LAW-RUNTIME-LOG-SPINE-002-V2" },
-    { lawId: "LAW-RUNTIME-LOG-SPINE-003-V2" },
-  ], inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawResults = context.planEntry.lawIds.map((lawId) => {
+    const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+    const passed = findings.length === 0;
+    return { lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
+      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    })), findings };
+  });
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults, inspectedFiles: evaluation.inspectedFiles,
+  });
 };

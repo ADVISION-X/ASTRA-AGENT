@@ -142,4 +142,4 @@ try {
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway attachment child registers staged artifacts, issues opaque grants and submits one exact-target batch\n");
 emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-004-V1", evidenceMode: "exam.golden", locator: "acceptance:attachment:opaque-grant-proof", observedValue: "staged artifacts and opaque grants retain exact proof" });
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-007-V1", evidenceMode: "exam.golden", locator: "acceptance:attachment:approved-input-refs", observedValue: "caller inputRefs bind staged file hashes and one exact-target batch" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-007-V2", evidenceMode: "exam.golden", locator: "acceptance:attachment:approved-input-refs", observedValue: "caller inputRefs bind staged file hashes and one exact-target batch" });

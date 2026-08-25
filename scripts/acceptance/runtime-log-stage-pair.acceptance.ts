@@ -39,4 +39,4 @@ assert.equal((emitted[1]?.payload as Record<string, unknown>).failureClass, Runt
 assert.equal(typeof emitted[1]?.durationMs, "number");
 
 process.stdout.write("[ACCEPTANCE] runtime-log-stage-pair PASS\n");
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-002-V2", evidenceMode: "exam.golden", locator: "acceptance:runtime-log:stage-pair", observedValue: "started and failed stages retain failure class and duration" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-002-V3", evidenceMode: "exam.golden", locator: "acceptance:runtime-log:stage-pair", observedValue: "started and failed stages retain failure class and duration" });
