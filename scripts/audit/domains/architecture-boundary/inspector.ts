@@ -6,7 +6,7 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 
 
@@ -41,9 +41,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [staticLawCoverage("LAW-ARCHITECTURE-BOUNDARY-001-V1", 7, [
-      "static.filesystem", "static.ast", "static.types", "static.dependency",
-    ], [0, 1, 2, 3, 4, 5, 6])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -51,5 +48,19 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V1";
+  const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const passed = findings.length === 0;
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain,
+    reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: [
+      { clauses: staticClauses(0, 1, 2, 3, 4, 5, 6), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.dependency", passed, refs: staticEvidenceRefs(context, lawId, "static.dependency") },
+      { clauses: staticClauses(), evidenceMode: "static.filesystem", passed, refs: staticEvidenceRefs(context, lawId, "static.filesystem") },
+      { clauses: staticClauses(), evidenceMode: "static.types", passed, refs: staticEvidenceRefs(context, lawId, "static.types") },
+    ], findings }],
+    inspectedFiles: evaluation.inspectedFiles,
+  });
 };

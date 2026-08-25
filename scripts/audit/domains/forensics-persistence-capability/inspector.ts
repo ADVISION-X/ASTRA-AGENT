@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 type Finding = ReturnType<typeof createFinding>;
 

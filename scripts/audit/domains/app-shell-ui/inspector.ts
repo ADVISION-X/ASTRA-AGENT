@@ -5,7 +5,7 @@ import { inspectAppShellLayout } from "./inspector-layout.js";
 import { inspectAppShellLocalization } from "./inspector-localization.js";
 import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V2");

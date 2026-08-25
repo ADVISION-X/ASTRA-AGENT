@@ -7,7 +7,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",

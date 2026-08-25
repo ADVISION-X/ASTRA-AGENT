@@ -2,7 +2,6 @@ import { Node, SyntaxKind, type ImportDeclaration, type ObjectLiteralExpression,
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation } from "../../shared/inspector-contracts.js";
-import { staticLawCoverage } from "../../shared/static-inspector-result.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
@@ -388,9 +387,6 @@ export const inspectConstitutionalBoundary = async (context: InspectorContext): 
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [staticLawCoverage("LAW-ARCHITECTURE-BOUNDARY-001-V1", 7, [
-      "static.filesystem", "static.ast", "static.types", "static.dependency",
-    ], [0, 1, 2, 3, 4, 5, 6])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...inspectedFiles].sort(),

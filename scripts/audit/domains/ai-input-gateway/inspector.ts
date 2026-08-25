@@ -6,7 +6,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {

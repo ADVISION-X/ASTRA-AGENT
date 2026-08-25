@@ -4,7 +4,7 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";

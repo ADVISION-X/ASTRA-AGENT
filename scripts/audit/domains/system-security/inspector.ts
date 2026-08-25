@@ -2,7 +2,7 @@ import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } 
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;

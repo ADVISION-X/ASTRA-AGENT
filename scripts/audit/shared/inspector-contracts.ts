@@ -15,7 +15,6 @@ export type InspectorAssertion = { clauses: string[]; evidenceMode: string; pass
 export type InspectorLawResult = { lawId: string; assertions: InspectorAssertion[]; findings: InspectorFinding[] };
 export type InspectorEvaluation = {
   capabilityDomain: string;
-  coverage: Array<{ lawId: string; clausesByMode: Record<string, string[]> }>;
   reportedLawIds: string[];
   findings: InspectorFinding[];
   inspectedFiles: string[];

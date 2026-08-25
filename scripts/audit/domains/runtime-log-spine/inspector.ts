@@ -2,7 +2,7 @@ import { type InspectorContext, type InspectorEvaluation, type SessionInspectorO
 import { selectLawId } from "../../shared/finding-utils.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const findingsForLaw = (collected: CollectedPhaseRuns, lawId: string) => collected.phaseRuns
   .flatMap((phase) => phase.findings)

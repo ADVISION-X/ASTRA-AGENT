@@ -9,7 +9,7 @@ import {
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -457,9 +457,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    coverage: [staticLawCoverage("LAW-CAPABILITY-GOVERNANCE-001-V2", 6, [
-      "static.filesystem", "static.ast", "static.types", "static.dependency",
-    ], [])],
     reportedLawIds: context.planEntry.lawIds,
     findings: evaluation.findings,
     inspectedFiles: [...context.targetPaths],
@@ -467,5 +464,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, inspectDomainEvaluation);
+  const evaluation = await inspectDomainEvaluation(context);
+  const lawId = "LAW-CAPABILITY-GOVERNANCE-001-V2";
+  const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const passed = findings.length === 0;
+  return validateStaticInspection(context, {
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: [
+      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.dependency", passed, refs: staticEvidenceRefs(context, lawId, "static.dependency") },
+      { clauses: staticClauses(), evidenceMode: "static.filesystem", passed, refs: staticEvidenceRefs(context, lawId, "static.filesystem") },
+      { clauses: staticClauses(), evidenceMode: "static.types", passed, refs: staticEvidenceRefs(context, lawId, "static.types") },
+    ], findings }], inspectedFiles: evaluation.inspectedFiles,
+  });
 };

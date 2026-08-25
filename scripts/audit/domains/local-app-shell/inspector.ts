@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";

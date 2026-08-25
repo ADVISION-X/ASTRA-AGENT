@@ -8,7 +8,7 @@ import {
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
+import { staticClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import {
   cloudContractPath,
   cloudCredentialPath,
