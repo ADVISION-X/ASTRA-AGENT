@@ -56,7 +56,7 @@ export const dynamicScriptFor = (domain: string, mode: string): string =>
 
 const routeKey = (lawId: string, mode: string): string => `${lawId}\0${mode}`;
 type ClauseRoute = "all" | readonly number[];
-const proofClauseRoutes: Readonly<Record<string, ClauseRoute>> = {
+const proofClauseRouteGroups: readonly Readonly<Record<string, ClauseRoute>>[] = [{
   [routeKey("LAW-AI-INPUT-GATEWAY-001-V1", "exam.golden")]: "all",
   [routeKey("LAW-AI-INPUT-GATEWAY-002-V1", "exam.golden")]: "all",
   [routeKey("LAW-AI-INPUT-GATEWAY-003-V1", "exam.golden")]: "all",
@@ -81,6 +81,7 @@ const proofClauseRoutes: Readonly<Record<string, ClauseRoute>> = {
   [routeKey("LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser")]: "all",
   [routeKey("LAW-LOCAL-BROWSER-SESSION-002-V4", "dynamic.browser")]: "all",
   [routeKey("LAW-LOCAL-BROWSER-SESSION-003-V6", "dynamic.browser")]: "all",
+}, {
   [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "exam.golden")]: [0, 2, 5, 6, 7, 8, 9],
   [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "exam.property")]: [1, 3, 4],
   [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "dynamic.recovery")]: [10, 11, 12, 13, 14, 15],
@@ -105,10 +106,11 @@ const proofClauseRoutes: Readonly<Record<string, ClauseRoute>> = {
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.recovery")]: [10, 11],
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.performance")]: [15],
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", "exam.golden")]: "all",
-};
+}];
 
 export const proofClauseIndexesFor = (lawId: string, mode: string, forbiddenCount: number): number[] | null => {
-  const route = proofClauseRoutes[routeKey(lawId, mode)];
+  const key = routeKey(lawId, mode);
+  const route = proofClauseRouteGroups.map((group) => group[key]).find((value) => value !== undefined);
   if (route === undefined) return null;
   const indexes = route === "all" ? Array.from({ length: forbiddenCount }, (_, index) => index) : [...route];
   if (!indexes.length || indexes.some((index) => !Number.isInteger(index) || index < 0 || index >= forbiddenCount)

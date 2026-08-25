@@ -19,7 +19,8 @@ import {
   validEvidenceRef,
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
-import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput, validateProviderContractSpec } from "../../scripts/audit/shared/quality-runner.js";
+import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";

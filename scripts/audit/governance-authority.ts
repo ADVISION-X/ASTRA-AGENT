@@ -1,11 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { parseDocument } from 'yaml';
 import { canonicalBytes, cleanString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
+import { lawBodyStart } from './shared/law-document-front-matter.js';
 export { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
 export type Level = 'CHANGE' | 'READY' | 'RELEASE';
 export type Law = {
@@ -43,7 +43,6 @@ export type Registry = {
 };
 const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不写入任何文件。\n2. CHANGE 开始修改前只读查看目标路径的 Git 状态，不得覆盖、删除、恢复或移动未获授权的用户改动。\n3. CHANGE 的实际差异必须与授权人的请求及完成该请求不可分割的直接关联对象一致。\n4. READY 不等于 RELEASE；静态检查、普通测试或部分证据不得被认定为已经完成生产发布。\n5. READY、RELEASE 使用原生 clean Git commit；RELEASE 执行全部 active law 声明的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. 本说明书与 active law 只在授权人分别明确批准对应修改后变更。\n9. 任一 finding、候选漂移、错误证据类型或无事实依据的 PASS 必须失败关闭。\n`;
 const LAW_KEYS = ['appliesTo', 'capabilityDomain', 'dependsOnLawIds', 'enforcementMode', 'evidenceModes', 'excludes', 'forbidden', 'lawId', 'schemaVersion', 'status', 'summary', 'supersedesLawId', 'tier'];
-const LAW_DOCUMENT_KEYS = ['authorityLevel', 'containerOwner', 'documentType', 'lawIdPrefix', 'schemaVersion', 'status'];
 const MANIFEST_KEYS = ['capabilityDomain', 'lawIds', 'observedPaths', 'ownedPaths', 'schemaVersion', 'status'];
 const SPEC_KEYS = ['contract', 'lawIds', 'owner', 'schemaVersion', 'specId', 'specKind', 'status', 'version'];
 const BLUEPRINT_KEYS = ['blueprintId', 'contractRefs', 'dependencyEdges', 'lawIds', 'owner', 'prohibitedDependencyEdges', 'schemaVersion', 'status'];
@@ -177,27 +176,11 @@ const applyLawContentLine = (input: {
 };
 
 export function parseLawSource(source: string, path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
-  if (path !== path.normalize('NFC') || source !== source.normalize('NFC') || source.includes('\r') || !source.startsWith('---\n')) {
-    fail('SOURCE_PARSE_FAILED', `${path}:encoding`);
-  }
-  const close = source.indexOf('\n---\n', 4);
-  if (close < 0 || source.indexOf('\n---\n', close + 5) >= 0) fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
-  const frontMatterSource = source.slice(4, close);
-  const document = parseDocument(frontMatterSource, { strict: true, uniqueKeys: true });
-  if (document.errors.length || document.warnings.length) fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
-  const frontMatter = document.toJS() as Record<string, unknown>;
-  if (!frontMatter || typeof frontMatter !== 'object' || Array.isArray(frontMatter)
-    || !exactKeys(frontMatter, LAW_DOCUMENT_KEYS)
-    || frontMatter.documentType !== documentType || frontMatter.schemaVersion !== 2
-    || frontMatter.status !== 'active' || frontMatter.authorityLevel !== authorityLevel
-    || frontMatter.containerOwner !== 'law-system' || frontMatter.lawIdPrefix !== 'LAW') {
-    fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
-  }
   const lines = source.split('\n');
   const laws: Law[] = [];
   const state: LawParserState = { domain: '', headingId: '', headingLine: 0, priorDomain: '', priorLawOrder: '' };
   const documentHeading = documentType === 'base-law' ? '# 基础法案' : '# 功能法案';
-  const start = source.slice(0, close + 5).split('\n').length - 1;
+  const start = lawBodyStart(source, path, documentType, authorityLevel);
   if (lines[start] !== documentHeading) fail('SOURCE_PARSE_FAILED', `${path}:document heading`);
   for (let index = start + 1; index < lines.length; index++) index = applyLawContentLine({ documentType, index, laws, lines, path, state });
   if (state.headingId || !laws.length) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);

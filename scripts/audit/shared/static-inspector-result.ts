@@ -1,13 +1,8 @@
-import { readFileSync } from "node:fs";
-import { extname, relative, resolve } from "node:path";
-import { TextDecoder } from "node:util";
-import { parseDocument } from "yaml";
-
-import { rejectDuplicateJsonKeys } from "../governance-json.js";
 import { fail } from "../governance-runtime.js";
 import type {
   InspectorContext, InspectorEvaluation, InspectorLawRequirement, InspectorOutput,
 } from "./inspector-contracts.js";
+import { inspectTargetObjects } from "./static-target-object-inspector.js";
 
 const evidenceKind: Readonly<Record<string, string>> = {
   "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
@@ -27,41 +22,6 @@ const availableClauses = (route: StaticLawRoute): string[] => [
   "summary",
 ].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
 
-const utf8 = new TextDecoder("utf-8", { fatal: true });
-const binarySignatureValid = (extension: string, value: Buffer): boolean => {
-  if (extension === ".png") return value.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-  if (extension === ".jpg") return value[0] === 0xff && value[1] === 0xd8;
-  if (extension === ".pdf") return value.subarray(0, 5).toString("ascii") === "%PDF-";
-  if (extension === ".zip") return value[0] === 0x50 && value[1] === 0x4b;
-  return false;
-};
-const inspectTargetObjects = (context: InspectorContext, targetPaths: readonly string[]): void => {
-  const root = resolve(context.sealedRoot);
-  for (const path of targetPaths) {
-    const absolute = resolve(root, path);
-    const escaped = relative(root, absolute);
-    if (escaped === ".." || escaped.startsWith("../")) fail("TARGET_OUTSIDE_DOMAIN_AUTHORITY", path);
-    let value: Buffer;
-    try { value = readFileSync(absolute); } catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", path); }
-    const extension = extname(path).toLocaleLowerCase("en-US");
-    if ([".png", ".jpg", ".pdf", ".zip"].includes(extension)) {
-      if (!binarySignatureValid(extension, value)) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:binary-signature`);
-      continue;
-    }
-    let source: string;
-    try { source = utf8.decode(value); } catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:utf8`); }
-    if (extension === ".json") {
-      rejectDuplicateJsonKeys(source, path);
-      try { JSON.parse(source); } catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:json`); }
-    } else if (extension === ".yaml" || extension === ".yml") {
-      const document = parseDocument(source, { strict: true, uniqueKeys: true });
-      if (document.errors.length || document.warnings.length) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:yaml`);
-    } else if ([".ts", ".mts", ".js", ".mjs"].includes(extension)) {
-      const ast = context.project.getSourceFile(absolute);
-      if (!ast || ast.getFullText() !== source) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${path}:ast`);
-    }
-  }
-};
 
 export const finalizeStaticInspection = async (
   context: InspectorContext,

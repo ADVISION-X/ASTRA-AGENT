@@ -4,13 +4,14 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 import { buildRegistry, diffPaths, gitCommit, providerDomainForDependencySpec, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
-import { canonicalBytes, cleanString, exactKeys, isStringArray, rejectDuplicateJsonKeys, sortedUnique } from "../governance-json.js";
+import { canonicalBytes, exactKeys, rejectDuplicateJsonKeys } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
+import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
 
@@ -24,7 +25,6 @@ type ProofResultInput = {
   proofRunId: string; candidate: string; stdoutSha256: string;
 };
 type Dependency = { contractId: string; providerRepo: string; providerDomain: string; version: number };
-type ProviderContract = Dependency & { authorityArtifact: { path: string; selector: string } };
 type BoundParticipant = { path: string; report: QualityParticipant };
 type QualityRunContext = {
   candidate: string;
@@ -80,36 +80,6 @@ const providerDomains = (path: string, commit: string): Set<string> => new Set(g
       && manifest.schemaVersion === 5 && manifest.status === "active" && typeof manifest.capabilityDomain === "string"
       ? [manifest.capabilityDomain] : [];
   }));
-
-export const validateProviderContractSpec = (
-  raw: unknown, repo: string, domains: ReadonlySet<string>, artifactExists: (path: string) => boolean,
-): ProviderContract => {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec`);
-  const spec = raw as Record<string, unknown>;
-  if (!exactKeys(spec, ["contract", "lawIds", "owner", "schemaVersion", "specId", "specKind", "status", "version"])
-    || spec.schemaVersion !== 1 || spec.status !== "active" || spec.specKind !== "cross-repo-contract"
-    || typeof spec.specId !== "string" || !cleanString(spec.specId)
-    || typeof spec.owner !== "string" || !domains.has(spec.owner)
-    || !Number.isInteger(spec.version) || Number(spec.version) < 1
-    || !isStringArray(spec.lawIds) || !spec.lawIds.length || !sortedUnique(spec.lawIds)) {
-    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec-envelope`);
-  }
-  const contract = spec.contract as Record<string, unknown>;
-  if (!contract || !exactKeys(contract, ["authorityArtifact", "contractId", "providerDomain", "providerRepo", "version"])
-    || contract.contractId !== spec.specId || contract.version !== spec.version || contract.providerRepo !== repo
-    || contract.providerDomain !== spec.owner || typeof contract.providerDomain !== "string" || !domains.has(contract.providerDomain)) {
-    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:provider-contract`);
-  }
-  const artifact = contract.authorityArtifact as Record<string, unknown>;
-  if (!artifact || !exactKeys(artifact, ["path", "selector"]) || typeof artifact.path !== "string"
-    || artifact.path.startsWith("/") || artifact.path.split("/").some((part) => !part || part === "." || part === "..")
-    || typeof artifact.selector !== "string" || !cleanString(artifact.selector) || !artifactExists(artifact.path)) {
-    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:authority-artifact`);
-  }
-  return { contractId: contract.contractId as string, providerRepo: repo,
-    providerDomain: contract.providerDomain, version: contract.version as number,
-    authorityArtifact: { path: artifact.path, selector: artifact.selector } };
-};
 
 const providerContracts = (path: string, commit: string, repo: string): ProviderContract[] => {
   const domains = providerDomains(path, commit);
