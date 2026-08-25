@@ -68,7 +68,7 @@ const proofProducerDigests: Readonly<Record<string, string>> = {
   "acceptance:runtime-log-spine": "009da813d6e50d8a333f0668ef89b571ad2154cab7c358e05c9ec24b14db7971",
   "acceptance:startup-entrypoint": "9e2a2b874f0f3ff8b603b3fe5b27f28032956609381437b6ba31ff47178a15ba",
   "acceptance:system-security": "4eaf558de984a1832b18e1c07981f11327bc5a43c93db1461d9df04b3eeac8ec",
-  "acceptance:xuanxue-ai-production": "55db30fcedf26dde356973c6ef92a1e82abbf3020d024b274af5a8d65ca66c44",
+  "acceptance:xuanxue-ai-production": "b5b230e2189a6f03f5ad60e3fee9ed1656f11e973a0a9592ba7bc18984460931",
   "acceptance:xuanxue-ai-production-localization-contract": "c44b2b1fee08cde6297c98727bff66851abff88e08bc0962d185e7c342d7a725",
   "acceptance:xuanxue-ai-production:real-chrome": "4e1d6d0fda936ba410ac07b639104e3b2900fc13064c8a4d348406115051099e",
   "acceptance:xuanxue-ai-production:real-proof-verify": "824fd1be448e4ec68c06a9d0247aa9112e2b46418818b6c005921b6d26a709c2",
