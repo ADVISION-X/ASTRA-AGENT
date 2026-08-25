@@ -750,10 +750,10 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
 
 test("recovery and performance Dynamic Proofs consume real governed receipts", () => {
   const browserRecovery = readFileSync("scripts/acceptance/local-browser-journal-recovery.dynamic.ts", "utf8");
-  for (const forbidden of ["mkdtemp", "temporary-owned-fixture", "assertExclusiveOwner: () => undefined", "rm(root"]) {
+  for (const forbidden of ["mkdtemp", "temporary-owned-fixture", "assertExclusiveOwner: () => undefined", "rm(root", "releaseBuildId", "candidateHash"]) {
     assert.equal(browserRecovery.includes(forbidden), false, forbidden);
   }
-  for (const required of ["BrowserOwnerLock", "GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZATION_REF", "releaseBuildId", "candidateHash"]) {
+  for (const required of ["BrowserOwnerLock", "GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZATION_REF"]) {
     assert.ok(browserRecovery.includes(required), required);
   }
   const provider = readFileSync("scripts/acceptance/xuanxue-ai-production.real-provider.ts", "utf8");
