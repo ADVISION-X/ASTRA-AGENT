@@ -6,7 +6,7 @@
     "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V4",
     "LAW-LOCAL-BROWSER-SESSION-003-V6",
-    "LAW-LOCAL-BROWSER-SESSION-004-V5",
+    "LAW-LOCAL-BROWSER-SESSION-004-V6",
     "LAW-LOCAL-BROWSER-SESSION-005-V4",
     "LAW-LOCAL-BROWSER-SESSION-006-V2"
   ],
@@ -122,50 +122,50 @@
         }
       ]
     },
-    "LAW-LOCAL-BROWSER-SESSION-004-V5": {
+    "LAW-LOCAL-BROWSER-SESSION-004-V6": {
       "staticBinding": {
-        "bindingId": "local.browser.session.004.v5.static",
-        "checkId": "local.browser.session.004.v5.static.check",
-        "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-004-V5",
-        "targetSelectorId": "local.browser.session.004.v5.target",
+        "bindingId": "local.browser.session.004.v6.static",
+        "checkId": "local.browser.session.004.v6.static.check",
+        "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-004-V6",
+        "targetSelectorId": "local.browser.session.004.v6.target",
         "evidenceModes": [
           "static.ast"
         ],
         "negativeCases": [
           {
-            "negativeCaseId": "local.browser.session.004.v5.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.004.v5.static",
+            "negativeCaseId": "local.browser.session.004.v6.static.negative",
+            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.004.v6.static",
             "expectedCode": "COMPONENT_FAILED"
           }
         ]
       },
       "examBindings": [
         {
-          "bindingId": "local.browser.session.004.v5.exam-golden.exam",
-          "examId": "local.browser.session.004.v5.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V5|exam.golden",
+          "bindingId": "local.browser.session.004.v6.exam-golden.exam",
+          "examId": "local.browser.session.004.v6.exam-golden",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V6|exam.golden",
           "evidenceModes": [
             "exam.golden"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "local.browser.session.004.v5.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v5.exam-golden.exam",
+              "negativeCaseId": "local.browser.session.004.v6.exam-golden.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v6.exam-golden.exam",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
         },
         {
-          "bindingId": "local.browser.session.004.v5.exam-property.exam",
-          "examId": "local.browser.session.004.v5.exam-property",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V5|exam.property",
+          "bindingId": "local.browser.session.004.v6.exam-property.exam",
+          "examId": "local.browser.session.004.v6.exam-property",
+          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V6|exam.property",
           "evidenceModes": [
             "exam.property"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "local.browser.session.004.v5.exam-property.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v5.exam-property.exam",
+              "negativeCaseId": "local.browser.session.004.v6.exam-property.exam.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v6.exam-property.exam",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
@@ -173,16 +173,16 @@
       ],
       "proofBindings": [
         {
-          "bindingId": "local.browser.session.004.v5.dynamic-recovery.proof",
-          "proofId": "local.browser.session.004.v5.dynamic-recovery",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-004-V5|dynamic.recovery",
+          "bindingId": "local.browser.session.004.v6.dynamic-recovery.proof",
+          "proofId": "local.browser.session.004.v6.dynamic-recovery",
+          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-004-V6|dynamic.recovery",
           "evidenceModes": [
             "dynamic.recovery"
           ],
           "negativeCases": [
             {
-              "negativeCaseId": "local.browser.session.004.v5.dynamic-recovery.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.004.v5.dynamic-recovery.proof",
+              "negativeCaseId": "local.browser.session.004.v6.dynamic-recovery.proof.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.004.v6.dynamic-recovery.proof",
               "expectedCode": "COMPONENT_FAILED"
             }
           ]
@@ -271,6 +271,6 @@
     "src/lib/browser/**"
   ],
   "observedPaths": [
-    "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md"
+    "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md"
   ]
 }

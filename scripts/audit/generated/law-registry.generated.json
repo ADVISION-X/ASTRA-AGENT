@@ -246,13 +246,13 @@
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-LOCAL-BROWSER-SESSION-002-V4",
         "LAW-LOCAL-BROWSER-SESSION-003-V6",
-        "LAW-LOCAL-BROWSER-SESSION-004-V5",
+        "LAW-LOCAL-BROWSER-SESSION-004-V6",
         "LAW-LOCAL-BROWSER-SESSION-005-V4",
         "LAW-LOCAL-BROWSER-SESSION-006-V2"
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
-        "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md"
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md"
       ],
       "ownedPaths": [
         "docs/GrassEye 精确标签页浏览器控制决策记录.md",
@@ -405,7 +405,7 @@
     "baseLawPath": ".github/instructions/agent-rules/基础法案.md",
     "baseLawSha256": "b458907cadfe643f2b222f06c97616d19abbb4a0f5840654a9c29df70884f61c",
     "functionalLawPath": ".github/instructions/agent-rules/功能法案.md",
-    "functionalLawSha256": "1a45bc72626c03b1313c92d9f95670ccdd6d47a43dd9ddcf3d178d8eeefeb45f"
+    "functionalLawSha256": "5414f2ce4fcd6cdc81d5d99fb57e418ad1da752752e769ea75e19d51f3d8613a"
   },
   "laws": [
     {
@@ -3836,76 +3836,76 @@
       "capabilityDomain": "local-browser-session",
       "contractRefs": [
         {
-          "path": "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md",
-          "sha256": "27fa31c4e81c2e9e33d8b2df162c35d736771e2d529d95c69faca25949b42925"
+          "path": "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md",
+          "sha256": "f5415a801ea2829ee348b8a24e79f712b852eb7cc427005574a1d5333f225bc6"
         }
       ],
       "dependsOnLawIds": [],
       "enforcement": {
         "examBindings": [
           {
-            "bindingId": "local.browser.session.004.v5.exam-golden.exam",
+            "bindingId": "local.browser.session.004.v6.exam-golden.exam",
             "evidenceModes": [
               "exam.golden"
             ],
-            "examId": "local.browser.session.004.v5.exam-golden",
-            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V5|exam.golden",
+            "examId": "local.browser.session.004.v6.exam-golden",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V6|exam.golden",
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "local.browser.session.004.v5.exam-golden.exam.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v5.exam-golden.exam"
+                "negativeCaseId": "local.browser.session.004.v6.exam-golden.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v6.exam-golden.exam"
               }
             ]
           },
           {
-            "bindingId": "local.browser.session.004.v5.exam-property.exam",
+            "bindingId": "local.browser.session.004.v6.exam-property.exam",
             "evidenceModes": [
               "exam.property"
             ],
-            "examId": "local.browser.session.004.v5.exam-property",
-            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V5|exam.property",
+            "examId": "local.browser.session.004.v6.exam-property",
+            "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Alocal-browser-terminal|LAW-LOCAL-BROWSER-SESSION-004-V6|exam.property",
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "local.browser.session.004.v5.exam-property.exam.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v5.exam-property.exam"
+                "negativeCaseId": "local.browser.session.004.v6.exam-property.exam.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Alocal-browser-terminal|local.browser.session.004.v6.exam-property.exam"
               }
             ]
           }
         ],
         "proofBindings": [
           {
-            "bindingId": "local.browser.session.004.v5.dynamic-recovery.proof",
+            "bindingId": "local.browser.session.004.v6.dynamic-recovery.proof",
             "evidenceModes": [
               "dynamic.recovery"
             ],
             "negativeCases": [
               {
                 "expectedCode": "COMPONENT_FAILED",
-                "negativeCaseId": "local.browser.session.004.v5.dynamic-recovery.proof.negative",
-                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.004.v5.dynamic-recovery.proof"
+                "negativeCaseId": "local.browser.session.004.v6.dynamic-recovery.proof.negative",
+                "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|local.browser.session.004.v6.dynamic-recovery.proof"
               }
             ],
-            "proofId": "local.browser.session.004.v5.dynamic-recovery",
-            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-004-V5|dynamic.recovery"
+            "proofId": "local.browser.session.004.v6.dynamic-recovery",
+            "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-LOCAL-BROWSER-SESSION-004-V6|dynamic.recovery"
           }
         ],
         "staticBinding": {
-          "bindingId": "local.browser.session.004.v5.static",
-          "checkId": "local.browser.session.004.v5.static.check",
+          "bindingId": "local.browser.session.004.v6.static",
+          "checkId": "local.browser.session.004.v6.static.check",
           "evidenceModes": [
             "static.ast"
           ],
-          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-004-V5",
+          "inspectorRef": "scripts/audit/domains/local-browser-session/inspector.ts#inspectDomain|LAW-LOCAL-BROWSER-SESSION-004-V6",
           "negativeCases": [
             {
               "expectedCode": "COMPONENT_FAILED",
-              "negativeCaseId": "local.browser.session.004.v5.static.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.004.v5.static"
+              "negativeCaseId": "local.browser.session.004.v6.static.negative",
+              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Alocal-browser-session%3Aenforce|local.browser.session.004.v6.static"
             }
           ],
-          "targetSelectorId": "local.browser.session.004.v5.target"
+          "targetSelectorId": "local.browser.session.004.v6.target"
         }
       },
       "enforcementMode": "composite",
@@ -3929,19 +3929,22 @@
         "不得发生：second Browser proof journal",
         "不得发生：在取得唯一 Browser Owner lock 之前读取、缓存或绑定 proof journal 尾部",
         "不得发生：在 Browser Owner lock 之外追加 lifecycle/command 事件，或在 durable revoke 与 journal fsync 之前释放 Owner lock",
-        "不得发生：journal integrity failure 后截断、重排、重算、覆盖、分叉续写、自动修复或建立第二活动 epoch"
+        "不得发生：journal integrity failure 后截断、重排、重算、覆盖、分叉续写、自动修复或建立第二活动 epoch",
+        "不得发生：没有当前人类运行数据授权、major law/schema 授权、唯一 Browser Owner lock、原文件逐字节封存与 SHA-256 复核、首个失败物理行、候选与 release build、操作者、reason code 和唯一 recovery receipt 时创建 recovery genesis",
+        "不得发生：将 sealed legacy journal、旧分叉或 recovery 前事件继续当作当前 Dynamic Proof，或在 canonical V2 journal 中写入第二个 RECOVERY genesis",
+        "不得发生：恢复过程覆盖不一致的 archive/receipt、接受 source drift、静默复用冲突 receipt，或在启动流程中自动触发恢复"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V5",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 762,
+        "lineEnd": 765,
         "lineStart": 723,
         "path": ".github/instructions/agent-rules/功能法案.md",
-        "sectionSha256": "123ed5311bd4a5b600bde48062ed763212f130a1479fbdcfd17533bde177db58"
+        "sectionSha256": "456096aa419a8f19db8facc586e229ed17d53080eb0788b3e7f97a1e36971ae3"
       },
       "status": "active",
-      "summary": "必须由唯一 Browser Owner 先取得排他锁再绑定 proof journal 尾部，所有事件锁内持久追加，shutdown 先持久撤销再释放锁；完整性失败不得改写历史，UNKNOWN mutation 永不自动重放。",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V4",
+      "summary": "必须由唯一 Browser Owner 先取得排他锁再绑定 canonical V2 journal，所有事件锁内持久追加；完整性失败持续 blocked，只有当前人类授权运行数据和 major law/schema，才可锁内逐字节封存旧文件、复核哈希并用唯一 receipt 建立一次 recovery genesis；旧历史退出当前证明域，UNKNOWN mutation 永不自动重放。",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V5",
       "tier": "P0"
     },
     {
@@ -4005,8 +4008,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 794,
-        "lineStart": 764,
+        "lineEnd": 797,
+        "lineStart": 767,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "cc193d7f3e27dd7059126fb022caaa583b98220d34357a457481cc5811783329"
       },
@@ -4072,8 +4075,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 822,
-        "lineStart": 796,
+        "lineEnd": 825,
+        "lineStart": 799,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "a43039bdea1cc79d1844511c74fa299120bb420551f53398491e584e291ee82d"
       },
@@ -4687,8 +4690,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 857,
-        "lineStart": 826,
+        "lineEnd": 860,
+        "lineStart": 829,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "8747614fa256230bffd554727a2b558fa83490ffe5aa98ed3d93068cd19a5d09"
       },
@@ -4754,8 +4757,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 885,
-        "lineStart": 859,
+        "lineEnd": 888,
+        "lineStart": 862,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "e3186e69c9f950663e5ea32d672691475d6af62399654f9410e902683b1a6878"
       },
@@ -4821,8 +4824,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 913,
-        "lineStart": 887,
+        "lineEnd": 916,
+        "lineStart": 890,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d21d700896cbc87150efee1567319160be95b38ae59123a849034f58be23ed6d"
       },
@@ -4917,8 +4920,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 956,
-        "lineStart": 917,
+        "lineEnd": 959,
+        "lineStart": 920,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "95851a700e445e98ef3b8d5e472e1c958109cea15c0a1b152b1186db56ddfc85"
       },
@@ -5009,8 +5012,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 993,
-        "lineStart": 958,
+        "lineEnd": 996,
+        "lineStart": 961,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "f65fda0e030c4113168df14ceb4eb69a5de9f2086edc5a0e8aee9fbc2c4a36b0"
       },
@@ -5091,8 +5094,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1035,
-        "lineStart": 997,
+        "lineEnd": 1038,
+        "lineStart": 1000,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "d783b2ff0e78d49129a6ba0bc5e40f53e3f33cb92beaaeffa5722d7d43fc0575"
       },
@@ -5164,8 +5167,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1071,
-        "lineStart": 1039,
+        "lineEnd": 1074,
+        "lineStart": 1042,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "5c5c4c64d1c81c6c3856be6b9eabe91e08cb5b742296429babf37abfc051d825"
       },
@@ -5401,8 +5404,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1137,
-        "lineStart": 1075,
+        "lineEnd": 1140,
+        "lineStart": 1078,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "17e390406028028fc21ebf4bdfd8a4300632721c8114a02a864febd90582f7e0"
       },
@@ -5471,8 +5474,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1171,
-        "lineStart": 1141,
+        "lineEnd": 1174,
+        "lineStart": 1144,
         "path": ".github/instructions/agent-rules/功能法案.md",
         "sectionSha256": "ec13ef1a709ffb3db1035222d7e2fab58d334ea17b0cbf6b89d17b0d9a27dd19"
       },

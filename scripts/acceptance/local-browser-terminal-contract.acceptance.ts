@@ -42,7 +42,7 @@ assert.equal(wire.length, 0, "an invalid pre-auth frame must not emit a reply fr
 assert.deepEqual(
   runtimeInitializationDisposition("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID"),
   {
-    actionableMessage: "Keep Browser execution and claim blocked and do not modify the journal. Obtain explicit runtime-data and major law/schema authorization for local-browser-session recovery; until then preserve the original file and remain blocked.",
+    actionableMessage: "Keep Browser execution and claim blocked. With current human runtime-data and major law/schema authorization, stop the Browser Owner and run the explicit browser:journal:recover command; otherwise preserve the original journal and remain blocked.",
     ownerResponsible: "local-browser-session",
   },
   "journal integrity failure must expose one safe Owner-specific recovery action without auto-repair",

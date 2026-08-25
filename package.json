@@ -9,6 +9,7 @@
   },
   "scripts": {
     "browser:verify": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
+    "browser:journal:recover": "node --import tsx src/lib/browser/exact-target/browser-proof-journal-recovery-cli.ts",
     "browser:protocol:generate": "node src/lib/browser/protocol/generate-browser-protocol.mjs",
     "browser:build": "npm run browser:protocol:generate && node src/lib/browser/chrome-extension/build.mjs",
     "build": "tsc -p tsconfig.json",

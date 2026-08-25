@@ -120,11 +120,11 @@ const serviceObservation=async():Promise<Readonly<{base:string;health:{status:nu
 const recentRecoveryObservation=():unknown=>{
   const journal=resolve('.grasseye-local/browser/proof-events.ndjson');
   const envelopes=readBrowserProofJournal(journal);
-  const cutoff=Date.now()-30*60*1000;
-  const revoked=envelopes.findIndex(({event})=>event.eventType==='LIFECYCLE'&&event.phase==='AUTHORITY_REVOKED'&&Date.parse(event.recordedAt)>=cutoff);
-  const recovered=revoked<0?undefined:envelopes.slice(revoked+1).find(({event})=>event.eventType==='LIFECYCLE'&&event.phase==='AUTHENTICATED');
-  if(!recovered)throw new Error('no recent durable revoke-to-authenticate recovery chain');
-  return{journal,revokedSequence:envelopes[revoked]!.sequence,recoveredSequence:recovered.sequence,observedAt:new Date().toISOString()};
+  const genesis=envelopes[0]?.event;
+  if(genesis?.eventType!=='RECOVERY'||genesis.phase!=='GENESIS'||envelopes.filter(({event})=>event.eventType==='RECOVERY').length!==1)throw new Error('canonical journal has no unique recovery genesis');
+  const archive=readFileSync(genesis.archivePath);const receipt=parseJson<Record<string,unknown>>(genesis.recoveryReceiptPath);
+  if(`sha256:${sha(archive)}`!==genesis.originalJournalSha256||receipt.recoveryId!==genesis.recoveryId||receipt.originalJournalSha256!==genesis.originalJournalSha256||receipt.archiveSha256!==genesis.originalJournalSha256)throw new Error('recovery archive or receipt is not bound to genesis');
+  return{journal,recoveryId:genesis.recoveryId,originalJournalSha256:genesis.originalJournalSha256,firstInvalidLine:genesis.firstInvalidLine,archivePath:genesis.archivePath,recoveryReceiptPath:genesis.recoveryReceiptPath,observedAt:new Date().toISOString()};
 };
 const xuanxueObservation=(request:ProofRequest):VerifiedXuanxueProof=>{
   const path=process.env.GRASSEYE_RELEASE_XUANXUE_REAL_CHROME_EVIDENCE?.trim();
@@ -144,7 +144,7 @@ const PROOF_OBSERVERS:Readonly<Record<string,ProofObserver>>=Object.freeze({
   'local.browser.session.001.v4.dynamic-browser.proof':localBrowserObserver('local.browser.session.001.v4.authenticated',(value)=>typeof value.extensionId==='string'&&Number.isInteger(value.authenticatedSequence)),
   'local.browser.session.002.v4.dynamic-browser.proof':localBrowserObserver('local.browser.session.002.v4.release-bound',(value)=>typeof value.candidateHash==='string'&&Number.isInteger(value.claimedSequence)),
   'local.browser.session.003.v6.dynamic-browser.proof':localBrowserObserver('local.browser.session.003.v6.exact-target',(value)=>Number(value.claimedSequence)>Number(value.authenticatedSequence)),
-  'local.browser.session.004.v5.dynamic-recovery.proof':async()=>({assertionId:'local.browser.session.004.v5.recovery-chain',locator:'.grasseye-local/browser/proof-events.ndjson',value:recentRecoveryObservation()}),
+  'local.browser.session.004.v6.dynamic-recovery.proof':async()=>({assertionId:'local.browser.session.004.v6.recovery-genesis',locator:'.grasseye-local/browser/proof-events.ndjson',value:recentRecoveryObservation()}),
   'local.browser.session.005.v4.dynamic-browser.proof':localBrowserObserver('local.browser.session.005.v4.command-complete',(value)=>Number(value.commandSequence)>Number(value.claimedSequence)),
   'local.browser.session.006.v2.dynamic-browser.proof':localBrowserObserver('local.browser.session.006.v2.revoked',(value)=>Number(value.revokedSequence)>Number(value.commandSequence)),
   'startup.entrypoint.001.v4.dynamic-service.proof':shellObserver('startup.entrypoint.001.v4.initialized',(snapshot)=>typeof object(snapshot.health.body).checkedAt==='string'&&Array.isArray(object(snapshot.health.body).components)),

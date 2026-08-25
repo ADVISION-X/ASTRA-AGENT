@@ -423,6 +423,40 @@ const inspectRealChromeProofRoute = (
   }
 };
 
+const inspectJournalRecoveryBoundary = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const recovery = requireSource(context, findings, lawId, sourcePaths[25]);
+  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
+  if (!recovery || !journal) return;
+  requireIdentifiers(recovery, [
+    "recoverBrowserProofJournal", "assertExclusiveOwner", "ensureExactSealedFile",
+    "originalJournalSha256", "firstInvalidLine", "recoveryReceiptPath", "renameSync",
+    "fsyncSync",
+  ], findings, lawId, "Journal recovery must be explicit, exclusive, sealed, hash-bound, receipted and atomically committed.");
+  requireIdentifiers(journal, [
+    "BrowserProofRecoveryEvent", "createBrowserRecoveryEnvelope", "recoveryCount",
+  ], findings, lawId, "The V2 canonical journal must admit exactly one typed recovery genesis.");
+  for (const literal of [
+    "grasseye.browser-proof-journal.v2",
+    "RECOVERY",
+    "GENESIS",
+    "BROWSER_JOURNAL_RECOVERY_NOT_AUTHORIZED",
+    "BROWSER_JOURNAL_RECOVERY_SOURCE_DRIFT",
+    "BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT",
+  ]) {
+    if ([...stringLiterals(recovery), ...stringLiterals(journal)].includes(literal)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/terminal-authority",
+      lawId,
+      filePath: sourcePaths[25],
+      message: `The journal recovery boundary must retain ${literal}.`,
+    }));
+  }
+};
+
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const findings: InspectorFinding[] = [];
@@ -448,8 +482,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectSingleTransport(context, findings, lawId);
   const workspaceLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   inspectOperatorAdmission(context, findings, workspaceLawId);
-  inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V5"));
-  inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V5"));
+  inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
+  inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
+  inspectJournalRecoveryBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
   inspectAuthenticatedRuntimeRegressionGuards(context, findings);
   inspectRealChromeProofRoute(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));

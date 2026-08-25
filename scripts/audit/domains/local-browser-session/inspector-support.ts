@@ -9,7 +9,7 @@ export const createLocalFinding = (input: Parameters<typeof createFinding>[0]): 
   createFinding({ ...input, clauseId: input.clauseId ?? `${input.lawId.toLowerCase()}-requirement` });
 
 export const lawPath = ".github/instructions/agent-rules/功能法案.md";
-export const blueprintPath = "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md";
+export const blueprintPath = "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md";
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
 
@@ -39,6 +39,7 @@ export const sourcePaths = [
   "src/lib/browser/chrome-extension/extension-heartbeat.ts",
   "src/lib/browser/chrome-extension/pairing-completion-gate.ts",
   "scripts/acceptance/local-browser.real-chrome.ts",
+  "src/lib/browser/exact-target/browser-proof-journal-recovery.ts",
 ] as const;
 
 export const retiredPaths = [
