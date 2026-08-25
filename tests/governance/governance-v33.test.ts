@@ -95,6 +95,7 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
     const repository = resolve(temporary, 'repo');
     try {
       execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+      writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
       const target = resolve(repository, mutation.path);
       writeFileSync(target, mutation.mutate(readFileSync(target, 'utf8')));
