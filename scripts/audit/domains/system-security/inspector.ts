@@ -142,11 +142,14 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = evaluate(context);
   const findings = evaluation.findings.filter((finding) => finding.lawId === LAW_ID);
   const passed = findings.length === 0;
-  const assertions = ["static.ast", "static.config", "static.contract", "static.dependency", "static.types"].map((evidenceMode) => ({
-    clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, LAW_ID, evidenceMode),
-  }));
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId: LAW_ID, assertions, findings }], inspectedFiles: evaluation.inspectedFiles,
+    lawResults: [{ lawId: LAW_ID, assertions: [
+      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.config", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.config") },
+      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.contract") },
+      { clauses: staticClauses(), evidenceMode: "static.dependency", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.dependency") },
+      { clauses: staticClauses(), evidenceMode: "static.types", passed, refs: staticEvidenceRefs(context, LAW_ID, "static.types") },
+    ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

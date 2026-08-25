@@ -477,23 +477,24 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawResults = [
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", ast: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), contract: true },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", ast: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), contract: true },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", ast: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), contract: true },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", ast: staticClauses(10, 11, 12, 13, 14, 15), contract: false },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", ast: staticClauses(0, 1, 2, 3, 4), contract: true },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V3", ast: staticClauses(0), contract: true },
-  ].map(({ lawId, ast, contract }) => {
+  const lawResult = (lawId: string, astClauses: string[], hasContract = true) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const passed = findings.length === 0;
-    return { lawId, assertions: [
-      { clauses: ast, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
-      ...(contract ? [{ clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") }] : []),
-    ], findings };
-  });
+    const assertions = [{ clauses: astClauses, evidenceMode: "static.ast", passed,
+      refs: staticEvidenceRefs(context, lawId, "static.ast") }];
+    if (hasContract) assertions.push({ clauses: staticClauses(), evidenceMode: "static.contract", passed,
+      refs: staticEvidenceRefs(context, lawId, "static.contract") });
+    return { lawId, assertions, findings };
+  };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults, inspectedFiles: evaluation.inspectedFiles,
+    lawResults: [
+      lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-002-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-004-V8", staticClauses(10, 11, 12, 13, 14, 15), false),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-005-V4", staticClauses(0, 1, 2, 3, 4)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-006-V3", staticClauses(0)),
+    ], inspectedFiles: evaluation.inspectedFiles,
   });
 };

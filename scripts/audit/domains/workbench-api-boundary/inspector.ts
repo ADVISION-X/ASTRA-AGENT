@@ -356,11 +356,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   const passed = findings.length === 0;
   return validateStaticInspection(context, {
-    capabilityDomain: evaluation.capabilityDomain,
-    reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId, assertions: ["static.ast", "static.contract"].map((evidenceMode) => ({
-      clauses: staticClauses(), evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
-    })), findings }],
-    inspectedFiles: evaluation.inspectedFiles,
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: [
+      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
+    ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };

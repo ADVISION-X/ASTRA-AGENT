@@ -235,18 +235,19 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
-  const lawResults = [
-    { lawId: LAW_SHELL, modes: [{ evidenceMode: "static.ast", clauses: staticClauses(4, 7, 8) }, { evidenceMode: "static.contract", clauses: staticClauses() }] },
-    { lawId: LAW_BOUNDARY, modes: [{ evidenceMode: "static.ast", clauses: staticClauses() }] },
-    { lawId: LAW_STATUS, modes: [{ evidenceMode: "static.ast", clauses: staticClauses(0, 1) }] },
-  ].map(({ lawId, modes }) => {
+  const lawResult = (lawId: string, clausesByMode: Readonly<Record<string, string[]>>) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-    return { lawId, assertions: modes.map(({ evidenceMode, clauses }) => ({
-      clauses, evidenceMode, passed: findings.length === 0, refs: staticEvidenceRefs(context, lawId, evidenceMode),
+    const passed = findings.length === 0;
+    return { lawId, assertions: Object.entries(clausesByMode).map(([evidenceMode, clauses]) => ({
+      clauses, evidenceMode, passed, refs: staticEvidenceRefs(context, lawId, evidenceMode),
     })), findings };
-  });
+  };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults, inspectedFiles: evaluation.inspectedFiles,
+    lawResults: [
+      lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses() }),
+      lawResult(LAW_BOUNDARY, { "static.ast": staticClauses() }),
+      lawResult(LAW_STATUS, { "static.ast": staticClauses(0, 1) }),
+    ], inspectedFiles: evaluation.inspectedFiles,
   });
 };

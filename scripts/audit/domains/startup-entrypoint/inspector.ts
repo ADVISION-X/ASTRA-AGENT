@@ -192,20 +192,18 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  const evaluation = await inspectDomainEvaluation(context);
-  const lawResults = [
-    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", ast: staticClauses(11) },
-    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", ast: staticClauses(0) },
-  ].map(({ lawId, ast }) => {
+  const evaluation = inspectDomainEvaluation(context);
+  const lawResult = (lawId: string, astClauses: string[]) => {
     const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
     const passed = findings.length === 0;
     return { lawId, assertions: [
-      { clauses: ast, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+      { clauses: astClauses, evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
       { clauses: staticClauses(), evidenceMode: "static.contract", passed, refs: staticEvidenceRefs(context, lawId, "static.contract") },
     ], findings };
-  });
+  };
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults, inspectedFiles: evaluation.inspectedFiles,
+    lawResults: [lawResult("LAW-STARTUP-ENTRYPOINT-001-V4", staticClauses(11)),
+      lawResult("LAW-STARTUP-ENTRYPOINT-002-V1", staticClauses(0))], inspectedFiles: evaluation.inspectedFiles,
   });
 };

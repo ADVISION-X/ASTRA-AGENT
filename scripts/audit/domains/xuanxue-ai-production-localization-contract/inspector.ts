@@ -138,13 +138,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
+  const passed = findings.length === 0;
   return validateStaticInspection(context, {
-    capabilityDomain: evaluation.capabilityDomain,
-    reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId, assertions: [{
-      clauses: staticClauses(), evidenceMode: "static.ast", passed: findings.length === 0,
-      refs: staticEvidenceRefs(context, lawId, "static.ast"),
-    }], findings }],
-    inspectedFiles: evaluation.inspectedFiles,
+    capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId, assertions: [
+      { clauses: staticClauses(), evidenceMode: "static.ast", passed, refs: staticEvidenceRefs(context, lawId, "static.ast") },
+    ], findings }], inspectedFiles: evaluation.inspectedFiles,
   });
 };
