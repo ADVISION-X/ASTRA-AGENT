@@ -8,12 +8,24 @@ import { canonicalBytes } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
-import type { InspectorFinding, SessionInspectorOutput } from "./inspector-contracts.js";
+import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 
 type TargetSet = { queryRef: string; count: number; sha256: string };
-type StaticRun = { domain: string; findings: InspectorFinding[]; inspectorPath: string; targetSet: TargetSet };
+type ProofResult = { assertions: QualityAssertion[]; findings: QualityFinding[] };
+type ProofRoute = { law: Law; mode: string };
+type ProofResultInput = {
+  kind: "exam" | "dynamic"; routes: ProofRoute[]; path: string; digest: string;
+  locator: string; observedValue: string; passed: boolean; executionStatus: number | null;
+};
 type Dependency = { contractId: string; providerRepo: string; version: number };
 type BoundParticipant = { path: string; report: QualityParticipant };
+type QualityRunContext = {
+  candidate: string;
+  laws: Law[];
+  registry: Registry;
+  runDirectory: string;
+  reportLevel: "READY" | "RELEASE";
+};
 const byteCompare = (left: string, right: string): number => Buffer.compare(Buffer.from(left), Buffer.from(right));
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort(byteCompare);
 const matches = (pattern: string, path: string): boolean => pattern === "**/*" || pattern === path
@@ -61,8 +73,28 @@ const dynamicScripts: Record<string, Partial<Record<string, string>>> = {
   },
 };
 
+const proofMarkers: Record<string, string> = {
+  "acceptance:ai-input-gateway": "[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS",
+  "acceptance:app-shell-ui": "[ACCEPTANCE][app-shell-skill-registry] PASS",
+  "acceptance:architecture-active-plugin-mediators": "architecture-active-plugin-mediators-acceptance-ok",
+  "acceptance:code-purity-zombie-deep": "code-purity-zombie-deep-acceptance-ok",
+  "acceptance:forensics-persistence-capability": "[ACCEPTANCE] forensics-persistence-capability PASS",
+  "acceptance:local-app-shell": "local-app-shell-acceptance-ok",
+  "acceptance:local-browser-terminal": "LOCAL_RUNTIME_BROWSER_AUTHORITY_ACCEPTANCE_PASS",
+  "acceptance:runtime-log-spine": "runtime-log-spine-ast-anti-escape-acceptance-ok",
+  "acceptance:startup-entrypoint": "startup initialization health acceptance: PASS",
+  "acceptance:system-security": "system-security-acceptance-ok",
+  "acceptance:xuanxue-ai-production": "[ACCEPTANCE][XUANXUE-AI-PRODUCTION-CLOUD-ATTESTATION-V6] PASS",
+  "acceptance:xuanxue-ai-production-localization-contract": "[ACCEPTANCE] localization generated projection PASS",
+  "acceptance:app-shell-ui:real-chrome": "[ACCEPTANCE][APP-SHELL-UI][REAL-CHROME-PHYSICAL-CLEANUP]",
+  "acceptance:local-browser-real-chrome": "\"status\":\"CHROME_VERIFIED\"",
+  "proof:local-browser-journal-recovery": "\"status\":\"RECOVERY_VERIFIED\"",
+  "acceptance:xuanxue-ai-production:real-chrome": "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-CHROME-V6]",
+  "acceptance:xuanxue-ai-production:real-proof-verify": "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]",
+};
+
 export const dynamicScriptFor = (domain: string, mode: string): string =>
-  dynamicScripts[domain]?.[mode] ?? fail("PROJECT_CHECK_MISSING", `${domain}:${mode}`);
+  dynamicScripts[domain]?.[mode] ?? fail("RELEASE_EVIDENCE_MISSING", `${domain}:${mode}`);
 
 const consumerDependencies = (): Dependency[] => repositoryPaths()
   .filter((path) => path.startsWith("docs/specs/") && path.endsWith(".json"))
@@ -83,7 +115,7 @@ const participantPath = (repo: string): string => {
     if (typeof paths[repo] === "string") return resolve(paths[repo]);
   }
   if (repo === "ADVISION-X/xuanxue-web") return resolve(process.env.XUANXUE_WEBSITE_REPOSITORY?.trim() || "/Users/nexgen/Documents/xuanxue-web");
-  return fail("RELEASE_PARTICIPANT_MISSING", repo);
+  return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", repo);
 };
 
 const gitAt = (path: string, args: string[]): string => execFileSync("git", args, {
@@ -106,6 +138,14 @@ const providerContracts = (path: string, commit: string): Array<Dependency & { s
   });
 };
 
+export const assertExactProviderContract = (
+  repo: string, dependency: Dependency, available: readonly Dependency[],
+): void => {
+  const matches = available.filter((contract) => contract.providerRepo === repo
+    && contract.contractId === dependency.contractId && contract.version === dependency.version);
+  if (matches.length !== 1) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${dependency.contractId}:${dependency.version}`);
+};
+
 const bindReleaseParticipants = (): BoundParticipant[] => {
   const grouped = new Map<string, Dependency[]>();
   for (const dependency of consumerDependencies()) grouped.set(dependency.providerRepo, [
@@ -113,15 +153,11 @@ const bindReleaseParticipants = (): BoundParticipant[] => {
   ]);
   return [...grouped.entries()].sort(([left], [right]) => byteCompare(left, right)).map(([repo, dependencies]) => {
     const dependencySignatures = dependencies.map((dependency) => `${dependency.contractId}\0${dependency.version}`);
-    if (dependencySignatures.length !== new Set(dependencySignatures).size) fail("RELEASE_PARTICIPANT_CONTRACT_INVALID", `${repo}:duplicate`);
+    if (dependencySignatures.length !== new Set(dependencySignatures).size) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:duplicate`);
     const path = participantPath(repo);
     const gitCommit = gitAt(path, ["rev-parse", "HEAD"]);
     const available = providerContracts(path, gitCommit);
-    for (const dependency of dependencies) {
-      const matches = available.filter((contract) => contract.providerRepo === repo
-        && contract.contractId === dependency.contractId && contract.version === dependency.version);
-      if (matches.length !== 1) fail("RELEASE_PARTICIPANT_CONTRACT_INVALID", `${repo}:${dependency.contractId}:${dependency.version}`);
-    }
+    for (const dependency of dependencies) assertExactProviderContract(repo, dependency, available);
     const contracts = ordered(dependencySignatures).map((signature) => {
       const [contractId, version] = signature.split("\0");
       return { contractId: contractId!, version: Number(version) };
@@ -137,12 +173,6 @@ const assertParticipantCommits = (participants: readonly BoundParticipant[]): vo
 };
 
 const inspectorPath = (domain: string): string => `scripts/audit/domains/${domain}/inspector.ts`;
-const modeKind = (mode: string): string => ({
-  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
-  "static.contract": "config", "static.dependency": "dependency", "static.config": "config",
-  "static.json": "json", "static.yaml": "yaml", "static.sql": "sql", "static.migration": "file",
-}[mode] ?? "file");
-
 export const computeTargetPaths = (law: Law, registry: Registry): string[] => {
   const manifest = registry.domains.find((domain) => domain.capabilityDomain === law.capabilityDomain)
     ?? fail("ACTIVE_LAW_DENOMINATOR_MISMATCH", law.capabilityDomain);
@@ -152,7 +182,7 @@ export const computeTargetPaths = (law: Law, registry: Registry): string[] => {
     ...law.contractRefs,
   ]);
   for (const path of paths) if (![...manifest.ownedPaths, ...manifest.observedPaths].some((pattern) => matches(pattern, path))) {
-    fail("UNOWNED_PRODUCTION_FILE", `${law.lawId}:${path}`);
+    fail("TARGET_OUTSIDE_DOMAIN_AUTHORITY", `${law.lawId}:${path}`);
   }
   return paths;
 };
@@ -173,22 +203,37 @@ const copyTargets = (paths: readonly string[], runDirectory: string, domain: str
   return root;
 };
 
-const parseInspectorOutput = (stdout: string, domain: string): SessionInspectorOutput => {
+export const parseInspectorOutput = (stdout: string, domain: string): SessionInspectorOutput => {
   const line = stdout.split("\n").find((current) => current.startsWith("GOVERNANCE_INSPECTOR_RESULT "));
-  if (!line) fail("INSPECTOR_OUTPUT_INVALID", domain);
+  if (!line) fail("CHECK_EXECUTION_FAILED", `${domain}:missing inspector output`);
   try { return JSON.parse(line!.slice("GOVERNANCE_INSPECTOR_RESULT ".length)) as SessionInspectorOutput; }
-  catch { return fail("INSPECTOR_OUTPUT_INVALID", domain); }
+  catch { return fail("CHECK_EXECUTION_FAILED", `${domain}:invalid inspector output`); }
 };
 
 const runStaticDomain = (
   domain: string,
-  law: Law,
-  paths: string[],
+  laws: Law[],
+  targetPathsByLaw: ReadonlyMap<string, string[]>,
   runDirectory: string,
-): StaticRun => {
+  level: "READY" | "RELEASE",
+): LawExecutionResult[] => {
+  const paths = ordered(laws.flatMap((law) => targetPathsByLaw.get(law.lawId) ?? []));
   const sealedRoot = copyTargets(paths, runDirectory, domain);
-  const requestPath = resolve(runDirectory, `${domain}-${sha(law.lawId).slice(0, 12)}.inspection-request.json`);
-  const request = { capabilityDomain: domain, lawIds: [law.lawId], ownerInspectorPath: inspectorPath(domain), sealedRoot, targetPaths: paths, targetSet: targetSet(law.lawId, paths) };
+  const requestPath = resolve(runDirectory, `${domain}.inspection-request.json`);
+  const request = {
+    capabilityDomain: domain,
+    laws: laws.map((law) => {
+      const lawPaths = targetPathsByLaw.get(law.lawId) ?? [];
+      return {
+        lawId: law.lawId,
+        clausesByMode: Object.fromEntries(law.evidenceModes.filter((mode) => mode.startsWith("static."))
+          .map((mode) => [mode, clausesForEvidenceMode(law, requiredModes(law, level), mode)])),
+        targetPaths: lawPaths,
+        targetSet: targetSet(law.lawId, lawPaths),
+      };
+    }),
+    ownerInspectorPath: inspectorPath(domain), sealedRoot, targetPaths: paths,
+  };
   writeFileSync(requestPath, canonicalBytes(request), { mode: 0o600 });
   const worker = resolve(ROOT, "scripts/audit/shared/quality-inspector-worker.ts");
   if (runInspectionWorker.name !== "runInspectionWorker") fail("INSPECTOR_WORKER_INVALID", worker);
@@ -202,87 +247,88 @@ const runStaticDomain = (
   });
   if (execution.status !== 0) {
     process.stderr.write(execution.stderr || execution.stdout || `${domain} inspector failed\n`);
-    return { domain, findings: [{ checkId: "quality/inspector-exception", lawId: law.lawId, clauseId: "summary", message: "Inspector process failed.", severity: "fatal", evidence: inspectorPath(domain) }], inspectorPath: inspectorPath(domain), targetSet: request.targetSet };
+    fail("CHECK_EXECUTION_FAILED", `${domain}:static-inspector`);
   }
   const output = parseInspectorOutput(execution.stdout, domain);
-  if (output.capabilityDomain !== domain || JSON.stringify(output.reportedLawIds) !== JSON.stringify([law.lawId])) {
-    fail("LAW_DENOMINATOR_MISMATCH", `${domain}:${law.lawId}`);
+  const lawIds = laws.map((law) => law.lawId);
+  if (output.capabilityDomain !== domain || JSON.stringify(output.reportedLawIds) !== JSON.stringify(lawIds)) {
+    fail("LAW_DENOMINATOR_MISSING", domain);
   }
-  const expectedExecuted = [{ lawId: law.lawId, clauseId: `${law.lawId.toLowerCase()}-requirement`, checkId: `${domain}/owner-assertion-set` }];
-  if (JSON.stringify(output.executedChecks) !== JSON.stringify(expectedExecuted) || output.checkRuns.length !== 1) {
-    fail("INSPECTOR_OUTPUT_INVALID", `${domain}:${law.lawId}:execution receipt`);
+  if (output.lawResults.length !== laws.length || !output.checkRuns.length) {
+    fail("LAW_DENOMINATOR_MISSING", `${domain}:execution receipt`);
   }
   const allowed = new Set(paths);
   const escaped = output.inspectedFiles.filter((path) => !allowed.has(path));
-  if (escaped.length) fail("INSPECTOR_SCOPE_ESCAPE", `${domain}:${escaped.join(",")}`);
-  const unknownFinding = output.findings.find((finding) => finding.lawId !== law.lawId);
-  if (unknownFinding) fail("LAW_RESULT_INVALID", `${domain}:${unknownFinding.lawId}`);
-  return { domain, findings: [...output.findings], inspectorPath: inspectorPath(domain), targetSet: request.targetSet };
+  if (escaped.length) fail("TARGET_OUTSIDE_DOMAIN_AUTHORITY", `${domain}:${escaped.join(",")}`);
+  const unknownFinding = output.lawResults.flatMap((result) => result.findings).find((finding) => !lawIds.includes(finding.lawId));
+  if (unknownFinding) fail("LAW_DENOMINATOR_MISSING", `${domain}:${unknownFinding.lawId}`);
+  return output.lawResults.map(staticLawResult);
 };
-
-const staticAssertions = (law: Law, run: StaticRun, level: "READY" | "RELEASE"): QualityAssertion[] => law.evidenceModes
-  .filter((mode) => mode.startsWith("static."))
-  .map((mode) => ({ clauses: clausesForEvidenceMode(law, requiredModes(law, level), mode), evidenceMode: mode, passed: run.findings.length === 0, refs: ordered([
-    `${modeKind(mode)}:${run.inspectorPath}#inspectDomain`,
-    `scope:${law.lawId}#appliesTo-minus-excludes`,
-  ]) }));
 
 const findingCode = (finding: InspectorFinding): string => `STATIC_${finding.checkId.replace(/[^A-Za-z0-9]+/gu, "_").toUpperCase()}`.replace(/_+$/u, "");
-const staticFindings = (law: Law, run: StaticRun): QualityFinding[] => run.findings.map((finding) => ({
-  code: findingCode(finding),
-  evidenceRefs: ordered([`${finding.filePath ? "file:" + finding.filePath : "ast:" + run.inspectorPath}#${encodeURIComponent(finding.checkId)}`]),
-}));
+const staticLawResult = (result: InspectorLawResult): LawExecutionResult => ({
+  lawId: result.lawId,
+  assertions: result.assertions.map((assertion) => ({ ...assertion, clauses: [...assertion.clauses], refs: ordered(assertion.refs) })),
+  findings: result.findings.map((finding) => ({
+    code: findingCode(finding),
+    evidenceRefs: ordered([`${finding.filePath ? "file:" + finding.filePath : "ast:scripts/audit/shared/quality-inspector-worker.ts"}#${encodeURIComponent(finding.checkId)}`]),
+  })),
+});
 
-const examReceipt = (domain: string, script: string, runDirectory: string, candidate: string): { passed: boolean; ref: string; code: string } => {
-  const startedAt = new Date().toISOString();
-  const before = candidateSnapshot();
-  const timeoutMs = 300_000;
-  const execution = spawnSync("npm", ["run", script], { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: timeoutMs, env: process.env });
-  const after = candidateSnapshot();
-  if (before !== after || after !== candidate) fail("CANDIDATE_DRIFT", script);
-  const path = resolve(runDirectory, `${domain}.exam.json`);
-  const receipt = { schemaVersion: 1, candidate, command: `npm run ${script}`, seed: "repository-deterministic", timeoutMs,
-    startedAt, finishedAt: new Date().toISOString(), exitStatus: execution.status, signal: execution.signal ?? null,
-    stdoutSha256: sha(execution.stdout ?? ""), stderrSha256: sha(execution.stderr ?? "") };
-  writeFileSync(path, canonicalBytes(receipt), { mode: 0o600 });
-  const digest = sha(readFileSync(path));
-  const selector = encodeURIComponent(`command=npm run ${script};timeoutMs=${timeoutMs};exitStatus=${execution.status ?? "null"}`);
-  const passed = execution.status === 0;
-  if (!passed) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
-  return { passed, ref: `exam:${path}#${selector}@${digest}`, code: execution.error?.name === "Error" ? "EXAM_EXECUTION_ERROR" : "EXAM_FAILED" };
+const lastObservation = (stdout: string): string => stdout.split("\n").map((line) => line.trim()).filter(Boolean).at(-1) ?? "";
+export const assertCandidateStable = (expected: string, actual: string, label: string): void => {
+  if (actual !== expected) fail("CANDIDATE_DRIFT", label);
+};
+const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
+  const results = new Map<string, ProofResult>();
+  for (const { law, mode } of input.routes) {
+    const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};locator=${input.locator};observed=${input.observedValue}`);
+    const ref = `${input.kind}:${input.path}#${selector}@${input.digest}`;
+    const current = results.get(law.lawId) ?? { assertions: [], findings: [] };
+    current.assertions.push({
+      clauses: clausesForEvidenceMode(law, requiredModes(law, input.kind === "exam" ? "READY" : "RELEASE"), mode),
+      evidenceMode: mode, passed: input.passed, refs: [ref],
+    });
+    if (!input.passed) current.findings.push({ code: input.executionStatus === 0 ? "EMPTY_EVIDENCE_REFS" : "CHECK_EXECUTION_FAILED", evidenceRefs: [ref] });
+    results.set(law.lawId, current);
+  }
+  return results;
 };
 
-const dynamicReceipt = (
-  script: string,
-  runDirectory: string,
-  candidate: string,
-): { passed: boolean; ref: string; code: string } => {
+const commandReceipt = (
+  kind: "exam" | "dynamic", domain: string, script: string, routes: ProofRoute[],
+  runDirectory: string, candidate: string,
+): Map<string, ProofResult> => {
   const startedAt = new Date().toISOString();
   const before = candidateSnapshot();
-  const timeoutMs = 900_000;
-  const execution = spawnSync("npm", ["run", script], {
-    cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: timeoutMs, env: process.env,
-  });
+  const timeoutMs = kind === "exam" ? 300_000 : 900_000;
+  const execution = spawnSync("npm", ["run", script], { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: timeoutMs, env: process.env });
   const after = candidateSnapshot();
-  if (before !== after || after !== candidate) fail("CANDIDATE_DRIFT", script);
-  const token = sha(script).slice(0, 12);
-  const stdoutPath = resolve(runDirectory, `dynamic-${token}.stdout.txt`);
-  const stderrPath = resolve(runDirectory, `dynamic-${token}.stderr.txt`);
+  assertCandidateStable(before, after, script);
+  assertCandidateStable(candidate, after, script);
+  const token = sha(`${kind}:${script}`).slice(0, 12);
+  const stdoutPath = resolve(runDirectory, `${kind}-${token}.stdout.txt`);
+  const stderrPath = resolve(runDirectory, `${kind}-${token}.stderr.txt`);
   writeFileSync(stdoutPath, execution.stdout ?? "", { mode: 0o600 });
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
-  const path = resolve(runDirectory, `dynamic-${token}.receipt.json`);
+  const marker = proofMarkers[script] ?? fail("LAW_EVIDENCE_MISSING", `${script}:semantic marker`);
+  const locator = `stdout:contains:${marker}`;
+  const lastOutput = lastObservation(execution.stdout ?? "");
+  const observedValue = (execution.stdout ?? "").includes(marker) ? marker : lastOutput;
+  const passed = execution.status === 0 && observedValue === marker && execution.signal === null;
+  const path = resolve(runDirectory, `${kind}-${token}.receipt.json`);
   const receipt = {
-    schemaVersion: 1, candidate, command: `npm run ${script}`, timeoutMs, startedAt,
+    schemaVersion: 2, kind, candidate, command: `npm run ${script}`, timeoutMs, startedAt,
     finishedAt: new Date().toISOString(), exitStatus: execution.status, signal: execution.signal ?? null,
     stdoutPath, stdoutSha256: sha(readFileSync(stdoutPath)), stderrPath, stderrSha256: sha(readFileSync(stderrPath)),
+    observations: routes.map(({ law, mode }) => ({ lawId: law.lawId, evidenceMode: mode,
+      locator, observedValue, passed })),
+    cleanup: { processExited: execution.signal === null, temporaryEvidenceExternal: path.startsWith(resolve(tmpdir())) },
   };
   writeFileSync(path, canonicalBytes(receipt), { mode: 0o600 });
   const digest = sha(readFileSync(path));
-  const outputPresent = Boolean((execution.stdout ?? "").trim());
-  const passed = execution.status === 0 && outputPresent;
   if (!passed) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
-  const selector = encodeURIComponent(`command=npm run ${script};timeoutMs=${timeoutMs};exitStatus=${execution.status ?? "null"}`);
-  return { passed, ref: `dynamic:${path}#${selector}@${digest}`, code: execution.error ? "DYNAMIC_EXECUTION_ERROR" : outputPresent ? "DYNAMIC_PROOF_FAILED" : "DYNAMIC_OUTPUT_INVALID" };
+  return proofResults({ kind, routes, path, digest, locator, observedValue, passed, executionStatus: execution.status });
 };
 
 const outputDirectory = (): string => {
@@ -296,6 +342,48 @@ const outputDirectory = (): string => {
   return mkdtempSync(resolve(tmpdir(), "grasseye-quality-"));
 };
 
+const addProofs = (resultsByLaw: Map<string, LawExecutionResult>, proofs: ReadonlyMap<string, ProofResult>): void => {
+  for (const [lawId, proof] of proofs) {
+    const current = resultsByLaw.get(lawId) ?? fail("LAW_DENOMINATOR_MISSING", lawId);
+    current.assertions.push(...proof.assertions);
+    current.findings.push(...proof.findings);
+  }
+};
+
+const staticResults = (context: QualityRunContext): Map<string, LawExecutionResult> => {
+  const targets = new Map(context.laws.map((law) => [law.lawId, computeTargetPaths(law, context.registry)]));
+  const resultsByLaw = new Map<string, LawExecutionResult>();
+  for (const domain of context.registry.domains) {
+    const domainLaws = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain);
+    for (const result of runStaticDomain(domain.capabilityDomain, domainLaws, targets, context.runDirectory, context.reportLevel)) {
+      if (resultsByLaw.has(result.lawId)) fail("LAW_EVIDENCE_DUPLICATE", result.lawId);
+      resultsByLaw.set(result.lawId, result);
+    }
+    assertCandidateStable(context.candidate, candidateSnapshot(), domain.capabilityDomain);
+  }
+  return resultsByLaw;
+};
+
+const runExamProofs = (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): void => {
+  for (const domain of context.registry.domains) {
+    const routes = context.laws.filter((law) => law.capabilityDomain === domain.capabilityDomain)
+      .flatMap((law) => law.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => ({ law, mode })));
+    if (!routes.length) continue;
+    const script = examScripts[domain.capabilityDomain] ?? fail("LAW_EVIDENCE_MISSING", `${domain.capabilityDomain}:exam`);
+    addProofs(resultsByLaw, commandReceipt("exam", domain.capabilityDomain, script, routes, context.runDirectory, context.candidate));
+  }
+};
+
+const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, LawExecutionResult>): void => {
+  const routesByScript = new Map<string, ProofRoute[]>();
+  for (const law of context.laws) for (const mode of law.evidenceModes.filter((current) => current.startsWith("dynamic."))) {
+    const script = dynamicScriptFor(law.capabilityDomain, mode);
+    routesByScript.set(script, [...(routesByScript.get(script) ?? []), { law, mode }]);
+  }
+  for (const [script, routes] of routesByScript) addProofs(resultsByLaw,
+    commandReceipt("dynamic", routes[0]!.law.capabilityDomain, script, routes, context.runDirectory, context.candidate));
+};
+
 export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {
   if (level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "full quality requires READY or RELEASE");
   const registry = buildRegistry();
@@ -304,39 +392,12 @@ export const runFullQuality = async (level: Level): Promise<{ reportPath: string
   const commit = gitCommit();
   const runDirectory = outputDirectory();
   const boundParticipants = level === "RELEASE" ? bindReleaseParticipants() : [];
-  const staticRuns = new Map<string, StaticRun>();
-  for (const law of laws) {
-    const paths = computeTargetPaths(law, registry);
-    const run = runStaticDomain(law.capabilityDomain, law, paths, runDirectory);
-    staticRuns.set(law.lawId, run);
-    if (candidateSnapshot() !== candidate) fail("CANDIDATE_DRIFT", law.lawId);
-  }
-  const exams = new Map<string, ReturnType<typeof examReceipt>>();
-  for (const domain of registry.domains) if (laws.some((law) => law.capabilityDomain === domain.capabilityDomain && law.evidenceModes.some((mode) => mode.startsWith("exam.")))) {
-    const script = examScripts[domain.capabilityDomain] ?? fail("PROJECT_CHECK_MISSING", `${domain.capabilityDomain}:exam`);
-    exams.set(domain.capabilityDomain, examReceipt(domain.capabilityDomain, script, runDirectory, candidate));
-  }
-  const dynamics = new Map<string, ReturnType<typeof dynamicReceipt>>();
-  if (level === "RELEASE") for (const law of laws) for (const mode of law.evidenceModes.filter((current) => current.startsWith("dynamic."))) {
-    const script = dynamicScriptFor(law.capabilityDomain, mode);
-    if (!dynamics.has(script)) dynamics.set(script, dynamicReceipt(script, runDirectory, candidate));
-  }
-  const results: LawExecutionResult[] = laws.map((law) => {
-    const run = staticRuns.get(law.lawId) ?? fail("PROJECT_CHECK_MISSING", `${law.lawId}:static`);
-    const exam = exams.get(law.capabilityDomain);
-    const reportLevel = level === "READY" ? "READY" : "RELEASE";
-    const assertions = [...staticAssertions(law, run, reportLevel), ...law.evidenceModes.filter((mode) => mode.startsWith("exam.")).map((mode) => ({
-      clauses: clausesForEvidenceMode(law, requiredModes(law, reportLevel), mode), evidenceMode: mode, passed: exam?.passed ?? false, refs: [exam?.ref ?? `exam:package.json#${encodeURIComponent(examScripts[law.capabilityDomain] ?? "missing")}`],
-    }))];
-    const findings = [...staticFindings(law, run), ...(exam && !exam.passed ? [{ code: exam.code, evidenceRefs: [exam.ref] }] : [])];
-    if (level === "RELEASE") for (const mode of law.evidenceModes.filter((current) => current.startsWith("dynamic."))) {
-      const proof = dynamics.get(dynamicScriptFor(law.capabilityDomain, mode)) ?? fail("PROJECT_CHECK_MISSING", `${law.lawId}:${mode}`);
-      assertions.push({ clauses: clausesForEvidenceMode(law, requiredModes(law, reportLevel), mode), evidenceMode: mode, passed: proof.passed, refs: [proof.ref] });
-      if (!proof.passed) findings.push({ code: proof.code, evidenceRefs: [proof.ref] });
-    }
-    return { lawId: law.lawId, assertions, findings };
-  });
-  if (candidateSnapshot() !== candidate) fail("CANDIDATE_DRIFT", level);
+  const context: QualityRunContext = { candidate, laws, registry, runDirectory, reportLevel: level === "READY" ? "READY" : "RELEASE" };
+  const resultsByLaw = staticResults(context);
+  runExamProofs(context, resultsByLaw);
+  if (level === "RELEASE") runDynamicProofs(context, resultsByLaw);
+  const results = laws.map((law) => resultsByLaw.get(law.lawId) ?? fail("LAW_DENOMINATOR_MISSING", law.lawId));
+  assertCandidateStable(candidate, candidateSnapshot(), level);
   assertParticipantCommits(boundParticipants);
   const report = buildQualityReport({
     level, gitCommit: commit, laws, results,

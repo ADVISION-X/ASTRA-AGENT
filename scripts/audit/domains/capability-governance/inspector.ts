@@ -1,7 +1,7 @@
 import type { ImportDeclaration, Node as MorphNode, Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
@@ -14,10 +14,7 @@ import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-fi
 import {
   resolveCapabilityFacadePolicy,
 } from "./components/capability-source-of-truth.js";
-import {
-  buildCapabilityGovernanceReportJson,
-  pushCapabilitySourceOfTruthFindings,
-} from "./components/capability-governance-report.js";
+import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 
 type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
@@ -288,7 +285,7 @@ const inspectSourceFile = (
 
 
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const admissionLawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V1");
   const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V1");
   const findings: ReturnType<typeof createFinding>[] = [];
@@ -300,7 +297,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   });
 
   const authorityAvailable=context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")&&context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
-  const sourceOfTruth = authorityAvailable?pushCapabilitySourceOfTruthFindings({admissionLawId,actualCapabilityRoots:scan.capabilityRoots,pushFinding}):{blueprintDeclaredAbilities:[],lawActiveCapabilityRoots:[],lawInfrastructureRoots:[]};
+  if (authorityAvailable) pushCapabilitySourceOfTruthFindings({admissionLawId,actualCapabilityRoots:scan.capabilityRoots,pushFinding});
   pushMissingCapabilityFacades({
     capabilityFacades: scan.capabilityFacades,
     capabilityRoots: scan.capabilityRoots,
@@ -314,32 +311,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
 
     findings,
     inspectedFiles: [...scan.inspectedFiles].sort(),
-    reportJson: buildCapabilityGovernanceReportJson({
-      capabilityDomain: context.planEntry.capabilityDomain,
-      capabilityRoots: scan.capabilityRoots,
-      findings,
-      inspectedFiles: scan.inspectedFiles,
-      lawIds: context.planEntry.lawIds,
-      sourceOfTruth,
-    }),
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   if (!context.checks) throw new Error("capability-group-governance requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {
     const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
     return {
       findings: evaluation.findings,
       evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
     };
   });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return context.checks.output();
 };

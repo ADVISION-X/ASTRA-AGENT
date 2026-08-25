@@ -7,7 +7,7 @@ import {
 } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -198,7 +198,7 @@ export const inspectLocalAppShellProject = (
   return findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message));
 };
 
-const evaluate = (context: InspectorContext): Omit<InspectorOutput, "executedChecks"> => ({
+const evaluate = (context: InspectorContext): InspectorEvaluation => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
   findings: inspectLocalAppShellProject(context.project, context.targetPaths, context.planEntry.lawIds[0]),
@@ -211,5 +211,5 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     const result = evaluate(context);
     return { findings: result.findings, evidenceRefs: [context.planEntry.ownerInspectorPath, ...result.inspectedFiles] };
   });
-  return context.checks.output({ reportMarkdown: "# Local App Shell owner contract\n\nThe sole HTTP shell, WebSocket upgrade, owner boundary and separated readiness states are inspected as one fail-closed contract." });
+  return context.checks.output();
 };

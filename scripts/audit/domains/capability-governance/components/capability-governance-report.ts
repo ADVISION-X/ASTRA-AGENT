@@ -1,5 +1,4 @@
 import { createFinding } from "../../../shared/finding-utils.js";
-import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import {
   capabilityGovernanceBlueprintPath,
   capabilityGovernanceLawPath,
@@ -135,29 +134,3 @@ export const pushCapabilitySourceOfTruthFindings = (input: {
 
   return sourceOfTruth;
 };
-
-export const buildCapabilityGovernanceReportJson = (input: {
-  capabilityDomain: string;
-  capabilityRoots: ReadonlySet<string>;
-  findings: readonly InspectorFinding[];
-  inspectedFiles: ReadonlySet<string>;
-  lawIds: readonly string[];
-  sourceOfTruth: ReturnType<typeof loadCapabilitySourceOfTruth>;
-}) => ({
-  generatedAt: new Date().toISOString(),
-  capabilityDomain: input.capabilityDomain,
-  lawIds: input.lawIds,
-  constitutionSourceRef: capabilityGovernanceLawPath,
-  blueprintSourceRef: capabilityGovernanceBlueprintPath,
-  activeCapabilityRoots: input.sourceOfTruth.lawActiveCapabilityRoots,
-  actualCapabilityRoots: [...input.capabilityRoots].sort(),
-  blueprintDeclaredAbilityRoots: input.sourceOfTruth.blueprintDeclaredAbilities
-    .flatMap((declaration) => declaration.ownerPath ? [declaration.ownerPath] : [])
-    .sort(),
-  facadeViolations: input.findings.filter((finding) => finding.checkId.startsWith("capability-group/facade-")),
-  sourceOfTruthViolations: input.findings.filter((finding) => finding.checkId.includes("source-of-truth")),
-  infrastructureRoots: input.sourceOfTruth.lawInfrastructureRoots,
-  status: input.findings.length === 0 ? "PASS" : "FAIL",
-  findings: input.findings,
-  inspectedFiles: [...input.inspectedFiles].sort(),
-});

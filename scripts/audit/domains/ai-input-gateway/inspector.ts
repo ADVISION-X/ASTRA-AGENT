@@ -4,7 +4,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
@@ -393,7 +393,7 @@ const inspectGeneratedImageCapture = (
   }
 };
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
@@ -429,28 +429,16 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
-    reportJson: {
-      capabilityDomain: context.planEntry.capabilityDomain,
-      status: findings.length === 0 ? "PASS" : "FAIL",
-      findings,
-    },
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   if (!context.checks) throw new Error("ai-input-gateway requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {
     const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
     return {
       findings: evaluation.findings,
       evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
     };
   });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return context.checks.output();
 };

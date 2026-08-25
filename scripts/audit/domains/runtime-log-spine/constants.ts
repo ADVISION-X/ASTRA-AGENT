@@ -28,14 +28,6 @@ export type RuntimeLogSpineFinding = {
   checkId: string;
 };
 
-export type RuntimeLogSpinePhase = {
-  name: string;
-  status: "PASS" | "FAIL";
-  findingCount: number;
-  scannedFiles?: number;
-  metrics?: Record<string, number>;
-};
-
 export const RUNTIME_LOG_REQUIRED_FILES = [
   "src/lib/runtime-logs/event-types.ts",
   "src/lib/runtime-logs/failure-classes.ts",

@@ -7,7 +7,7 @@ import { selectLawId } from "../../shared/finding-utils.js";
 import {
   type InspectorContext,
   type InspectorFinding,
-  type InspectorOutput,
+  type InspectorEvaluation,
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -417,7 +417,7 @@ const inspectJournalRecoveryBoundary = (
   }
 };
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const findings: InspectorFinding[] = [];
   for (const path of [...sourcePaths, targetAuthorityPath].filter((candidate) => context.targetPaths.includes(candidate))) {

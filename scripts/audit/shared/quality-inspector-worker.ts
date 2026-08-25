@@ -21,11 +21,10 @@ import type { InspectorCheckBodyResult, InspectorContext, InspectorFinding, Sess
 type DomainInspector = (context: InspectorContext) => Promise<SessionInspectorOutput>;
 type WorkerRequest = {
   capabilityDomain: string;
-  lawIds: string[];
+  laws: Array<{ lawId: string; clausesByMode: Record<string, string[]>; targetPaths: string[]; targetSet: { queryRef: string; count: number; sha256: string } }>;
   ownerInspectorPath: string;
   sealedRoot: string;
   targetPaths: string[];
-  targetSet: { queryRef: string; count: number; sha256: string };
 };
 
 const inspectors: Record<string, DomainInspector> = {
@@ -56,8 +55,8 @@ const plan = (input: WorkerRequest): InspectorContext["planEntry"] => ({
   manifestPath: `scripts/audit/domains/${input.capabilityDomain}/manifest.json`,
   ownerInspectorPath: input.ownerInspectorPath,
   executionGroup: "domain",
-  lawIds: input.lawIds,
-  bindings: input.lawIds.map((lawId) => ({
+  lawIds: input.laws.map((law) => law.lawId),
+  bindings: input.laws.map(({ lawId }) => ({
     lawId,
     clauseId: `${lawId.toLowerCase()}-requirement`,
     checkIds: [`${input.capabilityDomain}/owner-assertion-set`],
@@ -66,6 +65,17 @@ const plan = (input: WorkerRequest): InspectorContext["planEntry"] => ({
   })),
   blueprintRefs: [],
 });
+
+const evidenceKind: Record<string, string> = {
+  "static.filesystem": "file", "static.text": "text", "static.ast": "ast", "static.types": "ast",
+  "static.contract": "config", "static.dependency": "dependency", "static.config": "config",
+  "static.json": "json", "static.yaml": "yaml", "static.sql": "sql", "static.migration": "file",
+};
+const refForMode = (input: WorkerRequest, law: WorkerRequest["laws"][number], mode: string): string => {
+  const target = law.targetPaths[0] ?? input.ownerInspectorPath;
+  const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};targetSetSha256=${law.targetSet.sha256};count=${law.targetSet.count}`);
+  return `${evidenceKind[mode] ?? "file"}:${target}#${selector}`;
+};
 
 const session = (input: WorkerRequest): InspectorContext["checks"] => {
   let findings: readonly InspectorFinding[] = [];
@@ -78,18 +88,26 @@ const session = (input: WorkerRequest): InspectorContext["checks"] => {
       evidenceRefs = result.evidenceRefs;
       return result;
     },
-    output: (meta = {}) => ({
+    output: () => ({
       capabilityDomain: input.capabilityDomain,
-      reportedLawIds: input.lawIds,
-      checkRuns: [{ checkId: `${input.capabilityDomain}/owner-assertion-set`, evidenceRefs }],
-      executedChecks: input.lawIds.map((lawId) => ({
-        lawId,
-        clauseId: `${lawId.toLowerCase()}-requirement`,
-        checkId: `${input.capabilityDomain}/owner-assertion-set`,
-      })),
-      findings,
+      reportedLawIds: input.laws.map((law) => law.lawId),
+      checkRuns: input.laws.flatMap((law) => Object.keys(law.clausesByMode).map((mode) => ({
+        lawId: law.lawId, mode, checkId: `${input.capabilityDomain}/owner-assertion-set`, evidenceRefs,
+      }))),
+      lawResults: input.laws.map((law) => {
+        const lawFindings = findings.filter((finding) => finding.lawId === law.lawId);
+        return {
+          lawId: law.lawId,
+          assertions: Object.entries(law.clausesByMode).map(([mode, clauses]) => ({
+            clauses,
+            evidenceMode: mode,
+            passed: lawFindings.length === 0,
+            refs: [refForMode(input, law, mode), law.targetSet.queryRef].sort(),
+          })),
+          findings: lawFindings,
+        };
+      }),
       inspectedFiles: evidenceRefs.filter((ref) => !ref.endsWith("/inspector.ts")),
-      ...meta,
     }),
   };
 };
@@ -101,13 +119,16 @@ export const runInspectionWorker = async (): Promise<void> => {
   const planEntry = plan(input);
   const context: InspectorContext = {
     project: createAuditProject(input.sealedRoot, input.targetPaths),
-    selectedLawId: input.lawIds[0] ?? "",
+    selectedLawId: input.laws[0]?.lawId ?? "",
     sealedRoot: input.sealedRoot,
-    targetSet: input.targetSet,
+    targetSet: {
+      queryRef: `scope:${input.capabilityDomain}#domain-union`,
+      count: input.targetPaths.length,
+      sha256: input.laws.map((law) => law.targetSet.sha256).join(""),
+    },
     targetPaths: input.targetPaths,
     planEntry,
     generatedPlan: [planEntry],
-    completedReports: {},
     checks: session(input),
   };
   const output = await inspector(context);

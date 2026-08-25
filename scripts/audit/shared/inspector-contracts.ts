@@ -11,15 +11,19 @@ export type InspectorFinding = {
   filePath?: string | undefined;
   evidence?: string | undefined;
 };
-export type ExecutedCheck = { lawId: string; clauseId: string; checkId: string };
+export type InspectorAssertion = { clauses: string[]; evidenceMode: string; passed: boolean; refs: string[] };
+export type InspectorLawResult = { lawId: string; assertions: InspectorAssertion[]; findings: InspectorFinding[] };
+export type InspectorEvaluation = {
+  capabilityDomain: string;
+  reportedLawIds: string[];
+  findings: InspectorFinding[];
+  inspectedFiles: string[];
+};
 export type InspectorOutput = {
   capabilityDomain: string;
   reportedLawIds: string[];
-  executedChecks: ExecutedCheck[];
-  findings: InspectorFinding[];
+  lawResults: InspectorLawResult[];
   inspectedFiles: string[];
-  reportJson?: unknown;
-  reportMarkdown?: string | undefined;
 };
 export type InspectorCheckBodyResult = {
   findings: readonly InspectorFinding[];
@@ -28,16 +32,12 @@ export type InspectorCheckBodyResult = {
 export type InspectorCheckSession = {
   run(checkId: string, body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
   runAll(body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
-  output(meta?: Readonly<{ reportJson?: unknown; reportMarkdown?: string }>): SessionInspectorOutput;
+  output(): SessionInspectorOutput;
 };
-export type SessionInspectorOutput = Omit<
-  InspectorOutput,
-  "executedChecks" | "findings" | "inspectedFiles" | "reportedLawIds"
-> & {
+export type SessionInspectorOutput = Omit<InspectorOutput, "inspectedFiles" | "lawResults" | "reportedLawIds"> & {
   reportedLawIds: readonly string[];
   checkRuns: readonly unknown[];
-  executedChecks: readonly ExecutedCheck[];
-  findings: readonly InspectorFinding[];
+  lawResults: readonly InspectorLawResult[];
   inspectedFiles: readonly string[];
 };
 type AuditPlanEntry = {
@@ -56,12 +56,6 @@ type AuditPlanEntry = {
   }>;
   blueprintRefs: Array<{ filePath: string; requiredAnchors: string[] }>;
 };
-export type CompletedReport = {
-  status: "PASS" | "FAIL";
-  findingCount: number;
-  reportPath: string;
-};
-
 export type InspectorContext = {
   project: Project;
   selectedLawId: string;
@@ -70,6 +64,5 @@ export type InspectorContext = {
   targetPaths: readonly string[];
   planEntry: AuditPlanEntry;
   generatedPlan: readonly AuditPlanEntry[];
-  completedReports: Readonly<Record<string, CompletedReport>>;
   checks: InspectorCheckSession;
 };

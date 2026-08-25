@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -128,7 +128,7 @@ export const inspectSystemSecurityProject = (project: Project): InspectorFinding
   return findings.sort((left, right) => (left.filePath ?? "").localeCompare(right.filePath ?? "") || (left.line ?? 0) - (right.line ?? 0) || left.checkId.localeCompare(right.checkId));
 };
 
-const evaluate = (context: InspectorContext): Omit<InspectorOutput, "executedChecks"> => ({
+const evaluate = (context: InspectorContext): InspectorEvaluation => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
   findings: inspectSystemSecurityProject(context.project),
@@ -142,5 +142,5 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     const result = evaluate(context);
     return { findings: result.findings, evidenceRefs: [context.planEntry.ownerInspectorPath, ...result.inspectedFiles] };
   });
-  return context.checks.output({ reportMarkdown: "# System Security\n\nSensitive sinks, external type admission, Cloud control fields, Extension authority and catch fallbacks are inspected fail-closed." });
+  return context.checks.output();
 };

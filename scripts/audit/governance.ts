@@ -1,9 +1,9 @@
-import { spawnSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync, readdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { buildRegistry, candidateSnapshot, checkProjection, diffPaths, verifyEntry, verifyProductionOwnership, writeRegistry, type Level } from './governance-authority.js';
+import { buildRegistry, candidateSnapshot, checkProjection, diffPaths, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level } from './governance-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 
 const governanceSource = (path: string): boolean => path === 'AGENTS.md'
@@ -21,19 +21,46 @@ function assertAuthorization(changes: Array<{ status: string; path: string }>): 
   if (changes.some((change) => change.path === '.github/instructions/agent-rules/基础法案.md' || change.path === '.github/instructions/agent-rules/功能法案.md') && process.env.GRASSEYE_LAW_AMENDMENT_AUTHORIZED !== '1') fail('LAW_AMENDMENT_REQUIRED', 'active law');
 }
 
+const currentDomains = (source: string): string[] => [...source.matchAll(/^## capabilityDomain: ([a-z0-9]+(?:-[a-z0-9]+)*)$/gmu)].map((match) => match[1]!);
+const baselineLaw = (path: string): string => {
+  const result = spawnSync('git', ['show', `HEAD:${path}`], { cwd: ROOT, encoding: 'utf8' });
+  return result.status === 0 ? result.stdout : '';
+};
+function assertDomainAdmission(changes: Array<{ status: string; path: string }>): void {
+  if (!changes.some((change) => change.path === '.github/instructions/agent-rules/基础法案.md' || change.path === '.github/instructions/agent-rules/功能法案.md')) return;
+  const prior = new Set([
+    ...currentDomains(baselineLaw('.github/instructions/agent-rules/基础法案.md')),
+    ...currentDomains(baselineLaw('.github/instructions/agent-rules/功能法案.md')),
+  ]);
+  const next = [...currentDomains(readFileSync('.github/instructions/agent-rules/基础法案.md', 'utf8')),
+    ...currentDomains(readFileSync('.github/instructions/agent-rules/功能法案.md', 'utf8'))];
+  const added = next.filter((domain) => !prior.has(domain));
+  if (added.length && process.env.GRASSEYE_NEW_DOMAIN_AUTHORIZED !== '1') fail('LAW_AMENDMENT_REQUIRED', `new capabilityDomain ${added.join(',')}`);
+}
+
+function assertHighImpactAuthorization(changes: Array<{ status: string; path: string }>): void {
+  const productChanges = changes.filter((change) => change.path.startsWith('src/') || change.path === 'package.json'
+    || (change.status === 'A' && change.path.startsWith('docs/specs/')));
+  if (!productChanges.length) return;
+  const diff = execFileSync('git', ['diff', '--unified=0', 'HEAD', '--', ...productChanges.map((change) => change.path)], { cwd: ROOT, encoding: 'utf8' });
+  const highImpact = diff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')).some((line) =>
+    /(?:process\.env|\.listen\(|"dependencies"|"devDependencies"|specKind.*cross-repo|CREATE\s+(?:TABLE|TYPE)|router\.|addEventListener\()/u.test(line));
+  if (highImpact && process.env.GRASSEYE_HIGH_IMPACT_AUTHORIZED !== '1') fail('USER_REQUEST_CONFLICTS_WITH_ACTIVE_LAW', 'high-impact change requires explicit authorization');
+}
+
 function run(command: string, args: string[]): void {
   const before = candidateSnapshot();
   const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
   if (before !== candidateSnapshot()) fail('CANDIDATE_DRIFT', `${command} ${args.join(' ')}`);
-  if (result.status !== 0) fail('PROJECT_CHECK_FAILED', `${command} ${args.join(' ')}`);
+  if (result.status !== 0) fail('CHECK_EXECUTION_FAILED', `${command} ${args.join(' ')}`);
 }
 
 function projectChecks(): void {
   run('npm', ['run', 'typecheck']);
   const tests = readdirSync('tests/governance').filter((name) => name.endsWith('.test.ts')).sort().map((name) => `tests/governance/${name}`);
-  if (!tests.length) fail('PROJECT_CHECK_MISSING', 'governance tests');
+  if (!tests.length) fail('LAW_EVIDENCE_MISSING', 'governance tests');
   run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
   run('npm', ['run', 'acceptance:architecture-active-plugin-mediators']);
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
@@ -45,10 +72,13 @@ async function quality(level: Level): Promise<void> {
   const initial = candidateSnapshot();
   const changes = diffPaths();
   assertAuthorization(changes);
+  assertDomainAdmission(changes);
+  assertHighImpactAuthorization(changes);
   if (level === 'CHANGE') {
     if (!changes.length) fail('ENTRY_CONTRACT_MISMATCH', 'CHANGE requires an actual diff');
     if (changes.some((change) => governanceSource(change.path))) {
-      buildRegistry();
+      const registry = buildRegistry();
+      verifyChangeOwnership(changes, registry);
       checkProjection();
       projectChecks();
     } else run('npm', ['run', 'typecheck']);
@@ -62,7 +92,7 @@ async function quality(level: Level): Promise<void> {
   projectChecks();
   if (initial !== candidateSnapshot()) fail('CANDIDATE_DRIFT', level);
   const result = await runFullQuality(level);
-  if (result.outcome !== 'PASS') fail('QUALITY_CHECK_FAILED', result.reportPath);
+  if (result.outcome !== 'PASS') fail('LAW_FAILED', result.reportPath);
 }
 
 export async function main(): Promise<void> {

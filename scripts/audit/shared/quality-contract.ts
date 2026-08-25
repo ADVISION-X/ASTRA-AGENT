@@ -109,7 +109,10 @@ export const deferredModes = (law: Law, level: "READY" | "RELEASE"): string[] =>
 
 const validEvidenceRef = (value: string): boolean => {
   const match = /^([a-z]+):([^#]+)#(.+)$/u.exec(value);
-  return Boolean(match && evidenceKinds.has(match[1]!) && match[2] && match[3] && !/[\0-\x1f\x7f]/u.test(value));
+  if (!match || !evidenceKinds.has(match[1]!) || !match[2] || !match[3] || /[\0-\x1f\x7f]/u.test(value)) return false;
+  let selector: string;
+  try { selector = decodeURIComponent(match[3]); } catch { return false; }
+  return !/(?:^|[;=])(?:fixed|pass|true)(?:$|[;=])/iu.test(selector);
 };
 
 const evidenceKind = (value: string): string => value.slice(0, value.indexOf(":"));
@@ -123,36 +126,37 @@ const validateFinding = (finding: QualityFinding, lawId: string): void => {
 
 const validateAssertion = (assertion: QualityAssertion, law: Law, required: readonly string[]): void => {
   const expectedKind = evidenceKindByMode[assertion.evidenceMode];
-  if (!exactKeys(assertion, assertionKeys)
-    || !required.includes(assertion.evidenceMode)
-    || !expectedKind
-    || !assertion.clauses.length || !exactOrdered(assertion.clauses)
+  if (!exactKeys(assertion, assertionKeys)) fail("LAW_EVIDENCE_MISSING", `${law.lawId}:shape`);
+  if (!required.includes(assertion.evidenceMode) || !expectedKind) fail("UNDECLARED_EVIDENCE_MODE", `${law.lawId}:${assertion.evidenceMode}`);
+  if (!assertion.refs.length) fail("EMPTY_EVIDENCE_REFS", `${law.lawId}:${assertion.evidenceMode}`);
+  if (!assertion.clauses.length || !exactOrdered(assertion.clauses)
     || assertion.clauses.some((clause) => !clausesForLaw(law).includes(clause))
-    || !assertion.refs.length || !exactOrdered(assertion.refs)
+    || !exactOrdered(assertion.refs)
     || assertion.refs.some((ref) => !validEvidenceRef(ref))
     || !assertion.refs.some((ref) => evidenceKind(ref) === expectedKind)
     || assertion.refs.some((ref) => ![expectedKind, "scope"].includes(evidenceKind(ref)))) {
-    fail("QUALITY_ASSERTION_INVALID", law.lawId);
+    fail("LAW_EVIDENCE_MISSING", law.lawId);
   }
 };
 
 const validateLawExecution = (result: LawExecutionResult, law: Law, level: "READY" | "RELEASE"): void => {
   if (!exactKeys(result, resultKeys) || result.lawId !== law.lawId) {
-    fail("LAW_RESULT_INVALID", law.lawId);
+    fail("LAW_DENOMINATOR_MISSING", law.lawId);
   }
   const required = requiredModes(law, level);
   result.assertions.forEach((assertion) => validateAssertion(assertion, law, required));
   result.findings.forEach((finding) => validateFinding(finding, law.lawId));
   const modes = ordered(result.assertions.map((assertion) => assertion.evidenceMode));
-  if (JSON.stringify(modes) !== JSON.stringify(required)) fail("EVIDENCE_MODE_DENOMINATOR_MISMATCH", law.lawId);
+  if (JSON.stringify(modes) !== JSON.stringify(required)) fail("LAW_EVIDENCE_MISSING", law.lawId);
   for (const mode of required) {
     const current = result.assertions.filter((assertion) => assertion.evidenceMode === mode);
     const signatures = current.map((assertion) => JSON.stringify(assertion.clauses));
-    if (!current.length || signatures.length !== new Set(signatures).size) fail("QUALITY_ASSERTION_DUPLICATE", `${law.lawId}:${mode}`);
+    if (!current.length) fail("LAW_EVIDENCE_MISSING", `${law.lawId}:${mode}`);
+    if (signatures.length !== new Set(signatures).size) fail("LAW_EVIDENCE_DUPLICATE", `${law.lawId}:${mode}`);
   }
   const covered = ordered(result.assertions.flatMap((assertion) => assertion.clauses));
   if (JSON.stringify(covered) !== JSON.stringify(clausesForLaw(law))) fail("LAW_CLAUSE_DENOMINATOR_MISMATCH", law.lawId);
-  if (result.assertions.some((assertion) => !assertion.passed) && !result.findings.length) fail("FAILED_ASSERTION_WITHOUT_FINDING", law.lawId);
+  if (result.assertions.some((assertion) => !assertion.passed) && !result.findings.length) fail("LAW_FAILED", law.lawId);
 };
 
 const lawReport = (result: LawExecutionResult, law: Law, level: "READY" | "RELEASE"): QualityLawReport => {
@@ -189,7 +193,7 @@ export const buildQualityReport = (input: {
   const lawIds = input.laws.map((law) => law.lawId);
   const resultIds = input.results.map((result) => result.lawId);
   if (!exactOrdered(lawIds) || JSON.stringify(resultIds) !== JSON.stringify(lawIds) || resultIds.length !== new Set(resultIds).size) {
-    fail("LAW_DENOMINATOR_MISMATCH", "quality results");
+    fail("LAW_DENOMINATOR_MISSING", "quality results");
   }
   const laws = input.laws.map((law, index) => lawReport(input.results[index]!, law, level));
   const participants = validateParticipants(level, input.participants ?? []);

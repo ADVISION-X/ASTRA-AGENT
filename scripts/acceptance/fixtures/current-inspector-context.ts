@@ -36,18 +36,15 @@ export const createInspectorContextFixture = (
     targetPaths: [],
     planEntry,
     generatedPlan: [],
-    completedReports: {},
     checks: {
       run: async (_checkId, body) => runBody(body),
       runAll: runBody,
-      output: (meta = {}) => ({
+      output: () => ({
         capabilityDomain,
         reportedLawIds: lawIds,
         checkRuns: [],
-        executedChecks: [],
-        findings,
+        lawResults: lawIds.map((lawId) => ({ lawId, assertions: [], findings: findings.filter((finding) => finding.lawId === lawId) })),
         inspectedFiles: [],
-        ...meta,
       }),
     },
   };

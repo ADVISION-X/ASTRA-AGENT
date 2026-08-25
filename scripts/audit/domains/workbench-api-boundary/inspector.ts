@@ -12,7 +12,7 @@ import {
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 import { inspectExternalIngressIdentity } from "./external-ingress-identity-inspector.js";
 
@@ -315,7 +315,7 @@ const inspectRequiredFiles = (
 
 
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawIds = {
     ingress: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
     cors: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
@@ -338,37 +338,23 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   inspectSecondServers(context.project, findings, summary, lawIds.ingress);
   inspectCallbackEscapes(context.project, findings, summary, lawIds.callback);
 
-  const status = findings.length > 0 ? "FAIL" : "PASS";
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
 
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
-    reportJson: {
-      generatedAt: new Date().toISOString(),
-      status,
-      findings,
-      summary,
-    },
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   if (!context.checks) throw new Error("workbench-api-boundary requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {
     const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
     return {
       findings: evaluation.findings,
       evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
     };
   });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return context.checks.output();
 };

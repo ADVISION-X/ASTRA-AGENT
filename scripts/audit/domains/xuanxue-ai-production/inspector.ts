@@ -5,8 +5,8 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import {
   type InspectorContext,
+  type InspectorEvaluation,
   type InspectorFinding,
-  type InspectorOutput,
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -386,7 +386,7 @@ const inspectDomainPolicy = (
 
 const inspectDomainEvaluation = async (
   context: InspectorContext,
-): Promise<Omit<InspectorOutput, "executedChecks">> => {
+): Promise<InspectorEvaluation> => {
   const laws = resolveLaws(context);
   const findings: InspectorFinding[] = [];
   const { sources, values } = collectDomainSources(context, findings, laws.boundary);
@@ -408,19 +408,12 @@ export const inspectDomain = async (
   if (!context.checks) {
     throw new Error("xuanxue-ai-production requires a runner-owned check session.");
   }
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
   await context.checks.runAll(async () => {
     const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
     return {
       findings: evaluation.findings,
       evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
     };
   });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return context.checks.output();
 };
