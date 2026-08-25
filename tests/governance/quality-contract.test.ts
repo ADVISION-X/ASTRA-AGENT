@@ -485,6 +485,27 @@ test("static PASS evidence names governed target objects instead of inspector de
   assert.equal(refs.some((ref) => ref.includes("static-inspector-result.ts")), false);
 });
 
+test("static evidence keeps the exact scope when a governed path is not an evidence locator", async () => {
+  const pathWithReservedCharacter = "docs/history/legacy-root/grasseye-local-workbench@0.1.0";
+  const context = {
+    sealedRoot: process.cwd(),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
+    lawRequirements: [{
+      lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
+      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
+      targetPaths: [pathWithReservedCharacter, "package.json"],
+      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
+    }],
+  } as unknown as InspectorContext;
+  const output = await finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
+    capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [],
+    inspectedFiles: [pathWithReservedCharacter, "package.json"],
+  }; });
+  const refs = output.lawResults[0]!.assertions[0]!.refs;
+  assert.equal(refs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
+  assert.equal(refs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
+});
+
 test("a finding propagates from one law result to the only top-level verdict", () => {
   const law = fixtureLaw();
   const result = resultFor(law);

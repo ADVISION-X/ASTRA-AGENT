@@ -58,7 +58,7 @@ const validateStaticEvaluation = (
 const targetRefs = (
   requirement: InspectorLawRequirement, evidenceMode: string, clauses: readonly string[],
 ): string[] => ordered([
-  ...requirement.targetPaths.map((path) =>
+  ...requirement.targetPaths.filter((path) => !/[#@]/u.test(path)).map((path) =>
     `${evidenceKind[evidenceMode] ?? "file"}:${path}#${encodeURIComponent(`lawId=${requirement.lawId};mode=${evidenceMode};clauses=${clauses.join(",")}`)}`),
   requirement.targetSet.queryRef,
 ]);
