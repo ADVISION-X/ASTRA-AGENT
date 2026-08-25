@@ -48,14 +48,18 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
     name: "ForbiddenBrowserControl",
     type: "{ selector: string }",
   });
-  assert.ok(checkIds(project).some((message) => message.includes("browser control field selector")));
+  const findings = inspectLocalAppShellProject(project);
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-002-V3"
+    && finding.message.includes("browser control field selector")));
 }
 {
   const project = fixture();
   const source = project.getSourceFileOrThrow("src/lib/local-runtime/workbench-status.ts");
   const property = source.getDescendantsOfKind(SyntaxKind.PropertySignature).find((item) => item.getName() === "executionState");
   property?.remove();
-  assert.ok(checkIds(project).some((message) => message.includes("executionState must remain an independently typed status dimension")));
+  const findings = inspectLocalAppShellProject(project);
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V2"
+    && finding.message.includes("executionState must remain an independently typed status dimension")));
 }
 {
   const project = fixture();
