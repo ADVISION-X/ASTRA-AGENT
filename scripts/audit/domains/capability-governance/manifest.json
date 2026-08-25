@@ -3,15 +3,16 @@
   "capabilityDomain": "capability-governance",
   "status": "active",
   "lawIds": [
-    "LAW-CAPABILITY-GOVERNANCE-001-V1"
+    "LAW-CAPABILITY-GOVERNANCE-001-V2"
   ],
   "ownedPaths": [
     "docs/governance/法案系统建设说明书-冻结定稿版.pdf",
-    "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
+    "scripts/acceptance/capability-governance.acceptance.ts",
     "scripts/audit/domains/capability-governance/**"
   ],
   "observedPaths": [
-    "src/capabilities/**",
-    "src/plugins/xuanxue-ai-production/**"
+    ".github/instructions/agent-rules/功能法案.md",
+    ".github/instructions/agent-rules/基础法案.md",
+    "src/**"
   ]
 }

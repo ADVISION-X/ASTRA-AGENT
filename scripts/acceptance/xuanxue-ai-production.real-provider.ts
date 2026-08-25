@@ -4,7 +4,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
+import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/schema.js";
 import {
   attestXuanxueAiProductionProviderRun,
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,

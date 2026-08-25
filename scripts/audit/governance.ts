@@ -74,7 +74,7 @@ function projectChecks(): void {
   const tests = readdirSync('tests/governance').filter((name) => name.endsWith('.test.ts')).sort().map((name) => `tests/governance/${name}`);
   if (!tests.length) fail('LAW_EVIDENCE_MISSING', 'governance tests');
   run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
-  run('npm', ['run', 'acceptance:architecture-active-plugin-mediators']);
+  run('npm', ['run', 'acceptance:capability-governance']);
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
 }
 

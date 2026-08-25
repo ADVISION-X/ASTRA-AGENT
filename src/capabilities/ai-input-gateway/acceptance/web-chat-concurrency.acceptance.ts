@@ -17,8 +17,8 @@ import {
   createAiInputGatewayAbilityGroup,
   buildGptWebProviderExecutionProfile,
   type AiFeedInput,
-  type AiProviderAdapter,
 } from "../index.js";
+import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
 import {
   acquireWebChatBrowserMutationLease,
   acquireWebChatBrowserPatrolLease,

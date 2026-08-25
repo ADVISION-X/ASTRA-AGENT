@@ -3,7 +3,7 @@ import type {
   AiFeedResult,
   AiInputGatewayAbilityGroup,
 } from "../../src/capabilities/ai-input-gateway/index.js";
-import type { WebChatFailureClassification } from "../../src/capabilities/ai-input-gateway/index.js";
+import type { WebChatFailureClassification } from "../../src/capabilities/ai-input-gateway/failure-classification.js";
 import type {
   XuanxueAiProductionOrder,
 } from "../../src/plugins/xuanxue-ai-production/index.js";

@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 
 import {
   FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
-} from "../schema.js";
+} from "./schema.js";
 import type {
   ForensicsChildCapabilityId,
   ForensicsProof,
-} from "../schema.js";
+} from "./schema.js";
 
 type ForensicsProofTiming = Pick<ForensicsProof, "startedAt" | "endedAt" | "durationMs">;
 

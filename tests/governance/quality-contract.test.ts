@@ -713,6 +713,7 @@ test("CHANGE routes an ordinary Exam to every affected domain without running un
   const registry = buildRegistry();
   assert.deepEqual(relevantExamScripts(["src/lib/storage/fixture.ts"], registry), [
     "acceptance:app-shell-ui",
+    "acceptance:capability-governance",
     "acceptance:code-purity-zombie-deep",
     "acceptance:forensics-persistence-capability",
     "acceptance:system-security",
