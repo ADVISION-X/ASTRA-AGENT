@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
-    "LAW-LOCAL-BROWSER-SESSION-004-V6"
+    "LAW-LOCAL-BROWSER-SESSION-004-V7"
   ],
   "contractRefs": [],
   "dependencyEdges": [],

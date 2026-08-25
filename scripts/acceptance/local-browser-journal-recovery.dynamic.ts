@@ -48,7 +48,7 @@ try {
     candidateHash: input.candidateHash,
     releaseBuildId: input.releaseBuildId,
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery",
+  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", evidenceMode: "dynamic.recovery",
     locator: recovered.recoveryReceiptPath, receipt: recovered.recoveryId.slice("sha256:".length),
     observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
 } finally {

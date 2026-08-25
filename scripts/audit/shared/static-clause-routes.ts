@@ -55,7 +55,7 @@ const aiParallelChecks = [
 const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>> = {
   "ai-input-gateway": [
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"], aiTransportChecks),
-    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-002-V1", ["static.ast"], ["inspectAtomicIfAndThenActions"]),
+    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-002-V2", ["static.ast"], ["inspectAtomicIfAndThenActions"]),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"], [
       "inspectAttachmentRoutingChild", "inspectRemovedRegion",
     ]),
@@ -147,7 +147,7 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
     }),
     ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-003-V6", ["static.contract"], ["inspectTargetClaimGuards"]),
     route({
-      lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "static.ast",
+      lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", evidenceMode: "static.ast",
       clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:14", "forbidden:15", "summary"],
       semanticChecks: ["inspectRegistryAndMutationBoundary", "inspectAtomicIfAndThenBoundary", "inspectJournalRecoveryBoundary"],
     }),
@@ -194,7 +194,7 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
       "inspectRouteRules", "inspectExternalIngressIdentity", "inspectPerSiteHmac",
     ]),
   ],
-  "xuanxue-ai-production": summaryRoutes("LAW-XUANXUE-AI-PRODUCTION-001-V9", [
+  "xuanxue-ai-production": summaryRoutes("LAW-XUANXUE-AI-PRODUCTION-001-V10", [
     "static.ast", "static.contract",
   ], ["inspectDomainPolicy"]),
   "xuanxue-ai-production-localization-contract": summaryRoutes(

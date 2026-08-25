@@ -443,7 +443,7 @@ const inspectOpaqueAuthorityBoundary = (
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
-  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6");
+  const mutationLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V7");
   const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
   const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4");
@@ -492,7 +492,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4" },
     { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4" },
     { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6" },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7" },
     { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4" },
     { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2" },
   ], inspectDomainEvaluation);

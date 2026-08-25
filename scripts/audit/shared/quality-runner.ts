@@ -10,7 +10,7 @@ import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExec
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
 import { parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
-import { dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
+import { assertProofModeDenominator, dynamicScriptFor, examScriptFor, observationMatchesRoute } from "./quality-routes.js";
 import { validateProviderContractSpec, type ProviderContract } from "./provider-contract-authority.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -448,6 +448,7 @@ const runDynamicProofs = (context: QualityRunContext, resultsByLaw: Map<string, 
 export const runFullQuality = async (level: Level): Promise<{ reportPath: string; outcome: "PASS" | "FAIL" }> => {
   if (level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "full quality requires READY or RELEASE");
   const registry = buildRegistry();
+  assertProofModeDenominator(registry.laws);
   const laws = registry.laws;
   const commit = gitCommit();
   if (diffPaths().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");

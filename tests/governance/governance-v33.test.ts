@@ -6,10 +6,23 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { assertLawMajorVersionChanges } from '../../scripts/audit/governance-change-authority.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
+
+test('normative law edits require a successor major', () => {
+  const prior = loadLaws().find((law) => law.lawId === 'LAW-AI-INPUT-GATEWAY-001-V1');
+  assert.ok(prior);
+  const sameMajorMutation = { ...prior, summary: `${prior.summary} changed` };
+  assert.throws(
+    () => assertLawMajorVersionChanges([prior], [sameMajorMutation]),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'LAW_MAJOR_CHANGE_UNENFORCED',
+  );
+  const successor = { ...sameMajorMutation, lawId: 'LAW-AI-INPUT-GATEWAY-001-V2', supersedesLawId: prior.lawId };
+  assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
+});
 
 test('V3.3 entry has one public command surface and no freeze sidecar', () => {
   verifyEntry();

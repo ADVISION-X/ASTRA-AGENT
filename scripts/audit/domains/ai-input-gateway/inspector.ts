@@ -400,7 +400,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const routingLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
   const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
-  const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V1");
+  const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V2");
   const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V1");
   const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V1");
   const findings: Finding[] = [];
@@ -465,7 +465,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [
     { lawId: "LAW-AI-INPUT-GATEWAY-001-V1" },
-    { lawId: "LAW-AI-INPUT-GATEWAY-002-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-002-V2" },
     { lawId: "LAW-AI-INPUT-GATEWAY-003-V1" },
     { lawId: "LAW-AI-INPUT-GATEWAY-004-V1" },
     { lawId: "LAW-AI-INPUT-GATEWAY-005-V4" },

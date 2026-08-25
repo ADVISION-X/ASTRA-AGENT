@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import Database from "better-sqlite3";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/schema.js";
@@ -226,6 +227,22 @@ const tokens = outputs.map((output) =>
 assert.ok(tokens.every(Boolean));
 assert.equal(new Set(tokens).size, records.length);
 
+const databasePath = path.join(runRoot, "plugin-tasks", "xuanxue-ai-production", "xuanxue_ai_production.sqlite");
+const database = new Database(databasePath, { readonly: true, fileMustExist: true });
+const integrity = database.pragma("integrity_check", { simple: true });
+assert.equal(integrity, "ok", "production database integrity");
+const orderRows = database.prepare("select source_task_id,status from production_orders order by source_task_id").all() as unknown as
+  Array<{ source_task_id: string; status: string }>;
+database.close();
+const terminalOrders = new Map(orderRows.map((row) => [row.source_task_id, row.status]));
+for (const jobId of terminalJobIds) assert.equal(terminalOrders.get(jobId), "completed", `durable terminal order ${jobId}`);
+const databaseReceipt = createHash("sha256").update(JSON.stringify(orderRows)).digest("hex");
+const checkpointDirectory = path.join(runRoot, "runtime-data", "ai-input-gateway", "web-chat-response-checkpoints");
+const storageReceipt = createHash("sha256").update(outputs.map((output) => {
+  const record = byId.get(output.executionId)!;
+  return `${output.executionId}:${record.responseCheckpoint!.rawOutputHash}:${record.responseCheckpoint!.byteCount}`;
+}).sort().join("\n")).digest("hex");
+
 const continuationReceipt = {
   schemaVersion: "xuanxue-ai-provider-continuation-proof.v1",
   runId: dynamicProofBinding.run_id,
@@ -263,12 +280,24 @@ process.stdout.write(`${JSON.stringify({
 const attestationReceipt = continuationReceipt.successor.runtimeAttestationReceiptHash.replace(/^sha256:/u, "");
 const providerReceipt = Object.values(dynamicProofBinding.provider_record_hashes)[0];
 assert.ok(providerReceipt);
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.service",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.service",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.provider",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.database",
+  locator: databasePath, receipt: databaseReceipt,
+  observedValue: `integrity=${integrity};completedOrders=${terminalJobIds.length}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.storage",
+  locator: checkpointDirectory, receipt: storageReceipt,
+  observedValue: `checkpoints=${outputs.length};uniqueHashes=${new Set(outputs.map((output) => byId.get(output.executionId)!.responseCheckpoint!.rawOutputHash)).size}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.provider",
   locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
   observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.authorization",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.authorization",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.provider",
+  locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
+  observedValue: `exactProviderRecords=${records.length};rawResponses=${outputs.length}` });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.authorization",
+  locator: executionDirectory, receipt: attestationReceipt,
+  observedValue: `authorizedDevice=${continuationReceipt.successor.deviceId};workerSession=${continuationReceipt.successor.workerSessionId}` });

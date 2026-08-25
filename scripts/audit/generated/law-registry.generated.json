@@ -4,7 +4,7 @@
       "capabilityDomain": "ai-input-gateway",
       "lawIds": [
         "LAW-AI-INPUT-GATEWAY-001-V1",
-        "LAW-AI-INPUT-GATEWAY-002-V1",
+        "LAW-AI-INPUT-GATEWAY-002-V2",
         "LAW-AI-INPUT-GATEWAY-003-V1",
         "LAW-AI-INPUT-GATEWAY-004-V1",
         "LAW-AI-INPUT-GATEWAY-005-V4",
@@ -147,7 +147,7 @@
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-LOCAL-BROWSER-SESSION-002-V4",
         "LAW-LOCAL-BROWSER-SESSION-003-V6",
-        "LAW-LOCAL-BROWSER-SESSION-004-V6",
+        "LAW-LOCAL-BROWSER-SESSION-004-V7",
         "LAW-LOCAL-BROWSER-SESSION-005-V4",
         "LAW-LOCAL-BROWSER-SESSION-006-V2"
       ],
@@ -241,7 +241,7 @@
     {
       "capabilityDomain": "xuanxue-ai-production",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-001-V9"
+        "LAW-XUANXUE-AI-PRODUCTION-001-V10"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production/manifest.json",
       "observedPaths": [
@@ -347,7 +347,10 @@
       "enforcementMode": "composite",
       "evidenceModes": [
         "static.ast",
-        "exam.golden"
+        "exam.golden",
+        "dynamic.browser",
+        "dynamic.provider",
+        "dynamic.authorization"
       ],
       "excludes": [],
       "forbidden": [
@@ -359,16 +362,16 @@
         "不得发生：downgrading or erasing a completely captured provider response because later title, artifact or cleanup work failed",
         "不得发生：using application activation, whichever Chrome window is foreground, accessibility window ordering, or a second physical provider tab as page identity"
       ],
-      "lawId": "LAW-AI-INPUT-GATEWAY-002-V1",
+      "lawId": "LAW-AI-INPUT-GATEWAY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 76,
+        "lineEnd": 79,
         "lineStart": 45,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Web-chat provider work must use an operator-authorized authenticated Browser authority lease and exact target/document lease, fail closed on provider security barriers, and preserve exact raw response truth.",
-      "supersedesLawId": null,
+      "supersedesLawId": "LAW-AI-INPUT-GATEWAY-002-V1",
       "tier": "P0"
     },
     {
@@ -397,8 +400,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-003-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 110,
-        "lineStart": 78,
+        "lineEnd": 113,
+        "lineStart": 81,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -429,8 +432,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-004-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 141,
-        "lineStart": 112,
+        "lineEnd": 144,
+        "lineStart": 115,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -473,8 +476,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 184,
-        "lineStart": 143,
+        "lineEnd": 187,
+        "lineStart": 146,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -502,8 +505,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-006-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 212,
-        "lineStart": 186,
+        "lineEnd": 215,
+        "lineStart": 189,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -531,8 +534,8 @@
       "lawId": "LAW-AI-INPUT-GATEWAY-007-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 240,
-        "lineStart": 214,
+        "lineEnd": 243,
+        "lineStart": 217,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -568,8 +571,8 @@
       "lawId": "LAW-APP-SHELL-UI-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 278,
-        "lineStart": 244,
+        "lineEnd": 281,
+        "lineStart": 247,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -600,8 +603,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 309,
-        "lineStart": 280,
+        "lineEnd": 312,
+        "lineStart": 283,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -667,8 +670,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 347,
-        "lineStart": 313,
+        "lineEnd": 350,
+        "lineStart": 316,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -707,8 +710,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 388,
-        "lineStart": 351,
+        "lineEnd": 391,
+        "lineStart": 354,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -791,8 +794,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 418,
-        "lineStart": 392,
+        "lineEnd": 421,
+        "lineStart": 395,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -821,8 +824,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 447,
-        "lineStart": 420,
+        "lineEnd": 450,
+        "lineStart": 423,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -850,8 +853,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 475,
-        "lineStart": 449,
+        "lineEnd": 478,
+        "lineStart": 452,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -893,8 +896,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 519,
-        "lineStart": 479,
+        "lineEnd": 522,
+        "lineStart": 482,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -924,8 +927,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 549,
-        "lineStart": 521,
+        "lineEnd": 552,
+        "lineStart": 524,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -958,8 +961,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 582,
-        "lineStart": 551,
+        "lineEnd": 585,
+        "lineStart": 554,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -996,8 +999,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 621,
-        "lineStart": 586,
+        "lineEnd": 624,
+        "lineStart": 589,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1035,8 +1038,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 659,
-        "lineStart": 623,
+        "lineEnd": 662,
+        "lineStart": 626,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1075,8 +1078,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 698,
-        "lineStart": 661,
+        "lineEnd": 701,
+        "lineStart": 664,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1098,6 +1101,7 @@
         "static.ast",
         "exam.golden",
         "exam.property",
+        "dynamic.storage",
         "dynamic.recovery"
       ],
       "excludes": [],
@@ -1119,16 +1123,16 @@
         "不得发生：将 sealed legacy journal、旧分叉或 recovery 前事件继续当作当前 Dynamic Proof，或在 canonical V2 journal 中写入第二个 RECOVERY genesis",
         "不得发生：恢复过程覆盖不一致的 archive/receipt、接受 source drift、静默复用冲突 receipt，或在启动流程中自动触发恢复"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V6",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 742,
-        "lineStart": 700,
+        "lineEnd": 746,
+        "lineStart": 703,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须由唯一 Browser Owner 先取得排他锁再绑定 canonical V2 journal，所有事件锁内持久追加；完整性失败持续 blocked，只有当前人类授权运行数据和 major law/schema，才可锁内逐字节封存旧文件、复核哈希并用唯一 receipt 建立一次 recovery genesis；旧历史退出当前证明域，UNKNOWN mutation 永不自动重放。",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V5",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V6",
       "tier": "P0"
     },
     {
@@ -1155,8 +1159,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 774,
-        "lineStart": 744,
+        "lineEnd": 778,
+        "lineStart": 748,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1184,8 +1188,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 802,
-        "lineStart": 776,
+        "lineEnd": 806,
+        "lineStart": 780,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1218,8 +1222,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 837,
-        "lineStart": 806,
+        "lineEnd": 841,
+        "lineStart": 810,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1247,8 +1251,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 865,
-        "lineStart": 839,
+        "lineEnd": 869,
+        "lineStart": 843,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1276,8 +1280,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 893,
-        "lineStart": 867,
+        "lineEnd": 897,
+        "lineStart": 871,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1318,8 +1322,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 936,
-        "lineStart": 897,
+        "lineEnd": 940,
+        "lineStart": 901,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1355,8 +1359,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 972,
-        "lineStart": 938,
+        "lineEnd": 976,
+        "lineStart": 942,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1396,8 +1400,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1014,
-        "lineStart": 976,
+        "lineEnd": 1018,
+        "lineStart": 980,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1431,8 +1435,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1050,
-        "lineStart": 1018,
+        "lineEnd": 1054,
+        "lineStart": 1022,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1471,6 +1475,8 @@
         "exam.state-machine",
         "dynamic.browser",
         "dynamic.service",
+        "dynamic.database",
+        "dynamic.storage",
         "dynamic.provider",
         "dynamic.authorization",
         "dynamic.recovery",
@@ -1497,16 +1503,16 @@
         "不得发生：provider commit/hash、provider contract bytes、产品 bundle 或 generated projection 固定在 consumer 仓库；AGENT-owned Product Execution canonical source、cross-job graph、business verdict、handwritten product map、successor Cloud Job 或 runtime Stage improvisation；或 Cloud grant、local order、checkpoint、terminal 与 result 的 product_contract_hash 身份不一致",
         "不得发生：Static Contract Integration Fault Real Chrome Real Provider or 72h Soak evidence substituting for another layer or omitting any of the 75 governed scenarios"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V9",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V10",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1116,
-        "lineStart": 1054,
+        "lineEnd": 1122,
+        "lineStart": 1058,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须让 AGENT 只消费经过鉴权的 immutable Cloud order，不保存网站合同、commit、hash 或产品投影副本；本仓只负责订单内通用 Stage 顺序、Provider/Browser、checkpoint、result 与原 Order 恢复。唯一 session、签名 attestation、十业务席位、一个 Browser lane、outbox 和 terminal CAS 必须保持身份；产品合同、跨 Job graph 与业务完成唯一归网站，阻断不得杀死诊断 Shell。",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V8",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-001-V9",
       "tier": "P0"
     },
     {
@@ -1533,8 +1539,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1150,
-        "lineStart": 1120,
+        "lineEnd": 1156,
+        "lineStart": 1126,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

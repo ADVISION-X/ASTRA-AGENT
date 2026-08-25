@@ -45,7 +45,7 @@ assert.notEqual(proof.checkpoint_before_hash, proof.checkpoint_after_hash, "reco
 
 const receipt = createHash("sha256").update(bytes).digest("hex");
 emitQualityProofObservation({
-  lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9",
+  lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10",
   evidenceMode: "dynamic.recovery",
   locator: proofPath,
   receipt,

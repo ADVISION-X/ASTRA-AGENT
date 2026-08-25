@@ -32,4 +32,4 @@ assert.equal(freshLiterals.has("BROWSER_TARGET_INVALID"), true,
 assert.equal(freshLiterals.has("WEB_CHAT_FRESH_CONVERSATION_HYDRATION_PENDING: BROWSER_TARGET_INVALID"), true,
   "Bounded hydrated-node exhaustion must preserve one explicit recoverable reason.");
 process.stdout.write("[ai-input-gateway-exact-target] PASS\n");
-emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V1", evidenceMode: "exam.golden", locator: "acceptance:exact-target:caller-owned-lease", observedValue: "BrowserTargetLease exact-target atomic boundary verified" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "exam.golden", locator: "acceptance:exact-target:caller-owned-lease", observedValue: "BrowserTargetLease exact-target atomic boundary verified" });

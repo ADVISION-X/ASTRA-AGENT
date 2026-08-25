@@ -486,4 +486,4 @@ try {
 
 await verifyBrowserSupervisorRestartContract();
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "exam.golden", locator: "acceptance:browser-terminal:atomic-journal", observedValue: "single mutation terminal contract and journal ownership verified" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", evidenceMode: "exam.golden", locator: "acceptance:browser-terminal:atomic-journal", observedValue: "single mutation terminal contract and journal ownership verified" });

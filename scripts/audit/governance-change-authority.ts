@@ -1,7 +1,8 @@
+import { spawnSync } from 'node:child_process';
 import { concreteString, exactKeys, isStringArray, parseJson, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { fail, text } from './governance-runtime.js';
-import { parseLawSource } from './governance-authority.js';
+import { parseLawSource, type Law } from './governance-authority.js';
 import { BASE, FUNCTIONAL } from './shared/governance-paths.js';
 
 const LAW = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;
@@ -15,6 +16,48 @@ type Endpoint = { repo: string; domain: string };
 type AllowedEdge = { from: Endpoint; to: Endpoint; contractRef: string | null };
 type ProhibitedEdge = { from: Endpoint; to: Endpoint; lawId: string };
 type Spec = { schemaVersion: number; specId: string; status: string; version: number; owner: string; lawIds: string[]; specKind: string; contract: unknown };
+
+const lawStem = (lawId: string): string => lawId.replace(/-V[1-9][0-9]*$/u, '');
+const normativeLawRecord = (law: Law): unknown => ({
+  appliesTo: law.appliesTo,
+  capabilityDomain: law.capabilityDomain,
+  dependsOnLawIds: law.dependsOnLawIds,
+  enforcementMode: law.enforcementMode,
+  evidenceModes: law.evidenceModes,
+  excludes: law.excludes,
+  forbidden: law.forbidden,
+  schemaVersion: law.schemaVersion,
+  status: law.status,
+  summary: law.summary,
+  tier: law.tier,
+});
+
+export const assertLawMajorVersionChanges = (prior: readonly Law[], current: readonly Law[]): void => {
+  const currentByStem = new Map(current.map((law) => [lawStem(law.lawId), law]));
+  for (const priorLaw of prior) {
+    const currentLaw = currentByStem.get(lawStem(priorLaw.lawId))
+      ?? fail('LAW_MAJOR_CHANGE_UNENFORCED', `${priorLaw.lawId}:removed-without-successor`);
+    const changed = JSON.stringify(normativeLawRecord(priorLaw)) !== JSON.stringify(normativeLawRecord(currentLaw));
+    if (changed && (currentLaw.lawId === priorLaw.lawId || currentLaw.supersedesLawId !== priorLaw.lawId)) {
+      fail('LAW_MAJOR_CHANGE_UNENFORCED', `${priorLaw.lawId}:normative-semantics`);
+    }
+  }
+};
+
+const baselineLawSource = (path: string): string => {
+  const result = spawnSync('git', ['show', `HEAD:${path}`], { cwd: process.cwd(), encoding: 'utf8' });
+  return result.status === 0 ? result.stdout : '';
+};
+
+const validateChangedLawSource = (
+  path: string,
+  documentType: 'base-law' | 'functional-law',
+  authorityLevel: 100 | 90,
+): void => {
+  const current = parseLawSource(text(path), path, documentType, authorityLevel);
+  const baseline = baselineLawSource(path);
+  if (baseline) assertLawMajorVersionChanges(parseLawSource(baseline, path, documentType, authorityLevel), current);
+};
 
 const machineBlock = (path: string): Record<string, unknown> => {
   const source = text(path);
@@ -111,8 +154,8 @@ const providerSpecValid = (raw: Spec): boolean => {
 
 const validateChangedSource = (change: { status: string; path: string }): void => {
   if (change.status === 'D') return;
-  if (change.path === BASE) return void parseLawSource(text(BASE), BASE, 'base-law', 100);
-  if (change.path === FUNCTIONAL) return void parseLawSource(text(FUNCTIONAL), FUNCTIONAL, 'functional-law', 90);
+  if (change.path === BASE) return validateChangedLawSource(BASE, 'base-law', 100);
+  if (change.path === FUNCTIONAL) return validateChangedLawSource(FUNCTIONAL, 'functional-law', 90);
   if (/^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(change.path)) return validateManifest(change.path);
   if (change.path.startsWith('docs/specs/') && change.path.endsWith('.json')) return validateSpec(change.path);
   if (change.path.startsWith('docs/blueprints/') && (change.path.endsWith('.md') || change.path.endsWith('.json'))) {
