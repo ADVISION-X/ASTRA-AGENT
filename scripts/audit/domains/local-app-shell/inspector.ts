@@ -65,7 +65,15 @@ const stringArgument = (call: CallExpression, index: number): string | null => {
 const localRuntimeSources = (project: Project): SourceFile[] => project.getSourceFiles()
   .filter((source) => sourcePath(source).startsWith("src/lib/local-runtime/") && !source.isDeclarationFile());
 
-const inspectUniqueServer = (project: Project, findings: InspectorFinding[]): void => {
+const inspectShellOwnership = (
+  project: Project,
+  findings: InspectorFinding[],
+  lawId: string,
+  targetPaths: readonly string[] = requiredPaths,
+): void => {
+  for (const path of requiredPaths.filter((candidate) => !candidate.includes("workbench-status"))) if (targetPaths.includes(path) && !sourceAt(project, path)) {
+    findings.push(finding(lawId, path, "required local shell authority source is missing."));
+  }
   const appSources = project.getSourceFiles().filter((source) => sourcePath(source).startsWith("src/app/") && !source.isDeclarationFile());
   const serverCalls = appSources.flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => identifierName(call.getExpression()) === "createServer")
@@ -77,13 +85,13 @@ const inspectUniqueServer = (project: Project, findings: InspectorFinding[]): vo
     .filter((call) => propertyCallName(call) === "on" && stringArgument(call, 0) === "upgrade")
     .map((call) => ({ call, path: sourcePath(source) })));
   for (const [name, entries] of [["HTTP server", serverCalls], ["HTTP listener", listeners], ["WebSocket upgrade registration", upgrades]] as const) {
-    if (entries.length !== 1) findings.push(finding(LAW_SHELL, "src/app", `${name} count must be exactly one; observed ${entries.length}.`));
+    if (entries.length !== 1) findings.push(finding(lawId, "src/app", `${name} count must be exactly one; observed ${entries.length}.`));
   }
 
   const server = sourceAt(project, "src/app/server.ts");
   const start = server?.getFunction("startLocalRuntime");
   if (!start) {
-    findings.push(finding(LAW_SHELL, "src/app/server.ts", "startLocalRuntime is missing."));
+    findings.push(finding(lawId, "src/app/server.ts", "startLocalRuntime is missing."));
     return;
   }
   const calls = start.getDescendantsOfKind(SyntaxKind.CallExpression);
@@ -91,29 +99,36 @@ const inspectUniqueServer = (project: Project, findings: InspectorFinding[]): vo
   const initialize = calls.find((call) => propertyCallName(call) === "init");
   const guarded = initialize?.getAncestors().some((ancestor) => Node.isCallExpression(ancestor) && propertyCallName(ancestor) === "catch") ?? false;
   if (!startServer || !initialize || startServer.getStart() >= initialize.getStart() || !guarded) {
-    findings.push(finding(LAW_SHELL, "src/app/server.ts", "the diagnostic HTTP shell must start before execution initialization and initialization failure must be caught."));
+    findings.push(finding(lawId, "src/app/server.ts", "the diagnostic HTTP shell must start before execution initialization and initialization failure must be caught."));
   }
-};
-
-const inspectLocalRuntimeBoundary = (project: Project, findings: InspectorFinding[]): void => {
-  const forbiddenNames = new Set(["BrowserCommandActor", "BrowserTargetLeaseManager", "EventSource", "localStorage"]);
-  const forbiddenControlFields = new Set(["browserCommand", "coordinate", "documentId", "nextAction", "selector", "targetId"]);
   for (const source of localRuntimeSources(project)) {
     const path = sourcePath(source);
     for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
       const name = identifierName(call.getExpression()) ?? propertyCallName(call);
       if (name === "createServer" || name === "listen" || name === "setInterval") {
-        findings.push(finding(LAW_SHELL, path, `local-runtime cannot create ${name}; the App Server is the sole listener owner.`, call.getStartLineNumber()));
+        findings.push(finding(lawId, path, `local-runtime cannot create ${name}; the App Server is the sole listener owner.`, call.getStartLineNumber()));
       }
     }
+  }
+};
+
+const inspectBrowserAuthorityBoundary = (
+  project: Project,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const forbiddenNames = new Set(["BrowserCommandActor", "BrowserTargetLeaseManager", "EventSource", "localStorage"]);
+  const forbiddenControlFields = new Set(["browserCommand", "coordinate", "documentId", "nextAction", "selector", "targetId"]);
+  for (const source of localRuntimeSources(project)) {
+    const path = sourcePath(source);
     for (const identifier of source.getDescendantsOfKind(SyntaxKind.Identifier)) {
       if (forbiddenNames.has(identifier.getText())) {
-        findings.push(finding(LAW_BOUNDARY, path, `local-runtime exposes forbidden browser/UI authority ${identifier.getText()}.`, identifier.getStartLineNumber()));
+        findings.push(finding(lawId, path, `local-runtime exposes forbidden browser/UI authority ${identifier.getText()}.`, identifier.getStartLineNumber()));
       }
     }
     for (const property of source.getDescendantsOfKind(SyntaxKind.PropertySignature)) {
       if (forbiddenControlFields.has(property.getName())) {
-        findings.push(finding(LAW_BOUNDARY, path, `App input/display contract exposes browser control field ${property.getName()}.`, property.getStartLineNumber()));
+        findings.push(finding(lawId, path, `App input/display contract exposes browser control field ${property.getName()}.`, property.getStartLineNumber()));
       }
     }
   }
@@ -128,9 +143,15 @@ const propertyLiteralValues = (source: SourceFile, aliasName: string): Map<strin
   ]));
 };
 
-const inspectSeparatedStatus = (project: Project, findings: InspectorFinding[]): void => {
+const inspectSeparatedStatus = (
+  project: Project,
+  findings: InspectorFinding[],
+  lawId: string,
+  targetPaths: readonly string[] = requiredPaths,
+): void => {
   const path = "src/lib/local-runtime/workbench-status.ts";
   const status = sourceAt(project, path);
+  if (targetPaths.includes(path) && !status) findings.push(finding(lawId, path, "required local shell authority source is missing."));
   if (!status) return;
   const expected = new Map<string, string[]>([
     ["shellState", ["ready", "stopped"]],
@@ -143,7 +164,7 @@ const inspectSeparatedStatus = (project: Project, findings: InspectorFinding[]):
   const actual = propertyLiteralValues(status, "AiProductionHealthSnapshot");
   for (const [name, values] of expected) {
     if (JSON.stringify(actual.get(name)) !== JSON.stringify(values)) {
-      findings.push(finding(LAW_STATUS, path, `${name} must remain an independently typed status dimension.`));
+      findings.push(finding(lawId, path, `${name} must remain an independently typed status dimension.`));
     }
   }
   const declarations = status.getDescendantsOfKind(SyntaxKind.VariableDeclaration);
@@ -158,7 +179,7 @@ const inspectSeparatedStatus = (project: Project, findings: InspectorFinding[]):
   }) ?? [];
   const allOkReceivers = allOk?.getDescendantsOfKind(SyntaxKind.Identifier).map((identifier) => identifier.getText()) ?? [];
   if (sliceCalls.length !== 1 || !allOkReceivers.includes("startupComponents")) {
-    findings.push(finding(LAW_STATUS, path, "Shell health aggregation must exclude Browser, Target, execution and claim admission readiness."));
+    findings.push(finding(lawId, path, "Shell health aggregation must exclude Browser, Target, execution and claim admission readiness."));
   }
 
   const ownerPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts";
@@ -172,7 +193,7 @@ const inspectSeparatedStatus = (project: Project, findings: InspectorFinding[]):
       return [property.getName(), value] as const;
     }));
   if (assignments.get("shellState") !== "ready" || assignments.get("executionState") !== "blocked" || assignments.get("claimAdmissionState") !== "blocked") {
-    findings.push(finding(LAW_STATUS, ownerPath, "Cloud/provider startup failure must keep Shell ready while execution and claim admission fail closed."));
+    findings.push(finding(lawId, ownerPath, "Cloud/provider startup failure must keep Shell ready while execution and claim admission fail closed."));
   }
 };
 
@@ -181,22 +202,25 @@ export const inspectLocalAppShellProject = (
   targetPaths: readonly string[] = requiredPaths,
 ): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
-  for (const path of requiredPaths) if (targetPaths.includes(path) && !sourceAt(project, path)) {
-    findings.push(finding(path.includes("workbench-status") ? LAW_STATUS : LAW_SHELL, path, "required local shell authority source is missing."));
-  }
-  inspectUniqueServer(project, findings);
-  inspectLocalRuntimeBoundary(project, findings);
-  inspectSeparatedStatus(project, findings);
+  inspectShellOwnership(project, findings, LAW_SHELL, targetPaths);
+  inspectBrowserAuthorityBoundary(project, findings, LAW_BOUNDARY);
+  inspectSeparatedStatus(project, findings, LAW_STATUS, targetPaths);
   return findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message));
 };
 
-const evaluate = (context: InspectorContext): InspectorEvaluation => ({
-  capabilityDomain: context.planEntry.capabilityDomain,
-  reportedLawIds: context.planEntry.lawIds,
-  executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-  findings: inspectLocalAppShellProject(context.project, context.targetPaths),
-  inspectedFiles: [...context.targetPaths],
-});
+const evaluate = (context: InspectorContext): InspectorEvaluation => {
+  const findings: InspectorFinding[] = [];
+  inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths);
+  inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY);
+  inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths);
+  return {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    findings: findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message)),
+    inspectedFiles: [...context.targetPaths],
+  };
+};
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   return finalizeStaticInspection(context, [

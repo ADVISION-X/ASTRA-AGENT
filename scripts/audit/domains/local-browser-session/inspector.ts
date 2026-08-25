@@ -338,38 +338,47 @@ const inspectReleaseAndRetiredPaths = (findings: InspectorFinding[], lawId: stri
   }
 };
 
-const inspectAuthenticatedRuntimeRegressionGuards = (
+const inspectAuthenticatedChannelGuards = (
   context: InspectorContext,
   findings: InspectorFinding[],
+  lawId: string,
 ): void => {
-  const authLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
-  const targetLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
-  const channel = requireSource(context, findings, authLawId, sourcePaths[0]);
-  const actor = requireSource(context, findings, authLawId, sourcePaths[1]);
-  const crypto = requireSource(context, findings, authLawId, sourcePaths[20]);
-  const heartbeat = requireSource(context, findings, authLawId, sourcePaths[22]);
+  const channel = requireSource(context, findings, lawId, sourcePaths[0]);
+  const actor = requireSource(context, findings, lawId, sourcePaths[1]);
+  const crypto = requireSource(context, findings, lawId, sourcePaths[20]);
+  const heartbeat = requireSource(context, findings, lawId, sourcePaths[22]);
   if (!channel || !actor || !crypto || !heartbeat) return;
 
-  requireIdentifiers(crypto, ["aad", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, authLawId,
+  requireIdentifiers(crypto, ["aad", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, lawId,
     "Extension AES-GCM AAD must be reconstructed from the five authenticated header fields.");
-  requireIdentifiers(channel, ["aadForFrame", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, authLawId,
+  requireIdentifiers(channel, ["aadForFrame", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, lawId,
     "Workbench AES-GCM AAD must be reconstructed from the same five authenticated header fields.");
-  requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, targetLawId,
-    "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
-  requireIdentifiers(actor, ["TargetClaimAwaiter", "targetClaims", "sendTargetFrame", "acceptTargetClaimAcknowledgement", "begin", "accept", "fail"], findings, targetLawId,
-    "The extension must not report target success before the Workbench acknowledgement.");
-  requireIdentifiers(heartbeat, ["startHeartbeat", "sendLivenessPulse", "getPlatformInfo"], findings, authLawId,
+  requireIdentifiers(heartbeat, ["startHeartbeat", "sendLivenessPulse", "getPlatformInfo"], findings, lawId,
     "The MV3 heartbeat owner must invoke the Chrome API liveness pulse on the authenticated channel.");
-  requireIdentifiers(actor, ["onSocketClosed", "releaseActiveTarget", "close", "reasonCode"], findings, authLawId,
+  requireIdentifiers(actor, ["onSocketClosed", "releaseActiveTarget", "close", "reasonCode"], findings, lawId,
     "The MV3 socket owner must release stale debugger state after disconnect and expose every programmatic close reason.");
-  requireIdentifiers(actor, ["extensionCommandDiagnostic", "commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, authLawId,
+  requireIdentifiers(actor, ["extensionCommandDiagnostic", "commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "Every authenticated command failure must emit a non-fatal redacted diagnostic with command-stage and capability identity.");
-  requireIdentifiers(channel, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, authLawId,
+  requireIdentifiers(channel, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "The Workbench authority socket must retain the redacted authenticated-command diagnostic fields.");
   if (!stringLiterals(actor).includes("HEARTBEAT")) findings.push(createLocalFinding({
-    checkId: "browser-authority/terminal-authority", lawId: authLawId, filePath: sourcePaths[1],
+    checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[1],
     message: "The MV3 worker must send an authenticated HEARTBEAT liveness frame.",
   }));
+};
+
+const inspectTargetClaimGuards = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const channel = requireSource(context, findings, lawId, sourcePaths[0]);
+  const actor = requireSource(context, findings, lawId, sourcePaths[1]);
+  if (!channel || !actor) return;
+  requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, lawId,
+    "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
+  requireIdentifiers(actor, ["TargetClaimAwaiter", "targetClaims", "sendTargetFrame", "acceptTargetClaimAcknowledgement", "begin", "accept", "fail"], findings, lawId,
+    "The extension must not report target success before the Workbench acknowledgement.");
   const parseClaim = channel.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
   const navigationEpoch = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "navigationEpoch");
@@ -377,7 +386,7 @@ const inspectAuthenticatedRuntimeRegressionGuards = (
   if (!initializer || !Node.isIdentifier(initializer) || astIdentifierName(initializer) !== "nonNegativeIntegerField") {
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
-      lawId: targetLawId,
+      lawId,
       filePath: sourcePaths[0],
       message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
     }));
@@ -469,7 +478,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
   inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
   inspectJournalRecoveryBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
-  inspectAuthenticatedRuntimeRegressionGuards(context, findings);
+  inspectAuthenticatedChannelGuards(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4"));
+  inspectTargetClaimGuards(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6"));
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
   inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
   inspectOpaqueAuthorityBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2"));

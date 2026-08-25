@@ -57,9 +57,9 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"], aiTransportChecks),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-002-V1", ["static.ast"], ["inspectAtomicIfAndThenActions"]),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"], [
-      "inspectAttachmentChild", "inspectRemovedRegion",
+      "inspectAttachmentRoutingChild", "inspectRemovedRegion",
     ]),
-    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"], ["inspectAttachmentChild"]),
+    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"], ["inspectAttachmentProofChild"]),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"], aiParallelChecks),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-006-V1", ["static.ast", "static.contract"], ["inspectBoundedChoiceJudge"]),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-007-V1", ["static.ast", "static.contract"], ["inspectCallerApprovedInputReferences"]),
@@ -105,10 +105,10 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
   ],
   "forensics-persistence-capability": [
     ...summaryRoutes("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", ["static.ast", "static.contract"], [
-      "inspectRequiredFiles", "inspectOwnerImports", "inspectPublicFacade",
+      "inspectCapabilityRequiredFiles", "inspectOwnerImports", "inspectPublicFacade",
     ]),
     ...summaryRoutes("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2", ["static.ast", "static.contract"], [
-      "inspectRequiredFiles", "inspectStoragePort",
+      "inspectStorageRequiredFiles", "inspectStoragePort",
     ]),
     ...summaryRoutes("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", ["static.ast", "static.contract"], [
       "inspectSchemaVocabulary",
@@ -119,15 +119,15 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
       lawId: "LAW-LOCAL-APP-SHELL-001-V5",
       evidenceMode: "static.ast",
       clauses: ["forbidden:4", "forbidden:7", "forbidden:8", "summary"],
-      semanticChecks: ["inspectLocalAppShellProject"],
+      semanticChecks: ["inspectShellOwnership"],
     }),
-    ...summaryRoutes("LAW-LOCAL-APP-SHELL-001-V5", ["static.contract"], ["inspectLocalAppShellProject"]),
-    ...summaryRoutes("LAW-LOCAL-APP-SHELL-002-V3", ["static.ast"], ["inspectLocalAppShellProject"]),
+    ...summaryRoutes("LAW-LOCAL-APP-SHELL-001-V5", ["static.contract"], ["inspectShellOwnership"]),
+    ...summaryRoutes("LAW-LOCAL-APP-SHELL-002-V3", ["static.ast"], ["inspectBrowserAuthorityBoundary"]),
     route({
       lawId: "LAW-LOCAL-APP-SHELL-003-V2",
       evidenceMode: "static.ast",
       clauses: ["forbidden:0", "forbidden:1", "summary"],
-      semanticChecks: ["inspectLocalAppShellProject"],
+      semanticChecks: ["inspectSeparatedStatus"],
     }),
   ],
   "local-browser-session": [
@@ -138,14 +138,14 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
     ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-001-V4", ["static.contract"], ["inspectSingleTransport"]),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenceMode: "static.ast", clauses: allClauses(11),
-      semanticChecks: ["inspectAuthenticatedRuntimeRegressionGuards"],
+      semanticChecks: ["inspectAuthenticatedChannelGuards"],
     }),
-    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-002-V4", ["static.contract"], ["inspectAuthenticatedRuntimeRegressionGuards"]),
+    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-002-V4", ["static.contract"], ["inspectAuthenticatedChannelGuards"]),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "static.ast", clauses: allClauses(12),
-      semanticChecks: ["inspectAuthenticatedRuntimeRegressionGuards"],
+      semanticChecks: ["inspectTargetClaimGuards"],
     }),
-    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-003-V6", ["static.contract"], ["inspectAuthenticatedRuntimeRegressionGuards"]),
+    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-003-V6", ["static.contract"], ["inspectTargetClaimGuards"]),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "static.ast",
       clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:14", "forbidden:15", "summary"],
@@ -163,9 +163,9 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
     ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-006-V2", ["static.contract"], ["inspectOpaqueAuthorityBoundary"]),
   ],
   "runtime-log-spine": [
-    ...summaryRoutes("LAW-RUNTIME-LOG-SPINE-001-V3", ["static.ast", "static.contract"], ["collectRuntimeLogPhaseRuns"]),
-    ...summaryRoutes("LAW-RUNTIME-LOG-SPINE-002-V2", ["static.ast", "static.contract"], ["collectRuntimeLogPhaseRuns"]),
-    ...summaryRoutes("LAW-RUNTIME-LOG-SPINE-003-V2", ["static.ast", "static.contract"], ["collectRuntimeLogPhaseRuns"]),
+    ...summaryRoutes("LAW-RUNTIME-LOG-SPINE-001-V3", ["static.ast", "static.contract"], ["collectRuntimeOperationalTraceFindings"]),
+    ...summaryRoutes("LAW-RUNTIME-LOG-SPINE-002-V2", ["static.ast", "static.contract"], ["collectRuntimeRedactionFindings"]),
+    ...summaryRoutes("LAW-RUNTIME-LOG-SPINE-003-V2", ["static.ast", "static.contract"], ["collectRuntimeContractFindings"]),
   ],
   "startup-entrypoint": [
     route({

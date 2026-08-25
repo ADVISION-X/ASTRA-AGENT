@@ -176,47 +176,56 @@ const referencedLawIds = (node: AstNode, knownLawIds: ReadonlySet<string>): Set<
 const callLawIds = (
   call: import("ts-morph").CallExpression,
   knownLawIds: ReadonlySet<string>,
-): Set<string> => {
-  const result = new Set(call.getArguments().flatMap((argument) => [...referencedLawIds(argument, knownLawIds)]));
-  const expression = call.getExpression();
-  if (!Node.isIdentifier(expression)) return result;
-  for (const declaration of resolvedSymbolDeclarations(expression)) {
-    let body = Node.isFunctionDeclaration(declaration) ? declaration.getBody() : undefined;
-    if (Node.isVariableDeclaration(declaration)) {
-      const initializer = declaration.getInitializer();
-      if (Node.isArrowFunction(initializer)) body = initializer.getBody();
-    }
-    if (body) for (const lawId of referencedLawIds(body, knownLawIds)) result.add(lawId);
-  }
-  return result;
-};
+): Set<string> => new Set(call.getArguments().flatMap((argument) => [...referencedLawIds(argument, knownLawIds)]));
 
 export const semanticLawBindingsForSource = (
   sourceText: string,
   executorName: string,
   lawIds: readonly string[],
 ): Readonly<Record<string, string[]>> => {
+  const callBindings = semanticLawCallBindingsForSource(sourceText, executorName, lawIds);
+  return Object.fromEntries(Object.entries(callBindings).map(([name, bindings]) => [
+    name, ordered(bindings.flatMap((binding) => binding)),
+  ]));
+};
+
+export const semanticLawCallBindingsForSource = (
+  sourceText: string,
+  executorName: string,
+  lawIds: readonly string[],
+): Readonly<Record<string, string[][]>> => {
   const project = new Project({ useInMemoryFileSystem: true });
   const source = project.createSourceFile("inspector.ts", sourceText);
   const executor = source.getFunction(executorName) ?? source.getVariableDeclaration(executorName)?.getInitializer();
   if (!executor) return {};
   const knownLawIds = new Set(lawIds);
-  const bindings = new Map<string, Set<string>>();
+  const bindings = new Map<string, string[][]>();
   for (const call of semanticFindingBoundCalls(executor)) {
     const expression = call.getExpression();
     if (!Node.isIdentifier(expression)) continue;
-    const current = bindings.get(expression.getText()) ?? new Set<string>();
-    for (const lawId of callLawIds(call, knownLawIds)) current.add(lawId);
+    const current = bindings.get(expression.getText()) ?? [];
+    current.push(ordered([...callLawIds(call, knownLawIds)]));
     bindings.set(expression.getText(), current);
   }
   return Object.fromEntries([...bindings].sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)))
-    .map(([name, boundLawIds]) => [name, ordered([...boundLawIds])]));
+    .map(([name, callBindings]) => [name, callBindings]));
 };
+
+export const semanticLawOwnershipIsExact = (
+  callBindings: Readonly<Record<string, readonly (readonly string[])[]>>,
+  expectedLawIdsByCheck: Readonly<Record<string, readonly string[]>>,
+): boolean => Object.entries(expectedLawIdsByCheck).every(([semanticCheck, expectedLawIds]) => {
+  const bindings = callBindings[semanticCheck] ?? [];
+  const actualLawIds = ordered(bindings.flatMap((binding) => binding));
+  return bindings.length > 0
+    && bindings.every((binding) => binding.length === 1)
+    && JSON.stringify(actualLawIds) === JSON.stringify(ordered(expectedLawIds));
+});
 
 const domainSemanticExecutorCalls = (
   context: InspectorContext,
   executorName: string,
-): Map<string, Set<string>> => {
+): Map<string, Set<string>[]> => {
   const project = new Project({ tsConfigFilePath: resolve(enforcementRoot, "tsconfig.json") });
   const source = project.getSourceFile(resolve(enforcementRoot, context.planEntry.ownerInspectorPath));
   if (!source) return new Map();
@@ -225,15 +234,18 @@ const domainSemanticExecutorCalls = (
   if (!executor) return new Map();
   const domainRoot = `${resolve(enforcementRoot, "scripts/audit/domains", context.planEntry.capabilityDomain)}/`;
   const knownLawIds = new Set(context.lawRequirements.map((requirement) => requirement.lawId));
-  const bindings = new Map<string, Set<string>>();
+  const bindings = new Map<string, Set<string>[]>();
   for (const call of semanticFindingBoundCalls(executor)) {
     const expression = call.getExpression();
     if (!Node.isIdentifier(expression)) continue;
     const declarationPaths = resolvedSymbolPaths(expression);
     if (!declarationPaths.some((path) => path.startsWith(domainRoot))) continue;
-    const current = bindings.get(expression.getText()) ?? new Set<string>();
+    const current = new Set<string>();
     for (const lawId of callLawIds(call, knownLawIds)) current.add(lawId);
-    bindings.set(expression.getText(), current);
+    if (current.size === 0 && knownLawIds.size === 1) current.add([...knownLawIds][0]!);
+    const calls = bindings.get(expression.getText()) ?? [];
+    calls.push(current);
+    bindings.set(expression.getText(), calls);
   }
   return bindings;
 };
@@ -242,21 +254,20 @@ const validateSemanticExecutor = (
   context: InspectorContext, executorName: string, evaluation: InspectorEvaluation,
 ): void => {
   const executedSemanticChecks = domainSemanticExecutorCalls(context, executorName);
-  const checksByLaw = new Map(context.lawRequirements.map((requirement) => [
-    requirement.lawId,
-    new Set(evaluation.executedChecks.filter((check) => check.lawId === requirement.lawId)
-      .flatMap((check) => check.semanticChecks)),
-  ]));
-  const universalChecks = new Set([...executedSemanticChecks].filter(([, boundLawIds]) => boundLawIds.size === 0)
-    .map(([name]) => name)
-    .filter((name) => [...checksByLaw.values()].every((checks) => checks.has(name))));
-  for (const [lawId, requiredChecks] of checksByLaw) {
-    for (const semanticCheck of requiredChecks) {
-      const boundLawIds = executedSemanticChecks.get(semanticCheck);
-      if (!boundLawIds || (!boundLawIds.has(lawId) && !universalChecks.has(semanticCheck))) {
-        fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${lawId}:semantic-law-binding`);
-      }
+  const expectedLawsByCheck = new Map<string, Set<string>>();
+  for (const check of evaluation.executedChecks) {
+    for (const semanticCheck of check.semanticChecks) {
+      const laws = expectedLawsByCheck.get(semanticCheck) ?? new Set<string>();
+      laws.add(check.lawId);
+      expectedLawsByCheck.set(semanticCheck, laws);
     }
+  }
+  const callBindings = Object.fromEntries([...executedSemanticChecks].map(([name, bindings]) => [
+    name, bindings.map((binding) => ordered([...binding])),
+  ]));
+  const expected = Object.fromEntries([...expectedLawsByCheck].map(([name, lawIds]) => [name, ordered([...lawIds])]));
+  if (!semanticLawOwnershipIsExact(callBindings, expected)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:semantic-law-binding:${JSON.stringify({ expected, callBindings })}`);
   }
 };
 

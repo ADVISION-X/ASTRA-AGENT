@@ -77,6 +77,24 @@ const inspectRequiredFiles = (
   }
 };
 
+const inspectCapabilityRequiredFiles = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  inspectedFiles: Set<string>,
+): void => inspectRequiredFiles(
+  context, findings, lawId, "grasseye-evidence-001-v2-requirement", inspectedFiles, requiredCapabilityFiles,
+);
+
+const inspectStorageRequiredFiles = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  inspectedFiles: Set<string>,
+): void => inspectRequiredFiles(
+  context, findings, lawId, "grasseye-local-persistence-schema-001-requirement", inspectedFiles, requiredStorageFiles,
+);
+
 const inspectOwnerImports = (
   context: InspectorContext,
   findings: Finding[],
@@ -168,8 +186,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
 
-  inspectRequiredFiles(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles, requiredCapabilityFiles);
-  inspectRequiredFiles(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles, requiredStorageFiles);
+  inspectCapabilityRequiredFiles(context, findings, evidenceLaw, inspectedFiles);
+  inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles);
   inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
   inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
   inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles);

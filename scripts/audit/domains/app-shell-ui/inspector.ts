@@ -15,7 +15,12 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectSkillRegistry(context, findings, inspectedFiles, lawId);
   inspectAppShellLayout(context, findings, inspectedFiles, lawId);
   inspectForbiddenAppShellActions(context, findings, inspectedFiles, lawId);
-  inspectLegacyAppUserDemandPhysicalAbsence(context, findings, inspectedFiles);
+  inspectLegacyAppUserDemandPhysicalAbsence(
+    context,
+    findings,
+    inspectedFiles,
+    selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-003-V2"),
+  );
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,

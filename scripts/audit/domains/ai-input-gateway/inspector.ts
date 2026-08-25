@@ -24,7 +24,7 @@ import {
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
-import { inspectAttachmentChild } from "./attachment-inspector.js";
+import { inspectAttachmentProofChild, inspectAttachmentRoutingChild } from "./attachment-inspector.js";
 import { inspectAtomicIfAndThenActions } from "./atomic-if-and-then-inspector.js";
 import { inspectBoundedChoiceJudge, inspectCallerApprovedInputReferences } from "./authority-boundary-inspector.js";
 
@@ -411,7 +411,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
     }
   }
   inspectPublicBoundary(context, findings, publicLawId);
-  inspectAttachmentChild(context, findings, routingLawId, proofLawId);
+  inspectAttachmentRoutingChild(context, findings, routingLawId);
+  inspectAttachmentProofChild(context, findings, proofLawId);
   inspectRemovedRegion(context, findings, routingLawId);
   inspectBoundedParallelExecution(context, findings, parallelLawId);
   inspectSerialProviderBrowserActions(context, findings, parallelLawId);

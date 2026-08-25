@@ -47,7 +47,9 @@ const buildSemanticMetricsPhase = (semanticMetrics: ReturnType<typeof collectRun
   },
 });
 
-export const collectRuntimeLogPhaseRuns = (context: InspectorContext): CollectedPhaseRuns => {
+export const collectRuntimeLogPhaseRuns = (
+  context: InspectorContext,
+): CollectedPhaseRuns => {
   const forbiddenConsole = collectForbiddenConsoleFindings(context);
   const eventRegistry = collectEventTypeRegistryFindings(context);
   const emitContract = collectRuntimeLogEmitContractFindings(context);
@@ -65,7 +67,21 @@ export const collectRuntimeLogPhaseRuns = (context: InspectorContext): Collected
     stageCoveragePercent: stagePairs.stageCoveragePercent,
     stagePairViolationCount: stagePairs.findings.length,
   });
-
+  const phaseRuns: PhaseRun[] = [
+    { name: "forbidden-console", ...forbiddenConsole, metrics: { consoleViolationCount: forbiddenConsole.consoleViolationCount } },
+    { name: "event-type-registry", ...eventRegistry },
+    { name: "runtime-log-emit-contract", ...emitContract, metrics: { emitCallCount: emitContract.emitCallCount } },
+    { name: "mode-visibility", ...modeVisibility },
+    { name: "stage-pair-coverage", ...stagePairs, metrics: { stageCoveragePercent: stagePairs.stageCoveragePercent } },
+    { name: "catch-branch-log", ...catchBranches },
+    { name: "failure-class", ...failureClasses, metrics: { failureWithoutClassCount: failureClasses.failureWithoutClassCount } },
+    { name: "redaction", ...redaction },
+    { name: "debug-bundle", ...debugBundle },
+    { name: "ai-log-contract", ...aiContract },
+    { name: "browser-action-log-contract", ...browserAction },
+    buildSemanticMetricsPhase(semanticMetrics),
+    { name: "anti-fake-inspector", ...antiFake },
+  ];
   return {
     forbiddenConsole,
     eventRegistry,
@@ -76,20 +92,6 @@ export const collectRuntimeLogPhaseRuns = (context: InspectorContext): Collected
     failureClasses,
     redaction,
     semanticMetrics,
-    phaseRuns: [
-      { name: "forbidden-console", ...forbiddenConsole, metrics: { consoleViolationCount: forbiddenConsole.consoleViolationCount } },
-      { name: "event-type-registry", ...eventRegistry },
-      { name: "runtime-log-emit-contract", ...emitContract, metrics: { emitCallCount: emitContract.emitCallCount } },
-      { name: "mode-visibility", ...modeVisibility },
-      { name: "stage-pair-coverage", ...stagePairs, metrics: { stageCoveragePercent: stagePairs.stageCoveragePercent } },
-      { name: "catch-branch-log", ...catchBranches },
-      { name: "failure-class", ...failureClasses, metrics: { failureWithoutClassCount: failureClasses.failureWithoutClassCount } },
-      { name: "redaction", ...redaction },
-      { name: "debug-bundle", ...debugBundle },
-      { name: "ai-log-contract", ...aiContract },
-      { name: "browser-action-log-contract", ...browserAction },
-      buildSemanticMetricsPhase(semanticMetrics),
-      { name: "anti-fake-inspector", ...antiFake },
-    ],
+    phaseRuns,
   };
 };

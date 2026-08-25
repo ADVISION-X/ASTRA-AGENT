@@ -25,7 +25,13 @@ import type { InspectorContext, InspectorEvaluation } from "../../scripts/audit/
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { finalizeStaticInspection, semanticFindingBindingsForSource, semanticLawBindingsForSource } from "../../scripts/audit/shared/static-inspector-result.js";
+import {
+  finalizeStaticInspection,
+  semanticFindingBindingsForSource,
+  semanticLawBindingsForSource,
+  semanticLawCallBindingsForSource,
+  semanticLawOwnershipIsExact,
+} from "../../scripts/audit/shared/static-inspector-result.js";
 import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
 
 const fixtureLaw = (): Law => ({
@@ -119,8 +125,8 @@ test("every active Static route has fixed clause coverage bound to domain semant
 
 test("static semantic authentication rejects a checker whose finding sink is diverted", () => {
   const control = readFileSync(resolve("scripts/audit/domains/app-shell-ui/inspector.ts"), "utf8");
-  const original = "inspectLegacyAppUserDemandPhysicalAbsence(context, findings, inspectedFiles);";
-  const diverted = control.replace(original, "inspectLegacyAppUserDemandPhysicalAbsence(context, [], inspectedFiles);");
+  const original = "    findings,\n    inspectedFiles,";
+  const diverted = control.replace(original, "    [],\n    inspectedFiles,");
   assert.notEqual(control, diverted);
   assert.equal(
     semanticFindingBindingsForSource(control, "inspectDomainEvaluation")
@@ -151,6 +157,36 @@ test("static semantic authentication preserves per-law call ownership", () => {
     inspectA: ["LAW-A"],
     inspectB: ["LAW-B"],
   });
+});
+
+test("static semantic authentication rejects shared and permuted law bindings", () => {
+  const shared = `
+    const inspectShared = (_findings: string[], _lawA: string, _lawB: string) => undefined;
+    const evaluate = () => {
+      const findings: string[] = [];
+      inspectShared(findings, "LAW-A", "LAW-B");
+      return { findings };
+    };
+  `;
+  assert.equal(semanticLawOwnershipIsExact(
+    semanticLawCallBindingsForSource(shared, "evaluate", ["LAW-A", "LAW-B"]),
+    { inspectShared: ["LAW-A", "LAW-B"] },
+  ), false);
+
+  const permuted = `
+    const inspectA = (_findings: string[], _lawId: string) => undefined;
+    const inspectB = (_findings: string[], _lawId: string) => undefined;
+    const evaluate = () => {
+      const findings: string[] = [];
+      inspectA(findings, "LAW-B");
+      inspectB(findings, "LAW-A");
+      return { findings };
+    };
+  `;
+  assert.equal(semanticLawOwnershipIsExact(
+    semanticLawCallBindingsForSource(permuted, "evaluate", ["LAW-A", "LAW-B"]),
+    { inspectA: ["LAW-A"], inspectB: ["LAW-B"] },
+  ), false);
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {

@@ -11,71 +11,83 @@ import {
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
 
-type AttachmentSources = Readonly<{
-  adapterContract: SourceFile;
+type AttachmentRoutingSources = Readonly<{
   child: SourceFile;
   shared: SourceFile;
-  state: SourceFile;
-  submittedState: SourceFile;
   transport: SourceFile;
 }>;
 
-const requireAttachmentSources = (
+type AttachmentProofSources = Readonly<{
+  adapterContract: SourceFile;
+  child: SourceFile;
+  state: SourceFile;
+  submittedState: SourceFile;
+}>;
+
+const requireAttachmentRoutingSources = (
   context: InspectorContext,
   findings: Finding[],
-  routingLawId: string,
-  proofLawId: string,
-): AttachmentSources | null => {
-  const child = requireSourceFile(context, findings, routingLawId, P.attachment.childPath);
-  const shared = requireSourceFile(context, findings, routingLawId, P.attachment.sharedPath);
-  const adapterContract = requireSourceFile(context, findings, proofLawId, P.attachment.adapterContractPath);
-  const transport = requireSourceFile(context, findings, routingLawId, P.attachment.exactTargetTransportPath);
-  const state = requireSourceFile(context, findings, proofLawId, P.attachment.attachmentStatePath);
-  const submittedState = requireSourceFile(context, findings, proofLawId, P.attachment.submittedAttachmentStatePath);
-  return child && shared && adapterContract && transport && state && submittedState
-    ? { child, shared, adapterContract, transport, state, submittedState }
+  lawId: string,
+): AttachmentRoutingSources | null => {
+  const child = requireSourceFile(context, findings, lawId, P.attachment.childPath);
+  const shared = requireSourceFile(context, findings, lawId, P.attachment.sharedPath);
+  const transport = requireSourceFile(context, findings, lawId, P.attachment.exactTargetTransportPath);
+  return child && shared && transport
+    ? { child, shared, transport }
+    : null;
+};
+
+const requireAttachmentProofSources = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): AttachmentProofSources | null => {
+  const child = requireSourceFile(context, findings, lawId, P.attachment.childPath);
+  const adapterContract = requireSourceFile(context, findings, lawId, P.attachment.adapterContractPath);
+  const state = requireSourceFile(context, findings, lawId, P.attachment.attachmentStatePath);
+  const submittedState = requireSourceFile(context, findings, lawId, P.attachment.submittedAttachmentStatePath);
+  return child && adapterContract && state && submittedState
+    ? { child, adapterContract, state, submittedState }
     : null;
 };
 
 const inspectAttachmentRouting = (
-  sources: AttachmentSources,
+  sources: AttachmentRoutingSources,
   findings: Finding[],
-  routingLawId: string,
-  proofLawId: string,
+  lawId: string,
 ): void => {
-  const childIds = identifiers(sources.child);
   const childStrings = stringLiterals(sources.child);
-  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "attachByExactTargetFileInputBatch", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
-    if (!childIds.has(requiredIdentifier)) pushFinding(findings, proofLawId, P.attachment.childPath, "ai-input-gateway/attachment-child-structure", `${P.attachment.childPath} must contain ${requiredIdentifier}.`);
-  }
   for (const requiredLiteral of ["skipped", "exact_target_file_input_batch", "attachments_stable"]) {
-    if (!childStrings.has(requiredLiteral)) pushFinding(findings, routingLawId, P.attachment.childPath, "ai-input-gateway/fixed-routing-literal", `${P.attachment.childPath} must declare ${requiredLiteral}.`);
+    if (!childStrings.has(requiredLiteral)) pushFinding(findings, lawId, P.attachment.childPath, "ai-input-gateway/fixed-routing-literal", `${P.attachment.childPath} must declare ${requiredLiteral}.`);
   }
   for (const specifier of sources.child.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue()).filter((value) => value.includes("web-chat-submit") || value.includes("web-chat-answer"))) {
-    pushFinding(findings, routingLawId, P.attachment.childPath, "ai-input-gateway/attachment-child-terminal-boundary", `Attachment child must not import ${specifier}.`);
+    pushFinding(findings, lawId, P.attachment.childPath, "ai-input-gateway/attachment-child-terminal-boundary", `Attachment child must not import ${specifier}.`);
   }
-  if (!identifiers(sources.shared).has("attachApprovedWebChatFilesOnce")) pushFinding(findings, routingLawId, P.attachment.sharedPath, "ai-input-gateway/shared-child-integration", "The web-chat main flow must delegate attachments to the standard child.");
+  if (!identifiers(sources.shared).has("attachApprovedWebChatFilesOnce")) pushFinding(findings, lawId, P.attachment.sharedPath, "ai-input-gateway/shared-child-integration", "The web-chat main flow must delegate attachments to the standard child.");
+  const transportIdentifiers = identifiers(sources.transport);
+  for (const required of ["registerBrowserFileArtifact", "issueBrowserFileArtifactGrant", "attachFile"]) {
+    if (!transportIdentifiers.has(required)) pushFinding(findings, lawId, P.attachment.exactTargetTransportPath, "ai-input-gateway/exact-file-grant-chain", `Exact attachment transport must contain ${required}.`);
+  }
+  if (!stringLiterals(sources.transport).has("#upload-files")) pushFinding(findings, lawId, P.attachment.exactTargetTransportPath, "ai-input-gateway/exact-file-grant-chain", "Exact attachment transport must use only #upload-files.");
 };
 
 const inspectAttachmentProofContract = (
-  sources: AttachmentSources,
+  sources: AttachmentProofSources,
   findings: Finding[],
-  routingLawId: string,
-  proofLawId: string,
+  lawId: string,
 ): void => {
+  const childIds = identifiers(sources.child);
+  for (const requiredIdentifier of ["attachApprovedWebChatFilesOnce", "attachByExactTargetFileInputBatch", "resolveWebChatAttachmentTransportKind", "stageApprovedFiles", "waitForStableAttachmentSet", "stagingManifestHash", "onAttachmentUploadCompleted"]) {
+    if (!childIds.has(requiredIdentifier)) pushFinding(findings, lawId, P.attachment.childPath, "ai-input-gateway/attachment-child-structure", `${P.attachment.childPath} must contain ${requiredIdentifier}.`);
+  }
   const proofProperties = typePropertyNames(sources.adapterContract, "WebChatAttachmentUploadProof");
   for (const field of ["uploadAttemptId", "transportKind", "expectedFileCount", "detectedFileCount", "stagingManifestHash", "files", "startedAt", "endedAt", "status", "failureReason", "reviewRequiredReason"]) {
-    if (!proofProperties.has(field)) pushFinding(findings, proofLawId, P.attachment.adapterContractPath, "ai-input-gateway/aggregate-proof-field", `Aggregate attachment proof must contain ${field}.`);
+    if (!proofProperties.has(field)) pushFinding(findings, lawId, P.attachment.adapterContractPath, "ai-input-gateway/aggregate-proof-field", `Aggregate attachment proof must contain ${field}.`);
   }
-  const transportIdentifiers = identifiers(sources.transport);
-  for (const required of ["registerBrowserFileArtifact", "issueBrowserFileArtifactGrant", "attachFile"]) {
-    if (!transportIdentifiers.has(required)) pushFinding(findings, routingLawId, P.attachment.exactTargetTransportPath, "ai-input-gateway/exact-file-grant-chain", `Exact attachment transport must contain ${required}.`);
-  }
-  if (!stringLiterals(sources.transport).has("#upload-files")) pushFinding(findings, routingLawId, P.attachment.exactTargetTransportPath, "ai-input-gateway/exact-file-grant-chain", "Exact attachment transport must use only #upload-files.");
 };
 
 const inspectAttachmentTerminalProof = (
-  sources: AttachmentSources,
+  sources: AttachmentProofSources,
   findings: Finding[],
   proofLawId: string,
 ): void => {
@@ -93,15 +105,23 @@ const inspectAttachmentTerminalProof = (
   }
 };
 
-export const inspectAttachmentChild = (
+export const inspectAttachmentRoutingChild = (
   context: InspectorContext,
   findings: Finding[],
-  routingLawId: string,
-  proofLawId: string,
+  lawId: string,
 ): void => {
-  const sources = requireAttachmentSources(context, findings, routingLawId, proofLawId);
+  const sources = requireAttachmentRoutingSources(context, findings, lawId);
   if (!sources) return;
-  inspectAttachmentRouting(sources, findings, routingLawId, proofLawId);
-  inspectAttachmentProofContract(sources, findings, routingLawId, proofLawId);
-  inspectAttachmentTerminalProof(sources, findings, proofLawId);
+  inspectAttachmentRouting(sources, findings, lawId);
+};
+
+export const inspectAttachmentProofChild = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const sources = requireAttachmentProofSources(context, findings, lawId);
+  if (!sources) return;
+  inspectAttachmentProofContract(sources, findings, lawId);
+  inspectAttachmentTerminalProof(sources, findings, lawId);
 };

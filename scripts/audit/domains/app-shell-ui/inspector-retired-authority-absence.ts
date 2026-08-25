@@ -1,11 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
 
-import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
-const legacyLawIdValue = "LAW-APP-SHELL-UI-003-V2";
 const legacyDocPath = "docs/法案辅助文件/GrassEye APP 用户需求启动施工图.md";
 const legacyDocTitle = "GrassEye APP 用户需求启动施工图";
 const textExtensions = new Set([
@@ -28,8 +27,8 @@ export const inspectLegacyAppUserDemandPhysicalAbsence = (
   context: InspectorContext,
   findings: InspectorFinding[],
   inspectedFiles: Set<string>,
+  lawId: string,
 ): void => {
-  const lawId = selectLawId(context.planEntry.lawIds, legacyLawIdValue);
   if (existsSync(resolveFromRepo(legacyDocPath))) {
     addFinding(findings, lawId, "app-shell-ui/legacy-doc-present", legacyDocPath,
       "Legacy APP user-demand startup blueprint must be physically absent.");
