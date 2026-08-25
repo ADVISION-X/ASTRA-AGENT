@@ -407,5 +407,8 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, ["LAW-XUANXUE-AI-PRODUCTION-001-V8"]);
+  return finalizeStaticInspection(context, evaluation, [{
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V8", forbiddenCount: 16,
+    checkIds: ["xuanxue-ai-production/domain-policy"],
+  }]);
 };

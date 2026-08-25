@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
 import { Project } from "ts-morph";
 
 import { BASE, assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource, type Law } from "../../scripts/audit/governance-authority.js";
+import { addedSourceAt } from "../../scripts/audit/governance.js";
 import { validateLocalSpecContract } from "../../scripts/audit/governance-local-spec-contract.js";
 import { GovernanceError, validateGitIndexEntries, validateRepositoryEntryAt } from "../../scripts/audit/governance-runtime.js";
 import {
@@ -49,7 +50,7 @@ const resultFor = (law: Law): LawExecutionResult => {
       clauses: clausesForEvidenceMode(law, required, mode),
       evidenceMode: mode,
       passed: true,
-      refs: [mode.startsWith("exam.") ? "exam:fixture#script%3Dfixture%3Bexit%3D0" : "ast:src/fixture/index.ts#fixture"],
+      refs: [mode.startsWith("exam.") ? `exam:fixture#script%3Dfixture%3Bexit%3D0@${"a".repeat(64)}` : "ast:src/fixture/index.ts#fixture"],
     })),
     findings: [],
   };
@@ -117,7 +118,7 @@ test("quality report rejects duplicate and extra required evidence modes", () =>
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
   );
   const extra = resultFor(law);
-  extra.assertions.push({ clauses: ["summary"], evidenceMode: "exam.property", passed: true, refs: ["exam:fixture#script%3Dextra%3Bexit%3D0"] });
+  extra.assertions.push({ clauses: ["summary"], evidenceMode: "exam.property", passed: true, refs: [`exam:fixture#script%3Dextra%3Bexit%3D0@${"a".repeat(64)}`] });
   assert.throws(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [extra] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "UNDECLARED_EVIDENCE_MODE",
@@ -135,7 +136,7 @@ test("RELEASE rejects a missing Dynamic Proof and missing or drifted participant
       ...resultFor(law),
       assertions: [...resultFor(law).assertions, {
         clauses: ["summary"], evidenceMode: "dynamic.service", passed: true,
-        refs: ["dynamic:fixture#script%3Dservice%3Bexit%3D0"],
+        refs: [`dynamic:fixture#script%3Dservice%3Bexit%3D0@${"a".repeat(64)}`],
       }],
     }], participants: [{ repo: "ADVISION-X/provider", gitCommit: "", contracts: [{ contractId: "fixture", version: 1 }] }] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "QUALITY_PARTICIPANTS_INVALID",
@@ -177,9 +178,19 @@ test("quality report rejects empty and fixed-PASS evidence references", () => {
     (error: unknown) => error instanceof GovernanceError && error.code === "EMPTY_EVIDENCE_REFS",
   );
   const fixed = resultFor(law);
-  fixed.assertions[0]!.refs = ["exam:fixture#outcome%3DPASS"];
+  fixed.assertions[0]!.refs = [`exam:fixture#outcome%3DPASS@${"a".repeat(64)}`];
   assert.throws(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [fixed] }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+});
+
+test("external Exam and Dynamic evidence requires a native receipt or SHA-256 suffix", () => {
+  const law = fixtureLaw();
+  const missingExamReceipt = resultFor(law);
+  missingExamReceipt.assertions.find((assertion) => assertion.evidenceMode.startsWith("exam."))!.refs = ["exam:fixture#script%3Dfixture"];
+  assert.throws(
+    () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [missingExamReceipt] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
@@ -247,7 +258,26 @@ test("static finalization rejects a law with no explicit inspector route", () =>
       reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
       findings: [],
       inspectedFiles: ["src/fixture.ts"],
-    }, ["LAW-FIXTURE-001-V1"]),
+    }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
+  );
+});
+
+test("static finalization rejects a new law clause without an explicit owner check route", () => {
+  const context = {
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    lawRequirements: [{
+      lawId: "LAW-FIXTURE-001-V1",
+      clausesByMode: { "static.ast": ["forbidden:0", "forbidden:1", "summary"] },
+      targetPaths: ["src/fixture.ts"],
+      targetSet: { queryRef: "scope:fixture", count: 1, sha256: "a".repeat(64) },
+    }],
+  } as unknown as InspectorContext;
+  assert.throws(
+    () => finalizeStaticInspection(context, {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+      findings: [], inspectedFiles: ["src/fixture.ts"],
+    }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
   );
 });
@@ -256,7 +286,7 @@ test("a finding propagates from one law result to the only top-level verdict", (
   const law = fixtureLaw();
   const result = resultFor(law);
   result.assertions[0]!.passed = false;
-  result.findings = [{ code: "FIXTURE_MUTATION_FOUND", evidenceRefs: ["exam:fixture#mutation%3D1"] }];
+  result.findings = [{ code: "FIXTURE_MUTATION_FOUND", evidenceRefs: [`exam:fixture#mutation%3D1@${"a".repeat(64)}`] }];
   const report = buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] });
   assert.equal(report.laws[0]!.outcome, "FAIL");
   assert.equal(report.outcome, "FAIL");
@@ -311,6 +341,19 @@ test("filesystem mutation probes reject escaping symlinks and special devices", 
     () => validateRepositoryEntryAt(root, "special"),
     (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
   );
+});
+
+test("an untracked high-impact addition is included in CHANGE authorization input", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "governance-untracked-high-impact-"));
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  execFileSync("git", ["config", "user.email", "governance@example.invalid"], { cwd: root });
+  execFileSync("git", ["config", "user.name", "Governance Fixture"], { cwd: root });
+  writeFileSync(resolve(root, "README.md"), "fixture\n");
+  execFileSync("git", ["add", "README.md"], { cwd: root });
+  execFileSync("git", ["commit", "-q", "-m", "fixture"], { cwd: root });
+  mkdirSync(resolve(root, "src"));
+  writeFileSync(resolve(root, "src", "listener.ts"), "server.listen(9000);\n");
+  assert.match(addedSourceAt(root, { status: "A", path: "src/listener.ts" }), /\.listen\(9000\)/u);
 });
 
 test("law parser rejects a second front-matter block", () => {
@@ -373,6 +416,24 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
   for (const law of registry.laws) for (const mode of law.evidenceModes.filter((item) => item.startsWith("dynamic."))) {
     assert.ok(dynamicScriptFor(law.capabilityDomain, mode).length > 0, `${law.lawId}:${mode}`);
   }
+});
+
+test("Shell browser and service Dynamic Proof share one current-run runtime route", () => {
+  const expected = "proof:local-shell-current-runtime";
+  assert.equal(dynamicScriptFor("local-app-shell", "dynamic.browser"), expected);
+  assert.equal(dynamicScriptFor("local-app-shell", "dynamic.service"), expected);
+  assert.equal(dynamicScriptFor("startup-entrypoint", "dynamic.service"), expected);
+  assert.equal(dynamicScriptFor("workbench-api-boundary", "dynamic.browser"), expected);
+  const source = readFileSync("scripts/acceptance/local-shell-current-runtime.dynamic.ts", "utf8");
+  for (const token of ["GOVERNANCE_PROOF_RUN_ID", "GOVERNANCE_PROOF_CANDIDATE", "launch-grasseye.mjs", "chromium.launch", "listenerPids(port)"]) {
+    assert.ok(source.includes(token), token);
+  }
+  assert.equal(readFileSync("scripts/acceptance/startup-initialization-health.acceptance.ts", "utf8").includes('evidenceMode: "dynamic.'), false);
+  for (const retired of [
+    "scripts/acceptance/app-shell-ui.real-chrome.ts",
+    "scripts/acceptance/app-shell-real-chrome-proof-support.ts",
+    "scripts/acceptance/capture-app-shell-ui.real-chrome.ts",
+  ]) assert.equal(existsSync(retired), false, retired);
 });
 
 test("CHANGE routes an ordinary Exam to every affected domain without running unrelated domains", () => {

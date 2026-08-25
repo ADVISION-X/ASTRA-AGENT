@@ -270,7 +270,3 @@ await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "exam.golden", locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "unpacked preflight and repository-owned listener cleanup verified" });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V5", evidenceMode: "dynamic.service", locator: "dynamic:startup:local-shell-health", observedValue: "local Shell health lifecycle verified by service fixture" });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode: "dynamic.service", locator: "dynamic:startup:degraded-shell-health", observedValue: "degraded Shell remains diagnostically ready and execution blocked" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", locator: "dynamic:startup:owned-service-lifecycle", observedValue: "repository-owned service starts probes and cleans up under fixture" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "dynamic.service", locator: "dynamic:startup:safe-listener-cleanup", observedValue: "foreign listener refusal and owned listener cleanup observed" });

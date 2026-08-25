@@ -186,7 +186,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
   return finalizeStaticInspection(context, evaluation, [
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2",
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", forbiddenCount: 1, checkIds: ["forensics-persistence/evidence-owner"] },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2", forbiddenCount: 1, checkIds: ["forensics-persistence/storage-boundary"] },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", forbiddenCount: 1, checkIds: ["forensics-persistence/schema-vocabulary"] },
   ]);
 };

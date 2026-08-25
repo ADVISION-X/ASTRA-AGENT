@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
@@ -39,12 +40,20 @@ function assertDomainAdmission(changes: Array<{ status: string; path: string }>)
   if (added.length && process.env.GRASSEYE_NEW_DOMAIN_AUTHORIZED !== '1') fail('LAW_AMENDMENT_REQUIRED', `new capabilityDomain ${added.join(',')}`);
 }
 
+export function addedSourceAt(root: string, change: { status: string; path: string }): string {
+  const absolute = resolve(root, change.path);
+  if (!absolute.startsWith(`${resolve(root)}/`)) fail('TARGET_OUTSIDE_DOMAIN_AUTHORITY', change.path);
+  const baseline = spawnSync('git', ['cat-file', '-e', `HEAD:${change.path}`], { cwd: root, encoding: 'utf8' });
+  if (change.status === 'A' && baseline.status !== 0) return readFileSync(absolute, 'utf8');
+  return execFileSync('git', ['diff', '--unified=0', 'HEAD', '--', change.path], { cwd: root, encoding: 'utf8' })
+    .split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')).map((line) => line.slice(1)).join('\n');
+}
+
 function assertHighImpactAuthorization(changes: Array<{ status: string; path: string }>): void {
   const productChanges = changes.filter((change) => change.path.startsWith('src/') || change.path === 'package.json'
     || (change.status === 'A' && change.path.startsWith('docs/specs/')));
   if (!productChanges.length) return;
-  const diff = execFileSync('git', ['diff', '--unified=0', 'HEAD', '--', ...productChanges.map((change) => change.path)], { cwd: ROOT, encoding: 'utf8' });
-  const highImpact = diff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++')).some((line) =>
+  const highImpact = productChanges.flatMap((change) => addedSourceAt(ROOT, change).split('\n')).some((line) =>
     /(?:process\.env|\.listen\(|"dependencies"|"devDependencies"|specKind.*cross-repo|CREATE\s+(?:TABLE|TYPE)|router\.|addEventListener\()/u.test(line));
   if (highImpact && process.env.GRASSEYE_HIGH_IMPACT_AUTHORIZED !== '1') fail('USER_REQUEST_CONFLICTS_WITH_ACTIVE_LAW', 'high-impact change requires explicit authorization');
 }

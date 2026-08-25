@@ -49,5 +49,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  return finalizeStaticInspection(context, evaluation, ["LAW-ARCHITECTURE-BOUNDARY-001-V1"]);
+  return finalizeStaticInspection(context, evaluation, [{
+    lawId: "LAW-ARCHITECTURE-BOUNDARY-001-V1", forbiddenCount: 7,
+    checkIds: ["architecture-boundary/project-topology"],
+  }]);
 };

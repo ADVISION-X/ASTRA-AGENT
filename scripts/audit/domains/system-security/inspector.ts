@@ -139,5 +139,7 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => ({
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const result = evaluate(context);
-  return finalizeStaticInspection(context, result, [LAW_ID]);
+  return finalizeStaticInspection(context, result, [{
+    lawId: LAW_ID, forbiddenCount: 6, checkIds: ["system-security/sensitive-boundaries"],
+  }]);
 };

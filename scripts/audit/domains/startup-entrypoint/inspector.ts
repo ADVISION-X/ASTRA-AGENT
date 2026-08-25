@@ -196,5 +196,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     reportedLawIds: context.planEntry.lawIds,
     findings: evaluation.findings,
     inspectedFiles: [...evaluation.evidenceRefs],
-  }, ["LAW-STARTUP-ENTRYPOINT-001-V4", "LAW-STARTUP-ENTRYPOINT-002-V1"]);
+  }, [
+    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", forbiddenCount: 12, checkIds: ["startup-entrypoint/owned-shell"] },
+    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", forbiddenCount: 5, checkIds: ["startup-entrypoint/local-boundary"] },
+  ]);
 };

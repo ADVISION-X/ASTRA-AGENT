@@ -274,6 +274,7 @@ const commandReceipt = (
   runDirectory: string, candidate: string,
 ): Map<string, ProofResult> => {
   const startedAt = new Date().toISOString();
+  const proofRunId = sha(`${candidate}\0${kind}\0${script}\0${startedAt}\0${process.pid}`);
   const before = candidateSnapshot();
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
   const execution = spawnSync("npm", ["run", script], {
@@ -284,6 +285,8 @@ const commandReceipt = (
     env: {
       ...process.env,
       GOVERNANCE_PROOF_KIND: kind,
+      GOVERNANCE_PROOF_RUN_ID: proofRunId,
+      GOVERNANCE_PROOF_CANDIDATE: candidate,
       GOVERNANCE_PROOF_ROUTES: JSON.stringify(routes.map(({ law, mode }) => ({ lawId: law.lawId, evidenceMode: mode }))),
     },
   });
@@ -299,7 +302,7 @@ const commandReceipt = (
   const executionPassed = execution.status === 0 && execution.signal === null;
   const path = resolve(runDirectory, `${kind}-${token}.receipt.json`);
   const receipt = {
-    schemaVersion: 2, kind, candidate, command: `npm run ${script}`, timeoutMs, startedAt,
+    schemaVersion: 2, kind, candidate, proofRunId, command: `npm run ${script}`, timeoutMs, startedAt,
     finishedAt: new Date().toISOString(), exitStatus: execution.status, signal: execution.signal ?? null,
     stdoutPath, stdoutSha256: sha(readFileSync(stdoutPath)), stderrPath, stderrSha256: sha(readFileSync(stderrPath)),
     observations: routes.map(({ law, mode }) => {

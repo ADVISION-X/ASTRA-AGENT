@@ -108,10 +108,12 @@ export const deferredModes = (law: Law, level: "READY" | "RELEASE"): string[] =>
   level === "READY" ? ordered(law.evidenceModes.filter((mode) => mode.startsWith("dynamic."))) : [];
 
 const validEvidenceRef = (value: string): boolean => {
-  const match = /^([a-z]+):([^#]+)#(.+)$/u.exec(value);
+  const match = /^([a-z]+):([^#]+)#([^@]+)(?:@((?:sha256:)?[a-f0-9]{64}))?$/u.exec(value);
   if (!match || !evidenceKinds.has(match[1]!) || !match[2] || !match[3] || /[\0-\x1f\x7f]/u.test(value)) return false;
   let selector: string;
   try { selector = decodeURIComponent(match[3]); } catch { return false; }
+  const external = match[1] === "exam" || match[1] === "dynamic";
+  if (external !== Boolean(match[4])) return false;
   return !/(?:^|[;=])(?:fixed|pass|true)(?:$|[;=])/iu.test(selector);
 };
 

@@ -29,15 +29,15 @@ const examScripts: Readonly<Record<string, string>> = {
 
 const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, string>>>>> = {
   "local-app-shell": {
-    "dynamic.browser": "acceptance:app-shell-ui:real-chrome",
-    "dynamic.service": "acceptance:startup-entrypoint",
+    "dynamic.browser": "proof:local-shell-current-runtime",
+    "dynamic.service": "proof:local-shell-current-runtime",
   },
   "local-browser-session": {
     "dynamic.browser": "acceptance:local-browser-real-chrome",
     "dynamic.recovery": "proof:local-browser-journal-recovery",
   },
-  "startup-entrypoint": { "dynamic.service": "acceptance:startup-entrypoint" },
-  "workbench-api-boundary": { "dynamic.browser": "acceptance:app-shell-ui:real-chrome" },
+  "startup-entrypoint": { "dynamic.service": "proof:local-shell-current-runtime" },
+  "workbench-api-boundary": { "dynamic.browser": "proof:local-shell-current-runtime" },
   "xuanxue-ai-production": {
     "dynamic.browser": "acceptance:xuanxue-ai-production:real-chrome",
     "dynamic.service": "acceptance:xuanxue-ai-production:real-proof-verify",

@@ -243,12 +243,13 @@ function classifyServiceExit(exit, shuttingDown) {
   }
 }
 
-async function performLaunch(flags, root) {
+async function performLaunch(flags, root, onServiceStarted) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
   await clearWorkbenchPort();
   await verifyBrowserRuntime();
   const serviceHandle = await startService(root);
+  onServiceStarted(serviceHandle);
   await verifyAppHealth();
   await openReadyPage(flags);
   logStartupReady();
@@ -292,7 +293,9 @@ async function main() {
   registerSignalHandlers(shutdown);
 
   try {
-    state.serviceHandle = await performLaunch(flags, rootDir);
+    state.serviceHandle = await performLaunch(flags, rootDir, (serviceHandle) => {
+      state.serviceHandle = serviceHandle;
+    });
     if (!state.serviceHandle) {
       return;
     }

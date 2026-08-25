@@ -186,5 +186,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     reportedLawIds: context.planEntry.lawIds,
     findings: evaluation.findings,
     inspectedFiles: [...evaluation.evidenceRefs],
-  }, ["LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3"]);
+  }, [{
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", forbiddenCount: 1,
+    checkIds: ["xuanxue-localization/contract-projection"],
+  }]);
 };

@@ -484,8 +484,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
   return finalizeStaticInspection(context, evaluation, [
-    "LAW-LOCAL-BROWSER-SESSION-001-V4", "LAW-LOCAL-BROWSER-SESSION-002-V4",
-    "LAW-LOCAL-BROWSER-SESSION-003-V6", "LAW-LOCAL-BROWSER-SESSION-004-V6",
-    "LAW-LOCAL-BROWSER-SESSION-005-V4", "LAW-LOCAL-BROWSER-SESSION-006-V2",
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", forbiddenCount: 10, checkIds: ["local-browser-session/terminal-authority"] },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", forbiddenCount: 11, checkIds: ["local-browser-session/transport-authority"] },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", forbiddenCount: 12, checkIds: ["local-browser-session/target-claim"] },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", forbiddenCount: 16, checkIds: ["local-browser-session/atomic-journal"] },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", forbiddenCount: 5, checkIds: ["local-browser-session/release-identity"] },
+    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2", forbiddenCount: 1, checkIds: ["local-browser-session/opaque-authority"] },
   ]);
 };
