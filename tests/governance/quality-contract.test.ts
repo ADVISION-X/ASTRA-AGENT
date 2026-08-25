@@ -25,7 +25,7 @@ import type { InspectorContext, InspectorEvaluation } from "../../scripts/audit/
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
+import { finalizeStaticInspection, semanticFindingBindingsForSource } from "../../scripts/audit/shared/static-inspector-result.js";
 import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
 
 const fixtureLaw = (): Law => ({
@@ -115,6 +115,23 @@ test("every active Static route has fixed clause coverage bound to domain semant
     assert.deepEqual(routes.map(signature).sort(), expected, domain);
     assert.equal(routes.every((route) => route.semanticChecks.length > 0), true, domain);
   }
+});
+
+test("static semantic authentication rejects a checker whose finding sink is diverted", () => {
+  const control = readFileSync(resolve("scripts/audit/domains/app-shell-ui/inspector.ts"), "utf8");
+  const original = "inspectLegacyAppUserDemandPhysicalAbsence(context, findings, inspectedFiles);";
+  const diverted = control.replace(original, "inspectLegacyAppUserDemandPhysicalAbsence(context, [], inspectedFiles);");
+  assert.notEqual(control, diverted);
+  assert.equal(
+    semanticFindingBindingsForSource(control, "inspectDomainEvaluation")
+      .includes("inspectLegacyAppUserDemandPhysicalAbsence"),
+    true,
+  );
+  assert.equal(
+    semanticFindingBindingsForSource(diverted, "inspectDomainEvaluation")
+      .includes("inspectLegacyAppUserDemandPhysicalAbsence"),
+    false,
+  );
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {

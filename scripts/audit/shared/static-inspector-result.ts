@@ -32,15 +32,127 @@ const resolvedSymbolPaths = (identifier: import("ts-morph").Identifier): string[
   return resolvedSymbol.getDeclarations().map((declaration) => declaration.getSourceFile().getFilePath());
 };
 
+type AstNode = import("ts-morph").Node;
+
+const containsNode = (container: AstNode, candidate: AstNode): boolean =>
+  container === candidate || candidate.getAncestors().includes(container);
+
+const identifiersIn = (node: AstNode): import("ts-morph").Identifier[] => [
+  ...(Node.isIdentifier(node) ? [node] : []),
+  ...node.getDescendantsOfKind(SyntaxKind.Identifier),
+];
+
+const localVariableDeclaration = (
+  identifier: import("ts-morph").Identifier,
+  executor: AstNode,
+): import("ts-morph").VariableDeclaration | undefined => {
+  const resolved = identifier.getSymbol()?.getDeclarations()
+    .find((declaration): declaration is import("ts-morph").VariableDeclaration =>
+      Node.isVariableDeclaration(declaration) && containsNode(executor, declaration));
+  return resolved ?? executor.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === identifier.getText());
+};
+
+const returnedFindingExpressions = (executor: AstNode): AstNode[] => {
+  const expressions: AstNode[] = [];
+  const addObjectFinding = (node: AstNode | undefined): void => {
+    if (!node) return;
+    const expression = Node.isParenthesizedExpression(node) ? node.getExpression() : node;
+    if (!Node.isObjectLiteralExpression(expression)) return;
+    const property = expression.getProperty("findings");
+    if (Node.isPropertyAssignment(property)) {
+      const initializer = property.getInitializer();
+      if (initializer) expressions.push(initializer);
+    } else if (Node.isShorthandPropertyAssignment(property)) {
+      expressions.push(property.getNameNode());
+    }
+  };
+  if (Node.isArrowFunction(executor)) addObjectFinding(executor.getBody());
+  for (const statement of executor.getDescendantsOfKind(SyntaxKind.ReturnStatement)) {
+    const boundary = statement.getFirstAncestor((ancestor) =>
+      Node.isArrowFunction(ancestor) || Node.isFunctionDeclaration(ancestor)
+      || Node.isFunctionExpression(ancestor) || Node.isMethodDeclaration(ancestor));
+    if (boundary === executor) addObjectFinding(statement.getExpression());
+  }
+  return expressions;
+};
+
+const semanticFindingBoundCalls = (executor: AstNode): Set<import("ts-morph").CallExpression> => {
+  const findingExpressions = returnedFindingExpressions(executor);
+  const dependencies = new Set<AstNode>(findingExpressions);
+  const trackedDeclarations = new Set<import("ts-morph").VariableDeclaration>();
+  const calls = executor.getDescendantsOfKind(SyntaxKind.CallExpression);
+  const exactlyTracked = (node: AstNode): boolean => Node.isIdentifier(node)
+    && Boolean(localVariableDeclaration(node, executor))
+    && trackedDeclarations.has(localVariableDeclaration(node, executor)!);
+  const carriesTrackedSink = (node: AstNode): boolean => {
+    if (exactlyTracked(node)) return true;
+    if (!Node.isObjectLiteralExpression(node)) return false;
+    return node.getProperties().some((property) => {
+      if (Node.isShorthandPropertyAssignment(property)) return exactlyTracked(property.getNameNode());
+      return Node.isPropertyAssignment(property) && Boolean(property.getInitializer())
+        && exactlyTracked(property.getInitializer()!);
+    });
+  };
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const dependency of [...dependencies]) {
+      for (const identifier of identifiersIn(dependency)) {
+        const declaration = localVariableDeclaration(identifier, executor);
+        if (!declaration || trackedDeclarations.has(declaration)) continue;
+        trackedDeclarations.add(declaration);
+        const initializer = declaration.getInitializer();
+        if (initializer) dependencies.add(initializer);
+        changed = true;
+      }
+    }
+    for (const call of calls) {
+      const expression = call.getExpression();
+      if (!Node.isPropertyAccessExpression(expression) || !exactlyTracked(expression.getExpression())) continue;
+      for (const argument of call.getArguments()) {
+        if (dependencies.has(argument)) continue;
+        dependencies.add(argument);
+        changed = true;
+      }
+    }
+  }
+  const isTrackedReceiverCall = (node: AstNode): boolean => {
+    if (!Node.isCallExpression(node)) return false;
+    const expression = node.getExpression();
+    return Node.isPropertyAccessExpression(expression) && exactlyTracked(expression.getExpression());
+  };
+  const isBound = (call: import("ts-morph").CallExpression): boolean => {
+    if ([...dependencies].some((dependency) => containsNode(dependency, call))) return true;
+    if (call.getArguments().some(carriesTrackedSink)) return true;
+    if (call.getAncestors().some(isTrackedReceiverCall)) return true;
+    const guardedTry = call.getFirstAncestorByKind(SyntaxKind.TryStatement);
+    const catchClause = guardedTry?.getCatchClause();
+    return Boolean(catchClause && identifiersIn(catchClause).some(exactlyTracked));
+  };
+  return new Set(calls.filter(isBound));
+};
+
+export const semanticFindingBindingsForSource = (sourceText: string, executorName: string): string[] => {
+  const project = new Project({ useInMemoryFileSystem: true });
+  const source = project.createSourceFile("inspector.ts", sourceText);
+  const executor = source.getFunction(executorName) ?? source.getVariableDeclaration(executorName)?.getInitializer();
+  if (!executor) return [];
+  return ordered([...semanticFindingBoundCalls(executor)].flatMap((call) => {
+    const expression = call.getExpression();
+    return Node.isIdentifier(expression) ? [expression.getText()] : [];
+  }));
+};
+
 const domainSemanticExecutorCalls = (context: InspectorContext, executorName: string): Set<string> => {
   const project = new Project({ tsConfigFilePath: resolve(enforcementRoot, "tsconfig.json") });
   const source = project.getSourceFile(resolve(enforcementRoot, context.planEntry.ownerInspectorPath));
   if (!source) return new Set();
-  const functionBody = source.getFunction(executorName)?.getBody()
+  const executor = source.getFunction(executorName)
     ?? source.getVariableDeclaration(executorName)?.getInitializer();
-  if (!functionBody) return new Set();
+  if (!executor) return new Set();
   const domainRoot = `${resolve(enforcementRoot, "scripts/audit/domains", context.planEntry.capabilityDomain)}/`;
-  return new Set(functionBody.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+  return new Set([...semanticFindingBoundCalls(executor)].flatMap((call) => {
     const expression = call.getExpression();
     if (!Node.isIdentifier(expression)) return [];
     const declarationPaths = resolvedSymbolPaths(expression);

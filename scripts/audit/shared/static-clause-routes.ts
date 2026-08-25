@@ -200,7 +200,7 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
   ],
   "xuanxue-ai-production": summaryRoutes("LAW-XUANXUE-AI-PRODUCTION-001-V9", [
     "static.ast", "static.contract",
-  ], ["inspectDomainPolicy", "collectXuanxueSourceValues"]),
+  ], ["inspectDomainPolicy"]),
   "xuanxue-ai-production-localization-contract": summaryRoutes(
     "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
     ["static.ast"],
