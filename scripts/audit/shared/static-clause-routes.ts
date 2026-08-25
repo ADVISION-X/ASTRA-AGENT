@@ -184,14 +184,14 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
   ], ["inspectSystemSecurityProject"]),
   "workbench-api-boundary": [
     route({
-      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", evidenceMode: "static.ast", clauses: allClauses(7),
+      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", evidenceMode: "static.ast", clauses: ["summary"],
       semanticChecks: [
         "inspectRequiredFiles", "inspectRouteRules", "inspectForbiddenKeys", "inspectExternalIngressIdentity",
-        "inspectSecondServers", "inspectCallbackEscapes",
+        "inspectPerSiteHmac", "inspectSecondServers", "inspectCallbackEscapes",
       ],
     }),
     ...summaryRoutes("LAW-WORKBENCH-API-BOUNDARY-001-V4", ["static.contract"], [
-      "inspectRouteRules", "inspectExternalIngressIdentity",
+      "inspectRouteRules", "inspectExternalIngressIdentity", "inspectPerSiteHmac",
     ]),
   ],
   "xuanxue-ai-production": summaryRoutes("LAW-XUANXUE-AI-PRODUCTION-001-V9", [

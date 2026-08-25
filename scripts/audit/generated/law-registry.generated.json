@@ -1414,7 +1414,7 @@
       "evidenceModes": [
         "static.ast",
         "static.contract",
-        "dynamic.browser"
+        "exam.golden"
       ],
       "excludes": [],
       "forbidden": [

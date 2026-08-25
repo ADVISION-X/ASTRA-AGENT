@@ -15,12 +15,13 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
-import { inspectExternalIngressIdentity } from "./external-ingress-identity-inspector.js";
+import { inspectExternalIngressIdentity, inspectPerSiteHmac } from "./external-ingress-identity-inspector.js";
 
 type Summary = {
   wildcardCorsViolations: number;
   guardMissingViolations: number;
   ingressIdentityViolations: number;
+  perSiteHmacViolations: number;
   unauthenticatedExternalRouteViolations: number;
   broadExternalRouteViolations: number;
   secondServerViolations: number;
@@ -58,6 +59,7 @@ const initialSummary = (): Summary => ({
   wildcardCorsViolations: 0,
   guardMissingViolations: 0,
   ingressIdentityViolations: 0,
+  perSiteHmacViolations: 0,
   unauthenticatedExternalRouteViolations: 0,
   broadExternalRouteViolations: 0,
   secondServerViolations: 0,
@@ -153,13 +155,13 @@ const inspectRouteRules = (
   for (const element of rules.getElements()) {
     if (!Node.isObjectLiteralExpression(element)) continue;
     const externalAllowed = booleanLiteral(element, "externalApiAllowed");
-    if (externalAllowed === true && booleanLiteral(element, "requiresApiKey") !== true) {
+    if (externalAllowed === true && booleanLiteral(element, "requiresSiteHmac") !== true) {
       summary.unauthenticatedExternalRouteViolations += 1;
       addFinding(findings, {
-        checkId: "workbench-api-boundary/external-route-requires-key",
+        checkId: "workbench-api-boundary/external-route-requires-site-hmac",
         lawId: lawIds.auth,
         filePath: boundaryPath,
-        message: "Every externalApiAllowed route must require an API key.",
+        message: "Every externalApiAllowed route must require a per-site HMAC.",
       });
     }
     const pathPattern = literalText(element, "pathPattern");
@@ -340,6 +342,8 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
       inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape));
     recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectExternalIngressIdentity",
       inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary }));
+    recordSemanticCheck(executedSemanticChecks, lawIds.auth, "inspectPerSiteHmac",
+      inspectPerSiteHmac({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.auth, summary }));
   }
   recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectSecondServers",
     inspectSecondServers(context.project, findings, summary, lawIds.ingress));

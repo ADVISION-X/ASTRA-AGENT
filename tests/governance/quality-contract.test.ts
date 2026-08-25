@@ -31,6 +31,7 @@ import {
   semanticExecutionIsExact,
 } from "../../scripts/audit/shared/static-inspector-result.js";
 import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
+import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
@@ -144,6 +145,30 @@ test("static semantic receipts reject missing, extra, duplicate, and permuted la
   assert.equal(semanticExecutionIsExact(checks, [
     { lawId: "LAW-B", name: "inspectA" }, { lawId: "LAW-A", name: "inspectB" },
   ]), false);
+});
+
+test("Workbench static inspection rejects global-key and incomplete HMAC mutants", () => {
+  const original = readFileSync("src/app/workbench-api-boundary.ts", "utf8");
+  const mutants = [
+    `${original}\nconst legacy = process.env.GRASSEYE_EXTERNAL_API_KEY;\n`,
+    original.replace("const expected = createHmac", "const expected = createHash"),
+    original.replace("[sourceSystem, requestId, input.routeRule.method, input.routeRule.path]", "[sourceSystem, requestId]"),
+  ];
+  const inspect = (source: string): number => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    const file = project.createSourceFile("src/app/workbench-api-boundary.ts", source);
+    const findings: Array<Parameters<typeof inspectPerSiteHmac>[0]["findings"][number]> = [];
+    inspectPerSiteHmac({
+      boundaryPath: "src/app/workbench-api-boundary.ts",
+      file,
+      findings,
+      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4",
+      summary: { ingressIdentityViolations: 0, perSiteHmacViolations: 0 },
+    });
+    return findings.length;
+  };
+  assert.equal(inspect(original), 0);
+  for (const mutant of mutants) assert.ok(inspect(mutant) > 0);
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {
@@ -757,7 +782,6 @@ test("Shell browser and service Dynamic Proof share one current-run runtime rout
   assert.equal(dynamicScriptFor("local-app-shell", "dynamic.browser"), expected);
   assert.equal(dynamicScriptFor("local-app-shell", "dynamic.service"), expected);
   assert.equal(dynamicScriptFor("startup-entrypoint", "dynamic.service"), expected);
-  assert.equal(dynamicScriptFor("workbench-api-boundary", "dynamic.browser"), expected);
   const source = readFileSync("scripts/acceptance/local-shell-current-runtime.dynamic.ts", "utf8");
   for (const token of ["GOVERNANCE_PROOF_RUN_ID", "GOVERNANCE_PROOF_CANDIDATE", "launch-grasseye.mjs", "chromium.launch", "listenerPids(port)"]) {
     assert.ok(source.includes(token), token);

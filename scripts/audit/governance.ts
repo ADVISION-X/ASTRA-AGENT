@@ -81,6 +81,11 @@ function projectChecks(): void {
 
 function relevantChangeChecks(changes: Array<{ status: string; path: string }>, registry: Registry): void {
   run('npm', ['run', 'typecheck']);
+  const changedGovernanceTests = changes
+    .filter((change) => change.status !== 'D' && /^tests\/governance\/[^/]+\.test\.ts$/u.test(change.path))
+    .map((change) => change.path)
+    .sort();
+  if (changedGovernanceTests.length) run(process.execPath, ['--import', 'tsx', '--test', ...changedGovernanceTests]);
   for (const script of relevantExamScripts(changes.map((change) => change.path), registry)) run('npm', ['run', script]);
 }
 

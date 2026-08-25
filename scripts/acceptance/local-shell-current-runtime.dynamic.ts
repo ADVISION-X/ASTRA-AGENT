@@ -133,5 +133,3 @@ emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMo
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "dynamic.service",
   locator: `tcp://127.0.0.1:${port}`, receipt: listenerReceipt,
   observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });
-emitQualityProofObservation({ lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4", evidenceMode: "dynamic.browser",
-  locator: `${baseUrl}/`, receipt: observation.screenshotSha256, observedValue: `${browserValue};knownRoute=/` });

@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
 
 export type WorkbenchApiRouteRule = {
@@ -6,7 +7,7 @@ export type WorkbenchApiRouteRule = {
   path: string;
   localUiAllowed: boolean;
   externalApiAllowed: boolean;
-  requiresApiKey: boolean;
+  requiresSiteHmac: boolean;
   jobOwner?: string;
   purpose: string;
 };
@@ -50,14 +51,14 @@ export const EXTERNAL_REQUEST_FORBIDDEN_KEYS = [
 ] as const;
 
 export const WORKBENCH_API_ROUTE_RULES: WorkbenchApiRouteRule[] = [
-  { method: "GET", pathPattern: "exact", path: "/api/health", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_health" },
-  { method: "GET", pathPattern: "exact", path: "/api/mode", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "workbench_mode" },
-  { method: "GET", pathPattern: "exact", path: "/api/browser-authority/pairing", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, purpose: "local_browser_authority_pairing" },
-  { method: "GET", pathPattern: "exact", path: "/api/xuanxue-ai-production/status", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_status" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/pause", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_pause" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/cancel", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_cancel" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/takeover", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_takeover" },
-  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/resume", localUiAllowed: true, externalApiAllowed: false, requiresApiKey: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_resume" },
+  { method: "GET", pathPattern: "exact", path: "/api/health", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "workbench_health" },
+  { method: "GET", pathPattern: "exact", path: "/api/mode", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "workbench_mode" },
+  { method: "GET", pathPattern: "exact", path: "/api/browser-authority/pairing", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, purpose: "local_browser_authority_pairing" },
+  { method: "GET", pathPattern: "exact", path: "/api/xuanxue-ai-production/status", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_status" },
+  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/pause", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_pause" },
+  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/cancel", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_cancel" },
+  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/takeover", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_takeover" },
+  { method: "POST", pathPattern: "exact", path: "/api/xuanxue-ai-production/resume", localUiAllowed: true, externalApiAllowed: false, requiresSiteHmac: false, jobOwner: "xuanxue-ai-production", purpose: "local_xuanxue_ai_production_resume" },
 ];
 
 type BodyPreview = {
@@ -87,7 +88,7 @@ const matchRouteRule = (method: string | undefined, path: string): WorkbenchApiR
 
 const buildCorsHeaders = (origin: string | undefined): Record<string, string> => ({
   ...(origin ? { "access-control-allow-origin": origin } : {}),
-  "access-control-allow-headers": "content-type,x-grasseye-agent-key,x-grasseye-source-system,x-grasseye-request-id",
+  "access-control-allow-headers": "content-type,x-grasseye-signature,x-grasseye-source-system,x-grasseye-request-id",
   "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
   "vary": "Origin",
 });
@@ -233,17 +234,33 @@ const inspectExternalAvailability = (input: ExternalWorkbenchApiBoundaryInput): 
 };
 
 const inspectExternalAuthHeaders = (input: ExternalWorkbenchApiBoundaryInput): WorkbenchApiBoundaryDecision | null => {
-  const apiKey = process.env.GRASSEYE_EXTERNAL_API_KEY ?? "";
-  const requestKey = readHeader(input.headers, "x-grasseye-agent-key");
-  if (input.routeRule.requiresApiKey && !requestKey) return block(403, "missing_api_key", "missing_api_key", input.corsHeaders);
-  if (input.routeRule.requiresApiKey && (apiKey.length === 0 || requestKey !== apiKey)) {
-    return block(403, "invalid_api_key", "invalid_api_key", input.corsHeaders);
-  }
-  if (!readHeader(input.headers, "x-grasseye-source-system")) {
+  const sourceSystem = readHeader(input.headers, "x-grasseye-source-system");
+  if (!sourceSystem) {
     return block(403, "missing_source_system", "missing_source_system", input.corsHeaders);
   }
-  if (!readHeader(input.headers, "x-grasseye-request-id")) {
+  const requestId = readHeader(input.headers, "x-grasseye-request-id");
+  if (!requestId) {
     return block(403, "missing_request_id", "missing_request_id", input.corsHeaders);
+  }
+  if (!input.routeRule.requiresSiteHmac) return null;
+  const signature = readHeader(input.headers, "x-grasseye-signature");
+  if (!signature) return block(403, "missing_site_hmac", "missing_site_hmac", input.corsHeaders);
+  let siteSecrets: Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(process.env.GRASSEYE_EXTERNAL_SITE_HMAC_SECRETS ?? "");
+    siteSecrets = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    siteSecrets = {};
+  }
+  const siteSecret = siteSecrets[sourceSystem];
+  if (typeof siteSecret !== "string" || siteSecret.length < 32 || !/^[a-f0-9]{64}$/u.test(signature)) {
+    return block(403, "invalid_site_hmac", "invalid_site_hmac", input.corsHeaders);
+  }
+  const canonicalRequest = [sourceSystem, requestId, input.routeRule.method, input.routeRule.path].join("\n");
+  const expected = createHmac("sha256", siteSecret).update(canonicalRequest).digest();
+  const actual = Buffer.from(signature, "hex");
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+    return block(403, "invalid_site_hmac", "invalid_site_hmac", input.corsHeaders);
   }
   return null;
 };

@@ -169,13 +169,36 @@ test('quality CHANGE ignores malformed untouched authority while validating the 
     execFileSync('git', ['config', 'user.name', 'Governance Fixture'], { cwd: repository });
     execFileSync('git', ['add', 'scripts/audit/domains/code-purity/manifest.json'], { cwd: repository });
     execFileSync('git', ['commit', '-q', '-m', 'fixture malformed untouched authority'], { cwd: repository });
-    const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
-    writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\n// focused CHANGE fixture\n`);
+    const changedPath = resolve(repository, 'tests/focused-change-fixture.test.ts');
+    writeFileSync(changedPath, 'import test from "node:test";\nimport assert from "node:assert/strict";\ntest("focused", () => assert.ok(true));\n');
     const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
       cwd: repository, encoding: 'utf8', env: process.env,
     });
     assert.equal(execution.status, 0, `${execution.stdout}${execution.stderr}`);
     assert.match(execution.stdout, /CHANGE_PASS/u);
+  } finally {
+    rmSync(temporary, { force: true, recursive: true });
+  }
+});
+
+test('quality CHANGE executes a changed governance test and rejects its failing mutant', () => {
+  const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-test-mutant-'));
+  const repository = resolve(temporary, 'repo');
+  try {
+    execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+    writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
+    symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyFileSync(resolve(process.cwd(), 'scripts/audit/governance.ts'), resolve(repository, 'scripts/audit/governance.ts'));
+    const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
+    writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\ntest("focused failing mutant", () => assert.fail("mutant executed"));\n`);
+    const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
+      cwd: repository,
+      encoding: 'utf8',
+      env: Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== 'NODE_TEST_CONTEXT')),
+    });
+    assert.notEqual(execution.status, 0, `${execution.stdout}${execution.stderr}`);
+    assert.match(`${execution.stdout}${execution.stderr}`, /CHECK_EXECUTION_FAILED/u);
+    assert.match(`${execution.stdout}${execution.stderr}`, /mutant executed/u);
   } finally {
     rmSync(temporary, { force: true, recursive: true });
   }

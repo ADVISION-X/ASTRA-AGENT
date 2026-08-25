@@ -90,7 +90,7 @@ const recordApiBoundaryDecision = (input: {
 }): void => {
   const routeRule = input.decision.kind === "allowed" ? input.decision.routeRule : undefined;
   input.workbench.recordWorkbenchApiBoundaryEvent({
-    authenticated: readOptionalHeader(input.request, "x-grasseye-agent-key") !== undefined,
+    authenticated: readOptionalHeader(input.request, "x-grasseye-signature") !== undefined,
     decision: input.decision.kind === "allowed" ? "allowed" : "blocked",
     jobOwner: routeRule?.jobOwner,
     method: input.request.method,
