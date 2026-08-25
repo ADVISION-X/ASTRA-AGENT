@@ -99,7 +99,7 @@ test("every active Exam and Dynamic route has an explicit object-semantic clause
 
 test("configured proof routes reject an underdeclared evidence mode", () => {
   const registry = buildRegistry();
-  const laws = registry.laws.map((law) => law.lawId === "LAW-LOCAL-BROWSER-SESSION-004-V7"
+  const laws = registry.laws.map((law) => law.lawId === "LAW-LOCAL-BROWSER-SESSION-004-V8"
     ? { ...law, evidenceModes: law.evidenceModes.filter((mode) => mode !== "dynamic.storage") }
     : law);
   assert.throws(
@@ -361,7 +361,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", mode: "dynamic.browser",
     locator: "dynamic:xuanxue:bound-real-chrome", observedValue: "real chrome claimed" }), false);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:local-browser-journal-recovery",
-    domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", mode: "dynamic.recovery",
+    domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", mode: "dynamic.recovery",
     locator: `/tmp/recovery-receipts/${"a".repeat(64)}.json`, observedValue: "atomic recovery verified" }), true);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:local-browser-real-chrome",
     domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", mode: "dynamic.browser",
@@ -380,13 +380,13 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     observedValue: "72 hour soak and lease P95 verified" }), true);
 
   const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
-    lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", evidenceMode: "dynamic.recovery",
+    lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery",
     locator: `/tmp/recovery-receipts/${"c".repeat(64)}.json`, observedValue: "atomic recovery verified",
     receipt: "c".repeat(64), ...proofRequests([{ law: {
-      ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", capabilityDomain: "local-browser-session",
+      ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session",
     }, mode: "dynamic.recovery" }], "dynamic")[0],
   })}`;
-  const recoveryLaw = { ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", capabilityDomain: "local-browser-session" };
+  const recoveryLaw = { ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", capabilityDomain: "local-browser-session" };
   const recoveryRoutes = [{ law: recoveryLaw, mode: "dynamic.recovery" }];
   assert.throws(
     () => bindNativeProofObservations(missingNativeMarker, recoveryRoutes, proofRequests(recoveryRoutes, "dynamic"),

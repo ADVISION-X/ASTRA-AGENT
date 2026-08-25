@@ -69,8 +69,6 @@ export type BrowserProofLifecycleEvent = Readonly<{
 export type BrowserProofRecoveryEvent = Readonly<{
   eventType: "RECOVERY";
   phase: "GENESIS";
-  candidateHash: `sha256:${string}`;
-  releaseBuildId: string;
   recordedAt: string;
   recoveryId: `sha256:${string}`;
   originalJournalPath: string;
@@ -217,7 +215,7 @@ const assertCommandEvent = (raw: Record<string, unknown>): BrowserProofCommandEv
 };
 
 const recoveryKeys = [
-  "eventType", "phase", "candidateHash", "releaseBuildId", "recoveryId", "originalJournalPath", "originalJournalSha256",
+  "eventType", "phase", "recoveryId", "originalJournalPath", "originalJournalSha256",
   "originalByteLength", "originalLineCount", "firstInvalidLine", "failureCode", "archivePath",
   "recoveryReceiptPath", "observedCandidateHashes", "observedReleaseBuildIds", "operatorId",
   "authorizationRef", "reasonCode", "recoveredAt", "recordedAt",
@@ -233,7 +231,6 @@ const recoveryReceiptValid = (raw: Record<string, unknown>): boolean => validTex
   && validSortedUnique(raw.observedReleaseBuildIds, validText);
 
 const recoveryAuthorityValid = (raw: Record<string, unknown>): boolean => validText(raw.operatorId)
-  && validHash(raw.candidateHash) && validText(raw.releaseBuildId)
   && validText(raw.authorizationRef) && validText(raw.reasonCode)
   && validTimestamp(raw.recoveredAt) && validTimestamp(raw.recordedAt)
   && raw.recordedAt === raw.recoveredAt;

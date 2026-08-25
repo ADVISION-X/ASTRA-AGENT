@@ -147,7 +147,7 @@
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-LOCAL-BROWSER-SESSION-002-V4",
         "LAW-LOCAL-BROWSER-SESSION-003-V6",
-        "LAW-LOCAL-BROWSER-SESSION-004-V7",
+        "LAW-LOCAL-BROWSER-SESSION-004-V8",
         "LAW-LOCAL-BROWSER-SESSION-005-V4",
         "LAW-LOCAL-BROWSER-SESSION-006-V2"
       ],
@@ -1115,20 +1115,21 @@
         "不得发生：在取得唯一 Browser Owner lock 之前读取、缓存或绑定 proof journal 尾部",
         "不得发生：在 Browser Owner lock 之外追加 lifecycle/command 事件，或在 durable revoke 与 journal fsync 之前释放 Owner lock",
         "不得发生：journal integrity failure 后截断、重排、重算、覆盖、分叉续写、自动修复或建立第二活动 epoch",
-        "不得发生：没有当前人类运行数据授权、major law/schema 授权、唯一 Browser Owner lock、原文件逐字节封存与 SHA-256 复核、首个失败物理行、候选与 release build、操作者、reason code 和唯一 recovery receipt 时创建 recovery genesis",
+        "不得发生：没有当前人类运行数据授权、major law/schema 授权、唯一 Browser Owner lock、原文件逐字节封存与 SHA-256 复核、首个失败物理行、操作者、reason code 和唯一 recovery receipt 时创建 recovery genesis",
         "不得发生：将 sealed legacy journal、旧分叉或 recovery 前事件继续当作当前 Dynamic Proof，或在 canonical V2 journal 中写入第二个 RECOVERY genesis",
-        "不得发生：恢复过程覆盖不一致的 archive/receipt、接受 source drift、静默复用冲突 receipt，或在启动流程中自动触发恢复"
+        "不得发生：恢复过程覆盖不一致的 archive/receipt、接受 source drift、静默复用冲突 receipt，或在启动流程中自动触发恢复",
+        "不得发生：把 recovery genesis 当作当前 candidate 或 Extension release build 身份；当前身份只能由 recovery 后重新发生的 lifecycle/command 事件证明"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V7",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V8",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 746,
+        "lineEnd": 747,
         "lineStart": 703,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须由唯一 Browser Owner 先取得排他锁再绑定 canonical V2 journal，所有事件锁内持久追加；完整性失败持续 blocked，只有当前人类授权运行数据和 major law/schema，才可锁内逐字节封存旧文件、复核哈希并用唯一 receipt 建立一次 recovery genesis；旧历史退出当前证明域，UNKNOWN mutation 永不自动重放。",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V6",
+      "summary": "必须由唯一 Browser Owner 先取得排他锁再绑定 canonical V2 journal，所有事件锁内持久追加；完整性失败持续 blocked，只有当前人类授权运行数据和 major law/schema，才可锁内逐字节封存旧文件、复核哈希并用唯一 receipt 建立一次 recovery genesis；genesis 不承载当前候选身份，旧历史退出当前证明域，UNKNOWN mutation 永不自动重放。",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V7",
       "tier": "P0"
     },
     {
@@ -1155,8 +1156,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 778,
-        "lineStart": 748,
+        "lineEnd": 779,
+        "lineStart": 749,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1184,8 +1185,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 806,
-        "lineStart": 780,
+        "lineEnd": 807,
+        "lineStart": 781,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1218,8 +1219,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 841,
-        "lineStart": 810,
+        "lineEnd": 842,
+        "lineStart": 811,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1247,8 +1248,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 869,
-        "lineStart": 843,
+        "lineEnd": 870,
+        "lineStart": 844,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1276,8 +1277,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 897,
-        "lineStart": 871,
+        "lineEnd": 898,
+        "lineStart": 872,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1318,8 +1319,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 940,
-        "lineStart": 901,
+        "lineEnd": 941,
+        "lineStart": 902,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1355,8 +1356,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 976,
-        "lineStart": 942,
+        "lineEnd": 977,
+        "lineStart": 943,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1396,8 +1397,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1018,
-        "lineStart": 980,
+        "lineEnd": 1019,
+        "lineStart": 981,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1431,8 +1432,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1054,
-        "lineStart": 1022,
+        "lineEnd": 1055,
+        "lineStart": 1023,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1502,8 +1503,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V10",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1122,
-        "lineStart": 1058,
+        "lineEnd": 1123,
+        "lineStart": 1059,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1535,8 +1536,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1156,
-        "lineStart": 1126,
+        "lineEnd": 1157,
+        "lineStart": 1127,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

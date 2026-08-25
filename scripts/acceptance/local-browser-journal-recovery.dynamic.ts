@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
 
 import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { recoverBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal-recovery.js";
 import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
-import { readUnpackedExtensionReleaseIdentity } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 
 const required = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -17,15 +15,12 @@ const required = (name: string): string => {
 assert.equal(process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED, "1");
 const root = resolve(required("GRASSEYE_DATA_DIR"));
 const journalPath = join(root, "browser", "proof-events.ndjson");
-const release = await readUnpackedExtensionReleaseIdentity(join(root, "browser-release", "release-record.json"));
 const lock = new BrowserOwnerLock(join(root, "browser", "owner.lock"));
 
 await lock.acquire();
 try {
   const input = {
     journalPath,
-    candidateHash: buildStartupSourceFingerprint(resolve(import.meta.dirname, "../..")),
-    releaseBuildId: release.releaseBuildId,
     operatorId: required("GRASSEYE_BROWSER_JOURNAL_RECOVERY_OPERATOR"),
     authorizationRef: required("GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZATION_REF"),
     reasonCode: required("GRASSEYE_BROWSER_JOURNAL_RECOVERY_REASON"),
@@ -45,10 +40,8 @@ try {
     recoveryId: recovered.recoveryId,
     firstInvalidLine: recovered.firstInvalidLine,
     dataRoot: root,
-    candidateHash: input.candidateHash,
-    releaseBuildId: input.releaseBuildId,
   })}\n`);
-  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", evidenceMode: "dynamic.recovery",
+  emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.recovery",
     locator: recovered.recoveryReceiptPath, receipt: recovered.recoveryId.slice("sha256:".length),
     observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
 } finally {

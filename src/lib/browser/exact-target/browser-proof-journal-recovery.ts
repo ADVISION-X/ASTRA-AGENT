@@ -34,8 +34,6 @@ type RecoveryReceipt = Readonly<{
 
 export type BrowserProofJournalRecoveryInput = Readonly<{
   journalPath: string;
-  candidateHash: `sha256:${string}`;
-  releaseBuildId: string;
   operatorId: string;
   authorizationRef: string;
   reasonCode: string;
@@ -68,10 +66,6 @@ const exactText = (value: string, field: string): string => {
     throw new Error(`BROWSER_JOURNAL_RECOVERY_INPUT_INVALID:${field}`);
   }
   return trimmed;
-};
-const exactHash = (value: string, field: string): `sha256:${string}` => {
-  if (!hashPattern.test(value)) throw new Error(`BROWSER_JOURNAL_RECOVERY_INPUT_INVALID:${field}`);
-  return value as `sha256:${string}`;
 };
 const fsyncDirectory = (path: string): void => {
   const descriptor = openSync(path, "r");
@@ -208,8 +202,6 @@ const resultFromRecoveryEvent = (
 });
 
 type RecoveryIdentity = Readonly<{
-  candidateHash: `sha256:${string}`;
-  releaseBuildId: string;
   operatorId: string;
   authorizationRef: string;
   reasonCode: string;
@@ -232,8 +224,7 @@ const existingRecovery = (
   try {
     const recovery = readBrowserProofJournal(journalPath)[0]?.event;
     if (recovery?.eventType !== "RECOVERY") throw new Error("BROWSER_JOURNAL_RECOVERY_NOT_REQUIRED");
-    if (recovery.candidateHash !== identity.candidateHash || recovery.releaseBuildId !== identity.releaseBuildId
-      || recovery.operatorId !== identity.operatorId || recovery.authorizationRef !== identity.authorizationRef
+    if (recovery.operatorId !== identity.operatorId || recovery.authorizationRef !== identity.authorizationRef
       || recovery.reasonCode !== identity.reasonCode) throw new Error("BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT");
     return resultFromRecoveryEvent(recovery, "ALREADY_RECOVERED");
   } catch (error) {
@@ -342,8 +333,6 @@ export const recoverBrowserProofJournal = (
   input.assertExclusiveOwner();
   const journalPath = resolve(input.journalPath);
   const identity: RecoveryIdentity = {
-    candidateHash: exactHash(input.candidateHash, "candidateHash"),
-    releaseBuildId: exactText(input.releaseBuildId, "releaseBuildId"),
     operatorId: exactText(input.operatorId, "operatorId"),
     authorizationRef: exactText(input.authorizationRef, "authorizationRef"),
     reasonCode: exactText(input.reasonCode, "reasonCode"),

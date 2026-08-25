@@ -28,7 +28,8 @@ const authorityHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const nativeReceipt = (value: `sha256:${string}`): string => value.slice("sha256:".length);
 const recent = envelopes.filter(({ event }) =>
-  event.candidateHash === candidateHash
+  event.eventType !== "RECOVERY"
+  && event.candidateHash === candidateHash
   && now - Date.parse(event.recordedAt) >= 0
   && now - Date.parse(event.recordedAt) <= maxAgeMs);
 
@@ -85,7 +86,7 @@ emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenc
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "dynamic.browser",
   locator: `${journalPath}#sequence=${completed.sequence}`, receipt: nativeReceipt(completed.entryHash),
   observedValue: `claim=${claimed.sequence};command=${completed.sequence}` });
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7", evidenceMode: "dynamic.storage",
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", evidenceMode: "dynamic.storage",
   locator: `${journalPath}#sequence=${revoked.sequence}`, receipt: nativeReceipt(revoked.entryHash),
   observedValue: `durableChain=${authenticated.sequence},${claimed.sequence},${completed.sequence},${revoked.sequence}` });
 emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "dynamic.browser",

@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "local-browser-session",
   "lawIds": [
-    "LAW-LOCAL-BROWSER-SESSION-004-V7"
+    "LAW-LOCAL-BROWSER-SESSION-004-V8"
   ],
   "contractRefs": [],
   "dependencyEdges": [],
@@ -37,10 +37,10 @@ event schema、物理行号、上一行哈希、当前行哈希或完整尾行�
 
 1. 先取得同一 `owner.lock`；活动 Browser Owner 存在时必须拒绝恢复。
 2. 再逐字节读取原 canonical 文件，记录绝对路径、字节数、完整 SHA-256、物理行数、首个失败
-   物理行、全部可识别 candidate hash 与 release build、操作者、授权引用和 reason code。
+   物理行、全部可识别历史 candidate hash 与 release build、操作者、授权引用和 reason code。
 3. 原字节只能以哈希命名写入 `browser/archive/`，写后再次逐字节校验并改为只读；archive 永久
    退出活动证明域。
-4. 以原文件哈希、操作者、授权引用和 reason code 派生唯一 `recoveryId`；同一 ID 只能有一份
+4. 只以原文件哈希、操作者、授权引用和 reason code 派生唯一 `recoveryId`；同一 ID 只能有一份
    `browser/recovery-receipts/*.json`，既有内容不一致必须失败关闭。
 5. receipt 内固定完整 V2 `RECOVERY/GENESIS` envelope。临时 canonical 文件必须完整写入并
    `fsync`，确认原 source 未漂移后才可原子替换；目录随后 `fsync`。
@@ -50,7 +50,8 @@ event schema、物理行号、上一行哈希、当前行哈希或完整尾行�
 
 恢复 genesis 不是对旧历史的洗白。旧 journal 及其中所有 lifecycle/command 事件不得参与当前
 Dynamic Proof；恢复后的 Browser Authority、Target claim、command completion 和 revoke 必须在 V2
-链上重新发生、重新取证。UNKNOWN mutation 永不自动重放。
+链上重新发生、重新取证。恢复 genesis 不携带、推导或证明当前 candidate/build；当前身份只来自恢复后
+新写入的 lifecycle/command 事件。UNKNOWN mutation 永不自动重放。
 
 ## 人工命令合同
 
