@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -280,6 +280,47 @@ const proofRequestIndex = (
   return { expected, byRoute };
 };
 
+const locatorFilePath = (locator: string): string | null => {
+  const candidate = locator.split("#", 1)[0]!;
+  return candidate.startsWith("/") ? candidate : null;
+};
+
+const objectContainsReceipt = (objectPath: string, receipt: string): boolean => {
+  if (!existsSync(objectPath)) return false;
+  const pending = [objectPath];
+  let inspected = 0;
+  while (pending.length > 0 && inspected < 4096) {
+    const current = pending.pop()!;
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return false;
+    if (stat.isDirectory()) {
+      pending.push(...readdirSync(current).map((entry) => resolve(current, entry)));
+      continue;
+    }
+    if (!stat.isFile()) continue;
+    inspected += 1;
+    if (stat.size <= 16 * 1024 * 1024) {
+      const bytes = readFileSync(current);
+      if (sha(bytes) === receipt || bytes.toString("utf8").includes(receipt)) return true;
+    }
+  }
+  return false;
+};
+
+const observationAuthenticatesRequest = (
+  observation: QualityProofObservation, request: QualityProofRequest, kind: "exam" | "dynamic",
+): boolean => {
+  if (observation.proofRunId !== request.proofRunId || observation.candidate !== request.candidate
+    || observation.proofKind !== request.proofKind || observation.proofKind !== kind) return false;
+  if (kind === "exam") return true;
+  const receipt = observation.receipt;
+  if (!receipt) return false;
+  const filePath = locatorFilePath(observation.locator);
+  if (filePath) return objectContainsReceipt(filePath, receipt);
+  return observation.observedValue.includes(`run=${request.proofRunId}`)
+    && observation.observedValue.includes(`candidate=${request.candidate}`);
+};
+
 export const bindNativeProofObservations = (
   stdout: string,
   routes: readonly ProofRoute[],
@@ -296,6 +337,10 @@ export const bindNativeProofObservations = (
     const key = `${observation.lawId}\0${observation.evidenceMode}`;
     if (!index.expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
     if (bound.has(key)) fail("LAW_EVIDENCE_DUPLICATE", key.replace("\0", ":"));
+    const request = index.byRoute.get(key)!;
+    if (!observationAuthenticatesRequest(observation, request, kind)) {
+      fail("LAW_EVIDENCE_MISSING", `native-receipt-binding:${key.replace("\0", ":")}`);
+    }
     const route = routes.find(({ law, mode }) => `${law.lawId}\0${mode}` === key)!;
     if (!observationMatchesRoute({
       kind, script, domain: route.law.capabilityDomain, lawId: observation.lawId,

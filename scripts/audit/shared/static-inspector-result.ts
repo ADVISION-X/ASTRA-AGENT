@@ -1,3 +1,5 @@
+import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
+
 import { fail } from "../governance-runtime.js";
 import type {
   InspectorContext, InspectorEvaluation, InspectorExecutedCheck, InspectorLawRequirement, InspectorLawResult, InspectorOutput,
@@ -15,6 +17,30 @@ export type StaticLawRoute = Readonly<{
   lawId: string;
 }>;
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
+
+const semanticExecutorCalls = (execute: StaticInspectorExecutor): string[] => {
+  const project = new Project({ useInMemoryFileSystem: true });
+  let source: SourceFile;
+  try {
+    source = project.createSourceFile("executor.ts", `const executor = ${execute.toString()};`);
+  } catch {
+    return [];
+  }
+  return source.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+    const expression = call.getExpression();
+    if (Node.isIdentifier(expression)) return [expression.getText()];
+    if (Node.isPropertyAccessExpression(expression)) return [expression.getName()];
+    return [];
+  }).filter((name) => name !== "completedStaticChecks");
+};
+
+const validateSemanticExecutor = (
+  context: InspectorContext, execute: StaticInspectorExecutor,
+): void => {
+  if (semanticExecutorCalls(execute).length === 0) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:semantic-execution`);
+  }
+};
 
 export const completedStaticChecks = (
   context: InspectorContext, checkId: string,
@@ -67,7 +93,7 @@ const validateExecutedChecks = (context: InspectorContext, evaluation: Inspector
 
 const validateStaticEvaluation = (
   context: InspectorContext, evaluation: InspectorEvaluation, requiredIds: readonly string[],
-  requiredTargets: readonly string[], executorName: string,
+  requiredTargets: readonly string[], executorName: string, execute: StaticInspectorExecutor,
 ): void => {
   inspectTargetObjects(context, requiredTargets);
   if (evaluation.capabilityDomain !== context.planEntry.capabilityDomain
@@ -83,6 +109,7 @@ const validateStaticEvaluation = (
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:target-denominator`);
   }
   validateExecutedChecks(context, evaluation);
+  validateSemanticExecutor(context, execute);
 };
 
 const resultForRequirement = (
@@ -121,7 +148,7 @@ export const finalizeStaticInspection = async (
   let evaluation: InspectorEvaluation;
   try { evaluation = await execute(context); }
   catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}`); }
-  validateStaticEvaluation(context, evaluation, requiredIds, requiredTargets, executorName);
+  validateStaticEvaluation(context, evaluation, requiredIds, requiredTargets, executorName, execute);
   const executionId = `${context.planEntry.capabilityDomain}/${executorName}`;
   const lawResults = context.lawRequirements.map((requirement) =>
     resultForRequirement(context, evaluation, requirement, executionId));

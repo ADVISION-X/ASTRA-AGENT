@@ -25,7 +25,7 @@ import type { InspectorContext, InspectorEvaluation } from "../../scripts/audit/
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
+import { completedStaticChecks, finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
@@ -247,6 +247,7 @@ test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecut
     evidenceMode: "exam.golden",
     locator: "acceptance:provider-boundary:injected-browser",
     observedValue: "first route actually asserted",
+    ...requests[0],
   })}\n`;
   assert.equal(bindNativeProofObservations(oneNativeObservation, routes, requests, script, "exam").size, 1);
   const invented = `${proofObservationPrefix}${JSON.stringify({
@@ -269,6 +270,7 @@ test("native proof observations reject one locator reused across law routes", ()
     evidenceMode: "exam.golden",
     locator: "acceptance:exact-target:caller-owned-lease",
     observedValue: "exact target route executed",
+    ...requests[0],
   })}`;
   assert.throws(
     () => bindNativeProofObservations(`${line}\n${line}`, routes, requests, "acceptance:ai-input-gateway", "exam"),
@@ -305,6 +307,21 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", mode: "dynamic.provider",
     locator: "/repo/.grasseye-local/runtime-data/ai-input-gateway/web-chat-executions",
     observedValue: "provider records verified" }), true);
+
+  const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
+    lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery",
+    locator: `/tmp/recovery-receipts/${"c".repeat(64)}.json`, observedValue: "atomic recovery verified",
+    receipt: "c".repeat(64), ...proofRequests([{ law: {
+      ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", capabilityDomain: "local-browser-session",
+    }, mode: "dynamic.recovery" }], "dynamic")[0],
+  })}`;
+  const recoveryLaw = { ...law, lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", capabilityDomain: "local-browser-session" };
+  const recoveryRoutes = [{ law: recoveryLaw, mode: "dynamic.recovery" }];
+  assert.throws(
+    () => bindNativeProofObservations(missingNativeMarker, recoveryRoutes, proofRequests(recoveryRoutes, "dynamic"),
+      "proof:local-browser-journal-recovery", "dynamic"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
 });
 
 test("static finalization rejects a law with no explicit inspector route", async () => {
@@ -415,6 +432,26 @@ test("a no-op inspector cannot mint PASS from a readable complete target set", a
     () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectNothing() { return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
     } as unknown as InspectorEvaluation; }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
+  );
+});
+
+test("a self-attested inspector cannot copy the requested clause plan into PASS", async () => {
+  const context = {
+    sealedRoot: process.cwd(),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
+    lawRequirements: [{
+      lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
+      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
+      targetPaths: ["package.json"],
+      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
+    }],
+  } as unknown as InspectorContext;
+  await assert.rejects(
+    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectNothing() { return {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
+      executedChecks: completedStaticChecks(context, "fixture/copied-request-plan"),
+    }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
