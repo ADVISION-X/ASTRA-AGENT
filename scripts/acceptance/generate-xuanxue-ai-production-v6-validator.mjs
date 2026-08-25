@@ -6,12 +6,17 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const website = process.env.XUANXUE_WEBSITE_REPOSITORY?.trim()
-  || "/Users/nexgen/Documents/xuanxue-web-agent-flow-work-order";
-const pinPath = path.join(root, "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json");
-const productPinPath = path.join(root, "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json");
+  || "/Users/nexgen/Documents/xuanxue-web";
+const requestedProviderCommit = process.env.XUANXUE_PROVIDER_COMMIT?.trim();
+const dependencyPath = path.join(root, "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json");
+const productDependencyPath = path.join(root, "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json");
 const outputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts");
 const manifestOutputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.manifest.json");
 const productProjectionOutputPath = path.join(root, "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json");
+const providerCommit = requestedProviderCommit || (process.argv.includes("--check")
+  ? JSON.parse(readFileSync(productProjectionOutputPath, "utf8")).provider_commit_sha
+  : undefined);
+if (!providerCommit || !/^[a-f0-9]{40,64}$/u.test(providerCommit)) throw new Error("XUANXUE_PROVIDER_COMMIT_REQUIRED");
 const contractSourcePath = "packages/ai-contracts/src/production-control/v6-contract.ts";
 
 const canonical = (value) => Array.isArray(value)
@@ -23,26 +28,40 @@ const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const fromProvider = (commit, providerPath) => execFileSync(
   "git", ["show", `${commit}:${providerPath}`], { cwd: website },
 ).toString("utf8");
+const providerSpecs = execFileSync(
+  "git", ["ls-tree", "-r", "--name-only", providerCommit, "--", "docs/specs"], { cwd: website },
+).toString("utf8").split("\n").filter((providerPath) => providerPath.endsWith(".spec.json"));
+const providerContract = (dependency) => {
+  const matches = providerSpecs.flatMap((providerPath) => {
+    const source = fromProvider(providerCommit, providerPath);
+    const spec = JSON.parse(source);
+    return spec.status === "active"
+      && spec.specKind === "cross-repo-contract"
+      && spec.contract?.contractId === dependency.contractId
+      && spec.contract?.version === dependency.version
+      && spec.contract?.providerRepo === dependency.providerRepo
+      ? [{ providerPath, source, spec }]
+      : [];
+  });
+  if (matches.length !== 1) throw new Error(`XUANXUE_PROVIDER_CONTRACT_NOT_UNIQUE:${dependency.contractId}`);
+  return matches[0];
+};
 
-const pin = JSON.parse(readFileSync(pinPath, "utf8"));
-const binding = pin.contract;
-if (pin.status !== "active" || pin.specKind !== "contract-pin"
-  || binding.providerRepo !== "ADVISION-X/xuanxue-web") {
-  throw new Error("XUANXUE_AI_PRODUCTION_V6_PIN_INVALID");
+const dependencySpec = JSON.parse(readFileSync(dependencyPath, "utf8"));
+const dependency = dependencySpec.contract;
+if (dependencySpec.status !== "active" || dependencySpec.specKind !== "cross-repo-dependency"
+  || dependency.providerRepo !== "ADVISION-X/xuanxue-web") {
+  throw new Error("XUANXUE_AI_PRODUCTION_V6_DEPENDENCY_INVALID");
 }
-const providerSpecText = fromProvider(binding.providerCommitSha, binding.providerSpecRef);
-const providerSpec = JSON.parse(providerSpecText);
-if (sha256(JSON.stringify(canonical(providerSpec.contract))) !== binding.contractSha256) {
-  throw new Error("XUANXUE_AI_PRODUCTION_V6_PIN_HASH_MISMATCH");
-}
+const { providerPath, spec: providerSpec } = providerContract(dependency);
 const authority = providerSpec.contract.authorityArtifact;
-const manifestText = fromProvider(binding.providerCommitSha, authority.path);
-if (sha256(manifestText) !== authority.sha256) {
-  throw new Error("XUANXUE_AI_PRODUCTION_V6_MANIFEST_HASH_MISMATCH");
-}
-const sourceText = fromProvider(binding.providerCommitSha, contractSourcePath);
+const manifestText = fromProvider(providerCommit, authority.path);
+const manifest = JSON.parse(manifestText);
+if (authority.selector !== `protocol_version=${manifest.protocol_version}`) throw new Error("XUANXUE_AI_PRODUCTION_V6_AUTHORITY_SELECTOR_MISMATCH");
+const sourceText = fromProvider(providerCommit, contractSourcePath);
 const hashImport = 'import { hashCanonicalJson } from "@xuanshu/hash-core";';
-if (!sourceText.startsWith(`${hashImport}\n`)) {
+const providerImports = `${hashImport}\nimport { productExecutionBundle } from "./product-execution.generated.js";\nimport {\n  productExecutionContracts,\n} from "./product-execution-runtime.js";\n`;
+if (!sourceText.startsWith(providerImports)) {
   throw new Error("XUANXUE_AI_PRODUCTION_V6_PROVIDER_SOURCE_INVALID");
 }
 
@@ -77,39 +96,22 @@ export const ClaimBatchReceiptV6Schema = generatedParser(assertClaimBatchReceipt
 export const HandoverV6Schema = generatedParser(assertHandoverV6);
 `;
 
-const generated = `// GENERATED FILE. DO NOT EDIT.\n`
-  + `// Provider: ${binding.providerRepo}@${binding.providerCommitSha}:${contractSourcePath}\n`
-  + `// Provider source SHA256: ${sha256(sourceText)}\n`
-  + sourceText.replace(hashImport, localHashImplementation.trimEnd())
-  + adapters;
-
-const productPin = JSON.parse(readFileSync(productPinPath, "utf8"));
-const productBinding = productPin.contract;
-if (productPin.status !== "active" || productPin.specKind !== "contract-pin"
-  || productBinding.providerRepo !== "ADVISION-X/xuanxue-web"
-  || productBinding.contractId !== "ai-acceptance.product-execution-contract") {
-  throw new Error("XUANXUE_PRODUCT_EXECUTION_PIN_INVALID");
+const productDependencySpec = JSON.parse(readFileSync(productDependencyPath, "utf8"));
+const productDependency = productDependencySpec.contract;
+if (productDependencySpec.status !== "active" || productDependencySpec.specKind !== "cross-repo-dependency"
+  || productDependency.providerRepo !== "ADVISION-X/xuanxue-web"
+  || productDependency.contractId !== "ai-acceptance.product-execution-contract") {
+  throw new Error("XUANXUE_PRODUCT_EXECUTION_DEPENDENCY_INVALID");
 }
-const productDescriptorText = fromProvider(
-  productBinding.providerCommitSha,
-  productBinding.providerSpecRef,
-);
-const productDescriptor = JSON.parse(productDescriptorText);
-if (sha256(JSON.stringify(canonical(productDescriptor.contract)))
-  !== productBinding.contractSha256) {
-  throw new Error("XUANXUE_PRODUCT_EXECUTION_PIN_HASH_MISMATCH");
-}
+const { providerPath: productProviderPath, source: productDescriptorText, spec: productDescriptor } = providerContract(productDependency);
 const productAuthority = productDescriptor.contract.authorityArtifact;
 const productBundleText = fromProvider(
-  productBinding.providerCommitSha,
+  providerCommit,
   productAuthority.path,
 );
-if (sha256(productBundleText) !== productAuthority.sha256) {
-  throw new Error("XUANXUE_PRODUCT_EXECUTION_BUNDLE_HASH_MISMATCH");
-}
 const productBundle = JSON.parse(productBundleText);
 if (productBundle.schema_version !== 1
-  || productBundle.contract_id !== productBinding.contractId
+  || productBundle.contract_id !== productDependency.contractId
   || productBundle.contract_count !== 20
   || !Array.isArray(productBundle.contracts)
   || productBundle.contracts.length !== 20
@@ -119,9 +121,17 @@ if (productBundle.schema_version !== 1
   || productAuthority.selector !== `bundle_hash=${productBundle.bundle_hash}`) {
   throw new Error("XUANXUE_PRODUCT_EXECUTION_BUNDLE_INVALID");
 }
+const localProductContract = `const productExecutionBundle = ${JSON.stringify(productBundle, null, 2)} as const;\nconst productExecutionContracts = productExecutionBundle.contracts;\n`;
+const generated = `// GENERATED FILE. DO NOT EDIT.\n`
+  + `// Provider: ${dependency.providerRepo}@${providerCommit}:${contractSourcePath}\n`
+  + `// Provider source SHA256: ${sha256(sourceText)}\n`
+  + localHashImplementation
+  + localProductContract
+  + sourceText.slice(providerImports.length)
+  + adapters;
 const localizationProjectionPath = "artifacts/contracts/localization-production-contract.v1.json";
 const localizationProjectionText = fromProvider(
-  productBinding.providerCommitSha,
+  providerCommit,
   localizationProjectionPath,
 );
 const localizationProjection = JSON.parse(localizationProjectionText);
@@ -141,13 +151,13 @@ if (localizationContracts.length !== 4
 }
 const productProjection = `${JSON.stringify({
   schema_version: "xuanxue-product-execution-projection.v1",
-  provider_repo: productBinding.providerRepo,
-  provider_commit_sha: productBinding.providerCommitSha,
-  provider_spec_ref: productBinding.providerSpecRef,
-  provider_contract_sha256: productBinding.contractSha256,
+  provider_repo: productDependency.providerRepo,
+  provider_commit_sha: providerCommit,
+  provider_spec_ref: productProviderPath,
+  provider_contract_sha256: sha256(JSON.stringify(canonical(productDescriptor.contract))),
   provider_descriptor_sha256: sha256(productDescriptorText),
   provider_artifact_path: productAuthority.path,
-  provider_artifact_sha256: productAuthority.sha256,
+  provider_artifact_sha256: sha256(productBundleText),
   localization_semantic_manifest_path: localizationProjectionPath,
   localization_semantic_manifest_sha256: sha256(localizationProjectionText),
   localization_semantic_manifest: localizationProjection,
@@ -160,10 +170,10 @@ if (process.argv.includes("--check")) {
     || readFileSync(productProjectionOutputPath, "utf8") !== productProjection) {
     throw new Error("XUANXUE_AI_PRODUCTION_V6_GENERATED_VALIDATOR_STALE");
   }
-  process.stdout.write(`V6_GENERATED_VALIDATOR_CURRENT ${binding.providerCommitSha} PRODUCT_EXECUTION_CURRENT ${productBinding.providerCommitSha}\n`);
+  process.stdout.write(`V6_GENERATED_VALIDATOR_CURRENT ${providerCommit} PRODUCT_EXECUTION_CURRENT ${providerCommit}\n`);
 } else {
   writeFileSync(outputPath, generated);
   writeFileSync(manifestOutputPath, manifestText);
   writeFileSync(productProjectionOutputPath, productProjection);
-  process.stdout.write(`V6_GENERATED_VALIDATOR_WRITTEN ${binding.providerCommitSha} PRODUCT_EXECUTION_WRITTEN ${productBinding.providerCommitSha}\n`);
+  process.stdout.write(`V6_GENERATED_VALIDATOR_WRITTEN ${providerCommit} PRODUCT_EXECUTION_WRITTEN ${providerCommit}\n`);
 }

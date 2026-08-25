@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "specId": "xuanxue-ai-production.product-execution-contract-dependency",
+  "status": "active",
+  "version": 1,
+  "owner": "xuanxue-ai-production",
+  "lawIds": [
+    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+  ],
+  "specKind": "cross-repo-dependency",
+  "contract": {
+    "contractId": "ai-acceptance.product-execution-contract",
+    "version": 1,
+    "providerRepo": "ADVISION-X/xuanxue-web"
+  }
+}

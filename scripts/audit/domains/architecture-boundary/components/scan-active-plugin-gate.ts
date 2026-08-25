@@ -56,7 +56,7 @@ const activePluginContracts: ActivePluginContract[] = [{
     "src/mediator/xuanxue-ai-production-route.ts",
   ],
   allowedAcceptanceTests: ["acceptance:xuanxue-ai-production"],
-  allowedNpmScripts: ["audit:xuanxue-ai-production:enforce"],
+  allowedNpmScripts: [],
   exposureTokens: ["xuanxue-ai-production"],
   lawSourceRefs: [architectureLawPath],
 }];

@@ -10,19 +10,19 @@
     "LAW-XUANXUE-AI-PRODUCTION-001-V7"
   ],
   "contractRefs": [
-    "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json",
-    "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
+    "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
+    "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json"
   ],
   "dependencyEdges": [
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
-      "contractRef": "docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json"
+      "contractRef": "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json"
     },
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
       "to": {"repo": "ADVISION-X/xuanxue-web", "domain": "ai-acceptance"},
-      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.pin.spec.json"
+      "contractRef": "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json"
     },
     {
       "from": {"repo": "local", "domain": "xuanxue-ai-production"},
@@ -53,9 +53,6 @@
 法案：`LAW-XUANXUE-AI-PRODUCTION-001-V7`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
-V6 方案 SHA-256：`85e2b60e0649dac79ba24f055895d6752548456a2c50919baa7ed5097644c48a`
-Product Execution 方案 SHA-256：`c57d406c2dc95f678cdf26a24b3ecd38b5226a4533a81ea50b4b833995420802`
-
 ## 接入
 
 ```txt

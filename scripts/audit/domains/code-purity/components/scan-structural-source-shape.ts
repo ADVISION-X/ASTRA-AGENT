@@ -45,7 +45,7 @@ const pushSourceAtomicityFinding = (
       reason: input.reason,
       remediation: input.remediation,
       role: input.governedFile.role,
-      verificationCommand: "npm run ci:full",
+      verificationCommand: "npm run quality:check -- READY",
     },
     input.message,
   );

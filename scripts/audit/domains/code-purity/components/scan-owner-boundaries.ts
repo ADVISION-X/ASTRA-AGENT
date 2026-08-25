@@ -79,7 +79,7 @@ const pushBoundaryFinding = (
       reason: input.reason,
       remediation: remediationForBoundary(input.governedFile.owner),
       role: input.governedFile.role,
-      verificationCommand: "npm run ci:full",
+      verificationCommand: "npm run quality:check -- READY",
     },
     input.message,
   );

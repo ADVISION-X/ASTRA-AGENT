@@ -41,7 +41,7 @@ export const pushZombieFinding = (
       role: input.governedFile.role,
       symbolName: input.symbolName,
       usageKind: input.usageKind,
-      verificationCommand: "npm run ci:full",
+      verificationCommand: "npm run quality:check -- READY",
     },
     input.message,
   );

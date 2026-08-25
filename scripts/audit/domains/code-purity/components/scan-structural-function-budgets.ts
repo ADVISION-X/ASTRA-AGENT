@@ -27,7 +27,7 @@ const pushFunctionBudgetFinding = (
       reason,
       remediation: "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       role: governedFile.role,
-      verificationCommand: "npm run ci:full",
+      verificationCommand: "npm run quality:check -- READY",
     },
     message,
   );
@@ -93,7 +93,7 @@ const scanClassAndObjectBudgets = (
         reason: `Class ${classDeclaration.getName() ?? "<anonymous>"} ${classLimitBreak.reason}.`,
         remediation: "Split the class into smaller owner-local collaborators or contract objects.",
         role: governedFile.role,
-        verificationCommand: "npm run ci:full",
+        verificationCommand: "npm run quality:check -- READY",
       },
       `${governedFile.repoPath} has a class that exceeds the object red line.`,
     );
@@ -113,7 +113,7 @@ const scanClassAndObjectBudgets = (
         reason: `Object literal near line ${objectLiteral.getStartLineNumber()} has member count ${memberCount} and exceeds red line 30.`,
         remediation: "Split the object into smaller owner-local contract or configuration objects.",
         role: governedFile.role,
-        verificationCommand: "npm run ci:full",
+        verificationCommand: "npm run quality:check -- READY",
       },
       `${governedFile.repoPath} has an object literal that exceeds the object red line.`,
     );

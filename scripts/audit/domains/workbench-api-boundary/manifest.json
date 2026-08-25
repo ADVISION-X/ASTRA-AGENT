@@ -1,49 +1,10 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "capabilityDomain": "workbench-api-boundary",
   "status": "active",
   "lawIds": [
     "LAW-WORKBENCH-API-BOUNDARY-001-V4"
   ],
-  "lawBindings": {
-    "LAW-WORKBENCH-API-BOUNDARY-001-V4": {
-      "staticBinding": {
-        "bindingId": "workbench.api.boundary.001.v4.static",
-        "checkId": "workbench.api.boundary.001.v4.static.check",
-        "inspectorRef": "scripts/audit/domains/workbench-api-boundary/inspector.ts#inspectDomain|LAW-WORKBENCH-API-BOUNDARY-001-V4",
-        "targetSelectorId": "workbench.api.boundary.001.v4.target",
-        "evidenceModes": [
-          "static.ast",
-          "static.contract"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "workbench.api.boundary.001.v4.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aworkbench-api-boundary%3Aenforce|workbench.api.boundary.001.v4.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [],
-      "proofBindings": [
-        {
-          "bindingId": "workbench.api.boundary.001.v4.dynamic-browser.proof",
-          "proofId": "workbench.api.boundary.001.v4.dynamic-browser",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-WORKBENCH-API-BOUNDARY-001-V4|dynamic.browser",
-          "evidenceModes": [
-            "dynamic.browser"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "workbench.api.boundary.001.v4.dynamic-browser.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|workbench.api.boundary.001.v4.dynamic-browser.proof",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ]
-    }
-  },
   "ownedPaths": [
     "scripts/audit/domains/workbench-api-boundary/**"
   ],

@@ -6,6 +6,8 @@
   "session_credential_ttl_seconds": 180,
   "session_credential_overlap_seconds": 60,
   "runtime_attestation_ttl_seconds": 45,
+  "agent_build_binding_scope": "worker_session",
+  "product_capability_identity": "product_bundle_hash",
   "lease_seconds": 90,
   "accept_seconds": 30,
   "renew_after_ms": 20000,

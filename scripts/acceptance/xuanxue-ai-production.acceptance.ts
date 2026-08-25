@@ -50,14 +50,7 @@ assert.throws(
   () => assertXuanxueProductExecutionProjection(tamperedProjection),
   /XUANXUE_PRODUCT_EXECUTION_GENERATED_PROJECTION_INVALID/u,
 );
-const productExecutionPin = JSON.parse(await readFile(
-  path.resolve("docs/specs/xuanxue-ai-production/product-execution-contract.pin.spec.json"),
-  "utf8",
-)) as { contract: { providerCommitSha: string } };
-assert.equal(
-  XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT,
-  productExecutionPin.contract.providerCommitSha,
-);
+assert.match(XUANXUE_PRODUCT_EXECUTION_PROVIDER_COMMIT, /^[a-f0-9]{40,64}$/u);
 const generatedValidator = await readFile(path.resolve(
   "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
 ), "utf8");
@@ -85,14 +78,16 @@ const receipt = createAgentRuntimeReceiptV6({
 });
 assert.equal(receipt.schema_version, "xuanxue-agent-runtime-receipt.v6");
 
+const fixtureProductContract = XUANXUE_PRODUCT_EXECUTION_PROJECTION.bundle.contracts[0]!;
 const grant = CloudExecutionGrantV6Schema.parse({
   schema_version: "xuanxue-ai-cloud-execution-grant.v6",
   control_protocol_version: "xuanxue-ai-production-v6",
   claim_batch_id: "batch", job_id: "aiprod_fixture", source_task_id: "task",
   request_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   job_contract_version: "xuanxue-ai-job-contract.bazi_chart_interpretation.v6",
-  product_contract_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-  required_capabilities: ["gpt_web_browser"], attempt_id: "attempt",
+  product_contract_hash: fixtureProductContract.product_contract_hash,
+  required_capabilities: fixtureProductContract.required_capabilities,
+  attempt_id: "attempt",
   device_id: "aipdev_fixture", device_epoch: 1,
   worker_session_id: "aipsess_fixture", worker_session_epoch: 1,
   lease_token: `aipl_v6_${"x".repeat(32)}`, lease_version: 1,
