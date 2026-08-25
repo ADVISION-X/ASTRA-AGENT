@@ -114,22 +114,29 @@ const canonicalPercentEncoded = (value: string): string | null => {
   } catch { return null; }
 };
 
-export const validEvidenceRef = (value: string): boolean => {
+type ParsedEvidenceRef = Readonly<{ kind: string; locator: string; selector: string; receipt?: string }>;
+const parseEvidenceRef = (value: string): ParsedEvidenceRef | null => {
   const match = /^([a-z]+):([^#@]+)#([^#@]+)(?:@((?:sha256:)?[a-f0-9]{64}))?$/u.exec(value);
-  if (!match || !evidenceKinds.has(match[1]!) || /[\0-\x1f\x7f]/u.test(value)) return false;
-  const kind = match[1]!;
-  const locator = match[2]!;
+  if (!match || !evidenceKinds.has(match[1]!) || /[\0-\x1f\x7f]/u.test(value)) return null;
   const selector = canonicalPercentEncoded(match[3]!);
-  if (selector === null || /[#:@]/u.test(match[3]!) || locator.includes(":")) return false;
-  const external = kind === "exam" || kind === "dynamic";
-  if (external !== Boolean(match[4])) return false;
-  if (kind === "scope") {
-    if (match[4] || !/^LAW-[A-Z0-9-]+$/u.test(locator) || selector !== "appliesTo-minus-excludes") return false;
-  } else if (!external) {
-    if (locator.startsWith("/") || locator.startsWith("\\") || locator.includes(":")
-      || locator.includes("%") || locator.split(/[\\/]/u).some((part) => part === "" || part === "." || part === "..")) return false;
-  }
-  return !/(?:^|[;=])(?:fixed|pass|true)(?:$|[;=])/iu.test(selector);
+  if (selector === null || /[#:@]/u.test(match[3]!) || match[2]!.includes(":")) return null;
+  return { kind: match[1]!, locator: match[2]!, selector, ...(match[4] ? { receipt: match[4] } : {}) };
+};
+const validRepositoryLocator = (locator: string): boolean => !locator.startsWith("/")
+  && !locator.startsWith("\\") && !locator.includes("%")
+  && locator.split(/[\\/]/u).every((part) => part !== "" && part !== "." && part !== "..");
+const validEvidenceObject = (reference: ParsedEvidenceRef): boolean => {
+  const external = reference.kind === "exam" || reference.kind === "dynamic";
+  if (external) return reference.receipt !== undefined;
+  if (reference.receipt !== undefined) return false;
+  if (reference.kind !== "scope") return validRepositoryLocator(reference.locator);
+  return /^LAW-[A-Z0-9-]+$/u.test(reference.locator) && reference.selector === "appliesTo-minus-excludes";
+};
+
+export const validEvidenceRef = (value: string): boolean => {
+  const reference = parseEvidenceRef(value);
+  return reference !== null && validEvidenceObject(reference)
+    && !/(?:^|[;=])(?:fixed|pass|true)(?:$|[;=])/iu.test(reference.selector);
 };
 
 const evidenceKind = (value: string): string => value.slice(0, value.indexOf(":"));

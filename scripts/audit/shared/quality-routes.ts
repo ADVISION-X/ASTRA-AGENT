@@ -55,7 +55,7 @@ export const dynamicScriptFor = (domain: string, mode: string): string =>
   dynamicScripts[domain]?.[mode] ?? fail("RELEASE_EVIDENCE_MISSING", `${domain}:${mode}`);
 
 const routeKey = (lawId: string, mode: string): string => `${lawId}\0${mode}`;
-const exactLocators: Readonly<Record<string, string>> = {
+const exactExamLocators: Readonly<Record<string, string>> = {
   [routeKey("LAW-AI-INPUT-GATEWAY-001-V1", "exam.golden")]: "acceptance:provider-boundary:injected-browser",
   [routeKey("LAW-AI-INPUT-GATEWAY-002-V1", "exam.golden")]: "acceptance:exact-target:caller-owned-lease",
   [routeKey("LAW-AI-INPUT-GATEWAY-003-V1", "exam.golden")]: "acceptance:attachment-routing:transport-not-public",
@@ -86,6 +86,8 @@ const exactLocators: Readonly<Record<string, string>> = {
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "exam.property")]: "acceptance:xuanxue:canonical-receipt-hash",
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "exam.state-machine")]: "acceptance:xuanxue:continuation-state-binding",
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", "exam.golden")]: "acceptance:xuanxue-localization:contract-projection",
+};
+const exactDynamicLocators: Readonly<Record<string, string>> = {
   [routeKey("LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser")]: "dynamic:browser:authenticated-lifecycle",
   [routeKey("LAW-LOCAL-BROWSER-SESSION-002-V4", "dynamic.browser")]: "dynamic:browser:fixed-unpacked-authority",
   [routeKey("LAW-LOCAL-BROWSER-SESSION-003-V6", "dynamic.browser")]: "dynamic:browser:exact-target-claim",
@@ -117,7 +119,7 @@ export const observationMatchesRoute = (input: {
   const expectedScript = input.kind === "exam" ? examScripts[input.domain] : dynamicScripts[input.domain]?.[input.mode];
   if (expectedScript !== input.script || input.observedValue.trim().length < 8
     || /^(?:fixed|pass|true)$/iu.test(input.observedValue.trim())) return false;
-  const exact = exactLocators[routeKey(input.lawId, input.mode)];
+  const exact = (input.kind === "exam" ? exactExamLocators : exactDynamicLocators)[routeKey(input.lawId, input.mode)];
   return exact ? input.locator === exact : input.script === "proof:local-shell-current-runtime"
     && localRuntimeLocator(input.lawId, input.mode, input.locator);
 };
