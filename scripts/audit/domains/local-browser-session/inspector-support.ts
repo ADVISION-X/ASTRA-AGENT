@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
@@ -8,8 +8,6 @@ import { resolveFromRepo } from "../../shared/paths.js";
 export const createLocalFinding = (input: Parameters<typeof createFinding>[0]): InspectorFinding =>
   createFinding({ ...input, clauseId: input.clauseId ?? `${input.lawId.toLowerCase()}-requirement` });
 
-export const lawPath = ".github/instructions/agent-rules/功能法案.md";
-export const blueprintPath = "docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V5-OWNER-JOURNAL-BLUEPRINT.md";
 export const targetAuthorityPath = "src/lib/browser/chrome-extension/extension-target-authority.ts";
 export const brokerPath = "src/lib/browser/infrastructure/browser-authority-broker.ts";
 
@@ -39,6 +37,7 @@ export const sourcePaths = [
   "src/lib/browser/chrome-extension/extension-heartbeat.ts",
   "src/lib/browser/chrome-extension/pairing-completion-gate.ts",
   "scripts/acceptance/local-browser.real-chrome.ts",
+  "src/lib/browser/exact-target/browser-proof-journal-recovery.ts",
 ] as const;
 
 export const retiredPaths = [
@@ -66,6 +65,7 @@ export const requireSource = (
   lawId: string,
   path: string,
 ): SourceFile | null => {
+  if (!context.targetPaths.includes(path)) return null;
   const source = context.project.getSourceFile(resolveFromRepo(path));
   if (!source) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority",
@@ -74,16 +74,6 @@ export const requireSource = (
     message: `${path} must exist in the ts-morph project.`,
   }));
   return source ?? null;
-};
-
-export const propertyValue = (object: ObjectLiteralExpression, name: string): string | boolean | null => {
-  const property = object.getProperty(name);
-  if (!property || !Node.isPropertyAssignment(property)) return null;
-  const initializer = property.getInitializer();
-  if (Node.isStringLiteral(initializer)) return initializer.getLiteralValue();
-  if (initializer?.getKind() === SyntaxKind.TrueKeyword) return true;
-  if (initializer?.getKind() === SyntaxKind.FalseKeyword) return false;
-  return null;
 };
 
 export const requireIdentifiers = (

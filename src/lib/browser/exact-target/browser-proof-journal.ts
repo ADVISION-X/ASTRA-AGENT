@@ -66,9 +66,32 @@ export type BrowserProofLifecycleEvent = Readonly<{
   reason?: string;
 }>;
 
-export type BrowserProofEvent = BrowserProofCommandEvent | BrowserProofLifecycleEvent;
+export type BrowserProofRecoveryEvent = Readonly<{
+  eventType: "RECOVERY";
+  phase: "GENESIS";
+  candidateHash: `sha256:${string}`;
+  releaseBuildId: string;
+  recordedAt: string;
+  recoveryId: `sha256:${string}`;
+  originalJournalPath: string;
+  originalJournalSha256: `sha256:${string}`;
+  originalByteLength: number;
+  originalLineCount: number;
+  firstInvalidLine: number;
+  failureCode: "BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID";
+  archivePath: string;
+  recoveryReceiptPath: string;
+  observedCandidateHashes: readonly `sha256:${string}`[];
+  observedReleaseBuildIds: readonly string[];
+  operatorId: string;
+  authorizationRef: string;
+  reasonCode: string;
+  recoveredAt: string;
+}>;
+
+export type BrowserProofEvent = BrowserProofCommandEvent | BrowserProofLifecycleEvent | BrowserProofRecoveryEvent;
 export type BrowserProofEnvelope = Readonly<{
-  schemaVersion: "grasseye.browser-proof-journal.v1";
+  schemaVersion: "grasseye.browser-proof-journal.v2";
   sequence: number;
   previousEntryHash: `sha256:${string}`;
   event: BrowserProofEvent;
@@ -101,6 +124,10 @@ const validHash = (value: unknown): value is `sha256:${string}` => typeof value 
 const validTimestamp = (value: unknown): value is string => validText(value) && Number.isFinite(Date.parse(value));
 const validInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0;
 const validPositiveInteger = (value: unknown): value is number => validInteger(value) && value >= 1;
+const validSortedUnique = (value: unknown, predicate: (item: unknown) => boolean): value is readonly unknown[] =>
+  Array.isArray(value)
+  && value.every(predicate)
+  && value.every((item, index) => index === 0 || String(value[index - 1]!) < String(item));
 
 const invalidJournal = (): never => {
   throw new Error("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID");
@@ -189,9 +216,40 @@ const assertCommandEvent = (raw: Record<string, unknown>): BrowserProofCommandEv
   return invalid ? invalidJournal() : raw as BrowserProofCommandEvent;
 };
 
+const recoveryKeys = [
+  "eventType", "phase", "candidateHash", "releaseBuildId", "recoveryId", "originalJournalPath", "originalJournalSha256",
+  "originalByteLength", "originalLineCount", "firstInvalidLine", "failureCode", "archivePath",
+  "recoveryReceiptPath", "observedCandidateHashes", "observedReleaseBuildIds", "operatorId",
+  "authorizationRef", "reasonCode", "recoveredAt", "recordedAt",
+];
+
+const recoverySourceValid = (raw: Record<string, unknown>): boolean => validHash(raw.recoveryId)
+  && validText(raw.originalJournalPath) && validHash(raw.originalJournalSha256)
+  && validPositiveInteger(raw.originalByteLength) && validPositiveInteger(raw.originalLineCount)
+  && validPositiveInteger(raw.firstInvalidLine) && raw.firstInvalidLine <= raw.originalLineCount;
+
+const recoveryReceiptValid = (raw: Record<string, unknown>): boolean => validText(raw.archivePath)
+  && validText(raw.recoveryReceiptPath) && validSortedUnique(raw.observedCandidateHashes, validHash)
+  && validSortedUnique(raw.observedReleaseBuildIds, validText);
+
+const recoveryAuthorityValid = (raw: Record<string, unknown>): boolean => validText(raw.operatorId)
+  && validHash(raw.candidateHash) && validText(raw.releaseBuildId)
+  && validText(raw.authorizationRef) && validText(raw.reasonCode)
+  && validTimestamp(raw.recoveredAt) && validTimestamp(raw.recordedAt)
+  && raw.recordedAt === raw.recoveredAt;
+
+const assertRecoveryEvent = (raw: Record<string, unknown>): BrowserProofRecoveryEvent => {
+  const invalid = !exactKeys(raw, recoveryKeys) || raw.eventType !== "RECOVERY" || raw.phase !== "GENESIS"
+    || raw.failureCode !== "BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID"
+    || !recoverySourceValid(raw) || !recoveryReceiptValid(raw) || !recoveryAuthorityValid(raw);
+  return invalid ? invalidJournal() : raw as BrowserProofRecoveryEvent;
+};
+
 const assertEvent = (raw: unknown): BrowserProofEvent => {
   if (!isRecord(raw) || !validText(raw.eventType)) return invalidJournal();
-  return raw.eventType === "LIFECYCLE" ? assertLifecycleEvent(raw) : assertCommandEvent(raw);
+  if (raw.eventType === "LIFECYCLE") return assertLifecycleEvent(raw);
+  if (raw.eventType === "RECOVERY") return assertRecoveryEvent(raw);
+  return assertCommandEvent(raw);
 };
 
 const assertEnvelope = (
@@ -205,7 +263,7 @@ const assertEnvelope = (
   }
   const envelope = raw as BrowserProofEnvelope;
   const event = assertEvent(envelope.event);
-  if (envelope.schemaVersion !== "grasseye.browser-proof-journal.v1"
+  if (envelope.schemaVersion !== "grasseye.browser-proof-journal.v2"
     || envelope.sequence !== sequence
     || !validHash(envelope.previousEntryHash)
     || envelope.previousEntryHash !== previousEntryHash
@@ -216,6 +274,7 @@ const assertEnvelope = (
       previousEntryHash: envelope.previousEntryHash,
       event,
     })) throw new Error("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID");
+  if (event.eventType === "RECOVERY" && sequence !== 1) invalidJournal();
   return { ...envelope, event };
 };
 
@@ -240,7 +299,20 @@ export const readBrowserProofJournal = (journalPath: string): readonly BrowserPr
     envelopes.push(envelope);
     previousEntryHash = envelope.entryHash;
   });
+  const recoveryCount = envelopes.filter(({ event }) => event.eventType === "RECOVERY").length;
+  if (recoveryCount > 1) invalidJournal();
   return Object.freeze(envelopes);
+};
+
+export const createBrowserRecoveryEnvelope = (event: BrowserProofRecoveryEvent): BrowserProofEnvelope => {
+  const checkedEvent = assertRecoveryEvent(event);
+  const core = {
+    schemaVersion: "grasseye.browser-proof-journal.v2" as const,
+    sequence: 1,
+    previousEntryHash: zeroHash,
+    event: checkedEvent,
+  };
+  return { ...core, entryHash: digest(core) };
 };
 
 const appendDurably = (journalPath: string, line: string): void => {
@@ -292,7 +364,7 @@ export class BrowserProofJournal {
     const sequence = this.sequence + 1;
     const checkedEvent = assertEvent(event);
     const core = {
-      schemaVersion: "grasseye.browser-proof-journal.v1" as const,
+      schemaVersion: "grasseye.browser-proof-journal.v2" as const,
       sequence,
       previousEntryHash: this.previousEntryHash,
       event: checkedEvent,

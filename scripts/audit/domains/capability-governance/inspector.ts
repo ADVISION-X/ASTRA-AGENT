@@ -1,23 +1,20 @@
 import type { ImportDeclaration, Node as MorphNode, Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
   isCapabilityFacade,
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
-  isExternalCapabilityConsumer,
 } from "../../shared/repo-path-classifier.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
 } from "./components/capability-source-of-truth.js";
-import {
-  buildCapabilityGovernanceReportJson,
-  pushCapabilitySourceOfTruthFindings,
-} from "./components/capability-governance-report.js";
+import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 
 type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
@@ -44,6 +41,15 @@ const registerCapabilityRoot = (capabilityRoots: Set<string>, repoPath: string):
 const resolveCapabilityRoot = (repoPath: string): string | undefined => {
   const pathInfo = classifyRepoPath(repoPath);
   return pathInfo.kind === "capability" ? buildCapabilityRoot(pathInfo.owner) : undefined;
+};
+
+const ownerlessGenericRoots = new Set([
+  "common", "shared", "utils", "helpers", "services", "managers", "facades", "bridges", "adapters",
+]);
+
+const isOwnerlessGenericTarget = (repoPath: string): boolean => {
+  const [root, owner] = repoPath.split("/");
+  return root === "src" && Boolean(owner) && ownerlessGenericRoots.has(owner!);
 };
 
 const pushCapabilityPluginImportFindings = (
@@ -89,6 +95,16 @@ const pushCapabilityCrossOwnerImportFindings = (
     }
     const targetPath = getRepoSourcePath(targetSourceFile);
     const targetPathInfo = classifyRepoPath(targetPath);
+    if (targetPathInfo.kind === "other" && isOwnerlessGenericTarget(targetPath)) {
+      pushFinding({
+        checkId: "capability-group/ownerless-generic-import",
+        lawId: facadeLawId,
+        filePath: repoPath,
+        evidence: targetPath,
+        message: `${repoPath} imports capability logic from ownerless generic path ${targetPath}.`,
+      });
+      continue;
+    }
     if (targetPathInfo.kind !== "capability") {
       continue;
     }
@@ -102,6 +118,30 @@ const pushCapabilityCrossOwnerImportFindings = (
       filePath: repoPath,
       evidence: targetPath,
       message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
+    });
+  }
+};
+
+const pushChildCompositionFindings = (
+  sourceFile: Parameters<typeof getRepoSourcePath>[0],
+  repoPath: string,
+  facadeLawId: string,
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
+): void => {
+  const sourceInfo = classifyRepoPath(repoPath);
+  if (sourceInfo.kind !== "capability" || sourceInfo.section !== "children") return;
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
+    if (!targetSourceFile) continue;
+    const targetPath = getRepoSourcePath(targetSourceFile);
+    const targetInfo = classifyRepoPath(targetPath);
+    if (targetInfo.kind !== "capability" || targetInfo.owner !== sourceInfo.owner || targetInfo.section !== "children") continue;
+    pushFinding({
+      checkId: "capability-group/child-composes-child",
+      lawId: facadeLawId,
+      filePath: repoPath,
+      evidence: targetPath,
+      message: `${repoPath} composes sibling child ability ${targetPath} instead of one atomic action.`,
     });
   }
 };
@@ -174,6 +214,7 @@ const inspectCapabilityFile = (
   registerCapabilityRoot(capabilityRoots, repoPath);
   pushCapabilityPluginImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
   pushCapabilityCrossOwnerImportFindings(sourceFile, repoPath, facadeLawId, pushFinding);
+  pushChildCompositionFindings(sourceFile, repoPath, facadeLawId, pushFinding);
   if (!isCapabilityFacade(pathInfo)) {
     return;
   }
@@ -195,11 +236,18 @@ const inspectCapabilityFile = (
 const inspectExternalConsumerFile = (
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   repoPath: string,
+  consumedCapabilityRoots: Set<string>,
+  consumedFacadeExports: Map<string, Set<string>>,
   facadeLawId: string,
   pushFinding: ReturnType<typeof createDedupedFindingPusher>,
 ): void => {
   const consumerInfo = classifyRepoPath(repoPath);
-  if (!isExternalCapabilityConsumer(consumerInfo)) {
+  if (
+    consumerInfo.kind !== "plugin"
+    && consumerInfo.kind !== "local-runtime"
+    && consumerInfo.kind !== "app"
+    && consumerInfo.kind !== "mediator"
+  ) {
     return;
   }
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
@@ -213,6 +261,13 @@ const inspectExternalConsumerFile = (
       continue;
     }
     if (isCapabilityFacade(targetInfo)) {
+      const capabilityRoot = buildCapabilityRoot(targetInfo.owner);
+      consumedCapabilityRoots.add(capabilityRoot);
+      const consumedExports = consumedFacadeExports.get(capabilityRoot) ?? new Set<string>();
+      for (const namedImport of importDeclaration.getNamedImports()) {
+        consumedExports.add(namedImport.getName());
+      }
+      consumedFacadeExports.set(capabilityRoot, consumedExports);
       pushFacadeSymbolEscapeImportFindings(importDeclaration, repoPath, facadeLawId, pushFinding);
       continue;
     }
@@ -237,21 +292,80 @@ const collectCapabilityGovernanceScan = (input: {
 }) => {
   const capabilityRoots = new Set<string>();
   const capabilityFacades = new Set<string>();
+  const facadeExports = new Map<string, { facadePath: string; names: Set<string> }>();
+  const consumedCapabilityRoots = new Set<string>();
+  const consumedFacadeExports = new Map<string, Set<string>>();
   const inspectedFiles = new Set<string>();
 
   for (const sourceFile of listActiveSourceFiles(input.project)) {
     const repoPath = getRepoSourcePath(sourceFile);
     if (isCapabilityFacade(classifyRepoPath(repoPath))) {
       capabilityFacades.add(repoPath);
+      const capabilityRoot = resolveCapabilityRoot(repoPath);
+      if (capabilityRoot) {
+        facadeExports.set(capabilityRoot, {
+          facadePath: repoPath,
+          names: new Set(sourceFile.getExportSymbols().map((symbol) => symbol.getName())),
+        });
+      }
     }
-    inspectSourceFile(sourceFile, inspectedFiles, capabilityRoots, input.facadeLawId, input.pushFinding);
+    inspectSourceFile(
+      sourceFile,
+      inspectedFiles,
+      capabilityRoots,
+      consumedCapabilityRoots,
+      consumedFacadeExports,
+      input.facadeLawId,
+      input.pushFinding,
+    );
   }
 
   return {
     capabilityRoots,
     capabilityFacades,
+    facadeExports,
     inspectedFiles,
+    consumedCapabilityRoots,
+    consumedFacadeExports,
   };
+};
+
+const pushMissingCapabilityConsumers = (input: {
+  capabilityRoots: ReadonlySet<string>;
+  consumedCapabilityRoots: ReadonlySet<string>;
+  facadeLawId: string;
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
+}): void => {
+  for (const capabilityRoot of input.capabilityRoots) {
+    if (input.consumedCapabilityRoots.has(capabilityRoot)) continue;
+    input.pushFinding({
+      checkId: "capability-group/missing-production-consumer",
+      lawId: input.facadeLawId,
+      filePath: `${capabilityRoot}/index.ts`,
+      message: `${capabilityRoot} has no active external production consumer through its public facade.`,
+    });
+  }
+};
+
+const pushMissingFacadeExportConsumers = (input: {
+  facadeExports: ReadonlyMap<string, { facadePath: string; names: ReadonlySet<string> }>;
+  consumedFacadeExports: ReadonlyMap<string, ReadonlySet<string>>;
+  facadeLawId: string;
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
+}): void => {
+  for (const [capabilityRoot, facade] of input.facadeExports) {
+    const consumedExports = input.consumedFacadeExports.get(capabilityRoot) ?? new Set<string>();
+    for (const exportName of facade.names) {
+      if (consumedExports.has(exportName)) continue;
+      input.pushFinding({
+        checkId: "capability-group/missing-production-export-consumer",
+        lawId: input.facadeLawId,
+        filePath: facade.facadePath,
+        evidence: exportName,
+        message: `${facade.facadePath} exports ${exportName} without an active production consumer.`,
+      });
+    }
+  }
 };
 
 const pushMissingCapabilityFacades = (input: {
@@ -277,69 +391,84 @@ const inspectSourceFile = (
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   inspectedFiles: Set<string>,
   capabilityRoots: Set<string>,
+  consumedCapabilityRoots: Set<string>,
+  consumedFacadeExports: Map<string, Set<string>>,
   facadeLawId: string,
   pushFinding: ReturnType<typeof createDedupedFindingPusher>,
 ): void => {
   const repoPath = getRepoSourcePath(sourceFile);
   inspectedFiles.add(repoPath);
   inspectCapabilityFile(sourceFile, repoPath, capabilityRoots, facadeLawId, pushFinding);
-  inspectExternalConsumerFile(sourceFile, repoPath, facadeLawId, pushFinding);
+  inspectExternalConsumerFile(
+    sourceFile,
+    repoPath,
+    consumedCapabilityRoots,
+    consumedFacadeExports,
+    facadeLawId,
+    pushFinding,
+  );
 };
 
-
-
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const admissionLawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V1");
-  const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V1");
+export const inspectCapabilityGovernanceProject = (
+  project: InspectorContext["project"],
+  includeAuthority: boolean,
+  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V2",
+): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[] } => {
   const findings: ReturnType<typeof createFinding>[] = [];
   const pushFinding = createDedupedFindingPusher(findings);
   const scan = collectCapabilityGovernanceScan({
-    facadeLawId,
-    project: context.project,
+    facadeLawId: lawId,
+    project,
     pushFinding,
   });
 
-  const authorityAvailable=context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")&&context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
-  const sourceOfTruth = authorityAvailable?pushCapabilitySourceOfTruthFindings({admissionLawId,actualCapabilityRoots:scan.capabilityRoots,pushFinding}):{blueprintDeclaredAbilities:[],lawActiveCapabilityRoots:[],lawInfrastructureRoots:[]};
+  if (includeAuthority) pushCapabilitySourceOfTruthFindings({
+    admissionLawId: lawId,
+    actualCapabilityRoots: scan.capabilityRoots,
+    pushFinding,
+  });
   pushMissingCapabilityFacades({
     capabilityFacades: scan.capabilityFacades,
     capabilityRoots: scan.capabilityRoots,
-    facadeLawId,
+    facadeLawId: lawId,
     pushFinding,
   });
+  pushMissingCapabilityConsumers({
+    capabilityRoots: scan.capabilityRoots,
+    consumedCapabilityRoots: scan.consumedCapabilityRoots,
+    facadeLawId: lawId,
+    pushFinding,
+  });
+  pushMissingFacadeExportConsumers({
+    facadeExports: scan.facadeExports,
+    consumedFacadeExports: scan.consumedFacadeExports,
+    facadeLawId: lawId,
+    pushFinding,
+  });
+
+  return { findings, inspectedFiles: [...scan.inspectedFiles].sort() };
+};
+
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
+  const lawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V2");
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  const authorityAvailable = context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")
+    && context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
+  const evaluation = recordSemanticCheck(executedSemanticChecks, lawId, "inspectCapabilityGovernanceProject",
+    inspectCapabilityGovernanceProject(context.project, authorityAvailable, lawId));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-
-    findings,
-    inspectedFiles: [...scan.inspectedFiles].sort(),
-    reportJson: buildCapabilityGovernanceReportJson({
-      capabilityDomain: context.planEntry.capabilityDomain,
-      capabilityRoots: scan.capabilityRoots,
-      findings,
-      inspectedFiles: scan.inspectedFiles,
-      lawIds: context.planEntry.lawIds,
-      sourceOfTruth,
-    }),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
+    findings: evaluation.findings,
+    inspectedFiles: [...context.targetPaths],
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("capability-group-governance requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return finalizeStaticInspection(context, [{
+    lawId: "LAW-CAPABILITY-GOVERNANCE-001-V2",
+  }], inspectDomainEvaluation);
 };

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, readFile, rm } from "node:fs/promises";
 import path from "node:path";
-import { ClaimBatchReceiptV6Schema, HandoverV6Schema, type ClaimBatchReceiptV6, type HandoverV6 } from "./generated/xuanxue-ai-production-v6.validator.js";
+import { ClaimBatchReceiptV6Schema, HandoverV6Schema, type ClaimBatchReceiptV6, type HandoverV6 } from "./xuanxue-ai-production-runtime-protocol.js";
 import {
   XuanxueAiProductionCloudClaimedJobSchema,
   type XuanxueAiProductionCloudClaimedJob,

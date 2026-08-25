@@ -3,6 +3,7 @@ import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, write
 import path from "node:path";
 
 import { Project } from "ts-morph";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { resolveFromRepo, toRepoPath } from "../audit/shared/paths.js";
 import {
@@ -14,7 +15,7 @@ import type { GovernedFile } from "../audit/domains/code-purity/components/code-
 import { scanOwnerBoundaries } from "../audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan-zombie-surfaces.js";
 import type { ZombieExemptionManifest } from "../audit/domains/code-purity/components/zombie-exemption-manifest.js";
-import { createInspectorContextFixture } from "./fixtures/current-inspector-context.js";
+import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 
 type PathPair = { consumerFilePath: string; targetFilePath: string };
 type RegistryConsumer = PathPair & { registryExportName: string; registryFilePath: string };
@@ -30,7 +31,7 @@ type FixtureManifest = {
 type FixtureConfig = { entryScripts: string[]; manifest?: FixtureManifest };
 type ExpectedFinding = { checkId: string; fileIncludes?: string; symbolName?: string };
 
-const LAW_IDS = ["LAW-CODE-PURITY-001-V1"];
+const LAW_IDS = ["LAW-CODE-PURITY-001-V2"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 
@@ -162,3 +163,4 @@ for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, 
 assert.ok(runCase("zombie-to-zombie-chain").filter((finding) => finding.checkId === "code-purity/zombie-file").length >= 3);
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });
 console.log("code-purity-zombie-deep-acceptance-ok");
+emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-001-V2", evidenceMode: "exam.golden", locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });

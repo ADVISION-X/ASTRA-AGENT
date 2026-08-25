@@ -3,17 +3,21 @@ import { relative } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
-const requiredFiles = [
+const requiredCapabilityFiles = [
   "src/capabilities/forensics-persistence/index.ts",
   "src/capabilities/forensics-persistence/ability-group.ts",
   "src/capabilities/forensics-persistence/schema.ts",
   "src/capabilities/forensics-persistence/storage-adapter.ts",
   "src/capabilities/forensics-persistence/storage-port.ts",
+] as const;
+
+const requiredStorageFiles = [
   "src/lib/storage/index.ts",
   "src/lib/storage/file-storage.ts",
   "src/lib/storage/schema.ts",
@@ -63,13 +67,33 @@ const inspectRequiredFiles = (
   lawId: string,
   clauseId: string,
   inspectedFiles: Set<string>,
+  requiredFiles: readonly string[],
 ): void => {
   for (const repoPath of requiredFiles) {
+    if (!context.targetPaths.includes(repoPath)) continue;
     inspectedFiles.add(repoPath);
     if (sourceFile(context, repoPath)) continue;
     pushFinding(findings, lawId, clauseId, repoPath, "forensics/required-file", `${repoPath} must exist in the audit project.`);
   }
 };
+
+const inspectCapabilityRequiredFiles = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  inspectedFiles: Set<string>,
+): void => inspectRequiredFiles(
+  context, findings, lawId, "grasseye-evidence-001-v2-requirement", inspectedFiles, requiredCapabilityFiles,
+);
+
+const inspectStorageRequiredFiles = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+  inspectedFiles: Set<string>,
+): void => inspectRequiredFiles(
+  context, findings, lawId, "grasseye-local-persistence-schema-001-requirement", inspectedFiles, requiredStorageFiles,
+);
 
 const inspectOwnerImports = (
   context: InspectorContext,
@@ -139,7 +163,7 @@ const inspectSchemaVocabulary = (
   clauseId: string,
   inspectedFiles: Set<string>,
 ): void => {
-  for (const repoPath of ["src/capabilities/forensics-persistence/schema.ts", "src/lib/storage/schema.ts"] as const) {
+  for (const repoPath of ["src/capabilities/forensics-persistence/schema.ts"] as const) {
     const source = sourceFile(context, repoPath);
     if (!source) continue;
     inspectedFiles.add(repoPath);
@@ -155,35 +179,41 @@ const inspectSchemaVocabulary = (
   }
 };
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const evidenceLaw = selectLawId(context.planEntry.lawIds, "GRASSEYE-EVIDENCE-001-V2");
-  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1");
-  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2");
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
+  const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2");
+  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2");
+  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
 
-  inspectRequiredFiles(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
-  inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
-  inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
-  inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles);
-  inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles);
+  recordSemanticCheck(executedSemanticChecks, evidenceLaw, "inspectCapabilityRequiredFiles",
+    inspectCapabilityRequiredFiles(context, findings, evidenceLaw, inspectedFiles));
+  recordSemanticCheck(executedSemanticChecks, schemaBoundaryLaw, "inspectStorageRequiredFiles",
+    inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles));
+  recordSemanticCheck(executedSemanticChecks, evidenceLaw, "inspectOwnerImports",
+    inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
+  recordSemanticCheck(executedSemanticChecks, evidenceLaw, "inspectPublicFacade",
+    inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
+  recordSemanticCheck(executedSemanticChecks, schemaBoundaryLaw, "inspectStoragePort",
+    inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles));
+  recordSemanticCheck(executedSemanticChecks, schemaVocabularyLaw, "inspectSchemaVocabulary",
+    inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
-    inspectedFiles: [...inspectedFiles].sort(),
+    inspectedFiles: [...context.targetPaths],
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("forensics-persistence-capability requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output();
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2" },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2" },
+    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2" },
+  ], inspectDomainEvaluation);
 };

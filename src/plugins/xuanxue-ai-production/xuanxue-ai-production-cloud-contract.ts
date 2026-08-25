@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CloudExecutionGrantV6Schema } from "./generated/xuanxue-ai-production-v6.validator.js";
+import { CloudExecutionGrantV6Schema } from "./xuanxue-ai-production-runtime-protocol.js";
 
 import {
   XuanxueAiProductionTriggerKindSchema,
@@ -11,14 +11,11 @@ import {
   XuanxueLocalizationRoleSchema,
   XuanxueProviderExecutionProfileSchema,
   assertXuanxueLocalizationContract,
-  isXuanxueLocalizationProduct,
 } from "./xuanxue-ai-production-localization-contract.js";
 import {
-  isXuanxueTerminalMetaphysicsProduct,
   isXuanxueTerminalMetaphysicsProfile,
 } from "./xuanxue-ai-production-terminal-profile.js";
 import {
-  assertXuanxueProductContractHash,
   xuanxueLocalOrderNode,
 } from "./xuanxue-ai-production-product-contracts.js";
 import { CloudFrozenSubjectSchema } from "./xuanxue-ai-production-cloud-subject-contract.js";
@@ -317,7 +314,7 @@ const inspectLocalizationClaim = (
   job: CloudClaimedJobCandidate,
   context: z.RefinementCtx,
 ): void => {
-  if (!isXuanxueLocalizationProduct(job.product_id)) {
+  if (job.service_class !== "localization") {
     inspectNonLocalizationClaim(job, context);
     return;
   }
@@ -340,26 +337,12 @@ const inspectNonLocalizationClaim = (
     });
   }
   const profile = job.provider_execution_profile as Record<string, unknown> | null;
-  if (isXuanxueTerminalMetaphysicsProduct(job.product_id)) {
-    if (!profile) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_REQUIRED",
-        path: ["provider_execution_profile"],
-      });
-    } else if (!isXuanxueTerminalMetaphysicsProfile(profile)) {
+  if (profile && !isXuanxueTerminalMetaphysicsProfile(profile)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH",
         path: ["provider_execution_profile"],
       });
-    }
-  } else if (profile !== null) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "XUANXUE_AI_PRODUCTION_UNDECLARED_PROVIDER_PROFILE_FORBIDDEN",
-      path: ["provider_execution_profile"],
-    });
   }
 };
 
@@ -370,15 +353,11 @@ const inspectLocalizationContract = (
   const material = job.materials[0];
   try {
     assertXuanxueLocalizationContract({
-      productId: job.product_id,
-      stageId: material?.stage_id ?? "",
-      triggerKind: job.trigger_kind,
       contractManifestHash: job.contract_manifest_hash,
       productContractHash: job.product_contract_hash,
       role: job.localization_role,
       providerProfile: job.provider_execution_profile as never,
       inputKinds: material?.inputs.map((item) => item.kind) ?? [],
-      hasConversationParent: Boolean(job.conversation_parent),
     });
   } catch (error) {
     context.addIssue({
@@ -415,23 +394,11 @@ const inspectGeneratedLocalOrder = (
   context: z.RefinementCtx,
 ): void => {
   try {
-    assertXuanxueProductContractHash(job.product_id, job.product_contract_hash);
-    const node = xuanxueLocalOrderNode(
-      job.product_id,
-      job.materials.map((material) => material.stage_id),
-    );
-    const first = node.order_contract.stages
-      .slice()
-      .sort((left, right) => left.ordinal - right.ordinal)[0]!;
-    const relation = first.conversation_mode === "fork"
-      ? "forked_from_checkpoint"
-      : first.conversation_mode === "continue_exact"
-        ? "same_conversation"
-        : null;
-    if (Boolean(relation) !== Boolean(job.conversation_parent)
-      || (relation && job.conversation_parent?.relation !== relation)) {
-      throw new Error("XUANXUE_AI_PRODUCTION_CONVERSATION_BINDING_INVALID");
-    }
+    xuanxueLocalOrderNode({
+      productId: job.product_id,
+      productContractHash: job.product_contract_hash,
+      materials: job.materials.map((material) => ({ stageId: material.stage_id })),
+    });
   } catch (error) {
     context.addIssue({
       code: z.ZodIssueCode.custom,

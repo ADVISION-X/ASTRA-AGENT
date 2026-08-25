@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { BrowserAuthorityWebSocket, parseBrowserAuthorityTargetClaim } from "../../src/lib/browser/transport/browser-authority-websocket.js";
 import { canonicalizeBrowserAuthorityValue, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
@@ -42,7 +43,7 @@ assert.equal(wire.length, 0, "an invalid pre-auth frame must not emit a reply fr
 assert.deepEqual(
   runtimeInitializationDisposition("BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID"),
   {
-    actionableMessage: "Keep Browser execution and claim blocked and do not modify the journal. Obtain explicit runtime-data and major law/schema authorization for local-browser-session recovery; until then preserve the original file and remain blocked.",
+    actionableMessage: "Keep Browser execution and claim blocked. With current human runtime-data and major law/schema authorization, stop the Browser Owner and run the explicit browser:journal:recover command; otherwise preserve the original journal and remain blocked.",
     ownerResponsible: "local-browser-session",
   },
   "journal integrity failure must expose one safe Owner-specific recovery action without auto-repair",
@@ -485,3 +486,4 @@ try {
 
 await verifyBrowserSupervisorRestartContract();
 console.log("LOCAL_BROWSER_TERMINAL_CONTRACT_ACCEPTANCE_PASS");
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "exam.golden", locator: "acceptance:browser-terminal:atomic-journal", observedValue: "single mutation terminal contract and journal ownership verified" });

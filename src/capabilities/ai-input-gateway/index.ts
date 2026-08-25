@@ -1,23 +1,12 @@
 export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
 export {
-  AiFeedProviderExecutionProfileSchema,
   buildGptWebProviderExecutionProfile,
-  XuanxueDynamicProofBindingContract,
   type AiFeedInput,
-  type AiFeedProviderExecutionProfile,
   type AiFeedResult,
   type AiTaskLabelKey,
 } from "./schema.js";
 export type {
-  AiProviderAdapter,
-  AiProviderAdapterContext,
-  AiProviderRawResponse,
-  AiProviderUploadedFileProof,
-  ProviderExecutionProfileProof,
-  WebChatAttachmentTransportKind,
   WebChatAttachmentUploadProof,
-  WebChatConversationTitleProof,
-  WebChatConversationTitleState,
   WebChatPageActionProof,
 } from "./contracts/ai-provider-adapter.contract.js";
 export type {
@@ -25,4 +14,3 @@ export type {
   AiInputGatewayProgress,
   AiInputGatewaySubmissionAdmission,
 } from "./contract.js";
-export type { WebChatFailureClassification } from "./failure-classification.js";

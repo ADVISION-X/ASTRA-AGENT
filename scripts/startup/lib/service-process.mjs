@@ -78,6 +78,7 @@ function buildServiceEnv(env) {
 function spawnLocalServiceProcess({ rootDir, npmCommand, scriptName, env }) {
   return spawn(npmCommand, ["run", scriptName], {
     cwd: rootDir,
+    detached: process.platform !== "win32",
     env: buildServiceEnv(env),
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -127,7 +128,16 @@ export async function stopLocalService(child, signal = "SIGTERM") {
     child.once("exit", () => resolve(undefined));
   });
 
-  child.kill(signal);
+  const signalOwnedServiceTree = (requestedSignal) => {
+    try {
+      if (process.platform === "win32") child.kill(requestedSignal);
+      else process.kill(-child.pid, requestedSignal);
+    } catch (error) {
+      if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) throw error;
+    }
+  };
+
+  signalOwnedServiceTree(signal);
   const gracefulExit = await Promise.race([
     waitForExit().then(() => true),
     new Promise((resolve) => setTimeout(() => resolve(false), 5_000)),
@@ -137,6 +147,6 @@ export async function stopLocalService(child, signal = "SIGTERM") {
     return;
   }
 
-  child.kill("SIGKILL");
+  signalOwnedServiceTree("SIGKILL");
   await waitForExit();
 }

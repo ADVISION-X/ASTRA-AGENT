@@ -5,7 +5,7 @@ import {
   buildForensicsSuccessProof,
   createForensicsProofTiming,
   resolveForensicsFailureReason,
-} from "./proof-support.js";
+} from "../proof-support.js";
 
 export async function executeReadRecordRef(
   input: ForensicsReadRecordRefInput,

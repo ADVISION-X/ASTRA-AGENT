@@ -1,340 +1,478 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import {
-  ROOT, GIT_EVIDENCE_MAX_BUFFER, GovernanceError, fail, bytes, utf8, text, sha, norm, repositoryPaths,
-  repositoryIdentity, walk,
-} from './governance-runtime.js';
-import {
-  sortedUnique, exactKeys, canonicalValue, canonicalBytes, rejectDuplicateJsonKeys, parseJson,
-  isStringArray, cleanString, pathPatternValid, pathPatternContains,
-} from './governance-json.js';
-import { requireCandidateStable, requireExactProjection } from './governance-invariants.js';
-
-type Level = 'CHANGE' | 'READY' | 'RELEASE';
-type Law = {
-  schemaVersion: 2; lawId: string; supersedesLawId: string | null; status: 'active'; tier: 'P0'|'P1'|'P2';
-  capabilityDomain: string; enforcementMode: 'static'|'exam'|'dynamic'|'composite'; evidenceModes: string[];
-  summary: string; appliesTo: string[]; excludes: string[]; forbidden: string[]; dependsOnLawIds: string[];
-  source: { path: string; lineStart: number; lineEnd: number; sectionSha256: string }; contractRefs: {path:string;sha256:string}[];
-  enforcement: LawBindings | null;
+import { canonicalBytes, cleanString, concreteString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
+import { validateLocalSpecContract } from './governance-local-spec-contract.js';
+import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
+import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
+import { lawBodyStart } from './shared/law-document-front-matter.js';
+import { verifyPathRoleEscalation } from './shared/governance-role-consumption.js';
+export { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
+export type Level = 'CHANGE' | 'READY' | 'RELEASE';
+export type Law = {
+  schemaVersion: 2;
+  lawId: string;
+  supersedesLawId: string | null;
+  status: 'active';
+  tier: 'P0' | 'P1' | 'P2';
+  capabilityDomain: string;
+  enforcementMode: 'static' | 'exam' | 'dynamic' | 'composite';
+  evidenceModes: string[];
+  summary: string;
+  appliesTo: string[];
+  excludes: string[];
+  forbidden: string[];
+  dependsOnLawIds: string[];
+  source: { path: string; lineStart: number; lineEnd: number };
+  contractRefs: string[];
 };
-type NegativeCase = { negativeCaseId:string; negativeCaseRef:string; expectedCode:string };
-type StaticBinding = { bindingId:string; checkId:string; inspectorRef:string; targetSelectorId:string; evidenceModes:string[]; negativeCases:NegativeCase[] };
-type ExamBinding = { bindingId:string; examId:string; examRef:string; evidenceModes:string[]; negativeCases:NegativeCase[] };
-type ProofBinding = { bindingId:string; proofId:string; proofRef:string; evidenceModes:string[]; negativeCases:NegativeCase[] };
-type LawBindings = { staticBinding:StaticBinding|null; examBindings:ExamBinding[]; proofBindings:ProofBinding[] };
-type Manifest = { schemaVersion:4; capabilityDomain:string; status:'active'; lawIds:string[]; lawBindings:Record<string,LawBindings>; ownedPaths:string[]; observedPaths:string[]; manifestPath:string };
-
-const SPEC = 'docs/governance/法案系统建设说明书-冻结定稿版.md';
-const FREEZE = 'docs/governance/GOVERNANCE-FREEZE.json';
-const BASE = '.github/instructions/agent-rules/基础法案.md';
-const FUNCTIONAL = '.github/instructions/agent-rules/功能法案.md';
-const REGISTRY = 'scripts/audit/generated/law-registry.generated.json';
-const CHANGE = '.governance/runtime/change.json';
-const REPORT = 'scripts/audit/reports/law-quality.report.json';
-const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不落盘、不加锁、不建立 runtime 任务事务。\n2. CHANGE 首次目标写入前只建立三字段 change record，并运行只读 \`governance:entry\`。\n3. 修改不得超出 change record；扩大范围必须先更新同一 record。\n4. READY 不等于 RELEASE；不得以静态检查、普通测试或部分证据冒充生产发布。\n5. RELEASE 才绑定完整 candidateId，并执行全部 active law 声明的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. active law 只在明确人类授权下修改。\n9. 任一 finding、候选漂移、错误证据类型或伪 PASS 必须失败关闭。\n`;
-const LAW_KEYS = ['appliesTo','capabilityDomain','dependsOnLawIds','enforcementMode','evidenceModes','excludes','forbidden','lawId','schemaVersion','status','summary','supersedesLawId','tier'];
-const MANIFEST_KEYS = ['capabilityDomain','lawBindings','lawIds','observedPaths','ownedPaths','schemaVersion','status'];
-const LAW_BINDING_KEYS = ['examBindings','proofBindings','staticBinding'];
-const STATIC_BINDING_KEYS = ['bindingId','checkId','evidenceModes','inspectorRef','negativeCases','targetSelectorId'];
-const EXAM_BINDING_KEYS = ['bindingId','evidenceModes','examId','examRef','negativeCases'];
-const PROOF_BINDING_KEYS = ['bindingId','evidenceModes','negativeCases','proofId','proofRef'];
-const NEGATIVE_CASE_KEYS = ['expectedCode','negativeCaseId','negativeCaseRef'];
-const BLUEPRINT_KEYS = ['blueprintId','contractRefs','dependencyEdges','lawIds','owner','prohibitedDependencyEdges','schemaVersion','status'];
-const SPEC_KEYS = ['contract','lawIds','owner','schemaVersion','specId','specKind','status','version'];
-const EVIDENCE = ['static.filesystem','static.text','static.ast','static.types','static.contract','static.dependency','static.config','static.json','static.yaml','static.sql','static.migration','exam.golden','exam.property','exam.state-machine','dynamic.browser','dynamic.service','dynamic.database','dynamic.storage','dynamic.provider','dynamic.authorization','dynamic.recovery','dynamic.performance'];
-const PUBLIC_SCRIPTS = ['governance:entry','governance:scope:check','audit:build','audit:projection:check','quality:check'];
-const CI_FULL_COMMAND = 'GRASSEYE_QUALITY_REPORT_MODE=external npm run quality:check -- READY';
+export type Manifest = {
+  schemaVersion: 5;
+  capabilityDomain: string;
+  status: 'active';
+  lawIds: string[];
+  ownedPaths: string[];
+  observedPaths: string[];
+  manifestPath: string;
+};
+export type Registry = {
+  schemaVersion: 5;
+  sourceSpec: { path: string };
+  lawCorpus: { baseLawPath: string; functionalLawPath: string };
+  laws: Law[];
+  domains: Array<Pick<Manifest, 'capabilityDomain' | 'manifestPath' | 'lawIds' | 'ownedPaths' | 'observedPaths'>>;
+};
+const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不写入任何文件。\n2. CHANGE 开始修改前只读查看目标路径的 Git 状态，不得覆盖、删除、恢复或移动未获授权的用户改动。\n3. CHANGE 的实际差异必须与授权人的请求及完成该请求不可分割的直接关联对象一致。\n4. READY 不等于 RELEASE；静态检查、普通测试或部分证据不得被认定为已经完成生产发布。\n5. READY、RELEASE 使用原生 clean Git commit；RELEASE 执行全部 active law 声明的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. 本说明书与 active law 只在授权人分别明确批准对应修改后变更。\n9. 任一 finding、候选漂移、错误证据类型或无事实依据的 PASS 必须失败关闭。\n`;
+const LAW_KEYS = ['appliesTo', 'capabilityDomain', 'dependsOnLawIds', 'enforcementMode', 'evidenceModes', 'excludes', 'forbidden', 'lawId', 'schemaVersion', 'status', 'summary', 'supersedesLawId', 'tier'];
+const MANIFEST_KEYS = ['capabilityDomain', 'lawIds', 'observedPaths', 'ownedPaths', 'schemaVersion', 'status'];
+const SPEC_KEYS = ['contract', 'lawIds', 'owner', 'schemaVersion', 'specId', 'specKind', 'status', 'version'];
+const BLUEPRINT_KEYS = ['blueprintId', 'contractRefs', 'dependencyEdges', 'lawIds', 'owner', 'prohibitedDependencyEdges', 'schemaVersion', 'status'];
+const EVIDENCE = ['static.filesystem', 'static.text', 'static.ast', 'static.types', 'static.contract', 'static.dependency', 'static.config', 'static.json', 'static.yaml', 'static.sql', 'static.migration', 'exam.golden', 'exam.property', 'exam.state-machine', 'dynamic.browser', 'dynamic.service', 'dynamic.database', 'dynamic.storage', 'dynamic.provider', 'dynamic.authorization', 'dynamic.recovery', 'dynamic.performance'];
+const SPEC_KINDS = ['typed-contract', 'api', 'event', 'storage', 'state-machine', 'config', 'security', 'migration', 'cross-repo-contract', 'cross-repo-dependency'];
 const LAW_ID_PATTERN = /^LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*$/u;
 const DOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
-const SPEC_SHA256 = 'e6ad66d8f67cd3a72db0428a31984677d33207cc841d17b5ba34c0f9ac57f563';
+const REPO_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
+const byteCompare = (left: string, right: string) => Buffer.compare(Buffer.from(left), Buffer.from(right));
+const matchesPath = (pattern: string, path: string): boolean => pattern === '**/*'
+  || pattern === path
+  || (pattern.endsWith('/**') && (path === pattern.slice(0, -3) || path.startsWith(`${pattern.slice(0, -3)}/`)))
+  || (pattern.includes('/**/*.') && path.startsWith(`${pattern.slice(0, pattern.indexOf('/**/*.'))}/`) && path.endsWith(pattern.slice(pattern.indexOf('/**/*.') + 5)));
+export function verifyEntry(): void {
+  const spec = text(SPEC);
+  if (!spec.includes('文件版本：FINAL-V3.3') || !spec.includes('冻结目标版本：FROZEN-FINAL-V3.3')) fail('SOURCE_PARSE_FAILED', SPEC);
+  if (existsSync(resolve(ROOT, 'docs/governance/GOVERNANCE-FREEZE.json'))) fail('GENERATED_FILESET_INVALID', 'retired freeze record');
+  if (text('AGENTS.md') !== AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH', 'AGENTS.md');
+  const scripts = parseJson<{ scripts?: Record<string, string> }>('package.json').scripts ?? {};
+  const publicGovernance = Object.keys(scripts).filter((name) => name === 'quality:check' || name.startsWith('audit:') || name.startsWith('governance:') || name === 'ci:full' || name.startsWith('exam:')).sort(byteCompare);
+  if (JSON.stringify(publicGovernance) !== JSON.stringify(['audit:build', 'audit:projection:check', 'quality:check'])) fail('ENTRY_CONTRACT_MISMATCH', `public commands ${publicGovernance.join(',')}`);
+  if (scripts['audit:build'] !== 'node --import tsx scripts/audit/governance.ts build'
+    || scripts['audit:projection:check'] !== 'node --import tsx scripts/audit/governance.ts projection'
+    || scripts['quality:check'] !== 'node --import tsx scripts/audit/governance.ts quality') fail('ENTRY_CONTRACT_MISMATCH', 'command identity');
+}
+type ParsedLaw = Omit<Law, 'source' | 'contractRefs'>;
+type LawParserState = { domain: string; headingId: string; headingLine: number; priorDomain: string; priorLawOrder: string };
+const FORBIDDEN_DOMAINS = new Set(['common', 'shared', 'utils', 'misc', 'core2', 'platform2', 'general', 'helpers', 'temporary', 'legacy', 'compat']);
+const lawSchemaValid = (raw: ParsedLaw, headingId: string, domain: string): boolean =>
+  exactKeys(raw, LAW_KEYS) && raw.schemaVersion === 2 && raw.status === 'active'
+  && raw.lawId === headingId && raw.capabilityDomain === domain;
+const lawEvidenceValid = (raw: ParsedLaw): boolean => {
+  if (!isStringArray(raw.evidenceModes) || !raw.evidenceModes.length) return false;
+  const ranked = raw.evidenceModes.map((mode) => `${String(EVIDENCE.indexOf(mode)).padStart(2, '0')}:${mode}`);
+  if (!sortedUnique(ranked) || raw.evidenceModes.some((mode) => !EVIDENCE.includes(mode))) return false;
+  const kinds = new Set(raw.evidenceModes.map((mode) => mode.split('.')[0]));
+  return raw.enforcementMode === (kinds.size > 1 ? 'composite' : [...kinds][0]);
+};
+const lawTextValid = (raw: ParsedLaw): boolean => cleanString(raw.summary)
+  && /^(必须|只能)/u.test(raw.summary)
+  && !/(建议|尽量|可能|一般|视情况|原则上)/u.test(raw.summary);
+const hasContainedRedundancy = (values: readonly string[]): boolean => values.some((value, index) =>
+  values.some((other, otherIndex) => index !== otherIndex && pathPatternContains(other, value)));
 
-type FreezeRecord={schemaVersion:number;status:string;specPath:string;specSha256:string;freezeVersion:string;amendmentAuthority:string;derivatives:{pdf:{enabled:boolean;path:string|null;sourceSha256:string|null;fileSha256:string|null}}};
-type PdfDerivative=FreezeRecord['derivatives']['pdf'];
-function verifyPdfDerivative(freeze:FreezeRecord,pdf:PdfDerivative|undefined){
-  const derivative=pdf??fail('FREEZE_HASH_MISMATCH','pdf fields');
-  if(!exactKeys(derivative,['enabled','path','sourceSha256','fileSha256'])) fail('FREEZE_HASH_MISMATCH','pdf fields');
-  if(typeof derivative.enabled!=='boolean') fail('FREEZE_HASH_MISMATCH','pdf enabled');
-  if(!derivative.enabled){if(derivative.path!==null||derivative.sourceSha256!==null||derivative.fileSha256!==null)fail('FREEZE_HASH_MISMATCH','disabled pdf fields');return}
-  if(typeof derivative.path!=='string'||typeof derivative.sourceSha256!=='string'||typeof derivative.fileSha256!=='string'||derivative.sourceSha256!==freeze.specSha256||sha(bytes(derivative.path))!==derivative.fileSha256) fail('FREEZE_HASH_MISMATCH','pdf hash');
-}
-function verifyFreeze(){
-  const freeze=parseJson<FreezeRecord>(FREEZE);
-  if(!exactKeys(freeze,['schemaVersion','status','specPath','specSha256','freezeVersion','amendmentAuthority','derivatives'])) fail('FREEZE_HASH_MISMATCH','freeze fields');
-  if(freeze.schemaVersion!==2||freeze.status!=='SPEC_FROZEN'||freeze.specPath!==SPEC||freeze.specSha256!==SPEC_SHA256||freeze.freezeVersion!=='FROZEN-FINAL-V3.3'||freeze.amendmentAuthority!=='explicit-human-only') fail('FREEZE_HASH_MISMATCH','freeze values');
-  if(sha(bytes(SPEC))!==freeze.specSha256) fail('FREEZE_HASH_MISMATCH','spec hash');
-  verifyPdfDerivative(freeze,freeze.derivatives?.pdf);
-}
-function verifyAgents(){ if(text('AGENTS.md')!==AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH','AGENTS.md'); }
-function verifyCommands(){
-  const pkg=parseJson<{scripts?:Record<string,string>}>('package.json'); const scripts=pkg.scripts??{};
-  for(const name of PUBLIC_SCRIPTS) if(typeof scripts[name]!=='string') fail('ENTRY_CONTRACT_MISMATCH',`missing ${name}`);
-  const old=Object.keys(scripts).filter((name)=>name.startsWith('governance:')&&!PUBLIC_SCRIPTS.includes(name));
-  if(old.length) fail('ENTRY_CONTRACT_MISMATCH',`retired commands: ${old.join(',')}`);
-  if(scripts['ci:full']!==CI_FULL_COMMAND||scripts['quality:check']!=='node --import tsx scripts/audit/governance.ts quality') fail('ENTRY_CONTRACT_MISMATCH','canonical quality command');
-  const extraQuality=Object.keys(scripts).filter((name)=>/quality|verdict/iu.test(name)&&!['ci:full','quality:check'].includes(name));
-  if(extraQuality.length)fail('ENTRY_CONTRACT_MISMATCH',`second quality command: ${extraQuality.sort().join(',')}`);
-}
-function verifyEntry(){ verifyFreeze(); verifyAgents(); verifyCommands(); }
+const lawListsValid = (raw: ParsedLaw, documentType: 'base-law' | 'functional-law'): boolean => {
+  for (const field of ['appliesTo', 'excludes', 'dependsOnLawIds'] as const) {
+    if (!isStringArray(raw[field]) || !sortedUnique(raw[field]) || raw[field].some((value) => !cleanString(value))) return false;
+  }
+  return raw.appliesTo.length > 0
+    && raw.appliesTo.every(pathPatternValid)
+    && !hasContainedRedundancy(raw.appliesTo)
+    && !hasContainedRedundancy(raw.excludes)
+    && (documentType === 'base-law' || !raw.appliesTo.includes('**/*'))
+    && raw.excludes.every((value) => pathPatternValid(value)
+      && raw.appliesTo.some((parent) => pathPatternContains(parent, value)));
+};
+const normalizedForbidden = (value: string): string => value
+  .replace(/^(不得|禁止)(发生|出现|存在)?[:：]?/u, '')
+  .toLocaleLowerCase('en-US').replace(/[\p{P}\p{S}\s]+/gu, '');
+const lawForbiddenValid = (raw: ParsedLaw): boolean => isStringArray(raw.forbidden)
+  && raw.forbidden.length > 0
+  && raw.forbidden.length === new Set(raw.forbidden).size
+  && raw.forbidden.every((value) => cleanString(value) && /^(不得|禁止)/u.test(value))
+  && raw.forbidden.map(normalizedForbidden).length === new Set(raw.forbidden.map(normalizedForbidden)).size;
 
-function frontMatter(path:string,type:string,authority:number){
-  const expected=`---\ndocumentType: ${type}\nschemaVersion: 2\nstatus: active\nauthorityLevel: ${authority}\ncontainerOwner: law-system\nlawIdPrefix: LAW\n---\n`;
-  const source=text(path);
-  if(!source.startsWith(expected)||source.slice(expected.length).split('\n').some((line)=>line==='---')) fail('SOURCE_PARSE_FAILED',`${path} front matter`);
+function validateLaw(raw: ParsedLaw, headingId: string, domain: string, path: string, documentType: 'base-law' | 'functional-law'): void {
+  if (!lawSchemaValid(raw, headingId, domain)) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:schema`);
+  if (!LAW_ID_PATTERN.test(raw.lawId) || !DOMAIN_PATTERN.test(domain) || FORBIDDEN_DOMAINS.has(domain) || !['P0', 'P1', 'P2'].includes(raw.tier)) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:identity`);
+  const version = raw.lawId.match(/^(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3})-V([1-9][0-9]*)$/u) ?? fail('SOURCE_PARSE_FAILED', `${raw.lawId}:version`);
+  const major = Number(version[2]);
+  if (raw.lawId !== `LAW-${domain.toUpperCase()}-${version[1]!.split('-').at(-1)}-V${major}`) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:domain`);
+  if (raw.supersedesLawId !== (major === 1 ? null : `${version[1]}-V${major - 1}`)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:supersedes`);
+  if (!lawEvidenceValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:evidence`);
+  if (!lawTextValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:summary`);
+  if (!lawListsValid(raw, documentType)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:scope`);
+  if (!lawForbiddenValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:forbidden`);
 }
-type LawHeading={lawId:string;line:number};
-type LawVersion={key:string;major:number};
-const parseLawJson=(source:string,location:string):Law=>{try{rejectDuplicateJsonKeys(source,location);return JSON.parse(source) as Law}catch(error){if(error instanceof GovernanceError)throw error;return fail('SOURCE_PARSE_FAILED',location)}};
-const validateLawSchema=(raw:Law,heading:LawHeading,domain:string,path:string):void=>{
-  if(!exactKeys(raw as Record<string,unknown>,LAW_KEYS)||raw.lawId!==heading.lawId||raw.capabilityDomain!==domain||raw.schemaVersion!==2||raw.status!=='active')fail('SOURCE_PARSE_FAILED',`${raw.lawId??path} schema`);
-  if(!LAW_ID_PATTERN.test(raw.lawId)||!DOMAIN_PATTERN.test(raw.capabilityDomain)||!['P0','P1','P2'].includes(raw.tier))fail('SOURCE_PARSE_FAILED',`${raw.lawId} identity`);
-};
-const validateLawVersion=(raw:Law,domain:string):LawVersion=>{
-  const match=raw.lawId.match(/^(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3})-V([1-9][0-9]*)$/u);const key=match?.[1];const major=Number(match?.[2]);
-  if(!key||raw.lawId!==`LAW-${domain.toUpperCase()}-${key.split('-').at(-1)}-V${major}`)return fail('SOURCE_PARSE_FAILED',`${raw.lawId} domain mapping`);
-  const expectedSupersedes=major===1?null:`${key}-V${major-1}`;if(raw.supersedesLawId!==expectedSupersedes)fail('SOURCE_PARSE_FAILED',`${raw.lawId} supersedes`);
-  return{key,major};
-};
-const validateLawEvidence=(raw:Law):void=>{
-  if(!raw.evidenceModes.length||raw.evidenceModes.length!==new Set(raw.evidenceModes).size||raw.evidenceModes.some((mode)=>!EVIDENCE.includes(mode))||raw.evidenceModes.some((mode,index)=>index>0&&EVIDENCE.indexOf(raw.evidenceModes[index-1]!)>=EVIDENCE.indexOf(mode)))fail('SOURCE_PARSE_FAILED',`${raw.lawId} evidence`);
-  const kinds=new Set(raw.evidenceModes.map((mode)=>mode.split('.')[0]));const expected=kinds.size>1?'composite':[...kinds][0];if(raw.enforcementMode!==expected)fail('SOURCE_PARSE_FAILED',`${raw.lawId} enforcement`);
-};
-const validateLawPaths=(raw:Law):void=>{
-  for(const field of ['appliesTo','excludes','dependsOnLawIds'] as const){const values=raw[field];if(!isStringArray(values)||!sortedUnique(values)||values.some((value)=>!cleanString(value)))fail('SOURCE_PARSE_FAILED',`${raw.lawId} ${field}`)}
-  if(raw.appliesTo.some((pattern)=>!pathPatternValid(pattern))||raw.excludes.some((pattern)=>!pathPatternValid(pattern)))fail('SOURCE_PARSE_FAILED',`${raw.lawId} path grammar`);
-  if(raw.appliesTo.includes('**/*')&&!['project-governance','law-system','audit-system'].includes(raw.capabilityDomain))fail('SOURCE_PARSE_FAILED',`${raw.lawId} root glob`);
-  if(raw.excludes.some((excluded)=>!raw.appliesTo.some((included)=>pathPatternContains(included,excluded))))fail('SOURCE_PARSE_FAILED',`${raw.lawId} exclude containment`);
-};
-const validateLawContent=(raw:Law):void=>{
-  if(!cleanString(raw.summary)||[...raw.summary].length<12||[...raw.summary].length>240||!/^(必须|只能)/u.test(raw.summary)||/(建议|尽量|可能|一般|视情况|原则上)/u.test(raw.summary))fail('SOURCE_PARSE_FAILED',`${raw.lawId} summary`);
-  if(!isStringArray(raw.forbidden)||raw.forbidden.length!==new Set(raw.forbidden).size||raw.forbidden.some((value)=>!cleanString(value)))fail('SOURCE_PARSE_FAILED',`${raw.lawId} forbidden`);
-  if(!raw.appliesTo.length||!raw.forbidden.length||raw.forbidden.length>16||raw.forbidden.some((value)=>!/^(不得|禁止)/u.test(value)))fail('SOURCE_PARSE_FAILED',`${raw.lawId} bounds`);
-};
-const readLawRecord=(lines:string[],start:number,path:string,heading:LawHeading,domain:string):{law:Law;end:number;version:LawVersion}=>{
-  let end=start;while(end<lines.length&&lines[end]!=='```')end++;if(end>=lines.length)fail('SOURCE_PARSE_FAILED',`${path}:unclosed`);
-  const raw=parseLawJson(lines.slice(start,end).join('\n'),`${path}:${start+1}`);validateLawSchema(raw,heading,domain,path);const version=validateLawVersion(raw,domain);validateLawEvidence(raw);validateLawPaths(raw);validateLawContent(raw);
-  const section=lines.slice(heading.line-1,end+1).join('\n')+'\n';return{law:{...raw,source:{path,lineStart:heading.line,lineEnd:end+1,sectionSha256:sha(section)},contractRefs:[],enforcement:null},end,version};
-};
-const validDomainTransition=(type:'base-law'|'functional-law',heading:LawHeading|null,previousDomain:string,next:string):boolean=>DOMAIN_PATTERN.test(next)&&!heading&&(type==='base-law'||!previousDomain||Buffer.compare(Buffer.from(previousDomain),Buffer.from(next))<0);
-const orphanLawFence=(line:string):boolean=>line.startsWith('```')||/^\s+```/u.test(line);
-const lawVersionOutOfOrder=(type:'base-law'|'functional-law',previous:LawVersion|null,next:LawVersion):boolean=>type==='functional-law'&&Boolean(previous)&&(previous!.key>next.key||(previous!.key===next.key&&previous!.major>=next.major));
-const requiredBaseLawIds = [
-  ...Array.from({length:8},(_,index)=>`LAW-PROJECT-GOVERNANCE-00${index+1}-V2`),
-  ...Array.from({length:8},(_,index)=>`LAW-LAW-SYSTEM-00${index+1}-${index===2?'V2':'V1'}`),
-  ...Array.from({length:14},(_,index)=>`LAW-AUDIT-SYSTEM-${String(index+1).padStart(3,'0')}-V2`),
-].sort();
-const validBaseRootLaws=(laws:Law[]):boolean=>requiredBaseLawIds.every((lawId)=>laws.some((law)=>law.lawId===lawId));
-const corpusLines=(path:string,type:'base-law'|'functional-law'):string[]=>{frontMatter(path,type,type==='base-law'?100:90);const source=text(path);if(source.includes('\r')||path!==path.normalize('NFC'))fail('SOURCE_PARSE_FAILED',`${path} encoding`);return source.split('\n')};
-type CorpusState={domain:string;previousDomain:string;heading:LawHeading|null;previousLaw:LawVersion|null;laws:Law[]};
-const consumeDomainHeading=(state:CorpusState,line:string,type:'base-law'|'functional-law',path:string,lineNumber:number):boolean=>{
-  const match=line.match(/^## capabilityDomain: ([a-z0-9]+(?:-[a-z0-9]+)*)$/u);if(!match)return false;const next=match[1]!;
-  if(!validDomainTransition(type,state.heading,state.previousDomain,next))fail('SOURCE_PARSE_FAILED',`${path}:${lineNumber} domain order`);
-  state.domain=next;state.previousDomain=next;state.previousLaw=null;return true;
-};
-const consumeLawHeading=(state:CorpusState,line:string,path:string,lineNumber:number):boolean=>{
-  const match=line.match(/^### \[(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*)\] .+$/u);if(!match)return false;
-  if(state.heading)fail('SOURCE_PARSE_FAILED',`${path}:${state.heading.line} missing law record`);state.heading={lawId:match[1]!,line:lineNumber};return true;
-};
-const consumeNonRecordLine=(line:string,path:string,lineNumber:number):boolean=>{
-  if(line==='```law-record')return false;if(orphanLawFence(line))fail('SOURCE_PARSE_FAILED',`${path}:${lineNumber} orphan or nested fence`);return true;
-};
-const consumeLawRecord=(state:CorpusState,lines:string[],index:number,path:string,type:'base-law'|'functional-law'):number=>{
-  if(!state.heading||!state.domain)return fail('SOURCE_PARSE_FAILED',`${path}:${index+1}`);const record=readLawRecord(lines,index+1,path,state.heading,state.domain);
-  if(lawVersionOutOfOrder(type,state.previousLaw,record.version))fail('SOURCE_PARSE_FAILED',`${record.law.lawId} law order`);
-  state.previousLaw=record.version;state.laws.push(record.law);state.heading=null;return record.end;
-};
-function parseCorpus(path:string,type:'base-law'|'functional-law'):Law[]{
-  const lines=corpusLines(path,type);const state:CorpusState={domain:'',previousDomain:'',heading:null,previousLaw:null,laws:[]};
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i]!;if(consumeDomainHeading(state,line,type,path,i+1))continue;if(consumeLawHeading(state,line,path,i+1))continue;
-    if(consumeNonRecordLine(line,path,i+1))continue;i=consumeLawRecord(state,lines,i,path,type);
+
+const applyDomainHeading = (
+  match: RegExpExecArray,
+  state: LawParserState,
+  documentType: 'base-law' | 'functional-law',
+  path: string,
+): void => {
+  if (state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan heading`);
+  state.domain = match[1]!;
+  if (documentType === 'functional-law' && state.priorDomain && byteCompare(state.priorDomain, state.domain) >= 0) {
+    fail('SOURCE_PARSE_FAILED', `${path}:domain order`);
   }
-  if(state.heading)fail('SOURCE_PARSE_FAILED',`${path}:${state.heading.line} missing law record`);
-  if(type==='base-law'&&!validBaseRootLaws(state.laws))fail('SOURCE_PARSE_FAILED','base root laws');return state.laws;
+  state.priorDomain = state.domain;
+  state.priorLawOrder = '';
+};
+const applyLawHeading = (match: RegExpExecArray, state: LawParserState, line: number, path: string): void => {
+  if (!state.domain || state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:heading`);
+  const parts = /^(LAW-(?:[A-Z0-9]+-)+)([0-9]{3})-V([1-9][0-9]*)$/u.exec(match[1]!)
+    ?? fail('SOURCE_PARSE_FAILED', `${path}:heading identity`);
+  const order = `${parts[1]}${parts[2]}:${String(Number(parts[3])).padStart(12, '0')}`;
+  if (state.priorLawOrder && byteCompare(state.priorLawOrder, order) >= 0) fail('SOURCE_PARSE_FAILED', `${path}:law order`);
+  state.priorLawOrder = order;
+  state.headingId = match[1]!;
+  state.headingLine = line;
+};
+
+const parseLawBlock = (lines: string[], index: number, state: LawParserState, laws: Law[], path: string, documentType: 'base-law' | 'functional-law'): number => {
+  if (!state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan law-record`);
+  let end = index + 1;
+  while (end < lines.length && lines[end] !== '```') end++;
+  if (end >= lines.length) fail('SOURCE_PARSE_FAILED', `${path}:unclosed law-record`);
+  const rawText = lines.slice(index + 1, end).join('\n');
+  rejectDuplicateJsonKeys(rawText, `${path}:${index + 2}`);
+  let raw: ParsedLaw;
+  try { raw = JSON.parse(rawText) as ParsedLaw; } catch { return fail('SOURCE_PARSE_FAILED', `${path}:${index + 2}`); }
+  validateLaw(raw, state.headingId, state.domain, path, documentType);
+  laws.push({ ...raw, source: { path, lineStart: state.headingLine, lineEnd: end + 1 }, contractRefs: [] });
+  state.headingId = '';
+  state.headingLine = 0;
+  return end;
+};
+
+const applyLawContentLine = (input: {
+  documentType: 'base-law' | 'functional-law'; index: number; laws: Law[]; lines: string[]; path: string; state: LawParserState;
+}): number => {
+  const line = input.lines[input.index]!;
+  if (line === '') return input.index;
+  const domain = /^## capabilityDomain: ([a-z0-9]+(?:-[a-z0-9]+)*)$/u.exec(line);
+  if (domain) { applyDomainHeading(domain, input.state, input.documentType, input.path); return input.index; }
+  const heading = /^### \[(LAW-[A-Z0-9-]+-V[1-9][0-9]*)\] .+$/u.exec(line);
+  if (heading) { applyLawHeading(heading, input.state, input.index + 1, input.path); return input.index; }
+  if (line === '```law-record') return parseLawBlock(input.lines, input.index, input.state, input.laws, input.path, input.documentType);
+  return fail('SOURCE_PARSE_FAILED', `${input.path}:unexpected content at line ${input.index + 1}`);
+};
+
+export function parseLawSource(source: string, path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
+  const lines = source.split('\n');
+  const laws: Law[] = [];
+  const state: LawParserState = { domain: '', headingId: '', headingLine: 0, priorDomain: '', priorLawOrder: '' };
+  const documentHeading = documentType === 'base-law' ? '# 基础法案' : '# 功能法案';
+  const start = lawBodyStart(source, path, documentType, authorityLevel);
+  if (lines[start] !== documentHeading) fail('SOURCE_PARSE_FAILED', `${path}:document heading`);
+  for (let index = start + 1; index < lines.length; index++) index = applyLawContentLine({ documentType, index, laws, lines, path, state });
+  if (state.headingId || !laws.length) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);
+  return laws;
 }
-function loadLaws(){ const laws=[...parseCorpus(BASE,'base-law'),...parseCorpus(FUNCTIONAL,'functional-law')].sort((a,b)=>a.lawId.localeCompare(b.lawId)); const ids=new Set<string>(); for(const law of laws){if(ids.has(law.lawId))fail('SOURCE_PARSE_FAILED',`duplicate ${law.lawId}`);ids.add(law.lawId)} for(const law of laws)for(const dep of law.dependsOnLawIds){if(dep===law.lawId)fail('SOURCE_PARSE_FAILED',`${law.lawId} self dependency`);if(!ids.has(dep))fail('SOURCE_PARSE_FAILED',`${law.lawId} missing ${dep}`)}const byId=new Map(laws.map((law)=>[law.lawId,law]));const visiting=new Set<string>();const visited=new Set<string>();const visit=(lawId:string)=>{if(visiting.has(lawId))fail('SOURCE_PARSE_FAILED',`dependency cycle ${lawId}`);if(visited.has(lawId))return;visiting.add(lawId);for(const dep of byId.get(lawId)?.dependsOnLawIds??[])visit(dep);visiting.delete(lawId);visited.add(lawId)};for(const law of laws)visit(law.lawId);return laws; }
-type RootLawExpectation={lawId:string;summary:string;forbidden:string[];evidenceModes:string[]};
-const rootLawExpectations=():RootLawExpectation[]=>{
-  const source=text(SPEC);const pattern=/^### 66\.[1-8] \[(LAW-PROJECT-GOVERNANCE-00[1-8]-V2)\][^\n]*\n\n要：([^\n]+)\n\n不要：([^\n]+)\n\n证据：([^\n]+)$/gmu;
-  return[...source.matchAll(pattern)].map((match)=>({lawId:match[1]!,summary:match[2]!,forbidden:match[3]!.split('；').map((clause)=>clause.trim().replace(/。$/u,'')),evidenceModes:[...match[4]!.matchAll(/`([^`]+)`/gu)].map((item)=>item[1]!)}));
-};
-const validateRootLawMappings=(laws:Law[]):void=>{
-  const expected=rootLawExpectations();if(expected.length!==8)fail('SOURCE_PARSE_FAILED','root law source mapping');
-  for(const item of expected){const law=laws.find((candidate)=>candidate.lawId===item.lawId)??fail('SOURCE_PARSE_FAILED',item.lawId);if(law.summary!==item.summary||JSON.stringify(law.forbidden)!==JSON.stringify(item.forbidden)||JSON.stringify(law.evidenceModes)!==JSON.stringify(item.evidenceModes))fail('SOURCE_PARSE_FAILED',`${item.lawId} exact source mapping`)}
-};
-const validateForbiddenIntegrity=(laws:Law[]):void=>{for(const law of laws)for(const clause of law.forbidden)if(/(?:checkpoint o|the has|or a se)$/u.test(clause))fail('SOURCE_PARSE_FAILED',`${law.lawId} truncated forbidden clause`)};
-type RawManifest=Omit<Manifest,'manifestPath'>;
-const validManifestHeader=(raw:RawManifest,domain:string):boolean=>exactKeys(raw as Record<string,unknown>,MANIFEST_KEYS)&&raw.schemaVersion===4&&raw.status==='active'&&raw.capabilityDomain===domain&&DOMAIN_PATTERN.test(domain)&&Boolean(raw.lawBindings)&&typeof raw.lawBindings==='object'&&!Array.isArray(raw.lawBindings);
-const validateManifestLists=(raw:RawManifest,rel:string):void=>{
-  for(const key of ['lawIds','ownedPaths','observedPaths'] as const){const values=raw[key];if(!isStringArray(values)||!sortedUnique(values)||values.some((value)=>!cleanString(value)))fail('SOURCE_PARSE_FAILED',`${rel} ${key}`)}
-  for(const pattern of [...raw.ownedPaths,...raw.observedPaths])if(!pathPatternValid(pattern)||pattern==='**/*')fail('SOURCE_PARSE_FAILED',`${rel} path grammar`);
-  if(raw.ownedPaths.some((owned)=>raw.observedPaths.includes(owned)))fail('SOURCE_PARSE_FAILED',`${rel} owned/observed overlap`);
-};
-const validateManifest=(raw:RawManifest,rel:string,domain:string,laws:Law[]):Manifest=>{
-  if(!validManifestHeader(raw,domain))fail('SOURCE_PARSE_FAILED',`${rel} schema`);validateManifestLists(raw,rel);
-  const expected=laws.filter((law)=>law.capabilityDomain===domain).map((law)=>law.lawId).sort();if(JSON.stringify(raw.lawIds)!==JSON.stringify(expected)||!expected.length)fail('SOURCE_PARSE_FAILED',`${rel} lawIds`);
-  return{...raw,manifestPath:rel};
-};
-const orderedEvidenceModes=(modes:string[]):boolean=>JSON.stringify(modes)===JSON.stringify(EVIDENCE.filter((mode)=>modes.includes(mode)));
-const validateRef=(ref:string,code:string):void=>{
-  const match=ref.match(/^([^#]+)#([A-Za-z_$][A-Za-z0-9_$]*)(?:\|[^\n]+)*$/u);
-  if(!match||!pathPatternValid(match[1]!)||!existsSync(resolve(ROOT,match[1]!)))fail(code,ref);
-  const validMatch=match!;const source=text(validMatch[1]!);const name=validMatch[2]!.replace(/[.*+?^${}()|[\]\\]/gu,'\\$&');
-  if(!new RegExp(`export\\s+(?:async\\s+)?(?:function|const|class)\\s+${name}\\b`,'u').test(source))fail(code,ref);
-};
-const validateNegativeCases=(cases:NegativeCase[],bindingId:string):void=>{
-  if(!Array.isArray(cases)||!cases.length)return fail('NEGATIVE_CASE_MISSING',bindingId);
-  const keys:string[]=[];
-  for(const item of cases){
-    if(!item||!exactKeys(item as Record<string,unknown>,NEGATIVE_CASE_KEYS)||!cleanString(item.negativeCaseId)||!cleanString(item.negativeCaseRef)||!cleanString(item.expectedCode)||!/^[A-Z][A-Z0-9_]*$/u.test(item.expectedCode))fail('NEGATIVE_CASE_MISSING',bindingId);
-    validateRef(item.negativeCaseRef,'NEGATIVE_CASE_REF_MISSING');keys.push(item.negativeCaseId);
-  }
-  if(!sortedUnique(keys))fail('NEGATIVE_CASE_MISSING',bindingId);
-};
-const validateStaticBinding=(binding:StaticBinding|null,law:Law):void=>{
-  const expected=law.evidenceModes.filter((mode)=>mode.startsWith('static.'));
-  if(!expected.length){if(binding!==null)fail('UNDECLARED_EVIDENCE_BINDING',law.lawId);return}
-  if(!binding||!exactKeys(binding as Record<string,unknown>,STATIC_BINDING_KEYS))return fail('LAW_BINDING_MISSING',law.lawId);
-  if(!cleanString(binding.bindingId)||!cleanString(binding.checkId)||!cleanString(binding.inspectorRef)||!cleanString(binding.targetSelectorId)||!isStringArray(binding.evidenceModes)||!orderedEvidenceModes(binding.evidenceModes)||JSON.stringify(binding.evidenceModes)!==JSON.stringify(expected))fail('EVIDENCE_MODE_UNBOUND',law.lawId);
-  validateRef(binding.inspectorRef,'INSPECTOR_MISSING');validateNegativeCases(binding.negativeCases,binding.bindingId);
-};
-const evidenceBindingParts=(binding:ExamBinding|ProofBinding,kind:'exam'|'dynamic'):{identity:string;ref:string;keys:string[]}=>kind==='exam'
-  ?{identity:(binding as ExamBinding).examId,ref:(binding as ExamBinding).examRef,keys:EXAM_BINDING_KEYS}
-  :{identity:(binding as ProofBinding).proofId,ref:(binding as ProofBinding).proofRef,keys:PROOF_BINDING_KEYS};
-const validateEvidenceBinding=(binding:ExamBinding|ProofBinding,law:Law,kind:'exam'|'dynamic'):{bindingId:string;modes:string[]}=>{
-  const parts=evidenceBindingParts(binding,kind);
-  if(!binding||!exactKeys(binding as Record<string,unknown>,parts.keys))fail('LAW_BINDING_MISSING',law.lawId);
-  if(!cleanString(binding.bindingId)||!cleanString(parts.identity)||!cleanString(parts.ref)||!isStringArray(binding.evidenceModes)||!binding.evidenceModes.length||!orderedEvidenceModes(binding.evidenceModes))fail('EVIDENCE_MODE_UNBOUND',law.lawId);
-  validateRef(parts.ref,'EXECUTOR_REF_MISSING');validateNegativeCases(binding.negativeCases,binding.bindingId);
-  return{bindingId:binding.bindingId,modes:binding.evidenceModes};
-};
-const validateEvidenceBindings=(bindings:(ExamBinding|ProofBinding)[],law:Law,kind:'exam'|'dynamic'):void=>{
-  if(!Array.isArray(bindings))fail('LAW_BINDING_MISSING',law.lawId);
-  const expected=law.evidenceModes.filter((mode)=>mode.startsWith(`${kind}.`));const actual:string[]=[];const bindingIds:string[]=[];
-  for(const binding of bindings){const result=validateEvidenceBinding(binding,law,kind);actual.push(...result.modes);bindingIds.push(result.bindingId)}
-  const orderedActual=EVIDENCE.filter((mode)=>actual.includes(mode));
-  if(!sortedUnique(bindingIds)||actual.length!==new Set(actual).size||JSON.stringify(orderedActual)!==JSON.stringify(expected))fail(actual.some((mode)=>!expected.includes(mode))?'UNDECLARED_EVIDENCE_BINDING':'EVIDENCE_MODE_UNBOUND',law.lawId);
-};
-const addUnique=(seen:Set<string>,value:string,code:string):void=>{if(seen.has(value))fail(code,value);seen.add(value)};
-const validateManifestBindings=(manifests:Manifest[],laws:Law[]):void=>{
-  const lawById=new Map(laws.map((law)=>[law.lawId,law]));const identities=new Set<string>();const refs=new Set<string>();const negativeIds=new Set<string>();const negativeRefs=new Set<string>();
-  for(const manifest of manifests){
-    const keys=Object.keys(manifest.lawBindings);if(!sortedUnique(keys)||JSON.stringify(keys)!==JSON.stringify(manifest.lawIds))fail('ACTIVE_LAW_DENOMINATOR_MISMATCH',manifest.capabilityDomain);
-    for(const lawId of manifest.lawIds){const law=lawById.get(lawId)??fail('LAW_BINDING_MISSING',lawId);const candidate=manifest.lawBindings[lawId];if(!candidate||!exactKeys(candidate as Record<string,unknown>,LAW_BINDING_KEYS))fail('LAW_BINDING_MISSING',lawId);const binding=candidate!;validateStaticBinding(binding.staticBinding,law);validateEvidenceBindings(binding.examBindings,law,'exam');validateEvidenceBindings(binding.proofBindings,law,'dynamic');
-      const all=[...(binding.staticBinding?[binding.staticBinding]:[]),...binding.examBindings,...binding.proofBindings];for(const item of all){addUnique(identities,item.bindingId,'LAW_BINDING_DUPLICATE');const ref='inspectorRef'in item?item.inspectorRef:'examRef'in item?item.examRef:item.proofRef;addUnique(refs,ref,'PREDICATE_IDENTITY_MISMATCH');if('checkId'in item)addUnique(identities,item.checkId,'PREDICATE_IDENTITY_MISMATCH');if('examId'in item)addUnique(identities,item.examId,'PREDICATE_IDENTITY_MISMATCH');if('proofId'in item)addUnique(identities,item.proofId,'PREDICATE_IDENTITY_MISMATCH');for(const negative of item.negativeCases){addUnique(negativeIds,negative.negativeCaseId,'NEGATIVE_CASE_MISSING');addUnique(negativeRefs,negative.negativeCaseRef,'NEGATIVE_CASE_REF_MISSING')}}
-      law.enforcement=binding;
-    }
-  }
-};
-const validateManifestCoverage=(manifests:Manifest[],laws:Law[]):void=>{const domains=new Set(laws.map((law)=>law.capabilityDomain));if(manifests.length!==domains.size)fail('SOURCE_PARSE_FAILED','unexpected manifest domain');for(const domain of domains)if(!manifests.some((manifest)=>manifest.capabilityDomain===domain))fail('SOURCE_PARSE_FAILED',`missing manifest ${domain}`)};
-const pathsOverlap=(left:string,right:string):boolean=>{const covers=(parent:string,child:string)=>parent.endsWith('/**')?(child===parent.slice(0,-3)||child.startsWith(`${parent.slice(0,-3)}/`)):parent===child;return covers(left,right)||covers(right,left)};
-const validateManifestOwners=(manifests:Manifest[]):void=>{const owners:{pattern:string;domain:string}[]=[];for(const manifest of manifests)for(const pattern of manifest.ownedPaths){for(const old of owners)if(pathsOverlap(pattern,old.pattern))fail('SOURCE_PARSE_FAILED',`owner overlap ${old.domain}/${manifest.capabilityDomain}: ${old.pattern}/${pattern}`);owners.push({pattern,domain:manifest.capabilityDomain})}};
-function loadManifests(laws:Law[]):Manifest[]{
-  const dir=resolve(ROOT,'scripts/audit/domains'); const entries=readdirSync(dir,{withFileTypes:true}).filter((e)=>e.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name)); const manifests:Manifest[]=[];
-  for(const entry of entries){const rel=`scripts/audit/domains/${entry.name}/manifest.json`;if(existsSync(resolve(ROOT,rel)))manifests.push(validateManifest(parseJson<RawManifest>(rel),rel,entry.name,laws))}
-  validateManifestCoverage(manifests,laws);validateManifestOwners(manifests);validateManifestBindings(manifests,laws);
+function loadLawFile(path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
+  return parseLawSource(text(path), path, documentType, authorityLevel);
+}
+
+export function loadLaws(): Law[] {
+  const laws = [...loadLawFile(BASE, 'base-law', 100), ...loadLawFile(FUNCTIONAL, 'functional-law', 90)].sort((left, right) => byteCompare(left.lawId, right.lawId));
+  const ids = laws.map((law) => law.lawId);
+  if (ids.length !== new Set(ids).size) fail('SOURCE_PARSE_FAILED', 'duplicate lawId');
+  const active = new Set(ids);
+  for (const law of laws) if (law.dependsOnLawIds.some((lawId) => !active.has(lawId))) fail('SOURCE_PARSE_FAILED', `${law.lawId}:dependency`);
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const byId = new Map(laws.map((law) => [law.lawId, law]));
+  const visit = (lawId: string): void => {
+    if (visiting.has(lawId)) fail('SOURCE_PARSE_FAILED', `${lawId}:dependency cycle`);
+    if (visited.has(lawId)) return;
+    visiting.add(lawId);
+    for (const dependency of byId.get(lawId)?.dependsOnLawIds ?? []) visit(dependency);
+    visiting.delete(lawId);
+    visited.add(lawId);
+  };
+  for (const law of laws) visit(law.lawId);
+  return laws;
+}
+
+function loadManifests(laws: Law[]): Manifest[] {
+  const byDomain = new Map<string, string[]>();
+  for (const law of laws) byDomain.set(law.capabilityDomain, [...(byDomain.get(law.capabilityDomain) ?? []), law.lawId]);
+  const paths = walk('scripts/audit/domains').filter((path) => path.endsWith('/manifest.json'));
+  const manifests = paths.map((manifestPath) => {
+    const raw = parseJson<Omit<Manifest, 'manifestPath'>>(manifestPath);
+    if (!exactKeys(raw, MANIFEST_KEYS) || raw.schemaVersion !== 5 || raw.status !== 'active' || !DOMAIN_PATTERN.test(raw.capabilityDomain)) fail('SOURCE_PARSE_FAILED', `${manifestPath}:schema`);
+    for (const field of ['lawIds', 'ownedPaths', 'observedPaths'] as const) if (!isStringArray(raw[field]) || !sortedUnique(raw[field]) || raw[field].some((value) => field === 'lawIds' ? !LAW_ID_PATTERN.test(value) : !pathPatternValid(value))) fail('SOURCE_PARSE_FAILED', `${manifestPath}:${field}`);
+    if (raw.ownedPaths.includes('**/*')) fail('SOURCE_PARSE_FAILED', `${manifestPath}:root owner`);
+    if (JSON.stringify(raw.lawIds) !== JSON.stringify((byDomain.get(raw.capabilityDomain) ?? []).sort(byteCompare))) fail('ACTIVE_LAW_DENOMINATOR_MISMATCH', raw.capabilityDomain);
+    return { ...raw, manifestPath };
+  }).sort((left, right) => byteCompare(left.capabilityDomain, right.capabilityDomain));
+  if (manifests.length !== byDomain.size || manifests.some((manifest, index) => index > 0 && manifests[index - 1]!.capabilityDomain === manifest.capabilityDomain)) fail('ACTIVE_LAW_DENOMINATOR_MISMATCH', 'manifest domains');
+  const owned = manifests.flatMap((manifest) => manifest.ownedPaths.map((path) => ({ domain: manifest.capabilityDomain, path })));
+  for (let index = 0; index < owned.length; index++) for (let other = index + 1; other < owned.length; other++) if (pathPatternContains(owned[index]!.path, owned[other]!.path) || pathPatternContains(owned[other]!.path, owned[index]!.path)) fail('MULTIPLE_PRIMARY_OWNERS', `${owned[index]!.domain}/${owned[other]!.domain}`);
   return manifests;
 }
-const REPO_PATTERN=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-type AuthorityArtifact={path:string;selector:string;sha256:string};
-type CrossRepoContract={contractId:string;version:number;providerRepo:string;providerDomain:string;authorityArtifact:AuthorityArtifact;consumerRepos:string[]};
-type ContractPin={contractId:string;version:number;providerRepo:string;providerDomain:string;providerSpecRef:string;providerCommitSha:string;contractSha256:string};
-type MigrationContract={currentAuthority:string;targetAuthority:string;compatibilityMechanisms:unknown[];startDate:string;monitoring:unknown[];rollbackCondition:string;maximumDurationDays:number;removalDate:string;removalAcceptance:unknown[]};
-type GovernanceSpec={schemaVersion:number;status:string;version:number;specId:string;owner:string;lawIds:string[];specKind:string;contract:CrossRepoContract|ContractPin|MigrationContract};
-type EdgeEndpoint={repo:string;domain:string};
-type DependencyEdge={from:EdgeEndpoint;to:EdgeEndpoint;contractRef:string|null};
-type ProhibitedEdge={from:EdgeEndpoint;to:EdgeEndpoint;lawId:string};
-type Blueprint={schemaVersion:number;status:string;blueprintId:string;owner:string;lawIds:string[];contractRefs:string[];dependencyEdges:DependencyEdge[];prohibitedDependencyEdges:ProhibitedEdge[]};
-type ContractContext={lawIds:Set<string>;lawById:Map<string,Law>;domains:Set<string>;refs:Map<string,Set<string>>;specOwners:Map<string,string>;externalEndpoints:Set<string>};
-const addContractRef=(context:ContractContext,lawId:string,file:string,owner:string):void=>{const law=context.lawById.get(lawId);if(!law)return fail('SOURCE_PARSE_FAILED',`${file} unknown ${lawId}`);if(law.capabilityDomain!==owner)fail('SOURCE_PARSE_FAILED',`${file} owner/law mismatch ${lawId}`);const refs=context.refs.get(lawId)??new Set<string>();refs.add(file);context.refs.set(lawId,refs)};
-const validAuthorityArtifact=(artifact:AuthorityArtifact):boolean=>Boolean(artifact)&&exactKeys(artifact as Record<string,unknown>,['path','selector','sha256'])&&pathPatternValid(artifact.path)&&cleanString(artifact.selector)&&/^[a-f0-9]{64}$/u.test(artifact.sha256);
-const validateCrossRepoContract=(contract:CrossRepoContract,file:string,version:number):void=>{if(!exactKeys(contract as Record<string,unknown>,['contractId','version','providerRepo','providerDomain','authorityArtifact','consumerRepos'])||!cleanString(contract.contractId)||!Number.isInteger(contract.version)||contract.version!==version||!REPO_PATTERN.test(contract.providerRepo)||!DOMAIN_PATTERN.test(contract.providerDomain)||!isStringArray(contract.consumerRepos)||!sortedUnique(contract.consumerRepos)||contract.consumerRepos.some((repo)=>!REPO_PATTERN.test(repo))||!validAuthorityArtifact(contract.authorityArtifact))fail('SOURCE_PARSE_FAILED',`${file} provider`)};
-const validateContractPin=(context:ContractContext,contract:ContractPin,file:string,version:number):void=>{if(!exactKeys(contract as Record<string,unknown>,['contractId','version','providerRepo','providerDomain','providerSpecRef','providerCommitSha','contractSha256'])||!cleanString(contract.contractId)||!Number.isInteger(contract.version)||contract.version!==version||!REPO_PATTERN.test(contract.providerRepo)||!DOMAIN_PATTERN.test(contract.providerDomain)||!pathPatternValid(contract.providerSpecRef)||!contract.providerSpecRef.endsWith('.spec.json')||!/^[a-f0-9]{40,64}$/u.test(contract.providerCommitSha)||!/^[a-f0-9]{64}$/u.test(contract.contractSha256))fail('SOURCE_PARSE_FAILED',`${file} pin`);context.externalEndpoints.add(`${contract.providerRepo}\0${contract.providerDomain}`)};
-const MIGRATION_KEYS = [
-  'currentAuthority', 'targetAuthority', 'compatibilityMechanisms', 'startDate', 'monitoring',
-  'rollbackCondition', 'maximumDurationDays', 'removalDate', 'removalAcceptance',
-];
-const validMigrationCollections = (contract: MigrationContract): boolean =>
-  Array.isArray(contract.compatibilityMechanisms) && contract.compatibilityMechanisms.length > 0
-  && Array.isArray(contract.monitoring) && contract.monitoring.length > 0
-  && Array.isArray(contract.removalAcceptance) && contract.removalAcceptance.length > 0;
-const validMigrationFields = (contract: MigrationContract): boolean =>
-  exactKeys(contract as Record<string, unknown>, MIGRATION_KEYS)
-  && cleanString(contract.currentAuthority)
-  && cleanString(contract.targetAuthority)
-  && cleanString(contract.rollbackCondition)
-  && Number.isInteger(contract.maximumDurationDays)
-  && contract.maximumDurationDays >= 1
-  && /^\d{4}-\d{2}-\d{2}$/u.test(contract.startDate)
-  && /^\d{4}-\d{2}-\d{2}$/u.test(contract.removalDate)
-  && validMigrationCollections(contract);
-const validateMigrationDeadline = (contract: MigrationContract, file: string): void => {
-  const start = Date.parse(`${contract.startDate}T00:00:00Z`);
-  const removal = Date.parse(`${contract.removalDate}T00:00:00Z`);
-  const deadline = start + contract.maximumDurationDays * 86_400_000;
-  if (!Number.isFinite(start) || !Number.isFinite(removal) || removal < start || removal > deadline) {
-    fail('SOURCE_PARSE_FAILED', `${file} migration deadline`);
+
+type GovernanceSpec = { schemaVersion: number; specId: string; status: string; version: number; owner: string; lawIds: string[]; specKind: string; contract: unknown };
+const specEnvelopeValid = (raw: GovernanceSpec, domains: ReadonlySet<string>): boolean =>
+  exactKeys(raw, SPEC_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
+  && concreteString(raw.specId) && Number.isInteger(raw.version) && raw.version >= 1
+  && domains.has(raw.owner) && isStringArray(raw.lawIds) && raw.lawIds.length > 0
+  && sortedUnique(raw.lawIds) && raw.lawIds.every((lawId) => LAW_ID_PATTERN.test(lawId)) && SPEC_KINDS.includes(raw.specKind)
+  && Boolean(raw.contract) && typeof raw.contract === 'object' && !Array.isArray(raw.contract);
+
+const validateDependencyContract = (raw: GovernanceSpec, file: string): void => {
+  const contract = raw.contract as Record<string, unknown>;
+  if (!exactKeys(contract, ['contractId', 'providerRepo', 'version'])
+    || !concreteString(contract.contractId) || !Number.isInteger(contract.version)
+    || contract.version !== raw.version || typeof contract.providerRepo !== 'string'
+    || !REPO_PATTERN.test(contract.providerRepo)) fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-dependency`);
+};
+
+const validateProviderContract = (raw: GovernanceSpec, file: string): void => {
+  const contract = raw.contract as Record<string, unknown>;
+  if (!exactKeys(contract, ['authorityArtifact', 'contractId', 'providerDomain', 'providerRepo', 'version'])
+    || !concreteString(contract.contractId) || !Number.isInteger(contract.version)
+    || contract.version !== raw.version || contract.providerDomain !== raw.owner
+    || typeof contract.providerRepo !== 'string' || !REPO_PATTERN.test(contract.providerRepo)) {
+    fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-contract`);
+  }
+  const artifact = contract.authorityArtifact as Record<string, unknown>;
+  if (!artifact || !exactKeys(artifact, ['path', 'selector']) || typeof artifact.path !== 'string'
+    || !pathPatternValid(artifact.path) || !concreteString(artifact.selector)) {
+    fail('SOURCE_PARSE_FAILED', `${file}:authorityArtifact`);
   }
 };
-const validateMigration = (contract: MigrationContract, file: string): void => {
-  if (!validMigrationFields(contract)) fail('SOURCE_PARSE_FAILED', `${file} migration`);
-  validateMigrationDeadline(contract, file);
-};
-const validateSpecHeader=(raw:GovernanceSpec,file:string,context:ContractContext):void=>{if(!exactKeys(raw as Record<string,unknown>,SPEC_KEYS)||raw.schemaVersion!==1||raw.status!=='active'||!Number.isInteger(raw.version)||raw.version<1||!cleanString(raw.specId)||!context.domains.has(raw.owner)||!DOMAIN_PATTERN.test(raw.owner)||!raw.specId.startsWith(`${raw.owner}.`)||!isStringArray(raw.lawIds)||!raw.lawIds.length||!sortedUnique(raw.lawIds)||!raw.contract||typeof raw.contract!=='object'||Array.isArray(raw.contract))fail('SOURCE_PARSE_FAILED',`${file} schema`)};
-const loadSpecs=(context:ContractContext):void=>{for(const file of walk('docs/specs').filter((path)=>path.endsWith('.spec.json'))){const raw=parseJson<GovernanceSpec>(file);validateSpecHeader(raw,file,context);for(const lawId of raw.lawIds)addContractRef(context,lawId,file,raw.owner);if(raw.specKind==='cross-repo-contract')validateCrossRepoContract(raw.contract as CrossRepoContract,file,raw.version);else if(raw.specKind==='contract-pin')validateContractPin(context,raw.contract as ContractPin,file,raw.version);else if(raw.specKind==='migration')validateMigration(raw.contract as MigrationContract,file);else fail('SOURCE_PARSE_FAILED',`${file} unsupported specKind schema`);context.specOwners.set(file,raw.owner)}};
-const validateEndpoint=(value:EdgeEndpoint,file:string,context:ContractContext):EdgeEndpoint=>{if(!value||!exactKeys(value as Record<string,unknown>,['repo','domain'])||typeof value.repo!=='string'||typeof value.domain!=='string'||!DOMAIN_PATTERN.test(value.domain))fail('SOURCE_PARSE_FAILED',`${file} edge endpoint`);if(value.repo==='local'){if(!context.domains.has(value.domain))fail('SOURCE_PARSE_FAILED',`${file} local edge domain`)}else if(!REPO_PATTERN.test(value.repo)||!context.externalEndpoints.has(`${value.repo}\0${value.domain}`))fail('SOURCE_PARSE_FAILED',`${file} external edge endpoint`);return value};
-const validateBlueprintHeader=(raw:Blueprint,file:string,context:ContractContext):void=>{if(!exactKeys(raw as Record<string,unknown>,BLUEPRINT_KEYS)||raw.schemaVersion!==1||raw.status!=='active'||!cleanString(raw.blueprintId)||!context.domains.has(raw.owner)||!DOMAIN_PATTERN.test(raw.owner)||!isStringArray(raw.lawIds)||!raw.lawIds.length||!sortedUnique(raw.lawIds)||!isStringArray(raw.contractRefs)||!sortedUnique(raw.contractRefs)||raw.contractRefs.some((ref)=>!pathPatternValid(ref)||context.specOwners.get(ref)!==raw.owner)||!Array.isArray(raw.dependencyEdges)||!Array.isArray(raw.prohibitedDependencyEdges))fail('SOURCE_PARSE_FAILED',`${file} blueprint schema`)};
-const validateAllowedEdges=(raw:Blueprint,file:string,context:ContractContext):string[]=>raw.dependencyEdges.map((edge)=>{if(!edge||!exactKeys(edge as Record<string,unknown>,['from','to','contractRef']))fail('SOURCE_PARSE_FAILED',`${file} dependency edge schema`);const from=validateEndpoint(edge.from,file,context);const to=validateEndpoint(edge.to,file,context);if((from.repo===to.repo&&from.domain===to.domain)||(from.repo==='local'&&from.domain!==raw.owner))fail('SOURCE_PARSE_FAILED',`${file} dependency owner`);if(edge.contractRef!==null&&(!raw.contractRefs.includes(edge.contractRef)||context.specOwners.get(edge.contractRef)!==raw.owner))fail('SOURCE_PARSE_FAILED',`${file} edge contractRef`);if((from.repo!=='local'||to.repo!=='local')&&edge.contractRef===null)fail('SOURCE_PARSE_FAILED',`${file} cross-repo edge contractRef`);return canonicalBytes(edge).trim()});
-const validateProhibitedEdges=(raw:Blueprint,file:string,context:ContractContext):string[]=>raw.prohibitedDependencyEdges.map((edge)=>{if(!edge||!exactKeys(edge as Record<string,unknown>,['from','to','lawId']))fail('SOURCE_PARSE_FAILED',`${file} prohibited edge schema`);const from=validateEndpoint(edge.from,file,context);const to=validateEndpoint(edge.to,file,context);if((from.repo===to.repo&&from.domain===to.domain)||(from.repo==='local'&&from.domain!==raw.owner)||!raw.lawIds.includes(edge.lawId)||!context.lawIds.has(edge.lawId))fail('SOURCE_PARSE_FAILED',`${file} prohibited edge reference`);return canonicalBytes(edge).trim()});
-const readBlueprint=(file:string):Blueprint=>{const matches=[...text(file).matchAll(/^```blueprint-record\n([\s\S]*?)\n```$/gmu)];if(matches.length!==1)fail('SOURCE_PARSE_FAILED',`${file} blueprint record`);try{rejectDuplicateJsonKeys(matches[0]![1]!,file);return JSON.parse(matches[0]![1]!) as Blueprint}catch(error){if(error instanceof GovernanceError)throw error;return fail('SOURCE_PARSE_FAILED',`${file} blueprint json`)}};
-const edgeIdentity=(edge:DependencyEdge|ProhibitedEdge):string=>`${edge.from.repo}\0${edge.from.domain}\0${edge.to.repo}\0${edge.to.domain}`;
-const loadBlueprints=(context:ContractContext):void=>{for(const file of walk('docs/blueprints').filter((path)=>path.endsWith('.md'))){const raw=readBlueprint(file);validateBlueprintHeader(raw,file,context);for(const lawId of raw.lawIds)addContractRef(context,lawId,file,raw.owner);const allowedKeys=validateAllowedEdges(raw,file,context);if(!sortedUnique(allowedKeys))fail('SOURCE_PARSE_FAILED',`${file} dependency edge order`);const prohibitedKeys=validateProhibitedEdges(raw,file,context);if(!sortedUnique(prohibitedKeys))fail('SOURCE_PARSE_FAILED',`${file} prohibited edge order`);const allowedIdentities=new Set(raw.dependencyEdges.map(edgeIdentity));if(raw.prohibitedDependencyEdges.some((edge)=>allowedIdentities.has(edgeIdentity(edge))))fail('SOURCE_PARSE_FAILED',`${file} edge conflict`)}};
-function loadContracts(laws:Law[],manifests:Manifest[]){const context:ContractContext={lawIds:new Set(laws.map((law)=>law.lawId)),lawById:new Map(laws.map((law)=>[law.lawId,law])),domains:new Set(manifests.map((manifest)=>manifest.capabilityDomain)),refs:new Map(),specOwners:new Map(),externalEndpoints:new Set()};loadSpecs(context);loadBlueprints(context);for(const law of laws)law.contractRefs=[...(context.refs.get(law.lawId)??[])].sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right))).map((path)=>({path,sha256:sha(bytes(path))}))}
-function verifyNoRetiredLawReferences(laws:Law[]){const active=new Set(laws.map((law)=>law.lawId));const consumerRoots=['docs/blueprints/','docs/specs/','scripts/audit/domains/','src/','scripts/startup/'];for(const path of repositoryPaths().filter((candidate)=>consumerRoots.some((root)=>candidate.startsWith(root)))){for(const match of text(path).matchAll(/LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*/gu)){if(!active.has(match[0]))fail('RETIRED_LAW_REFERENCE',`${path}:${match[0]}`)}}}
-const consumerRepository=():string=>{try{return repositoryIdentity(execFileSync('git',['config','--get','remote.origin.url'],{cwd:ROOT,stdio:['ignore','pipe','ignore']}).toString('utf8'))}catch{return fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED','consumer origin')}};
-const providerGit=(root:string,file:string,args:string[]):Buffer=>{try{return execFileSync('git',args,{cwd:root,stdio:['ignore','pipe','ignore']})}catch{return fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:${args.join(' ')}`)}};
-const parseProviderDescriptor=(bytesValue:Buffer,location:string,file:string):GovernanceSpec=>{try{const source=utf8.decode(bytesValue);rejectDuplicateJsonKeys(source,location);return JSON.parse(source) as GovernanceSpec}catch{return fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:descriptor parse`)}};
-const validProviderDescriptorHeader=(descriptor:GovernanceSpec,binding:ContractPin):boolean=>exactKeys(descriptor as Record<string,unknown>,SPEC_KEYS)&&descriptor.schemaVersion===1&&descriptor.status==='active'&&descriptor.specKind==='cross-repo-contract'&&descriptor.specId===binding.contractId&&descriptor.version===binding.version&&descriptor.owner===binding.providerDomain&&isStringArray(descriptor.lawIds)&&Boolean(descriptor.lawIds.length)&&sortedUnique(descriptor.lawIds);
-const validProviderContractBinding=(contract:CrossRepoContract,binding:ContractPin,providerRepo:string,consumerRemote:string):boolean=>Boolean(contract)&&exactKeys(contract as Record<string,unknown>,['contractId','version','providerRepo','providerDomain','authorityArtifact','consumerRepos'])&&contract.contractId===binding.contractId&&contract.version===binding.version&&contract.providerRepo===providerRepo&&contract.providerDomain===binding.providerDomain&&isStringArray(contract.consumerRepos)&&sortedUnique(contract.consumerRepos)&&contract.consumerRepos.includes(consumerRemote)&&validAuthorityArtifact(contract.authorityArtifact)&&sha(JSON.stringify(canonicalValue(contract)))===binding.contractSha256;
-const providerDescriptorMatches=(descriptor:GovernanceSpec,binding:ContractPin,providerRepo:string,consumerRemote:string):boolean=>validProviderDescriptorHeader(descriptor,binding)&&validProviderContractBinding(descriptor.contract as CrossRepoContract,binding,providerRepo,consumerRemote);
-const verifyPinnedSpec=(pin:GovernanceSpec,file:string,consumerRemote:string):void=>{
-  const binding=pin.contract as ContractPin;const providerRepo=binding.providerRepo;const leaf=providerRepo.split('/')[1];
-  if(!leaf||!pathPatternValid(leaf)||!pathPatternValid(binding.providerSpecRef))return fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',file);
-  const providerRoot=resolve(ROOT,'..',leaf);const git=(args:string[])=>providerGit(providerRoot,file,args);
-  if(repositoryIdentity(git(['config','--get','remote.origin.url']).toString('utf8'))!==providerRepo)fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:provider origin`);
-  git(['cat-file','-e',`${binding.providerCommitSha}^{commit}`]);const descriptor=parseProviderDescriptor(git(['show',`${binding.providerCommitSha}:${binding.providerSpecRef}`]),`${providerRepo}:${binding.providerSpecRef}`,file);
-  if(!providerDescriptorMatches(descriptor,binding,providerRepo,consumerRemote))fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:descriptor binding`);
-  const contract=descriptor.contract as CrossRepoContract;if(sha(git(['show',`${binding.providerCommitSha}:${contract.authorityArtifact.path}`]))!==contract.authorityArtifact.sha256)fail('CROSS_REPO_PROVIDER_DESCRIPTOR_UNVERIFIED',`${file}:authority artifact`);
-};
-function verifyPinnedProviderDescriptors(){const consumerRemote=consumerRepository();for(const file of walk('docs/specs').filter((path)=>path.endsWith('.spec.json'))){const pin=parseJson<GovernanceSpec>(file);if(pin.specKind==='contract-pin')verifyPinnedSpec(pin,file,consumerRemote)}}
-function buildRegistry(){verifyEntry();const laws=loadLaws();validateRootLawMappings(laws);validateForbiddenIntegrity(laws);const manifests=loadManifests(laws);loadContracts(laws,manifests);verifyNoRetiredLawReferences(laws);if(laws.some((law)=>law.enforcement===null))fail('ACTIVE_LAW_DENOMINATOR_MISMATCH','registry enforcement');const domains=manifests.map((m)=>({capabilityDomain:m.capabilityDomain,manifestPath:m.manifestPath,lawIds:m.lawIds,ownedPaths:m.ownedPaths,observedPaths:m.observedPaths})).sort((a,b)=>a.capabilityDomain.localeCompare(b.capabilityDomain));return {schemaVersion:4,sourceSpec:{path:SPEC,sha256:sha(bytes(SPEC))},lawCorpus:{baseLawPath:BASE,baseLawSha256:sha(bytes(BASE)),functionalLawPath:FUNCTIONAL,functionalLawSha256:sha(bytes(FUNCTIONAL))},laws,domains};}
-function writeRegistry(){const out=canonicalBytes(buildRegistry());mkdirSync(dirname(resolve(ROOT,REGISTRY)),{recursive:true});const tmp=resolve(ROOT,`${REGISTRY}.tmp-${process.pid}`);writeFileSync(tmp,out);JSON.parse(readFileSync(tmp,'utf8'));renameSync(tmp,resolve(ROOT,REGISTRY));console.log(`REGISTRY_BUILT ${sha(out)}`)}
-function checkProjection(){const before=candidateSnapshot();const expected=canonicalBytes(buildRegistry());requireCandidateStable(before,candidateSnapshot(),'candidate changed while building projection');const generatedFiles=existsSync(resolve(ROOT,REGISTRY))?readdirSync(resolve(ROOT,'scripts/audit/generated')).filter((name)=>!name.startsWith('.')).sort((left,right)=>Buffer.compare(Buffer.from(left),Buffer.from(right))):[];const actual=existsSync(resolve(ROOT,REGISTRY))?readFileSync(resolve(ROOT,REGISTRY)):Buffer.alloc(0);requireExactProjection(generatedFiles,['law-registry.generated.json'],actual,Buffer.from(expected));requireCandidateStable(before,candidateSnapshot(),'candidate changed while checking projection');console.log(`PROJECTION_CURRENT ${sha(expected)}`)}
 
-type CandidateDiff={status:'A'|'M'|'D';path:string;sha256:string|null};
-function candidateBaseSha(root=ROOT):string{
-  if(!existsSync(resolve(root,CHANGE)))return execFileSync('git',['rev-parse','HEAD'],{cwd:root}).toString().trim();
-  const source=readFileSync(resolve(root,CHANGE),'utf8');rejectDuplicateJsonKeys(source,resolve(root,CHANGE));const record=JSON.parse(source) as {baseSha?:unknown};
-  const baseSha=record.baseSha;
-  if(typeof baseSha!=='string')fail('CHANGE_RECORD_INVALID','baseSha');
-  return baseSha as string;
-}
-function candidateDiffs(root:string,baseSha:string):CandidateDiff[]{
-  const fileHash=(path:string)=>sha(readFileSync(resolve(root,path)));
-  const raw=execFileSync('git',['diff','--no-renames','--name-status','-z',baseSha,'--'],{cwd:root,maxBuffer:GIT_EVIDENCE_MAX_BUFFER}).toString().split('\0').filter(Boolean);
-  const diffs:CandidateDiff[]=[];
-  for(let index=0;index<raw.length;index+=2){const rawStatus=raw[index]?.[0];const path=norm(raw[index+1]??'');if(!path||!rawStatus)fail('SOURCE_PARSE_FAILED','candidate diff');const status=rawStatus==='A'?'A':rawStatus==='D'?'D':'M';diffs.push({status,path,sha256:status==='D'?null:fileHash(path)})}
-  const tracked=new Set(diffs.map((diff)=>diff.path));
-  const untracked=execFileSync('git',['ls-files','--others','--exclude-standard','-z'],{cwd:root,maxBuffer:GIT_EVIDENCE_MAX_BUFFER}).toString().split('\0').filter(Boolean).map(norm);
-  for(const path of untracked)if(!tracked.has(path))diffs.push({status:'A',path,sha256:fileHash(path)});
-  return diffs.sort((left,right)=>Buffer.compare(Buffer.from(left.path),Buffer.from(right.path))||left.status.localeCompare(right.status));
-}
-function candidateSnapshotAt(root:string,baseSha=candidateBaseSha(root)){const fileHash=(path:string)=>sha(readFileSync(resolve(root,path)));return sha(canonicalBytes({baseSha,diffs:candidateDiffs(root,baseSha),baseLawSha256:fileHash(BASE),functionalLawSha256:fileHash(FUNCTIONAL),registrySha256:fileHash(REGISTRY)}))}
-function candidateSnapshot(baseSha=candidateBaseSha()){return candidateSnapshotAt(ROOT,baseSha)}
-
-export {
-  SPEC, FREEZE, BASE, FUNCTIONAL, REGISTRY, CHANGE, REPORT, EVIDENCE, verifyEntry, loadLaws, buildRegistry,
-  writeRegistry, checkProjection, verifyPinnedProviderDescriptors, candidateSnapshot, candidateSnapshotAt,
+const validateSpecContract = (raw: GovernanceSpec, file: string): void => {
+  if (raw.specKind === 'cross-repo-dependency') validateDependencyContract(raw, file);
+  else if (raw.specKind === 'cross-repo-contract') validateProviderContract(raw, file);
+  else validateLocalSpecContract(raw, file);
 };
-export type { Level, Law, Manifest };
+
+const bindSpecLaws = (
+  raw: GovernanceSpec,
+  file: string,
+  lawById: ReadonlyMap<string, Law>,
+  contractRefs: Map<string, string[]>,
+): void => {
+  for (const lawId of raw.lawIds) {
+    const law = lawById.get(lawId);
+    if (!law || law.capabilityDomain !== raw.owner) fail('SOURCE_PARSE_FAILED', `${file}:${lawId}`);
+    contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
+  }
+};
+
+function loadSpecs(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
+  const lawById = new Map(laws.map((law) => [law.lawId, law]));
+  const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
+  const identities = new Set<string>();
+  for (const file of walk('docs/specs').filter((path) => path.endsWith('.json'))) {
+    const raw = parseJson<GovernanceSpec>(file);
+    if (!specEnvelopeValid(raw, domains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    const identity = `${raw.specId}\0${raw.version}`;
+    if (identities.has(identity)) fail('SOURCE_PARSE_FAILED', `${file}:identity`);
+    identities.add(identity);
+    bindSpecLaws(raw, file, lawById, contractRefs);
+    validateSpecContract(raw, file);
+  }
+}
+
+function machineBlock(path: string, label: string): Record<string, unknown> {
+  const source = text(path);
+  const marker = `\`\`\`${label}\n`;
+  const start = source.indexOf(marker);
+  if (start < 0 || source.indexOf(marker, start + marker.length) >= 0) fail('SOURCE_PARSE_FAILED', `${path}:${label}`);
+  const end = source.indexOf('\n```', start + marker.length);
+  if (end < 0) fail('SOURCE_PARSE_FAILED', `${path}:${label}:unclosed`);
+  const raw = source.slice(start + marker.length, end);
+  rejectDuplicateJsonKeys(raw, path);
+  try { return JSON.parse(raw) as Record<string, unknown>; } catch { return fail('SOURCE_PARSE_FAILED', path); }
+}
+
+type BlueprintEndpoint = { repo: string; domain: string };
+type BlueprintDependencyEdge = { from: BlueprintEndpoint; to: BlueprintEndpoint; contractRef: string | null };
+type BlueprintProhibitedEdge = { from: BlueprintEndpoint; to: BlueprintEndpoint; lawId: string };
+const endpointSignature = (endpoint: BlueprintEndpoint): string => `${endpoint.repo}\0${endpoint.domain}`;
+const edgeSignature = (edge: BlueprintDependencyEdge | BlueprintProhibitedEdge): string =>
+  `${endpointSignature(edge.from)}\0${endpointSignature(edge.to)}\0${'contractRef' in edge ? edge.contractRef ?? '' : edge.lawId}`;
+const validEndpoint = (value: unknown, domains: ReadonlySet<string>, remoteRepos: ReadonlySet<string>): value is BlueprintEndpoint => {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !exactKeys(value, ['domain', 'repo'])) return false;
+  const endpoint = value as BlueprintEndpoint;
+  return DOMAIN_PATTERN.test(endpoint.domain) && (endpoint.repo === 'local' ? domains.has(endpoint.domain) : remoteRepos.has(endpoint.repo));
+};
+const validEdges = (
+  raw: Record<string, unknown>, active: ReadonlySet<string>, blueprintLawIds: ReadonlySet<string>,
+  domains: ReadonlySet<string>, refs: ReadonlySet<string>,
+  dependencyRepos: ReadonlyMap<string, string>,
+): boolean => {
+  if (!Array.isArray(raw.dependencyEdges) || !Array.isArray(raw.prohibitedDependencyEdges)) return false;
+  const allowed = raw.dependencyEdges as BlueprintDependencyEdge[];
+  const prohibited = raw.prohibitedDependencyEdges as BlueprintProhibitedEdge[];
+  if (allowed.some((edge) => !edge || !exactKeys(edge, ['contractRef', 'from', 'to'])
+    || !validEndpoint(edge.from, domains, new Set(dependencyRepos.values())) || !validEndpoint(edge.to, domains, new Set(dependencyRepos.values()))
+    || endpointSignature(edge.from) === endpointSignature(edge.to)
+    || !(edge.contractRef === null || (typeof edge.contractRef === 'string' && refs.has(edge.contractRef)))
+    || (edge.from.repo !== edge.to.repo && (edge.contractRef === null
+      || dependencyRepos.get(edge.contractRef) !== (edge.from.repo === 'local' ? edge.to.repo : edge.from.repo))))) return false;
+  if (prohibited.some((edge) => !edge || !exactKeys(edge, ['from', 'lawId', 'to'])
+    || !validEndpoint(edge.from, domains, new Set(dependencyRepos.values())) || !validEndpoint(edge.to, domains, new Set(dependencyRepos.values()))
+    || endpointSignature(edge.from) === endpointSignature(edge.to)
+    || !active.has(edge.lawId) || !blueprintLawIds.has(edge.lawId))) return false;
+  const allowedKeys = allowed.map(edgeSignature); const prohibitedKeys = prohibited.map(edgeSignature);
+  if (!sortedUnique(allowedKeys) || !sortedUnique(prohibitedKeys)) return false;
+  const allowedDirections = new Set(allowed.map((edge) => `${endpointSignature(edge.from)}\0${endpointSignature(edge.to)}`));
+  return prohibited.every((edge) => !allowedDirections.has(`${endpointSignature(edge.from)}\0${endpointSignature(edge.to)}`));
+};
+
+export const blueprintValid = (
+  raw: Record<string, unknown>,
+  active: ReadonlySet<string>,
+  domains: ReadonlySet<string>,
+  specPaths: ReadonlySet<string>,
+  dependencyRepos: ReadonlyMap<string, string>,
+  lawDomains: ReadonlyMap<string, string>,
+): boolean => {
+  const lawIds = raw.lawIds;
+  const refs = raw.contractRefs;
+  return exactKeys(raw, BLUEPRINT_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
+    && concreteString(raw.blueprintId) && typeof raw.owner === 'string' && domains.has(raw.owner)
+    && isStringArray(lawIds) && lawIds.length > 0 && sortedUnique(lawIds)
+    && lawIds.every((lawId) => active.has(lawId) && lawDomains.get(lawId) === raw.owner)
+    && isStringArray(refs) && sortedUnique(refs) && refs.every((path) => specPaths.has(path))
+    && validEdges(raw, active, new Set(lawIds), domains, new Set(refs), dependencyRepos);
+};
+
+function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
+  const active = new Set(laws.map((law) => law.lawId));
+  const lawDomains = new Map(laws.map((law) => [law.lawId, law.capabilityDomain]));
+  const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
+  const specPaths = new Set(walk('docs/specs').filter((path) => path.endsWith('.json')));
+  const dependencyRepos = new Map<string, string>();
+  for (const specPath of specPaths) {
+    const spec = parseJson<GovernanceSpec>(specPath);
+    if (spec.specKind !== 'cross-repo-dependency') continue;
+    const contract = spec.contract as { providerRepo: string };
+    dependencyRepos.set(specPath, contract.providerRepo);
+  }
+  for (const file of walk('docs/blueprints').filter((path) => path.endsWith('.md') || path.endsWith('.json'))) {
+    const raw = file.endsWith('.json') ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record');
+    if (!blueprintValid(raw, active, domains, specPaths, dependencyRepos, lawDomains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    for (const lawId of raw.lawIds as string[]) contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
+  }
+}
+
+export function readRegistryProjection(): Registry {
+  const registry = parseJson<Registry>(REGISTRY);
+  if (registry.schemaVersion !== 5 || !Array.isArray(registry.laws) || !Array.isArray(registry.domains)) {
+    fail('SOURCE_PARSE_FAILED', REGISTRY);
+  }
+  return registry;
+}
+
+export function providerDomainForDependencySpec(specPath: string): string {
+  const domains: string[] = [];
+  const files = walk('docs/blueprints').filter((path) => path.endsWith('.md') || path.endsWith('.json'));
+  for (const file of files) for (const edge of ((file.endsWith('.json')
+    ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record')).dependencyEdges ?? []) as BlueprintDependencyEdge[]) {
+    if (edge.contractRef !== specPath) continue;
+    const remote = edge.from.repo === 'local' ? edge.to : edge.to.repo === 'local' ? edge.from : null;
+    domains.push((remote ?? fail('SOURCE_PARSE_FAILED', `${file}:${specPath}:remote endpoint`)).domain);
+  }
+  const unique = sortedUnique([...new Set(domains)].sort(byteCompare));
+  if (!unique || domains.length !== 1) fail('EXTERNAL_SURFACE_AUTHORITY_MISSING', `${specPath}:providerDomain`);
+  return domains[0]!;
+}
+
+export function buildRegistry(): Registry {
+  verifyEntry();
+  const laws = loadLaws();
+  const manifests = loadManifests(laws);
+  const contractRefs = new Map<string, string[]>();
+  loadSpecs(laws, manifests, contractRefs);
+  loadBlueprints(laws, manifests, contractRefs);
+  const projectedLaws = laws.map((law) => ({ ...law, contractRefs: [...new Set(contractRefs.get(law.lawId) ?? [])].sort(byteCompare) }));
+  return {
+    schemaVersion: 5,
+    sourceSpec: { path: SPEC },
+    lawCorpus: { baseLawPath: BASE, functionalLawPath: FUNCTIONAL },
+    laws: projectedLaws,
+    domains: manifests.map(({ capabilityDomain, manifestPath, lawIds, ownedPaths, observedPaths }) => ({ capabilityDomain, manifestPath, lawIds, ownedPaths, observedPaths })),
+  };
+}
+
+const ownersForPath = (path: string, registry: Registry): string[] => registry.domains
+  .filter((domain) => domain.ownedPaths.some((pattern) => matchesPath(pattern, path)))
+  .map((domain) => domain.capabilityDomain);
+
+export function verifyProductionOwnership(registry = buildRegistry()): void {
+  for (const path of repositoryPaths()) {
+    if (pathRole(path) !== 'PRODUCTION') continue;
+    const owners = ownersForPath(path, registry);
+    if (!owners.length) fail('UNOWNED_PRODUCTION_FILE', path);
+    if (owners.length > 1) fail('MULTIPLE_PRIMARY_OWNERS', `${path}:${owners.join(',')}`);
+  }
+  verifyPathRoleEscalation();
+}
+
+export function writeRegistry(): void {
+  const output = canonicalBytes(buildRegistry());
+  mkdirSync(dirname(resolve(ROOT, REGISTRY)), { recursive: true });
+  const temporary = resolve(ROOT, `${REGISTRY}.tmp-${process.pid}`);
+  writeFileSync(temporary, output);
+  JSON.parse(readFileSync(temporary, 'utf8'));
+  renameSync(temporary, resolve(ROOT, REGISTRY));
+  process.stdout.write('REGISTRY_BUILT\n');
+}
+
+export function checkProjection(): void {
+  const generated = existsSync(resolve(ROOT, 'scripts/audit/generated')) ? readdirSync(resolve(ROOT, 'scripts/audit/generated')).filter((name) => !name.startsWith('.')).sort(byteCompare) : [];
+  if (JSON.stringify(generated) !== JSON.stringify(['law-registry.generated.json'])) fail('GENERATED_FILESET_INVALID', generated.join(','));
+  const expected = Buffer.from(canonicalBytes(buildRegistry()));
+  const actual = existsSync(resolve(ROOT, REGISTRY)) ? readFileSync(resolve(ROOT, REGISTRY)) : Buffer.alloc(0);
+  assertProjectionEqual(expected, actual);
+  process.stdout.write('PROJECTION_CURRENT\n');
+}
+export function assertProjectionEqual(expected: Buffer, actual: Buffer): void {
+  if (!actual.equals(expected)) fail('GENERATED_PROJECTION_STALE', REGISTRY);
+}
+
+export function gitCommit(): string {
+  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  if (!validGitObjectId(commit)) fail('SOURCE_PARSE_FAILED', 'git commit');
+  return commit;
+}
+
+export function diffPaths(base = 'HEAD'): Array<{ status: string; path: string }> {
+  const raw = execFileSync('git', ['diff', '--name-status', '-z', base, '--'], { cwd: ROOT }).toString().split('\0').filter(Boolean);
+  const changes: Array<{ status: string; path: string }> = [];
+  for (let index = 0; index < raw.length;) {
+    const status = raw[index++]!;
+    if (status.startsWith('R') || status.startsWith('C')) {
+      const oldPath = norm(raw[index++]!);
+      const newPath = norm(raw[index++]!);
+      if (status.startsWith('R')) changes.push({ status: 'D', path: oldPath });
+      changes.push({ status: 'A', path: newPath });
+    } else changes.push({ status: status[0]!, path: norm(raw[index++]!) });
+  }
+  const tracked = new Set(changes.map((change) => change.path));
+  for (const path of execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { cwd: ROOT }).toString().split('\0').filter(Boolean).map(norm)) if (!tracked.has(path)) changes.push({ status: 'A', path });
+  return changes.sort((left, right) => byteCompare(left.path, right.path) || byteCompare(left.status, right.status));
+}

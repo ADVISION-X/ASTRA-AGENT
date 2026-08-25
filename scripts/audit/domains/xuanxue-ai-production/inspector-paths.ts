@@ -1,9 +1,3 @@
-export const authorityPaths = [
-  ".github/instructions/agent-rules/功能法案.md",
-  "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-  "scripts/audit/domains/xuanxue-ai-production/manifest.json",
-] as const;
-
 export const schemaPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts";
 export const schemaRefinementsPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-schema-refinements.ts";
 export const profilePath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production.profile.ts";
@@ -64,7 +58,7 @@ export const pluginPaths = [
   cloudCredentialPath,
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-product-contracts.ts",
-  "src/plugins/xuanxue-ai-production/generated/xuanxue-ai-production-v6.validator.ts",
+  "src/plugins/xuanxue-ai-production/xuanxue-ai-production-runtime-protocol.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-staging.ts",
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-publication.ts",

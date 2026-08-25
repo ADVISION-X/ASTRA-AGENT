@@ -11,35 +11,38 @@ export type InspectorFinding = {
   filePath?: string | undefined;
   evidence?: string | undefined;
 };
-export type ExecutedCheck = { lawId: string; clauseId: string; checkId: string };
+export type InspectorAssertion = { clauses: string[]; evidenceMode: string; passed: boolean; refs: string[] };
+export type InspectorLawResult = { lawId: string; assertions: InspectorAssertion[]; findings: InspectorFinding[] };
+export type InspectorEvaluation = {
+  capabilityDomain: string;
+  reportedLawIds: string[];
+  findings: InspectorFinding[];
+  inspectedFiles: string[];
+  executedChecks: InspectorExecutedCheck[];
+  executedSemanticChecks: InspectorSemanticCheckReceipt[];
+};
+export type InspectorSemanticCheckReceipt = { lawId: string; name: string };
+export type InspectorExecutedCheck = {
+  lawId: string;
+  evidenceMode: string;
+  clauses: string[];
+  checkId: string;
+  semanticChecks: string[];
+};
+export type InspectorLawRequirement = {
+  lawId: string;
+  forbiddenCount: number;
+  clausesByMode: Record<string, string[]>;
+  targetPaths: string[];
+  targetSet: { queryRef: string; count: number };
+};
 export type InspectorOutput = {
   capabilityDomain: string;
   reportedLawIds: string[];
-  executedChecks: ExecutedCheck[];
-  findings: InspectorFinding[];
+  lawResults: InspectorLawResult[];
   inspectedFiles: string[];
-  reportJson?: unknown;
-  reportMarkdown?: string | undefined;
 };
-export type InspectorCheckBodyResult = {
-  findings: readonly InspectorFinding[];
-  evidenceRefs: readonly string[];
-};
-export type InspectorCheckSession = {
-  run(checkId: string, body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
-  runAll(body: () => InspectorCheckBodyResult | Promise<InspectorCheckBodyResult>): Promise<InspectorCheckBodyResult>;
-  output(meta?: Readonly<{ reportJson?: unknown; reportMarkdown?: string }>): SessionInspectorOutput;
-};
-export type SessionInspectorOutput = Omit<
-  InspectorOutput,
-  "executedChecks" | "findings" | "inspectedFiles" | "reportedLawIds"
-> & {
-  reportedLawIds: readonly string[];
-  checkRuns: readonly unknown[];
-  executedChecks: readonly ExecutedCheck[];
-  findings: readonly InspectorFinding[];
-  inspectedFiles: readonly string[];
-};
+export type SessionInspectorOutput = InspectorOutput;
 type AuditPlanEntry = {
   capabilityDomain: string;
   manifestPath: string;
@@ -56,20 +59,13 @@ type AuditPlanEntry = {
   }>;
   blueprintRefs: Array<{ filePath: string; requiredAnchors: string[] }>;
 };
-export type CompletedReport = {
-  status: "PASS" | "FAIL";
-  findingCount: number;
-  reportPath: string;
-};
-
 export type InspectorContext = {
   project: Project;
   selectedLawId: string;
   sealedRoot: string;
-  targetSet: Readonly<{ queryRef: string; count: number; sha256: string }>;
+  targetSet: Readonly<{ queryRef: string; count: number }>;
   targetPaths: readonly string[];
+  lawRequirements: readonly InspectorLawRequirement[];
   planEntry: AuditPlanEntry;
   generatedPlan: readonly AuditPlanEntry[];
-  completedReports: Readonly<Record<string, CompletedReport>>;
-  checks: InspectorCheckSession;
 };

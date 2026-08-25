@@ -2,7 +2,7 @@ import { GovernanceError, fail, text } from './governance-runtime.js';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 const sortedUnique = (items:string[]) => items.length === new Set(items).size && items.every((v,i)=>i===0||Buffer.compare(Buffer.from(items[i-1]!),Buffer.from(v))<0);
-const exactKeys = (value:Record<string,unknown>, keys:string[]) => JSON.stringify(Object.keys(value).sort())===JSON.stringify([...keys].sort());
+const exactKeys = (value: object, keys:string[]) => JSON.stringify(Object.keys(value).sort())===JSON.stringify([...keys].sort());
 const canonicalValue = (value:unknown):Json => {
   if(value===null||typeof value==='string'||typeof value==='boolean')return value;
   if(typeof value==='number'&&Number.isFinite(value))return value;
@@ -40,8 +40,10 @@ export function rejectDuplicateJsonKeys(source:string,path:string){const cursor=
 const parseJson = <T>(path:string):T => { const source=text(path); try{rejectDuplicateJsonKeys(source,path);return JSON.parse(source) as T}catch(error){if(error instanceof GovernanceError)throw error;return fail('SOURCE_PARSE_FAILED',path)} };
 const isStringArray = (value:unknown):value is string[] => Array.isArray(value) && value.every((item)=>typeof item==='string');
 const cleanString = (value:unknown): value is string => typeof value==='string' && value.length>0 && value===value.normalize('NFC') && !/[\0-\x1f\x7f]/u.test(value);
+const concreteString = (value:unknown): value is string => cleanString(value)
+  && !/(?:<[^<>]+>|\{\{[^{}]+\}\}|\$\{[^{}]+\})/u.test(value);
 const pathPatternValid = (value:string) => {
-  if(!cleanString(value)||value.startsWith('/')||value.includes('\\')||value.includes('//')||/(?:^|\/)\.\.?(?:\/|$)/u.test(value)||/[?\[\]{}()!+@]/u.test(value))return false;
+  if(!concreteString(value)||value.startsWith('/')||value.includes('\\')||value.includes('//')||/(?:^|\/)\.\.?(?:\/|$)/u.test(value)||/[?\[\]{}()!+@]/u.test(value))return false;
   if(value==='**/*')return true;
   const segment='[^/*?\\[\\]{}()!+@]+';
   return new RegExp(`^(?:${segment}\\/)*${segment}(?:\\/\\*\\*|\\/\\*\\*\\/\\*\\.[A-Za-z0-9]+)?$`,'u').test(value);
@@ -50,8 +52,7 @@ const pathPatternContains = (parent:string,child:string) => parent==='**/*' || p
 
 
 export {
-  sortedUnique, exactKeys, canonicalValue, canonicalBytes, parseJson, isStringArray, cleanString,
+  sortedUnique, exactKeys, canonicalValue, canonicalBytes, parseJson, isStringArray, cleanString, concreteString,
   pathPatternValid, pathPatternContains,
 };
 export type { Json };
-

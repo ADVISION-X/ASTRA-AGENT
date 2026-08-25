@@ -1,128 +1,21 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "capabilityDomain": "app-shell-ui",
   "status": "active",
   "lawIds": [
     "LAW-APP-SHELL-UI-001-V2",
     "LAW-APP-SHELL-UI-002-V1",
-    "LAW-APP-SHELL-UI-003-V1"
+    "LAW-APP-SHELL-UI-003-V2"
   ],
-  "lawBindings": {
-    "LAW-APP-SHELL-UI-001-V2": {
-      "staticBinding": {
-        "bindingId": "app.shell.ui.001.v2.static",
-        "checkId": "app.shell.ui.001.v2.static.check",
-        "inspectorRef": "scripts/audit/domains/app-shell-ui/inspector.ts#inspectDomain|LAW-APP-SHELL-UI-001-V2",
-        "targetSelectorId": "app.shell.ui.001.v2.target",
-        "evidenceModes": [
-          "static.ast"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "app.shell.ui.001.v2.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aapp-shell-ui%3Aenforce|app.shell.ui.001.v2.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [
-        {
-          "bindingId": "app.shell.ui.001.v2.exam-golden.exam",
-          "examId": "app.shell.ui.001.v2.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aapp-shell-ui|LAW-APP-SHELL-UI-001-V2|exam.golden",
-          "evidenceModes": [
-            "exam.golden"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "app.shell.ui.001.v2.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aapp-shell-ui|app.shell.ui.001.v2.exam-golden.exam",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ],
-      "proofBindings": []
-    },
-    "LAW-APP-SHELL-UI-002-V1": {
-      "staticBinding": {
-        "bindingId": "app.shell.ui.002.v1.static",
-        "checkId": "app.shell.ui.002.v1.static.check",
-        "inspectorRef": "scripts/audit/domains/app-shell-ui/inspector.ts#inspectDomain|LAW-APP-SHELL-UI-002-V1",
-        "targetSelectorId": "app.shell.ui.002.v1.target",
-        "evidenceModes": [
-          "static.ast"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "app.shell.ui.002.v1.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aapp-shell-ui%3Aenforce|app.shell.ui.002.v1.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [
-        {
-          "bindingId": "app.shell.ui.002.v1.exam-golden.exam",
-          "examId": "app.shell.ui.002.v1.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aapp-shell-ui|LAW-APP-SHELL-UI-002-V1|exam.golden",
-          "evidenceModes": [
-            "exam.golden"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "app.shell.ui.002.v1.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aapp-shell-ui|app.shell.ui.002.v1.exam-golden.exam",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ],
-      "proofBindings": []
-    },
-    "LAW-APP-SHELL-UI-003-V1": {
-      "staticBinding": {
-        "bindingId": "app.shell.ui.003.v1.static",
-        "checkId": "app.shell.ui.003.v1.static.check",
-        "inspectorRef": "scripts/audit/domains/app-shell-ui/inspector.ts#inspectDomain|LAW-APP-SHELL-UI-003-V1",
-        "targetSelectorId": "app.shell.ui.003.v1.target",
-        "evidenceModes": [
-          "static.ast"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "app.shell.ui.003.v1.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Aapp-shell-ui%3Aenforce|app.shell.ui.003.v1.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [
-        {
-          "bindingId": "app.shell.ui.003.v1.exam-golden.exam",
-          "examId": "app.shell.ui.003.v1.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Aapp-shell-ui|LAW-APP-SHELL-UI-003-V1|exam.golden",
-          "evidenceModes": [
-            "exam.golden"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "app.shell.ui.003.v1.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Aapp-shell-ui|app.shell.ui.003.v1.exam-golden.exam",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ],
-      "proofBindings": []
-    }
-  },
   "ownedPaths": [
     "docs/current-sub-capabilities.zh.md",
+    "scripts/acceptance/app-shell-localization.acceptance.ts",
+    "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
+    "scripts/acceptance/app-shell-ui.acceptance.ts",
     "scripts/audit/domains/app-shell-ui/**",
     "src/app/**"
   ],
   "observedPaths": [
-    "src/app/workbench-api-boundary.ts"
+    "**/*"
   ]
 }

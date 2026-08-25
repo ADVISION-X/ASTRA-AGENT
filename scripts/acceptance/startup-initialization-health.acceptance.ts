@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
 import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-preflight.mjs";
@@ -267,3 +268,5 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "exam.golden", locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "unpacked preflight and repository-owned listener cleanup verified" });

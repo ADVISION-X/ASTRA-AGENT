@@ -18,7 +18,7 @@ import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../../shared/paths.js";
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
-import { architectureLawPath, type ActivePluginContract } from "./scan-active-plugin-gate.js";
+import type { ActivePluginContract } from "./scan-active-plugin-gate.js";
 
 type MediatorPluginContract = Pick<
   ActivePluginContract,
@@ -331,7 +331,7 @@ export const inspectActivePluginMediators = (input: MediatorInspectionInput): vo
   for (const entry of input.entries.filter((candidate) => candidate.status === "active")) {
     const expectedRoute = `src/mediator/${entry.pluginId}-route.ts`;
     if (entry.mediatorRoute !== expectedRoute) {
-      pushFinding(input, architectureLawPath, "architecture/active-plugin-mediator-noncanonical",
+      pushFinding(input, expectedRoute, "architecture/active-plugin-mediator-noncanonical",
         `Active plugin ${entry.pluginId} must own exactly ${expectedRoute}.`, entry.mediatorRoute);
       continue;
     }
@@ -342,7 +342,7 @@ export const inspectActivePluginMediators = (input: MediatorInspectionInput): vo
       continue;
     }
     if (!entry.allowedEntrypoints.includes(entry.mediatorRoute)) {
-      pushFinding(input, architectureLawPath, "architecture/active-plugin-mediator-not-allowlisted",
+      pushFinding(input, entry.mediatorRoute, "architecture/active-plugin-mediator-not-allowlisted",
         `Active plugin ${entry.pluginId} does not allowlist its mediator route.`, entry.mediatorRoute);
     }
     const route = input.project.getSourceFile(resolveFromRepo(entry.mediatorRoute));

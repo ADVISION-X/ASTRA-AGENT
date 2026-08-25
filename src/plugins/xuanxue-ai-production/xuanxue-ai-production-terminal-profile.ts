@@ -10,18 +10,6 @@ export const xuanxueTerminalMetaphysicsProviderProfile = {
   reasoningUiLabel: "Pro",
 } as const;
 
-const terminalMetaphysicsProductIds = new Set<string>(
-  XUANXUE_PRODUCT_EXECUTION_CONTRACTS
-    .filter((contract) => ["bazi", "qimen", "hehun", "naming"].includes(
-      contract.owner_domain,
-    ))
-    .map((contract) => contract.contract_id),
-);
-
-export const isXuanxueTerminalMetaphysicsProduct = (
-  productId: string,
-): boolean => terminalMetaphysicsProductIds.has(productId);
-
 export const isXuanxueTerminalMetaphysicsProfile = (
   profile: Record<string, unknown> | null | undefined,
 ): boolean => Boolean(
@@ -33,4 +21,3 @@ export const isXuanxueTerminalMetaphysicsProfile = (
   && profile.model_identity_status === "verified"
   && profile.reasoning_effort === xuanxueTerminalMetaphysicsProviderProfile.reasoningTier,
 );
-import { XUANXUE_PRODUCT_EXECUTION_CONTRACTS } from "./xuanxue-ai-production-product-contracts.js";

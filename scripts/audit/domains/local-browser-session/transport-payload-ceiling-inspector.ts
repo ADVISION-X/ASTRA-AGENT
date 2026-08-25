@@ -10,7 +10,6 @@ import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 const checkId = "browser-authority/terminal-authority";
 const clauseId = "apex-local-browser-001-v4-single-unpacked-websocket";
 const sourcePaths = [
-  "src/app/workbench-browser-websocket-upgrade.ts",
   "src/lib/browser/transport/browser-authority-frame-codec.ts",
   "src/lib/browser/protocol/generated/browser-protocol.generated.ts",
 ] as const;

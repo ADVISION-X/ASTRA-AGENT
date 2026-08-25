@@ -1,53 +1,12 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "capabilityDomain": "system-security",
   "status": "active",
   "lawIds": [
     "LAW-SYSTEM-SECURITY-001-V1"
   ],
-  "lawBindings": {
-    "LAW-SYSTEM-SECURITY-001-V1": {
-      "staticBinding": {
-        "bindingId": "system.security.001.v1.static",
-        "checkId": "system.security.001.v1.static.check",
-        "inspectorRef": "scripts/audit/domains/system-security/inspector.ts#inspectDomain|LAW-SYSTEM-SECURITY-001-V1",
-        "targetSelectorId": "system.security.001.v1.target",
-        "evidenceModes": [
-          "static.ast",
-          "static.types",
-          "static.contract",
-          "static.dependency",
-          "static.config"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "system.security.001.v1.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Asystem-security%3Aenforce|system.security.001.v1.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [
-        {
-          "bindingId": "system.security.001.v1.exam-golden.exam",
-          "examId": "system.security.001.v1.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Asystem-security|LAW-SYSTEM-SECURITY-001-V1|exam.golden",
-          "evidenceModes": [
-            "exam.golden"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "system.security.001.v1.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Asystem-security|system.security.001.v1.exam-golden.exam",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ],
-      "proofBindings": []
-    }
-  },
   "ownedPaths": [
+    "scripts/acceptance/system-security.acceptance.ts",
     "scripts/audit/domains/system-security/**"
   ],
   "observedPaths": [

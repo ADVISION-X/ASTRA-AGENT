@@ -8,7 +8,6 @@ import {
   requireXuanxueStage,
 } from "./xuanxue-ai-production-parent-proof.js";
 import { assertXuanxueAiOrderMatchesProfile } from "./xuanxue-ai-production.profile.js";
-import { xuanxueProductExecutionContract } from "./xuanxue-ai-production-product-contracts.js";
 import type { XuanxueAiProductionRuntime } from "./xuanxue-ai-production.runtime.js";
 import type {
   XuanxueAiOrderRecord,
@@ -41,16 +40,8 @@ const isTypedJoinStage = (
   stage: XuanxueAiStageRecord,
 ): boolean => {
   const profile = assertXuanxueAiOrderMatchesProfile(record.order);
-  const contract = xuanxueProductExecutionContract(record.order.productId);
-  const node = contract.product_graph.nodes.find(
-    (candidate) => candidate.node_id === profile.nodeId,
-  );
-  return Boolean(
-    node
-    && node.join_binding !== "none"
-    && stage.stageId === profile.finalStageId
-    && record.order.joinParents.length > 0,
-  );
+  return stage.stageId === profile.finalStageId
+    && record.order.joinParents.length > 0;
 };
 
 const buildJoinedInput = async (
@@ -63,10 +54,6 @@ const buildJoinedInput = async (
   }
   const childProfile = assertXuanxueAiOrderMatchesProfile(input.record.order);
   const parentProfile = assertXuanxueAiOrderMatchesProfile(parentOrder.order);
-  const childContract = xuanxueProductExecutionContract(input.record.order.productId);
-  const allowedParentNodes = childContract.product_graph.edges
-    .filter((edge) => edge.to === childProfile.nodeId && edge.type.startsWith("typed_parent_slot_"))
-    .map((edge) => edge.from);
   const parentStage = requireXuanxueStage(parentOrder, binding.stageId);
   assertPersonParentMatches({
     child: input.record,
@@ -74,8 +61,7 @@ const buildJoinedInput = async (
     personRef: binding.personRef,
   });
   if (
-    (allowedParentNodes.length > 0 && !allowedParentNodes.includes(parentProfile.nodeId))
-    || binding.stageId !== parentProfile.finalStageId
+    binding.stageId !== parentProfile.finalStageId
     || parentStage.status !== "completed"
     || parentStage.executionId !== binding.executionId
     || parentStage.rawOutputHash !== binding.rawOutputHash

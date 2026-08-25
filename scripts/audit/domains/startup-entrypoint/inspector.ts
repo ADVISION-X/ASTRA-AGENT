@@ -5,6 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 const packagePath = "package.json";
 const launchPath = "scripts/startup/launch-grasseye.mjs";
@@ -135,21 +136,69 @@ const inspectStartupBoundary = (context: InspectorContext, findings: Finding[], 
   inspectUnpackedReadback(preflight, findings, lawId);
 };
 
-const inspectDomainEvaluation = (context: InspectorContext): Readonly<{
-  findings: Finding[];
-  evidenceRefs: readonly string[];
-}> => {
+const inspectLocalStartupAuthorityBoundary = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const launch = sourceFile(context, launchPath);
+  const preflight = sourceFile(context, preflightPath);
+  const processControl = sourceFile(context, processControlPath);
+  if (!launch || !preflight || !processControl) {
+    addFinding(findings, lawId, inspectorPath, "The local startup authority boundary must remain inspectable.");
+    return;
+  }
+  const packageJson = JSON.parse(readFileSync(resolveFromRepo(packagePath), "utf8")) as { scripts?: Record<string, string> };
+  const startupCommand = packageJson.scripts?.["grasseye:start"] ?? "";
+  if (startupCommand !== "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs") {
+    addFinding(findings, lawId, packagePath, "The ordinary startup command must load only this repository's optional .env.local and the sole launch entrypoint.");
+  }
+  const launchIdentifiers = new Set(launch.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => node.getText()));
+  const launchLiterals = stringLiterals(launch);
+  for (const required of ["runBrowserRuntimePreflight", "clearPortListeners", "startLocalService", "waitForWorkbenchHealth"]) {
+    if (!launchIdentifiers.has(required)) addFinding(findings, lawId, launchPath, `Local startup must execute ${required}.`);
+  }
+  for (const required of ["127.0.0.1", "src/app/server.ts", "degraded"]) {
+    if (!launchLiterals.has(required)) addFinding(findings, lawId, launchPath, `Local startup must retain the ${required} fail-closed Shell boundary.`);
+  }
+  if (!launch.getDescendantsOfKind(SyntaxKind.NumericLiteral).some((node) => node.getLiteralValue() === 4173)) {
+    addFinding(findings, lawId, launchPath, "The sole local Shell must default to port 4173.");
+  }
+  const forbiddenStartupCalls = new Set([
+    "enrollXuanxueAiProductionCloudDevice", "registerOperatorTargetClaim", "acquireOperatorClaimedTargetLease",
+    "createSyntheticJob", "claimJob", "runFullQuality", "buildBrowserExtension", "reloadExtension",
+  ]);
+  const leaked = [...launchIdentifiers].find((name) => forbiddenStartupCalls.has(name));
+  if (leaked) addFinding(findings, lawId, launchPath, `Ordinary startup must not execute ${leaked}.`);
+  const processLiterals = stringLiterals(processControl);
+  for (const required of ["PORT_LISTENER_FOREIGN", "PORT_LISTENER_IDENTITY_CHANGED", "src/app/server.ts"]) {
+    if (required === "src/app/server.ts") continue;
+    if (!processLiterals.has(required)) addFinding(findings, lawId, processControlPath, `Listener cleanup must fail closed with ${required}.`);
+  }
+};
+
+const inspectDomainEvaluation = (context: InspectorContext) => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
+  const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V1");
   const findings: Finding[] = [];
-  inspectStartupBoundary(context, findings, lawId);
-  return { findings, evidenceRefs: [inspectorPath, packagePath, launchPath, preflightPath, processControlPath] };
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  recordSemanticCheck(executedSemanticChecks, lawId, "inspectStartupBoundary",
+    inspectStartupBoundary(context, findings, lawId));
+  recordSemanticCheck(executedSemanticChecks, boundaryLawId, "inspectLocalStartupAuthorityBoundary",
+    inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId));
+  return {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
+    findings,
+    inspectedFiles: [...context.targetPaths],
+  };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("startup-entrypoint requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const evaluation = inspectDomainEvaluation(context);
-    return { findings: evaluation.findings, evidenceRefs: evaluation.evidenceRefs };
-  });
-  return context.checks.output();
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4" },
+    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1" },
+  ], inspectDomainEvaluation);
 };

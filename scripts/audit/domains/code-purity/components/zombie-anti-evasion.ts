@@ -84,15 +84,11 @@ const isGeneratedPlanOwnerImportContract = (
 };
 
 const zombieAcceptanceIsInPhysicalSkeleton = (context: InspectorContext): boolean => {
-  const manifest = JSON.parse(readFileSync(resolveFromRepo(
-    "scripts/audit/domains/code-purity/manifest.json",
-  ), "utf8")) as {lawBindings?:Record<string,{examBindings?:Array<{examRef?:string}>}>};
   const governanceSource = context.project.getSourceFile(resolveFromRepo("scripts/audit/governance.ts"));
-  const bindingExists = manifest.lawBindings?.["LAW-CODE-PURITY-001-V1"]?.examBindings?.some((binding)=>
-    binding.examRef?.split("|")[1] === "acceptance%3Acode-purity-zombie-deep") ?? false;
-  const examRunnerIsConsumed = governanceSource?.getFunction("runAcceptanceChecks")
-    ?.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal)=>literal.getLiteralValue()==="exam:check") ?? false;
-  return bindingExists && examRunnerIsConsumed;
+  const projectChecks = governanceSource?.getFunction("projectChecks");
+  const qualityConsumesAcceptance = projectChecks?.getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .some((literal) => literal.getLiteralValue() === "acceptance:code-purity-zombie-deep") ?? false;
+  return qualityConsumesAcceptance && readPackageScripts(context)["acceptance:code-purity-zombie-deep"] !== undefined;
 };
 
 const pushVoidKeepaliveFindings = (
@@ -308,8 +304,8 @@ export const scanZombieInspectorSelfProof = (input: {
   if (!zombieAcceptanceIsInPhysicalSkeleton(input.context)) {
     selfProofProblems.push("ci-full runner does not execute acceptance:code-purity-zombie-deep.");
   }
-  if (!input.context.planEntry.lawIds.includes("LAW-CODE-PURITY-001-V1")) {
-    selfProofProblems.push("code-purity planEntry does not bind LAW-CODE-PURITY-001-V1.");
+  if (!input.context.planEntry.lawIds.includes("LAW-CODE-PURITY-001-V2")) {
+    selfProofProblems.push("code-purity planEntry does not bind LAW-CODE-PURITY-001-V2.");
   }
   if (input.inspectedFileCount === 0) {
     selfProofProblems.push("code-purity inspectedFiles is empty.");
@@ -331,7 +327,7 @@ export const scanZombieInspectorSelfProof = (input: {
       reason: selfProofProblems.join(" | "),
       remediation: "Wire symbol graph, no-regex, deep acceptance, and ci-full self-proof before claiming zombie inspector readiness.",
       role: "audit-phase",
-      verificationCommand: "npm run ci:full",
+      verificationCommand: "npm run quality:check -- READY",
     },
     `Code-purity zombie inspector self-proof is incomplete: ${selfProofProblems.join(" | ")}`,
   );

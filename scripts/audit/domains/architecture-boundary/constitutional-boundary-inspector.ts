@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type ImportDeclaration, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
@@ -11,6 +11,7 @@ import {
   isExternalCapabilityConsumer,
 } from "../../shared/repo-path-classifier.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
+import { authenticatedStaticChecks } from "../../shared/static-inspector-result.js";
 import { resolveCapabilityFacadePolicy } from "../capability-governance/components/capability-source-of-truth.js";
 
 type Finding = ReturnType<typeof createFinding>;
@@ -356,20 +357,7 @@ const inspectProtocolObjectLiterals = (input: {
   }
 };
 
-const buildSummary = (findings: readonly Finding[]) => ({
-  auditRegexViolations: 0,
-  directPrivateImports: findings.filter((finding) => finding.checkId === "constitutional-boundary/external-private-import" || finding.checkId === "constitutional-boundary/external-non-facade-import").length,
-  facadeSymbolEscapes: findings.filter((finding) => finding.checkId === "constitutional-boundary/facade-private-symbol-export" || finding.checkId === "constitutional-boundary/facade-private-symbol-import").length,
-  inspectorTheater: 0,
-  orphanExports: 0,
-  orphanFiles: 0,
-  passThroughWrappers: 0,
-  protocolEscapes: findings.filter((finding) => finding.checkId === "constitutional-boundary/private-capability-protocol").length,
-});
-
-
-
-export const inspectConstitutionalBoundary = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+export const inspectConstitutionalBoundary = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
   const facadeLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
   const protocolLawId = selectLawId(context.planEntry.lawIds, "LAW-ARCHITECTURE-BOUNDARY-001-V1");
@@ -401,34 +389,9 @@ export const inspectConstitutionalBoundary = async (context: InspectorContext): 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks: [],
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
-    reportJson: {
-      generatedAt: new Date().toISOString(),
-      status: findings.length === 0 ? "PASS" : "FAIL",
-      inspectedFiles: [...inspectedFiles].sort(),
-      findings,
-      summary: buildSummary(findings),
-    },
   };
-};
-
-export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("constitutional-boundary requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectConstitutionalBoundary(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
 };

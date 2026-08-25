@@ -59,7 +59,8 @@ export const assertDuplicateCanonicalDomRowsAreOneLogicalRoute = async (): Promi
     focusChatGptConversationByCanonicalPath({
       base: ambiguousBrowser,
       conversationUrl: "https://chatgpt.com/c/exact-canonical",
-      timeoutMs: 1,
+      turnMarker: "GRASSEYE_TURN_exact_canonical",
+      timeoutMs: 100,
     }),
     /CHATGPT_CANONICAL_CONVERSATION_IDENTITY_AMBIGUOUS/u,
   );

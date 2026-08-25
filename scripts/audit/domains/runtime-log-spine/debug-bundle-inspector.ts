@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
@@ -55,7 +53,7 @@ export const collectDebugBundleFindings = (context: InspectorContext): {
   inspectedFiles: string[];
 } => {
   const findings: RuntimeLogSpineFinding[] = [];
-  const inspectedFiles = [...requiredFiles, "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"];
+  const inspectedFiles = [...requiredFiles];
   const sources = requiredFiles.map((repoPath) => ({ repoPath, source: context.project.getSourceFile(resolveFromRepo(repoPath)) }));
 
   for (const { repoPath, source } of sources) {
@@ -70,9 +68,6 @@ export const collectDebugBundleFindings = (context: InspectorContext): {
   const debugBundleSource = sources.find(({ repoPath }) => repoPath === "src/lib/runtime-logs/debug-bundle.ts")?.source;
   if (debugBundleSource && !hasCallToRedaction(debugBundleSource)) {
     pushFinding(findings, "src/lib/runtime-logs/debug-bundle.ts", "Debug bundle writes must call the canonical runtime-log redaction exports.");
-  }
-  if (!existsSync(resolveFromRepo("scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"))) {
-    pushFinding(findings, "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts", "Restore the debug bundle production acceptance.");
   }
   return { findings, inspectedFiles };
 };

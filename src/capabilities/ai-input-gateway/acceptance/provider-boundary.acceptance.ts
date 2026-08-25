@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { runAiInputGatewayAtomicInspectorAttacks } from
   "../../../../scripts/acceptance/atomic-if-and-then-inspector.attacks.js";
+import { emitQualityProofObservation } from
+  "../../../../scripts/audit/shared/proof-observation.js";
 
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { classifyWebChatFailure } from "../failure-classification.js";
@@ -84,3 +86,5 @@ assert.equal(response.webChatUrl, "https://chatgpt.com/c/provider-boundary");
 runAiInputGatewayAtomicInspectorAttacks();
 
 process.stdout.write("[ACCEPTANCE] AI Input Gateway provider boundary PASS\n");
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-001-V1", evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:injected-browser", observedValue: "provider uses injected governed BrowserTargetLease" });
+emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-006-V1", evidenceMode: "exam.golden", locator: "acceptance:provider-boundary:bounded-judge", observedValue: "caller owns browser authority and provider returns exact response" });

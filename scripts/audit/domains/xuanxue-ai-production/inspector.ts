@@ -1,17 +1,15 @@
-import { readFileSync } from "node:fs";
-
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import {
   type InspectorContext,
+  type InspectorEvaluation,
   type InspectorFinding,
-  type InspectorOutput,
   type SessionInspectorOutput,
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 import {
-  authorityPaths,
   cloudContractPath,
   cloudCredentialPath,
   cloudWorkerPath,
@@ -37,7 +35,6 @@ import {
 } from "./components/local-intervention-inspector.js";
 import {
   inspectSubmissionAdmissionBinding,
-  submissionAdmissionInspectorPath,
 } from "./inspect-submission-admission.js";
 
 type Laws = {
@@ -294,43 +291,25 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V9"),
 });
-
-const collectJsonValues = (value: unknown, output = new Set<string>()): Set<string> => {
-  if (typeof value === "string") {
-    output.add(value);
-    return output;
-  }
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectJsonValues(item, output));
-    return output;
-  }
-  if (!value || typeof value !== "object") return output;
-  for (const [key, item] of Object.entries(value)) {
-    output.add(key);
-    collectJsonValues(item, output);
-  }
-  return output;
-};
 
 const collectDomainSources = (
   context: InspectorContext,
   findings: InspectorFinding[],
   boundaryLaw: string,
 ): { sources: SourceFile[]; values: ReadonlySet<string> } => {
-  const sources = pluginPaths.flatMap((filePath) => {
+  const sources = pluginPaths
+    .filter((filePath) => context.targetPaths.includes(filePath))
+    .flatMap((filePath) => {
     const result = source(context, findings, boundaryLaw, filePath);
     return result ? [result] : [];
   });
-  const projectionPath = "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json";
-  const projection = JSON.parse(readFileSync(resolveFromRepo(projectionPath), "utf8")) as unknown;
-  const projectionValues = collectJsonValues(projection);
-  return { sources, values: new Set([...collectXuanxueSourceValues(sources), ...projectionValues]) };
+  return { sources, values: collectXuanxueSourceValues(sources) };
 };
 
 const inspectTransientLifecycleContract = (
@@ -353,39 +332,6 @@ const inspectTransientLifecycleContract = (
     ],
   });
   inspectTransientLifecycleBehavior(context, findings, lawId);
-};
-
-const inspectRuntimeIdentityReduction = (
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const projectionPath = "src/plugins/xuanxue-ai-production/generated/xuanxue-product-execution.generated.json";
-  const credentialSource = readFileSync(resolveFromRepo(cloudCredentialPath), "utf8");
-  const enrollmentPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-cloud-enrollment.ts";
-  const enrollmentSource = readFileSync(resolveFromRepo(enrollmentPath), "utf8");
-  const sessionPath = "src/plugins/xuanxue-ai-production/xuanxue-ai-production-worker-session.ts";
-  const sessionSource = readFileSync(resolveFromRepo(sessionPath), "utf8");
-  const projection = JSON.parse(readFileSync(resolveFromRepo(projectionPath), "utf8")) as Record<string, unknown>;
-  const projectionKeys = [
-    "bundle",
-    "localization_semantic_manifest",
-    "localization_semantic_manifest_sha256",
-    "schema_version",
-  ];
-  const invalid = [
-    credentialSource.includes("agent_build_hash"),
-    enrollmentSource.includes("agent_build_hash"),
-    sessionSource.includes("product_contract_hashes"),
-    !sessionSource.includes("product_bundle_hash: XUANXUE_AI_PRODUCTION_PRODUCT_BUNDLE_HASH_V6"),
-    JSON.stringify(Object.keys(projection).sort()) !== JSON.stringify(projectionKeys),
-  ].some(Boolean);
-  if (!invalid) return;
-  findings.push(finding(
-    lawId,
-    "xuanxue-ai-production/runtime-identity-minimal",
-    projectionPath,
-    "Runtime identity must keep build at session-open only, attest one product bundle hash, and exclude provider provenance from the generated runtime projection.",
-  ));
 };
 
 const inspectDomainPolicy = (
@@ -414,47 +360,35 @@ const inspectDomainPolicy = (
   inspectCloud(context, findings, laws.cloud, values);
   inspectXuanxueLocalIntervention({ context, findings, lawId: laws.intervention, values });
   inspectTransientLifecycleContract(context, findings, laws.transient, values);
-  inspectRuntimeIdentityReduction(findings, laws.cloud);
   inspectSubmissionAdmissionBinding(context, findings, laws.durability);
 };
 
 const inspectDomainEvaluation = async (
   context: InspectorContext,
-): Promise<Omit<InspectorOutput, "executedChecks">> => {
+): Promise<InspectorEvaluation> => {
   const laws = resolveLaws(context);
   const findings: InspectorFinding[] = [];
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   const { sources, values } = collectDomainSources(context, findings, laws.boundary);
   const terminalMetaphysicsProfileSources = [schemaPath, schemaRefinementsPath, "src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts", "src/plugins/xuanxue-ai-production/xuanxue-ai-production-provider-evidence.ts"]
     .map((filePath) => context.project.getSourceFile(resolveFromRepo(filePath)))
     .filter((file): file is SourceFile => file !== undefined);
-  inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources));
+  recordSemanticCheck(executedSemanticChecks, "LAW-XUANXUE-AI-PRODUCTION-001-V9", "inspectDomainPolicy",
+    inspectDomainPolicy(context, findings, laws, sources, values, collectXuanxueSourceValues(terminalMetaphysicsProfileSources)));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
-    inspectedFiles: [...authorityPaths, submissionAdmissionInspectorPath, ...pluginPaths],
+    inspectedFiles: [...context.targetPaths],
   };
 };
 
 export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
-  if (!context.checks) {
-    throw new Error("xuanxue-ai-production requires a runner-owned check session.");
-  }
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return finalizeStaticInspection(context, [{
+    lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9",
+  }], inspectDomainEvaluation);
 };

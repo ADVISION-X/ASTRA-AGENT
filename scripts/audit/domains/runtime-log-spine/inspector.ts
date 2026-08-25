@@ -1,100 +1,50 @@
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { renderRuntimeLogSpineMarkdown, toInspectorFinding } from "./generated-report-writer.js";
+import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { selectLawId } from "../../shared/finding-utils.js";
+import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
-import { collectRedactionFindings } from "./redaction-inspector.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
-type RuntimeLogSpineFinding = CollectedPhaseRuns["phaseRuns"][number]["findings"][number];
+const findingsForLaw = (collected: CollectedPhaseRuns, lawId: string) => collected.phaseRuns
+  .flatMap((phase) => phase.findings)
+  .filter((finding) => finding.lawId === lawId)
+  .map(toInspectorFinding);
 
-const phaseStatus = (findings: readonly RuntimeLogSpineFinding[]): "PASS" | "FAIL" =>
-  findings.length === 0 ? "PASS" : "FAIL";
+const collectRuntimeOperationalTraceFindings = (context: InspectorContext, lawId: string) =>
+  findingsForLaw(collectRuntimeLogPhaseRuns(context), lawId);
 
-const buildInspectorReportJson = (collected: CollectedPhaseRuns) => {
-  const findings = collected.phaseRuns.flatMap((phase) => phase.findings);
-  const inspectedFiles = [...new Set(collected.phaseRuns.flatMap((phase) => phase.inspectedFiles))].sort();
-  const phases = buildInspectorPhases(collected);
-  const counts = buildInspectorCounts(collected, findings, inspectedFiles);
-  return {
-    generatedAt: new Date().toISOString(),
-    status: findings.length === 0 ? "PASS" : "FAIL",
-    scannedFiles: inspectedFiles.length,
-    inspectedFiles,
-    ...counts,
-    phases,
-    findings,
-  } as const;
-};
+const collectRuntimeRedactionFindings = (context: InspectorContext, lawId: string) =>
+  findingsForLaw(collectRuntimeLogPhaseRuns(context), lawId);
 
-const buildInspectorPhases = (collected: CollectedPhaseRuns) => collected.phaseRuns.map((phase) => ({
-  name: phase.name,
-  status: phaseStatus(phase.findings),
-  findingCount: phase.findings.length,
-  scannedFiles: phase.inspectedFiles.length,
-  ...(phase.metrics ? { metrics: phase.metrics } : {}),
-}));
+const collectRuntimeContractFindings = (context: InspectorContext, lawId: string) =>
+  findingsForLaw(collectRuntimeLogPhaseRuns(context), lawId);
 
-const buildInspectorCounts = (
-  collected: CollectedPhaseRuns,
-  findings: RuntimeLogSpineFinding[],
-  inspectedFiles: string[],
-) => ({
-  emitCallCount: collected.semanticMetrics.metrics.emitCallCount,
-  consoleCallCount: collected.forbiddenConsole.consoleViolationCount,
-  consoleEscapeCount: collected.forbiddenConsole.consoleViolationCount,
-  eventTypeLiteralCount: collected.eventRegistry.findings.length,
-  missingModeVisibilityCount: collected.modeVisibility.findings.filter((finding) => finding.checkId.includes("mode-visibility")).length,
-  missingTraceContractCount: collected.emitContract.findings.filter((finding) => finding.lawId === "GRASSEYE-RUNTIME-LOG-SPINE-003-V1").length,
-  catchBranchCount: collected.semanticMetrics.metrics.catchClauseCount,
-  catchBranchWithoutLogCount: collected.catchBranches.findings.length,
-  failureBranchCount: collected.semanticMetrics.metrics.failureBranchCount,
-  failureWithoutClassCount: collected.failureClasses.failureWithoutClassCount,
-  stageStartCount: collected.semanticMetrics.metrics.stageStartCount,
-  stageTerminalCount: collected.semanticMetrics.metrics.stageTerminalCount,
-  stagePairViolationCount: collected.stagePairs.findings.length,
-  heavyPayloadFlowViolationCount: collected.modeVisibility.findings.filter((finding) => finding.checkId.includes("heavy-payload")).length,
-  redactionViolationCount: collected.redaction.findings.length,
-  summary: {
-    totalFindings: findings.length,
-    fatalFindings: findings.length,
-    scannedFiles: inspectedFiles.length,
-    emitCallCount: collected.semanticMetrics.metrics.emitCallCount,
-    consoleViolationCount: collected.forbiddenConsole.consoleViolationCount,
-    failureWithoutClassCount: collected.failureClasses.failureWithoutClassCount,
-    stageCoveragePercent: collected.stagePairs.stageCoveragePercent,
-  },
-});
-
-
-
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const collected = collectRuntimeLogPhaseRuns({ ...context, project: context.project });
-  const report = buildInspectorReportJson(collected);
-
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  const operationalLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-001-V3");
+  const redactionLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-002-V2");
+  const contractLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-003-V2");
+  const findings = [
+    ...recordSemanticCheck(executedSemanticChecks, operationalLawId, "collectRuntimeOperationalTraceFindings",
+      collectRuntimeOperationalTraceFindings(context, operationalLawId)),
+    ...recordSemanticCheck(executedSemanticChecks, redactionLawId, "collectRuntimeRedactionFindings",
+      collectRuntimeRedactionFindings(context, redactionLawId)),
+    ...recordSemanticCheck(executedSemanticChecks, contractLawId, "collectRuntimeContractFindings",
+      collectRuntimeContractFindings(context, contractLawId)),
+  ];
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-
-    findings: report.findings.map(toInspectorFinding),
-    inspectedFiles: report.inspectedFiles,
-    reportJson: report,
-    reportMarkdown: renderRuntimeLogSpineMarkdown(report),
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
+    findings,
+    inspectedFiles: [...context.targetPaths],
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("runtime-log-spine requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-RUNTIME-LOG-SPINE-001-V3" },
+    { lawId: "LAW-RUNTIME-LOG-SPINE-002-V2" },
+    { lawId: "LAW-RUNTIME-LOG-SPINE-003-V2" },
+  ], inspectDomainEvaluation);
 };

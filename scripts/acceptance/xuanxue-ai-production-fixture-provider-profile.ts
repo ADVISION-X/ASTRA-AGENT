@@ -7,18 +7,35 @@ import type {
 import type {
   XuanxueAiProductionOrder,
 } from "../../src/plugins/xuanxue-ai-production/index.js";
+import type { XuanxueLocalizationRole } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
 import {
-  expectedLocalizationProviderProfile,
-  isXuanxueLocalizationProduct,
-  type XuanxueLocalizationRole,
-} from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-localization-contract.js";
-import {
-  isXuanxueTerminalMetaphysicsProduct,
   xuanxueTerminalMetaphysicsProviderProfile,
 } from "../../src/plugins/xuanxue-ai-production/xuanxue-ai-production-terminal-profile.js";
 
 export const fixtureHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const isFixtureLocalizationProduct = (productId: string): boolean =>
+  productId.startsWith("localization_");
+
+const isFixtureTerminalProduct = (productId: string): boolean =>
+  !isFixtureLocalizationProduct(productId)
+  && !["manual_accuracy_challenge", "payment_screenshot_observation", "public_knowledge_article_pipeline", "scheduled_quality_reflection"].includes(productId);
+
+const fixtureLocalizationProfile = (role: string) => ({
+  profile_ref: `fixture:localization:${role}`,
+  profile_hash: fixtureHash(`fixture:localization:${role}`),
+  provider: "gpt-web-chat" as const,
+  transport: "web-chat" as const,
+  account_capability_ref: "agent:gpt-web-chat:localization" as const,
+  model_label: "GPT-5.6 Sol" as const,
+  model_family: "gpt-5.6" as const,
+  model_identity_status: "verified" as const,
+  reasoning_effort: (role === "candidate_a" ? "xhigh" : "high") as "xhigh" | "high",
+  executor_identity_ref: "supervised_local_gpt_web" as const,
+  ai_acceptance_ref: "APEX-AI-ACCEPTANCE-001-V5" as const,
+  ai_acceptance_version: "5.2" as const,
+});
 
 export const fixtureModelIdentityProof = (
   input: AiFeedInput,
@@ -44,7 +61,7 @@ export const fixtureModelIdentityProof = (
       evidenceRef: `fixture-model-evidence:${input.taskIdentity.sourceTaskId}`,
       evidenceHash: fixtureHash(`fixture-model-evidence:${input.taskIdentity.sourceTaskId}`),
     },
-    ...(isXuanxueLocalizationProduct(input.taskIdentity.taskKind) ? {
+    ...(isFixtureLocalizationProduct(input.taskIdentity.taskKind) ? {
       providerTranscriptJsonl: transcript,
       providerTranscriptHash: fixtureHash(transcript),
     } : {}),
@@ -81,8 +98,8 @@ export const fixtureProviderExecutionProfileProof = (
 export const fixtureOrderProviderExecutionProfile = (
   productId: XuanxueAiProductionOrder["productId"],
   localizationRole: XuanxueLocalizationRole | undefined,
-) => localizationRole ? expectedLocalizationProviderProfile(localizationRole)
-  : isXuanxueTerminalMetaphysicsProduct(productId) ? {
+) => localizationRole ? fixtureLocalizationProfile(localizationRole)
+  : isFixtureTerminalProduct(productId) ? {
     profile_ref: "fixture:xuanxue-gpt-5-6-sol-pro-standard",
     profile_hash: fixtureHash("fixture:xuanxue-gpt-5-6-sol-pro-standard"),
     provider: "openai-chatgpt-web" as const,

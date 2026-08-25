@@ -33,9 +33,6 @@ export const splitLines = (text: string): string[] => {
 export const containsAny = (text: string, tokens: readonly string[]): boolean =>
   tokens.some((token) => text.includes(token));
 
-export const escapeMarkdownCell = (value: string): string =>
-  value.split("|").join("\\|").split("\n").join(" ");
-
 export const pathSegments = (repoPath: string): string[] => repoPath.split("/").filter((segment) => segment.length > 0);
 
 export const isPluginOwnerPath = (repoPath: string): boolean => {

@@ -1,120 +1,13 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "capabilityDomain": "startup-entrypoint",
   "status": "active",
   "lawIds": [
     "LAW-STARTUP-ENTRYPOINT-001-V4",
     "LAW-STARTUP-ENTRYPOINT-002-V1"
   ],
-  "lawBindings": {
-    "LAW-STARTUP-ENTRYPOINT-001-V4": {
-      "staticBinding": {
-        "bindingId": "startup.entrypoint.001.v4.static",
-        "checkId": "startup.entrypoint.001.v4.static.check",
-        "inspectorRef": "scripts/audit/domains/startup-entrypoint/inspector.ts#inspectDomain|LAW-STARTUP-ENTRYPOINT-001-V4",
-        "targetSelectorId": "startup.entrypoint.001.v4.target",
-        "evidenceModes": [
-          "static.ast",
-          "static.contract"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "startup.entrypoint.001.v4.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Astartup-entrypoint%3Aenforce|startup.entrypoint.001.v4.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [
-        {
-          "bindingId": "startup.entrypoint.001.v4.exam-golden.exam",
-          "examId": "startup.entrypoint.001.v4.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Astartup-entrypoint|LAW-STARTUP-ENTRYPOINT-001-V4|exam.golden",
-          "evidenceModes": [
-            "exam.golden"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "startup.entrypoint.001.v4.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Astartup-entrypoint|startup.entrypoint.001.v4.exam-golden.exam",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ],
-      "proofBindings": [
-        {
-          "bindingId": "startup.entrypoint.001.v4.dynamic-service.proof",
-          "proofId": "startup.entrypoint.001.v4.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-STARTUP-ENTRYPOINT-001-V4|dynamic.service",
-          "evidenceModes": [
-            "dynamic.service"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "startup.entrypoint.001.v4.dynamic-service.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|startup.entrypoint.001.v4.dynamic-service.proof",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ]
-    },
-    "LAW-STARTUP-ENTRYPOINT-002-V1": {
-      "staticBinding": {
-        "bindingId": "startup.entrypoint.002.v1.static",
-        "checkId": "startup.entrypoint.002.v1.static.check",
-        "inspectorRef": "scripts/audit/domains/startup-entrypoint/inspector.ts#inspectDomain|LAW-STARTUP-ENTRYPOINT-002-V1",
-        "targetSelectorId": "startup.entrypoint.002.v1.target",
-        "evidenceModes": [
-          "static.ast",
-          "static.contract"
-        ],
-        "negativeCases": [
-          {
-            "negativeCaseId": "startup.entrypoint.002.v1.static.negative",
-            "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|audit%3Astartup-entrypoint%3Aenforce|startup.entrypoint.002.v1.static",
-            "expectedCode": "COMPONENT_FAILED"
-          }
-        ]
-      },
-      "examBindings": [
-        {
-          "bindingId": "startup.entrypoint.002.v1.exam-golden.exam",
-          "examId": "startup.entrypoint.002.v1.exam-golden",
-          "examRef": "scripts/exam/run-exam.ts#runExamBinding|acceptance%3Astartup-entrypoint|LAW-STARTUP-ENTRYPOINT-002-V1|exam.golden",
-          "evidenceModes": [
-            "exam.golden"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "startup.entrypoint.002.v1.exam-golden.exam.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runBindingNegativeCase|acceptance%3Astartup-entrypoint|startup.entrypoint.002.v1.exam-golden.exam",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ],
-      "proofBindings": [
-        {
-          "bindingId": "startup.entrypoint.002.v1.dynamic-service.proof",
-          "proofId": "startup.entrypoint.002.v1.dynamic-service",
-          "proofRef": "scripts/audit/governance-quality.ts#runReleaseDynamicProof|LAW-STARTUP-ENTRYPOINT-002-V1|dynamic.service",
-          "evidenceModes": [
-            "dynamic.service"
-          ],
-          "negativeCases": [
-            {
-              "negativeCaseId": "startup.entrypoint.002.v1.dynamic-service.proof.negative",
-              "negativeCaseRef": "tests/governance/binding-negative-cases.test.ts#runProofNegativeCase|release%3Adynamic-proof|startup.entrypoint.002.v1.dynamic-service.proof",
-              "expectedCode": "COMPONENT_FAILED"
-            }
-          ]
-        }
-      ]
-    }
-  },
   "ownedPaths": [
+    "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/audit/domains/startup-entrypoint/**",
     "scripts/startup/**"
   ],

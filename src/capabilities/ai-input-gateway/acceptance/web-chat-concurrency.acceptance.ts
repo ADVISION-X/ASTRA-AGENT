@@ -11,13 +11,14 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 
 import {
   createAiInputGatewayAbilityGroup,
   buildGptWebProviderExecutionProfile,
   type AiFeedInput,
-  type AiProviderAdapter,
 } from "../index.js";
+import type { AiProviderAdapter } from "../contracts/ai-provider-adapter.contract.js";
 import {
   acquireWebChatBrowserMutationLease,
   acquireWebChatBrowserPatrolLease,
@@ -465,4 +466,5 @@ if (workerArgs[0] === "--ticket-worker") {
   process.stdout.write(
     "[ACCEPTANCE][ai-input-gateway-web-chat-concurrency] PASS\n",
   );
+  emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-005-V4", evidenceMode: "exam.golden", locator: "acceptance:web-chat:bounded-session-controller", observedValue: "bounded concurrency, single mutation lane and exact conversation topology verified" });
 }

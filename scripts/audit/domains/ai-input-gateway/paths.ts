@@ -1,8 +1,3 @@
-export const authority = {
-  lawPath: ".github/instructions/agent-rules/功能法案.md",
-  blueprintPath: "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
-} as const;
-
 export const attachment = {
   schemaPath: "src/capabilities/ai-input-gateway/schema.ts",
   contractPath: "src/capabilities/ai-input-gateway/contract.ts",

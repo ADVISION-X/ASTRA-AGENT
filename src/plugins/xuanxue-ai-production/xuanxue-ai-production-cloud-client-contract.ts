@@ -1,4 +1,4 @@
-import type { ClaimBatchReceiptV6 } from "./generated/xuanxue-ai-production-v6.validator.js";
+import type { ClaimBatchReceiptV6 } from "./xuanxue-ai-production-runtime-protocol.js";
 import type { XuanxueAiProductionCloudClaimedJob } from "./xuanxue-ai-production-cloud-contract.js";
 
 export interface XuanxueAiProductionAttachmentCheckpointProof {

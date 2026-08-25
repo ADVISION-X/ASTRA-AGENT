@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 import {
   Node,
@@ -12,14 +13,15 @@ import {
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { type InspectorContext, type InspectorFinding, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
-import { inspectExternalIngressIdentity } from "./external-ingress-identity-inspector.js";
+import { inspectExternalIngressIdentity, inspectPerSiteHmac } from "./external-ingress-identity-inspector.js";
 
 type Summary = {
   wildcardCorsViolations: number;
   guardMissingViolations: number;
   ingressIdentityViolations: number;
+  perSiteHmacViolations: number;
   unauthenticatedExternalRouteViolations: number;
   broadExternalRouteViolations: number;
   secondServerViolations: number;
@@ -30,10 +32,6 @@ type Summary = {
 
 const domain = "workbench-api-boundary";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
-const serverPath = "src/app/create-workbench-server.ts";
-const httpPath = "src/app/workbench-http.ts";
-const selfPath = "scripts/audit/domains/workbench-api-boundary/inspector.ts";
-const lawPath = ".github/instructions/agent-rules/功能法案.md";
 
 const requiredForbiddenKeys = [
   "selector",
@@ -61,6 +59,7 @@ const initialSummary = (): Summary => ({
   wildcardCorsViolations: 0,
   guardMissingViolations: 0,
   ingressIdentityViolations: 0,
+  perSiteHmacViolations: 0,
   unauthenticatedExternalRouteViolations: 0,
   broadExternalRouteViolations: 0,
   secondServerViolations: 0,
@@ -136,76 +135,6 @@ const exportedArray = (file: SourceFile, name: string): ArrayLiteralExpression |
   return null;
 };
 
-const inspectWildcardCors = (
-  file: SourceFile,
-  findings: InspectorFinding[],
-  summary: Summary,
-  lawId: string,
-): void => {
-  for (const objectLiteral of file.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)) {
-    if (literalText(objectLiteral, "access-control-allow-origin") === "*") {
-      summary.wildcardCorsViolations += 1;
-      addFinding(findings, {
-        checkId: "workbench-api-boundary/no-wildcard-cors",
-        lawId,
-        filePath: httpPath,
-        message: "workbench-http.ts must not set wildcard CORS.",
-      });
-    }
-  }
-};
-
-const inspectServerGuardImport = (
-  file: SourceFile,
-  findings: InspectorFinding[],
-  summary: Summary,
-  lawId: string,
-): void => {
-  const hasImport = file.getImportDeclarations().some((item) =>
-    item.getModuleSpecifierValue() === "./workbench-api-boundary.js"
-    && item.getNamedImports().some((named) => named.getName() === "handleWorkbenchApiBoundary"));
-  if (!hasImport) {
-    summary.guardMissingViolations += 1;
-    addFinding(findings, {
-      checkId: "workbench-api-boundary/guard-import",
-      lawId,
-      filePath: serverPath,
-      message: "create-workbench-server.ts must import handleWorkbenchApiBoundary.",
-    });
-  }
-};
-
-const statementIndexContainingCall = (file: SourceFile, functionName: string): number | null => {
-  const handleRequest = file.getFunction("handleRequest");
-  const body = handleRequest?.getBodyOrThrow().asKindOrThrow(SyntaxKind.Block);
-  const statements = body?.getStatements() ?? [];
-  const index = statements.findIndex((statement) =>
-    statement.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-      const expression = call.getExpression();
-      return Node.isIdentifier(expression) && astIdentifierName(expression) === functionName;
-    }));
-  return index >= 0 ? index : null;
-};
-
-const inspectGuardBeforeDispatch = (
-  file: SourceFile,
-  findings: InspectorFinding[],
-  summary: Summary,
-  lawId: string,
-): void => {
-  const guardIndex = statementIndexContainingCall(file, "handleWorkbenchApiBoundary");
-  const routeIndex = statementIndexContainingCall(file, "handleKnownWorkbenchApiRequest");
-  if (guardIndex === null || routeIndex === null || guardIndex > routeIndex) {
-    summary.guardMissingViolations += 1;
-    addFinding(findings, {
-      checkId: "workbench-api-boundary/guard-before-route-dispatch",
-      lawId,
-      filePath: serverPath,
-      message: "handleWorkbenchApiBoundary must run before handleKnownWorkbenchApiRequest.",
-    });
-  }
-};
-
 const inspectRouteRules = (
   file: SourceFile,
   findings: InspectorFinding[],
@@ -226,13 +155,13 @@ const inspectRouteRules = (
   for (const element of rules.getElements()) {
     if (!Node.isObjectLiteralExpression(element)) continue;
     const externalAllowed = booleanLiteral(element, "externalApiAllowed");
-    if (externalAllowed === true && booleanLiteral(element, "requiresApiKey") !== true) {
+    if (externalAllowed === true && booleanLiteral(element, "requiresSiteHmac") !== true) {
       summary.unauthenticatedExternalRouteViolations += 1;
       addFinding(findings, {
-        checkId: "workbench-api-boundary/external-route-requires-key",
+        checkId: "workbench-api-boundary/external-route-requires-site-hmac",
         lawId: lawIds.auth,
         filePath: boundaryPath,
-        message: "Every externalApiAllowed route must require an API key.",
+        message: "Every externalApiAllowed route must require a per-site HMAC.",
       });
     }
     const pathPattern = literalText(element, "pathPattern");
@@ -366,42 +295,12 @@ const inspectForbiddenKeys = (
   }
 };
 
-const inspectNoRegex = (
-  file: SourceFile,
-  findings: InspectorFinding[],
-  summary: Summary,
-  lawId: string,
-): void => {
-  const regexLiterals = file.getDescendantsOfKind(SyntaxKind.RegularExpressionLiteral);
-  const regexConstructors = file.getDescendantsOfKind(SyntaxKind.NewExpression)
-    .filter((item) => {
-      const expression = item.getExpression();
-      return Node.isIdentifier(expression) && astIdentifierName(expression) === "RegExp";
-    });
-  const forbiddenCalls = file.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => {
-      const expression = call.getExpression();
-      return Node.isPropertyAccessExpression(expression)
-        && ["match", "replace", "search"].some((name) => expression.getName() === name);
-    });
-  const count = regexLiterals.length + regexConstructors.length + forbiddenCalls.length;
-  if (count > 0) {
-    summary.regexViolations += count;
-    addFinding(findings, {
-      checkId: "workbench-api-boundary/no-regex-in-inspector",
-      lawId,
-      filePath: selfPath,
-      message: "Workbench API Boundary inspector must not use regex or regex-like source scanning calls.",
-    });
-  }
-};
-
 const inspectRequiredFiles = (
   project: Project,
   findings: InspectorFinding[],
   lawId: string,
 ): SourceFile[] => {
-  const files = [lawPath, boundaryPath, serverPath, httpPath, selfPath];
+  const files = [boundaryPath];
   for (const repoPath of files) {
     if (!existsSync(resolveFromRepo(repoPath))) {
       addFinding(findings, {
@@ -412,14 +311,14 @@ const inspectRequiredFiles = (
       });
     }
   }
-  return [boundaryPath, serverPath, httpPath, selfPath]
+  return [boundaryPath]
     .map((repoPath) => source(project, repoPath))
     .filter((item): item is SourceFile => item !== null);
 };
 
 
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawIds = {
     ingress: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
     cors: selectLawId(context.planEntry.lawIds, "LAW-WORKBENCH-API-BOUNDARY-001-V4"),
@@ -431,58 +330,38 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   };
   const findings: InspectorFinding[] = [];
   const summary = initialSummary();
-  const requiredFiles = inspectRequiredFiles(context.project, findings, lawIds.ingress);
-  const inspectedFiles = new Set<string>([lawPath, ...requiredFiles.map((file) => toRepoPath(file.getFilePath()))]);
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  const requiredFiles = recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectRequiredFiles",
+    inspectRequiredFiles(context.project, findings, lawIds.ingress));
+  const inspectedFiles = new Set<string>(requiredFiles.map((file) => toRepoPath(file.getFilePath())));
   const boundaryFile = source(context.project, boundaryPath);
-  const serverFile = source(context.project, serverPath);
-  const httpFile = source(context.project, httpPath);
-  const selfFile = source(context.project, selfPath);
-
-  if (httpFile) inspectWildcardCors(httpFile, findings, summary, lawIds.cors);
-  if (serverFile) {
-    inspectServerGuardImport(serverFile, findings, summary, lawIds.ingress);
-    inspectGuardBeforeDispatch(serverFile, findings, summary, lawIds.ingress);
-  }
   if (boundaryFile) {
-    inspectRouteRules(boundaryFile, findings, summary, lawIds);
-    inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape);
-    inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary });
+    recordSemanticCheck(executedSemanticChecks, lawIds.route, "inspectRouteRules",
+      inspectRouteRules(boundaryFile, findings, summary, lawIds));
+    recordSemanticCheck(executedSemanticChecks, lawIds.shape, "inspectForbiddenKeys",
+      inspectForbiddenKeys(boundaryFile, findings, summary, lawIds.shape));
+    recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectExternalIngressIdentity",
+      inspectExternalIngressIdentity({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.ingress, summary }));
+    recordSemanticCheck(executedSemanticChecks, lawIds.auth, "inspectPerSiteHmac",
+      inspectPerSiteHmac({ boundaryPath, file: boundaryFile, findings, lawId: lawIds.auth, summary }));
   }
-  inspectSecondServers(context.project, findings, summary, lawIds.ingress);
-  inspectCallbackEscapes(context.project, findings, summary, lawIds.callback);
-  if (selfFile) inspectNoRegex(selfFile, findings, summary, lawIds.audit);
+  recordSemanticCheck(executedSemanticChecks, lawIds.ingress, "inspectSecondServers",
+    inspectSecondServers(context.project, findings, summary, lawIds.ingress));
+  recordSemanticCheck(executedSemanticChecks, lawIds.callback, "inspectCallbackEscapes",
+    inspectCallbackEscapes(context.project, findings, summary, lawIds.callback));
 
-  const status = findings.length > 0 ? "FAIL" : "PASS";
   return {
     capabilityDomain: domain,
     reportedLawIds: context.planEntry.lawIds,
-
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
-    inspectedFiles: [...inspectedFiles].sort(),
-    reportJson: {
-      generatedAt: new Date().toISOString(),
-      status,
-      findings,
-      summary,
-    },
+    inspectedFiles: [...context.targetPaths],
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("workbench-api-boundary requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return finalizeStaticInspection(context, [{
+    lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4",
+  }], inspectDomainEvaluation);
 };

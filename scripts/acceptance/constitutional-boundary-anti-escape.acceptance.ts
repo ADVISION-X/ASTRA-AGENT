@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { Project } from "ts-morph";
 
 import { inspectConstitutionalBoundary } from "../audit/domains/architecture-boundary/constitutional-boundary-inspector.js";
-import { createInspectorContextFixture } from "./fixtures/current-inspector-context.js";
+import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 
 const project = new Project({ useInMemoryFileSystem: true });
 project.createSourceFile(resolve(process.cwd(), "src/plugins/constitutional-mutant/task.ts"), `

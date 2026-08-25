@@ -1,12 +1,9 @@
-import { existsSync } from "node:fs";
-
 import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../../shared/paths.js";
 import {
-  authorityPaths,
   cloudContractPath,
   removedSecondChainPaths,
 } from "../inspector-paths.js";
@@ -44,28 +41,13 @@ const sourceContainsDetachedProviderPreflightMarker = (
   return markers.some((marker) => values.some((value) => value.indexOf(marker) >= 0));
 };
 
-const inspectAuthority = (
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  for (const filePath of authorityPaths) {
-    if (existsSync(resolveFromRepo(filePath))) continue;
-    findings.push(finding(
-      lawId,
-      "xuanxue-ai-production/source-present",
-      filePath,
-      `${filePath} must exist.`,
-    ));
-  }
-};
-
 const inspectRemovedSecondChain = (
   context: InspectorContext,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
   for (const filePath of removedSecondChainPaths) {
-    if (!existsSync(resolveFromRepo(filePath))) continue;
+    if (!context.targetPaths.includes(filePath)) continue;
     findings.push(finding(
       lawId,
       "xuanxue-ai-production/no-detached-provider-preflight",
@@ -81,8 +63,8 @@ const inspectRemovedSecondChain = (
     "src/capabilities/ai-input-gateway/ability-group.ts",
     cloudContractPath,
   ]) {
+    if (!context.targetPaths.includes(filePath)) continue;
     const file = resolveFromRepo(filePath);
-    if (!existsSync(file)) continue;
     const sourceFile = context.project.getSourceFile(file);
     if (!sourceFile || !sourceContainsDetachedProviderPreflightMarker(sourceFile)) continue;
     findings.push(finding(
@@ -99,6 +81,5 @@ export const inspectXuanxueBoundary = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  inspectAuthority(findings, lawId);
   inspectRemovedSecondChain(context, findings, lawId);
 };

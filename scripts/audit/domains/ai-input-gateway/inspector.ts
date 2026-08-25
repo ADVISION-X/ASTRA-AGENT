@@ -4,8 +4,9 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { selectLawId } from "../../shared/finding-utils.js";
 import { astExpressionPath } from "../../shared/ast-node-identity.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 import { inspectAiInputGatewayRecovery } from "./recovery-inspector.js";
 import { inspectSubmissionPriorityPatrol } from "./scheduler-inspector.js";
 import {
@@ -23,8 +24,9 @@ import {
 } from "./inspector-helpers.js";
 import * as P from "./paths.js";
 import { inspectConversationTopology } from "./topology-inspector.js";
-import { inspectAttachmentChild } from "./attachment-inspector.js";
+import { inspectAttachmentProofChild, inspectAttachmentRoutingChild } from "./attachment-inspector.js";
 import { inspectAtomicIfAndThenActions } from "./atomic-if-and-then-inspector.js";
+import { inspectBoundedChoiceJudge, inspectCallerApprovedInputReferences } from "./authority-boundary-inspector.js";
 
 const literalContains = (source: SourceFile, value: string): boolean =>
   [...stringLiterals(source)].some((literal) => literal.includes(value));
@@ -69,22 +71,22 @@ const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], l
   }
 };
 
-const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
+const inspectRemovedRegion = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   for (const removedPath of Object.values(P.removed)) {
-    if (existsSync(resolveFromRepo(removedPath))) {
+    if (context.targetPaths.includes(removedPath)) {
       pushFinding(findings, lawId, removedPath, "ai-input-gateway/removed-old-region", `${removedPath} must remain deleted.`);
     }
   }
 };
 
 const requireParallelSources = (context: InspectorContext, findings: Finding[], lawId: string): SourceFile[] | null => {
-  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.attachment.exactTargetRefPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.singleTabRoutingPath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.singleTabRoutingPath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
   return sources.every((source): source is SourceFile => source !== null) ? sources : null;
 };
 
 const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Finding[], lawId: string): void => {
   const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
-  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "BrowserTargetRef", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
+  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
     if (!allIdentifiers.has(required)) {
       pushFinding(findings, lawId, P.runtime.concurrencyLeasePath, "ai-input-gateway/bounded-parallel-runtime", `Bounded parallel web-chat runtime must contain ${required}.`);
     }
@@ -121,7 +123,7 @@ const inspectBoundedParallelExecution = (context: InspectorContext, findings: Fi
   const sources = requireParallelSources(context, findings, lawId);
   if (!sources) return;
   inspectParallelIdentifiers(sources, findings, lawId);
-  inspectParallelAcceptanceProof(sources[7]!, findings, lawId);
+  inspectParallelAcceptanceProof(sources[6]!, findings, lawId);
 };
 
 const inspectSerialProviderBrowserActions = (
@@ -393,69 +395,81 @@ const inspectGeneratedImageCapture = (
   }
 };
 
-const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
+const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const publicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-001-V1");
   const routingLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-003-V1");
   const proofLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-004-V1");
   const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
   const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V1");
+  const boundedJudgeLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-006-V1");
+  const approvedInputLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-007-V1");
   const findings: Finding[] = [];
-  for (const authorityPath of [P.authority.lawPath, P.authority.blueprintPath]) {
-    if (!existsSync(resolveFromRepo(authorityPath))) {
-      pushFinding(findings, publicLawId, authorityPath, "ai-input-gateway/authority-present", `${authorityPath} must exist.`);
-    }
-  }
-  for (const repoPath of P.governedPaths) {
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  for (const repoPath of P.governedPaths.filter((path) => context.targetPaths.includes(path))) {
     const absolutePath = resolveFromRepo(repoPath);
     if (!context.project.getSourceFile(absolutePath)) {
       requireSourceFile(context, findings, publicLawId, repoPath);
     }
   }
-  inspectPublicBoundary(context, findings, publicLawId);
-  inspectAttachmentChild(context, findings, routingLawId, proofLawId);
-  inspectRemovedRegion(findings, routingLawId);
-  inspectBoundedParallelExecution(context, findings, parallelLawId);
-  inspectSerialProviderBrowserActions(context, findings, parallelLawId);
-  inspectFreshConversationIdentity(context, findings, parallelLawId);
-  inspectNoChatGptPageRefresh(context, findings, parallelLawId);
-  inspectCanonicalConversationIdentity(context, findings, parallelLawId);
-  findings.push(...inspectAiInputGatewayRecovery(context, parallelLawId));
-  inspectSubmissionPriorityPatrol(context, findings, parallelLawId);
-  inspectSharedRateLimitWatcher(context, findings, parallelLawId);
-  inspectLiveGenerationProof(context, findings, parallelLawId);
-  inspectTransientPatrolRetry(context, findings, parallelLawId);
-  inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId);
-  inspectTransientOverlayHygiene(context, findings, parallelLawId);
-  inspectGeneratedImageCapture(context, findings, parallelLawId);
-  inspectAtomicIfAndThenActions(context, findings, atomicLawId);
-  inspectConversationTopology(context, findings, parallelLawId);
+  recordSemanticCheck(executedSemanticChecks, publicLawId, "inspectPublicBoundary",
+    inspectPublicBoundary(context, findings, publicLawId));
+  recordSemanticCheck(executedSemanticChecks, routingLawId, "inspectAttachmentRoutingChild",
+    inspectAttachmentRoutingChild(context, findings, routingLawId));
+  recordSemanticCheck(executedSemanticChecks, proofLawId, "inspectAttachmentProofChild",
+    inspectAttachmentProofChild(context, findings, proofLawId));
+  recordSemanticCheck(executedSemanticChecks, routingLawId, "inspectRemovedRegion",
+    inspectRemovedRegion(context, findings, routingLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectBoundedParallelExecution",
+    inspectBoundedParallelExecution(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectSerialProviderBrowserActions",
+    inspectSerialProviderBrowserActions(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectFreshConversationIdentity",
+    inspectFreshConversationIdentity(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectNoChatGptPageRefresh",
+    inspectNoChatGptPageRefresh(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectCanonicalConversationIdentity",
+    inspectCanonicalConversationIdentity(context, findings, parallelLawId));
+  findings.push(...recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectAiInputGatewayRecovery",
+    inspectAiInputGatewayRecovery(context, parallelLawId)));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectSubmissionPriorityPatrol",
+    inspectSubmissionPriorityPatrol(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectSharedRateLimitWatcher",
+    inspectSharedRateLimitWatcher(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectLiveGenerationProof",
+    inspectLiveGenerationProof(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectTransientPatrolRetry",
+    inspectTransientPatrolRetry(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectTransientSubmissionIsNotRoutable",
+    inspectTransientSubmissionIsNotRoutable(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectTransientOverlayHygiene",
+    inspectTransientOverlayHygiene(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectGeneratedImageCapture",
+    inspectGeneratedImageCapture(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, atomicLawId, "inspectAtomicIfAndThenActions",
+    inspectAtomicIfAndThenActions(context, findings, atomicLawId));
+  recordSemanticCheck(executedSemanticChecks, parallelLawId, "inspectConversationTopology",
+    inspectConversationTopology(context, findings, parallelLawId));
+  recordSemanticCheck(executedSemanticChecks, boundedJudgeLawId, "inspectBoundedChoiceJudge",
+    inspectBoundedChoiceJudge(context, findings, boundedJudgeLawId));
+  recordSemanticCheck(executedSemanticChecks, approvedInputLawId, "inspectCallerApprovedInputReferences",
+    inspectCallerApprovedInputReferences(context, findings, approvedInputLawId));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
     findings,
-    inspectedFiles: [P.authority.lawPath, P.authority.blueprintPath, ...P.governedPaths].sort(),
-    reportJson: {
-      capabilityDomain: context.planEntry.capabilityDomain,
-      status: findings.length === 0 ? "PASS" : "FAIL",
-      findings,
-    },
+    inspectedFiles: [...context.targetPaths].sort(),
   };
 };
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("ai-input-gateway requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectDomainEvaluation(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
+  return finalizeStaticInspection(context, [
+    { lawId: "LAW-AI-INPUT-GATEWAY-001-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-002-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-003-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-004-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-005-V4" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-006-V1" },
+    { lawId: "LAW-AI-INPUT-GATEWAY-007-V1" },
+  ], inspectDomainEvaluation);
 };

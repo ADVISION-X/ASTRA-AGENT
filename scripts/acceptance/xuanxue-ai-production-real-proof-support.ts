@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
-import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
+import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/schema.js";
 import { createAgentRuntimeReceiptV6, type AgentRuntimeReceiptV6 } from "../../src/plugins/xuanxue-ai-production/index.js";
 
 export type XuanxueRealChromeEvidenceV6 = Readonly<{

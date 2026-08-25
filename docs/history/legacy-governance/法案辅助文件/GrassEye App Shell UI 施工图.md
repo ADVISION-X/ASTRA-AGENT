@@ -31,7 +31,7 @@ src/app/create-workbench-server.ts 保持唯一 4173 listener。新增的 workbe
 
 ## 23. Legacy APP User-Demand Authority Physical Absence
 
-旧 `GrassEye APP 用户需求启动施工图` 已由唯一 App Shell 法案和本施工图原子取代，原文件及任何 retired、archived、deprecated、hidden、copy 变体必须物理缺席。`src/app/**`、`package.json`、迁移决策表和非治理文档不得继续引用旧文件或旧标题；发现任一引用即 FAIL，不得以重命名、归档或兼容入口保留。
+已退役的孤立需求启动权威由唯一 App Shell 法案和本施工图原子取代；原文件、复制变体和全部引用必须物理缺席，不得以重命名、归档或兼容入口保留。
 
 ## 24. Real Chrome Dynamic Proof
 

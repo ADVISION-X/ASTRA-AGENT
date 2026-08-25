@@ -1,7 +1,8 @@
 import { Node, SyntaxKind, type CallExpression, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorFinding, InspectorOutput, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
 
 const LAW_ID = "LAW-SYSTEM-SECURITY-001-V1";
 const CLAUSE_ID = `${LAW_ID.toLowerCase()}-requirement`;
@@ -128,19 +129,21 @@ export const inspectSystemSecurityProject = (project: Project): InspectorFinding
   return findings.sort((left, right) => (left.filePath ?? "").localeCompare(right.filePath ?? "") || (left.line ?? 0) - (right.line ?? 0) || left.checkId.localeCompare(right.checkId));
 };
 
-const evaluate = (context: InspectorContext): Omit<InspectorOutput, "executedChecks"> => ({
-  capabilityDomain: context.planEntry.capabilityDomain,
-  reportedLawIds: context.planEntry.lawIds,
-  findings: inspectSystemSecurityProject(context.project),
-  inspectedFiles: context.project.getSourceFiles().filter((file) => !file.isDeclarationFile()).map(sourcePath)
-    .filter((path) => path.startsWith("src/") || path.startsWith("scripts/")).sort(),
-});
+const evaluate = (context: InspectorContext): InspectorEvaluation => {
+  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
+  return {
+    capabilityDomain: context.planEntry.capabilityDomain,
+    reportedLawIds: context.planEntry.lawIds,
+    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
+    executedSemanticChecks,
+    findings: recordSemanticCheck(executedSemanticChecks, LAW_ID, "inspectSystemSecurityProject",
+      inspectSystemSecurityProject(context.project)),
+    inspectedFiles: [...context.targetPaths],
+  };
+};
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("system-security requires a runner-owned check session.");
-  await context.checks.runAll(async () => {
-    const result = evaluate(context);
-    return { findings: result.findings, evidenceRefs: [context.planEntry.ownerInspectorPath, ...result.inspectedFiles] };
-  });
-  return context.checks.output({ reportMarkdown: "# System Security\n\nSensitive sinks, external type admission, Cloud control fields, Extension authority and catch fallbacks are inspected fail-closed." });
+  return finalizeStaticInspection(context, [{
+    lawId: LAW_ID,
+  }], evaluate);
 };

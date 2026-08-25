@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/index.js";
+import { XuanxueDynamicProofBindingContract } from "../../src/capabilities/ai-input-gateway/schema.js";
 import {
   attestXuanxueAiProductionProviderRun,
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
@@ -49,13 +50,15 @@ assert.equal(
   canonicalXuanxueRealRunRoot(),
   "real Provider proof must consume the production Workbench data directory",
 );
-const bindingRaw = await readFile(realDynamicProofBindingArgument(), "utf8");
+const bindingPath = realDynamicProofBindingArgument();
+const evidencePath = realChromeEvidenceArgument();
+const bindingRaw = await readFile(bindingPath, "utf8");
 const dynamicProofBinding = XuanxueDynamicProofBindingContract.validate(
   JSON.parse(bindingRaw),
   currentXuanxueSourceCandidate(),
   XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
 );
-const evidence = readXuanxueRealChromeEvidence(realChromeEvidenceArgument());
+const evidence = readXuanxueRealChromeEvidence(evidencePath);
 validateBoundRuntimeReceipt({ evidence, binding: dynamicProofBinding, runRoot });
 const executionDirectory = path.join(
   runRoot,
@@ -257,3 +260,15 @@ process.stdout.write(`${JSON.stringify({
   cloudTerminalJobCount: cloudAttestation.terminalJobIds.length,
   status: "PASS",
 }, null, 2)}\n`);
+const attestationReceipt = continuationReceipt.successor.runtimeAttestationReceiptHash.replace(/^sha256:/u, "");
+const providerReceipt = Object.values(dynamicProofBinding.provider_record_hashes)[0];
+assert.ok(providerReceipt);
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.service",
+  locator: executionDirectory, receipt: attestationReceipt,
+  observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.provider",
+  locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
+  observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.authorization",
+  locator: executionDirectory, receipt: attestationReceipt,
+  observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
