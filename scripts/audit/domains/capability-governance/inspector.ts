@@ -9,7 +9,7 @@ import {
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
-import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -451,17 +451,13 @@ export const inspectCapabilityGovernanceProject = (
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-CAPABILITY-GOVERNANCE-001-V2");
-  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   const authorityAvailable = context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")
     && context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
-  const evaluation = recordSemanticCheck(executedSemanticChecks, lawId, "inspectCapabilityGovernanceProject",
-    inspectCapabilityGovernanceProject(context.project, authorityAvailable, lawId));
+  const evaluation = inspectCapabilityGovernanceProject(context.project, authorityAvailable, lawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks,
     findings: evaluation.findings,
     inspectedFiles: [...context.targetPaths],
   };

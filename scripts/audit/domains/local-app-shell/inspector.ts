@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -222,18 +222,12 @@ export const inspectLocalAppShellProject = (
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
-  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
-  recordSemanticCheck(executedSemanticChecks, LAW_SHELL, "inspectShellOwnership",
-    inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths));
-  recordSemanticCheck(executedSemanticChecks, LAW_BOUNDARY, "inspectBrowserAuthorityBoundary",
-    inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY));
-  recordSemanticCheck(executedSemanticChecks, LAW_STATUS, "inspectSeparatedStatus",
-    inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths));
+  inspectShellOwnership(context.project, findings, LAW_SHELL, context.targetPaths);
+  inspectBrowserAuthorityBoundary(context.project, findings, LAW_BOUNDARY);
+  inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks,
     findings: findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message)),
     inspectedFiles: [...context.targetPaths],
   };

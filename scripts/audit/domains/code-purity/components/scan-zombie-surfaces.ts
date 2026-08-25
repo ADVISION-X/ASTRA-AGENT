@@ -8,7 +8,7 @@ import { scanZombieDeadBranches } from "./scan-zombie-dead-branches.js";
 import { scanZombieInternalSubgraphs } from "./scan-zombie-internal-subgraphs.js";
 import { scanZombieObjectBags } from "./scan-zombie-object-bags.js";
 import { scanZombieReferenceSurfaces } from "./scan-zombie-reference-surfaces.js";
-import { scanZombieAntiEvasion, scanZombieInspectorSelfProof } from "./zombie-anti-evasion.js";
+import { scanZombieAntiEvasion } from "./zombie-anti-evasion.js";
 import { collectZombieCommentedCodeHits } from "./zombie-commented-code.js";
 import { buildZombieDeclarationLiveGraph } from "./zombie-declaration-live-graph.js";
 import { createZombieExemptionManifest, type ZombieExemptionManifest } from "./zombie-exemption-manifest.js";
@@ -75,8 +75,8 @@ const buildZombieGraphState = (
     moduleGraph,
   });
   return {
-    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
-    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
+    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
+    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
     liveEntryState,
     manifest,
     moduleGraph,
@@ -86,9 +86,9 @@ const buildZombieGraphState = (
       reachableFiles: reachability.reachableFiles,
     }),
     reachability,
-    sideEffectImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
+    sideEffectImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
     symbolGraph: buildZombieSymbolGraph(governedFiles),
-    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
+    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V3"),
   };
 };
 
@@ -137,12 +137,6 @@ const scanAntiEvasionFindings = (
     namespaceUsage: state.namespaceUsage,
     reachability: state.reachability,
     sideEffectImportLawId: state.sideEffectImportLawId,
-  });
-  antiEvasionFindingCount += scanZombieInspectorSelfProof({
-    antiEvasionLawId: state.antiEvasionLawId,
-    collector,
-    context,
-    inspectedFileCount: governedFiles.length,
   });
   return antiEvasionFindingCount;
 };

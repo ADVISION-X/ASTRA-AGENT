@@ -4,7 +4,7 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
@@ -449,7 +449,6 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4");
   const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2");
   const findings: InspectorFinding[] = [];
-  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   for (const path of [...sourcePaths, targetAuthorityPath].filter((candidate) => context.targetPaths.includes(candidate))) {
     if (context.project.getSourceFile(resolveFromRepo(path))) continue;
     findings.push(createLocalFinding({
@@ -459,29 +458,18 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
       message: `${path} must exist in the ts-morph project.`,
     }));
   }
-  recordSemanticCheck(executedSemanticChecks, lawId, "inspectSingleTransport",
-    inspectSingleTransport(context, findings, lawId));
-  recordSemanticCheck(executedSemanticChecks, mutationLawId, "inspectRegistryAndMutationBoundary",
-    inspectRegistryAndMutationBoundary(context, findings, mutationLawId));
-  recordSemanticCheck(executedSemanticChecks, mutationLawId, "inspectAtomicIfAndThenBoundary",
-    inspectAtomicIfAndThenBoundary(context, findings, mutationLawId));
-  recordSemanticCheck(executedSemanticChecks, mutationLawId, "inspectJournalRecoveryBoundary",
-    inspectJournalRecoveryBoundary(context, findings, mutationLawId));
-  recordSemanticCheck(executedSemanticChecks, channelLawId, "inspectAuthenticatedChannelGuards",
-    inspectAuthenticatedChannelGuards(context, findings, channelLawId));
-  recordSemanticCheck(executedSemanticChecks, claimLawId, "inspectTargetClaimGuards",
-    inspectTargetClaimGuards(context, findings, claimLawId));
-  findings.push(...recordSemanticCheck(executedSemanticChecks, lawId, "collectTransportPayloadCeilingFindings",
-    collectTransportPayloadCeilingFindings(context, lawId)));
-  recordSemanticCheck(executedSemanticChecks, releaseLawId, "inspectReleaseAndRetiredPaths",
-    inspectReleaseAndRetiredPaths(findings, releaseLawId));
-  recordSemanticCheck(executedSemanticChecks, opaqueLawId, "inspectOpaqueAuthorityBoundary",
-    inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId));
+  inspectSingleTransport(context, findings, lawId);
+  inspectRegistryAndMutationBoundary(context, findings, mutationLawId);
+  inspectAtomicIfAndThenBoundary(context, findings, mutationLawId);
+  inspectJournalRecoveryBoundary(context, findings, mutationLawId);
+  inspectAuthenticatedChannelGuards(context, findings, channelLawId);
+  inspectTargetClaimGuards(context, findings, claimLawId);
+  findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
+  inspectReleaseAndRetiredPaths(findings, releaseLawId);
+  inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
   };

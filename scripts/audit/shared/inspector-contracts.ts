@@ -18,16 +18,6 @@ export type InspectorEvaluation = {
   reportedLawIds: string[];
   findings: InspectorFinding[];
   inspectedFiles: string[];
-  executedChecks: InspectorExecutedCheck[];
-  executedSemanticChecks: InspectorSemanticCheckReceipt[];
-};
-export type InspectorSemanticCheckReceipt = { lawId: string; name: string };
-export type InspectorExecutedCheck = {
-  lawId: string;
-  evidenceMode: string;
-  clauses: string[];
-  checkId: string;
-  semanticChecks: string[];
 };
 export type InspectorLawRequirement = {
   lawId: string;

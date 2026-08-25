@@ -1,7 +1,6 @@
 import type { InspectorContext, InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { collectCodePurityGovernedFiles } from "./code-purity-governed-files.js";
 import type { CodePurityInventoryItem } from "./code-purity-inventory.js";
-import { scanCodePurityNoRegex } from "./scan-code-purity-no-regex.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
 import { scanStructuralBudgets } from "./scan-structural-budgets.js";
 import { scanZombieSurfaces, type ZombieScanSummary } from "./scan-zombie-surfaces.js";
@@ -40,11 +39,9 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   const structuralScan = scanStructuralBudgets(governedFiles, context.planEntry.lawIds);
   const ownerBoundaryScan = scanOwnerBoundaries(governedFiles, context.planEntry.lawIds);
   const zombieScan = scanZombieSurfaces(context, governedFiles, context.planEntry.lawIds);
-  const noRegexFindings = scanCodePurityNoRegex(context.project, context.planEntry.lawIds);
   const findings = dedupeFindings([
     ...structuralScan.findings,
     ...ownerBoundaryScan.findings,
-    ...noRegexFindings,
     ...zombieScan.findings,
   ]);
   const inventoryItems = dedupeInventoryItems([

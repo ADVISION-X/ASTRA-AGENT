@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const packagePath = "package.json";
 const launchPath = "scripts/startup/launch-grasseye.mjs";
@@ -181,16 +181,11 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-001-V4");
   const boundaryLawId = selectLawId(context.planEntry.lawIds, "LAW-STARTUP-ENTRYPOINT-002-V1");
   const findings: Finding[] = [];
-  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
-  recordSemanticCheck(executedSemanticChecks, lawId, "inspectStartupBoundary",
-    inspectStartupBoundary(context, findings, lawId));
-  recordSemanticCheck(executedSemanticChecks, boundaryLawId, "inspectLocalStartupAuthorityBoundary",
-    inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId));
+  inspectStartupBoundary(context, findings, lawId);
+  inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths],
   };

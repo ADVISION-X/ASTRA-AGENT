@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
-import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -185,26 +185,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
-  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
 
-  recordSemanticCheck(executedSemanticChecks, evidenceLaw, "inspectCapabilityRequiredFiles",
-    inspectCapabilityRequiredFiles(context, findings, evidenceLaw, inspectedFiles));
-  recordSemanticCheck(executedSemanticChecks, schemaBoundaryLaw, "inspectStorageRequiredFiles",
-    inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles));
-  recordSemanticCheck(executedSemanticChecks, evidenceLaw, "inspectOwnerImports",
-    inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
-  recordSemanticCheck(executedSemanticChecks, evidenceLaw, "inspectPublicFacade",
-    inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles));
-  recordSemanticCheck(executedSemanticChecks, schemaBoundaryLaw, "inspectStoragePort",
-    inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles));
-  recordSemanticCheck(executedSemanticChecks, schemaVocabularyLaw, "inspectSchemaVocabulary",
-    inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles));
+  inspectCapabilityRequiredFiles(context, findings, evidenceLaw, inspectedFiles);
+  inspectStorageRequiredFiles(context, findings, schemaBoundaryLaw, inspectedFiles);
+  inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
+  inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
+  inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles);
+  inspectSchemaVocabulary(context, findings, schemaVocabularyLaw, "grasseye-local-persistence-schema-002-v2-requirement", inspectedFiles);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths],
   };

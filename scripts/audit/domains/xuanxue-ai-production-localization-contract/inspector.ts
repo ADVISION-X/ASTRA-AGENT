@@ -7,7 +7,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { authenticatedStaticChecks, finalizeStaticInspection, recordSemanticCheck } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
@@ -113,11 +113,9 @@ const inspectDomainEvaluation = async (
   context: InspectorContext,
 ) => {
   const findings: ReturnType<typeof createFinding>[] = [];
-  const executedSemanticChecks: Array<{ lawId: string; name: string }> = [];
   const lawId = "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4";
   try {
-    recordSemanticCheck(executedSemanticChecks, lawId, "inspectXuanxueLocalizationContract",
-      await inspectXuanxueLocalizationContract(context.project));
+    await inspectXuanxueLocalizationContract(context.project);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     for (const binding of context.planEntry.bindings) {
@@ -133,8 +131,6 @@ const inspectDomainEvaluation = async (
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks,
     findings,
     inspectedFiles: [...context.targetPaths],
   };

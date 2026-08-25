@@ -11,7 +11,7 @@ import {
   isExternalCapabilityConsumer,
 } from "../../shared/repo-path-classifier.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
-import { authenticatedStaticChecks } from "../../shared/static-inspector-result.js";
+import { } from "../../shared/static-inspector-result.js";
 import { resolveCapabilityFacadePolicy } from "../capability-governance/components/capability-source-of-truth.js";
 
 type Finding = ReturnType<typeof createFinding>;
@@ -389,8 +389,6 @@ export const inspectConstitutionalBoundary = async (context: InspectorContext): 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
-    executedChecks: authenticatedStaticChecks(context.planEntry.capabilityDomain),
-    executedSemanticChecks: [],
     findings,
     inspectedFiles: [...inspectedFiles].sort(),
   };

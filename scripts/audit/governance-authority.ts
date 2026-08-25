@@ -57,11 +57,15 @@ const matchesPath = (pattern: string, path: string): boolean => pattern === '**/
   || pattern === path
   || (pattern.endsWith('/**') && (path === pattern.slice(0, -3) || path.startsWith(`${pattern.slice(0, -3)}/`)))
   || (pattern.includes('/**/*.') && path.startsWith(`${pattern.slice(0, pattern.indexOf('/**/*.'))}/`) && path.endsWith(pattern.slice(pattern.indexOf('/**/*.') + 5)));
-export function verifyEntry(): void {
+const verifyRegistrySourceAuthority = (): void => {
   const spec = text(SPEC);
   if (!spec.includes('文件版本：FINAL-V3.3') || !spec.includes('冻结目标版本：FROZEN-FINAL-V3.3')) fail('SOURCE_PARSE_FAILED', SPEC);
-  if (existsSync(resolve(ROOT, 'docs/governance/GOVERNANCE-FREEZE.json'))) fail('GENERATED_FILESET_INVALID', 'retired freeze record');
   if (text('AGENTS.md') !== AGENTS_EXACT) fail('ENTRY_CONTRACT_MISMATCH', 'AGENTS.md');
+};
+
+export function verifyEntry(): void {
+  verifyRegistrySourceAuthority();
+  if (existsSync(resolve(ROOT, 'docs/governance/GOVERNANCE-FREEZE.json'))) fail('GENERATED_FILESET_INVALID', 'retired freeze record');
   const scripts = parseJson<{ scripts?: Record<string, string> }>('package.json').scripts ?? {};
   const publicGovernance = Object.keys(scripts).filter((name) => name === 'quality:check' || name.startsWith('audit:') || name.startsWith('governance:') || name === 'ci:full' || name.startsWith('exam:')).sort(byteCompare);
   if (JSON.stringify(publicGovernance) !== JSON.stringify(['audit:build', 'audit:projection:check', 'quality:check'])) fail('ENTRY_CONTRACT_MISMATCH', `public commands ${publicGovernance.join(',')}`);
@@ -402,7 +406,7 @@ export function providerDomainForDependencySpec(specPath: string): string {
 }
 
 export function buildRegistry(): Registry {
-  verifyEntry();
+  verifyRegistrySourceAuthority();
   const laws = loadLaws();
   const manifests = loadManifests(laws);
   const contractRefs = new Map<string, string[]>();
