@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
 import { buildRegistry, candidateSnapshot, checkProjection, diffPaths, verifyEntry, verifyProductionOwnership, writeRegistry, type Level } from './governance-authority.js';
+import { runFullQuality } from './shared/quality-runner.js';
 
 const governanceSource = (path: string): boolean => path === 'AGENTS.md'
   || path === '.github/instructions/agent-rules/基础法案.md'
@@ -38,7 +39,7 @@ function projectChecks(): void {
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
 }
 
-function quality(level: Level): void {
+async function quality(level: Level): Promise<void> {
   if (!['CHANGE', 'READY', 'RELEASE'].includes(level)) fail('ENTRY_CONTRACT_MISMATCH', `invalid level ${level}`);
   verifyEntry();
   const initial = candidateSnapshot();
@@ -60,7 +61,8 @@ function quality(level: Level): void {
   verifyProductionOwnership();
   projectChecks();
   if (initial !== candidateSnapshot()) fail('CANDIDATE_DRIFT', level);
-  fail('CHECK_EXECUTION_FAILED', `${level} static/exam/dynamic runners require a separately verified migration before a law report can be written`);
+  const result = await runFullQuality(level);
+  if (result.outcome !== 'PASS') fail('QUALITY_CHECK_FAILED', result.reportPath);
 }
 
 export async function main(): Promise<void> {

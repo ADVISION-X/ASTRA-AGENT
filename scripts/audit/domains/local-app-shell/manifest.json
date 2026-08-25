@@ -3,9 +3,9 @@
   "capabilityDomain": "local-app-shell",
   "status": "active",
   "lawIds": [
-    "LAW-LOCAL-APP-SHELL-001-V4",
+    "LAW-LOCAL-APP-SHELL-001-V5",
     "LAW-LOCAL-APP-SHELL-002-V3",
-    "LAW-LOCAL-APP-SHELL-003-V1"
+    "LAW-LOCAL-APP-SHELL-003-V2"
   ],
   "ownedPaths": [
     "scripts/audit/domains/local-app-shell/**",

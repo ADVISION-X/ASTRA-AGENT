@@ -9,8 +9,6 @@ import { resolveFromRepo } from "../../../shared/paths.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 import { collectResolvedModuleTargets } from "../../../shared/source-module-targets.js";
 
-export const architectureLawPath = ".github/instructions/agent-rules/基础法案.md";
-
 export type ActivePluginContract = Readonly<{
   pluginId: string;
   status: "active";
@@ -58,7 +56,7 @@ const activePluginContracts: ActivePluginContract[] = [{
   allowedAcceptanceTests: ["acceptance:xuanxue-ai-production"],
   allowedNpmScripts: [],
   exposureTokens: ["xuanxue-ai-production"],
-  lawSourceRefs: [architectureLawPath],
+  lawSourceRefs: [],
 }];
 
 const isRouteExposurePath = (repoPath: string): boolean => {

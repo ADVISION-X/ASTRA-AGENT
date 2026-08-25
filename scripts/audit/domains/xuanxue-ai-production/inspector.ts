@@ -11,7 +11,6 @@ import {
 } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import {
-  authorityPaths,
   cloudContractPath,
   cloudCredentialPath,
   cloudWorkerPath,
@@ -37,7 +36,6 @@ import {
 } from "./components/local-intervention-inspector.js";
 import {
   inspectSubmissionAdmissionBinding,
-  submissionAdmissionInspectorPath,
 } from "./inspect-submission-admission.js";
 
 type Laws = {
@@ -294,11 +292,11 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V7"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V8"),
 });
 
 const collectJsonValues = (value: unknown, output = new Set<string>()): Set<string> => {
@@ -323,7 +321,9 @@ const collectDomainSources = (
   findings: InspectorFinding[],
   boundaryLaw: string,
 ): { sources: SourceFile[]; values: ReadonlySet<string> } => {
-  const sources = pluginPaths.flatMap((filePath) => {
+  const sources = pluginPaths
+    .filter((filePath) => context.targetPaths.includes(filePath))
+    .flatMap((filePath) => {
     const result = source(context, findings, boundaryLaw, filePath);
     return result ? [result] : [];
   });
@@ -398,7 +398,7 @@ const inspectDomainEvaluation = async (
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [...authorityPaths, submissionAdmissionInspectorPath, ...pluginPaths],
+    inspectedFiles: [...context.targetPaths],
   };
 };
 

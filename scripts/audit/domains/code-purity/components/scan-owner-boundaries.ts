@@ -233,11 +233,11 @@ const scanSharedBoundary = (
 };
 
 export const scanOwnerBoundaries = (governedFiles: readonly GovernedFile[], lawIds: readonly string[]): OwnerBoundaryScanResult => {
-  const jobFlowLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
-  const mediatorLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
-  const abilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
-  const childAbilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
-  const sharedScopeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
+  const jobFlowLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
+  const mediatorLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
+  const abilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
+  const childAbilityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
+  const sharedScopeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
   const collector = createInventoryFindingCollector();
 
   for (const governedFile of governedFiles) {

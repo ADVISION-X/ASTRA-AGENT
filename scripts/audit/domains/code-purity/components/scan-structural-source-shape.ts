@@ -242,9 +242,9 @@ export const scanStructuralSourceShape = (
   lawIds: readonly string[],
   collector: InventoryFindingCollector,
 ): void => {
-  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
-  const typeEscapeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
-  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V1");
+  const sourceAtomicityLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
+  const typeEscapeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
+  const bridgeLawId = selectLawId(lawIds, "LAW-CODE-PURITY-001-V2");
   scanPathBudget(collector, governedFile, sourceAtomicityLawId, bridgeLawId);
   scanImportExportBudgets(collector, governedFile, sourceAtomicityLawId);
   scanStructuralTypeEscapes(collector, governedFile, typeEscapeLawId);

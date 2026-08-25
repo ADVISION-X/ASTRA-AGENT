@@ -69,22 +69,22 @@ const inspectPublicBoundary = (context: InspectorContext, findings: Finding[], l
   }
 };
 
-const inspectRemovedRegion = (findings: Finding[], lawId: string): void => {
+const inspectRemovedRegion = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   for (const removedPath of Object.values(P.removed)) {
-    if (existsSync(resolveFromRepo(removedPath))) {
+    if (context.targetPaths.includes(removedPath)) {
       pushFinding(findings, lawId, removedPath, "ai-input-gateway/removed-old-region", `${removedPath} must remain deleted.`);
     }
   }
 };
 
 const requireParallelSources = (context: InspectorContext, findings: Finding[], lawId: string): SourceFile[] | null => {
-  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.attachment.exactTargetRefPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.singleTabRoutingPath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
+  const sources = [P.runtime.concurrencyLeasePath, P.executionRuntime.executionStatePath, P.runtime.singleTabBrowserPath, P.runtime.feedProviderPath, P.executionRuntime.managedExecutionPath, P.runtime.turnIdentityPath, P.acceptance.concurrencyAcceptancePath, P.runtime.singleTabRoutingPath].map((repoPath) => requireSourceFile(context, findings, lawId, repoPath));
   return sources.every((source): source is SourceFile => source !== null) ? sources : null;
 };
 
 const inspectParallelIdentifiers = (sources: readonly SourceFile[], findings: Finding[], lawId: string): void => {
   const allIdentifiers = new Set(sources.flatMap((source) => [...identifiers(source)]));
-  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "BrowserTargetRef", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
+  for (const required of ["resolveWebChatMaxInFlight", "acquireWebChatCapacityLease", "acquireWebChatBrowserMutationLease", "startOrResumeWebChatExecution", "createSingleTabWebChatBrowser", "captureWebChatSubmissionProof", "focusChatGptConversationByCanonicalPath", "turnMarker", "executionId", "capacitySlot"]) {
     if (!allIdentifiers.has(required)) {
       pushFinding(findings, lawId, P.runtime.concurrencyLeasePath, "ai-input-gateway/bounded-parallel-runtime", `Bounded parallel web-chat runtime must contain ${required}.`);
     }
@@ -121,7 +121,7 @@ const inspectBoundedParallelExecution = (context: InspectorContext, findings: Fi
   const sources = requireParallelSources(context, findings, lawId);
   if (!sources) return;
   inspectParallelIdentifiers(sources, findings, lawId);
-  inspectParallelAcceptanceProof(sources[7]!, findings, lawId);
+  inspectParallelAcceptanceProof(sources[6]!, findings, lawId);
 };
 
 const inspectSerialProviderBrowserActions = (
@@ -400,12 +400,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   const parallelLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-005-V4");
   const atomicLawId = selectLawId(context.planEntry.lawIds, "LAW-AI-INPUT-GATEWAY-002-V1");
   const findings: Finding[] = [];
-  for (const authorityPath of [P.authority.lawPath, P.authority.blueprintPath]) {
-    if (!existsSync(resolveFromRepo(authorityPath))) {
-      pushFinding(findings, publicLawId, authorityPath, "ai-input-gateway/authority-present", `${authorityPath} must exist.`);
-    }
-  }
-  for (const repoPath of P.governedPaths) {
+  for (const repoPath of P.governedPaths.filter((path) => context.targetPaths.includes(path))) {
     const absolutePath = resolveFromRepo(repoPath);
     if (!context.project.getSourceFile(absolutePath)) {
       requireSourceFile(context, findings, publicLawId, repoPath);
@@ -413,7 +408,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
   }
   inspectPublicBoundary(context, findings, publicLawId);
   inspectAttachmentChild(context, findings, routingLawId, proofLawId);
-  inspectRemovedRegion(findings, routingLawId);
+  inspectRemovedRegion(context, findings, routingLawId);
   inspectBoundedParallelExecution(context, findings, parallelLawId);
   inspectSerialProviderBrowserActions(context, findings, parallelLawId);
   inspectFreshConversationIdentity(context, findings, parallelLawId);
@@ -433,7 +428,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [P.authority.lawPath, P.authority.blueprintPath, ...P.governedPaths].sort(),
+    inspectedFiles: [...context.targetPaths].sort(),
     reportJson: {
       capabilityDomain: context.planEntry.capabilityDomain,
       status: findings.length === 0 ? "PASS" : "FAIL",

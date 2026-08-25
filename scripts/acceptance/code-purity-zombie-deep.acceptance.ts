@@ -30,7 +30,7 @@ type FixtureManifest = {
 type FixtureConfig = { entryScripts: string[]; manifest?: FixtureManifest };
 type ExpectedFinding = { checkId: string; fileIncludes?: string; symbolName?: string };
 
-const LAW_IDS = ["LAW-CODE-PURITY-001-V1"];
+const LAW_IDS = ["LAW-CODE-PURITY-001-V2"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 

@@ -9,9 +9,9 @@ import {
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 
-const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V4";
+const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
-const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V1";
+const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V2";
 const checkId = "local-app-shell/owner-contract";
 
 const requiredPaths = Object.freeze([
@@ -94,17 +94,18 @@ const inspectUniqueServer = (project: Project, findings: InspectorFinding[]): vo
   }
 };
 
-const inspectForbiddenLocalRuntimeSurfaces = (project: Project, findings: InspectorFinding[]): void => {
+const inspectLocalRuntimeBoundary = (project: Project, findings: InspectorFinding[], lawId?: string): void => {
   const forbiddenNames = new Set(["BrowserCommandActor", "BrowserTargetLeaseManager", "EventSource", "localStorage"]);
   const forbiddenControlFields = new Set(["browserCommand", "coordinate", "documentId", "nextAction", "selector", "targetId"]);
   for (const source of localRuntimeSources(project)) {
     const path = sourcePath(source);
     for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
       const name = identifierName(call.getExpression()) ?? propertyCallName(call);
-      if (name === "createServer" || name === "listen" || name === "setInterval") {
+      if ((!lawId || lawId === LAW_SHELL) && (name === "createServer" || name === "listen" || name === "setInterval")) {
         findings.push(finding(LAW_SHELL, path, `local-runtime cannot create ${name}; the App Server is the sole listener owner.`, call.getStartLineNumber()));
       }
     }
+    if (lawId && lawId !== LAW_BOUNDARY) continue;
     for (const identifier of source.getDescendantsOfKind(SyntaxKind.Identifier)) {
       if (forbiddenNames.has(identifier.getText())) {
         findings.push(finding(LAW_BOUNDARY, path, `local-runtime exposes forbidden browser/UI authority ${identifier.getText()}.`, identifier.getStartLineNumber()));
@@ -171,26 +172,37 @@ const inspectSeparatedStatus = (project: Project, findings: InspectorFinding[]):
       return [property.getName(), value] as const;
     }));
   if (assignments.get("shellState") !== "ready" || assignments.get("executionState") !== "blocked" || assignments.get("claimAdmissionState") !== "blocked") {
-    findings.push(finding(LAW_SHELL, ownerPath, "Cloud/provider startup failure must keep Shell ready while execution and claim admission fail closed."));
+    findings.push(finding(LAW_STATUS, ownerPath, "Cloud/provider startup failure must keep Shell ready while execution and claim admission fail closed."));
   }
 };
 
-export const inspectLocalAppShellProject = (project: Project): InspectorFinding[] => {
+export const inspectLocalAppShellProject = (
+  project: Project,
+  targetPaths: readonly string[] = requiredPaths,
+  lawId?: string,
+): InspectorFinding[] => {
   const findings: InspectorFinding[] = [];
-  for (const path of requiredPaths) if (!sourceAt(project, path)) {
-    findings.push(finding(path.includes("workbench-status") ? LAW_STATUS : LAW_SHELL, path, "required local shell authority source is missing."));
+  const requiredForLaw = !lawId
+    ? requiredPaths
+    : lawId === LAW_SHELL
+    ? requiredPaths
+    : lawId === LAW_STATUS
+      ? requiredPaths.filter((path) => path.includes("workbench-status") || path.includes("workbench-owner"))
+      : [];
+  for (const path of requiredForLaw) if (targetPaths.includes(path) && !sourceAt(project, path)) {
+    findings.push(finding(lawId ?? (path.includes("workbench-status") ? LAW_STATUS : LAW_SHELL), path, "required local shell authority source is missing."));
   }
-  inspectUniqueServer(project, findings);
-  inspectForbiddenLocalRuntimeSurfaces(project, findings);
-  inspectSeparatedStatus(project, findings);
+  if (!lawId || lawId === LAW_SHELL) inspectUniqueServer(project, findings);
+  inspectLocalRuntimeBoundary(project, findings, lawId);
+  if (!lawId || lawId === LAW_STATUS) inspectSeparatedStatus(project, findings);
   return findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message));
 };
 
 const evaluate = (context: InspectorContext): Omit<InspectorOutput, "executedChecks"> => ({
   capabilityDomain: context.planEntry.capabilityDomain,
   reportedLawIds: context.planEntry.lawIds,
-  findings: inspectLocalAppShellProject(context.project),
-  inspectedFiles: [...requiredPaths],
+  findings: inspectLocalAppShellProject(context.project, context.targetPaths, context.planEntry.lawIds[0]),
+  inspectedFiles: [...context.targetPaths],
 });
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {

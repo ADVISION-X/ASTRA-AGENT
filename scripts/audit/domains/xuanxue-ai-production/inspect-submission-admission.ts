@@ -12,8 +12,6 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 
-export const submissionAdmissionInspectorPath =
-  "scripts/audit/domains/xuanxue-ai-production/inspect-submission-admission.ts";
 const stagePath =
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production-stage-execution.ts";
 

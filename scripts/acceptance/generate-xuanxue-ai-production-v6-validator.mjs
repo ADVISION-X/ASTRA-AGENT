@@ -28,32 +28,40 @@ const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const fromProvider = (commit, providerPath) => execFileSync(
   "git", ["show", `${commit}:${providerPath}`], { cwd: website },
 ).toString("utf8");
-const providerSpecs = execFileSync(
-  "git", ["ls-tree", "-r", "--name-only", providerCommit, "--", "docs/specs"], { cwd: website },
-).toString("utf8").split("\n").filter((providerPath) => providerPath.endsWith(".spec.json"));
-const providerContract = (dependency) => {
-  const matches = providerSpecs.flatMap((providerPath) => {
-    const source = fromProvider(providerCommit, providerPath);
-    const spec = JSON.parse(source);
-    return spec.status === "active"
-      && spec.specKind === "cross-repo-contract"
-      && spec.contract?.contractId === dependency.contractId
-      && spec.contract?.version === dependency.version
-      && spec.contract?.providerRepo === dependency.providerRepo
-      ? [{ providerPath, source, spec }]
-      : [];
-  });
-  if (matches.length !== 1) throw new Error(`XUANXUE_PROVIDER_CONTRACT_NOT_UNIQUE:${dependency.contractId}`);
-  return matches[0];
-};
-
 const dependencySpec = JSON.parse(readFileSync(dependencyPath, "utf8"));
 const dependency = dependencySpec.contract;
 if (dependencySpec.status !== "active" || dependencySpec.specKind !== "cross-repo-dependency"
   || dependency.providerRepo !== "ADVISION-X/xuanxue-web") {
   throw new Error("XUANXUE_AI_PRODUCTION_V6_DEPENDENCY_INVALID");
 }
-const { providerPath, spec: providerSpec } = providerContract(dependency);
+const productDependencySpec = JSON.parse(readFileSync(productDependencyPath, "utf8"));
+const productDependency = productDependencySpec.contract;
+if (productDependencySpec.status !== "active" || productDependencySpec.specKind !== "cross-repo-dependency"
+  || productDependency.providerRepo !== "ADVISION-X/xuanxue-web"
+  || productDependency.contractId !== "ai-acceptance.product-execution-contract") {
+  throw new Error("XUANXUE_PRODUCT_EXECUTION_DEPENDENCY_INVALID");
+}
+const dependencies = [dependency, productDependency];
+const providerSpecs = execFileSync(
+  "git", ["ls-tree", "-r", "--name-only", providerCommit, "--", "docs/specs"], { cwd: website },
+).toString("utf8").split("\n").filter((providerPath) => providerPath.endsWith(".spec.json"));
+const providerMatches = providerSpecs.flatMap((providerPath) => {
+  const source = fromProvider(providerCommit, providerPath);
+  const spec = JSON.parse(source);
+  return dependencies.flatMap((current) => spec.status === "active"
+    && spec.specKind === "cross-repo-contract"
+    && spec.contract?.contractId === current.contractId
+    && spec.contract?.version === current.version
+    && spec.contract?.providerRepo === current.providerRepo
+    ? [{ contractId: current.contractId, providerPath, source, spec }]
+    : []);
+});
+for (const current of dependencies) if (providerMatches.filter((match) => match.contractId === current.contractId).length !== 1) {
+  throw new Error(`XUANXUE_PROVIDER_CONTRACT_NOT_UNIQUE:${current.contractId}`);
+}
+const providerMatch = providerMatches.find((match) => match.contractId === dependency.contractId);
+if (!providerMatch) throw new Error(`XUANXUE_PROVIDER_CONTRACT_NOT_UNIQUE:${dependency.contractId}`);
+const { providerPath, spec: providerSpec } = providerMatch;
 const authority = providerSpec.contract.authorityArtifact;
 const manifestText = fromProvider(providerCommit, authority.path);
 const manifest = JSON.parse(manifestText);
@@ -96,14 +104,9 @@ export const ClaimBatchReceiptV6Schema = generatedParser(assertClaimBatchReceipt
 export const HandoverV6Schema = generatedParser(assertHandoverV6);
 `;
 
-const productDependencySpec = JSON.parse(readFileSync(productDependencyPath, "utf8"));
-const productDependency = productDependencySpec.contract;
-if (productDependencySpec.status !== "active" || productDependencySpec.specKind !== "cross-repo-dependency"
-  || productDependency.providerRepo !== "ADVISION-X/xuanxue-web"
-  || productDependency.contractId !== "ai-acceptance.product-execution-contract") {
-  throw new Error("XUANXUE_PRODUCT_EXECUTION_DEPENDENCY_INVALID");
-}
-const { providerPath: productProviderPath, source: productDescriptorText, spec: productDescriptor } = providerContract(productDependency);
+const productProviderMatch = providerMatches.find((match) => match.contractId === productDependency.contractId);
+if (!productProviderMatch) throw new Error(`XUANXUE_PROVIDER_CONTRACT_NOT_UNIQUE:${productDependency.contractId}`);
+const { providerPath: productProviderPath, source: productDescriptorText, spec: productDescriptor } = productProviderMatch;
 const productAuthority = productDescriptor.contract.authorityArtifact;
 const productBundleText = fromProvider(
   providerCommit,

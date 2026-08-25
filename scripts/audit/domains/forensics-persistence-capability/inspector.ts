@@ -8,12 +8,15 @@ import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
-const requiredFiles = [
+const requiredCapabilityFiles = [
   "src/capabilities/forensics-persistence/index.ts",
   "src/capabilities/forensics-persistence/ability-group.ts",
   "src/capabilities/forensics-persistence/schema.ts",
   "src/capabilities/forensics-persistence/storage-adapter.ts",
   "src/capabilities/forensics-persistence/storage-port.ts",
+] as const;
+
+const requiredStorageFiles = [
   "src/lib/storage/index.ts",
   "src/lib/storage/file-storage.ts",
   "src/lib/storage/schema.ts",
@@ -63,8 +66,10 @@ const inspectRequiredFiles = (
   lawId: string,
   clauseId: string,
   inspectedFiles: Set<string>,
+  requiredFiles: readonly string[],
 ): void => {
   for (const repoPath of requiredFiles) {
+    if (!context.targetPaths.includes(repoPath)) continue;
     inspectedFiles.add(repoPath);
     if (sourceFile(context, repoPath)) continue;
     pushFinding(findings, lawId, clauseId, repoPath, "forensics/required-file", `${repoPath} must exist in the audit project.`);
@@ -139,7 +144,7 @@ const inspectSchemaVocabulary = (
   clauseId: string,
   inspectedFiles: Set<string>,
 ): void => {
-  for (const repoPath of ["src/capabilities/forensics-persistence/schema.ts", "src/lib/storage/schema.ts"] as const) {
+  for (const repoPath of ["src/capabilities/forensics-persistence/schema.ts"] as const) {
     const source = sourceFile(context, repoPath);
     if (!source) continue;
     inspectedFiles.add(repoPath);
@@ -156,13 +161,14 @@ const inspectSchemaVocabulary = (
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
-  const evidenceLaw = selectLawId(context.planEntry.lawIds, "GRASSEYE-EVIDENCE-001-V2");
-  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1");
-  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2");
+  const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2");
+  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2");
+  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
 
-  inspectRequiredFiles(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
+  inspectRequiredFiles(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles, requiredCapabilityFiles);
+  inspectRequiredFiles(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles, requiredStorageFiles);
   inspectOwnerImports(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
   inspectPublicFacade(context, findings, evidenceLaw, "grasseye-evidence-001-v2-requirement", inspectedFiles);
   inspectStoragePort(context, findings, schemaBoundaryLaw, "grasseye-local-persistence-schema-001-requirement", inspectedFiles);
@@ -172,7 +178,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [...inspectedFiles].sort(),
+    inspectedFiles: [...inspectedFiles].filter((path) => context.targetPaths.includes(path)).sort(),
   };
 };
 

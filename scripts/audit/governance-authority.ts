@@ -75,22 +75,88 @@ export function verifyEntry(): void {
     || scripts['quality:check'] !== 'node --import tsx scripts/audit/governance.ts quality') fail('ENTRY_CONTRACT_MISMATCH', 'command identity');
 }
 
-function validateLaw(raw: Omit<Law, 'source' | 'contractRefs'>, headingId: string, domain: string, path: string): void {
-  if (!exactKeys(raw as unknown as Record<string, unknown>, LAW_KEYS) || raw.schemaVersion !== 2 || raw.status !== 'active' || raw.lawId !== headingId || raw.capabilityDomain !== domain) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:schema`);
+type ParsedLaw = Omit<Law, 'source' | 'contractRefs'>;
+type LawParserState = { domain: string; headingId: string; headingLine: number; priorDomain: string };
+
+const lawSchemaValid = (raw: ParsedLaw, headingId: string, domain: string): boolean =>
+  exactKeys(raw, LAW_KEYS) && raw.schemaVersion === 2 && raw.status === 'active'
+  && raw.lawId === headingId && raw.capabilityDomain === domain;
+
+const lawEvidenceValid = (raw: ParsedLaw): boolean => {
+  if (!isStringArray(raw.evidenceModes) || !raw.evidenceModes.length) return false;
+  const ranked = raw.evidenceModes.map((mode) => `${String(EVIDENCE.indexOf(mode)).padStart(2, '0')}:${mode}`);
+  if (!sortedUnique(ranked) || raw.evidenceModes.some((mode) => !EVIDENCE.includes(mode))) return false;
+  const kinds = new Set(raw.evidenceModes.map((mode) => mode.split('.')[0]));
+  return raw.enforcementMode === (kinds.size > 1 ? 'composite' : [...kinds][0]);
+};
+
+const lawTextValid = (raw: ParsedLaw): boolean => cleanString(raw.summary)
+  && /^(必须|只能)/u.test(raw.summary)
+  && !/(建议|尽量|可能|一般|视情况|原则上)/u.test(raw.summary);
+
+const lawListsValid = (raw: ParsedLaw): boolean => {
+  for (const field of ['appliesTo', 'excludes', 'dependsOnLawIds'] as const) {
+    if (!isStringArray(raw[field]) || !sortedUnique(raw[field]) || raw[field].some((value) => !cleanString(value))) return false;
+  }
+  return raw.appliesTo.length > 0
+    && raw.appliesTo.every(pathPatternValid)
+    && raw.excludes.every((value) => pathPatternValid(value)
+      && raw.appliesTo.some((parent) => pathPatternContains(parent, value)));
+};
+
+const lawForbiddenValid = (raw: ParsedLaw): boolean => isStringArray(raw.forbidden)
+  && raw.forbidden.length > 0
+  && raw.forbidden.length === new Set(raw.forbidden).size
+  && raw.forbidden.every((value) => cleanString(value) && /^(不得|禁止)/u.test(value));
+
+function validateLaw(raw: ParsedLaw, headingId: string, domain: string, path: string): void {
+  if (!lawSchemaValid(raw, headingId, domain)) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:schema`);
   if (!LAW_ID_PATTERN.test(raw.lawId) || !DOMAIN_PATTERN.test(domain) || !['P0', 'P1', 'P2'].includes(raw.tier)) fail('SOURCE_PARSE_FAILED', `${path}:${headingId}:identity`);
   const version = raw.lawId.match(/^(LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3})-V([1-9][0-9]*)$/u) ?? fail('SOURCE_PARSE_FAILED', `${raw.lawId}:version`);
   const major = Number(version[2]);
   if (raw.lawId !== `LAW-${domain.toUpperCase()}-${version[1]!.split('-').at(-1)}-V${major}`) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:domain`);
   if (raw.supersedesLawId !== (major === 1 ? null : `${version[1]}-V${major - 1}`)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:supersedes`);
-  if (!isStringArray(raw.evidenceModes) || !raw.evidenceModes.length || !sortedUnique(raw.evidenceModes.map((mode) => `${String(EVIDENCE.indexOf(mode)).padStart(2, '0')}:${mode}`)) || raw.evidenceModes.some((mode) => !EVIDENCE.includes(mode))) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:evidence`);
-  const kinds = new Set(raw.evidenceModes.map((mode) => mode.split('.')[0]));
-  const enforcement = kinds.size > 1 ? 'composite' : [...kinds][0];
-  if (raw.enforcementMode !== enforcement) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:enforcement`);
-  if (!cleanString(raw.summary) || !/^(必须|只能)/u.test(raw.summary) || /(建议|尽量|可能|一般|视情况|原则上)/u.test(raw.summary)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:summary`);
-  for (const field of ['appliesTo', 'excludes', 'dependsOnLawIds'] as const) if (!isStringArray(raw[field]) || !sortedUnique(raw[field]) || raw[field].some((value) => !cleanString(value))) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:${field}`);
-  if (!raw.appliesTo.length || raw.appliesTo.some((value) => !pathPatternValid(value)) || raw.excludes.some((value) => !pathPatternValid(value) || !raw.appliesTo.some((parent) => pathPatternContains(parent, value)))) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:scope`);
-  if (!isStringArray(raw.forbidden) || !raw.forbidden.length || raw.forbidden.length !== new Set(raw.forbidden).size || raw.forbidden.some((value) => !cleanString(value) || !/^(不得|禁止)/u.test(value))) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:forbidden`);
+  if (!lawEvidenceValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:evidence`);
+  if (!lawTextValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:summary`);
+  if (!lawListsValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:scope`);
+  if (!lawForbiddenValid(raw)) fail('SOURCE_PARSE_FAILED', `${raw.lawId}:forbidden`);
 }
+
+const applyDomainHeading = (
+  match: RegExpExecArray,
+  state: LawParserState,
+  documentType: 'base-law' | 'functional-law',
+  path: string,
+): void => {
+  if (state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan heading`);
+  state.domain = match[1]!;
+  if (documentType === 'functional-law' && state.priorDomain && byteCompare(state.priorDomain, state.domain) >= 0) {
+    fail('SOURCE_PARSE_FAILED', `${path}:domain order`);
+  }
+  state.priorDomain = state.domain;
+};
+
+const applyLawHeading = (match: RegExpExecArray, state: LawParserState, line: number, path: string): void => {
+  if (!state.domain || state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:heading`);
+  state.headingId = match[1]!;
+  state.headingLine = line;
+};
+
+const parseLawBlock = (lines: string[], index: number, state: LawParserState, laws: Law[], path: string): number => {
+  if (!state.headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan law-record`);
+  let end = index + 1;
+  while (end < lines.length && lines[end] !== '```') end++;
+  if (end >= lines.length) fail('SOURCE_PARSE_FAILED', `${path}:unclosed law-record`);
+  const rawText = lines.slice(index + 1, end).join('\n');
+  rejectDuplicateJsonKeys(rawText, `${path}:${index + 2}`);
+  let raw: ParsedLaw;
+  try { raw = JSON.parse(rawText) as ParsedLaw; } catch { return fail('SOURCE_PARSE_FAILED', `${path}:${index + 2}`); }
+  validateLaw(raw, state.headingId, state.domain, path);
+  laws.push({ ...raw, source: { path, lineStart: state.headingLine, lineEnd: end + 1 }, contractRefs: [] });
+  state.headingId = '';
+  state.headingLine = 0;
+  return end;
+};
 
 function loadLawFile(path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
   const expected = `---\ndocumentType: ${documentType}\nschemaVersion: 2\nstatus: active\nauthorityLevel: ${authorityLevel}\ncontainerOwner: law-system\nlawIdPrefix: LAW\n---\n`;
@@ -98,45 +164,26 @@ function loadLawFile(path: string, documentType: 'base-law' | 'functional-law', 
   if (!source.startsWith(expected)) fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
   const lines = source.split('\n');
   const laws: Law[] = [];
-  let domain = '';
-  let headingId = '';
-  let headingLine = 0;
-  let priorDomain = '';
+  const state: LawParserState = { domain: '', headingId: '', headingLine: 0, priorDomain: '' };
   for (let index = expected.split('\n').length - 1; index < lines.length; index++) {
     const line = lines[index]!;
     const domainMatch = /^## capabilityDomain: ([a-z0-9]+(?:-[a-z0-9]+)*)$/u.exec(line);
     if (domainMatch) {
-      if (headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan heading`);
-      domain = domainMatch[1]!;
-      if (documentType === 'functional-law' && priorDomain && byteCompare(priorDomain, domain) >= 0) fail('SOURCE_PARSE_FAILED', `${path}:domain order`);
-      priorDomain = domain;
+      applyDomainHeading(domainMatch, state, documentType, path);
       continue;
     }
     const heading = /^### \[(LAW-[A-Z0-9-]+-V[1-9][0-9]*)\] .+$/u.exec(line);
     if (heading) {
-      if (!domain || headingId) fail('SOURCE_PARSE_FAILED', `${path}:heading`);
-      headingId = heading[1]!;
-      headingLine = index + 1;
+      applyLawHeading(heading, state, index + 1, path);
       continue;
     }
     if (line === '```law-record') {
-      if (!headingId) fail('SOURCE_PARSE_FAILED', `${path}:orphan law-record`);
-      let end = index + 1;
-      while (end < lines.length && lines[end] !== '```') end++;
-      if (end >= lines.length) fail('SOURCE_PARSE_FAILED', `${path}:unclosed law-record`);
-      const rawText = lines.slice(index + 1, end).join('\n');
-      rejectDuplicateJsonKeys(rawText, `${path}:${index + 2}`);
-      const raw = (() => { try { return JSON.parse(rawText) as Omit<Law, 'source' | 'contractRefs'>; } catch { return fail('SOURCE_PARSE_FAILED', `${path}:${index + 2}`); } })();
-      validateLaw(raw, headingId, domain, path);
-      laws.push({ ...raw, source: { path, lineStart: headingLine, lineEnd: end + 1 }, contractRefs: [] });
-      headingId = '';
-      headingLine = 0;
-      index = end;
+      index = parseLawBlock(lines, index, state, laws, path);
       continue;
     }
     if (/^\s*```/u.test(line)) fail('SOURCE_PARSE_FAILED', `${path}:unexpected fence`);
   }
-  if (headingId || !laws.length) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);
+  if (state.headingId || !laws.length) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);
   return laws;
 }
 
@@ -167,7 +214,7 @@ function loadManifests(laws: Law[]): Manifest[] {
   const paths = walk('scripts/audit/domains').filter((path) => path.endsWith('/manifest.json'));
   const manifests = paths.map((manifestPath) => {
     const raw = parseJson<Omit<Manifest, 'manifestPath'>>(manifestPath);
-    if (!exactKeys(raw as unknown as Record<string, unknown>, MANIFEST_KEYS) || raw.schemaVersion !== 5 || raw.status !== 'active' || !DOMAIN_PATTERN.test(raw.capabilityDomain)) fail('SOURCE_PARSE_FAILED', `${manifestPath}:schema`);
+    if (!exactKeys(raw, MANIFEST_KEYS) || raw.schemaVersion !== 5 || raw.status !== 'active' || !DOMAIN_PATTERN.test(raw.capabilityDomain)) fail('SOURCE_PARSE_FAILED', `${manifestPath}:schema`);
     for (const field of ['lawIds', 'ownedPaths', 'observedPaths'] as const) if (!isStringArray(raw[field]) || !sortedUnique(raw[field]) || raw[field].some((value) => field === 'lawIds' ? !LAW_ID_PATTERN.test(value) : !pathPatternValid(value))) fail('SOURCE_PARSE_FAILED', `${manifestPath}:${field}`);
     if (raw.ownedPaths.includes('**/*')) fail('SOURCE_PARSE_FAILED', `${manifestPath}:root owner`);
     if (JSON.stringify(raw.lawIds) !== JSON.stringify((byDomain.get(raw.capabilityDomain) ?? []).sort(byteCompare))) fail('ACTIVE_LAW_DENOMINATOR_MISMATCH', raw.capabilityDomain);
@@ -180,30 +227,66 @@ function loadManifests(laws: Law[]): Manifest[] {
 }
 
 type GovernanceSpec = { schemaVersion: number; specId: string; status: string; version: number; owner: string; lawIds: string[]; specKind: string; contract: unknown };
+const specEnvelopeValid = (raw: GovernanceSpec, domains: ReadonlySet<string>): boolean =>
+  exactKeys(raw, SPEC_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
+  && cleanString(raw.specId) && Number.isInteger(raw.version) && raw.version >= 1
+  && domains.has(raw.owner) && isStringArray(raw.lawIds) && raw.lawIds.length > 0
+  && sortedUnique(raw.lawIds) && SPEC_KINDS.includes(raw.specKind)
+  && Boolean(raw.contract) && typeof raw.contract === 'object' && !Array.isArray(raw.contract);
+
+const validateDependencyContract = (raw: GovernanceSpec, file: string): void => {
+  const contract = raw.contract as Record<string, unknown>;
+  if (!exactKeys(contract, ['contractId', 'providerRepo', 'version'])
+    || !cleanString(contract.contractId) || !Number.isInteger(contract.version)
+    || contract.version !== raw.version || typeof contract.providerRepo !== 'string'
+    || !REPO_PATTERN.test(contract.providerRepo)) fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-dependency`);
+};
+
+const validateProviderContract = (raw: GovernanceSpec, file: string): void => {
+  const contract = raw.contract as Record<string, unknown>;
+  if (!exactKeys(contract, ['authorityArtifact', 'contractId', 'providerDomain', 'providerRepo', 'version'])
+    || !cleanString(contract.contractId) || !Number.isInteger(contract.version)
+    || contract.version !== raw.version || contract.providerDomain !== raw.owner
+    || typeof contract.providerRepo !== 'string' || !REPO_PATTERN.test(contract.providerRepo)) {
+    fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-contract`);
+  }
+  const artifact = contract.authorityArtifact as Record<string, unknown>;
+  if (!artifact || !exactKeys(artifact, ['path', 'selector']) || typeof artifact.path !== 'string'
+    || !pathPatternValid(artifact.path) || !cleanString(artifact.selector)) {
+    fail('SOURCE_PARSE_FAILED', `${file}:authorityArtifact`);
+  }
+};
+
+const validateSpecContract = (raw: GovernanceSpec, file: string): void => {
+  if (raw.specKind === 'cross-repo-dependency') validateDependencyContract(raw, file);
+  if (raw.specKind === 'cross-repo-contract') validateProviderContract(raw, file);
+};
+
+const bindSpecLaws = (
+  raw: GovernanceSpec,
+  file: string,
+  lawById: ReadonlyMap<string, Law>,
+  contractRefs: Map<string, string[]>,
+): void => {
+  for (const lawId of raw.lawIds) {
+    const law = lawById.get(lawId);
+    if (!law || law.capabilityDomain !== raw.owner) fail('SOURCE_PARSE_FAILED', `${file}:${lawId}`);
+    contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
+  }
+};
+
 function loadSpecs(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
   const lawById = new Map(laws.map((law) => [law.lawId, law]));
   const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
   const identities = new Set<string>();
   for (const file of walk('docs/specs').filter((path) => path.endsWith('.json'))) {
     const raw = parseJson<GovernanceSpec>(file);
-    if (!exactKeys(raw as unknown as Record<string, unknown>, SPEC_KEYS) || raw.schemaVersion !== 1 || raw.status !== 'active' || !cleanString(raw.specId) || !Number.isInteger(raw.version) || raw.version < 1 || !domains.has(raw.owner) || !isStringArray(raw.lawIds) || !raw.lawIds.length || !sortedUnique(raw.lawIds) || !SPEC_KINDS.includes(raw.specKind) || !raw.contract || typeof raw.contract !== 'object' || Array.isArray(raw.contract)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    if (!specEnvelopeValid(raw, domains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
     const identity = `${raw.specId}\0${raw.version}`;
     if (identities.has(identity)) fail('SOURCE_PARSE_FAILED', `${file}:identity`);
     identities.add(identity);
-    for (const lawId of raw.lawIds) {
-      const law = lawById.get(lawId);
-      if (!law || law.capabilityDomain !== raw.owner) fail('SOURCE_PARSE_FAILED', `${file}:${lawId}`);
-      contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
-    }
-    if (raw.specKind === 'cross-repo-dependency') {
-      const contract = raw.contract as Record<string, unknown>;
-      if (!exactKeys(contract, ['contractId', 'providerRepo', 'version']) || !cleanString(contract.contractId) || !Number.isInteger(contract.version) || contract.version !== raw.version || typeof contract.providerRepo !== 'string' || !REPO_PATTERN.test(contract.providerRepo)) fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-dependency`);
-    } else if (raw.specKind === 'cross-repo-contract') {
-      const contract = raw.contract as Record<string, unknown>;
-      if (!exactKeys(contract, ['authorityArtifact', 'contractId', 'providerDomain', 'providerRepo', 'version']) || !cleanString(contract.contractId) || !Number.isInteger(contract.version) || contract.version !== raw.version || contract.providerDomain !== raw.owner || typeof contract.providerRepo !== 'string' || !REPO_PATTERN.test(contract.providerRepo)) fail('SOURCE_PARSE_FAILED', `${file}:cross-repo-contract`);
-      const artifact = contract.authorityArtifact as Record<string, unknown>;
-      if (!artifact || !exactKeys(artifact, ['path', 'selector']) || typeof artifact.path !== 'string' || !pathPatternValid(artifact.path) || !cleanString(artifact.selector)) fail('SOURCE_PARSE_FAILED', `${file}:authorityArtifact`);
-    }
+    bindSpecLaws(raw, file, lawById, contractRefs);
+    validateSpecContract(raw, file);
   }
 }
 
@@ -219,16 +302,30 @@ function machineBlock(path: string, label: string): Record<string, unknown> {
   try { return JSON.parse(raw) as Record<string, unknown>; } catch { return fail('SOURCE_PARSE_FAILED', path); }
 }
 
+const blueprintValid = (
+  raw: Record<string, unknown>,
+  active: ReadonlySet<string>,
+  domains: ReadonlySet<string>,
+  specPaths: ReadonlySet<string>,
+): boolean => {
+  const lawIds = raw.lawIds;
+  const refs = raw.contractRefs;
+  return exactKeys(raw, BLUEPRINT_KEYS) && raw.schemaVersion === 1 && raw.status === 'active'
+    && cleanString(raw.blueprintId) && typeof raw.owner === 'string' && domains.has(raw.owner)
+    && isStringArray(lawIds) && lawIds.length > 0 && sortedUnique(lawIds)
+    && lawIds.every((lawId) => active.has(lawId))
+    && isStringArray(refs) && sortedUnique(refs) && refs.every((path) => specPaths.has(path))
+    && Array.isArray(raw.dependencyEdges) && Array.isArray(raw.prohibitedDependencyEdges);
+};
+
 function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
   const active = new Set(laws.map((law) => law.lawId));
   const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
   const specPaths = new Set(walk('docs/specs').filter((path) => path.endsWith('.json')));
   for (const file of walk('docs/blueprints').filter((path) => path.endsWith('.md') || path.endsWith('.json'))) {
     const raw = file.endsWith('.json') ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record');
-    const lawIds = raw.lawIds;
-    const blueprintContractRefs = raw.contractRefs;
-    if (!exactKeys(raw, BLUEPRINT_KEYS) || raw.schemaVersion !== 1 || raw.status !== 'active' || !cleanString(raw.blueprintId) || typeof raw.owner !== 'string' || !domains.has(raw.owner) || !isStringArray(lawIds) || !lawIds.length || !sortedUnique(lawIds) || lawIds.some((lawId) => !active.has(lawId)) || !isStringArray(blueprintContractRefs) || !sortedUnique(blueprintContractRefs) || blueprintContractRefs.some((path) => !specPaths.has(path)) || !Array.isArray(raw.dependencyEdges) || !Array.isArray(raw.prohibitedDependencyEdges)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
-    for (const lawId of lawIds as string[]) contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
+    if (!blueprintValid(raw, active, domains, specPaths)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    for (const lawId of raw.lawIds as string[]) contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
   }
 }
 
@@ -249,11 +346,15 @@ export function buildRegistry(): Registry {
   };
 }
 
+const authorityExactPaths = new Set([SPEC, 'docs/governance/法案系统建设说明书-冻结定稿版.pdf', 'AGENTS.md', BASE, FUNCTIONAL]);
+const testPrefixes = ['tests/', 'fixtures/', 'examples/', 'coverage/', '.playwright-cli/', 'output/playwright/', 'scripts/acceptance/'];
+
 function pathRole(path: string): 'AUTHORITY' | 'GENERATED' | 'REPORT' | 'TEST' | 'HISTORY' | 'PRODUCTION' {
-  if (path === SPEC || path === 'docs/governance/法案系统建设说明书-冻结定稿版.pdf' || path === 'AGENTS.md' || path === BASE || path === FUNCTIONAL || path.startsWith('docs/blueprints/') || path.startsWith('docs/specs/') || /^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(path)) return 'AUTHORITY';
+  if (authorityExactPaths.has(path) || path.startsWith('docs/blueprints/') || path.startsWith('docs/specs/')
+    || /^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(path)) return 'AUTHORITY';
   if (path === REGISTRY) return 'GENERATED';
   if (path === REPORT || path.startsWith('scripts/audit/reports/')) return 'REPORT';
-  if (path.startsWith('tests/') || path.startsWith('fixtures/') || path.startsWith('examples/') || path.startsWith('coverage/') || path.startsWith('.playwright-cli/') || path.startsWith('output/playwright/') || path.startsWith('scripts/acceptance/') || path.includes('/acceptance/') || path.endsWith('.acceptance.ts')) return 'TEST';
+  if (testPrefixes.some((prefix) => path.startsWith(prefix)) || path.includes('/acceptance/') || path.endsWith('.acceptance.ts')) return 'TEST';
   if (path.startsWith('docs/history/')) return 'HISTORY';
   return 'PRODUCTION';
 }

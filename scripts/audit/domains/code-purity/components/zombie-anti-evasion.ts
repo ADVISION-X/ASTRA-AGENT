@@ -304,8 +304,8 @@ export const scanZombieInspectorSelfProof = (input: {
   if (!zombieAcceptanceIsInPhysicalSkeleton(input.context)) {
     selfProofProblems.push("ci-full runner does not execute acceptance:code-purity-zombie-deep.");
   }
-  if (!input.context.planEntry.lawIds.includes("LAW-CODE-PURITY-001-V1")) {
-    selfProofProblems.push("code-purity planEntry does not bind LAW-CODE-PURITY-001-V1.");
+  if (!input.context.planEntry.lawIds.includes("LAW-CODE-PURITY-001-V2")) {
+    selfProofProblems.push("code-purity planEntry does not bind LAW-CODE-PURITY-001-V2.");
   }
   if (input.inspectedFileCount === 0) {
     selfProofProblems.push("code-purity inspectedFiles is empty.");

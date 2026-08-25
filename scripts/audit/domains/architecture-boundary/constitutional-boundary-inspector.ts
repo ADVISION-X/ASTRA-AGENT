@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type ImportDeclaration, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
-import { type InspectorContext, type InspectorOutput, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { type InspectorContext, type InspectorOutput } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
   classifyRepoPath,
@@ -412,23 +412,4 @@ export const inspectConstitutionalBoundary = async (context: InspectorContext): 
       summary: buildSummary(findings),
     },
   };
-};
-
-export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  if (!context.checks) throw new Error("constitutional-boundary requires a runner-owned check session.");
-  let reportJson: unknown;
-  let reportMarkdown: string | undefined;
-  await context.checks.runAll(async () => {
-    const evaluation = await inspectConstitutionalBoundary(context);
-    reportJson = evaluation.reportJson;
-    reportMarkdown = evaluation.reportMarkdown;
-    return {
-      findings: evaluation.findings,
-      evidenceRefs: [context.planEntry.ownerInspectorPath, ...evaluation.inspectedFiles],
-    };
-  });
-  return context.checks.output({
-    ...(reportJson === undefined ? {} : { reportJson }),
-    ...(reportMarkdown === undefined ? {} : { reportMarkdown }),
-  });
 };

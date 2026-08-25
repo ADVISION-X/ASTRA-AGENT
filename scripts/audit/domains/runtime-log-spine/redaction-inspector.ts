@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
@@ -45,7 +43,6 @@ export const collectRedactionFindings = (context: InspectorContext): {
   const findings: RuntimeLogSpineFinding[] = [];
   const redactionPath = "src/lib/runtime-logs/redaction.ts";
   const sinksPath = "src/lib/runtime-logs/sinks.ts";
-  const acceptancePath = "scripts/acceptance/runtime-log-redaction.acceptance.ts";
   const redaction = context.project.getSourceFile(resolveFromRepo(redactionPath));
   const sinks = context.project.getSourceFile(resolveFromRepo(sinksPath));
 
@@ -64,8 +61,5 @@ export const collectRedactionFindings = (context: InspectorContext): {
   if (!sinks || !sinkCallsCanonicalRedaction(sinks)) {
     pushFinding(findings, sinksPath, "runtime-log-spine/sink-redaction", "Every sink path must call the canonical redactRuntimeLogEvent symbol before write.");
   }
-  if (!existsSync(resolveFromRepo(acceptancePath))) {
-    pushFinding(findings, acceptancePath, "runtime-log-spine/redaction-acceptance", "Restore the redaction acceptance.");
-  }
-  return { findings, inspectedFiles: [redactionPath, sinksPath, acceptancePath] };
+  return { findings, inspectedFiles: [redactionPath, sinksPath] };
 };

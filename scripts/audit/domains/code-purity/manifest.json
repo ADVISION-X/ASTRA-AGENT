@@ -3,7 +3,7 @@
   "capabilityDomain": "code-purity",
   "status": "active",
   "lawIds": [
-    "LAW-CODE-PURITY-001-V1"
+    "LAW-CODE-PURITY-001-V2"
   ],
   "ownedPaths": [
     ".gitignore",

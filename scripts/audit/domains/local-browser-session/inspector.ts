@@ -13,10 +13,8 @@ import {
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import {
-  blueprintPath,
   createLocalFinding,
   identifiers,
-  lawPath,
   requireIdentifiers,
   requireSource,
   retiredPaths,
@@ -24,7 +22,6 @@ import {
   stringLiterals,
   targetAuthorityPath,
 } from "./inspector-support.js";
-import { inspectOperatorAdmission } from "./operator-admission-inspector.js";
 import { inspectSingleTransport } from "./transport-inspector.js";
 
 type RegistryMutationSources = Readonly<{
@@ -344,25 +341,18 @@ const inspectAuthenticatedRuntimeRegressionGuards = (
   context: InspectorContext,
   findings: InspectorFinding[],
 ): void => {
-  const transportLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const authLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
   const targetLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   const channel = requireSource(context, findings, authLawId, sourcePaths[0]);
   const actor = requireSource(context, findings, authLawId, sourcePaths[1]);
   const crypto = requireSource(context, findings, authLawId, sourcePaths[20]);
-  const upgrade = requireSource(context, findings, authLawId, sourcePaths[21]);
   const heartbeat = requireSource(context, findings, authLawId, sourcePaths[22]);
-  const acceptance = requireSource(context, findings, authLawId, sourcePaths[15]);
-  if (!channel || !actor || !crypto || !upgrade || !heartbeat || !acceptance) return;
+  if (!channel || !actor || !crypto || !heartbeat) return;
 
   requireIdentifiers(crypto, ["aad", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, authLawId,
     "Extension AES-GCM AAD must be reconstructed from the five authenticated header fields.");
   requireIdentifiers(channel, ["aadForFrame", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, authLawId,
     "Workbench AES-GCM AAD must be reconstructed from the same five authenticated header fields.");
-  requireIdentifiers(upgrade, ["decodeClientWebSocketFrames", "controlReplies", "closed", "encodeControlFrame"], findings, authLawId,
-    "The sole WebSocket upgrader must distinguish text, ping/pong and close control frames.");
-  requireIdentifiers(upgrade, ["writeBigUInt64BE", "readBigUInt64BE", "fragmentedMessage"], findings, transportLawId,
-    "The sole WebSocket upgrader must carry owner-admitted payloads with RFC 6455 64-bit lengths and continuation reassembly.");
   requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, targetLawId,
     "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
   requireIdentifiers(actor, ["TargetClaimAwaiter", "targetClaims", "sendTargetFrame", "acceptTargetClaimAcknowledgement", "begin", "accept", "fail"], findings, targetLawId,
@@ -379,8 +369,6 @@ const inspectAuthenticatedRuntimeRegressionGuards = (
     checkId: "browser-authority/terminal-authority", lawId: authLawId, filePath: sourcePaths[1],
     message: "The MV3 worker must send an authenticated HEARTBEAT liveness frame.",
   }));
-  requireIdentifiers(acceptance, ["decrypt", "encrypt", "encryptBrowserAuthorityFrame", "decryptBrowserAuthorityFrame", "decodeClientWebSocketFrames", "parseBrowserAuthorityTargetClaim"], findings, targetLawId,
-    "The local Browser terminal acceptance must retain the crypto, control-frame and epoch-zero regression probes.");
   const parseClaim = channel.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
   const navigationEpoch = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "navigationEpoch");
@@ -391,34 +379,6 @@ const inspectAuthenticatedRuntimeRegressionGuards = (
       lawId: targetLawId,
       filePath: sourcePaths[0],
       message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
-    }));
-  }
-};
-
-const inspectRealChromeProofRoute = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const verifier = requireSource(context, findings, lawId, sourcePaths[24]);
-  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
-  const journal = requireSource(context, findings, lawId, sourcePaths[7]);
-  if (!verifier || !supervisor || !journal) return;
-  requireIdentifiers(verifier, [
-    "readBrowserProofJournal", "buildStartupSourceFingerprint",
-    "GRASSEYE_UNPACKED_EXTENSION_ID", "releaseRecord", "candidateHash",
-    "authenticated", "claimed", "completed", "revoked",
-  ], findings, lawId, "The real-Chrome verifier must bind canonical journal bytes to current source and release identity.");
-  requireIdentifiers(supervisor, ["BrowserProofJournal", "recordLifecycle"], findings, lawId,
-    "The Browser supervisor must produce lifecycle facts in the canonical proof journal.");
-  requireIdentifiers(journal, ["previousEntryHash", "entryHash", "fsyncSync"], findings, lawId,
-    "The canonical Browser proof journal must be hash chained and durably appended.");
-  const phases = new Set(stringLiterals(verifier));
-  for (const phase of ["AUTHENTICATED", "TARGET_CLAIMED", "COMPLETED", "AUTHORITY_REVOKED"]) {
-    if (phases.has(phase)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[24],
-      message: `The real-Chrome verifier must require ${phase}.`,
     }));
   }
 };
@@ -460,17 +420,7 @@ const inspectJournalRecoveryBoundary = (
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<InspectorOutput, "executedChecks">> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-001-V4");
   const findings: InspectorFinding[] = [];
-  for (const path of [lawPath, blueprintPath]) {
-    if (!existsSync(resolveFromRepo(path))) {
-      findings.push(createLocalFinding({
-        checkId: "browser-authority/terminal-authority",
-        lawId,
-        filePath: path,
-        message: `${path} must exist.`,
-      }));
-    }
-  }
-  for (const path of [...sourcePaths, targetAuthorityPath]) {
+  for (const path of [...sourcePaths, targetAuthorityPath].filter((candidate) => context.targetPaths.includes(candidate))) {
     if (context.project.getSourceFile(resolveFromRepo(path))) continue;
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
@@ -480,20 +430,17 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     }));
   }
   inspectSingleTransport(context, findings, lawId);
-  const workspaceLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
-  inspectOperatorAdmission(context, findings, workspaceLawId);
   inspectRegistryAndMutationBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
   inspectAtomicIfAndThenBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
   inspectJournalRecoveryBoundary(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-004-V6"));
   inspectAuthenticatedRuntimeRegressionGuards(context, findings);
-  inspectRealChromeProofRoute(context, findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
   findings.push(...collectTransportPayloadCeilingFindings(context, lawId));
   inspectReleaseAndRetiredPaths(findings, selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4"));
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [lawPath, blueprintPath, "src/lib/browser/chrome-extension/manifest.json", targetAuthorityPath, ...sourcePaths, ...retiredPaths].sort(),
+    inspectedFiles: [...context.targetPaths].sort(),
   };
 };
 

@@ -215,34 +215,31 @@ const assertCommandEvent = (raw: Record<string, unknown>): BrowserProofCommandEv
   return invalid ? invalidJournal() : raw as BrowserProofCommandEvent;
 };
 
+const recoveryKeys = [
+  "eventType", "phase", "recoveryId", "originalJournalPath", "originalJournalSha256",
+  "originalByteLength", "originalLineCount", "firstInvalidLine", "failureCode", "archivePath",
+  "recoveryReceiptPath", "observedCandidateHashes", "observedReleaseBuildIds", "operatorId",
+  "authorizationRef", "reasonCode", "recoveredAt", "recordedAt",
+];
+
+const recoverySourceValid = (raw: Record<string, unknown>): boolean => validHash(raw.recoveryId)
+  && validText(raw.originalJournalPath) && validHash(raw.originalJournalSha256)
+  && validPositiveInteger(raw.originalByteLength) && validPositiveInteger(raw.originalLineCount)
+  && validPositiveInteger(raw.firstInvalidLine) && raw.firstInvalidLine <= raw.originalLineCount;
+
+const recoveryReceiptValid = (raw: Record<string, unknown>): boolean => validText(raw.archivePath)
+  && validText(raw.recoveryReceiptPath) && validSortedUnique(raw.observedCandidateHashes, validHash)
+  && validSortedUnique(raw.observedReleaseBuildIds, validText);
+
+const recoveryAuthorityValid = (raw: Record<string, unknown>): boolean => validText(raw.operatorId)
+  && validText(raw.authorizationRef) && validText(raw.reasonCode)
+  && validTimestamp(raw.recoveredAt) && validTimestamp(raw.recordedAt)
+  && raw.recordedAt === raw.recoveredAt;
+
 const assertRecoveryEvent = (raw: Record<string, unknown>): BrowserProofRecoveryEvent => {
-  const required = [
-    "eventType", "phase", "recoveryId", "originalJournalPath", "originalJournalSha256",
-    "originalByteLength", "originalLineCount", "firstInvalidLine", "failureCode", "archivePath",
-    "recoveryReceiptPath", "observedCandidateHashes", "observedReleaseBuildIds", "operatorId",
-    "authorizationRef", "reasonCode", "recoveredAt", "recordedAt",
-  ];
-  const invalid = !exactKeys(raw, required)
-    || raw.eventType !== "RECOVERY"
-    || raw.phase !== "GENESIS"
-    || !validHash(raw.recoveryId)
-    || !validText(raw.originalJournalPath)
-    || !validHash(raw.originalJournalSha256)
-    || !validPositiveInteger(raw.originalByteLength)
-    || !validPositiveInteger(raw.originalLineCount)
-    || !validPositiveInteger(raw.firstInvalidLine)
-    || raw.firstInvalidLine > raw.originalLineCount
+  const invalid = !exactKeys(raw, recoveryKeys) || raw.eventType !== "RECOVERY" || raw.phase !== "GENESIS"
     || raw.failureCode !== "BROWSER_PROOF_JOURNAL_INTEGRITY_INVALID"
-    || !validText(raw.archivePath)
-    || !validText(raw.recoveryReceiptPath)
-    || !validSortedUnique(raw.observedCandidateHashes, validHash)
-    || !validSortedUnique(raw.observedReleaseBuildIds, validText)
-    || !validText(raw.operatorId)
-    || !validText(raw.authorizationRef)
-    || !validText(raw.reasonCode)
-    || !validTimestamp(raw.recoveredAt)
-    || !validTimestamp(raw.recordedAt)
-    || raw.recordedAt !== raw.recoveredAt;
+    || !recoverySourceValid(raw) || !recoveryReceiptValid(raw) || !recoveryAuthorityValid(raw);
   return invalid ? invalidJournal() : raw as BrowserProofRecoveryEvent;
 };
 

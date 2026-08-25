@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V7"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V8"
   ],
   "contractRefs": [
     "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
@@ -50,7 +50,7 @@
 ```
 
 状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V7`
+法案：`LAW-XUANXUE-AI-PRODUCTION-001-V8`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
 ## 接入

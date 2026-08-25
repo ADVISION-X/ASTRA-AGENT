@@ -75,8 +75,8 @@ const buildZombieGraphState = (
     moduleGraph,
   });
   return {
-    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V1"),
-    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V1"),
+    antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
+    dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
     liveEntryState,
     manifest,
     moduleGraph,
@@ -86,9 +86,9 @@ const buildZombieGraphState = (
       reachableFiles: reachability.reachableFiles,
     }),
     reachability,
-    sideEffectImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V1"),
+    sideEffectImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
     symbolGraph: buildZombieSymbolGraph(governedFiles),
-    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V1"),
+    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V2"),
   };
 };
 

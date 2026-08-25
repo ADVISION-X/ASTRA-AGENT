@@ -2,7 +2,7 @@ import { GovernanceError, fail, text } from './governance-runtime.js';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 const sortedUnique = (items:string[]) => items.length === new Set(items).size && items.every((v,i)=>i===0||Buffer.compare(Buffer.from(items[i-1]!),Buffer.from(v))<0);
-const exactKeys = (value:Record<string,unknown>, keys:string[]) => JSON.stringify(Object.keys(value).sort())===JSON.stringify([...keys].sort());
+const exactKeys = (value: object, keys:string[]) => JSON.stringify(Object.keys(value).sort())===JSON.stringify([...keys].sort());
 const canonicalValue = (value:unknown):Json => {
   if(value===null||typeof value==='string'||typeof value==='boolean')return value;
   if(typeof value==='number'&&Number.isFinite(value))return value;
@@ -54,4 +54,3 @@ export {
   pathPatternValid, pathPatternContains,
 };
 export type { Json };
-

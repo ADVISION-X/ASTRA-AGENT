@@ -42,7 +42,7 @@ const buildInspectorCounts = (
   consoleEscapeCount: collected.forbiddenConsole.consoleViolationCount,
   eventTypeLiteralCount: collected.eventRegistry.findings.length,
   missingModeVisibilityCount: collected.modeVisibility.findings.filter((finding) => finding.checkId.includes("mode-visibility")).length,
-  missingTraceContractCount: collected.emitContract.findings.filter((finding) => finding.lawId === "GRASSEYE-RUNTIME-LOG-SPINE-003-V1").length,
+  missingTraceContractCount: collected.emitContract.findings.filter((finding) => finding.lawId === "LAW-RUNTIME-LOG-SPINE-003-V2").length,
   catchBranchCount: collected.semanticMetrics.metrics.catchClauseCount,
   catchBranchWithoutLogCount: collected.catchBranches.findings.length,
   failureBranchCount: collected.semanticMetrics.metrics.failureBranchCount,
@@ -74,7 +74,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Omit<
     reportedLawIds: context.planEntry.lawIds,
 
     findings: report.findings.map(toInspectorFinding),
-    inspectedFiles: report.inspectedFiles,
+    inspectedFiles: report.inspectedFiles.filter((path) => context.targetPaths.includes(path)),
     reportJson: report,
     reportMarkdown: renderRuntimeLogSpineMarkdown(report),
   };
