@@ -21,6 +21,7 @@ import {
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
+import type { QualityProofBinding } from "../../scripts/audit/shared/proof-observation.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 
@@ -195,44 +196,75 @@ test("external Exam and Dynamic evidence requires a native receipt or SHA-256 su
   );
 });
 
-test("a fixed stdout marker cannot mint evidence for unexecuted law routes", () => {
+const proofBindings = (
+  routes: Array<{ law: Law; mode: string }>, proofKind: "exam" | "dynamic" = "exam",
+): QualityProofBinding[] => routes.map(({ law, mode }, index) => ({
+  lawId: law.lawId, evidenceMode: mode, proofRunId: "a".repeat(64), candidate: "b".repeat(64),
+  proofKind, routeReceipt: String(index + 1).repeat(64),
+}));
+
+test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
   const first = fixtureLaw();
   const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
   const routes = [
     { law: first, mode: "exam.golden" },
     { law: second, mode: "exam.golden" },
   ];
-  assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes).size, 0);
+  const bindings = proofBindings(routes);
+  assert.equal(bindNativeProofObservations("FIXED_PASS\n", routes, bindings).size, 0);
   const oneNativeObservation = `${proofObservationPrefix}${JSON.stringify({
     lawId: first.lawId,
     evidenceMode: "exam.golden",
     locator: "acceptance:fixture:first",
     observedValue: "first route actually asserted",
+    ...bindings[0],
   })}\n`;
-  assert.equal(bindNativeProofObservations(oneNativeObservation, routes).size, 1,
+  assert.equal(bindNativeProofObservations(oneNativeObservation, routes, bindings).size, 1,
     "one native observation must not synthesize the second law route");
+  const invented = `${proofObservationPrefix}${JSON.stringify({
+    lawId: first.lawId, evidenceMode: "exam.golden", locator: "invented://no-real-object",
+    observedValue: "PASS", proofRunId: "f".repeat(64), candidate: "b".repeat(64),
+    proofKind: "exam", routeReceipt: bindings[0]!.routeReceipt,
+  })}\n`;
+  assert.throws(
+    () => bindNativeProofObservations(invented, routes, bindings),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
 });
 
 test("native proof observations reject one locator reused across law routes", () => {
   const first = fixtureLaw();
   const second = { ...fixtureLaw(), lawId: "LAW-FIXTURE-002-V1" };
-  const lines = [first, second].map((law) => `${proofObservationPrefix}${JSON.stringify({
+  const routes = [first, second].map((law) => ({ law, mode: "exam.golden" }));
+  const bindings = proofBindings(routes);
+  const lines = [first, second].map((law, index) => `${proofObservationPrefix}${JSON.stringify({
     lawId: law.lawId,
     evidenceMode: "exam.golden",
     locator: "acceptance:fixture:reused",
     observedValue: law.lawId,
+    ...bindings[index],
   })}`).join("\n");
   assert.throws(
-    () => bindNativeProofObservations(lines, [
-      { law: first, mode: "exam.golden" },
-      { law: second, mode: "exam.golden" },
-    ]),
+    () => bindNativeProofObservations(lines, routes, bindings),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
   );
   assert.throws(
-    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, [
-      { law: first, mode: "exam.golden" },
-    ]),
+    () => bindNativeProofObservations(`${proofObservationPrefix}{not-json}`, routes, bindings),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+  );
+});
+
+test("an authenticated Dynamic marker still cannot claim an invented native object", () => {
+  const law = fixtureLaw();
+  const routes = [{ law, mode: "dynamic.service" }];
+  const bindings = proofBindings(routes, "dynamic");
+  const marker = `${proofObservationPrefix}${JSON.stringify({
+    lawId: law.lawId, evidenceMode: "dynamic.service", locator: "invented://no-real-object",
+    observedValue: `run=${bindings[0]!.proofRunId};candidate=${bindings[0]!.candidate};value=forged`,
+    ...bindings[0],
+  })}`;
+  assert.throws(
+    () => bindNativeProofObservations(marker, routes, bindings),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
 });
@@ -265,6 +297,7 @@ test("static finalization rejects a law with no explicit inspector route", () =>
 
 test("static finalization rejects a new law clause without an explicit owner check route", () => {
   const context = {
+    sealedRoot: "/sealed",
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
     lawRequirements: [{
       lawId: "LAW-FIXTURE-001-V1",
@@ -279,6 +312,26 @@ test("static finalization rejects a new law clause without an explicit owner che
       findings: [], inspectedFiles: ["src/fixture.ts"],
     }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
+  );
+});
+
+test("static finalization rejects a declared route that did not inspect its complete target set", () => {
+  const context = {
+    sealedRoot: "/sealed",
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
+    lawRequirements: [{
+      lawId: "LAW-FIXTURE-001-V1",
+      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
+      targetPaths: ["src/fixture-a.ts", "src/fixture-b.ts"],
+      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2, sha256: "a".repeat(64) },
+    }],
+  } as unknown as InspectorContext;
+  assert.throws(
+    () => finalizeStaticInspection(context, {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+      findings: [], inspectedFiles: ["src/fixture-a.ts"],
+    }, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1, checkIds: ["fixture/explicit-check"] }]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
@@ -439,6 +492,7 @@ test("Shell browser and service Dynamic Proof share one current-run runtime rout
 test("CHANGE routes an ordinary Exam to every affected domain without running unrelated domains", () => {
   const registry = buildRegistry();
   assert.deepEqual(relevantExamScripts(["src/lib/storage/fixture.ts"], registry), [
+    "acceptance:app-shell-ui",
     "acceptance:code-purity-zombie-deep",
     "acceptance:forensics-persistence-capability",
     "acceptance:system-security",

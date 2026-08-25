@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 
-import { buildRegistry, checkProjection, loadLaws, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
 
@@ -42,6 +42,21 @@ test('registry is schema 5 projection without hashes, bindings, or verdicts', ()
   }
   checkProjection();
   verifyProductionOwnership(registry);
+});
+
+test('candidate roles preserve the exact mother-spec vocabulary and keep the PDF non-authoritative', () => {
+  const roles = new Set([
+    pathRole('AGENTS.md'),
+    pathRole('scripts/audit/generated/law-registry.generated.json'),
+    pathRole('scripts/audit/reports/law-quality.report.json'),
+    pathRole('tests/governance/fixture.ts'),
+    pathRole('docs/history/fixture.md'),
+    pathRole('src/app/server.ts'),
+  ]);
+  assert.deepEqual([...roles].sort(), [
+    'GENERATED_REGISTRY', 'GOVERNANCE_AUTHORITY', 'HISTORY_ONLY', 'PRODUCTION', 'QUALITY_REPORT', 'TEST_ONLY',
+  ].sort());
+  assert.equal(pathRole('docs/governance/法案系统建设说明书-冻结定稿版.pdf'), 'PRODUCTION');
 });
 
 test('consumer cross-repo specs declare only dependency identity', () => {

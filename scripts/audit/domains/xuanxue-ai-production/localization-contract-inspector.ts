@@ -185,7 +185,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings: evaluation.findings,
-    inspectedFiles: [...evaluation.evidenceRefs],
+    inspectedFiles: [...evaluation.evidenceRefs].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right))),
   }, [{
     lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", forbiddenCount: 1,
     checkIds: ["xuanxue-localization/contract-projection"],

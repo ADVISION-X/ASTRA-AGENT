@@ -6,6 +6,7 @@
     "LAW-CAPABILITY-GOVERNANCE-001-V1"
   ],
   "ownedPaths": [
+    "docs/governance/法案系统建设说明书-冻结定稿版.pdf",
     "scripts/audit/domains/capability-governance/**"
   ],
   "observedPaths": [

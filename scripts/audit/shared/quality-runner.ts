@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -9,7 +10,7 @@ import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
 import type { InspectorFinding, InspectorLawResult, SessionInspectorOutput } from "./inspector-contracts.js";
-import { parseQualityProofObservations, type QualityProofObservation } from "./proof-observation.js";
+import { parseQualityProofObservations, type QualityProofBinding, type QualityProofObservation } from "./proof-observation.js";
 import { dynamicScriptFor, examScriptFor } from "./quality-routes.js";
 
 export { dynamicScriptFor } from "./quality-routes.js";
@@ -20,7 +21,8 @@ type ProofRoute = { law: Law; mode: string };
 type ProofResultInput = {
   kind: "exam" | "dynamic"; routes: ProofRoute[]; path: string; digest: string;
   observations: ReadonlyMap<string, QualityProofObservation>;
-  executionPassed: boolean; executionStatus: number | null;
+  executionPassed: boolean; executionStatus: number | null; script: string;
+  proofRunId: string; candidate: string; stdoutSha256: string;
 };
 type Dependency = { contractId: string; providerRepo: string; version: number };
 type BoundParticipant = { path: string; report: QualityParticipant };
@@ -232,8 +234,11 @@ const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   const results = new Map<string, ProofResult>();
   for (const { law, mode } of input.routes) {
     const observation = input.observations.get(`${law.lawId}\0${mode}`);
-    const locator = observation?.locator ?? "native-observation:missing";
-    const observedValue = observation?.observedValue ?? "QUALITY_PROOF_OBSERVATION_MISSING";
+    const locator = input.kind === "exam" ? `command:npm run ${input.script}`
+      : observation?.locator ?? "native-observation:missing";
+    const observedValue = input.kind === "exam"
+      ? `run=${input.proofRunId};candidate=${input.candidate};exitStatus=${input.executionStatus};stdoutSha256=${input.stdoutSha256}`
+      : observation?.observedValue ?? "QUALITY_PROOF_OBSERVATION_MISSING";
     const passed = input.executionPassed && observation !== undefined;
     const selector = encodeURIComponent(`lawId=${law.lawId};mode=${mode};locator=${locator};observed=${observedValue}`);
     const ref = `${input.kind}:${input.path}#${selector}@${input.digest}`;
@@ -248,19 +253,54 @@ const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   return results;
 };
 
+const proofBindingIndex = (
+  routes: readonly ProofRoute[], bindings: readonly QualityProofBinding[],
+): Readonly<{ expected: ReadonlySet<string>; byRoute: ReadonlyMap<string, QualityProofBinding> }> => {
+  const expected = new Set(routes.map(({ law, mode }) => `${law.lawId}\0${mode}`));
+  const byRoute = new Map(bindings.map((binding) => [`${binding.lawId}\0${binding.evidenceMode}`, binding]));
+  if (expected.size !== routes.length || byRoute.size !== bindings.length || bindings.length !== routes.length
+    || [...expected].some((key) => !byRoute.has(key))) fail("LAW_EVIDENCE_MISSING", "native proof route binding");
+  return { expected, byRoute };
+};
+
+const assertObservationBinding = (
+  observation: QualityProofObservation, binding: QualityProofBinding, key: string,
+): void => {
+  if (observation.proofRunId !== binding.proofRunId || observation.candidate !== binding.candidate
+    || observation.proofKind !== binding.proofKind || observation.routeReceipt !== binding.routeReceipt) {
+    fail("LAW_EVIDENCE_MISSING", `unauthenticated:${key.replace("\0", ":")}`);
+  }
+};
+
+const assertDynamicNativeObject = (
+  observation: QualityProofObservation, binding: QualityProofBinding, key: string,
+): void => {
+  if (observation.proofKind !== "dynamic") return;
+  const locatorAllowed = /^(?:https?:\/\/|tcp:\/\/|process:|dynamic:(?:browser|browser-journal|xuanxue):)/u.test(observation.locator);
+  const runBound = observation.observedValue.includes(`run=${binding.proofRunId}`)
+    && observation.observedValue.includes(`candidate=${binding.candidate}`);
+  if (!locatorAllowed || !runBound || /^(?:pass|true)$/iu.test(observation.observedValue.trim())) {
+    fail("LAW_EVIDENCE_MISSING", `native-object:${key.replace("\0", ":")}`);
+  }
+};
+
 export const bindNativeProofObservations = (
   stdout: string,
   routes: readonly ProofRoute[],
+  bindings: readonly QualityProofBinding[],
 ): Map<string, QualityProofObservation> => {
-  const expected = new Set(routes.map(({ law, mode }) => `${law.lawId}\0${mode}`));
+  const index = proofBindingIndex(routes, bindings);
   const bound = new Map<string, QualityProofObservation>();
   let observations: QualityProofObservation[];
   try { observations = parseQualityProofObservations(stdout); }
   catch { return fail("LAW_EVIDENCE_MISSING", "invalid native proof observation"); }
   for (const observation of observations) {
     const key = `${observation.lawId}\0${observation.evidenceMode}`;
-    if (!expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
+    if (!index.expected.has(key)) fail("LAW_EVIDENCE_UNEXPECTED", key.replace("\0", ":"));
     if (bound.has(key)) fail("LAW_EVIDENCE_DUPLICATE", key.replace("\0", ":"));
+    const binding = index.byRoute.get(key)!;
+    assertObservationBinding(observation, binding, key);
+    assertDynamicNativeObject(observation, binding, key);
     if ([...bound.values()].some((current) => current.locator === observation.locator)) {
       fail("LAW_EVIDENCE_DUPLICATE", `locator:${observation.locator}`);
     }
@@ -275,6 +315,11 @@ const commandReceipt = (
 ): Map<string, ProofResult> => {
   const startedAt = new Date().toISOString();
   const proofRunId = sha(`${candidate}\0${kind}\0${script}\0${startedAt}\0${process.pid}`);
+  const bindingSecret = randomBytes(32).toString("hex");
+  const bindings: QualityProofBinding[] = routes.map(({ law, mode }) => ({
+    lawId: law.lawId, evidenceMode: mode, proofRunId, candidate, proofKind: kind,
+    routeReceipt: sha(`${bindingSecret}\0${proofRunId}\0${candidate}\0${kind}\0${script}\0${law.lawId}\0${mode}`),
+  }));
   const before = candidateSnapshot();
   const timeoutMs = kind === "exam" ? 300_000 : 900_000;
   const execution = spawnSync("npm", ["run", script], {
@@ -287,7 +332,7 @@ const commandReceipt = (
       GOVERNANCE_PROOF_KIND: kind,
       GOVERNANCE_PROOF_RUN_ID: proofRunId,
       GOVERNANCE_PROOF_CANDIDATE: candidate,
-      GOVERNANCE_PROOF_ROUTES: JSON.stringify(routes.map(({ law, mode }) => ({ lawId: law.lawId, evidenceMode: mode }))),
+      GOVERNANCE_PROOF_BINDINGS: JSON.stringify(bindings),
     },
   });
   const after = candidateSnapshot();
@@ -298,7 +343,7 @@ const commandReceipt = (
   const stderrPath = resolve(runDirectory, `${kind}-${token}.stderr.txt`);
   writeFileSync(stdoutPath, execution.stdout ?? "", { mode: 0o600 });
   writeFileSync(stderrPath, execution.stderr ?? "", { mode: 0o600 });
-  const observations = bindNativeProofObservations(execution.stdout ?? "", routes);
+  const observations = bindNativeProofObservations(execution.stdout ?? "", routes, bindings);
   const executionPassed = execution.status === 0 && execution.signal === null;
   const path = resolve(runDirectory, `${kind}-${token}.receipt.json`);
   const receipt = {
@@ -316,7 +361,10 @@ const commandReceipt = (
   writeFileSync(path, canonicalBytes(receipt), { mode: 0o600 });
   const digest = sha(readFileSync(path));
   if (!executionPassed || observations.size !== routes.length) process.stderr.write(execution.stderr || execution.stdout || `${script} failed\n`);
-  return proofResults({ kind, routes, path, digest, observations, executionPassed, executionStatus: execution.status });
+  return proofResults({
+    kind, routes, path, digest, observations, executionPassed, executionStatus: execution.status,
+    script, proofRunId, candidate, stdoutSha256: receipt.stdoutSha256,
+  });
 };
 
 const outputDirectory = (): string => {
