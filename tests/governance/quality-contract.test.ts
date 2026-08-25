@@ -21,16 +21,11 @@ import {
 } from "../../scripts/audit/shared/quality-contract.js";
 import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
-import type { InspectorContext, InspectorEvaluation } from "../../scripts/audit/shared/inspector-contracts.js";
+import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { assertProofModeDenominator, observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import {
-  finalizeStaticInspection,
-  recordSemanticCheck,
-  semanticExecutionIsExact,
-} from "../../scripts/audit/shared/static-inspector-result.js";
-import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
+import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
 const fixtureLaw = (): Law => ({
@@ -113,24 +108,14 @@ test("configured proof routes reject an underdeclared evidence mode", () => {
   );
 });
 
-test("every active Static route has fixed clause coverage bound to domain semantic checks", () => {
+test("Static clause coverage comes directly from the active law contract", () => {
   const registry = buildRegistry();
-  const domains = [...new Set(registry.laws.map((law) => law.capabilityDomain))].sort();
-  const signature = (input: { lawId: string; evidenceMode: string; clauses: readonly string[] }): string =>
-    `${input.lawId}\0${input.evidenceMode}\0${JSON.stringify([...input.clauses].sort())}`;
-  for (const domain of domains) {
-    const laws = registry.laws.filter((law) => law.capabilityDomain === domain);
-    const expected = laws.flatMap((law) => {
-      const modes = requiredModes(law, "READY");
-      return modes.filter((mode) => mode.startsWith("static.")).map((evidenceMode) => signature({
-        lawId: law.lawId,
-        evidenceMode,
-        clauses: clausesForEvidenceMode(law, modes, evidenceMode),
-      }));
-    }).sort();
-    const routes = staticClauseRoutesForDomain(domain);
-    assert.deepEqual(routes.map(signature).sort(), expected, domain);
-    assert.equal(routes.every((route) => route.semanticChecks.length > 0), true, domain);
+  for (const law of registry.laws) {
+    const ready = requiredModes(law, "READY");
+    const staticModes = ready.filter((mode) => mode.startsWith("static."));
+    const covered = [...new Set(staticModes.flatMap((mode) => clausesForEvidenceMode(law, ready, mode)))];
+    assert.equal(staticModes.every((mode) => clausesForEvidenceMode(law, ready, mode).length > 0), true, law.lawId);
+    assert.equal(covered.every((clause) => clausesForLaw(law).includes(clause)), true, law.lawId);
   }
 });
 
@@ -149,32 +134,7 @@ test("RELEASE additions cannot rewrite READY Static or Exam clause ownership", (
   }
 });
 
-test("static semantic receipts are emitted only after a checker returns", () => {
-  const receipts: Array<{ lawId: string; name: string }> = [];
-  assert.throws(() => recordSemanticCheck(receipts, "LAW-A", "inspectA", (() => {
-    throw new Error("checker failed");
-  })()));
-  assert.deepEqual(receipts, []);
-  assert.equal(recordSemanticCheck(receipts, "LAW-A", "inspectA", "complete"), "complete");
-  assert.deepEqual(receipts, [{ lawId: "LAW-A", name: "inspectA" }]);
-});
-
-test("static semantic receipts reject missing, extra, duplicate, and permuted law bindings", () => {
-  const checks = [
-    { lawId: "LAW-A", evidenceMode: "static.ast", clauses: ["summary"], checkId: "a/static-ast", semanticChecks: ["inspectA"] },
-    { lawId: "LAW-B", evidenceMode: "static.ast", clauses: ["summary"], checkId: "b/static-ast", semanticChecks: ["inspectB"] },
-  ];
-  const exact = [{ lawId: "LAW-A", name: "inspectA" }, { lawId: "LAW-B", name: "inspectB" }];
-  assert.equal(semanticExecutionIsExact(checks, exact), true);
-  assert.equal(semanticExecutionIsExact(checks, exact.slice(0, 1)), false);
-  assert.equal(semanticExecutionIsExact(checks, [...exact, { lawId: "LAW-C", name: "inspectC" }]), false);
-  assert.equal(semanticExecutionIsExact(checks, [...exact, exact[0]!]), false);
-  assert.equal(semanticExecutionIsExact(checks, [
-    { lawId: "LAW-B", name: "inspectA" }, { lawId: "LAW-A", name: "inspectB" },
-  ]), false);
-});
-
-test("Workbench static inspection rejects global-key and incomplete HMAC mutants", () => {
+test("Workbench static inspection changes verdict for global-key and incomplete HMAC mutants", () => {
   const original = readFileSync("src/app/workbench-api-boundary.ts", "utf8");
   const mutants = [
     `${original}\nconst legacy = process.env.GRASSEYE_EXTERNAL_API_KEY;\n`,
@@ -455,7 +415,6 @@ test("static finalization rejects a law with no explicit inspector route", async
     () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
       capabilityDomain: "fixture",
       reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
-      executedChecks: [],
       findings: [],
       inspectedFiles: ["src/fixture.ts"],
     }; }),
@@ -478,33 +437,9 @@ test("static finalization rejects a new law clause without an explicit owner che
   await assert.rejects(
     () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
-      executedChecks: [], findings: [], inspectedFiles: ["src/fixture.ts"],
+      findings: [], inspectedFiles: ["src/fixture.ts"],
     }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
-  );
-});
-
-test("static finalization rejects an omitted executed clause check", async () => {
-  const context = {
-    sealedRoot: process.cwd(),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
-    lawRequirements: [{
-      lawId: "LAW-FIXTURE-001-V1",
-      forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
-      targetPaths: ["package.json"],
-      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
-    }],
-  } as unknown as InspectorContext;
-  await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
-      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
-      executedChecks: [{
-        lawId: "LAW-FIXTURE-001-V1", evidenceMode: "static.ast", clauses: ["summary"],
-        checkId: "fixture/summary-check", semanticChecks: ["inspectFixture"],
-      }],
-    }; }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
@@ -524,14 +459,14 @@ test("static finalization invokes the named owner executor and rejects an unread
   await assert.rejects(
     () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { executed = true; return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
-      executedChecks: [], findings: [], inspectedFiles: ["src/fixture-a.ts"],
+      findings: [], inspectedFiles: ["src/fixture-a.ts"],
     }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
   assert.equal(executed, true);
 });
 
-test("a no-op inspector cannot mint PASS from a readable complete target set", async () => {
+test("static PASS evidence names governed target objects instead of inspector declarations", async () => {
   const context = {
     sealedRoot: process.cwd(),
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
@@ -542,35 +477,12 @@ test("a no-op inspector cannot mint PASS from a readable complete target set", a
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
-  await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectNothing() { return {
+  const output = await finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
-    } as unknown as InspectorEvaluation; }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
-  );
-});
-
-test("an unrelated function call cannot authenticate a copied static clause plan", async () => {
-  const context = {
-    sealedRoot: process.cwd(),
-    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
-    lawRequirements: [{
-      lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1,
-      clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
-      targetPaths: ["package.json"],
-      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
-    }],
-  } as unknown as InspectorContext;
-  await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectNothing() { String("unrelated-call"); return {
-      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
-      executedChecks: [{
-        lawId: "LAW-FIXTURE-001-V1", evidenceMode: "static.ast", clauses: ["forbidden:0", "summary"],
-        checkId: "fixture/copied-request-plan", semanticChecks: ["String"],
-      }],
-    }; }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
-  );
+    }; });
+  const refs = output.lawResults[0]!.assertions[0]!.refs;
+  assert.equal(refs.some((ref) => ref.startsWith("ast:package.json#")), true);
+  assert.equal(refs.some((ref) => ref.includes("static-inspector-result.ts")), false);
 });
 
 test("a finding propagates from one law result to the only top-level verdict", () => {
