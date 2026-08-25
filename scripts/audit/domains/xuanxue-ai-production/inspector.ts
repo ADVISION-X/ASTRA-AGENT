@@ -291,11 +291,11 @@ const inspectCloud = (
 };
 
 const resolveLaws = (context: InspectorContext): Laws => ({
-  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V10"),
-  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V10"),
-  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V10"),
-  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V10"),
-  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V10"),
+  boundary: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
+  durability: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
+  cloud: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
+  intervention: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
+  transient: selectLawId(context.planEntry.lawIds, "LAW-XUANXUE-AI-PRODUCTION-001-V11"),
 });
 
 const collectDomainSources = (
@@ -385,7 +385,7 @@ export const inspectDomain = async (
   context: InspectorContext,
 ): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V10";
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-001-V11";
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
   const passed = findings.length === 0;
   return validateStaticInspection(context, {

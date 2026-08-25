@@ -3,9 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   assessDependencyState,
-  getNativeDependenciesNeedingRebuild,
   installDependencies,
-  rebuildNativeDependency,
 } from "./lib/dependency-check.mjs";
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners } from "./lib/process-control.mjs";
@@ -34,39 +32,17 @@ const {
   logStartupReady,
 } = createStartupLogHelpers({ terminalLogger, runId: startupRunId, baseUrl });
 
-async function ensureDependencies(root, flags) {
+async function ensureDependencies(root) {
   const startedAt = Date.now();
   logEvent("STARTUP", "bootstrap", "dependency_check", "started", "checking dependency readiness");
   const dependencyState = await assessDependencyState({
     rootDir: root,
-    updateRequested: flags.updateRequested,
   });
 
   logEvent("STARTUP", "bootstrap", "dependency_runtime", "detected", `node=${dependencyState.nodeVersion} npm=${dependencyState.npmVersion}`);
 
   if (dependencyState.requiresInstall) {
-    logEvent("STARTUP", "bootstrap", "dependency_install", "started", "dependency state requires repair", {
-      refs: dependencyState.reasons,
-    });
-    await installDependencies({ rootDir: root });
-    if (!dependencyState.nativeDependencyFailures.length) {
-      logEvent("STARTUP", "bootstrap", "dependency_install", "event", "node_modules metadata refreshed via npm install");
-    }
-  }
-
-  let finalState = await assessDependencyState({ rootDir: root });
-  const nativeDependenciesNeedingRebuild = getNativeDependenciesNeedingRebuild(finalState.nativeDependencyFailures ?? []);
-  if (nativeDependenciesNeedingRebuild.length > 0) {
-    for (const packageName of nativeDependenciesNeedingRebuild) {
-      logEvent("STARTUP", "bootstrap", "dependency_native_repair", "started", `rebuilding native dependency ${packageName}`);
-      await rebuildNativeDependency({ rootDir: root, packageName });
-      logPass("STARTUP", "bootstrap", "dependency_native_repair", "passed", `rebuilt native dependency ${packageName}`);
-    }
-    finalState = await assessDependencyState({ rootDir: root });
-  }
-
-  if (finalState.requiresInstall) {
-    throw new Error(`Dependency state is still not ready after repair: ${finalState.reasons.join(" | ")}`);
+    throw new Error(`DEPENDENCY_STATE_NOT_READY: ${dependencyState.reasons.join(" | ")}. Run npm install explicitly, then restart.`);
   }
 
   logPass("STARTUP", "bootstrap", "dependency_check", "passed", "dependency readiness passed", {
@@ -75,18 +51,16 @@ async function ensureDependencies(root, flags) {
 }
 
 async function runUpdatePreflight(root, flags) {
+  if (!flags.updateRequested) return;
   const startedAt = Date.now();
-  logEvent("STARTUP", "bootstrap", "update_preflight_check", "started", flags.updateRequested ? "running controlled update preflight" : "no controlled update requested; validating update preflight");
-
-  if (flags.updateRequested) {
-    const dependencyState = await assessDependencyState({ rootDir: root, updateRequested: true });
-    if (!dependencyState.safeToUpdate) {
-      throw new Error(`UPDATE_PREFLIGHT_FAILED: ${dependencyState.unsafeUpdateRanges.join(", ")}`);
-    }
-
-    logEvent("STARTUP", "bootstrap", "dependency_update", "started", "running controlled dependency refresh");
-    await installDependencies({ rootDir: root, updateRequested: true });
+  logEvent("STARTUP", "bootstrap", "update_preflight_check", "started", "running controlled update preflight");
+  const dependencyState = await assessDependencyState({ rootDir: root, updateRequested: true });
+  if (!dependencyState.safeToUpdate) {
+    throw new Error(`UPDATE_PREFLIGHT_FAILED: ${dependencyState.unsafeUpdateRanges.join(", ")}`);
   }
+
+  logEvent("STARTUP", "bootstrap", "dependency_update", "started", "running controlled dependency refresh");
+  await installDependencies({ rootDir: root, updateRequested: true });
 
   logPass("STARTUP", "bootstrap", "update_preflight_check", "passed", "update preflight passed", {
     durationMs: Date.now() - startedAt,
@@ -244,7 +218,7 @@ function classifyServiceExit(exit, shuttingDown) {
 }
 
 async function performLaunch(flags, root, onServiceStarted) {
-  await ensureDependencies(root, flags);
+  await ensureDependencies(root);
   await runUpdatePreflight(root, flags);
   await clearWorkbenchPort();
   await verifyBrowserRuntime();

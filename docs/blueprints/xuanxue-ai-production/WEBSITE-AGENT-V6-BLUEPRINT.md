@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "xuanxue-ai-production",
   "lawIds": [
-    "LAW-XUANXUE-AI-PRODUCTION-001-V10"
+    "LAW-XUANXUE-AI-PRODUCTION-001-V11"
   ],
   "contractRefs": [
     "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
@@ -50,7 +50,7 @@
 ```
 
 状态：active V6 terminal
-法案：`LAW-XUANXUE-AI-PRODUCTION-001-V10`
+法案：`LAW-XUANXUE-AI-PRODUCTION-001-V11`
 唯一 Local Order Execution Runtime Owner：`xuanxue-ai-production`
 Browser 私有 owner：`local-browser-session`
 ## 接入
@@ -111,14 +111,15 @@ Shell ready
 -> open one worker session with higher server epoch and report `worker_instance_id`
 ```
 
-Browser Authority 配对、正确 HTTPS Target 认领、Browser-required 测试任务创建与可领取任务的 claim
+Browser Authority 配对、正确 HTTPS Target 认领、Browser-required 生产任务创建与可领取任务的 claim
 均不属于启动器动作。它们只在 Shell 已建立后，由各自现役 Owner 的显式人工或正常运行流程执行；未完成时
 必须保持 Browser/Target/claim 为 absent 或 blocked，而不能通过自动化动作把启动器写成第二业务链。
 
-本地双仓联调固定使用 `isolated-test`：网站 origin 为 `http://127.0.0.1:4322`，本 Shell origin 为
-`http://127.0.0.1:4173`。enrollment 只允许首次 isolated-test 设备、凭据撤销、合法环境切换或
-origin/device epoch/合同身份变化时显式执行；普通启动与失败恢复不得重建设备，也不得使用 production
-device、credential、queue、状态或对象存储身份。
+双仓运行只有 `production`：网站与 PostgreSQL 当前共同安装在本地 Mac，未来共同迁移到正式服务器；
+AGENT 始终留在用户本地 Mac，作为独立执行端主动连接网站，不进入服务器部署单元。当前网站 origin 为
+`http://127.0.0.1:4322`，本 Shell origin 为 `http://127.0.0.1:4173`；迁移服务器后 AGENT 使用网站正式
+HTTPS origin。enrollment 只允许首次 production 设备、凭据撤销或 origin/device epoch/合同身份变化时
+显式执行；普通启动与失败恢复不得重建设备，也不得产生第二 device、credential、queue、状态或对象存储身份。
 
 跨仓 session、heartbeat、claim、renew、release 与 terminal 只可在同一现役 provider descriptor 完整证明
 endpoint、认证、request/response schema 与 manifest hash 后运行。descriptor 缺失、candidate 漂移或任一项不兼容

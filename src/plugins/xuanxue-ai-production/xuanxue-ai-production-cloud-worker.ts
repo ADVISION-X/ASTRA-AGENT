@@ -399,10 +399,6 @@ const assertCredentialBinding = (
   if (configuredBase && configuredBase !== credential.server_base_url.replace(/\/+$/u, "")) {
     throw new Error("XUANXUE_AI_PRODUCTION_SERVER_BINDING_MISMATCH");
   }
-  const configuredEnvironment = process.env.XUANXUE_AI_PRODUCTION_ENVIRONMENT_ID?.trim();
-  if (configuredEnvironment && configuredEnvironment !== credential.environment_id) {
-    throw new Error("XUANXUE_AI_PRODUCTION_ENVIRONMENT_BINDING_MISMATCH");
-  }
   const configuredOrigin = process.env.XUANXUE_AI_PRODUCTION_AGENT_ORIGIN?.trim();
   if (configuredOrigin && new URL(configuredOrigin).origin !== new URL(credential.origin).origin) {
     throw new Error("XUANXUE_AI_PRODUCTION_ORIGIN_BINDING_MISMATCH");

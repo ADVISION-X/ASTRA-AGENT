@@ -137,7 +137,7 @@ try {
   const credential = {
     protocol_version: "xuanxue-ai-production-v6",
     server_base_url: "https://cloud.example.test",
-    environment_id: "isolated-test",
+    environment_id: "production",
     origin: "https://agent.example.test",
     device_id: "device-1", device_epoch: 1,
     credential: `aidc_v6_${"x".repeat(32)}`,

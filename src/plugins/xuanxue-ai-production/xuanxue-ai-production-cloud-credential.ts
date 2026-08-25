@@ -22,7 +22,7 @@ const credentialSchema = z.object({
     XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION,
   ),
   server_base_url: z.string().url(),
-  environment_id: z.enum(["production", "isolated-test"]),
+  environment_id: z.literal("production"),
   origin: z.string().url(),
   device_id: z.string().min(1),
   device_epoch: z.number().int().positive(),
@@ -156,9 +156,11 @@ export async function readXuanxueAiProductionCloudCredential(
     throw new Error("XUANXUE_AI_PRODUCTION_CREDENTIAL_REENROLLMENT_REQUIRED");
   }
   const parsed = credentialSchema.parse(raw);
-  if (parsed.environment_id === "production"
-    && (new URL(parsed.server_base_url).protocol !== "https:"
-      || new URL(parsed.origin).protocol !== "https:")) {
+  const server = new URL(parsed.server_base_url);
+  const origin = new URL(parsed.origin);
+  const serverAllowed = server.protocol === "https:" || (server.protocol === "http:" && server.hostname === "127.0.0.1");
+  const originAllowed = origin.protocol === "https:" || (origin.protocol === "http:" && origin.hostname === "127.0.0.1");
+  if (!serverAllowed || !originAllowed) {
     throw new Error("XUANXUE_AI_PRODUCTION_PRODUCTION_ORIGIN_INVALID");
   }
   return parsed;

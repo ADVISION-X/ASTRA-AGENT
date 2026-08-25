@@ -131,6 +131,6 @@ assert.equal(
   hashXuanxueDynamicReceipt({ a: 1, b: 2 }),
   "dynamic proof must bind the immutable runtime receipt",
 );
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "exam.golden", locator: "acceptance:xuanxue:dynamic-proof-binding", observedValue: "runtime receipt binding accepts exact execution and rejects foreign execution" });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "exam.property", locator: "acceptance:xuanxue:canonical-receipt-hash", observedValue: "canonical dynamic receipt hash is property-order invariant" });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "exam.state-machine", locator: "acceptance:xuanxue:continuation-state-binding", observedValue: "predecessor successor and provider record state bindings verified" });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "exam.golden", locator: "acceptance:xuanxue:dynamic-proof-binding", observedValue: "runtime receipt binding accepts exact execution and rejects foreign execution" });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "exam.property", locator: "acceptance:xuanxue:canonical-receipt-hash", observedValue: "canonical dynamic receipt hash is property-order invariant" });
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "exam.state-machine", locator: "acceptance:xuanxue:continuation-state-binding", observedValue: "predecessor successor and provider record state bindings verified" });

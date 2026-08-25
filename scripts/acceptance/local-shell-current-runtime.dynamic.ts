@@ -130,6 +130,6 @@ emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-003-V2", evidenceMode:
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service",
   locator: `process:${observation.listenerPid}`, receipt: listenerReceipt,
   observedValue: `${runtimeValue};startup=grasseye:start;cleanup=verified` });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "dynamic.service",
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V2", evidenceMode: "dynamic.service",
   locator: `tcp://127.0.0.1:${port}`, receipt: listenerReceipt,
   observedValue: `${runtimeValue};listenerOwner=${root};cleanup=verified` });

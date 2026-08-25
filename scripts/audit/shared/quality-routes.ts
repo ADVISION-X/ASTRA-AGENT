@@ -104,21 +104,21 @@ const proofClauseRouteGroups: readonly Readonly<Record<string, ClauseRoute>>[] =
   [routeKey("LAW-RUNTIME-LOG-SPINE-003-V3", "exam.golden")]: "all",
   [routeKey("LAW-STARTUP-ENTRYPOINT-001-V4", "exam.golden")]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   [routeKey("LAW-STARTUP-ENTRYPOINT-001-V4", "dynamic.service")]: [11],
-  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V1", "exam.golden")]: [1, 2, 3, 4],
-  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V1", "dynamic.service")]: [0],
+  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V2", "exam.golden")]: [1, 2, 3, 4, 5],
+  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V2", "dynamic.service")]: [0],
   [routeKey("LAW-SYSTEM-SECURITY-001-V1", "exam.golden")]: "all",
   [routeKey("LAW-WORKBENCH-API-BOUNDARY-001-V4", "exam.golden")]: "all",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "exam.golden")]: [0, 1, 2, 3, 5, 6, 7, 8, 9, 12, 13, 15],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "exam.property")]: [14],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "exam.state-machine")]: [4, 10, 11],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.browser")]: [1, 5, 13],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.service")]: [4, 6, 7, 9, 10, 11],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.database")]: [4, 10, 13, 14],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.storage")]: [10, 11, 13, 14],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.provider")]: [13, 14, 15],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.authorization")]: [2, 3, 4, 5],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.recovery")]: [10, 11],
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "dynamic.performance")]: [15],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "exam.golden")]: [0, 1, 2, 3, 5, 6, 7, 8, 9, 12, 13, 15, 16, 17],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "exam.property")]: [14],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "exam.state-machine")]: [4, 10, 11],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.browser")]: [1, 5, 13],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.service")]: [4, 6, 7, 9, 10, 11],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.database")]: [4, 10, 13, 14],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.storage")]: [10, 11, 13, 14],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.provider")]: [13, 14, 15],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.authorization")]: [2, 3, 4, 5],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.recovery")]: [10, 11],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "dynamic.performance")]: [15],
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", "exam.golden")]: "all",
 }];
 
@@ -172,12 +172,12 @@ const exactExamLocatorGroups: readonly Readonly<Record<string, string>>[] = [{
   [routeKey("LAW-RUNTIME-LOG-SPINE-002-V3", "exam.golden")]: "acceptance:runtime-log:stage-pair",
   [routeKey("LAW-RUNTIME-LOG-SPINE-003-V3", "exam.golden")]: "acceptance:runtime-log:debug-bundle",
   [routeKey("LAW-STARTUP-ENTRYPOINT-001-V4", "exam.golden")]: "acceptance:startup:shell-survives-dependency-failure",
-  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V1", "exam.golden")]: "acceptance:startup:local-port-and-artifact-boundary",
+  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V2", "exam.golden")]: "acceptance:startup:local-port-and-artifact-boundary",
   [routeKey("LAW-SYSTEM-SECURITY-001-V1", "exam.golden")]: "acceptance:system-security:attack-mutants",
   [routeKey("LAW-WORKBENCH-API-BOUNDARY-001-V4", "exam.golden")]: "acceptance:workbench-api-boundary:per-site-hmac",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "exam.golden")]: "acceptance:xuanxue:dynamic-proof-binding",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "exam.property")]: "acceptance:xuanxue:canonical-receipt-hash",
-  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V10", "exam.state-machine")]: "acceptance:xuanxue:continuation-state-binding",
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "exam.golden")]: "acceptance:xuanxue:dynamic-proof-binding",
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "exam.property")]: "acceptance:xuanxue:canonical-receipt-hash",
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V11", "exam.state-machine")]: "acceptance:xuanxue:continuation-state-binding",
   [routeKey("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", "exam.golden")]: "acceptance:xuanxue-localization:cloud-order",
 }];
 const localRuntimeLocator = (lawId: string, mode: string, locator: string): boolean => {
@@ -185,7 +185,7 @@ const localRuntimeLocator = (lawId: string, mode: string, locator: string): bool
   if (lawId === "LAW-LOCAL-APP-SHELL-001-V5" && mode === "dynamic.service") return /^http:\/\/127\.0\.0\.1:\d+\/api\/health$/u.test(locator);
   if (lawId === "LAW-LOCAL-APP-SHELL-003-V2" && mode === "dynamic.service") return /^http:\/\/127\.0\.0\.1:\d+\/api\/health#components$/u.test(locator);
   if (lawId === "LAW-STARTUP-ENTRYPOINT-001-V4" && mode === "dynamic.service") return /^process:\d+$/u.test(locator);
-  if (lawId === "LAW-STARTUP-ENTRYPOINT-002-V1" && mode === "dynamic.service") return /^tcp:\/\/127\.0\.0\.1:\d+$/u.test(locator);
+  if (lawId === "LAW-STARTUP-ENTRYPOINT-002-V2" && mode === "dynamic.service") return /^tcp:\/\/127\.0\.0\.1:\d+$/u.test(locator);
   return false;
 };
 

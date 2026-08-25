@@ -281,19 +281,19 @@ process.stdout.write(`${JSON.stringify({
 const attestationReceipt = continuationReceipt.successor.runtimeAttestationReceiptHash.replace(/^sha256:/u, "");
 const providerReceipt = Object.values(dynamicProofBinding.provider_record_hashes)[0];
 assert.ok(providerReceipt);
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.service",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.service",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.database",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.database",
   locator: databasePath, receipt: databaseReceipt,
   observedValue: `integrity=${integrity};completedOrders=${terminalJobIds.length}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.storage",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.storage",
   locator: checkpointDirectory, receipt: storageReceipt,
   observedValue: `checkpoints=${outputs.length};uniqueHashes=${new Set(outputs.map((output) => byId.get(output.executionId)!.responseCheckpoint!.rawOutputHash)).size}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.provider",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.provider",
   locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
   observedValue: `records=${records.length};uniqueTokens=${new Set(tokens).size}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", evidenceMode: "dynamic.authorization",
+emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", evidenceMode: "dynamic.authorization",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
 emitQualityProofObservation({ lawId: "LAW-AI-INPUT-GATEWAY-002-V2", evidenceMode: "dynamic.provider",

@@ -358,7 +358,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
   );
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:xuanxue-ai-production:real-chrome",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", mode: "dynamic.browser",
+    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.browser",
     locator: "dynamic:xuanxue:bound-real-chrome", observedValue: "real chrome claimed" }), false);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:local-browser-journal-recovery",
     domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-004-V8", mode: "dynamic.recovery",
@@ -367,15 +367,15 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     domain: "local-browser-session", lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", mode: "dynamic.browser",
     locator: "/repo/.grasseye-local/browser/proof-events.ndjson#sequence=3", observedValue: "claim and command verified" }), true);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "acceptance:xuanxue-ai-production:real-proof-verify",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", mode: "dynamic.provider",
+    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.provider",
     locator: "/repo/.grasseye-local/runtime-data/ai-input-gateway/web-chat-executions",
     observedValue: "provider records verified" }), true);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:xuanxue-ai-production:recovery",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", mode: "dynamic.recovery",
+    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.recovery",
     locator: "/repo/.grasseye-local/runtime-data/xuanxue-ai-production/recovery-proof.json",
     observedValue: "original order recovery verified" }), true);
   assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:xuanxue-ai-production:72h-soak",
-    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V10", mode: "dynamic.performance",
+    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V11", mode: "dynamic.performance",
     locator: "/repo/.grasseye-local/runtime-data/xuanxue-ai-production/72h-soak-proof.json",
     observedValue: "72 hour soak and lease P95 verified" }), true);
 

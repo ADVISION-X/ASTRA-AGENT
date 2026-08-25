@@ -146,6 +146,15 @@ const verifySingleLocalEnvironmentInjection = async (): Promise<void> => {
     "node --env-file-if-exists=.env.local scripts/startup/launch-grasseye.mjs",
     "the sole startup command must make the enrolled cloud worker configuration available without a second environment loader",
   );
+  const launcher = await readFile("scripts/startup/launch-grasseye.mjs", "utf8");
+  const dependencyCheck = launcher.slice(
+    launcher.indexOf("async function ensureDependencies"),
+    launcher.indexOf("async function runUpdatePreflight"),
+  );
+  assert.doesNotMatch(dependencyCheck, /installDependencies|rebuildNativeDependency/u,
+    "ordinary production startup must never install or rebuild dependencies");
+  assert.match(dependencyCheck, /DEPENDENCY_STATE_NOT_READY/u,
+    "ordinary production startup must fail closed with one explicit repair instruction");
 };
 
 const createBrokenCredentialFixture = async (): Promise<Readonly<{
@@ -269,4 +278,4 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
 await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
-emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V1", evidenceMode: "exam.golden", locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "unpacked preflight and repository-owned listener cleanup verified" });
+emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V2", evidenceMode: "exam.golden", locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "unpacked preflight and repository-owned listener cleanup verified" });

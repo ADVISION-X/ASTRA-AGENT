@@ -24,7 +24,7 @@ import { acceptXuanxueAiProductionSurface } from "./xuanxue-ai-production-surfac
 import { acceptContinuousRecoveryVersion } from "./xuanxue-ai-production-continuous-reconciliation.js";
 
 const receipt = createAgentRuntimeReceiptV6({
-  environment_id: "isolated-test", device_id: "aipdev_fixture", device_epoch: 2,
+  environment_id: "production", device_id: "aipdev_fixture", device_epoch: 2,
   worker_session_id: "aipsess_fixture", worker_session_epoch: 3,
   runtime_attestation_receipt_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   browser_authority_state: "present", browser_target_state: "claimed", browser_lane_state: "idle",
@@ -48,7 +48,7 @@ const grant = CloudExecutionGrantV6Schema.parse({
   lease_expires_at: "2026-08-23T00:01:30.000Z", renew_after_ms: 20_000,
   control_contract_manifest_hash: XUANXUE_AI_PRODUCTION_V6_CONTRACT_MANIFEST_HASH,
   execution_fence: {
-    schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "isolated-test",
+    schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production",
     device_id: "aipdev_fixture", device_epoch: 1,
     worker_session_id: "aipsess_fixture", worker_session_epoch: 1,
     job_id: "aiprod_fixture", attempt_id: "attempt", lease_version: 1,

@@ -3,7 +3,6 @@ import { writeStartupFailureBundle } from "./startup-failure-bundle.mjs";
 const FAILURE_ACTIONS = [
   [/BROWSER_PROFILE_ENROLLMENT_MISSING/i, "Complete the explicit browserctl profile enrollment with the required bootstrap inputs; startup does not install or enroll Browser Runtime."],
   [/BROWSER_UNPACKED_|BROWSER_PAIRING_|BROWSER_AUTHENTICATION_INCOMPLETE/i, "Rebuild the fixed unpacked extension, manually Reload it, complete a fresh pairing and repair only the one loopback WebSocket chain."],
-  [/BROWSER_TEST_RELEASE_PUBLIC_KEY_REQUIRED|BROWSER_TEST_ARTIFACT_SIGNATURE_FILES_REQUIRED/i, "Rebuild the explicit test Browser Runtime with its local test release signature, then rerun the test-mode startup."],
   [/BROWSER_RUNTIME_VERIFY_FAILED|BROWSER_ARTIFACT_|BROWSER_RELEASE_/i, "Run the explicit browserctl verify/doctor path and repair the installed Browser Runtime before rerunning npm run grasseye:start."],
   [/Dependency state/i, "Repair local dependencies and rerun npm run grasseye:start."],
   [/native dependency.*could not|NODE_MODULE_VERSION|better_sqlite3\.node|native addon/i, "Rebuild native dependencies with npm rebuild <package> (for this repo: npm rebuild better-sqlite3) and rerun npm run grasseye:start."],

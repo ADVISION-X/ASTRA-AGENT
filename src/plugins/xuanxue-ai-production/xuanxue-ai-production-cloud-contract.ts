@@ -435,7 +435,7 @@ export interface XuanxueAiProductionCloudCredential {
   readonly protocol_version:
     typeof XUANXUE_AI_PRODUCTION_CLOUD_PROTOCOL_VERSION;
   readonly server_base_url: string;
-  readonly environment_id: "production" | "isolated-test";
+  readonly environment_id: "production";
   readonly origin: string;
   readonly device_id: string;
   readonly device_epoch: number;

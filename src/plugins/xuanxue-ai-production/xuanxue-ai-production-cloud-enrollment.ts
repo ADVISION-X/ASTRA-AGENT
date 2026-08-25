@@ -17,7 +17,7 @@ const EnrollmentEnvelopeSchema = z.object({
   data: z.object({
     device: z.object({
       device_id: z.string().min(1),
-      environment_id: z.enum(["production", "isolated-test"]),
+      environment_id: z.literal("production"),
       device_epoch: z.number().int().positive(),
       status: z.enum(["active", "revoked"]),
       origin_allowlist: z.array(z.string().url()).min(1),
@@ -34,14 +34,18 @@ const required = (name: string): string => {
   return value;
 };
 
+const isProductionEndpoint = (value: string): boolean => {
+  const url = new URL(value);
+  return url.protocol === "https:" || (url.protocol === "http:" && url.hostname === "127.0.0.1");
+};
+
 const enrollmentConfig = () => {
-  const environmentId = required("XUANXUE_AI_PRODUCTION_ENVIRONMENT_ID");
-  if (environmentId !== "production" && environmentId !== "isolated-test") throw new Error("XUANXUE_AI_PRODUCTION_ENVIRONMENT_INVALID");
-  const origin = new URL(required("XUANXUE_AI_PRODUCTION_AGENT_ORIGIN")).origin;
-  if (environmentId === "production" && !origin.startsWith("https://")) throw new Error("XUANXUE_AI_PRODUCTION_PRODUCTION_ORIGIN_NOT_HTTPS");
+  const serverBaseUrl = required("XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL").replace(/\/+$/u, "");
+  const origin = new URL(process.env.XUANXUE_AI_PRODUCTION_AGENT_ORIGIN?.trim() || "http://127.0.0.1:4173").origin;
+  if (!isProductionEndpoint(serverBaseUrl) || !isProductionEndpoint(origin)) throw new Error("XUANXUE_AI_PRODUCTION_PRODUCTION_ORIGIN_INVALID");
   return {
-    serverBaseUrl: required("XUANXUE_AI_PRODUCTION_CLOUD_BASE_URL").replace(/\/+$/u, ""),
-    environmentId,
+    serverBaseUrl,
+    environmentId: "production" as const,
     origin,
     enrollmentToken: required("XUANXUE_AI_PRODUCTION_ENROLLMENT_TOKEN"),
   } as const;
