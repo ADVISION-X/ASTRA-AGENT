@@ -27,19 +27,30 @@ const configContract = (contract: Contract): boolean => exactKeys(contract, ["ke
 const isoDate = (value: unknown): boolean => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/u.test(value)
   && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 
+const nonEmptySortedStringArray = (value: unknown): boolean =>
+  isStringArray(value) && value.length > 0 && sortedUnique(value);
+
+const migrationControlsValid = (contract: Contract): boolean =>
+  nonEmptySortedStringArray(contract.compatibilityMechanisms)
+  && nonEmptySortedStringArray(contract.monitoring)
+  && nonEmptySortedStringArray(contract.removalAcceptance);
+
+const migrationWindowValid = (contract: Contract): boolean => {
+  if (!isoDate(contract.startDate) || !isoDate(contract.removalDate)
+    || !Number.isInteger(contract.maximumDurationDays)
+    || Number(contract.maximumDurationDays) < 1) return false;
+  const start = Date.parse(`${String(contract.startDate)}T00:00:00Z`);
+  const removal = Date.parse(`${String(contract.removalDate)}T00:00:00Z`);
+  return removal >= start && removal <= start + Number(contract.maximumDurationDays) * 86_400_000;
+};
+
 const migrationContract = (contract: Contract): boolean => {
   if (!exactKeys(contract, [
     "compatibilityMechanisms", "currentAuthority", "maximumDurationDays", "monitoring", "removalAcceptance",
     "removalDate", "rollbackCondition", "startDate", "targetAuthority",
   ]) || !cleanString(contract.currentAuthority) || !cleanString(contract.targetAuthority)
-    || !isStringArray(contract.compatibilityMechanisms) || (contract.compatibilityMechanisms as string[]).length === 0 || !sortedUnique(contract.compatibilityMechanisms as string[])
-    || !isStringArray(contract.monitoring) || (contract.monitoring as string[]).length === 0 || !sortedUnique(contract.monitoring as string[])
-    || !isStringArray(contract.removalAcceptance) || (contract.removalAcceptance as string[]).length === 0 || !sortedUnique(contract.removalAcceptance as string[])
-    || !cleanString(contract.rollbackCondition) || !isoDate(contract.startDate) || !isoDate(contract.removalDate)
-    || !Number.isInteger(contract.maximumDurationDays) || Number(contract.maximumDurationDays) < 1) return false;
-  const start = Date.parse(`${String(contract.startDate)}T00:00:00Z`);
-  const removal = Date.parse(`${String(contract.removalDate)}T00:00:00Z`);
-  return removal >= start && removal <= start + Number(contract.maximumDurationDays) * 86_400_000;
+    || !cleanString(contract.rollbackCondition)) return false;
+  return migrationControlsValid(contract) && migrationWindowValid(contract);
 };
 
 export const validateLocalSpecContract = (raw: LocalSpec, file: string): void => {

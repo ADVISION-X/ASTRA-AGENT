@@ -67,19 +67,28 @@ const terminalMetaphysicsProviderEvidenceFailure = (
   if (!isXuanxueTerminalMetaphysicsProfile(expected)) {
     return "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROFILE_MISMATCH";
   }
-  if (!profileProof || profileProof.proofStatus !== "verified"
-    || profileProof.provider !== "openai-chatgpt-web" || profileProof.transport !== "gpt-web-chat"
-    || profileProof.modelDisplayName !== xuanxueTerminalMetaphysicsProviderProfile.modelLabel
-    || profileProof.modelFamily !== xuanxueTerminalMetaphysicsProviderProfile.modelFamily
-    || profileProof.reasoningTier !== xuanxueTerminalMetaphysicsProviderProfile.reasoningTier
-    || !identity || identity.proofStatus !== "verified" || identity.modelIdentityStatus !== "verified"
-    || identity.modelDisplayName !== xuanxueTerminalMetaphysicsProviderProfile.modelLabel
-    || identity.modelFamily !== xuanxueTerminalMetaphysicsProviderProfile.modelFamily
-    || identity.reasoningEffort !== xuanxueTerminalMetaphysicsProviderProfile.reasoningUiLabel) {
+  if (!terminalProfileProofValid(profileProof) || !terminalIdentityProofValid(identity)) {
     return "XUANXUE_AI_PRODUCTION_GPT_5_6_SOL_PROVIDER_PROOF_MISMATCH";
   }
   return null;
 };
+
+const terminalProfileProofValid = (
+  proof: AiFeedResult["providerProof"]["providerExecutionProfileProof"],
+): boolean => Boolean(proof && proof.proofStatus === "verified"
+  && proof.provider === "openai-chatgpt-web"
+  && proof.transport === "gpt-web-chat"
+  && proof.modelDisplayName === xuanxueTerminalMetaphysicsProviderProfile.modelLabel
+  && proof.modelFamily === xuanxueTerminalMetaphysicsProviderProfile.modelFamily
+  && proof.reasoningTier === xuanxueTerminalMetaphysicsProviderProfile.reasoningTier);
+
+const terminalIdentityProofValid = (
+  proof: AiFeedResult["providerProof"]["modelIdentityProof"],
+): boolean => Boolean(proof && proof.proofStatus === "verified"
+  && proof.modelIdentityStatus === "verified"
+  && proof.modelDisplayName === xuanxueTerminalMetaphysicsProviderProfile.modelLabel
+  && proof.modelFamily === xuanxueTerminalMetaphysicsProviderProfile.modelFamily
+  && proof.reasoningEffort === xuanxueTerminalMetaphysicsProviderProfile.reasoningUiLabel);
 
 export const xuanxueProviderEvidenceFailure = (
   result: AiFeedResult,
