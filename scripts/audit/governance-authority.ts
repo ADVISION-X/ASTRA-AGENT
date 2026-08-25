@@ -1,12 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
-import { Project } from 'ts-morph';
+import { dirname, resolve } from 'node:path';
 import { canonicalBytes, cleanString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
 import { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
 import { lawBodyStart } from './shared/law-document-front-matter.js';
+import { verifyPathRoleEscalation } from './shared/governance-role-consumption.js';
 export { BASE, FUNCTIONAL, pathRole, REGISTRY, REPORT, SPEC } from './shared/governance-paths.js';
 export type Level = 'CHANGE' | 'READY' | 'RELEASE';
 export type Law = {
@@ -422,36 +422,6 @@ const baselineOwnersForPath = (path: string): string[] => {
     return raw.ownedPaths.some((pattern) => matchesPath(pattern, path)) ? [raw.capabilityDomain] : [];
   });
 };
-
-export type RoleConsumptionEdge = Readonly<{ consumer: string; consumed: string }>;
-export function assertRoleConsumptionEdges(edges: readonly RoleConsumptionEdge[]): void {
-  for (const edge of edges) {
-    if (pathRole(edge.consumer) === 'PRODUCTION' && pathRole(edge.consumed) !== 'PRODUCTION') {
-      fail('ROLE_ESCALATION_REQUIRED', `${edge.consumer}->${edge.consumed}`);
-    }
-  }
-}
-
-const repositoryModuleConsumptionEdges = (): RoleConsumptionEdge[] => {
-  const project = new Project({ tsConfigFilePath: resolve(ROOT, 'tsconfig.json') });
-  const repoPath = (absolute: string): string | null => {
-    const path = norm(relative(ROOT, absolute));
-    return path === '..' || path.startsWith('../') ? null : path;
-  };
-  return project.getSourceFiles().flatMap((sourceFile) => {
-    const consumer = repoPath(sourceFile.getFilePath());
-    if (!consumer || pathRole(consumer) !== 'PRODUCTION') return [];
-    return [...sourceFile.getImportDeclarations(), ...sourceFile.getExportDeclarations()].flatMap((declaration) => {
-      const target = declaration.getModuleSpecifierSourceFile();
-      const consumed = target ? repoPath(target.getFilePath()) : null;
-      return consumed ? [{ consumer, consumed }] : [];
-    });
-  });
-};
-
-export function verifyPathRoleEscalation(): void {
-  assertRoleConsumptionEdges(repositoryModuleConsumptionEdges());
-}
 
 export function verifyChangeOwnership(changes: Array<{ status: string; path: string }>, registry = buildRegistry()): void {
   for (const change of changes) {

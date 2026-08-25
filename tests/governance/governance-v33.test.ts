@@ -5,8 +5,9 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { assertRoleConsumptionEdges, buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
 import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
+import { assertRoleConsumptionEdges } from '../../scripts/audit/shared/governance-role-consumption.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
 
