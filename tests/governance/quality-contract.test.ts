@@ -25,7 +25,7 @@ import type { InspectorContext, InspectorEvaluation } from "../../scripts/audit/
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { finalizeStaticInspection, semanticFindingBindingsForSource } from "../../scripts/audit/shared/static-inspector-result.js";
+import { finalizeStaticInspection, semanticFindingBindingsForSource, semanticLawBindingsForSource } from "../../scripts/audit/shared/static-inspector-result.js";
 import { staticClauseRoutesForDomain } from "../../scripts/audit/shared/static-clause-routes.js";
 
 const fixtureLaw = (): Law => ({
@@ -132,6 +132,25 @@ test("static semantic authentication rejects a checker whose finding sink is div
       .includes("inspectLegacyAppUserDemandPhysicalAbsence"),
     false,
   );
+});
+
+test("static semantic authentication preserves per-law call ownership", () => {
+  const source = `
+    const inspectA = (_findings: string[], _lawId: string) => undefined;
+    const inspectB = (_findings: string[], _lawId: string) => undefined;
+    const evaluate = () => {
+      const lawA = selectLawId([], "LAW-A");
+      const lawB = selectLawId([], "LAW-B");
+      const findings: string[] = [];
+      inspectA(findings, lawA);
+      inspectB(findings, lawB);
+      return { findings };
+    };
+  `;
+  assert.deepEqual(semanticLawBindingsForSource(source, "evaluate", ["LAW-A", "LAW-B"]), {
+    inspectA: ["LAW-A"],
+    inspectB: ["LAW-B"],
+  });
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {

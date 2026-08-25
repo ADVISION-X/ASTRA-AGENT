@@ -24,13 +24,16 @@ export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEv
 
 const enforcementRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const resolvedSymbolPaths = (identifier: import("ts-morph").Identifier): string[] => {
+const resolvedSymbolDeclarations = (identifier: import("ts-morph").Identifier): AstNode[] => {
   const symbol = identifier.getSymbol();
   if (!symbol) return [];
   let resolvedSymbol = symbol;
   try { resolvedSymbol = symbol.getAliasedSymbol() ?? symbol; } catch { /* local symbol */ }
-  return resolvedSymbol.getDeclarations().map((declaration) => declaration.getSourceFile().getFilePath());
+  return resolvedSymbol.getDeclarations();
 };
+
+const resolvedSymbolPaths = (identifier: import("ts-morph").Identifier): string[] =>
+  resolvedSymbolDeclarations(identifier).map((declaration) => declaration.getSourceFile().getFilePath());
 
 type AstNode = import("ts-morph").Node;
 
@@ -144,30 +147,116 @@ export const semanticFindingBindingsForSource = (sourceText: string, executorNam
   }));
 };
 
-const domainSemanticExecutorCalls = (context: InspectorContext, executorName: string): Set<string> => {
+const referencedLawIds = (node: AstNode, knownLawIds: ReadonlySet<string>): Set<string> => {
+  const result = new Set<string>();
+  const visitedDeclarations = new Set<AstNode>();
+  const inspect = (current: AstNode): void => {
+    const stringNodes = [
+      ...(Node.isStringLiteral(current) || Node.isNoSubstitutionTemplateLiteral(current) ? [current] : []),
+      ...current.getDescendants().filter((descendant) =>
+        Node.isStringLiteral(descendant) || Node.isNoSubstitutionTemplateLiteral(descendant)),
+    ];
+    for (const literal of stringNodes) {
+      const value = literal.getLiteralText();
+      if (knownLawIds.has(value)) result.add(value);
+    }
+    for (const identifier of identifiersIn(current)) {
+      for (const declaration of resolvedSymbolDeclarations(identifier)) {
+        if (!Node.isVariableDeclaration(declaration) || visitedDeclarations.has(declaration)) continue;
+        visitedDeclarations.add(declaration);
+        const initializer = declaration.getInitializer();
+        if (initializer) inspect(initializer);
+      }
+    }
+  };
+  inspect(node);
+  return result;
+};
+
+const callLawIds = (
+  call: import("ts-morph").CallExpression,
+  knownLawIds: ReadonlySet<string>,
+): Set<string> => {
+  const result = new Set(call.getArguments().flatMap((argument) => [...referencedLawIds(argument, knownLawIds)]));
+  const expression = call.getExpression();
+  if (!Node.isIdentifier(expression)) return result;
+  for (const declaration of resolvedSymbolDeclarations(expression)) {
+    let body = Node.isFunctionDeclaration(declaration) ? declaration.getBody() : undefined;
+    if (Node.isVariableDeclaration(declaration)) {
+      const initializer = declaration.getInitializer();
+      if (Node.isArrowFunction(initializer)) body = initializer.getBody();
+    }
+    if (body) for (const lawId of referencedLawIds(body, knownLawIds)) result.add(lawId);
+  }
+  return result;
+};
+
+export const semanticLawBindingsForSource = (
+  sourceText: string,
+  executorName: string,
+  lawIds: readonly string[],
+): Readonly<Record<string, string[]>> => {
+  const project = new Project({ useInMemoryFileSystem: true });
+  const source = project.createSourceFile("inspector.ts", sourceText);
+  const executor = source.getFunction(executorName) ?? source.getVariableDeclaration(executorName)?.getInitializer();
+  if (!executor) return {};
+  const knownLawIds = new Set(lawIds);
+  const bindings = new Map<string, Set<string>>();
+  for (const call of semanticFindingBoundCalls(executor)) {
+    const expression = call.getExpression();
+    if (!Node.isIdentifier(expression)) continue;
+    const current = bindings.get(expression.getText()) ?? new Set<string>();
+    for (const lawId of callLawIds(call, knownLawIds)) current.add(lawId);
+    bindings.set(expression.getText(), current);
+  }
+  return Object.fromEntries([...bindings].sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)))
+    .map(([name, boundLawIds]) => [name, ordered([...boundLawIds])]));
+};
+
+const domainSemanticExecutorCalls = (
+  context: InspectorContext,
+  executorName: string,
+): Map<string, Set<string>> => {
   const project = new Project({ tsConfigFilePath: resolve(enforcementRoot, "tsconfig.json") });
   const source = project.getSourceFile(resolve(enforcementRoot, context.planEntry.ownerInspectorPath));
-  if (!source) return new Set();
+  if (!source) return new Map();
   const executor = source.getFunction(executorName)
     ?? source.getVariableDeclaration(executorName)?.getInitializer();
-  if (!executor) return new Set();
+  if (!executor) return new Map();
   const domainRoot = `${resolve(enforcementRoot, "scripts/audit/domains", context.planEntry.capabilityDomain)}/`;
-  return new Set([...semanticFindingBoundCalls(executor)].flatMap((call) => {
+  const knownLawIds = new Set(context.lawRequirements.map((requirement) => requirement.lawId));
+  const bindings = new Map<string, Set<string>>();
+  for (const call of semanticFindingBoundCalls(executor)) {
     const expression = call.getExpression();
-    if (!Node.isIdentifier(expression)) return [];
+    if (!Node.isIdentifier(expression)) continue;
     const declarationPaths = resolvedSymbolPaths(expression);
-    return declarationPaths.some((path) => path.startsWith(domainRoot)) ? [expression.getText()] : [];
-  }));
+    if (!declarationPaths.some((path) => path.startsWith(domainRoot))) continue;
+    const current = bindings.get(expression.getText()) ?? new Set<string>();
+    for (const lawId of callLawIds(call, knownLawIds)) current.add(lawId);
+    bindings.set(expression.getText(), current);
+  }
+  return bindings;
 };
 
 const validateSemanticExecutor = (
   context: InspectorContext, executorName: string, evaluation: InspectorEvaluation,
 ): void => {
   const executedSemanticChecks = domainSemanticExecutorCalls(context, executorName);
-  const requiredSemanticChecks = ordered(evaluation.executedChecks.flatMap((check) => check.semanticChecks));
-  if (!requiredSemanticChecks.length
-    || requiredSemanticChecks.some((semanticCheck) => !executedSemanticChecks.has(semanticCheck))) {
-    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:semantic-execution-binding`);
+  const checksByLaw = new Map(context.lawRequirements.map((requirement) => [
+    requirement.lawId,
+    new Set(evaluation.executedChecks.filter((check) => check.lawId === requirement.lawId)
+      .flatMap((check) => check.semanticChecks)),
+  ]));
+  const universalChecks = new Set([...executedSemanticChecks].filter(([, boundLawIds]) => boundLawIds.size === 0)
+    .map(([name]) => name)
+    .filter((name) => [...checksByLaw.values()].every((checks) => checks.has(name))));
+  for (const [lawId, requiredChecks] of checksByLaw) {
+    for (const semanticCheck of requiredChecks) {
+      const boundLawIds = executedSemanticChecks.get(semanticCheck);
+      if (!boundLawIds || (!boundLawIds.has(lawId) && !universalChecks.has(semanticCheck))) {
+        fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${lawId}:semantic-law-binding`);
+      }
+    }
   }
 };
 

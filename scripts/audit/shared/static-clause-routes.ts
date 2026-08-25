@@ -35,16 +35,13 @@ const allClauses = (forbiddenCount: number): string[] => [
 ];
 
 const aiTransportChecks = ["inspectPublicBoundary"];
-const aiBrowserChecks = [
+const aiParallelChecks = [
+  "inspectBoundedParallelExecution",
   "inspectSerialProviderBrowserActions",
   "inspectFreshConversationIdentity",
   "inspectNoChatGptPageRefresh",
   "inspectCanonicalConversationIdentity",
   "inspectAiInputGatewayRecovery",
-];
-const aiAttachmentChecks = ["inspectAttachmentChild"];
-const aiSessionChecks = [
-  "inspectBoundedParallelExecution",
   "inspectSubmissionPriorityPatrol",
   "inspectSharedRateLimitWatcher",
   "inspectLiveGenerationProof",
@@ -52,28 +49,27 @@ const aiSessionChecks = [
   "inspectTransientSubmissionIsNotRoutable",
   "inspectTransientOverlayHygiene",
   "inspectGeneratedImageCapture",
-  "inspectAtomicIfAndThenActions",
   "inspectConversationTopology",
 ];
 
 const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>> = {
   "ai-input-gateway": [
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-001-V1", ["static.ast", "static.contract"], aiTransportChecks),
-    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-002-V1", ["static.ast"], aiBrowserChecks),
-    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"], aiAttachmentChecks),
-    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"], [
-      "inspectAttachmentChild", "inspectCallerApprovedInputReferences",
+    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-002-V1", ["static.ast"], ["inspectAtomicIfAndThenActions"]),
+    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-003-V1", ["static.ast", "static.contract"], [
+      "inspectAttachmentChild", "inspectRemovedRegion",
     ]),
-    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"], aiSessionChecks),
+    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-004-V1", ["static.ast", "static.contract"], ["inspectAttachmentChild"]),
+    ...summaryRoutes("LAW-AI-INPUT-GATEWAY-005-V4", ["static.ast", "static.contract"], aiParallelChecks),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-006-V1", ["static.ast", "static.contract"], ["inspectBoundedChoiceJudge"]),
     ...summaryRoutes("LAW-AI-INPUT-GATEWAY-007-V1", ["static.ast", "static.contract"], ["inspectCallerApprovedInputReferences"]),
   ],
   "app-shell-ui": [
     ...summaryRoutes("LAW-APP-SHELL-UI-001-V2", ["static.ast"], [
-      "inspectAppShellLayout", "inspectForbiddenAppShellActions", "inspectLegacyAppUserDemandPhysicalAbsence",
+      "inspectAppShellLayout", "inspectForbiddenAppShellActions", "inspectSkillRegistry",
     ]),
     ...summaryRoutes("LAW-APP-SHELL-UI-002-V1", ["static.ast"], ["inspectAppShellLocalization"]),
-    ...summaryRoutes("LAW-APP-SHELL-UI-003-V2", ["static.ast"], ["inspectSkillRegistry"]),
+    ...summaryRoutes("LAW-APP-SHELL-UI-003-V2", ["static.ast"], ["inspectLegacyAppUserDemandPhysicalAbsence"]),
   ],
   "architecture-boundary": [
     route({
@@ -109,13 +105,13 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
   ],
   "forensics-persistence-capability": [
     ...summaryRoutes("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", ["static.ast", "static.contract"], [
-      "inspectRequiredFiles", "inspectOwnerImports", "inspectPublicFacade", "inspectSchemaVocabulary",
+      "inspectRequiredFiles", "inspectOwnerImports", "inspectPublicFacade",
     ]),
     ...summaryRoutes("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2", ["static.ast", "static.contract"], [
-      "inspectRequiredFiles", "inspectOwnerImports", "inspectPublicFacade", "inspectSchemaVocabulary",
+      "inspectRequiredFiles", "inspectStoragePort",
     ]),
     ...summaryRoutes("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", ["static.ast", "static.contract"], [
-      "inspectRequiredFiles", "inspectOwnerImports", "inspectPublicFacade", "inspectStoragePort",
+      "inspectSchemaVocabulary",
     ]),
   ],
   "local-app-shell": [
@@ -137,23 +133,23 @@ const routesByDomain: Readonly<Record<string, readonly InspectorExecutedCheck[]>
   "local-browser-session": [
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", evidenceMode: "static.ast", clauses: allClauses(10),
-      semanticChecks: ["inspectSingleTransport", "inspectRegistryAndMutationBoundary", "inspectAtomicIfAndThenBoundary"],
+      semanticChecks: ["inspectSingleTransport", "collectTransportPayloadCeilingFindings"],
     }),
     ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-001-V4", ["static.contract"], ["inspectSingleTransport"]),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4", evidenceMode: "static.ast", clauses: allClauses(11),
-      semanticChecks: ["inspectJournalRecoveryBoundary", "inspectAuthenticatedRuntimeRegressionGuards"],
+      semanticChecks: ["inspectAuthenticatedRuntimeRegressionGuards"],
     }),
-    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-002-V4", ["static.contract"], ["inspectJournalRecoveryBoundary"]),
+    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-002-V4", ["static.contract"], ["inspectAuthenticatedRuntimeRegressionGuards"]),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6", evidenceMode: "static.ast", clauses: allClauses(12),
-      semanticChecks: ["inspectSingleTransport", "inspectOpaqueAuthorityBoundary", "collectTransportPayloadCeilingFindings"],
+      semanticChecks: ["inspectAuthenticatedRuntimeRegressionGuards"],
     }),
-    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-003-V6", ["static.contract"], ["inspectOpaqueAuthorityBoundary"]),
+    ...summaryRoutes("LAW-LOCAL-BROWSER-SESSION-003-V6", ["static.contract"], ["inspectAuthenticatedRuntimeRegressionGuards"]),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "static.ast",
       clauses: ["forbidden:10", "forbidden:11", "forbidden:12", "forbidden:13", "forbidden:14", "forbidden:15", "summary"],
-      semanticChecks: ["inspectJournalRecoveryBoundary", "inspectAuthenticatedRuntimeRegressionGuards"],
+      semanticChecks: ["inspectRegistryAndMutationBoundary", "inspectAtomicIfAndThenBoundary", "inspectJournalRecoveryBoundary"],
     }),
     route({
       lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4", evidenceMode: "static.ast", clauses: allClauses(5),
