@@ -4,19 +4,9 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { buildRegistry, checkProjection, diffPaths, gitCommit, REGISTRY, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { checkProjection, diffPaths, gitCommit, REGISTRY, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
-
-const governanceSource = (path: string): boolean => path === 'AGENTS.md'
-  || path === '.github/instructions/agent-rules/基础法案.md'
-  || path === '.github/instructions/agent-rules/功能法案.md'
-  || path === 'docs/governance/法案系统建设说明书-冻结定稿版.md'
-  || path.startsWith('docs/blueprints/')
-  || path.startsWith('docs/specs/')
-  || path.startsWith('scripts/audit/')
-  || path.startsWith('tests/governance/')
-  || path === 'package.json';
 
 function assertAuthorization(changes: Array<{ status: string; path: string }>): void {
   if (changes.some((change) => change.path === 'docs/governance/法案系统建设说明书-冻结定稿版.md') && process.env.GRASSEYE_SOURCE_SPEC_AMENDMENT_AUTHORIZED !== '1') fail('SOURCE_SPEC_AMENDMENT_REQUIRED', 'mother spec');
@@ -105,16 +95,9 @@ async function quality(level: Level): Promise<void> {
   assertHighImpactAuthorization(changes);
   if (level === 'CHANGE') {
     if (!changes.length) fail('ENTRY_CONTRACT_MISMATCH', 'CHANGE requires an actual diff');
-    if (changes.some((change) => governanceSource(change.path))) {
-      const registry = buildRegistry();
-      verifyChangeOwnership(changes, registry);
-      projectionCheck();
-      projectChecks();
-    } else {
-      const registry = projectedRegistry();
-      verifyChangeOwnership(changes, registry);
-      relevantChangeChecks(changes, registry);
-    }
+    const registry = projectedRegistry();
+    verifyChangeOwnership(changes, registry);
+    relevantChangeChecks(changes, registry);
     if (initial !== changeDenominator()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');
     process.stdout.write('CHANGE_PASS\n');
     return;

@@ -55,6 +55,66 @@ export const dynamicScriptFor = (domain: string, mode: string): string =>
   dynamicScripts[domain]?.[mode] ?? fail("RELEASE_EVIDENCE_MISSING", `${domain}:${mode}`);
 
 const routeKey = (lawId: string, mode: string): string => `${lawId}\0${mode}`;
+type ClauseRoute = "all" | readonly number[];
+const proofClauseRoutes: Readonly<Record<string, ClauseRoute>> = {
+  [routeKey("LAW-AI-INPUT-GATEWAY-001-V1", "exam.golden")]: "all",
+  [routeKey("LAW-AI-INPUT-GATEWAY-002-V1", "exam.golden")]: "all",
+  [routeKey("LAW-AI-INPUT-GATEWAY-003-V1", "exam.golden")]: "all",
+  [routeKey("LAW-AI-INPUT-GATEWAY-004-V1", "exam.golden")]: "all",
+  [routeKey("LAW-AI-INPUT-GATEWAY-005-V4", "exam.golden")]: "all",
+  [routeKey("LAW-AI-INPUT-GATEWAY-006-V1", "exam.golden")]: "all",
+  [routeKey("LAW-AI-INPUT-GATEWAY-007-V1", "exam.golden")]: "all",
+  [routeKey("LAW-APP-SHELL-UI-001-V2", "exam.golden")]: "all",
+  [routeKey("LAW-APP-SHELL-UI-002-V1", "exam.golden")]: "all",
+  [routeKey("LAW-APP-SHELL-UI-003-V2", "exam.golden")]: "all",
+  [routeKey("LAW-CAPABILITY-GOVERNANCE-001-V1", "exam.golden")]: "all",
+  [routeKey("LAW-CODE-PURITY-001-V2", "exam.golden")]: [2, 3, 7, 10, 15, 16],
+  [routeKey("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2", "exam.golden")]: "all",
+  [routeKey("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2", "exam.golden")]: "all",
+  [routeKey("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2", "exam.golden")]: "all",
+  [routeKey("LAW-LOCAL-APP-SHELL-001-V5", "exam.golden")]: [0, 1, 2, 3, 5, 6],
+  [routeKey("LAW-LOCAL-APP-SHELL-001-V5", "dynamic.browser")]: [7],
+  [routeKey("LAW-LOCAL-APP-SHELL-001-V5", "dynamic.service")]: [4, 8],
+  [routeKey("LAW-LOCAL-APP-SHELL-002-V3", "exam.golden")]: "all",
+  [routeKey("LAW-LOCAL-APP-SHELL-003-V2", "exam.golden")]: [2],
+  [routeKey("LAW-LOCAL-APP-SHELL-003-V2", "dynamic.service")]: [0, 1],
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-001-V4", "dynamic.browser")]: "all",
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-002-V4", "dynamic.browser")]: "all",
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-003-V6", "dynamic.browser")]: "all",
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "exam.golden")]: [0, 2, 5, 6, 7, 8, 9],
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "exam.property")]: [1, 3, 4],
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-004-V6", "dynamic.recovery")]: [10, 11, 12, 13, 14, 15],
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-005-V4", "dynamic.browser")]: "all",
+  [routeKey("LAW-LOCAL-BROWSER-SESSION-006-V2", "dynamic.browser")]: "all",
+  [routeKey("LAW-RUNTIME-LOG-SPINE-001-V3", "exam.golden")]: "all",
+  [routeKey("LAW-RUNTIME-LOG-SPINE-002-V2", "exam.golden")]: "all",
+  [routeKey("LAW-RUNTIME-LOG-SPINE-003-V2", "exam.golden")]: "all",
+  [routeKey("LAW-STARTUP-ENTRYPOINT-001-V4", "exam.golden")]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  [routeKey("LAW-STARTUP-ENTRYPOINT-001-V4", "dynamic.service")]: [11],
+  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V1", "exam.golden")]: [1, 2, 3, 4],
+  [routeKey("LAW-STARTUP-ENTRYPOINT-002-V1", "dynamic.service")]: [0],
+  [routeKey("LAW-SYSTEM-SECURITY-001-V1", "exam.golden")]: "all",
+  [routeKey("LAW-WORKBENCH-API-BOUNDARY-001-V4", "dynamic.browser")]: "all",
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "exam.golden")]: [0, 1, 2, 3, 5, 6, 7, 8, 9, 12, 13, 15],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "exam.property")]: [14],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "exam.state-machine")]: [4, 10, 11],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.browser")]: [1, 5, 13],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.service")]: [4, 6, 7, 9, 10, 11],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.provider")]: [13, 14, 15],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.authorization")]: [2, 3, 4, 5],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.recovery")]: [10, 11],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-001-V8", "dynamic.performance")]: [15],
+  [routeKey("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3", "exam.golden")]: "all",
+};
+
+export const proofClauseIndexesFor = (lawId: string, mode: string, forbiddenCount: number): number[] | null => {
+  const route = proofClauseRoutes[routeKey(lawId, mode)];
+  if (route === undefined) return null;
+  const indexes = route === "all" ? Array.from({ length: forbiddenCount }, (_, index) => index) : [...route];
+  if (!indexes.length || indexes.some((index) => !Number.isInteger(index) || index < 0 || index >= forbiddenCount)
+    || indexes.length !== new Set(indexes).size) fail("LAW_CHECK_ROUTE_MISSING", `${lawId}:${mode}:clause-route`);
+  return indexes;
+};
 const exactExamLocators: Readonly<Record<string, string>> = {
   [routeKey("LAW-AI-INPUT-GATEWAY-001-V1", "exam.golden")]: "acceptance:provider-boundary:injected-browser",
   [routeKey("LAW-AI-INPUT-GATEWAY-002-V1", "exam.golden")]: "acceptance:exact-target:caller-owned-lease",

@@ -3,8 +3,8 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
-import { buildRegistry, diffPaths, gitCommit, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
-import { canonicalBytes } from "../governance-json.js";
+import { buildRegistry, diffPaths, gitCommit, providerDomainForDependencySpec, REPORT, type Law, type Level, type Registry } from "../governance-authority.js";
+import { canonicalBytes, cleanString, exactKeys, isStringArray, rejectDuplicateJsonKeys, sortedUnique } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
 import { buildQualityReport, clausesForEvidenceMode, requiredModes, type LawExecutionResult, type QualityAssertion, type QualityFinding, type QualityParticipant } from "./quality-contract.js";
 import { runInspectionWorker } from "./quality-inspector-worker.js";
@@ -23,7 +23,8 @@ type ProofResultInput = {
   executionPassed: boolean; executionStatus: number | null; script: string;
   proofRunId: string; candidate: string; stdoutSha256: string;
 };
-type Dependency = { contractId: string; providerRepo: string; version: number };
+type Dependency = { contractId: string; providerRepo: string; providerDomain: string; version: number };
+type ProviderContract = Dependency & { authorityArtifact: { path: string; selector: string } };
 type BoundParticipant = { path: string; report: QualityParticipant };
 type QualityRunContext = {
   candidate: string;
@@ -51,7 +52,8 @@ const consumerDependencies = (): Dependency[] => repositoryPaths()
     return spec.status === "active" && spec.specKind === "cross-repo-dependency"
       && typeof contract?.contractId === "string" && typeof contract.providerRepo === "string"
       && typeof contract.version === "number"
-      ? [{ contractId: contract.contractId, providerRepo: contract.providerRepo, version: contract.version }]
+      ? [{ contractId: contract.contractId, providerRepo: contract.providerRepo,
+        providerDomain: providerDomainForDependencySpec(path), version: contract.version }]
       : [];
   });
 
@@ -69,19 +71,58 @@ const gitAt = (path: string, args: string[]): string => execFileSync("git", args
   cwd: path, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
 }).trim();
 
-const providerContracts = (path: string, commit: string): Array<Dependency & { status: string; specKind: string }> => {
+const providerDomains = (path: string, commit: string): Set<string> => new Set(gitAt(path, ["ls-tree", "-r", "--name-only", commit, "--", "scripts/audit/domains"])
+  .split("\n").filter((current) => current.endsWith("/manifest.json")).flatMap((manifestPath) => {
+    const source = gitAt(path, ["show", `${commit}:${manifestPath}`]);
+    rejectDuplicateJsonKeys(source, manifestPath);
+    const manifest = JSON.parse(source) as Record<string, unknown>;
+    return exactKeys(manifest, ["capabilityDomain", "lawIds", "observedPaths", "ownedPaths", "schemaVersion", "status"])
+      && manifest.schemaVersion === 5 && manifest.status === "active" && typeof manifest.capabilityDomain === "string"
+      ? [manifest.capabilityDomain] : [];
+  }));
+
+export const validateProviderContractSpec = (
+  raw: unknown, repo: string, domains: ReadonlySet<string>, artifactExists: (path: string) => boolean,
+): ProviderContract => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec`);
+  const spec = raw as Record<string, unknown>;
+  if (!exactKeys(spec, ["contract", "lawIds", "owner", "schemaVersion", "specId", "specKind", "status", "version"])
+    || spec.schemaVersion !== 1 || spec.status !== "active" || spec.specKind !== "cross-repo-contract"
+    || typeof spec.specId !== "string" || !cleanString(spec.specId)
+    || typeof spec.owner !== "string" || !domains.has(spec.owner)
+    || !Number.isInteger(spec.version) || Number(spec.version) < 1
+    || !isStringArray(spec.lawIds) || !spec.lawIds.length || !sortedUnique(spec.lawIds)) {
+    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:provider-spec-envelope`);
+  }
+  const contract = spec.contract as Record<string, unknown>;
+  if (!contract || !exactKeys(contract, ["authorityArtifact", "contractId", "providerDomain", "providerRepo", "version"])
+    || contract.contractId !== spec.specId || contract.version !== spec.version || contract.providerRepo !== repo
+    || contract.providerDomain !== spec.owner || typeof contract.providerDomain !== "string" || !domains.has(contract.providerDomain)) {
+    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:provider-contract`);
+  }
+  const artifact = contract.authorityArtifact as Record<string, unknown>;
+  if (!artifact || !exactKeys(artifact, ["path", "selector"]) || typeof artifact.path !== "string"
+    || artifact.path.startsWith("/") || artifact.path.split("/").some((part) => !part || part === "." || part === "..")
+    || typeof artifact.selector !== "string" || !cleanString(artifact.selector) || !artifactExists(artifact.path)) {
+    return fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${String(spec.specId)}:authority-artifact`);
+  }
+  return { contractId: contract.contractId as string, providerRepo: repo,
+    providerDomain: contract.providerDomain, version: contract.version as number,
+    authorityArtifact: { path: artifact.path, selector: artifact.selector } };
+};
+
+const providerContracts = (path: string, commit: string, repo: string): ProviderContract[] => {
+  const domains = providerDomains(path, commit);
   const paths = gitAt(path, ["ls-tree", "-r", "--name-only", commit, "--", "docs/specs"])
     .split("\n").filter((current) => current.endsWith(".json"));
   return paths.flatMap((specPath) => {
-    const spec = JSON.parse(gitAt(path, ["show", `${commit}:${specPath}`])) as {
-      status?: string; specKind?: string; contract?: Partial<Dependency>;
-    };
-    const contract = spec.contract;
-    return spec.status === "active" && spec.specKind === "cross-repo-contract"
-      && typeof contract?.contractId === "string" && typeof contract.providerRepo === "string"
-      && typeof contract.version === "number"
-      ? [{ contractId: contract.contractId, providerRepo: contract.providerRepo, version: contract.version, status: spec.status, specKind: spec.specKind }]
-      : [];
+    const source = gitAt(path, ["show", `${commit}:${specPath}`]);
+    rejectDuplicateJsonKeys(source, specPath);
+    const spec = JSON.parse(source) as Record<string, unknown>;
+    if (spec.status !== "active" || spec.specKind !== "cross-repo-contract") return [];
+    return [validateProviderContractSpec(spec, repo, domains, (artifactPath) => {
+      try { gitAt(path, ["cat-file", "-e", `${commit}:${artifactPath}`]); return true; } catch { return false; }
+    })];
   });
 };
 
@@ -89,6 +130,7 @@ export const assertExactProviderContract = (
   repo: string, dependency: Dependency, available: readonly Dependency[],
 ): void => {
   const matches = available.filter((contract) => contract.providerRepo === repo
+    && contract.providerDomain === dependency.providerDomain
     && contract.contractId === dependency.contractId && contract.version === dependency.version);
   if (matches.length !== 1) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:${dependency.contractId}:${dependency.version}`);
 };
@@ -103,7 +145,7 @@ const bindReleaseParticipants = (): BoundParticipant[] => {
     if (dependencySignatures.length !== new Set(dependencySignatures).size) fail("EXTERNAL_SURFACE_AUTHORITY_MISSING", `${repo}:duplicate`);
     const path = participantPath(repo);
     const gitCommit = gitAt(path, ["rev-parse", "HEAD"]);
-    const available = providerContracts(path, gitCommit);
+    const available = providerContracts(path, gitCommit, repo);
     for (const dependency of dependencies) assertExactProviderContract(repo, dependency, available);
     const contracts = ordered(dependencySignatures).map((signature) => {
       const [contractId, version] = signature.split("\0");

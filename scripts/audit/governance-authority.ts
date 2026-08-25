@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { parseDocument } from 'yaml';
 import { canonicalBytes, cleanString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
@@ -42,6 +43,7 @@ export type Registry = {
 };
 const AGENTS_EXACT = `# Codex Governance Entry\n\n本仓库使用冻结的法案系统。\n\n1. READ_ONLY 直接读取并回答，不写入任何文件。\n2. CHANGE 开始修改前只读查看目标路径的 Git 状态，不得覆盖、删除、恢复或移动未获授权的用户改动。\n3. CHANGE 的实际差异必须与授权人的请求及完成该请求不可分割的直接关联对象一致。\n4. READY 不等于 RELEASE；静态检查、普通测试或部分证据不得被认定为已经完成生产发布。\n5. READY、RELEASE 使用原生 clean Git commit；RELEASE 执行全部 active law 声明的 Dynamic Proof。\n6. 只允许一份 active law corpus、一份 law registry；每个生产路径和合同只允许一个 primary Owner；只允许一个 quality verdict。\n7. 迁移桥、用于迁移的 feature flag、dual-read/write 或 shadow traffic 必须有 Owner、监控、期限、删除日期和删除验收。\n8. 本说明书与 active law 只在授权人分别明确批准对应修改后变更。\n9. 任一 finding、候选漂移、错误证据类型或无事实依据的 PASS 必须失败关闭。\n`;
 const LAW_KEYS = ['appliesTo', 'capabilityDomain', 'dependsOnLawIds', 'enforcementMode', 'evidenceModes', 'excludes', 'forbidden', 'lawId', 'schemaVersion', 'status', 'summary', 'supersedesLawId', 'tier'];
+const LAW_DOCUMENT_KEYS = ['authorityLevel', 'containerOwner', 'documentType', 'lawIdPrefix', 'schemaVersion', 'status'];
 const MANIFEST_KEYS = ['capabilityDomain', 'lawIds', 'observedPaths', 'ownedPaths', 'schemaVersion', 'status'];
 const SPEC_KEYS = ['contract', 'lawIds', 'owner', 'schemaVersion', 'specId', 'specKind', 'status', 'version'];
 const BLUEPRINT_KEYS = ['blueprintId', 'contractRefs', 'dependencyEdges', 'lawIds', 'owner', 'prohibitedDependencyEdges', 'schemaVersion', 'status'];
@@ -175,13 +177,27 @@ const applyLawContentLine = (input: {
 };
 
 export function parseLawSource(source: string, path: string, documentType: 'base-law' | 'functional-law', authorityLevel: 100 | 90): Law[] {
-  const expected = `---\ndocumentType: ${documentType}\nschemaVersion: 2\nstatus: active\nauthorityLevel: ${authorityLevel}\ncontainerOwner: law-system\nlawIdPrefix: LAW\n---\n`;
-  if (!source.startsWith(expected) || source.includes('\r') || source.slice(expected.length).split('\n').includes('---')) fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
+  if (path !== path.normalize('NFC') || source !== source.normalize('NFC') || source.includes('\r') || !source.startsWith('---\n')) {
+    fail('SOURCE_PARSE_FAILED', `${path}:encoding`);
+  }
+  const close = source.indexOf('\n---\n', 4);
+  if (close < 0 || source.indexOf('\n---\n', close + 5) >= 0) fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
+  const frontMatterSource = source.slice(4, close);
+  const document = parseDocument(frontMatterSource, { strict: true, uniqueKeys: true });
+  if (document.errors.length || document.warnings.length) fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
+  const frontMatter = document.toJS() as Record<string, unknown>;
+  if (!frontMatter || typeof frontMatter !== 'object' || Array.isArray(frontMatter)
+    || !exactKeys(frontMatter, LAW_DOCUMENT_KEYS)
+    || frontMatter.documentType !== documentType || frontMatter.schemaVersion !== 2
+    || frontMatter.status !== 'active' || frontMatter.authorityLevel !== authorityLevel
+    || frontMatter.containerOwner !== 'law-system' || frontMatter.lawIdPrefix !== 'LAW') {
+    fail('SOURCE_PARSE_FAILED', `${path}:front-matter`);
+  }
   const lines = source.split('\n');
   const laws: Law[] = [];
   const state: LawParserState = { domain: '', headingId: '', headingLine: 0, priorDomain: '', priorLawOrder: '' };
   const documentHeading = documentType === 'base-law' ? '# 基础法案' : '# 功能法案';
-  const start = expected.split('\n').length - 1;
+  const start = source.slice(0, close + 5).split('\n').length - 1;
   if (lines[start] !== documentHeading) fail('SOURCE_PARSE_FAILED', `${path}:document heading`);
   for (let index = start + 1; index < lines.length; index++) index = applyLawContentLine({ documentType, index, laws, lines, path, state });
   if (state.headingId || !laws.length) fail('SOURCE_PARSE_FAILED', `${path}:incomplete`);
@@ -313,26 +329,27 @@ type BlueprintProhibitedEdge = { from: BlueprintEndpoint; to: BlueprintEndpoint;
 const endpointSignature = (endpoint: BlueprintEndpoint): string => `${endpoint.repo}\0${endpoint.domain}`;
 const edgeSignature = (edge: BlueprintDependencyEdge | BlueprintProhibitedEdge): string =>
   `${endpointSignature(edge.from)}\0${endpointSignature(edge.to)}\0${'contractRef' in edge ? edge.contractRef ?? '' : edge.lawId}`;
-const validEndpoint = (value: unknown, domains: ReadonlySet<string>, remoteDomains: ReadonlyMap<string, ReadonlySet<string>>): value is BlueprintEndpoint => {
+const validEndpoint = (value: unknown, domains: ReadonlySet<string>, remoteRepos: ReadonlySet<string>): value is BlueprintEndpoint => {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !exactKeys(value, ['domain', 'repo'])) return false;
   const endpoint = value as BlueprintEndpoint;
-  return cleanString(endpoint.domain) && (endpoint.repo === 'local' ? domains.has(endpoint.domain) : remoteDomains.get(endpoint.repo)?.has(endpoint.domain) === true);
+  return DOMAIN_PATTERN.test(endpoint.domain) && (endpoint.repo === 'local' ? domains.has(endpoint.domain) : remoteRepos.has(endpoint.repo));
 };
 const validEdges = (
   raw: Record<string, unknown>, active: ReadonlySet<string>, blueprintLawIds: ReadonlySet<string>,
   domains: ReadonlySet<string>, refs: ReadonlySet<string>,
-  remoteDomains: ReadonlyMap<string, ReadonlySet<string>>,
+  dependencyRepos: ReadonlyMap<string, string>,
 ): boolean => {
   if (!Array.isArray(raw.dependencyEdges) || !Array.isArray(raw.prohibitedDependencyEdges)) return false;
   const allowed = raw.dependencyEdges as BlueprintDependencyEdge[];
   const prohibited = raw.prohibitedDependencyEdges as BlueprintProhibitedEdge[];
   if (allowed.some((edge) => !edge || !exactKeys(edge, ['contractRef', 'from', 'to'])
-    || !validEndpoint(edge.from, domains, remoteDomains) || !validEndpoint(edge.to, domains, remoteDomains)
+    || !validEndpoint(edge.from, domains, new Set(dependencyRepos.values())) || !validEndpoint(edge.to, domains, new Set(dependencyRepos.values()))
     || endpointSignature(edge.from) === endpointSignature(edge.to)
     || !(edge.contractRef === null || (typeof edge.contractRef === 'string' && refs.has(edge.contractRef)))
-    || (edge.from.repo !== edge.to.repo && edge.contractRef === null))) return false;
+    || (edge.from.repo !== edge.to.repo && (edge.contractRef === null
+      || dependencyRepos.get(edge.contractRef) !== (edge.from.repo === 'local' ? edge.to.repo : edge.from.repo))))) return false;
   if (prohibited.some((edge) => !edge || !exactKeys(edge, ['from', 'lawId', 'to'])
-    || !validEndpoint(edge.from, domains, remoteDomains) || !validEndpoint(edge.to, domains, remoteDomains)
+    || !validEndpoint(edge.from, domains, new Set(dependencyRepos.values())) || !validEndpoint(edge.to, domains, new Set(dependencyRepos.values()))
     || endpointSignature(edge.from) === endpointSignature(edge.to)
     || !active.has(edge.lawId) || !blueprintLawIds.has(edge.lawId))) return false;
   const allowedKeys = allowed.map(edgeSignature); const prohibitedKeys = prohibited.map(edgeSignature);
@@ -346,7 +363,7 @@ export const blueprintValid = (
   active: ReadonlySet<string>,
   domains: ReadonlySet<string>,
   specPaths: ReadonlySet<string>,
-  remoteDomains: ReadonlyMap<string, ReadonlySet<string>>,
+  dependencyRepos: ReadonlyMap<string, string>,
   lawDomains: ReadonlyMap<string, string>,
 ): boolean => {
   const lawIds = raw.lawIds;
@@ -356,7 +373,7 @@ export const blueprintValid = (
     && isStringArray(lawIds) && lawIds.length > 0 && sortedUnique(lawIds)
     && lawIds.every((lawId) => active.has(lawId) && lawDomains.get(lawId) === raw.owner)
     && isStringArray(refs) && sortedUnique(refs) && refs.every((path) => specPaths.has(path))
-    && validEdges(raw, active, new Set(lawIds), domains, new Set(refs), remoteDomains);
+    && validEdges(raw, active, new Set(lawIds), domains, new Set(refs), dependencyRepos);
 };
 
 function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<string, string[]>): void {
@@ -364,19 +381,32 @@ function loadBlueprints(laws: Law[], manifests: Manifest[], contractRefs: Map<st
   const lawDomains = new Map(laws.map((law) => [law.lawId, law.capabilityDomain]));
   const domains = new Set(manifests.map((manifest) => manifest.capabilityDomain));
   const specPaths = new Set(walk('docs/specs').filter((path) => path.endsWith('.json')));
-  const remoteDomains = new Map<string, Set<string>>();
+  const dependencyRepos = new Map<string, string>();
   for (const specPath of specPaths) {
     const spec = parseJson<GovernanceSpec>(specPath);
     if (spec.specKind !== 'cross-repo-dependency') continue;
-    const contract = spec.contract as { contractId: string; providerRepo: string };
-    const domain = contract.contractId.split('.')[0]!;
-    remoteDomains.set(contract.providerRepo, new Set([...(remoteDomains.get(contract.providerRepo) ?? []), domain]));
+    const contract = spec.contract as { providerRepo: string };
+    dependencyRepos.set(specPath, contract.providerRepo);
   }
   for (const file of walk('docs/blueprints').filter((path) => path.endsWith('.md') || path.endsWith('.json'))) {
     const raw = file.endsWith('.json') ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record');
-    if (!blueprintValid(raw, active, domains, specPaths, remoteDomains, lawDomains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
+    if (!blueprintValid(raw, active, domains, specPaths, dependencyRepos, lawDomains)) fail('SOURCE_PARSE_FAILED', `${file}:schema`);
     for (const lawId of raw.lawIds as string[]) contractRefs.set(lawId, [...(contractRefs.get(lawId) ?? []), file]);
   }
+}
+
+export function providerDomainForDependencySpec(specPath: string): string {
+  const domains: string[] = [];
+  const files = walk('docs/blueprints').filter((path) => path.endsWith('.md') || path.endsWith('.json'));
+  for (const file of files) for (const edge of ((file.endsWith('.json')
+    ? parseJson<Record<string, unknown>>(file) : machineBlock(file, 'blueprint-record')).dependencyEdges ?? []) as BlueprintDependencyEdge[]) {
+    if (edge.contractRef !== specPath) continue;
+    const remote = edge.from.repo === 'local' ? edge.to : edge.to.repo === 'local' ? edge.from : null;
+    domains.push((remote ?? fail('SOURCE_PARSE_FAILED', `${file}:${specPath}:remote endpoint`)).domain);
+  }
+  const unique = sortedUnique([...new Set(domains)].sort(byteCompare));
+  if (!unique || domains.length !== 1) fail('EXTERNAL_SURFACE_AUTHORITY_MISSING', `${specPath}:providerDomain`);
+  return domains[0]!;
 }
 
 export function buildRegistry(): Registry {

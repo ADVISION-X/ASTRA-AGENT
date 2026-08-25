@@ -64,14 +64,17 @@ export const finalizeStaticInspection = async (
     || JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(ordered(evaluation.inspectedFiles))) {
     fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:inspection-order`);
   }
-  const consumed = new Set<string>();
+  const requiredTargets = ordered(context.lawRequirements.flatMap((requirement) => requirement.targetPaths));
+  if (JSON.stringify(evaluation.inspectedFiles) !== JSON.stringify(requiredTargets)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:${executorName}:target-denominator`);
+  }
   const lawResults = context.lawRequirements.map((requirement) => {
     const route = routesByLaw.get(requirement.lawId) ?? fail("LAW_CHECK_ROUTE_MISSING", requirement.lawId);
     const requiredClauses = ordered(Object.values(requirement.clausesByMode).flat());
     if (JSON.stringify(routedClauses(route)) !== JSON.stringify(requiredClauses)) {
       fail("LAW_CHECK_ROUTE_MISSING", `${requirement.lawId}:clause`);
     }
-    for (const path of consumeTargetSet(context, requirement)) consumed.add(path);
+    consumeTargetSet(context, requirement);
     const findings = evaluation.findings.filter((finding) => finding.lawId === requirement.lawId);
     return {
       lawId: requirement.lawId,
@@ -92,6 +95,6 @@ export const finalizeStaticInspection = async (
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: requiredIds,
     lawResults,
-    inspectedFiles: ordered([...evaluation.inspectedFiles, ...consumed]),
+    inspectedFiles: evaluation.inspectedFiles,
   };
 };

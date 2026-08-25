@@ -19,11 +19,11 @@ import {
   validEvidenceRef,
   type LawExecutionResult,
 } from "../../scripts/audit/shared/quality-contract.js";
-import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { assertCandidateStable, assertExactProviderContract, assertParticipantCommitIdentity, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput, validateProviderContractSpec } from "../../scripts/audit/shared/quality-runner.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
-import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
+import { proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
 
 const fixtureLaw = (): Law => ({
@@ -75,8 +75,16 @@ test("evidence modes cover the exact clause denominator without blanket duplicat
     clausesForEvidenceMode(law, required, required[0]!),
     clausesForEvidenceMode(law, required, required[1]!),
   );
-  assert.deepEqual(clausesForEvidenceMode(law, required, "static.ast"), clausesForLaw(law));
-  assert.deepEqual(clausesForEvidenceMode(law, required, "exam.golden"), ["summary"]);
+  assert.deepEqual(clausesForEvidenceMode(law, required, "static.ast"), ["summary"]);
+  assert.deepEqual(clausesForEvidenceMode(law, required, "exam.golden"), clausesForLaw(law));
+});
+
+test("every active Exam and Dynamic route has an explicit object-semantic clause assignment", () => {
+  const registry = buildRegistry();
+  for (const law of registry.laws) for (const mode of law.evidenceModes) {
+    if (!mode.startsWith("exam.") && !mode.startsWith("dynamic.")) continue;
+    assert.ok(proofClauseIndexesFor(law.lawId, mode, law.forbidden.length), `${law.lawId}:${mode}`);
+  }
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {
@@ -94,6 +102,11 @@ test("quality report rejects missing evidence modes and unsupported PASS claims"
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [falseWithoutFinding] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_FAILED",
   );
+});
+
+test("repository evidence locators must resolve to a current regular file", () => {
+  assert.equal(validEvidenceRef("ast:does/not/exist.ts#selector%3Dmissing"), false);
+  assert.equal(validEvidenceRef("ast:scripts/audit/shared/quality-contract.ts#selector%3Dfixture"), true);
 });
 
 test("quality report rejects missing, duplicate, and extra active law results", () => {
@@ -339,6 +352,24 @@ test("static finalization invokes the named owner executor and rejects an unread
   assert.equal(executed, true);
 });
 
+test("a readable target is not credited unless the named inspector reports inspecting it", async () => {
+  const context = {
+    sealedRoot: process.cwd(),
+    planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/shared/static-inspector-result.ts" },
+    lawRequirements: [{
+      lawId: "LAW-FIXTURE-001-V1", clausesByMode: { "static.ast": ["forbidden:0", "summary"] },
+      targetPaths: ["package.json"],
+      targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
+    }],
+  } as unknown as InspectorContext;
+  await assert.rejects(
+    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1", forbiddenCount: 1 }], function inspectNothing() { return {
+      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: [],
+    }; }),
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
+  );
+});
+
 test("a finding propagates from one law result to the only top-level verdict", () => {
   const law = fixtureLaw();
   const result = resultFor(law);
@@ -354,13 +385,34 @@ test("candidate and provider mutations fail closed with fixed governance codes",
     () => assertCandidateStable("a".repeat(64), "b".repeat(64), "mutation"),
     (error: unknown) => error instanceof GovernanceError && error.code === "CANDIDATE_DRIFT",
   );
-  const dependency = { contractId: "xuanxue.report", providerRepo: "ADVISION-X/xuanxue-web", version: 3 };
+  const dependency = { contractId: "xuanxue.report", providerRepo: "ADVISION-X/xuanxue-web", providerDomain: "ai-acceptance", version: 3 };
   assert.throws(
     () => assertExactProviderContract(dependency.providerRepo, dependency, []),
     (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING",
   );
   assert.throws(
     () => assertExactProviderContract(dependency.providerRepo, dependency, [{ ...dependency, version: 2 }]),
+    (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING",
+  );
+});
+
+test("provider contracts reject malformed payloads before identity matching", () => {
+  const valid = {
+    schemaVersion: 1, specId: "xuanxue.report", status: "active", version: 3,
+    owner: "ai-acceptance", lawIds: ["LAW-AI-ACCEPTANCE-001-V1"], specKind: "cross-repo-contract",
+    contract: {
+      contractId: "xuanxue.report", version: 3, providerRepo: "ADVISION-X/xuanxue-web",
+      providerDomain: "ai-acceptance", authorityArtifact: { path: "artifacts/report.json", selector: "version=3" },
+    },
+  };
+  assert.doesNotThrow(() => validateProviderContractSpec(valid, "ADVISION-X/xuanxue-web", new Set(["ai-acceptance"]), () => true));
+  for (const malformed of [
+    { ...valid, unexpected: true },
+    { ...valid, contract: { ...valid.contract, providerDomain: "wrong-domain" } },
+    { ...valid, contract: { ...valid.contract, authorityArtifact: null } },
+    { ...valid, contract: { ...valid.contract, authorityArtifact: { ...valid.contract.authorityArtifact, unknown: true } } },
+  ]) assert.throws(
+    () => validateProviderContractSpec(malformed, "ADVISION-X/xuanxue-web", new Set(["ai-acceptance"]), () => true),
     (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING",
   );
 });
@@ -421,6 +473,22 @@ test("law parser rejects a second front-matter block", () => {
   );
 });
 
+test("law parser rejects duplicate YAML keys and non-canonical source bytes", () => {
+  const source = readFileSync(BASE, "utf8");
+  assert.throws(
+    () => parseLawSource(source.replace("schemaVersion: 2\n", "schemaVersion: 2\nschemaVersion: 2\n"), BASE, "base-law", 100),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+  assert.throws(
+    () => parseLawSource(source.replaceAll("\n", "\r\n"), BASE, "base-law", 100),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+  assert.throws(
+    () => parseLawSource(`\ufeff${source}`, BASE, "base-law", 100),
+    (error: unknown) => error instanceof GovernanceError && error.code === "SOURCE_PARSE_FAILED",
+  );
+});
+
 test("blueprint edge schema and local spec payloads reject arbitrary fields", () => {
   const registry = buildRegistry();
   const law = registry.laws[0]!;
@@ -430,12 +498,20 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     blueprintId: "BLUEPRINT-MUTATION-V1", contractRefs: [], dependencyEdges: [], lawIds: [law.lawId],
     owner: law.capabilityDomain, prohibitedDependencyEdges: [], schemaVersion: 1, status: "active",
   };
-  const contexts = [new Set([law.lawId]), domains, new Set<string>(), new Map<string, Set<string>>(), new Map([[law.lawId, law.capabilityDomain]])] as const;
+  const contexts = [new Set([law.lawId]), domains, new Set<string>(), new Map<string, string>(), new Map([[law.lawId, law.capabilityDomain]])] as const;
   assert.equal(blueprintValid(base, ...contexts), true);
   const invalid = { ...base, dependencyEdges: [{ contractRef: null,
     from: { domain: law.capabilityDomain, repo: "local", unexpected: true },
     to: { domain: secondDomain, repo: "local" } }] };
   assert.equal(blueprintValid(invalid, ...contexts), false);
+  const remoteRef = "docs/specs/remote.dependency.spec.json";
+  const remoteBase = { ...base, contractRefs: [remoteRef], dependencyEdges: [{ contractRef: remoteRef,
+    from: { domain: law.capabilityDomain, repo: "local" },
+    to: { domain: "provider-authority", repo: "ADVISION-X/provider" } }] };
+  assert.equal(blueprintValid(remoteBase, new Set([law.lawId]), domains, new Set([remoteRef]),
+    new Map([[remoteRef, "ADVISION-X/provider"]]), new Map([[law.lawId, law.capabilityDomain]])), true);
+  assert.equal(blueprintValid(remoteBase, new Set([law.lawId]), domains, new Set([remoteRef]),
+    new Map([[remoteRef, "ADVISION-X/other"]]), new Map([[law.lawId, law.capabilityDomain]])), false);
   const foreignLawId = "LAW-BLUEPRINT-FOREIGN-001-V1";
   const foreignLawEdge = { ...base, prohibitedDependencyEdges: [{
     from: { domain: law.capabilityDomain, repo: "local" },
@@ -447,7 +523,7 @@ test("blueprint edge schema and local spec payloads reject arbitrary fields", ()
     new Set([law.lawId, foreignLawId]),
     domains,
     new Set<string>(),
-    new Map<string, Set<string>>(),
+    new Map<string, string>(),
     new Map([[law.lawId, law.capabilityDomain], [foreignLawId, law.capabilityDomain]]),
   ), false);
   assert.throws(

@@ -1,6 +1,10 @@
+import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { relative, resolve } from "node:path";
+
 import { exactKeys } from "../governance-json.js";
-import { fail, validGitObjectId } from "../governance-runtime.js";
+import { ROOT, fail, validGitObjectId } from "../governance-runtime.js";
 import type { Law, Level } from "../governance-authority.js";
+import { proofClauseIndexesFor } from "./quality-routes.js";
 
 export type QualityAssertion = {
   clauses: string[];
@@ -93,12 +97,25 @@ export const clausesForLaw = (law: Law): string[] => [
 ].sort(byteCompare);
 
 export const clausesForEvidenceMode = (law: Law, required: readonly string[], mode: string): string[] => {
-  const clauses = clausesForLaw(law);
+  const proofModes = required.filter((candidate) => candidate.startsWith("exam.") || candidate.startsWith("dynamic."));
+  const assignments = new Map(proofModes.map((proofMode) => {
+    const configured = proofClauseIndexesFor(law.lawId, proofMode, law.forbidden.length);
+    if (configured) return [proofMode, configured] as const;
+    if (proofModes.length === 1) return [proofMode, law.forbidden.map((_, index) => index)] as const;
+    return fail("LAW_CHECK_ROUTE_MISSING", `${law.lawId}:${proofMode}:clause-route`);
+  }));
+  const assignedToProof = new Set([...assignments.values()].flat());
+  if (assignments.has(mode)) return ordered([
+    ...assignments.get(mode)!.map((index) => `forbidden:${index}`), "summary",
+  ]);
   const primaryStatic = required.includes("static.ast")
     ? "static.ast"
     : required.find((candidate) => candidate.startsWith("static."));
-  const primary = primaryStatic ?? required[0];
-  return mode === primary ? clauses : ["summary"];
+  if (mode !== primaryStatic) return ["summary"];
+  return ordered([
+    ...law.forbidden.flatMap((_, index) => assignedToProof.has(index) ? [] : [`forbidden:${index}`]),
+    "summary",
+  ]);
 };
 
 export const requiredModes = (law: Law, level: "READY" | "RELEASE"): string[] =>
@@ -125,11 +142,19 @@ const parseEvidenceRef = (value: string): ParsedEvidenceRef | null => {
 const validRepositoryLocator = (locator: string): boolean => !locator.startsWith("/")
   && !locator.startsWith("\\") && !locator.includes("%")
   && locator.split(/[\\/]/u).every((part) => part !== "" && part !== "." && part !== "..");
+const repositoryObjectExists = (locator: string): boolean => {
+  if (!validRepositoryLocator(locator)) return false;
+  const root = realpathSync(ROOT);
+  const absolute = resolve(root, locator);
+  if (!existsSync(absolute)) return false;
+  const escaped = relative(root, realpathSync(absolute));
+  return escaped !== ".." && !escaped.startsWith("../") && lstatSync(absolute).isFile();
+};
 const validEvidenceObject = (reference: ParsedEvidenceRef): boolean => {
   const external = reference.kind === "exam" || reference.kind === "dynamic";
   if (external) return reference.receipt !== undefined;
   if (reference.receipt !== undefined) return false;
-  if (reference.kind !== "scope") return validRepositoryLocator(reference.locator);
+  if (reference.kind !== "scope") return repositoryObjectExists(reference.locator);
   return /^LAW-[A-Z0-9-]+$/u.test(reference.locator) && reference.selector === "appliesTo-minus-excludes";
 };
 
