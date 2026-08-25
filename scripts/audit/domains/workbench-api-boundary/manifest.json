@@ -6,6 +6,8 @@
     "LAW-WORKBENCH-API-BOUNDARY-001-V4"
   ],
   "ownedPaths": [
+    "scripts/acceptance/workbench-api-boundary-fixture.ts",
+    "scripts/acceptance/workbench-api-boundary.acceptance.ts",
     "scripts/audit/domains/workbench-api-boundary/**"
   ],
   "observedPaths": [

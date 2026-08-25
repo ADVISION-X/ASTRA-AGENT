@@ -60,7 +60,7 @@ const proofProducerDigests: Readonly<Record<string, string>> = {
   "acceptance:ai-input-gateway": "ad434856120eb55efbeede9ebcc0a0aad0e4f12b893f3c1d8d0e1460c80a6c5a",
   "acceptance:app-shell-ui": "d72f3c17fc058b1627413bddaa0a3a04f0ec00cfb288d6ac21b13448e089da3b",
   "acceptance:architecture-active-plugin-mediators": "88590086f3889020b9130178083022119402893b6730c94c79642f42b497cd3c",
-  "acceptance:code-purity-zombie-deep": "bbd3857b42ef61b86d83ef333acb52e247aab280a44517652cb05f046bf3e707",
+  "acceptance:code-purity-zombie-deep": "22d5ff0ce69a4935016af596bef916abb77d486f7c87ae73147c477fac074366",
   "acceptance:forensics-persistence-capability": "6339465403d9b963375e7077ea793ac9e3eee7e0e244f07becc89a3918841f4b",
   "acceptance:local-app-shell": "4af240acc32b8fb71ea0ae3377edd54956874cb3bc58d7dd25e04f199027ddd0",
   "acceptance:local-browser-real-chrome": "42dfc4714f4eaff78350bfaedc64c48549f92bcbc050084da787b63cd1628806",

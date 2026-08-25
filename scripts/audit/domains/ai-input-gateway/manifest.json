@@ -12,6 +12,8 @@
     "LAW-AI-INPUT-GATEWAY-007-V1"
   ],
   "ownedPaths": [
+    "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
+    "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
     "scripts/audit/domains/ai-input-gateway/**",
     "src/capabilities/ai-input-gateway/**",
     "src/lib/online-ai/**"

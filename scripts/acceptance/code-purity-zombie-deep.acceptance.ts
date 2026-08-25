@@ -15,7 +15,7 @@ import type { GovernedFile } from "../audit/domains/code-purity/components/code-
 import { scanOwnerBoundaries } from "../audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan-zombie-surfaces.js";
 import type { ZombieExemptionManifest } from "../audit/domains/code-purity/components/zombie-exemption-manifest.js";
-import { createInspectorContextFixture } from "./fixtures/current-inspector-context.js";
+import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 
 type PathPair = { consumerFilePath: string; targetFilePath: string };
 type RegistryConsumer = PathPair & { registryExportName: string; registryFilePath: string };

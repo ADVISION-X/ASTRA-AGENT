@@ -14,6 +14,8 @@
       "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json",
       "observedPaths": [],
       "ownedPaths": [
+        "scripts/acceptance/ai-input-gateway-exact-target.acceptance.ts",
+        "scripts/acceptance/atomic-if-and-then-inspector.attacks.ts",
         "scripts/audit/domains/ai-input-gateway/**",
         "src/capabilities/ai-input-gateway/**",
         "src/lib/online-ai/**"
@@ -31,7 +33,13 @@
         "**/*"
       ],
       "ownedPaths": [
+        ".playwright-cli/console-2026-08-22T13-12-53-445Z.log",
+        ".playwright-cli/page-2026-08-22T13-12-53-598Z.yml",
         "docs/current-sub-capabilities.zh.md",
+        "output/playwright/app-shell-ui-real-chrome.png",
+        "scripts/acceptance/app-shell-localization.acceptance.ts",
+        "scripts/acceptance/app-shell-skill-registry.acceptance.ts",
+        "scripts/acceptance/app-shell-ui.acceptance.ts",
         "scripts/audit/domains/app-shell-ui/**",
         "src/app/**"
       ]
@@ -47,6 +55,7 @@
         "src/**"
       ],
       "ownedPaths": [
+        "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
         "scripts/audit/domains/architecture-boundary/**"
       ]
     },
@@ -62,6 +71,7 @@
       ],
       "ownedPaths": [
         "docs/governance/法案系统建设说明书-冻结定稿版.pdf",
+        "scripts/acceptance/architecture-active-plugin-mediators.acceptance.ts",
         "scripts/audit/domains/capability-governance/**"
       ]
     },
@@ -83,6 +93,7 @@
         "package-lock.json",
         "package.json",
         "pnpm-workspace.yaml",
+        "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
         "scripts/audit/domains/code-purity/**",
         "scripts/audit/governance-authority.ts",
         "scripts/audit/governance-json.ts",
@@ -103,6 +114,7 @@
       "manifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
       "observedPaths": [],
       "ownedPaths": [
+        "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
         "scripts/audit/domains/forensics-persistence-capability/**",
         "src/capabilities/forensics-persistence/**",
         "src/lib/storage/**",
@@ -124,6 +136,8 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production.workbench-owner.ts"
       ],
       "ownedPaths": [
+        "scripts/acceptance/local-app-shell.acceptance.ts",
+        "scripts/acceptance/local-shell-current-runtime.dynamic.ts",
         "scripts/audit/domains/local-app-shell/**",
         "src/lib/local-runtime/**"
       ]
@@ -146,6 +160,16 @@
         "artifacts/browser-release/**",
         "docs/GrassEye 精确标签页浏览器控制决策记录.md",
         "docs/grid-cell-zone-reference.zh.svg",
+        "scripts/acceptance/browser-extension-build.acceptance.ts",
+        "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
+        "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",
+        "scripts/acceptance/local-browser-journal-recovery.dynamic.ts",
+        "scripts/acceptance/local-browser-property-model.acceptance.ts",
+        "scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
+        "scripts/acceptance/local-browser-supervisor-restart.acceptance-support.ts",
+        "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
+        "scripts/acceptance/local-browser.real-chrome.ts",
+        "scripts/acceptance/local-runtime-browser-authority.acceptance.ts",
         "scripts/audit/domains/local-browser-session/**",
         "src/lib/browser/**"
       ]
@@ -160,6 +184,10 @@
       "manifestPath": "scripts/audit/domains/runtime-log-spine/manifest.json",
       "observedPaths": [],
       "ownedPaths": [
+        "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+        "scripts/acceptance/runtime-log-redaction.acceptance.ts",
+        "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
+        "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
         "scripts/audit/domains/runtime-log-spine/**",
         "src/lib/runtime-logs/**",
         "src/types/structured-log.ts"
@@ -176,6 +204,7 @@
         "package.json"
       ],
       "ownedPaths": [
+        "scripts/acceptance/startup-initialization-health.acceptance.ts",
         "scripts/audit/domains/startup-entrypoint/**",
         "scripts/startup/**"
       ]
@@ -191,6 +220,7 @@
         "src/**"
       ],
       "ownedPaths": [
+        "scripts/acceptance/system-security.acceptance.ts",
         "scripts/audit/domains/system-security/**"
       ]
     },
@@ -204,6 +234,8 @@
         "src/app/workbench-api-boundary.ts"
       ],
       "ownedPaths": [
+        "scripts/acceptance/workbench-api-boundary-fixture.ts",
+        "scripts/acceptance/workbench-api-boundary.acceptance.ts",
         "scripts/audit/domains/workbench-api-boundary/**"
       ]
     },
@@ -224,6 +256,27 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
         "docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json",
         "docs/specs/xuanxue-ai-production/xuanxue-ai-production-v6.dependency.spec.json",
+        "scripts/acceptance/xuanxue-ai-production-admission-inspector.attacks.ts",
+        "scripts/acceptance/xuanxue-ai-production-browser-intervention.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-business.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-concurrency-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-continuous-reconciliation.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture-faults.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture-provider-profile.ts",
+        "scripts/acceptance/xuanxue-ai-production-fixture.ts",
+        "scripts/acceptance/xuanxue-ai-production-hehun-join-guards.ts",
+        "scripts/acceptance/xuanxue-ai-production-naming-join-guards.ts",
+        "scripts/acceptance/xuanxue-ai-production-order-graph-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-order-graph-assertions.ts",
+        "scripts/acceptance/xuanxue-ai-production-parent-recovery.ts",
+        "scripts/acceptance/xuanxue-ai-production-real-proof-support.ts",
+        "scripts/acceptance/xuanxue-ai-production-recovery-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production-v6-control-plane.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
+        "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
+        "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
         "scripts/audit/domains/xuanxue-ai-production/**",
         "src/mediator/xuanxue-ai-production-route.ts",
         "src/plugins/xuanxue-ai-production/**"
@@ -240,6 +293,7 @@
         "src/plugins/xuanxue-ai-production/**"
       ],
       "ownedPaths": [
+        "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
         "scripts/audit/domains/xuanxue-ai-production-localization-contract/**"
       ]
     }

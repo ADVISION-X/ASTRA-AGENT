@@ -12,6 +12,7 @@
     "package-lock.json",
     "package.json",
     "pnpm-workspace.yaml",
+    "scripts/acceptance/code-purity-zombie-deep.acceptance.ts",
     "scripts/audit/domains/code-purity/**",
     "scripts/audit/governance-authority.ts",
     "scripts/audit/governance-json.ts",

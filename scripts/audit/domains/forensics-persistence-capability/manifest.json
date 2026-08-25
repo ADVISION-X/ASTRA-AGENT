@@ -8,6 +8,7 @@
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2"
   ],
   "ownedPaths": [
+    "scripts/acceptance/forensics-persistence-capability.acceptance.ts",
     "scripts/audit/domains/forensics-persistence-capability/**",
     "src/capabilities/forensics-persistence/**",
     "src/lib/storage/**",

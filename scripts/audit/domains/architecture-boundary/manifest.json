@@ -6,6 +6,7 @@
     "LAW-ARCHITECTURE-BOUNDARY-001-V1"
   ],
   "ownedPaths": [
+    "scripts/acceptance/constitutional-boundary-anti-escape.acceptance.ts",
     "scripts/audit/domains/architecture-boundary/**"
   ],
   "observedPaths": [

@@ -8,6 +8,10 @@
     "LAW-RUNTIME-LOG-SPINE-003-V2"
   ],
   "ownedPaths": [
+    "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+    "scripts/acceptance/runtime-log-redaction.acceptance.ts",
+    "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
+    "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/audit/domains/runtime-log-spine/**",
     "src/lib/runtime-logs/**",
     "src/types/structured-log.ts"

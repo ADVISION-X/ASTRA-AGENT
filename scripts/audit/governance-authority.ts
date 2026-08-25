@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
+import { Project } from 'ts-morph';
 import { canonicalBytes, cleanString, exactKeys, isStringArray, parseJson, pathPatternContains, pathPatternValid, rejectDuplicateJsonKeys, sortedUnique } from './governance-json.js';
 import { validateLocalSpecContract } from './governance-local-spec-contract.js';
 import { ROOT, fail, norm, repositoryPaths, text, validGitObjectId, walk } from './governance-runtime.js';
@@ -422,6 +423,36 @@ const baselineOwnersForPath = (path: string): string[] => {
   });
 };
 
+export type RoleConsumptionEdge = Readonly<{ consumer: string; consumed: string }>;
+export function assertRoleConsumptionEdges(edges: readonly RoleConsumptionEdge[]): void {
+  for (const edge of edges) {
+    if (pathRole(edge.consumer) === 'PRODUCTION' && pathRole(edge.consumed) !== 'PRODUCTION') {
+      fail('ROLE_ESCALATION_REQUIRED', `${edge.consumer}->${edge.consumed}`);
+    }
+  }
+}
+
+const repositoryModuleConsumptionEdges = (): RoleConsumptionEdge[] => {
+  const project = new Project({ tsConfigFilePath: resolve(ROOT, 'tsconfig.json') });
+  const repoPath = (absolute: string): string | null => {
+    const path = norm(relative(ROOT, absolute));
+    return path === '..' || path.startsWith('../') ? null : path;
+  };
+  return project.getSourceFiles().flatMap((sourceFile) => {
+    const consumer = repoPath(sourceFile.getFilePath());
+    if (!consumer || pathRole(consumer) !== 'PRODUCTION') return [];
+    return [...sourceFile.getImportDeclarations(), ...sourceFile.getExportDeclarations()].flatMap((declaration) => {
+      const target = declaration.getModuleSpecifierSourceFile();
+      const consumed = target ? repoPath(target.getFilePath()) : null;
+      return consumed ? [{ consumer, consumed }] : [];
+    });
+  });
+};
+
+export function verifyPathRoleEscalation(): void {
+  assertRoleConsumptionEdges(repositoryModuleConsumptionEdges());
+}
+
 export function verifyChangeOwnership(changes: Array<{ status: string; path: string }>, registry = buildRegistry()): void {
   for (const change of changes) {
     if (change.status === 'D' && pathRole(change.path) === 'PRODUCTION') {
@@ -436,6 +467,7 @@ export function verifyChangeOwnership(changes: Array<{ status: string; path: str
       if (owners.length > 1) fail('MULTIPLE_PRIMARY_OWNERS', `${change.path}:${owners.join(',')}`);
     }
   }
+  verifyPathRoleEscalation();
 }
 
 export function verifyProductionOwnership(registry = buildRegistry()): void {
@@ -445,6 +477,7 @@ export function verifyProductionOwnership(registry = buildRegistry()): void {
     if (!owners.length) fail('UNOWNED_PRODUCTION_FILE', path);
     if (owners.length > 1) fail('MULTIPLE_PRIMARY_OWNERS', `${path}:${owners.join(',')}`);
   }
+  verifyPathRoleEscalation();
 }
 
 export function writeRegistry(): void {

@@ -1,8 +1,8 @@
 import type { Project } from "ts-morph";
 
-import { buildRegistry } from "../../audit/governance-authority.js";
-import type { InspectorContext } from "../../audit/shared/inspector-contracts.js";
-import { staticLawSemanticDigest } from "../../audit/shared/static-inspector-result.js";
+import { buildRegistry } from "../governance-authority.js";
+import type { InspectorContext } from "./inspector-contracts.js";
+import { staticLawSemanticDigest } from "./static-inspector-result.js";
 
 export const createInspectorContextFixture = (
   project: Project,

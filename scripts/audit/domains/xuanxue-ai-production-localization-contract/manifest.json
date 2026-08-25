@@ -6,6 +6,7 @@
     "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4"
   ],
   "ownedPaths": [
+    "scripts/acceptance/xuanxue-ai-production-localization-contract.acceptance.ts",
     "scripts/audit/domains/xuanxue-ai-production-localization-contract/**"
   ],
   "observedPaths": [

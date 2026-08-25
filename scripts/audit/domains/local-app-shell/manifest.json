@@ -8,6 +8,8 @@
     "LAW-LOCAL-APP-SHELL-003-V2"
   ],
   "ownedPaths": [
+    "scripts/acceptance/local-app-shell.acceptance.ts",
+    "scripts/acceptance/local-shell-current-runtime.dynamic.ts",
     "scripts/audit/domains/local-app-shell/**",
     "src/lib/local-runtime/**"
   ],

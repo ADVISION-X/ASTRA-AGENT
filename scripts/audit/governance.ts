@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
-import { checkProjection, diffPaths, gitCommit, REGISTRY, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
+import { buildRegistry, checkProjection, diffPaths, gitCommit, verifyChangeOwnership, verifyEntry, verifyProductionOwnership, writeRegistry, type Level, type Registry } from './governance-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
 
@@ -78,8 +78,6 @@ function projectChecks(): void {
   run('npm', ['run', 'acceptance:code-purity-zombie-deep']);
 }
 
-const projectedRegistry = (): Registry => JSON.parse(readFileSync(REGISTRY, 'utf8')) as Registry;
-
 function relevantChangeChecks(changes: Array<{ status: string; path: string }>, registry: Registry): void {
   run('npm', ['run', 'typecheck']);
   for (const script of relevantExamScripts(changes.map((change) => change.path), registry)) run('npm', ['run', script]);
@@ -95,7 +93,7 @@ async function quality(level: Level): Promise<void> {
   assertHighImpactAuthorization(changes);
   if (level === 'CHANGE') {
     if (!changes.length) fail('ENTRY_CONTRACT_MISMATCH', 'CHANGE requires an actual diff');
-    const registry = projectedRegistry();
+    const registry = buildRegistry();
     verifyChangeOwnership(changes, registry);
     relevantChangeChecks(changes, registry);
     if (initial !== changeDenominator()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');

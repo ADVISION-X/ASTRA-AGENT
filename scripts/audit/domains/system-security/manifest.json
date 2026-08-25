@@ -6,6 +6,7 @@
     "LAW-SYSTEM-SECURITY-001-V1"
   ],
   "ownedPaths": [
+    "scripts/acceptance/system-security.acceptance.ts",
     "scripts/audit/domains/system-security/**"
   ],
   "observedPaths": [

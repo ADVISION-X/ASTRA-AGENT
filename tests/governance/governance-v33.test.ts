@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { assertRoleConsumptionEdges, buildRegistry, checkProjection, loadLaws, pathRole, verifyEntry, verifyProductionOwnership } from '../../scripts/audit/governance-authority.js';
+import { GovernanceError } from '../../scripts/audit/governance-runtime.js';
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
 
@@ -57,6 +61,54 @@ test('candidate roles preserve the exact mother-spec vocabulary and keep the PDF
     'GENERATED_REGISTRY', 'GOVERNANCE_AUTHORITY', 'HISTORY_ONLY', 'PRODUCTION', 'QUALITY_REPORT', 'TEST_ONLY',
   ].sort());
   assert.equal(pathRole('docs/governance/法案系统建设说明书-冻结定稿版.pdf'), 'PRODUCTION');
+  assert.equal(pathRole('scripts/acceptance/app-shell-ui.acceptance.ts'), 'PRODUCTION');
+  assert.equal(pathRole('src/capabilities/example/acceptance/runtime.acceptance.ts'), 'PRODUCTION');
+  assert.equal(pathRole('scripts/acceptance/fixtures/input.json'), 'TEST_ONLY');
+});
+
+test('production consumption of a TEST_ONLY module requires role escalation', () => {
+  assert.throws(
+    () => assertRoleConsumptionEdges([{ consumer: 'src/app/server.ts', consumed: 'tests/fixture.ts' }]),
+    (error: unknown) => error instanceof GovernanceError && error.code === 'ROLE_ESCALATION_REQUIRED',
+  );
+  assert.doesNotThrow(() => assertRoleConsumptionEdges([
+    { consumer: 'scripts/acceptance/app-shell-ui.acceptance.ts', consumed: 'src/app/server.ts' },
+  ]));
+});
+
+test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spec authority', () => {
+  const mutations: Array<{ path: string; mutate: (source: string) => string }> = [
+    { path: '.github/instructions/agent-rules/功能法案.md', mutate: (source) => `${source}\n---\n` },
+    { path: 'scripts/audit/domains/code-purity/manifest.json', mutate: (source) => {
+      const value = JSON.parse(source) as Record<string, unknown>;
+      return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
+    } },
+    { path: 'docs/blueprints/local-browser-session/LOCAL-BROWSER-SESSION-V6-OWNER-JOURNAL-BLUEPRINT.md',
+      mutate: (source) => source.replace('  "schemaVersion": 1,', '  "schemaVersion": 1,\n  "unexpected": true,') },
+    { path: 'docs/specs/xuanxue-ai-production/product-execution-contract.dependency.spec.json', mutate: (source) => {
+      const value = JSON.parse(source) as Record<string, unknown>;
+      return `${JSON.stringify({ ...value, unexpected: true }, null, 2)}\n`;
+    } },
+  ];
+  for (const mutation of mutations) {
+    const temporary = mkdtempSync(resolve(tmpdir(), 'governance-change-authority-'));
+    const repository = resolve(temporary, 'repo');
+    try {
+      execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
+      symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+      const target = resolve(repository, mutation.path);
+      writeFileSync(target, mutation.mutate(readFileSync(target, 'utf8')));
+      const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {
+        cwd: repository,
+        encoding: 'utf8',
+        env: { ...process.env, GRASSEYE_LAW_AMENDMENT_AUTHORIZED: '1', GRASSEYE_HIGH_IMPACT_AUTHORIZED: '1' },
+      });
+      assert.notEqual(execution.status, 0, mutation.path);
+      assert.match(`${execution.stdout}${execution.stderr}`, /SOURCE_PARSE_FAILED/u, mutation.path);
+    } finally {
+      rmSync(temporary, { force: true, recursive: true });
+    }
+  }
 });
 
 test('consumer cross-repo specs declare only dependency identity', () => {

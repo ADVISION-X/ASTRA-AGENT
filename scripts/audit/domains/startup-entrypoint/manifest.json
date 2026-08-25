@@ -7,6 +7,7 @@
     "LAW-STARTUP-ENTRYPOINT-002-V1"
   ],
   "ownedPaths": [
+    "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/audit/domains/startup-entrypoint/**",
     "scripts/startup/**"
   ],
