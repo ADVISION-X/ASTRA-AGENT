@@ -231,8 +231,9 @@ const databasePath = path.join(runRoot, "plugin-tasks", "xuanxue-ai-production",
 const database = new Database(databasePath, { readonly: true, fileMustExist: true });
 const integrity = database.pragma("integrity_check", { simple: true });
 assert.equal(integrity, "ok", "production database integrity");
-const orderRows = database.prepare("select source_task_id,status from production_orders order by source_task_id").all() as unknown as
-  Array<{ source_task_id: string; status: string }>;
+const orderRows = database.prepare<[], { source_task_id: string; status: string }>(
+  "select source_task_id,status from production_orders order by source_task_id",
+).all();
 database.close();
 const terminalOrders = new Map(orderRows.map((row) => [row.source_task_id, row.status]));
 for (const jobId of terminalJobIds) assert.equal(terminalOrders.get(jobId), "completed", `durable terminal order ${jobId}`);
