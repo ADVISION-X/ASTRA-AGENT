@@ -49,14 +49,16 @@ const baselineLawSource = (path: string): string => {
   return result.status === 0 ? result.stdout : '';
 };
 
-const validateChangedLawSource = (
-  path: string,
-  documentType: 'base-law' | 'functional-law',
-  authorityLevel: 100 | 90,
-): void => {
-  const current = parseLawSource(text(path), path, documentType, authorityLevel);
-  const baseline = baselineLawSource(path);
-  if (baseline) assertLawMajorVersionChanges(parseLawSource(baseline, path, documentType, authorityLevel), current);
+const parseCorpus = (base: string, functional: string): Law[] => [
+  ...parseLawSource(base, BASE, 'base-law', 100),
+  ...parseLawSource(functional, FUNCTIONAL, 'functional-law', 90),
+];
+
+const validateLawCorpusChange = (): void => {
+  const current = parseCorpus(text(BASE), text(FUNCTIONAL));
+  const priorBase = baselineLawSource(BASE);
+  const priorFunctional = baselineLawSource(FUNCTIONAL);
+  if (priorBase && priorFunctional) assertLawMajorVersionChanges(parseCorpus(priorBase, priorFunctional), current);
 };
 
 const machineBlock = (path: string): Record<string, unknown> => {
@@ -154,8 +156,7 @@ const providerSpecValid = (raw: Spec): boolean => {
 
 const validateChangedSource = (change: { status: string; path: string }): void => {
   if (change.status === 'D') return;
-  if (change.path === BASE) return validateChangedLawSource(BASE, 'base-law', 100);
-  if (change.path === FUNCTIONAL) return validateChangedLawSource(FUNCTIONAL, 'functional-law', 90);
+  if (change.path === BASE || change.path === FUNCTIONAL) return;
   if (/^scripts\/audit\/domains\/[^/]+\/manifest\.json$/u.test(change.path)) return validateManifest(change.path);
   if (change.path.startsWith('docs/specs/') && change.path.endsWith('.json')) return validateSpec(change.path);
   if (change.path.startsWith('docs/blueprints/') && (change.path.endsWith('.md') || change.path.endsWith('.json'))) {
@@ -164,5 +165,7 @@ const validateChangedSource = (change: { status: string; path: string }): void =
   }
 };
 
-export const validateChangedGovernanceSources = (changes: Array<{ status: string; path: string }>): void =>
+export const validateChangedGovernanceSources = (changes: Array<{ status: string; path: string }>): void => {
+  if (changes.some((change) => change.path === BASE || change.path === FUNCTIONAL)) validateLawCorpusChange();
   changes.forEach(validateChangedSource);
+};

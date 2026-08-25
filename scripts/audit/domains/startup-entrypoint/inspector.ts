@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 const packagePath = "package.json";
 const launchPath = "scripts/startup/launch-grasseye.mjs";
@@ -185,6 +185,10 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
   inspectLocalStartupAuthorityBoundary(context, findings, boundaryLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [
+      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-001-V4", 12, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-STARTUP-ENTRYPOINT-002-V1", 5, ["static.ast", "static.contract"]),
+    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -192,8 +196,5 @@ const inspectDomainEvaluation = (context: InspectorContext) => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-STARTUP-ENTRYPOINT-001-V4" },
-    { lawId: "LAW-STARTUP-ENTRYPOINT-002-V1" },
-  ], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

@@ -11,16 +11,31 @@ const evidenceKind: Readonly<Record<string, string>> = {
 };
 const ordered = (values: readonly string[]): string[] => [...new Set(values)].sort((left, right) =>
   Buffer.compare(Buffer.from(left), Buffer.from(right)));
-export type StaticLawRoute = Readonly<{ lawId: string }>;
 export type StaticInspectorExecutor = (context: InspectorContext) => InspectorEvaluation | Promise<InspectorEvaluation>;
 
-const validateStaticRoutes = (context: InspectorContext, routes: readonly StaticLawRoute[]): string[] => {
+export const staticLawCoverage = (
+  lawId: string, forbiddenCount: number, evidenceModes: readonly string[],
+): { lawId: string; clausesByMode: Record<string, string[]> } => ({
+  lawId,
+  clausesByMode: Object.fromEntries(evidenceModes.map((mode) => [mode, ordered([
+    ...Array.from({ length: forbiddenCount }, (_, index) => `forbidden:${index}`), "summary",
+  ])])),
+});
+
+const validateStaticCoverage = (context: InspectorContext, evaluation: InspectorEvaluation): string[] => {
   const requiredIds = context.lawRequirements.map((law) => law.lawId);
-  if (JSON.stringify(ordered(routes.map((route) => route.lawId))) !== JSON.stringify(requiredIds)) {
-    fail("LAW_CHECK_ROUTE_MISSING", context.planEntry.capabilityDomain);
+  const coverageIds = evaluation.coverage.map((entry) => entry.lawId);
+  if (JSON.stringify(coverageIds) !== JSON.stringify(requiredIds)) {
+    fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${context.planEntry.capabilityDomain}:clause-coverage`);
   }
   for (const requirement of context.lawRequirements) {
-    const requiredClauses = ordered(Object.values(requirement.clausesByMode).flat());
+    const coverage = evaluation.coverage.find((entry) => entry.lawId === requirement.lawId);
+    if (!coverage) fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:clause-coverage`);
+    const verifiedCoverage = coverage as NonNullable<typeof coverage>;
+    if (JSON.stringify(verifiedCoverage.clausesByMode) !== JSON.stringify(requirement.clausesByMode)) {
+      fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:clause-coverage`);
+    }
+    const requiredClauses = ordered(Object.values(verifiedCoverage.clausesByMode).flat());
     const availableClauses = ordered([
       ...Array.from({ length: requirement.forbiddenCount }, (_, index) => `forbidden:${index}`), "summary",
     ]);
@@ -56,10 +71,10 @@ const validateStaticEvaluation = (
 };
 
 const targetRefs = (
-  requirement: InspectorLawRequirement, evidenceMode: string, clauses: readonly string[],
+  requirement: InspectorLawRequirement, evidenceMode: string,
 ): string[] => ordered([
   ...requirement.targetPaths.filter((path) => !/[#@]/u.test(path)).map((path) =>
-    `${evidenceKind[evidenceMode] ?? "file"}:${path}#${encodeURIComponent(`lawId=${requirement.lawId};mode=${evidenceMode};clauses=${clauses.join(",")}`)}`),
+    `${evidenceKind[evidenceMode] ?? "file"}:${path}#entire-governed-object`),
   requirement.targetSet.queryRef,
 ]);
 
@@ -67,26 +82,28 @@ const resultForRequirement = (
   evaluation: InspectorEvaluation, requirement: InspectorLawRequirement,
 ): InspectorLawResult => {
   const findings = evaluation.findings.filter((finding) => finding.lawId === requirement.lawId);
+  const coverage = evaluation.coverage.find((entry) => entry.lawId === requirement.lawId)
+    ?? fail("LAW_CHECK_EXECUTION_INCOMPLETE", `${requirement.lawId}:clause-coverage`);
   return {
     lawId: requirement.lawId,
-    assertions: Object.entries(requirement.clausesByMode).map(([evidenceMode, clauses]) => ({
+    assertions: Object.entries(coverage.clausesByMode).map(([evidenceMode, clauses]) => ({
       clauses: ordered(clauses),
       evidenceMode,
       passed: findings.length === 0,
-      refs: targetRefs(requirement, evidenceMode, clauses),
+      refs: targetRefs(requirement, evidenceMode),
     })),
     findings,
   };
 };
 
 export const finalizeStaticInspection = async (
-  context: InspectorContext, routes: readonly StaticLawRoute[], execute: StaticInspectorExecutor,
+  context: InspectorContext, execute: StaticInspectorExecutor,
 ): Promise<InspectorOutput> => {
-  const requiredIds = validateStaticRoutes(context, routes);
   const requiredTargets = ordered(context.lawRequirements.flatMap((requirement) => requirement.targetPaths));
   let evaluation: InspectorEvaluation;
   try { evaluation = await execute(context); }
   catch { return fail("LAW_CHECK_EXECUTION_INCOMPLETE", context.planEntry.capabilityDomain); }
+  const requiredIds = validateStaticCoverage(context, evaluation);
   validateStaticEvaluation(context, evaluation, requiredIds, requiredTargets);
   return {
     capabilityDomain: evaluation.capabilityDomain,

@@ -5,12 +5,12 @@ import { inspectAppShellLayout } from "./inspector-layout.js";
 import { inspectAppShellLocalization } from "./inspector-localization.js";
 import { inspectLegacyAppUserDemandPhysicalAbsence } from "./inspector-retired-authority-absence.js";
 import { inspectSkillRegistry } from "./inspector-skill-registry.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-001-V2");
   const localizationLawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-002-V1");
-  const legacyLawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-003-V2");
+  const legacyLawId = selectLawId(context.planEntry.lawIds, "LAW-APP-SHELL-UI-003-V3");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
   inspectAppShellLocalization(context, findings, inspectedFiles, localizationLawId);
@@ -25,6 +25,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
       );
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [
+      staticLawCoverage("LAW-APP-SHELL-UI-001-V2", 10, ["static.ast"]),
+      staticLawCoverage("LAW-APP-SHELL-UI-002-V1", 5, ["static.ast"]),
+      staticLawCoverage("LAW-APP-SHELL-UI-003-V3", 3, ["static.ast"]),
+    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -32,9 +37,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-APP-SHELL-UI-001-V2" },
-    { lawId: "LAW-APP-SHELL-UI-002-V1" },
-    { lawId: "LAW-APP-SHELL-UI-003-V2" },
-  ], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

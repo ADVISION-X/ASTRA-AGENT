@@ -8,8 +8,8 @@
         "LAW-AI-INPUT-GATEWAY-003-V1",
         "LAW-AI-INPUT-GATEWAY-004-V1",
         "LAW-AI-INPUT-GATEWAY-005-V4",
-        "LAW-AI-INPUT-GATEWAY-006-V1",
-        "LAW-AI-INPUT-GATEWAY-007-V1"
+        "LAW-AI-INPUT-GATEWAY-006-V2",
+        "LAW-AI-INPUT-GATEWAY-007-V2"
       ],
       "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json",
       "observedPaths": [],
@@ -26,7 +26,7 @@
       "lawIds": [
         "LAW-APP-SHELL-UI-001-V2",
         "LAW-APP-SHELL-UI-002-V1",
-        "LAW-APP-SHELL-UI-003-V2"
+        "LAW-APP-SHELL-UI-003-V3"
       ],
       "manifestPath": "scripts/audit/domains/app-shell-ui/manifest.json",
       "observedPaths": [
@@ -106,9 +106,9 @@
     {
       "capabilityDomain": "forensics-persistence-capability",
       "lawIds": [
-        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
-        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2",
-        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2"
+        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
+        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
+        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3"
       ],
       "manifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
       "observedPaths": [],
@@ -149,7 +149,7 @@
         "LAW-LOCAL-BROWSER-SESSION-003-V6",
         "LAW-LOCAL-BROWSER-SESSION-004-V7",
         "LAW-LOCAL-BROWSER-SESSION-005-V4",
-        "LAW-LOCAL-BROWSER-SESSION-006-V2"
+        "LAW-LOCAL-BROWSER-SESSION-006-V3"
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
@@ -177,8 +177,8 @@
       "capabilityDomain": "runtime-log-spine",
       "lawIds": [
         "LAW-RUNTIME-LOG-SPINE-001-V3",
-        "LAW-RUNTIME-LOG-SPINE-002-V2",
-        "LAW-RUNTIME-LOG-SPINE-003-V2"
+        "LAW-RUNTIME-LOG-SPINE-002-V3",
+        "LAW-RUNTIME-LOG-SPINE-003-V3"
       ],
       "manifestPath": "scripts/audit/domains/runtime-log-spine/manifest.json",
       "observedPaths": [],
@@ -286,7 +286,7 @@
     {
       "capabilityDomain": "xuanxue-ai-production-localization-contract",
       "lawIds": [
-        "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4"
+        "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5"
       ],
       "manifestPath": "scripts/audit/domains/xuanxue-ai-production-localization-contract/manifest.json",
       "observedPaths": [
@@ -500,9 +500,9 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：AI 规划工作流、控制浏览器、扩大候选集合，或替代调用方决定付款、退款、删除和敏感提交。"
       ],
-      "lawId": "LAW-AI-INPUT-GATEWAY-006-V1",
+      "lawId": "LAW-AI-INPUT-GATEWAY-006-V2",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 215,
@@ -511,7 +511,7 @@
       },
       "status": "active",
       "summary": "必须保持以下不变量：AI is a bounded choice judge by default; it may not plan workflows, control browsers, or choose sensitive final actions.",
-      "supersedesLawId": null,
+      "supersedesLawId": "LAW-AI-INPUT-GATEWAY-006-V1",
       "tier": "P0"
     },
     {
@@ -529,9 +529,9 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：AI transport 自行选择文件、artifact 或其它输入引用，或取得付款、退款、删除和敏感提交的控制权。"
       ],
-      "lawId": "LAW-AI-INPUT-GATEWAY-007-V1",
+      "lawId": "LAW-AI-INPUT-GATEWAY-007-V2",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 243,
@@ -540,7 +540,7 @@
       },
       "status": "active",
       "summary": "必须保持以下不变量：AI transport must accept only caller-approved input references and may never choose files or control payment, refund, deletion, or sensitive submission.",
-      "supersedesLawId": null,
+      "supersedesLawId": "LAW-AI-INPUT-GATEWAY-007-V1",
       "tier": "P0"
     },
     {
@@ -614,7 +614,11 @@
     },
     {
       "appliesTo": [
-        "**/*"
+        ".github/**",
+        "docs/**",
+        "package.json",
+        "scripts/**",
+        "src/**"
       ],
       "capabilityDomain": "app-shell-ui",
       "contractRefs": [],
@@ -630,16 +634,16 @@
         "不得发生：Retired, archived, deprecated, hidden, or copied variants of the legacy APP user-demand startup blueprint remain in the repository.",
         "不得发生：App source, package scripts, migration docs, or non-governance docs still reference the deleted legacy APP user-demand startup blueprint."
       ],
-      "lawId": "LAW-APP-SHELL-UI-003-V2",
+      "lawId": "LAW-APP-SHELL-UI-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 40,
-        "lineStart": 13,
-        "path": ".github/instructions/agent-rules/基础法案.md"
+        "lineEnd": 345,
+        "lineStart": 314,
+        "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：After App Shell becomes the production UI entry, the orphan legacy APP user-demand startup blueprint must be physically absent. Retired, archived, deprecated, or copied variants of that legacy authority are forbidden.",
-      "supersedesLawId": "LAW-APP-SHELL-UI-003-V1",
+      "supersedesLawId": "LAW-APP-SHELL-UI-003-V2",
       "tier": "P0"
     },
     {
@@ -670,8 +674,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 350,
-        "lineStart": 316,
+        "lineEnd": 383,
+        "lineStart": 349,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -710,8 +714,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 391,
-        "lineStart": 354,
+        "lineEnd": 424,
+        "lineStart": 387,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -761,8 +765,8 @@
       "lawId": "LAW-CODE-PURITY-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 92,
-        "lineStart": 44,
+        "lineEnd": 61,
+        "lineStart": 13,
         "path": ".github/instructions/agent-rules/基础法案.md"
       },
       "status": "active",
@@ -785,18 +789,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：第二 evidence writer、覆盖式改写、不可追溯删除，或 Forensics Persistence 承担 workflow 决策。"
       ],
-      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
+      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 421,
-        "lineStart": 395,
+        "lineEnd": 454,
+        "lineStart": 428,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Forensics Persistence is the single append-first evidence owner for step traces, artifact references, result records, and failure reasons, and it never owns workflow decisions.",
-      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V1",
+      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2",
       "tier": "P0"
     },
     {
@@ -815,18 +819,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：绕过 Forensics storage port 的第二写入 Owner，或以本地 schema 建立第二份业务真相。"
       ],
-      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2",
+      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 450,
-        "lineStart": 423,
+        "lineEnd": 483,
+        "lineStart": 456,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Local persistence schema is a Forensics support contract for structured records, governed artifact storage, and browser-profile separation, not a second write owner.",
-      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V1",
+      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2",
       "tier": "P0"
     },
     {
@@ -844,18 +848,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：以退休业务对象、无 envelope 裸记录、无 integrity metadata 的 artifact 或无删除关系的记录污染 Forensics schema。"
       ],
-      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
+      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 478,
-        "lineStart": 452,
+        "lineEnd": 511,
+        "lineStart": 485,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Forensics schema vocabulary must use record envelopes, refs, integrity metadata, export metadata, and deletion relations instead of retired business-domain objects.",
-      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V1",
+      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
       "tier": "P0"
     },
     {
@@ -892,8 +896,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 522,
-        "lineStart": 482,
+        "lineEnd": 555,
+        "lineStart": 515,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -923,8 +927,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 552,
-        "lineStart": 524,
+        "lineEnd": 585,
+        "lineStart": 557,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -957,8 +961,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V2",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 585,
-        "lineStart": 554,
+        "lineEnd": 618,
+        "lineStart": 587,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -995,8 +999,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 624,
-        "lineStart": 589,
+        "lineEnd": 657,
+        "lineStart": 622,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1034,8 +1038,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 662,
-        "lineStart": 626,
+        "lineEnd": 695,
+        "lineStart": 659,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1074,8 +1078,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 701,
-        "lineStart": 664,
+        "lineEnd": 734,
+        "lineStart": 697,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1122,8 +1126,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 746,
-        "lineStart": 703,
+        "lineEnd": 779,
+        "lineStart": 736,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1155,8 +1159,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 778,
-        "lineStart": 748,
+        "lineEnd": 811,
+        "lineStart": 781,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1179,18 +1183,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：凭证、原始浏览器身份、页面内容或可变文件系统路径进入日志、持久证据或 Browser wire protocol。"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 806,
-        "lineStart": 780,
+        "lineEnd": 839,
+        "lineStart": 813,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Browser authority infrastructure must keep credentials, raw browser identities, page content and mutable filesystem paths opaque and outside logs, durable proof and the wire protocol.",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-006-V1",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-006-V2",
       "tier": "P0"
     },
     {
@@ -1218,8 +1222,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 841,
-        "lineStart": 810,
+        "lineEnd": 874,
+        "lineStart": 843,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1242,18 +1246,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：凭证、浏览器存储、含 secret 的 URL、完整 HTML 或私有 artifact body 进入 runtime log 或公开 evidence。"
       ],
-      "lawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
+      "lawId": "LAW-RUNTIME-LOG-SPINE-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 869,
-        "lineStart": 843,
+        "lineEnd": 902,
+        "lineStart": 876,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Runtime logs and public evidence must never disclose credentials, browser storage, secret-bearing URLs, full HTML, or private artifact bodies.",
-      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-002-V1",
+      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-002-V2",
       "tier": "P0"
     },
     {
@@ -1271,18 +1275,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：第二 logger、非结构化旁路输出、sink 后置脱敏，或绕过 Runtime Log Spine 的 FLOW、DEBUG、TRACE 记录。"
       ],
-      "lawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
+      "lawId": "LAW-RUNTIME-LOG-SPINE-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 897,
-        "lineStart": 871,
+        "lineEnd": 930,
+        "lineStart": 904,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：Structured logging is subordinate to the single Runtime Log Spine and must preserve FLOW, DEBUG, TRACE structure and sink-before-output redaction without a second logging authority.",
-      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-003-V1",
+      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-003-V2",
       "tier": "P0"
     },
     {
@@ -1318,8 +1322,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 940,
-        "lineStart": 901,
+        "lineEnd": 973,
+        "lineStart": 934,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1355,8 +1359,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 976,
-        "lineStart": 942,
+        "lineEnd": 1009,
+        "lineStart": 975,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1396,8 +1400,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1018,
-        "lineStart": 980,
+        "lineEnd": 1051,
+        "lineStart": 1013,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1431,8 +1435,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1054,
-        "lineStart": 1022,
+        "lineEnd": 1087,
+        "lineStart": 1055,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1502,8 +1506,8 @@
       "lawId": "LAW-XUANXUE-AI-PRODUCTION-001-V10",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1122,
-        "lineStart": 1058,
+        "lineEnd": 1155,
+        "lineStart": 1091,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1530,18 +1534,18 @@
         "src/plugins/xuanxue-ai-production/xuanxue-ai-production-transient-lifecycle.acceptance.ts"
       ],
       "forbidden": [
-        "不得发生：不得绕过该能力的唯一现役主链。"
+        "不得发生：AGENT 保存 website manifest 副本、provider projection、重复 cloud transport 或第二产品真相，或接受未经认证的 localization order identity。"
       ],
-      "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
+      "lawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1156,
-        "lineStart": 1126,
+        "lineEnd": 1189,
+        "lineStart": 1159,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须保持以下不变量：AGENT only validates the authenticated immutable localization order identity and local Stage structure; no website manifest copy, provider projection, cloud transport duplicate, or second product truth remains.",
-      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V3",
+      "supersedesLawId": "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
       "tier": "P0"
     }
   ],

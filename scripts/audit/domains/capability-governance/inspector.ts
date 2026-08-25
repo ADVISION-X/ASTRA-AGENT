@@ -9,7 +9,7 @@ import {
   isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-files.js";
 import {
   resolveCapabilityFacadePolicy,
@@ -457,6 +457,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [staticLawCoverage("LAW-CAPABILITY-GOVERNANCE-001-V2", 6, [
+      "static.filesystem", "static.ast", "static.types", "static.dependency",
+    ])],
     reportedLawIds: context.planEntry.lawIds,
     findings: evaluation.findings,
     inspectedFiles: [...context.targetPaths],
@@ -464,7 +467,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [{
-    lawId: "LAW-CAPABILITY-GOVERNANCE-001-V2",
-  }], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

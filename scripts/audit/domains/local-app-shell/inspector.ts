@@ -8,7 +8,7 @@ import {
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V5";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
@@ -227,6 +227,11 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   inspectSeparatedStatus(context.project, findings, LAW_STATUS, context.targetPaths);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [
+      staticLawCoverage(LAW_SHELL, 9, ["static.ast", "static.contract"]),
+      staticLawCoverage(LAW_BOUNDARY, 4, ["static.ast"]),
+      staticLawCoverage(LAW_STATUS, 3, ["static.ast"]),
+    ],
     reportedLawIds: context.planEntry.lawIds,
     findings: findings.sort((left, right) => left.lawId.localeCompare(right.lawId) || (left.filePath ?? "").localeCompare(right.filePath ?? "") || left.message.localeCompare(right.message)),
     inspectedFiles: [...context.targetPaths],
@@ -234,9 +239,5 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: LAW_SHELL },
-    { lawId: LAW_BOUNDARY },
-    { lawId: LAW_STATUS },
-  ], evaluate);
+  return finalizeStaticInspection(context, evaluate);
 };

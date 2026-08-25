@@ -6,7 +6,7 @@ import { inspectActivePluginMediators } from "./components/scan-active-plugin-me
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
 import { inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 
 
@@ -41,6 +41,9 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [staticLawCoverage("LAW-ARCHITECTURE-BOUNDARY-001-V1", 7, [
+      "static.filesystem", "static.ast", "static.types", "static.dependency",
+    ])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -48,7 +51,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [{
-    lawId: "LAW-ARCHITECTURE-BOUNDARY-001-V1",
-  }], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

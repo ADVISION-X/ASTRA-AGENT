@@ -4,7 +4,7 @@ import { Node, SyntaxKind, type ClassDeclaration, type Node as MorphNode, type S
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type InspectorFinding, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { collectTransportPayloadCeilingFindings } from "./transport-payload-ceiling-inspector.js";
 import { createLocalFinding, identifiers, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
@@ -447,7 +447,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   const channelLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-002-V4");
   const claimLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-003-V6");
   const releaseLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-005-V4");
-  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V2");
+  const opaqueLawId = selectLawId(context.planEntry.lawIds, "LAW-LOCAL-BROWSER-SESSION-006-V3");
   const findings: InspectorFinding[] = [];
   for (const path of [...sourcePaths, targetAuthorityPath].filter((candidate) => context.targetPaths.includes(candidate))) {
     if (context.project.getSourceFile(resolveFromRepo(path))) continue;
@@ -469,6 +469,14 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   inspectOpaqueAuthorityBoundary(context, findings, opaqueLawId);
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-001-V4", 10, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-002-V4", 11, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-003-V6", 12, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-004-V7", 16, ["static.ast"]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-005-V4", 5, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-LOCAL-BROWSER-SESSION-006-V3", 1, ["static.ast", "static.contract"]),
+    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths].sort(),
@@ -476,12 +484,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-002-V4" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-003-V6" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-004-V7" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-005-V4" },
-    { lawId: "LAW-LOCAL-BROWSER-SESSION-006-V2" },
-  ], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

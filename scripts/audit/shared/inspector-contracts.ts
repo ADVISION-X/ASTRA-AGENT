@@ -15,6 +15,7 @@ export type InspectorAssertion = { clauses: string[]; evidenceMode: string; pass
 export type InspectorLawResult = { lawId: string; assertions: InspectorAssertion[]; findings: InspectorFinding[] };
 export type InspectorEvaluation = {
   capabilityDomain: string;
+  coverage: Array<{ lawId: string; clausesByMode: Record<string, string[]> }>;
   reportedLawIds: string[];
   findings: InspectorFinding[];
   inspectedFiles: string[];
@@ -39,15 +40,6 @@ type AuditPlanEntry = {
   ownerInspectorPath: string;
   executionGroup: "foundation" | "domain" | "meta";
   lawIds: string[];
-  bindings: Array<{
-    lawId: string;
-    clauseId: string;
-    checkIds: string[];
-    sourceEvidence: Array<{ filePath: string; symbolName: string }>;
-    evidenceMode: "static" | "acceptance" | "real-chrome" | "model+acceptance+real-chrome" | "artifact+real-chrome";
-    primaryEvidence?: { engine: "ast" | "fs" | "config"; sourceEvidenceIndex: number };
-  }>;
-  blueprintRefs: Array<{ filePath: string; requiredAnchors: string[] }>;
 };
 export type InspectorContext = {
   project: Project;

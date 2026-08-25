@@ -7,7 +7,7 @@ import type { InspectorContext, SessionInspectorOutput } from "../../shared/insp
 import { createAuditProject } from "../../shared/project.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 const criticalRuntimeFiles = [
   "src/plugins/xuanxue-ai-production/xuanxue-ai-production.schema.ts",
@@ -113,23 +113,22 @@ const inspectDomainEvaluation = async (
   context: InspectorContext,
 ) => {
   const findings: ReturnType<typeof createFinding>[] = [];
-  const lawId = "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4";
+  const lawId = "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5";
   try {
     await inspectXuanxueLocalizationContract(context.project);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    for (const binding of context.planEntry.bindings) {
-      findings.push(createFinding({
-        lawId: binding.lawId,
-        clauseId: binding.clauseId,
-        checkId: `${context.planEntry.capabilityDomain}/owner-assertion-set`,
-        filePath: context.planEntry.ownerInspectorPath,
-        message: `Localization contract assertion failed: ${message.slice(0, 240)}`,
-      }));
-    }
+    findings.push(createFinding({
+      lawId,
+      clauseId: "localization-contract-requirement",
+      checkId: "xuanxue-localization-contract/contract-shape",
+      filePath: context.planEntry.ownerInspectorPath,
+      message: `Localization contract assertion failed: ${message.slice(0, 240)}`,
+    }));
   }
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [staticLawCoverage("LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V5", 1, ["static.ast"])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -137,7 +136,5 @@ const inspectDomainEvaluation = async (
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [{
-    lawId: "LAW-XUANXUE-AI-PRODUCTION-LOCALIZATION-CONTRACT-001-V4",
-  }], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

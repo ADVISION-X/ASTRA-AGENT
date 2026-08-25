@@ -49,4 +49,4 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] runtime-log-debug-bundle PASS\n");
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V2", evidenceMode: "exam.golden", locator: "acceptance:runtime-log:debug-bundle", observedValue: "round-bound debug bundle retains redacted runtime log" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V3", evidenceMode: "exam.golden", locator: "acceptance:runtime-log:debug-bundle", observedValue: "round-bound debug bundle retains redacted runtime log" });

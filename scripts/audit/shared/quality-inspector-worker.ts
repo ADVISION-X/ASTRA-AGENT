@@ -56,14 +56,6 @@ const plan = (input: WorkerRequest): InspectorContext["planEntry"] => ({
   ownerInspectorPath: input.ownerInspectorPath,
   executionGroup: "domain",
   lawIds: input.laws.map((law) => law.lawId),
-  bindings: input.laws.map(({ lawId }) => ({
-    lawId,
-    clauseId: `${lawId.toLowerCase()}-requirement`,
-    checkIds: [`${input.capabilityDomain}/owner-assertion-set`],
-    sourceEvidence: [{ filePath: input.ownerInspectorPath, symbolName: "inspectDomain" }],
-    evidenceMode: "static",
-  })),
-  blueprintRefs: [],
 });
 
 export const runInspectionWorker = async (): Promise<void> => {

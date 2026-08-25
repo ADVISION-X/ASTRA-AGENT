@@ -4,8 +4,8 @@
   "status": "active",
   "lawIds": [
     "LAW-RUNTIME-LOG-SPINE-001-V3",
-    "LAW-RUNTIME-LOG-SPINE-002-V2",
-    "LAW-RUNTIME-LOG-SPINE-003-V2"
+    "LAW-RUNTIME-LOG-SPINE-002-V3",
+    "LAW-RUNTIME-LOG-SPINE-003-V3"
   ],
   "ownedPaths": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",

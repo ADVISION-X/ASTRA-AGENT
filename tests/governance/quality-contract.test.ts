@@ -25,7 +25,7 @@ import type { InspectorContext } from "../../scripts/audit/shared/inspector-cont
 import { proofObservationPrefix } from "../../scripts/audit/shared/proof-observation.js";
 import type { QualityProofRequest } from "../../scripts/audit/shared/proof-observation.js";
 import { assertProofModeDenominator, observationMatchesRoute, proofClauseIndexesFor, relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
-import { finalizeStaticInspection } from "../../scripts/audit/shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../scripts/audit/shared/static-inspector-result.js";
 import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 
 const fixtureLaw = (): Law => ({
@@ -395,7 +395,7 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
   );
 });
 
-test("static finalization rejects a law with no explicit inspector route", async () => {
+test("static finalization rejects a law with no explicit clause result", async () => {
   const context = {
     project: new Project({ useInMemoryFileSystem: true }),
     selectedLawId: "LAW-FIXTURE-001-V1",
@@ -412,17 +412,18 @@ test("static finalization rejects a law with no explicit inspector route", async
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
   } as unknown as InspectorContext;
   await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
+    () => finalizeStaticInspection(context, function inspectFixture() { return {
       capabilityDomain: "fixture",
+      coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"])],
       reportedLawIds: ["LAW-FIXTURE-001-V1", "LAW-FIXTURE-002-V1"],
       findings: [],
       inspectedFiles: ["src/fixture.ts"],
     }; }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
-test("static finalization rejects a new law clause without an explicit owner check route", async () => {
+test("static finalization rejects a new law clause without an explicit owner clause result", async () => {
   const context = {
     sealedRoot: "/sealed",
     planEntry: { capabilityDomain: "fixture", ownerInspectorPath: "scripts/audit/domains/fixture/inspector.ts" },
@@ -435,11 +436,12 @@ test("static finalization rejects a new law clause without an explicit owner che
     }],
   } as unknown as InspectorContext;
   await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
+    () => finalizeStaticInspection(context, function inspectFixture() { return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+      coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"])],
       findings: [], inspectedFiles: ["src/fixture.ts"],
     }; }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_ROUTE_MISSING",
+    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
   );
 });
 
@@ -457,8 +459,9 @@ test("static finalization invokes the named owner executor and rejects an unread
   } as unknown as InspectorContext;
   let executed = false;
   await assert.rejects(
-    () => finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { executed = true; return {
+    () => finalizeStaticInspection(context, function inspectFixture() { executed = true; return {
       capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"],
+      coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"])],
       findings: [], inspectedFiles: ["src/fixture-a.ts"],
     }; }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE",
@@ -477,8 +480,9 @@ test("static PASS evidence names governed target objects instead of inspector de
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 1 },
     }],
   } as unknown as InspectorContext;
-  const output = await finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
-      capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
+  const output = await finalizeStaticInspection(context, function inspectFixture() { return {
+      capabilityDomain: "fixture", coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"])],
+      reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [], inspectedFiles: ["package.json"],
     }; });
   const refs = output.lawResults[0]!.assertions[0]!.refs;
   assert.equal(refs.some((ref) => ref.startsWith("ast:package.json#")), true);
@@ -497,8 +501,9 @@ test("static evidence keeps the exact scope when a governed path is not an evide
       targetSet: { queryRef: "scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes", count: 2 },
     }],
   } as unknown as InspectorContext;
-  const output = await finalizeStaticInspection(context, [{ lawId: "LAW-FIXTURE-001-V1" }], function inspectFixture() { return {
-    capabilityDomain: "fixture", reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [],
+  const output = await finalizeStaticInspection(context, function inspectFixture() { return {
+    capabilityDomain: "fixture", coverage: [staticLawCoverage("LAW-FIXTURE-001-V1", 1, ["static.ast"])],
+    reportedLawIds: ["LAW-FIXTURE-001-V1"], findings: [],
     inspectedFiles: [pathWithReservedCharacter, "package.json"],
   }; });
   const refs = output.lawResults[0]!.assertions[0]!.refs;

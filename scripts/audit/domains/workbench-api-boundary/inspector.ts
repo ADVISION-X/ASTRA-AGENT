@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 import {
   Node,
@@ -344,6 +344,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: domain,
+    coverage: [staticLawCoverage("LAW-WORKBENCH-API-BOUNDARY-001-V4", 7, ["static.ast", "static.contract"])],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -351,7 +352,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [{
-    lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V4",
-  }], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

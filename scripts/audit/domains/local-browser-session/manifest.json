@@ -8,7 +8,7 @@
     "LAW-LOCAL-BROWSER-SESSION-003-V6",
     "LAW-LOCAL-BROWSER-SESSION-004-V7",
     "LAW-LOCAL-BROWSER-SESSION-005-V4",
-    "LAW-LOCAL-BROWSER-SESSION-006-V2"
+    "LAW-LOCAL-BROWSER-SESSION-006-V3"
   ],
   "ownedPaths": [
     "artifacts/browser-release/**",

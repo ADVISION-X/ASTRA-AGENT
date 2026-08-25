@@ -5,7 +5,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import { repoRoot, resolveFromRepo } from "../../shared/paths.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 type Finding = ReturnType<typeof createFinding>;
 
@@ -180,9 +180,9 @@ const inspectSchemaVocabulary = (
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2");
-  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2");
-  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2");
+  const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3");
+  const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3");
+  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
 
@@ -195,6 +195,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [
+      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V3", 1, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V3", 1, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3", 1, ["static.ast", "static.contract"]),
+    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -202,9 +207,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V2" },
-    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V2" },
-    { lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2" },
-  ], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };

@@ -2,7 +2,7 @@ import { type InspectorContext, type InspectorEvaluation, type SessionInspectorO
 import { selectLawId } from "../../shared/finding-utils.js";
 import { toInspectorFinding } from "./finding-adapter.js";
 import { collectRuntimeLogPhaseRuns, type CollectedPhaseRuns } from "./phase-runs.js";
-import { finalizeStaticInspection } from "../../shared/static-inspector-result.js";
+import { finalizeStaticInspection, staticLawCoverage } from "../../shared/static-inspector-result.js";
 
 const findingsForLaw = (collected: CollectedPhaseRuns, lawId: string) => collected.phaseRuns
   .flatMap((phase) => phase.findings)
@@ -20,8 +20,8 @@ const collectRuntimeContractFindings = (context: InspectorContext, lawId: string
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const operationalLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-001-V3");
-  const redactionLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-002-V2");
-  const contractLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-003-V2");
+  const redactionLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-002-V3");
+  const contractLawId = selectLawId(context.planEntry.lawIds, "LAW-RUNTIME-LOG-SPINE-003-V3");
   const findings = [
     ...collectRuntimeOperationalTraceFindings(context, operationalLawId),
     ...collectRuntimeRedactionFindings(context, redactionLawId),
@@ -29,6 +29,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   ];
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
+    coverage: [
+      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-001-V3", 6, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-002-V3", 1, ["static.ast", "static.contract"]),
+      staticLawCoverage("LAW-RUNTIME-LOG-SPINE-003-V3", 1, ["static.ast", "static.contract"]),
+    ],
     reportedLawIds: context.planEntry.lawIds,
     findings,
     inspectedFiles: [...context.targetPaths],
@@ -36,9 +41,5 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
-  return finalizeStaticInspection(context, [
-    { lawId: "LAW-RUNTIME-LOG-SPINE-001-V3" },
-    { lawId: "LAW-RUNTIME-LOG-SPINE-002-V2" },
-    { lawId: "LAW-RUNTIME-LOG-SPINE-003-V2" },
-  ], inspectDomainEvaluation);
+  return finalizeStaticInspection(context, inspectDomainEvaluation);
 };
