@@ -11,6 +11,8 @@
     "browser:verify": "node --import tsx scripts/acceptance/browser-extension-build.acceptance.ts",
     "browser:journal:recover": "node --import tsx src/lib/browser/exact-target/browser-proof-journal-recovery-cli.ts",
     "proof:local-browser-journal-recovery": "node --import tsx scripts/acceptance/local-browser-journal-recovery.dynamic.ts",
+    "proof:xuanxue-ai-production:recovery": "node --import tsx scripts/acceptance/xuanxue-ai-production.recovery-proof.ts",
+    "proof:xuanxue-ai-production:72h-soak": "node --import tsx scripts/acceptance/xuanxue-ai-production.72h-soak-proof.ts",
     "browser:protocol:generate": "node src/lib/browser/protocol/generate-browser-protocol.mjs",
     "browser:build": "npm run browser:protocol:generate && node src/lib/browser/chrome-extension/build.mjs",
     "build": "tsc -p tsconfig.json",

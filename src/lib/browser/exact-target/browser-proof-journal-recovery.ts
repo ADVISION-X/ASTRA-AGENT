@@ -34,6 +34,8 @@ type RecoveryReceipt = Readonly<{
 
 export type BrowserProofJournalRecoveryInput = Readonly<{
   journalPath: string;
+  candidateHash: `sha256:${string}`;
+  releaseBuildId: string;
   operatorId: string;
   authorizationRef: string;
   reasonCode: string;
@@ -66,6 +68,10 @@ const exactText = (value: string, field: string): string => {
     throw new Error(`BROWSER_JOURNAL_RECOVERY_INPUT_INVALID:${field}`);
   }
   return trimmed;
+};
+const exactHash = (value: string, field: string): `sha256:${string}` => {
+  if (!hashPattern.test(value)) throw new Error(`BROWSER_JOURNAL_RECOVERY_INPUT_INVALID:${field}`);
+  return value as `sha256:${string}`;
 };
 const fsyncDirectory = (path: string): void => {
   const descriptor = openSync(path, "r");
@@ -100,6 +106,7 @@ const assertSecureRegularFile = (path: string): void => {
 type LegacyDiagnosis = Readonly<{
   firstInvalidLine: number;
   originalLineCount: number;
+  containsRecoveryEvent: boolean;
   observedCandidateHashes: readonly `sha256:${string}`[];
   observedReleaseBuildIds: readonly string[];
 }>;
@@ -149,6 +156,7 @@ const inspectLegacyJournal = (bytes: Buffer): LegacyDiagnosis => {
   const originalLineCount = Math.max(physicalLines.length, 1);
   const candidates = new Set<`sha256:${string}`>();
   const releaseBuildIds = new Set<string>();
+  let containsRecoveryEvent = false;
   let previous = `sha256:${"0".repeat(64)}`;
   let firstInvalidLine = physicalLines.length + 1;
   for (const [index, line] of physicalLines.entries()) {
@@ -158,6 +166,8 @@ const inspectLegacyJournal = (bytes: Buffer): LegacyDiagnosis => {
       break;
     }
     collectLegacyIdentity(raw, candidates, releaseBuildIds);
+    if (raw.event && typeof raw.event === "object" && !Array.isArray(raw.event)
+      && (raw.event as Record<string, unknown>).eventType === "RECOVERY") containsRecoveryEvent = true;
     if (!legacyEntryValid(raw, index, previous)) {
       firstInvalidLine = Math.min(firstInvalidLine, index + 1);
       break;
@@ -168,6 +178,7 @@ const inspectLegacyJournal = (bytes: Buffer): LegacyDiagnosis => {
   return {
     firstInvalidLine: Math.min(firstInvalidLine, originalLineCount),
     originalLineCount,
+    containsRecoveryEvent,
     observedCandidateHashes: [...candidates].sort(),
     observedReleaseBuildIds: [...releaseBuildIds].sort(),
   };
@@ -196,7 +207,13 @@ const resultFromRecoveryEvent = (
   firstInvalidLine: event.firstInvalidLine,
 });
 
-type RecoveryIdentity = Readonly<{ operatorId: string; authorizationRef: string; reasonCode: string }>;
+type RecoveryIdentity = Readonly<{
+  candidateHash: `sha256:${string}`;
+  releaseBuildId: string;
+  operatorId: string;
+  authorizationRef: string;
+  reasonCode: string;
+}>;
 type RecoveryMaterial = Readonly<{
   journalPath: string;
   browserDirectory: string;
@@ -215,7 +232,8 @@ const existingRecovery = (
   try {
     const recovery = readBrowserProofJournal(journalPath)[0]?.event;
     if (recovery?.eventType !== "RECOVERY") throw new Error("BROWSER_JOURNAL_RECOVERY_NOT_REQUIRED");
-    if (recovery.operatorId !== identity.operatorId || recovery.authorizationRef !== identity.authorizationRef
+    if (recovery.candidateHash !== identity.candidateHash || recovery.releaseBuildId !== identity.releaseBuildId
+      || recovery.operatorId !== identity.operatorId || recovery.authorizationRef !== identity.authorizationRef
       || recovery.reasonCode !== identity.reasonCode) throw new Error("BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT");
     return resultFromRecoveryEvent(recovery, "ALREADY_RECOVERED");
   } catch (error) {
@@ -230,6 +248,7 @@ const prepareRecoveryMaterial = (journalPath: string, identity: RecoveryIdentity
   if (original.byteLength === 0) throw new Error("BROWSER_JOURNAL_RECOVERY_NOT_REQUIRED");
   const originalJournalSha256 = sha256(original);
   const diagnosis = inspectLegacyJournal(original);
+  if (diagnosis.containsRecoveryEvent) throw new Error("BROWSER_JOURNAL_RECOVERY_SECOND_GENESIS_FORBIDDEN");
   const recoveryId = sha256(JSON.stringify(canonicalize({
     schemaVersion: "grasseye.browser-proof-journal-recovery-id.v1",
     originalJournalSha256,
@@ -323,6 +342,8 @@ export const recoverBrowserProofJournal = (
   input.assertExclusiveOwner();
   const journalPath = resolve(input.journalPath);
   const identity: RecoveryIdentity = {
+    candidateHash: exactHash(input.candidateHash, "candidateHash"),
+    releaseBuildId: exactText(input.releaseBuildId, "releaseBuildId"),
     operatorId: exactText(input.operatorId, "operatorId"),
     authorizationRef: exactText(input.authorizationRef, "authorizationRef"),
     reasonCode: exactText(input.reasonCode, "reasonCode"),

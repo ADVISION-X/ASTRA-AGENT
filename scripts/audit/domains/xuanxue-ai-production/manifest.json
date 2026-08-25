@@ -27,9 +27,11 @@
     "scripts/acceptance/xuanxue-ai-production-stored-order-quarantine-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-surface-acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production-v6-control-plane.acceptance.ts",
+    "scripts/acceptance/xuanxue-ai-production.72h-soak-proof.ts",
     "scripts/acceptance/xuanxue-ai-production.acceptance.ts",
     "scripts/acceptance/xuanxue-ai-production.real-chrome.ts",
     "scripts/acceptance/xuanxue-ai-production.real-provider.ts",
+    "scripts/acceptance/xuanxue-ai-production.recovery-proof.ts",
     "scripts/audit/domains/xuanxue-ai-production/**",
     "src/mediator/xuanxue-ai-production-route.ts",
     "src/plugins/xuanxue-ai-production/**"

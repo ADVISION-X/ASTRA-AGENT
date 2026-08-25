@@ -97,7 +97,14 @@ export const clausesForLaw = (law: Law): string[] => [
 ].sort(byteCompare);
 
 export const clausesForEvidenceMode = (law: Law, required: readonly string[], mode: string): string[] => {
-  const proofModes = required.filter((candidate) => candidate.startsWith("exam.") || candidate.startsWith("dynamic."));
+  if (mode.startsWith("dynamic.")) {
+    const configured = proofClauseIndexesFor(law.lawId, mode, law.forbidden.length)
+      ?? fail("LAW_CHECK_ROUTE_MISSING", `${law.lawId}:${mode}:clause-route`);
+    return ordered([...configured.map((index) => `forbidden:${index}`), "summary"]);
+  }
+  // READY owns the fixed clause denominator. RELEASE may add observations, but
+  // must never steal or rewrite an already adjudicated Static/Exam assignment.
+  const proofModes = required.filter((candidate) => candidate.startsWith("exam."));
   const assignments = new Map(proofModes.map((proofMode) => {
     const configured = proofClauseIndexesFor(law.lawId, proofMode, law.forbidden.length);
     if (configured) return [proofMode, configured] as const;

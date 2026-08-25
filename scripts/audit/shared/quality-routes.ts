@@ -43,8 +43,8 @@ const dynamicScripts: Readonly<Record<string, Readonly<Partial<Record<string, st
     "dynamic.service": "acceptance:xuanxue-ai-production:real-proof-verify",
     "dynamic.provider": "acceptance:xuanxue-ai-production:real-proof-verify",
     "dynamic.authorization": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.recovery": "acceptance:xuanxue-ai-production:real-proof-verify",
-    "dynamic.performance": "acceptance:xuanxue-ai-production:real-proof-verify",
+    "dynamic.recovery": "proof:xuanxue-ai-production:recovery",
+    "dynamic.performance": "proof:xuanxue-ai-production:72h-soak",
   },
 };
 
@@ -175,6 +175,12 @@ const nativeDynamicLocator = (input: { script: string; lawId: string; mode: stri
   }
   if (input.script === "acceptance:xuanxue-ai-production:real-proof-verify") {
     return /^\/.*\/runtime-data\/ai-input-gateway\/web-chat-executions$/u.test(input.locator);
+  }
+  if (input.script === "proof:xuanxue-ai-production:recovery") {
+    return /^\/.*\/runtime-data\/xuanxue-ai-production\/recovery-proof\.json$/u.test(input.locator);
+  }
+  if (input.script === "proof:xuanxue-ai-production:72h-soak") {
+    return /^\/.*\/runtime-data\/xuanxue-ai-production\/72h-soak-proof\.json$/u.test(input.locator);
   }
   return input.script === "proof:local-shell-current-runtime"
     && localRuntimeLocator(input.lawId, input.mode, input.locator);

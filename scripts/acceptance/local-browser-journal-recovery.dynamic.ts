@@ -1,27 +1,35 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFile, stat } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { buildStartupSourceFingerprint } from "../startup/lib/source-fingerprint.mjs";
 
 import { readBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal.js";
 import { recoverBrowserProofJournal } from "../../src/lib/browser/exact-target/browser-proof-journal-recovery.js";
+import { BrowserOwnerLock } from "../../src/lib/browser/infrastructure/browser-owner-lock.js";
+import { readUnpackedExtensionReleaseIdentity } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 
-const root = await mkdtemp(join(tmpdir(), "grasseye-browser-recovery-proof-"));
-const journalPath = join(root, "proof-events.ndjson");
-const previousAuthorization = process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
+const required = (name: string): string => {
+  const value = process.env[name]?.trim();
+  assert.ok(value, `${name} is required for an authorized recovery`);
+  return value;
+};
+assert.equal(process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED, "1");
+const root = resolve(required("GRASSEYE_DATA_DIR"));
+const journalPath = join(root, "browser", "proof-events.ndjson");
+const release = await readUnpackedExtensionReleaseIdentity(join(root, "browser-release", "release-record.json"));
+const lock = new BrowserOwnerLock(join(root, "browser", "owner.lock"));
 
+await lock.acquire();
 try {
-  await writeFile(journalPath, '{"schemaVersion":"corrupt"}\n', { mode: 0o600 });
-  await chmod(journalPath, 0o600);
-  process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED = "1";
   const input = {
     journalPath,
-    operatorId: "ci-release-dynamic-proof",
-    authorizationRef: "temporary-owned-fixture",
-    reasonCode: "DYNAMIC_RECOVERY_PROOF",
-    recoveredAt: new Date().toISOString(),
-    assertExclusiveOwner: () => undefined,
+    candidateHash: buildStartupSourceFingerprint(resolve(import.meta.dirname, "../..")),
+    releaseBuildId: release.releaseBuildId,
+    operatorId: required("GRASSEYE_BROWSER_JOURNAL_RECOVERY_OPERATOR"),
+    authorizationRef: required("GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZATION_REF"),
+    reasonCode: required("GRASSEYE_BROWSER_JOURNAL_RECOVERY_REASON"),
+    assertExclusiveOwner: () => lock.assertHeld(),
   };
   const recovered = recoverBrowserProofJournal(input);
   assert.equal(recovered.status, "RECOVERED");
@@ -36,13 +44,13 @@ try {
     status: "RECOVERY_VERIFIED",
     recoveryId: recovered.recoveryId,
     firstInvalidLine: recovered.firstInvalidLine,
-    fixtureOwnership: "temporary-owned",
+    dataRoot: root,
+    candidateHash: input.candidateHash,
+    releaseBuildId: input.releaseBuildId,
   })}\n`);
   emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery",
     locator: recovered.recoveryReceiptPath, receipt: recovered.recoveryId.slice("sha256:".length),
     observedValue: `recoveryId=${recovered.recoveryId};firstInvalidLine=${recovered.firstInvalidLine}` });
 } finally {
-  if (previousAuthorization === undefined) delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
-  else process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED = previousAuthorization;
-  await rm(root, { recursive: true, force: true });
+  await lock.release();
 }

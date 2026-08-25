@@ -122,6 +122,21 @@ test("every active Static route has fixed clause coverage bound to domain semant
   }
 });
 
+test("RELEASE additions cannot rewrite READY Static or Exam clause ownership", () => {
+  const registry = buildRegistry();
+  for (const law of registry.laws) {
+    const ready = requiredModes(law, "READY");
+    const release = requiredModes(law, "RELEASE");
+    for (const mode of ready) {
+      assert.deepEqual(
+        clausesForEvidenceMode(law, release, mode),
+        clausesForEvidenceMode(law, ready, mode),
+        `${law.lawId}:${mode}`,
+      );
+    }
+  }
+});
+
 test("static semantic receipts are emitted only after a checker returns", () => {
   const receipts: Array<{ lawId: string; name: string }> = [];
   assert.throws(() => recordSemanticCheck(receipts, "LAW-A", "inspectA", (() => {
@@ -383,6 +398,14 @@ test("a Dynamic producer cannot self-authenticate an invented native object", ()
     domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", mode: "dynamic.provider",
     locator: "/repo/.grasseye-local/runtime-data/ai-input-gateway/web-chat-executions",
     observedValue: "provider records verified" }), true);
+  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:xuanxue-ai-production:recovery",
+    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", mode: "dynamic.recovery",
+    locator: "/repo/.grasseye-local/runtime-data/xuanxue-ai-production/recovery-proof.json",
+    observedValue: "original order recovery verified" }), true);
+  assert.equal(observationMatchesRoute({ kind: "dynamic", script: "proof:xuanxue-ai-production:72h-soak",
+    domain: "xuanxue-ai-production", lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", mode: "dynamic.performance",
+    locator: "/repo/.grasseye-local/runtime-data/xuanxue-ai-production/72h-soak-proof.json",
+    observedValue: "72 hour soak and lease P95 verified" }), true);
 
   const missingNativeMarker = `${proofObservationPrefix}${JSON.stringify({
     lawId: "LAW-LOCAL-BROWSER-SESSION-004-V6", evidenceMode: "dynamic.recovery",
@@ -774,6 +797,28 @@ test("every declared dynamic evidence mode has one executable RELEASE proof rout
   const registry = buildRegistry();
   for (const law of registry.laws) for (const mode of law.evidenceModes.filter((item) => item.startsWith("dynamic."))) {
     assert.ok(dynamicScriptFor(law.capabilityDomain, mode).length > 0, `${law.lawId}:${mode}`);
+  }
+});
+
+test("recovery and performance Dynamic Proofs consume real governed receipts", () => {
+  const browserRecovery = readFileSync("scripts/acceptance/local-browser-journal-recovery.dynamic.ts", "utf8");
+  for (const forbidden of ["mkdtemp", "temporary-owned-fixture", "assertExclusiveOwner: () => undefined", "rm(root"]) {
+    assert.equal(browserRecovery.includes(forbidden), false, forbidden);
+  }
+  for (const required of ["BrowserOwnerLock", "GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZATION_REF", "releaseBuildId", "candidateHash"]) {
+    assert.ok(browserRecovery.includes(required), required);
+  }
+  const provider = readFileSync("scripts/acceptance/xuanxue-ai-production.real-provider.ts", "utf8");
+  assert.equal(provider.includes("proofDurationMs"), false);
+  assert.equal(provider.includes('evidenceMode: "dynamic.performance"'), false);
+  assert.equal(provider.includes('evidenceMode: "dynamic.recovery"'), false);
+  const soak = readFileSync("scripts/acceptance/xuanxue-ai-production.72h-soak-proof.ts", "utf8");
+  for (const token of ["72 * 60 * 60", "LEASE_P95_LIMIT_MS = 15_000", ".length(75)", "eligible_at", "leased_at"]) {
+    assert.ok(soak.includes(token), token);
+  }
+  const recovery = readFileSync("scripts/acceptance/xuanxue-ai-production.recovery-proof.ts", "utf8");
+  for (const token of ["original_order_id", "resumed_order_id", "replacement_job_id", "checkpoint_before_hash", "checkpoint_after_hash"]) {
+    assert.ok(recovery.includes(token), token);
   }
 });
 

@@ -51,7 +51,8 @@ try {
   const corrupted = Buffer.from(`${JSON.stringify({ ...firstCore, entryHash: hash(firstCore) })}\n${JSON.stringify({ ...competingCore, entryHash: hash(competingCore) })}\n`);
   await writeFile(journalPath, corrupted, { mode: 0o600 });
   await lock.acquire();
-  const input = { journalPath, operatorId: "operator:test", authorizationRef: "human-authorization:test",
+  const input = { journalPath, candidateHash: `sha256:${"3".repeat(64)}` as const,
+    releaseBuildId: "release-build-recovery-v2", operatorId: "operator:test", authorizationRef: "human-authorization:test",
     reasonCode: "FORKED_SEQUENCE", assertExclusiveOwner: () => lock.assertHeld(), recoveredAt: "2026-08-25T00:00:00.000Z" } as const;
   delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;
   assert.throws(() => recoverBrowserProofJournal(input), /BROWSER_JOURNAL_RECOVERY_NOT_AUTHORIZED/u);
@@ -62,8 +63,13 @@ try {
   assert.deepEqual(await readFile(recovered.archivePath), corrupted);
   assert.equal(existsSync(recovered.recoveryReceiptPath), true);
   assert.deepEqual(readBrowserProofJournal(journalPath).map(({ event }) => event.eventType), ["RECOVERY"]);
+  const recovery = readBrowserProofJournal(journalPath)[0]!.event;
+  assert.equal(recovery.candidateHash, input.candidateHash);
+  assert.equal(recovery.eventType === "RECOVERY" && recovery.releaseBuildId, input.releaseBuildId);
   assert.equal(recoverBrowserProofJournal(input).status, "ALREADY_RECOVERED");
   assert.throws(() => recoverBrowserProofJournal({ ...input, authorizationRef: "different-authorization" }),
+    /BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT/u);
+  assert.throws(() => recoverBrowserProofJournal({ ...input, candidateHash: `sha256:${"4".repeat(64)}` }),
     /BROWSER_JOURNAL_RECOVERY_RECEIPT_CONFLICT/u);
 } finally {
   if (priorAuthorization === undefined) delete process.env.GRASSEYE_BROWSER_JOURNAL_RECOVERY_AUTHORIZED;

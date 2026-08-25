@@ -43,8 +43,6 @@ type ProviderRecord = {
   } | null;
 };
 
-const proofStartedAt = Date.now();
-
 const runRoot = process.env.XUANXUE_AI_REAL_RUN_ROOT?.trim();
 assert.ok(runRoot, "XUANXUE_AI_REAL_RUN_ROOT is required");
 assert.equal(
@@ -251,8 +249,6 @@ const continuationReceipt = {
   terminalReceiptHashes: cloudAttestation.terminalReceiptHashes,
   capturedAt: cloudAttestation.heartbeatAt,
 };
-const proofDurationMs = Date.now() - proofStartedAt;
-assert.ok(proofDurationMs <= 300_000, `real Provider verification exceeded 300000ms: ${proofDurationMs}`);
 process.stdout.write(`${JSON.stringify({
   marker: "[ACCEPTANCE][XUANXUE-AI-PRODUCTION][REAL-PROVIDER]",
   runRoot,
@@ -266,8 +262,7 @@ process.stdout.write(`${JSON.stringify({
 }, null, 2)}\n`);
 const attestationReceipt = continuationReceipt.successor.runtimeAttestationReceiptHash.replace(/^sha256:/u, "");
 const providerReceipt = Object.values(dynamicProofBinding.provider_record_hashes)[0];
-const terminalReceipt = Object.values(continuationReceipt.terminalReceiptHashes)[0];
-assert.ok(providerReceipt && terminalReceipt);
+assert.ok(providerReceipt);
 emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.service",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `predecessor=${continuationReceipt.predecessor.workerSessionId};successor=${continuationReceipt.successor.workerSessionId}` });
@@ -277,9 +272,3 @@ emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenc
 emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.authorization",
   locator: executionDirectory, receipt: attestationReceipt,
   observedValue: `device=${continuationReceipt.successor.deviceId};sessionEpoch=${continuationReceipt.successor.workerSessionEpoch}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.recovery",
-  locator: executionDirectory, receipt: terminalReceipt.replace(/^sha256:/u, ""),
-  observedValue: `terminalReceipts=${Object.keys(continuationReceipt.terminalReceiptHashes).length}` });
-emitQualityProofObservation({ lawId: "LAW-XUANXUE-AI-PRODUCTION-001-V9", evidenceMode: "dynamic.performance",
-  locator: executionDirectory, receipt: providerReceipt.replace(/^sha256:/u, ""),
-  observedValue: `durationMs=${proofDurationMs};records=${records.length};limitMs=300000` });
